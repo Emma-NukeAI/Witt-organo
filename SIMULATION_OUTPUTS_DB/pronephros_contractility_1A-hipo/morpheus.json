@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_1A-hipo",
+  "scenario_label": "1A-hipo",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "dislocated",
+  "morphology_decouple": "pass",
+  "confidence": 0.78,
+  "notes": "Dislocacion - longitud normal",
+  "morpheus_version": "manual-1.0"
+}

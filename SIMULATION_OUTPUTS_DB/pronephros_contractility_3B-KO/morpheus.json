@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_3B-KO",
+  "scenario_label": "3B-KO",
+  "phenotype_severity": "extreme",
+  "phenotype_class": "masa_sin_arquitectura",
+  "morphology_decouple": "pass",
+  "confidence": 0.62,
+  "notes": "Masa sin arquitectura",
+  "morpheus_version": "manual-1.0"
+}

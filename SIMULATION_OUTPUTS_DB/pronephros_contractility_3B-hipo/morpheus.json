@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_3B-hipo",
+  "scenario_label": "3B-hipo",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "normal",
+  "morphology_decouple": "partial",
+  "confidence": 0.65,
+  "notes": "Pared mal polarizada",
+  "morpheus_version": "manual-1.0"
+}

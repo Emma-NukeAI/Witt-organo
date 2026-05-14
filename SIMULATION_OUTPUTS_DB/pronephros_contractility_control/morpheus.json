@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_control",
+  "scenario_label": "control",
+  "phenotype_severity": "baseline",
+  "phenotype_class": "normal",
+  "morphology_decouple": "na",
+  "confidence": 1.0,
+  "notes": "Pronefro bilateral simetrico",
+  "morpheus_version": "manual-1.0"
+}

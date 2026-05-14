@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_1A-KO",
+  "scenario_label": "1A-KO",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "asymmetric",
+  "morphology_decouple": "pass",
+  "confidence": 0.74,
+  "notes": "Asimetria - truncamiento",
+  "morpheus_version": "manual-1.0"
+}

@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_2B-hipo",
+  "scenario_label": "2B-hipo",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "dislocated",
+  "morphology_decouple": "partial",
+  "confidence": 0.66,
+  "notes": "Comprimido + falla polaridad",
+  "morpheus_version": "manual-1.0"
+}

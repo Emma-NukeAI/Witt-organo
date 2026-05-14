@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_3A-KO",
+  "scenario_label": "3A-KO",
+  "phenotype_severity": "extreme",
+  "phenotype_class": "swiss_cheese",
+  "morphology_decouple": "pass",
+  "confidence": 0.78,
+  "notes": "Swiss cheese - identidad bulk OK",
+  "morpheus_version": "manual-1.0"
+}

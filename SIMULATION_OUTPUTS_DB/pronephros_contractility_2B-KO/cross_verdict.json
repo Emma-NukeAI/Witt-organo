@@ -1,0 +1,37 @@
+{
+  "squidiff_verdict": {
+    "verdict": "pass",
+    "confidence": 0.5,
+    "rationale": "Pearson r=0.994, directional accuracy=100.0%; Mode 0 synthetic \u2014 confidence capped at 0.50"
+  },
+  "morpheus_verdict": {
+    "hypothesis_id": "pronephros_contractility_2B-KO",
+    "scenario_label": "2B-KO",
+    "phenotype_severity": "extreme",
+    "phenotype_class": "preserved_foci",
+    "morphology_decouple": "pass-paradigm",
+    "confidence": 0.58,
+    "notes": "Sin tubulo - foci wt1a+",
+    "morpheus_version": "manual-1.0"
+  },
+  "spurious_check": {
+    "is_spurious": false,
+    "severity": "none",
+    "message": "Gates differ but not in the spurious pattern."
+  },
+  "consolidated": {
+    "consolidated_verdict": "pass-decouple",
+    "consolidated_label": "PASS-DECOUPLE",
+    "confidence": 0.55,
+    "rationale": "Transcriptomic identity preserved (Squidiff) AND morphology shows decouple from architecture (Morpheus). This is the paradigm case: identity is separable from form. High-value hypothesis.",
+    "spurious": {
+      "is_spurious": false,
+      "severity": "none",
+      "message": "Gates differ but not in the spurious pattern."
+    }
+  },
+  "metrics_source": "SIMULATION_OUTPUTS_DB/pronephros_contractility_2B-KO/squidiff_metrics.json",
+  "hypothesis": "pronephros_contractility_2B-KO",
+  "system": "pronephros",
+  "mode": "3_cross_verdict"
+}

@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_2A-KO",
+  "scenario_label": "2A-KO",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "cyst_amorphous",
+  "morphology_decouple": "pass",
+  "confidence": 0.75,
+  "notes": "Quiste compacto - cluster",
+  "morpheus_version": "manual-1.0"
+}

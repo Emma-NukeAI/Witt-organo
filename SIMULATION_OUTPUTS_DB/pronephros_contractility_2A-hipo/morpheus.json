@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_2A-hipo",
+  "scenario_label": "2A-hipo",
+  "phenotype_severity": "moderate",
+  "phenotype_class": "compressed",
+  "morphology_decouple": "pass",
+  "confidence": 0.8,
+  "notes": "Comprimido - lumen formado",
+  "morpheus_version": "manual-1.0"
+}

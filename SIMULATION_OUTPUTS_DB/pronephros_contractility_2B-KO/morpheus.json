@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_2B-KO",
+  "scenario_label": "2B-KO",
+  "phenotype_severity": "extreme",
+  "phenotype_class": "preserved_foci",
+  "morphology_decouple": "pass-paradigm",
+  "confidence": 0.58,
+  "notes": "Sin tubulo - foci wt1a+",
+  "morpheus_version": "manual-1.0"
+}

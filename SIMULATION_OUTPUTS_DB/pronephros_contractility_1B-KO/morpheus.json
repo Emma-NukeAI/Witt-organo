@@ -1,0 +1,10 @@
+{
+  "hypothesis_id": "pronephros_contractility_1B-KO",
+  "scenario_label": "1B-KO",
+  "phenotype_severity": "extreme",
+  "phenotype_class": "catastrophic",
+  "morphology_decouple": "fail",
+  "confidence": 0.55,
+  "notes": "Catastrofico - sin pronefro",
+  "morpheus_version": "manual-1.0"
+}
