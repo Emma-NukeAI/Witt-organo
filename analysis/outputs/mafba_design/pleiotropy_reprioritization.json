@@ -1,0 +1,553 @@
+{
+  "analysis": "pleiotropy comparison across 13 TF candidates",
+  "n_cells_total": 18932,
+  "wagner_samples": [
+    "GSM3067193",
+    "GSM3067194",
+    "GSM3067195"
+  ],
+  "summaries": [
+    {
+      "gene": "pax2a",
+      "pronephros_pct_avg": 83.05,
+      "pronephros_pct_max": 92.86,
+      "non_pronephros_max_pct": 88.41,
+      "non_pronephros_top5_avg_pct": 56.35,
+      "n_non_pn_clusters_above_pronephros_avg": 1,
+      "n_non_pn_clusters_above_50pct": 2,
+      "specificity_ratio_pn_to_max_nonpn": 0.939,
+      "pleiotropy_risk": "MEDIUM",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "63",
+          "name": "14hpf-epidermal - otic placode",
+          "pct": 88.41
+        },
+        {
+          "cluster": "101",
+          "name": "18hpf-otic placode",
+          "pct": 60.78
+        },
+        {
+          "cluster": "116",
+          "name": "18hpf-lateral line primordium",
+          "pct": 47.83
+        }
+      ],
+      "tier": "T1",
+      "status": "validated"
+    },
+    {
+      "gene": "wt1a",
+      "pronephros_pct_avg": 0.0,
+      "pronephros_pct_max": 0.0,
+      "non_pronephros_max_pct": 12.5,
+      "non_pronephros_top5_avg_pct": 7.11,
+      "n_non_pn_clusters_above_pronephros_avg": 62,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.0,
+      "pleiotropy_risk": "N/A",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "121",
+          "name": "18hpf-differentiating neurons - phox2a",
+          "pct": 12.5
+        },
+        {
+          "cluster": "95",
+          "name": "18hpf-erythroid",
+          "pct": 6.25
+        },
+        {
+          "cluster": "193",
+          "name": "24hpf-epidermal - rbp4",
+          "pct": 5.71
+        }
+      ],
+      "tier": "T2",
+      "status": "validated"
+    },
+    {
+      "gene": "wt1b",
+      "pronephros_pct_avg": 0.0,
+      "pronephros_pct_max": 0.0,
+      "non_pronephros_max_pct": 28.48,
+      "non_pronephros_top5_avg_pct": 25.32,
+      "n_non_pn_clusters_above_pronephros_avg": 113,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.0,
+      "pleiotropy_risk": "N/A",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "92",
+          "name": "18hpf-heart field",
+          "pct": 28.48
+        },
+        {
+          "cluster": "174",
+          "name": "24hpf-heart",
+          "pct": 28.17
+        },
+        {
+          "cluster": "189",
+          "name": "24hpf-epidermal - s100a11",
+          "pct": 25.0
+        }
+      ],
+      "tier": "T2",
+      "status": "validated"
+    },
+    {
+      "gene": "sim1a",
+      "pronephros_pct_avg": 0.0,
+      "pronephros_pct_max": 0.0,
+      "non_pronephros_max_pct": 23.33,
+      "non_pronephros_top5_avg_pct": 11.7,
+      "n_non_pn_clusters_above_pronephros_avg": 64,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.0,
+      "pleiotropy_risk": "N/A",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "96",
+          "name": "18hpf-macrophage",
+          "pct": 23.33
+        },
+        {
+          "cluster": "139",
+          "name": "24hpf-neural crest",
+          "pct": 12.5
+        },
+        {
+          "cluster": "129",
+          "name": "24hpf-leukocyte",
+          "pct": 7.69
+        }
+      ],
+      "tier": "T3",
+      "status": "validated"
+    },
+    {
+      "gene": "dzip1l",
+      "pronephros_pct_avg": 7.27,
+      "pronephros_pct_max": 20.0,
+      "non_pronephros_max_pct": 31.25,
+      "non_pronephros_top5_avg_pct": 20.93,
+      "n_non_pn_clusters_above_pronephros_avg": 11,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.233,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "156",
+          "name": "24hpf-hatching gland",
+          "pct": 31.25
+        },
+        {
+          "cluster": "160",
+          "name": "24hpf-neural - floorplate",
+          "pct": 22.22
+        },
+        {
+          "cluster": "81",
+          "name": "18hpf-epidermal - olfactory placode",
+          "pct": 17.86
+        }
+      ],
+      "tier": "T3",
+      "status": "validated"
+    },
+    {
+      "gene": "mafba",
+      "pronephros_pct_avg": 14.46,
+      "pronephros_pct_max": 20.0,
+      "non_pronephros_max_pct": 100.0,
+      "non_pronephros_top5_avg_pct": 82.95,
+      "n_non_pn_clusters_above_pronephros_avg": 32,
+      "n_non_pn_clusters_above_50pct": 7,
+      "specificity_ratio_pn_to_max_nonpn": 0.145,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "189",
+          "name": "24hpf-epidermal - s100a11",
+          "pct": 100.0
+        },
+        {
+          "cluster": "161",
+          "name": "24hpf-endothelial - posterior",
+          "pct": 86.79
+        },
+        {
+          "cluster": "93",
+          "name": "18hpf-lens placode",
+          "pct": 79.49
+        }
+      ],
+      "tier": "T1",
+      "status": "novel"
+    },
+    {
+      "gene": "ripply1",
+      "pronephros_pct_avg": 8.57,
+      "pronephros_pct_max": 20.0,
+      "non_pronephros_max_pct": 66.2,
+      "non_pronephros_top5_avg_pct": 43.85,
+      "n_non_pn_clusters_above_pronephros_avg": 32,
+      "n_non_pn_clusters_above_50pct": 1,
+      "specificity_ratio_pn_to_max_nonpn": 0.129,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "61",
+          "name": "14hpf-mesoderm - pharyngeal arch",
+          "pct": 66.2
+        },
+        {
+          "cluster": "119",
+          "name": "18hpf-pharyngeal arch",
+          "pct": 44.06
+        },
+        {
+          "cluster": "143",
+          "name": "24hpf-pectoral fin bud",
+          "pct": 37.5
+        }
+      ],
+      "tier": "T2",
+      "status": "novel"
+    },
+    {
+      "gene": "sall1a",
+      "pronephros_pct_avg": 49.8,
+      "pronephros_pct_max": 92.86,
+      "non_pronephros_max_pct": 100.0,
+      "non_pronephros_top5_avg_pct": 71.98,
+      "n_non_pn_clusters_above_pronephros_avg": 8,
+      "n_non_pn_clusters_above_50pct": 6,
+      "specificity_ratio_pn_to_max_nonpn": 0.498,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "121",
+          "name": "18hpf-differentiating neurons - phox2a",
+          "pct": 100.0
+        },
+        {
+          "cluster": "171",
+          "name": "24hpf-neural - posterior ventral nkx6.2",
+          "pct": 72.6
+        },
+        {
+          "cluster": "132",
+          "name": "24hpf-differentiating neurons - phox2a",
+          "pct": 68.18
+        }
+      ],
+      "tier": "T3",
+      "status": "novel"
+    },
+    {
+      "gene": "hipk2",
+      "pronephros_pct_avg": 12.66,
+      "pronephros_pct_max": 36.36,
+      "non_pronephros_max_pct": 28.57,
+      "non_pronephros_top5_avg_pct": 22.94,
+      "n_non_pn_clusters_above_pronephros_avg": 46,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.443,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "62",
+          "name": "14hpf-notocord",
+          "pct": 28.57
+        },
+        {
+          "cluster": "99",
+          "name": "18hpf-notocord",
+          "pct": 25.0
+        },
+        {
+          "cluster": "159",
+          "name": "24hpf-lens",
+          "pct": 21.43
+        }
+      ],
+      "tier": "T3",
+      "status": "novel"
+    },
+    {
+      "gene": "hoxb8a",
+      "pronephros_pct_avg": 41.49,
+      "pronephros_pct_max": 72.73,
+      "non_pronephros_max_pct": 52.88,
+      "non_pronephros_top5_avg_pct": 44.33,
+      "n_non_pn_clusters_above_pronephros_avg": 4,
+      "n_non_pn_clusters_above_50pct": 1,
+      "specificity_ratio_pn_to_max_nonpn": 0.785,
+      "pleiotropy_risk": "MEDIUM",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "143",
+          "name": "24hpf-pectoral fin bud",
+          "pct": 52.88
+        },
+        {
+          "cluster": "137",
+          "name": "24hpf-neural - dorsal spinal cord",
+          "pct": 45.16
+        },
+        {
+          "cluster": "161",
+          "name": "24hpf-endothelial - posterior",
+          "pct": 43.4
+        }
+      ],
+      "tier": "T3",
+      "status": "novel"
+    },
+    {
+      "gene": "prox1a",
+      "pronephros_pct_avg": 4.29,
+      "pronephros_pct_max": 10.0,
+      "non_pronephros_max_pct": 92.31,
+      "non_pronephros_top5_avg_pct": 67.74,
+      "n_non_pn_clusters_above_pronephros_avg": 109,
+      "n_non_pn_clusters_above_50pct": 4,
+      "specificity_ratio_pn_to_max_nonpn": 0.046,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "93",
+          "name": "18hpf-lens placode",
+          "pct": 92.31
+        },
+        {
+          "cluster": "126",
+          "name": "24hpf-epidermal - prr15la",
+          "pct": 87.5
+        },
+        {
+          "cluster": "88",
+          "name": "18hpf-epidermal - sox4b",
+          "pct": 55.93
+        }
+      ],
+      "tier": "T3",
+      "status": "novel"
+    },
+    {
+      "gene": "foxj1b",
+      "pronephros_pct_avg": 10.71,
+      "pronephros_pct_max": 42.86,
+      "non_pronephros_max_pct": 50.0,
+      "non_pronephros_top5_avg_pct": 40.09,
+      "n_non_pn_clusters_above_pronephros_avg": 9,
+      "n_non_pn_clusters_above_50pct": 0,
+      "specificity_ratio_pn_to_max_nonpn": 0.214,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "106",
+          "name": "18hpf-neural -  floorplate",
+          "pct": 50.0
+        },
+        {
+          "cluster": "63",
+          "name": "14hpf-epidermal - otic placode",
+          "pct": 43.48
+        },
+        {
+          "cluster": "70",
+          "name": "14hpf-neural -  floorplate",
+          "pct": 38.46
+        }
+      ],
+      "tier": "T3",
+      "status": "indirect"
+    },
+    {
+      "gene": "tbx2b",
+      "pronephros_pct_avg": 14.49,
+      "pronephros_pct_max": 45.45,
+      "non_pronephros_max_pct": 80.39,
+      "non_pronephros_top5_avg_pct": 71.8,
+      "n_non_pn_clusters_above_pronephros_avg": 20,
+      "n_non_pn_clusters_above_50pct": 5,
+      "specificity_ratio_pn_to_max_nonpn": 0.18,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "101",
+          "name": "18hpf-otic placode",
+          "pct": 80.39
+        },
+        {
+          "cluster": "63",
+          "name": "14hpf-epidermal - otic placode",
+          "pct": 75.36
+        },
+        {
+          "cluster": "148",
+          "name": "24hpf-otic placode",
+          "pct": 72.73
+        }
+      ],
+      "tier": "bonus",
+      "status": "validated"
+    }
+  ],
+  "novel_ranked_by_specificity": [
+    {
+      "gene": "hoxb8a",
+      "tier": "T3",
+      "pronephros_pct_avg": 41.49,
+      "non_pronephros_max_pct": 52.88,
+      "specificity_ratio_pn_to_max_nonpn": 0.785,
+      "pleiotropy_risk": "MEDIUM",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "143",
+          "name": "24hpf-pectoral fin bud",
+          "pct": 52.88
+        },
+        {
+          "cluster": "137",
+          "name": "24hpf-neural - dorsal spinal cord",
+          "pct": 45.16
+        },
+        {
+          "cluster": "161",
+          "name": "24hpf-endothelial - posterior",
+          "pct": 43.4
+        }
+      ]
+    },
+    {
+      "gene": "sall1a",
+      "tier": "T3",
+      "pronephros_pct_avg": 49.8,
+      "non_pronephros_max_pct": 100.0,
+      "specificity_ratio_pn_to_max_nonpn": 0.498,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "121",
+          "name": "18hpf-differentiating neurons - phox2a",
+          "pct": 100.0
+        },
+        {
+          "cluster": "171",
+          "name": "24hpf-neural - posterior ventral nkx6.2",
+          "pct": 72.6
+        },
+        {
+          "cluster": "132",
+          "name": "24hpf-differentiating neurons - phox2a",
+          "pct": 68.18
+        }
+      ]
+    },
+    {
+      "gene": "hipk2",
+      "tier": "T3",
+      "pronephros_pct_avg": 12.66,
+      "non_pronephros_max_pct": 28.57,
+      "specificity_ratio_pn_to_max_nonpn": 0.443,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "62",
+          "name": "14hpf-notocord",
+          "pct": 28.57
+        },
+        {
+          "cluster": "99",
+          "name": "18hpf-notocord",
+          "pct": 25.0
+        },
+        {
+          "cluster": "159",
+          "name": "24hpf-lens",
+          "pct": 21.43
+        }
+      ]
+    },
+    {
+      "gene": "mafba",
+      "tier": "T1",
+      "pronephros_pct_avg": 14.46,
+      "non_pronephros_max_pct": 100.0,
+      "specificity_ratio_pn_to_max_nonpn": 0.145,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "189",
+          "name": "24hpf-epidermal - s100a11",
+          "pct": 100.0
+        },
+        {
+          "cluster": "161",
+          "name": "24hpf-endothelial - posterior",
+          "pct": 86.79
+        },
+        {
+          "cluster": "93",
+          "name": "18hpf-lens placode",
+          "pct": 79.49
+        }
+      ]
+    },
+    {
+      "gene": "ripply1",
+      "tier": "T2",
+      "pronephros_pct_avg": 8.57,
+      "non_pronephros_max_pct": 66.2,
+      "specificity_ratio_pn_to_max_nonpn": 0.129,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "61",
+          "name": "14hpf-mesoderm - pharyngeal arch",
+          "pct": 66.2
+        },
+        {
+          "cluster": "119",
+          "name": "18hpf-pharyngeal arch",
+          "pct": 44.06
+        },
+        {
+          "cluster": "143",
+          "name": "24hpf-pectoral fin bud",
+          "pct": 37.5
+        }
+      ]
+    },
+    {
+      "gene": "prox1a",
+      "tier": "T3",
+      "pronephros_pct_avg": 4.29,
+      "non_pronephros_max_pct": 92.31,
+      "specificity_ratio_pn_to_max_nonpn": 0.046,
+      "pleiotropy_risk": "HIGH",
+      "top3_non_pn_tissues": [
+        {
+          "cluster": "93",
+          "name": "18hpf-lens placode",
+          "pct": 92.31
+        },
+        {
+          "cluster": "126",
+          "name": "24hpf-epidermal - prr15la",
+          "pct": 87.5
+        },
+        {
+          "cluster": "88",
+          "name": "18hpf-epidermal - sox4b",
+          "pct": 55.93
+        }
+      ]
+    }
+  ]
+}

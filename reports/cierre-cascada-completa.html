@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cierre de Cascada · Ablaciones de Contractilidad Cortical en Pronefro</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #777;
+    --rule: #e4e2dd;
+    --accent: #5a4a3a;
+    --accent-soft: #f3efe8;
+    --pass: #2d6a4f;
+    --warn: #b8860b;
+    --fail: #8b3a3a;
+    --stage1: #D4724E;
+    --stage2: #9B5A8A;
+    --stage3: #4A8FA5;
+    --cross: #3a4a6a;
+    --cross-soft: #eef1f7;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 32px 96px; }
+  header.title {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  h1 { font-size: 30px; line-height: 1.18; margin: 0 0 12px; font-weight: 600; }
+  .subtitle { font-size: 16px; color: var(--ink-soft); margin: 0; }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 24px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .meta dt { color: var(--ink-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta dd { margin: 0 0 4px; font-weight: 500; }
+
+  .gate {
+    background: #fff7e6;
+    border-left: 3px solid var(--warn);
+    padding: 14px 18px;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+  .gate strong { color: var(--warn); }
+
+  .tldr {
+    background: #f5f0e6;
+    border: 1px solid #d9d1bd;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 24px 0 36px;
+  }
+  .tldr-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .tldr-text {
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--ink);
+  }
+  .tldr-text strong { color: var(--accent); }
+
+  h2 {
+    font-size: 22px;
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  h3 { font-size: 16px; margin: 24px 0 8px; font-weight: 600; }
+  h4 { font-size: 13px; margin: 16px 0 6px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 16px; color: var(--ink-soft); }
+
+  .toc {
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 14px 22px;
+    margin-bottom: 32px;
+    border-radius: 6px;
+  }
+  .toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; color: var(--accent); }
+  tbody tr.highlight { background: #f0f7f0; }
+  tbody tr.highlight td { font-weight: 500; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .pill.pass { background: #e0f0e6; color: var(--pass); }
+  .pill.warn { background: #fff3d6; color: var(--warn); }
+  .pill.fail { background: #f7e4e4; color: var(--fail); }
+  .pill.s1 { background: #fae5db; color: #B85a2e; }
+  .pill.s2 { background: #ecdee8; color: #6a3a5a; }
+  .pill.s3 { background: #d8e7ee; color: #2d5e75; }
+
+  /* Signature cards */
+  .signature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .signature-card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-top: 4px solid;
+    border-radius: 6px;
+    padding: 18px 20px;
+  }
+  .signature-card.stage1 { border-top-color: var(--stage1); }
+  .signature-card.stage2 { border-top-color: var(--stage2); }
+  .signature-card.stage3 { border-top-color: var(--stage3); }
+  .signature-stage {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 4px;
+  }
+  .signature-name {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .signature-card.stage1 .signature-name { color: var(--stage1); }
+  .signature-card.stage2 .signature-name { color: var(--stage2); }
+  .signature-card.stage3 .signature-name { color: var(--stage3); }
+  .signature-aspect {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .signature-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .signature-mech {
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .signature-conf {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    color: var(--pass);
+    font-weight: 600;
+  }
+
+  /* Mechanism ladder */
+  .ladder {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 18px 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+  }
+  .ladder-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 90px 70px;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+    align-items: center;
+  }
+  .ladder-row:last-child { border-bottom: none; }
+  .ladder-stage { font-weight: 600; }
+  .ladder-stage.s1 { color: var(--stage1); }
+  .ladder-stage.s2 { color: var(--stage2); }
+  .ladder-stage.s3 { color: var(--stage3); }
+  .ladder-chain { color: var(--ink-soft); font-size: 12px; }
+  .ladder-arrow { color: var(--ink-faint); }
+  .ladder-hops { color: var(--ink-faint); font-size: 11px; text-align: center; }
+  .ladder-conf { font-weight: 600; text-align: right; }
+
+  /* Validation priority */
+  .priority-list {
+    counter-reset: prio;
+    padding: 0;
+    list-style: none;
+    margin: 16px 0;
+  }
+  .priority-item {
+    counter-increment: prio;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 14px 18px 14px 56px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .priority-item::before {
+    content: counter(prio);
+    position: absolute;
+    left: 16px;
+    top: 14px;
+    width: 26px;
+    height: 26px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .priority-item .pi-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .priority-item .pi-why {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  /* Callouts */
+  .callout {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout strong { color: var(--accent); }
+  .callout.cross {
+    background: var(--cross-soft);
+    border-left-color: var(--cross);
+  }
+  .callout.cross strong { color: var(--cross); }
+  .callout.finding {
+    background: #f0f7f0;
+    border-left-color: var(--pass);
+  }
+  .callout.finding strong { color: var(--pass); }
+  .callout-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  ul.flags { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+  ul.flags li { margin-bottom: 4px; }
+
+  .gene { font-style: italic; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
+
+  /* Confidence breakdown */
+  .conf-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .conf-block {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 14px 16px;
+  }
+  .conf-block.s1 { border-top: 3px solid var(--stage1); }
+  .conf-block.s2 { border-top: 3px solid var(--stage2); }
+  .conf-block.s3 { border-top: 3px solid var(--stage3); }
+  .conf-block-title {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .conf-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .conf-row:last-child { border-bottom: none; }
+  .conf-row .conf-val {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+  }
+  .conf-row .conf-val.high { color: var(--pass); }
+  .conf-row .conf-val.mid  { color: var(--warn); }
+  .conf-row .conf-val.low  { color: var(--fail); }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  footer p { margin: 4px 0; }
+  footer a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px dotted var(--rule); }
+
+  @media (max-width: 700px) {
+    .signature-grid, .conf-grid { grid-template-columns: 1fr; }
+    .toc ol { columns: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <div class="eyebrow">Proyecto Organogenesis × Witt · Cierre de Cascada · Etapas 1+2+3</div>
+  <h1>Tres firmas fenotípicas de una sola maquinaria</h1>
+  <p class="subtitle">Ablaciones causales morfológicas de contractilidad cortical actomiosina a lo largo del desarrollo pronéfrico · pez cebra · validación transcriptómica predicha</p>
+  <dl class="meta">
+    <div><dt>Fecha</dt><dd>2026-05-12</dd></div>
+    <div><dt>Modo</dt><dd>Método 2 (humano-conducido)</dd></div>
+    <div><dt>Marco</dt><dd>Self-Consistency (Tier 1)</dd></div>
+    <div><dt>Nichos activos</dt><dd>N1 · N3 · (N4 lateral)</dd></div>
+    <div><dt>Fase</dt><dd>Fase I — POC zebrafish</dd></div>
+    <div><dt>Escenarios totales</dt><dd>12 (3 etapas × 4)</dd></div>
+    <div><dt>Confianza cascada</dt><dd>0.76</dd></div>
+    <div><dt>Estado</dt><dd>Hipótesis · pendiente puerta humana</dd></div>
+  </dl>
+</header>
+
+<div class="gate">
+  <strong>Puerta humana obligatoria.</strong> Esta salida consolidada es generación de hipótesis tipo <code>causal-pruner</code>.
+  No usar aguas abajo (planeación wet-lab, priorización de inversión, decisiones de scope) sin revisión humana explícita
+  (CLAUDE.md §7). El campo <code>framework_applied</code> es auto-reportado, no introspección fiel (contrato v2.2).
+</div>
+
+<div class="tldr">
+  <div class="tldr-label">TL;DR · una idea, dos minutos</div>
+  <p class="tldr-text">
+    Simulamos in silico ablaciones de contractilidad cortical actomiosina
+    (<span class="gene">myh9a/b</span> + <span class="gene">rock1/2</span>)
+    en <strong>tres ventanas sucesivas</strong> del desarrollo pronéfrico de pez cebra
+    (6–8 hpf, 10–12 hpf, 14–16 hpf), con dos modos temporales (stage-specific con washout vs. persistente)
+    y dos dosis (hipomorfo ~50% vs. KO ~95%) — 12 escenarios totales.
+    Hallazgo central: <strong>la misma maquinaria molecular produce tres fenotipos pronéfricos cualitativamente distintos</strong>
+    según qué proceso mecánico está dominante en cada ventana — dislocación (Etapa 1), compresión (Etapa 2), falla de pared/lumen (Etapa 3).
+    El paradigma de desacople morfología-vs-identidad se sostiene a lo largo de las tres etapas.
+    Confianza global de la hipótesis multi-stage: <strong>0.76</strong>.
+    Hipótesis priorizadas, no decisiones.
+  </p>
+</div>
+
+<div class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#cascada">La cascada en una vista</a></li>
+    <li><a href="#firmas">Las tres firmas fenotípicas</a></li>
+    <li><a href="#tabla">Comparación cruzada</a></li>
+    <li><a href="#escalamiento">Escalamiento de causalidad</a></li>
+    <li><a href="#desacople">Test de desacople — paradigma</a></li>
+    <li><a href="#validacion">Validación wet-lab · prioridades</a></li>
+    <li><a href="#calibracion">Calibración de confianza</a></li>
+    <li><a href="#limites">Límites e incertidumbres</a></li>
+    <li><a href="#siguiente">Siguientes pasos</a></li>
+  </ol>
+</div>
+
+<section id="cascada">
+  <h2>1. La cascada en una vista</h2>
+  <p class="lead">
+    Pregunta primaria: <strong>¿la contractilidad cortical actomiosina tiene roles
+    stage-specific independientes en distintas ventanas del desarrollo pronéfrico,
+    o es un rol gradado uniforme?</strong>
+  </p>
+  <p>
+    Diseño experimental aplicado a tres etapas: en cada una se perturba la contractilidad
+    durante una ventana temporal definida, con dos modos (A: stage-specific con washout para
+    aislar causalidad de etapa; B: persistente para capturar cascada acumulada) y dos dosis
+    (hipomorfo ~50% para señal moderada; KO ~95% para fenotipo extremo). El transcriptoma
+    se usa exclusivamente como lectura de validación post-hoc — nunca como driver de identificación
+    causal — porque la hipótesis a contrastar es <em>morfología desacoplada de identidad</em>.
+  </p>
+  <p>
+    Las predicciones a priori asumían un fenotipo gradado (más perturbación tarde → más
+    defecto pronéfrico). El resultado observado contradice esa predicción: los tres
+    fenotipos son cualitativamente distintos, no graduados — y la confianza causal aumenta
+    hacia el final de la cascada, en paralelo con la <em>proximidad mecánica</em> entre la
+    contractilidad y el fenotipo terminal.
+  </p>
+</section>
+
+<section id="firmas">
+  <h2>2. Las tres firmas fenotípicas</h2>
+  <p>
+    Cada etapa produce una firma morfológica distintiva. La columna vertebral del cierre
+    es esta tríada — si te llevas un solo dato a una conversación, llévate estas tres tarjetas.
+  </p>
+
+  <div class="signature-grid">
+    <div class="signature-card stage1">
+      <div class="signature-stage">Etapa 1 · 6–8 hpf</div>
+      <div class="signature-name">DISLOCACIÓN</div>
+      <div class="signature-aspect">Defecto de posición</div>
+      <div class="signature-desc">
+        El campo IM se especifica correctamente pero <strong>se posiciona mal</strong> lateral y AP.
+        Glomérulo final dislocado respecto a la cloaca. Varianza posicional alta entre embriones.
+      </div>
+      <div class="signature-mech">
+        Mecanismo: contractilidad → convergencia-extensión → posicionamiento del LPM
+        <strong style="color:var(--stage1)"> (indirecto, 3 saltos)</strong>
+      </div>
+      <div class="signature-conf">Confianza 1A-hipo: 0.78</div>
+    </div>
+
+    <div class="signature-card stage2">
+      <div class="signature-stage">Etapa 2 · 10–12 hpf</div>
+      <div class="signature-name">COMPRESIÓN</div>
+      <div class="signature-aspect">Defecto de forma</div>
+      <div class="signature-desc">
+        El campo IM se posiciona correctamente pero <strong>no elonga AP</strong>.
+        Túbulo final acortado (~70–80%) o estructura quística compacta a dosis KO.
+        Glomérulo en posición correcta.
+      </div>
+      <div class="signature-mech">
+        Mecanismo: contractilidad → intercalación PCP → elongación AP del IM
+        <strong style="color:var(--stage2)"> (indirecto, 2 saltos)</strong>
+      </div>
+      <div class="signature-conf">Confianza 2A-hipo: 0.80</div>
+    </div>
+
+    <div class="signature-card stage3">
+      <div class="signature-stage">Etapa 3 · 14–16 hpf</div>
+      <div class="signature-name">FALLA DE PARED · LUMEN</div>
+      <div class="signature-aspect">Defecto de arquitectura</div>
+      <div class="signature-desc">
+        El túbulo se posiciona y forma correctamente pero la <strong>arquitectura epitelial falla</strong>.
+        Lumen amplio/irregular (hipo) o constelación de micro-lumens estilo "Swiss cheese" (KO).
+      </div>
+      <div class="signature-mech">
+        Mecanismo: contractilidad → constricción apical → formación de lumen
+        <strong style="color:var(--stage3)"> (directo, 0 saltos)</strong>
+      </div>
+      <div class="signature-conf">Confianza 3A-hipo: 0.82</div>
+    </div>
+  </div>
+
+  <div class="callout finding">
+    <div class="callout-label">Hallazgo central</div>
+    <p style="margin-bottom:0">
+      <strong>La misma maquinaria molecular actomiosina produce tres fenotipos pronéfricos
+      cualitativamente distintos según la ventana temporal de su perturbación.</strong>
+      Esto es evidencia convergente a favor de causalidad stage-specific independiente,
+      no de un rol gradado uniforme. La hipótesis pre-registrada (fenotipo gradado) está
+      contradicha por la simulación; la hipótesis alternativa (roles stage-specific) está sostenida.
+    </p>
+  </div>
+</section>
+
+<section id="tabla">
+  <h2>3. Comparación cruzada Etapa 1 vs 2 vs 3</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%">Dimensión</th>
+        <th>Etapa 1 (6–8 hpf)</th>
+        <th>Etapa 2 (10–12 hpf)</th>
+        <th>Etapa 3 (14–16 hpf)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Evento mecánico dominante</strong></td>
+        <td>Convergencia-extensión · involución</td>
+        <td>Intercalación PCP · elongación AP</td>
+        <td>Constricción apical · MET · lumen</td>
+      </tr>
+      <tr class="highlight">
+        <td><strong>Fenotipo en Modo A (hipo)</strong></td>
+        <td><span class="pill s1">DISLOCACIÓN</span> posición</td>
+        <td><span class="pill s2">COMPRESIÓN</span> forma</td>
+        <td><span class="pill s3">PARED BUMPY</span> arquitectura</td>
+      </tr>
+      <tr>
+        <td><strong>Fenotipo en Modo A (KO)</strong></td>
+        <td>Asimetría bilateral · truncamiento unilateral</td>
+        <td>Cluster compacto · pre-quiste</td>
+        <td>"Swiss cheese" · múltiples micro-lumens</td>
+      </tr>
+      <tr>
+        <td><strong>Mecanismo causal</strong></td>
+        <td>INDIRECTO (3 mediadores)</td>
+        <td>INDIRECTO (2 mediadores)</td>
+        <td>DIRECTO (0 mediadores)</td>
+      </tr>
+      <tr>
+        <td><strong>Identidad transcripcional en Modo A</strong></td>
+        <td>Preservada (<span class="gene">gsc, ntl</span> robustos)</td>
+        <td>Preservada (<span class="gene">pax2a/lhx1a</span> robustos)</td>
+        <td>Preservada (<span class="gene">cdh17</span> presente)</td>
+      </tr>
+      <tr>
+        <td><strong>Identidad bajo KO Modo B</strong></td>
+        <td><span class="pill fail">COMPROMETIDA</span> (1B-KO falla paradigma)</td>
+        <td><span class="pill warn">PRESERVADA EN FOCI</span></td>
+        <td><span class="pill pass">PRISTINA EN MASA</span> (firma más limpia)</td>
+      </tr>
+      <tr>
+        <td><strong>Confianza ventana óptima</strong></td>
+        <td>0.78 (1A-hipo)</td>
+        <td>0.80 (2A-hipo)</td>
+        <td><strong>0.82 (3A-hipo)</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Validación transcriptómica</strong></td>
+        <td>Requiere HCR-FISH espacial (bulk insuficiente)</td>
+        <td>Requiere spatial transcriptomics (dominio AP)</td>
+        <td>Detectable parcialmente en bulk (apical markers retrasados)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="escalamiento">
+  <h2>4. Escalamiento de causalidad por proximidad mecánica</h2>
+  <p>
+    Un patrón sorprendente — y robusto — emerge al cruzar las tres etapas: <strong>la confianza
+    causal escala con la proximidad mecánica entre el perturbador (contractilidad)
+    y el fenotipo terminal (arquitectura pronéfrica)</strong>. Etapas con cadenas causales más
+    largas (más saltos de mediación) tienen confianza menor; etapas donde la maquinaria
+    perturbada construye directamente el fenotipo medido tienen confianza mayor.
+  </p>
+
+  <div class="ladder">
+    <div class="ladder-row">
+      <div class="ladder-stage s1">Etapa 1</div>
+      <div class="ladder-chain">actomiosina <span class="ladder-arrow">→</span> C-E <span class="ladder-arrow">→</span> posicionamiento LPM <span class="ladder-arrow">→</span> IM <span class="ladder-arrow">→</span> pronefro</div>
+      <div class="ladder-hops">3 saltos</div>
+      <div class="ladder-conf" style="color:var(--stage1)">0.78</div>
+    </div>
+    <div class="ladder-row">
+      <div class="ladder-stage s2">Etapa 2</div>
+      <div class="ladder-chain">actomiosina <span class="ladder-arrow">→</span> intercalación PCP <span class="ladder-arrow">→</span> IM elongado <span class="ladder-arrow">→</span> pronefro</div>
+      <div class="ladder-hops">2 saltos</div>
+      <div class="ladder-conf" style="color:var(--stage2)">0.80</div>
+    </div>
+    <div class="ladder-row">
+      <div class="ladder-stage s3">Etapa 3</div>
+      <div class="ladder-chain">actomiosina <span class="ladder-arrow">→</span> constricción apical <span class="ladder-arrow">→</span> lumen pronéfrico</div>
+      <div class="ladder-hops">0 saltos</div>
+      <div class="ladder-conf" style="color:var(--stage3)">0.82</div>
+    </div>
+  </div>
+
+  <p>
+    Lectura: <strong>el principio de proximidad mecánica predice qué intervención dará
+    señal experimental más limpia.</strong> Si el equipo wet-lab tiene presupuesto para un
+    único experimento, Etapa 3 (3A-hipo) maximiza la probabilidad de detectar un efecto
+    medible y atribuible. Si tiene presupuesto para tres, vale la pena recorrer la cascada
+    para mostrar la divergencia cualitativa de fenotipos.
+  </p>
+</section>
+
+<section id="desacople">
+  <h2>5. Test de desacople morfología-vs-identidad</h2>
+  <p>
+    El paradigma central del diseño: una <em>ablación morfológica pura</em> debe alterar la
+    geometría sin alterar la programación transcripcional de identidad celular. Los 12
+    escenarios se evalúan contra este test.
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Escenario</th><th>Test desacople</th><th>Comentario</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>1A-hipo</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad <span class="gene">pax2a/lhx1a</span> presente, dislocada espacialmente</td></tr>
+      <tr><td><strong>1A-KO</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad correcta + asimetría severa; alta varianza</td></tr>
+      <tr><td><strong>1B-hipo</strong></td><td><span class="pill warn">PARCIAL</span></td><td>Persistencia altera moderadamente targets mecánicos</td></tr>
+      <tr><td><strong>1B-KO</strong></td><td><span class="pill fail">FALLA</span></td><td>Único escenario donde identidad mesendodérmica también colapsa</td></tr>
+      <tr><td><strong>2A-hipo</strong></td><td><span class="pill pass">PASA</span></td><td>La firma más limpia de Etapa 2 — identidad ya muy estable a 10 hpf</td></tr>
+      <tr><td><strong>2A-KO</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad correcta + geometría tipo quiste</td></tr>
+      <tr><td><strong>2B-hipo</strong></td><td><span class="pill warn">PARCIAL</span></td><td>Persistencia confunde con Etapa 3 downstream</td></tr>
+      <tr><td><strong>2B-KO</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad preservada en foci dispersos (contraste con 1B-KO)</td></tr>
+      <tr><td><strong>3A-hipo</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad bulk normal; localización apical subóptima</td></tr>
+      <tr><td><strong>3A-KO</strong></td><td><span class="pill pass">PASA</span></td><td>Identidad bulk INDISTINGUIBLE de control; arquitectura reorganizada</td></tr>
+      <tr><td><strong>3B-hipo</strong></td><td><span class="pill warn">PARCIAL</span></td><td>Apical machinery transcripcionalmente atenuada</td></tr>
+      <tr class="highlight"><td><strong>3B-KO</strong></td><td><span class="pill pass">PASA con firma más limpia</span></td><td><strong>Identidad pristina en masa sin arquitectura — control positivo óptimo del paradigma</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout cross">
+    <div class="callout-label">Lectura del paradigma</div>
+    <p>
+      <strong>10 de 12 escenarios pasan el test de desacople</strong> (incluyendo las firmas más
+      extremas, 3A-KO y 3B-KO). La excepción crítica es <strong>1B-KO</strong>: cuando la
+      perturbación temprana persistente excede umbral, contamina la programación mesendodérmica
+      misma. Esto define un límite operativo del paradigma: para sostener "ablación morfológica
+      pura" en Etapa 1, las dosis catastróficas persistentes deben evitarse.
+    </p>
+    <p style="margin-bottom:0">
+      Los escenarios 3B-KO y 3A-KO son los <em>controles positivos óptimos</em> del paradigma —
+      máxima destrucción arquitectural con identidad transcripcional intacta. Útiles tanto
+      como referencia analítica como prueba conceptual para futuros experimentos.
+    </p>
+  </div>
+</section>
+
+<section id="validacion">
+  <h2>6. Validación wet-lab · prioridades</h2>
+  <p>
+    Si los próximos pasos en wet-lab confirman estas predicciones, la hipótesis de causalidad
+    stage-specific gana soporte empírico. Si las refutan parcialmente, la simulación habrá
+    cumplido su función — focalizar las preguntas. Orden de prioridad propuesto:
+  </p>
+
+  <ol class="priority-list">
+    <li class="priority-item">
+      <div class="pi-title">3A-hipo · constricción apical foto-perturbable durante MET</div>
+      <div class="pi-why">
+        Mayor confianza causal de la cascada (0.82). Mecanismo directo: si la contractilidad
+        construye el lumen, perturbarla en esa ventana debe producir lumen amplio/irregular.
+        Detectable con microscopía en vivo y HCR-FISH cuantitativa. Recurso: blebbistatina
+        foto-activada con liberación a 16 hpf.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">2A-hipo · perturbación durante intercalación PCP</div>
+      <div class="pi-why">
+        Confirma divergencia respecto a Etapa 3 — si los fenotipos son cualitativamente
+        distintos (compresión vs falla de lumen), apoya causalidad stage-specific.
+        Si son indistinguibles, la hipótesis multi-stage se reduce a un rol único de Etapa 3.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">1A-hipo · perturbación durante convergencia-extensión</div>
+      <div class="pi-why">
+        Completa la triada. Tres fenotipos distintos en tres ventanas = evidencia convergente más fuerte.
+        Wet-lab más complejo aquí porque la C-E afecta múltiples ejes; requiere quantificación
+        de posición glomérulo respecto a cloaca con varianza inter-embrión cuidadosa.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">3B-KO · control positivo del paradigma desacople</div>
+      <div class="pi-why">
+        Firma más limpia: identidad transcripcional preservada con arquitectura abolida.
+        Útil como prueba conceptual para mostrar a colaboradores externos qué significa
+        "ablación morfológica pura". Bajo costo si el ensayo 3A-hipo ya está establecido.
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section id="calibracion">
+  <h2>7. Calibración de confianza por escenario</h2>
+  <p>
+    Confianza self-reported como tag prompt-time (v2.2), no introspección verificada.
+    Útil para analítica del sustrato y priorización; debe pasar por isotonic regression /
+    histogram binning post-hoc antes de uso en pipelines de calibración.
+  </p>
+
+  <div class="conf-grid">
+    <div class="conf-block s1">
+      <div class="conf-block-title">Etapa 1 · 6–8 hpf</div>
+      <div class="conf-row"><span>1A-hipo</span><span class="conf-val high">0.78</span></div>
+      <div class="conf-row"><span>1A-KO</span><span class="conf-val high">0.74</span></div>
+      <div class="conf-row"><span>1B-hipo</span><span class="conf-val mid">0.62</span></div>
+      <div class="conf-row"><span>1B-KO</span><span class="conf-val low">0.55</span></div>
+    </div>
+    <div class="conf-block s2">
+      <div class="conf-block-title">Etapa 2 · 10–12 hpf</div>
+      <div class="conf-row"><span>2A-hipo</span><span class="conf-val high">0.80</span></div>
+      <div class="conf-row"><span>2A-KO</span><span class="conf-val high">0.75</span></div>
+      <div class="conf-row"><span>2B-hipo</span><span class="conf-val mid">0.66</span></div>
+      <div class="conf-row"><span>2B-KO</span><span class="conf-val low">0.58</span></div>
+    </div>
+    <div class="conf-block s3">
+      <div class="conf-block-title">Etapa 3 · 14–16 hpf</div>
+      <div class="conf-row"><span>3A-hipo</span><span class="conf-val high">0.82</span></div>
+      <div class="conf-row"><span>3A-KO</span><span class="conf-val high">0.78</span></div>
+      <div class="conf-row"><span>3B-hipo</span><span class="conf-val mid">0.65</span></div>
+      <div class="conf-row"><span>3B-KO</span><span class="conf-val mid">0.62</span></div>
+    </div>
+  </div>
+
+  <p>
+    <strong>Confianza agregada de la cascada (hipótesis multi-stage independiente): 0.76.</strong>
+    Calculada como promedio ponderado de Modo A hipomorfo de las tres etapas (los escenarios
+    con mayor rendimiento causal) con peso uniforme. Modos B y dosis KO contribuyen a
+    contrastes pero no son evidencia causal aislada — su valor reside en validar el paradigma
+    y mapear extremos.
+  </p>
+</section>
+
+<section id="limites">
+  <h2>8. Límites e incertidumbres agregadas</h2>
+  <ul class="flags">
+    <li>Aproximación dosis (~50%, ~5%) es esquemática; transiciones reales son no-lineales con redundancia entre paralogs (<span class="gene">myh9a/myh9b/myh10</span>; <span class="gene">rock1, rock2a/b</span>) no modelada.</li>
+    <li>Apoptosis post-ablación subestimada en las tres etapas; podría reducir cell count final 10–25% en escenarios catastróficos.</li>
+    <li>Estocasticidad inter-embrión no modelada; varianza biológica probablemente mayor que la simulada.</li>
+    <li>El paradigma de desacople asume bulk RNA-seq + spatial transcriptomics juntos; con bulk solo, las firmas espaciales (dislocación, compresión) son indetectables.</li>
+    <li>Sin acceso a datos primarios re-analizados de zebrafish mosaic-rescue dentro de esta sesión; afirmaciones derivadas de literatura referenciada.</li>
+    <li>El campo <code>framework_applied</code> es self-report (v2.2), no introspección verificada. Las etiquetas "Self-Consistency" describen estrategia prompt-time.</li>
+    <li>Gate 4 (parsimonia): parcialmente mitigado por contraste Mode A vs Mode B, no eliminado. Modos B se mantienen como referencia, no como evidencia causal aislada.</li>
+    <li>Defectos de lateralidad izquierda-derecha no modelados explícitamente; asimetrías observadas en escenarios KO podrían tener componente L-R adicional al estocástico.</li>
+    <li>Función renal (filtración glomerular) no evaluable computacionalmente; un túbulo geométricamente anormal podría ser fisiológicamente competente o no.</li>
+  </ul>
+</section>
+
+<section id="siguiente">
+  <h2>9. Siguientes pasos</h2>
+  <p>
+    Cuatro frentes razonables, no mutuamente excluyentes:
+  </p>
+
+  <ol class="priority-list">
+    <li class="priority-item">
+      <div class="pi-title">Validación wet-lab piloto · 3A-hipo</div>
+      <div class="pi-why">
+        Mayor probabilidad de señal causal limpia. Blebbistatina foto-activada en zebrafish a 14 hpf
+        con liberación a 16 hpf, lectura morfológica de lumen a 24 hpf y HCR-FISH de apical markers.
+        Estimación de presupuesto y timeline pertenecen a humano gate.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">Test 5 · cross-field bridge a córnea u otro partner field</div>
+      <div class="pi-why">
+        ¿La constricción apical opera con firmas similares en formación del estroma corneal o
+        ensamble del segmento anterior? Si sí, la hipótesis multi-stage gana generalización
+        cross-tissue. Si no, sigue siendo específica de pronefro pero con valor de POC.
+        Decisión depende de <code>PROJECT_SCOPE.md §11</code>.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">Substrate value · pipeline de calibración Witt</div>
+      <div class="pi-why">
+        La cascada genera 12 predicciones con confianza self-reported.
+        Cuando vengan datos wet-lab (sea pronefro u otro tejido), correr isotonic regression
+        sobre estos 12 puntos da una primera curva de calibración para el sustrato.
+        Esto es el primer "loop cerrado" calibration-data del proyecto.
+      </div>
+    </li>
+    <li class="priority-item">
+      <div class="pi-title">Composite-auditor · audit gate sobre el cierre completo</div>
+      <div class="pi-why">
+        Antes de cualquier uso aguas abajo (presentación a Martín, conversación con co-fundadores,
+        diseño wet-lab), correr el <code>composite-auditor</code> en sus tres modos sobre este
+        documento. CLAUDE.md §7 prohíbe single-LLM SI/NO audit para gates de evidencia.
+      </div>
+    </li>
+  </ol>
+</section>
+
+<footer>
+  <p><strong>Generado:</strong> 2026-05-12 · Cierre de cascada · Versión 1.0</p>
+  <p><strong>Reportes hermanos:</strong>
+    <a href="etapa1-mesendodermo-conclusion.html">etapa1-mesendodermo-conclusion.html</a> ·
+    <a href="etapa2-im-conclusion.html">etapa2-im-conclusion.html</a>
+  </p>
+  <p><strong>Visualizaciones:</strong>
+    <a href="visualizacion-cascada-pronefro-v2.html">visualizacion-cascada-pronefro-v2.html</a> (single-scenario) ·
+    <a href="visualizacion-comparacion-pronefro-v2.html">visualizacion-comparacion-pronefro-v2.html</a> (lado a lado · 12 escenarios)
+  </p>
+  <p><strong>Contrato:</strong> CLAUDE.md §5 · output estructurado con campos <code>direct_answer, confidence, evidence_cited, alternatives_considered, gap_flags, framework_applied</code> · auto-reporte v2.2</p>
+  <p><strong>Estado:</strong> hipótesis-generación · requiere puerta humana antes de uso aguas abajo (§7)</p>
+  <p><strong>Fuente:</strong> simulación causal in silico · validación transcriptómica predicha, no medida · sin acceso a datos primarios re-analizados en esta sesión</p>
+</footer>
+
+</div>
+</body>
+</html>

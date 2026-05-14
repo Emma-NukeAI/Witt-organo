@@ -1,0 +1,144 @@
+{
+  "tf": "mafba",
+  "wagner_samples": [
+    "GSM3067193",
+    "GSM3067194",
+    "GSM3067195"
+  ],
+  "n_cells_total": 18932,
+  "n_clusters_analyzed": 145,
+  "pronephros_clusters_pct_mafba_pos": {
+    "109": 20.0,
+    "105": 18.18,
+    "187": 12.5,
+    "69": 7.14
+  },
+  "pronephros_avg_pct_mafba_pos": 14.46,
+  "n_non_pronephros_clusters_significant": 22,
+  "max_non_pronephros_pct": 86.79,
+  "non_pronephros_significant_clusters": [
+    {
+      "cluster_id": "161",
+      "name": "24hpf-endothelial - posterior",
+      "pct": 86.79,
+      "n_cells": 53
+    },
+    {
+      "cluster_id": "93",
+      "name": "18hpf-lens placode",
+      "pct": 79.49,
+      "n_cells": 39
+    },
+    {
+      "cluster_id": "144",
+      "name": "24hpf-macrophage",
+      "pct": 77.05,
+      "n_cells": 61
+    },
+    {
+      "cluster_id": "159",
+      "name": "24hpf-lens",
+      "pct": 71.43,
+      "n_cells": 14
+    },
+    {
+      "cluster_id": "96",
+      "name": "18hpf-macrophage",
+      "pct": 53.33,
+      "n_cells": 30
+    },
+    {
+      "cluster_id": "155",
+      "name": "24hpf-endothelial",
+      "pct": 51.97,
+      "n_cells": 127
+    },
+    {
+      "cluster_id": "67",
+      "name": "14hpf-neural crest - crestin",
+      "pct": 46.34,
+      "n_cells": 82
+    },
+    {
+      "cluster_id": "100",
+      "name": "18hpf-endothelial",
+      "pct": 44.97,
+      "n_cells": 149
+    },
+    {
+      "cluster_id": "NaN",
+      "name": "(unknown)",
+      "pct": 35.29,
+      "n_cells": 17
+    },
+    {
+      "cluster_id": "74",
+      "name": "14hpf-mesoderm - endothelial",
+      "pct": 33.33,
+      "n_cells": 33
+    },
+    {
+      "cluster_id": "129",
+      "name": "24hpf-leukocyte",
+      "pct": 30.77,
+      "n_cells": 13
+    },
+    {
+      "cluster_id": "186",
+      "name": "24hpf-neural crest - mcamb",
+      "pct": 28.85,
+      "n_cells": 52
+    },
+    {
+      "cluster_id": "88",
+      "name": "18hpf-epidermal - sox4b",
+      "pct": 27.12,
+      "n_cells": 59
+    },
+    {
+      "cluster_id": "59",
+      "name": "14hpf-epidermal - foxi3a",
+      "pct": 25.33,
+      "n_cells": 75
+    },
+    {
+      "cluster_id": "57",
+      "name": "14hpf-neural - hindbrain",
+      "pct": 25.17,
+      "n_cells": 298
+    },
+    {
+      "cluster_id": "120",
+      "name": "18hpf-neural crest - crestin",
+      "pct": 24.32,
+      "n_cells": 148
+    },
+    {
+      "cluster_id": "83",
+      "name": "18hpf-neural - dorsal hindbrain",
+      "pct": 23.18,
+      "n_cells": 578
+    },
+    {
+      "cluster_id": "123",
+      "name": "18hpf-neural - ventral hindbrain",
+      "pct": 21.93,
+      "n_cells": 684
+    },
+    {
+      "cluster_id": "171",
+      "name": "24hpf-neural - posterior ventral nkx6.2",
+      "pct": 21.92,
+      "n_cells": 146
+    },
+    {
+      "cluster_id": "153",
+      "name": "24hpf-tailbud - PSM",
+      "pct": 21.74,
+      "n_cells": 23
+    }
+  ],
+  "pleiotropy_risk": "HIGH",
+  "narrative": "mafba expressed m\u00e1s fuerte en otros tejidos (max 86.8%) que en pronephros (14.5%) \u2014 pleiotropy probable; KO phenotype puede ser dif\u00edcil de aislar a podocyte.",
+  "implication_for_experiment": "Reconsider experimental design. May need conditional KO from start. Alternative: focus on next candidate (sall1a) which may be more tissue-specific. At minimum: imaging full-embryo phenotype to document pleiotropy."
+}

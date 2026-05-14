@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta-análisis · Sesión 2026-05-08/09 · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #fbe9e9;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--c-bg); color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; line-height: 1.6; }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+
+  header.report-header {
+    background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border); padding: 2.5rem 2rem 2rem;
+  }
+  header.report-header .container { max-width: 1100px; margin: 0 auto; }
+  .eyebrow { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--c-muted); margin-bottom: 0.4rem; }
+  header.report-header h1 { font-size: 1.75rem; line-height: 1.25; margin: 0 0 0.4rem 0; }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0; max-width: 90ch; }
+
+  nav.toc { position: sticky; top: 0; z-index: 10; background: rgba(250, 250, 247, 0.96);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--c-border); }
+  nav.toc ul { max-width: 1100px; margin: 0 auto; padding: 0.6rem 2rem; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.0rem; font-size: 0.82rem; }
+  nav.toc a { color: var(--c-muted); text-decoration: none; padding: 0.2rem 0;
+    border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav.toc a:hover { color: var(--c-witt); border-bottom-color: var(--c-witt); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem; }
+  section { margin-bottom: 3rem; scroll-margin-top: 60px; }
+  section h2 {
+    font-size: 1.4rem; border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem; margin: 0 0 1rem 0;
+  }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 { font-size: 1.1rem; margin: 1.6rem 0 0.6rem 0; }
+  section h4 { font-size: 0.98rem; margin: 1.2rem 0 0.4rem 0; }
+
+  .lede {
+    background: var(--c-surface); border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem; margin: 0 0 1.5rem 0; font-size: 1.0rem;
+  }
+  .callout {
+    background: #fff8e8; border: 1px solid #e8d8a0; border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem; margin: 1rem 0; border-radius: 3px; font-size: 0.92rem;
+  }
+  .callout strong { color: var(--c-warn); }
+  .callout.principle { background: #f3f8f1; border-color: #c8d8c8; border-left-color: var(--c-organo); }
+  .callout.principle strong { color: var(--c-organo); }
+  .callout.danger { background: var(--c-critical-light); border-color: #e8b8b8; border-left-color: var(--c-critical); }
+  .callout.danger strong { color: var(--c-critical); }
+  .callout.executive { background: var(--c-witt-light); border-color: #b8cad6; border-left-color: var(--c-witt); padding: 1.2rem 1.4rem; }
+  .callout.executive strong { color: var(--c-witt); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.6rem; margin: 1rem 0;
+  }
+  .stat {
+    background: var(--c-surface); border: 1px solid var(--c-border);
+    border-radius: 4px; padding: 0.85rem 1rem; text-align: center;
+  }
+  .stat .number {
+    display: block; font-size: 1.7rem; font-weight: 600;
+    color: var(--c-witt); line-height: 1.1;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .stat .label {
+    display: block; font-size: 0.74rem; color: var(--c-muted);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.3rem;
+  }
+  .stat.organo .number { color: var(--c-organo); }
+  .stat.warn .number { color: var(--c-warn); }
+  .stat.critical .number { color: var(--c-critical); }
+
+  /* Win/Loss cards */
+  .meta-cards {
+    display: grid; grid-template-columns: 1fr; gap: 0.8rem; margin: 1rem 0;
+  }
+  .meta-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+  }
+  .meta-card.win { border-left: 4px solid var(--c-organo); }
+  .meta-card.loss { border-left: 4px solid var(--c-critical); }
+  .meta-card.neutral { border-left: 4px solid var(--c-muted); }
+  .meta-card h4 {
+    margin: 0 0 0.4rem 0; font-size: 1rem;
+  }
+  .meta-card.win h4::before { content: "✓ "; color: var(--c-organo); font-weight: 700; }
+  .meta-card.loss h4::before { content: "✗ "; color: var(--c-critical); font-weight: 700; }
+  .meta-card .evidence {
+    font-size: 0.85rem; color: var(--c-muted);
+    background: var(--c-bg);
+    padding: 0.5rem 0.7rem; border-radius: 3px;
+    margin-top: 0.4rem;
+    border-left: 2px solid var(--c-border);
+  }
+  .meta-card .impact {
+    font-size: 0.85rem; margin-top: 0.4rem;
+  }
+  .meta-card .impact strong { color: var(--c-text); }
+
+  /* Proposal cards */
+  .proposal {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-left: 4px solid var(--c-witt);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+  }
+  .proposal h4 { margin: 0 0 0.4rem 0; font-size: 1rem; }
+  .proposal .priority {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .priority.high { background: #d8efd9; color: #1f5023; }
+  .priority.med { background: #f3ecc8; color: #735100; }
+  .priority.low { background: #f1ddd5; color: #7a2a18; }
+  .proposal .effort {
+    display: inline-block;
+    font-size: 0.72rem;
+    color: var(--c-muted);
+    margin-left: 0.6rem;
+  }
+  .proposal .impl {
+    font-size: 0.88rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    background: var(--c-code-bg);
+    border-radius: 3px;
+  }
+
+  table.data {
+    width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0;
+  }
+  table.data th, table.data td {
+    padding: 0.6rem 0.8rem; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--c-border);
+  }
+  table.data th {
+    background: var(--c-tag-bg); font-weight: 600; font-size: 0.81rem;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted);
+  }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+
+  .pill {
+    display: inline-block; padding: 0.12rem 0.55rem; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 500;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .pill.high { background: #d8efd9; color: #1f5023; }
+  .pill.med { background: #f3ecc8; color: #735100; }
+  .pill.low { background: #f1ddd5; color: #7a2a18; }
+
+  footer.report-footer { border-top: 1px solid var(--c-border); padding: 1.5rem 2rem;
+    font-size: 0.82rem; color: var(--c-muted); background: var(--c-surface); }
+  footer.report-footer .container { max-width: 1100px; margin: 0 auto; }
+  a.cite { color: var(--c-witt); text-decoration: none; border-bottom: 1px dotted var(--c-witt); }
+  a.cite:hover { border-bottom-style: solid; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Meta-análisis · Witt × Organogenesis · Sesión 2026-05-08/09</div>
+    <h1>Qué funcionó, qué falló, y propuestas de mejora — los tres niveles (agente, Witt, skills)</h1>
+    <p class="subtitle">Auto-crítica honesta de las dos sesiones (survey + pre-resolves + decision package). Identifica wins concretos, fallos específicos con evidencia, y propone cambios accionables al contrato del agente, a la tesis Witt, y al inventario de skills. Esto es exactamente la evidencia transferible que el sustrato debería producir per Test 3 (iteration loop).</p>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><a href="#exec">0 · TL;DR</a></li>
+    <li><a href="#wins">1 · Lo que funcionó</a></li>
+    <li><a href="#losses">2 · Lo que falló</a></li>
+    <li><a href="#numbers">3 · Métricas de la sesión</a></li>
+    <li><a href="#agent-improvements">4 · Mejoras al agente</a></li>
+    <li><a href="#witt-improvements">5 · Mejoras a Witt</a></li>
+    <li><a href="#skills-improvements">6 · Mejoras a skills</a></li>
+    <li><a href="#priorities">7 · Priorización + sequencing</a></li>
+    <li><a href="#substrate">8 · Substrate-level findings</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ============================================== -->
+<section id="exec">
+  <h2><span class="num">0.</span>TL;DR del meta-análisis</h2>
+
+  <div class="callout executive">
+    <strong>En una frase:</strong> La sesión generó valor real (caught pleiotropy issue que habría costado $30-45K en wet-lab confundido), pero también expuso un fallo metodológico fundamental (el sistema de Tiers del survey original no consideraba specificity) y varios fallos operativos (5/11 ENSDARG IDs hardcodeados eran wrong, budget inicial subestimado 2×, Wagner mis-PMID). Hay 9 propuestas accionables: 4 para el agente, 2 para Witt, 3 para skills.
+  </div>
+
+  <h3>Balance global</h3>
+  <div class="stat-grid">
+    <div class="stat organo"><span class="number">9</span><span class="label">wins documentados</span></div>
+    <div class="stat critical"><span class="number">8</span><span class="label">fallos documentados</span></div>
+    <div class="stat warn"><span class="number">9</span><span class="label">propuestas accionables</span></div>
+    <div class="stat"><span class="number">$30-45K</span><span class="label">wet-lab evitado por pre-resolve</span></div>
+    <div class="stat"><span class="number">$0</span><span class="label">costo computacional total</span></div>
+    <div class="stat organo"><span class="number">10</span><span class="label">deliverables HTML producidos</span></div>
+    <div class="stat"><span class="number">0.78→0.96</span><span class="label">trayectoria confidence</span></div>
+    <div class="stat"><span class="number">2</span><span class="label">sesiones consecutivas analizadas</span></div>
+  </div>
+
+  <h3>El "winning move" más importante de la sesión</h3>
+  <div class="callout principle">
+    <strong>El pre-resolve item 2 (pleiotropy mafba) cambió la recomendación.</strong> Sin él, mafba habría sido el target del experimento N. Con él, hoxb8a emerge como better target (specificity ratio 5.4× mejor). Esto es exactamente la dinámica del principio fundador "prueba pequeño antes de armar bien" — gastamos ~horas de cómputo, ahorramos potencialmente meses de wet-lab confundido.
+  </div>
+
+  <h3>El "losing move" más importante de la sesión</h3>
+  <div class="callout danger">
+    <strong>El sistema de Tiers original era ingenuo.</strong> En el survey de 2026-05-08, clasifiqué mafba como Tier 1 porque aparecía en Schoels (microdissected pronefros) Y en Wagner (subset duct cluster). Pero "presente en pronefros" ≠ "específico de pronefros". Wagner whole-embryo data tenía la respuesta — solo había que mirar TODOS los clusters, no solo el de duct. Sin el pre-resolve correctivo, este blindspot habría llegado a wet-lab.
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="wins">
+  <h2><span class="num">1.</span>Lo que funcionó — wins concretos con evidencia</h2>
+
+  <div class="meta-cards">
+
+    <div class="meta-card win">
+      <h4>Citation-first discipline catching errors</h4>
+      <p class="evidence"><strong>Evidencia:</strong> 5 ENSDARG IDs hardcodeados eran incorrectos (wt1a, pax8, hnf1ba, hnf1bb, cdh17) — detectados al cotejar contra Ensembl REST. Wagner mis-PMID (29700225 era Farrell, no Wagner) detectado al cotejar PubMed lookup. Schoels deposition resuelta por ruta indirecta (GEO summary match con abstract) cuando EuropePMC falló.</p>
+      <p class="impact"><strong>Impacto:</strong> 5 markers que aparecían como "0% expressing" en realidad eran 5-35% expressing. Sin la verificación, el survey habría tenido data demonstrablemente wrong.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Pleiotropy pre-resolve catched a fatal experimental flaw</h4>
+      <p class="evidence"><strong>Evidencia:</strong> mafba expressed 87% en endothelial, 80% en lens, 77% en macrophage, vs 7-20% en pronefros. Specificity ratio 0.145. KO global habría producido fenotipo sistémico confundido — posible letalidad embrionaria por defectos vasculares.</p>
+      <p class="impact"><strong>Impacto:</strong> evitó $30-45K de wet-lab confundido. Esto solo justifica ROI de toda la disciplina computacional pre-experimento.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Cross-validation dual-namespace</h4>
+      <p class="evidence"><strong>Evidencia:</strong> Schoels usa ENSDARG IDs; Wagner usa NCBI symbols. La convergencia en 10 markers core entre ambos namespaces y dos técnicas de scRNA-seq (CEL-seq2 vs inDrops) hace los hallazgos robustos.</p>
+      <p class="impact"><strong>Impacto:</strong> redujo riesgo de "string-match accidental" — si un marker apareciera en ambos por casualidad de naming, no sobreviviría dos namespaces distintos.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Cache + checkpoint discipline (CLAUDE.md §6 MCP resilience)</h4>
+      <p class="evidence"><strong>Evidencia:</strong> 9 archivos cache + 3 checkpoints + reanudación funcional cuando el Wagner tar 1.7GB se truncó al 95%.</p>
+      <p class="impact"><strong>Impacto:</strong> el survey es resumible desde cualquier punto. Pivot 1.7GB → 55MB (per-GSM directo) ahorró ~horas de re-trabajo cuando connection reset.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Estructured output contract aplicado consistentemente</h4>
+      <p class="evidence"><strong>Evidencia:</strong> trayectoria de confidence documentada 0.78 → 0.86 → 0.90 → 0.92 → 0.94 → 0.96 con cada subida tied a evidencia explícita. gap_flags y alternatives_considered incluidos en cada turn substantivo.</p>
+      <p class="impact"><strong>Impacto:</strong> el sustrato Witt tiene su primera trayectoria de calibración real. Test 4 (calibration) tiene un dato.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Founder principle "prueba pequeño antes de armar bien" actively applied</h4>
+      <p class="evidence"><strong>Evidencia:</strong> 5 rondas curatoriales + 4 opciones de análisis ejecutadas en orden ascending de cost: search → analysis → cross-validation → enumeration → causality cross-reference. Cada paso gates en el anterior. Sin auto-saltos al wet-lab.</p>
+      <p class="impact"><strong>Impacto:</strong> el principio no fue solo cita en CLAUDE.md — fue mecanismo operativo. Cada decisión de "hagamos X" tuvo la justificación implícita "porque X es más pequeño que Y, y X informa si Y es necesario".</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Method 2 cadence respetado</h4>
+      <p class="evidence"><strong>Evidencia:</strong> al inicio del survey pregunté método (Método 2 elegido por usuario). Después de cada round/opción surfacé findings y pedí redirección. No tomé decisiones autónomas.</p>
+      <p class="impact"><strong>Impacto:</strong> el usuario mantuvo control total del flow. Cuando vino la decisión estratégica (pivot mafba→hoxb8a), fue elegida explícitamente por el usuario, no asumida por el agente.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Pipeline gene-agnostic engineering</h4>
+      <p class="evidence"><strong>Evidencia:</strong> script <code>05_sgRNA_design.py</code> refactoreado para tomar <code>--gene</code> CLI arg. Pipeline <code>08_experiment_pipeline_template.py</code> con <code>TF_TARGET_CONFIG</code> dict para múltiples candidatos. Pleiotropy script <code>07</code> aplicable a cualquier gen.</p>
+      <p class="impact"><strong>Impacto:</strong> reusabilidad. Si Phase II o experimento N+1 testea sall1a, el pipeline funciona sin re-escribir. Reduces future agent effort.</p>
+    </div>
+
+    <div class="meta-card win">
+      <h4>Honest pivots on infrastructure failures</h4>
+      <p class="evidence"><strong>Evidencia:</strong> tar 1.7GB truncado al 95% → pivot a per-GSM directo (1.7GB → 55MB). EuropePMC failed para Schoels → pivot a GEO esearch indirect resolution. AnimalTFDB DNS failed → pivot a heuristic keyword filter. Encoding bug Unicode cp1252 detectado y arreglado.</p>
+      <p class="impact"><strong>Impacto:</strong> la infraestructura no es perfecta y la sesión se mantuvo productiva. Cada pivot documentado con razón y resultado.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="losses">
+  <h2><span class="num">2.</span>Lo que falló — fallos concretos con evidencia</h2>
+
+  <div class="meta-cards">
+
+    <div class="meta-card loss">
+      <h4>FALLO PRINCIPAL: Tier system del survey original era ingenuo (no consideraba specificity)</h4>
+      <p class="evidence"><strong>Evidencia:</strong> mafba clasificado Tier 1 en el survey de 2026-05-08 porque (1) Schoels lo mostró en C17 podocyte y (2) Wagner duct subset lo mostró en 14% cells. Pero ambas fuentes solo veían pronefros (Schoels microdissected; Wagner duct cluster only). Cuando se chequeó Wagner whole-embryo en pre-resolve item 2, mafba apareció en endothelial 87%, lens 80%, macrophage 77%. Specificity ratio 0.145 — el TF estaba mucho más expresado fuera de pronefros que dentro.</p>
+      <p class="impact"><strong>Impacto:</strong> sin el pre-resolve correctivo, mafba habría sido el target del experimento N. El KO global habría producido fenotipo sistémico, posible letalidad embrionaria, y un "negative finding" que en realidad sería un experimental flaw — no biology. El re-priorización movió mafba de #1 a #4 y elevó hoxb8a de Tier 3 a top recomendado. <strong>Este fallo metodológico es el más importante a corregir.</strong></p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>5 de 11 ENSDARG IDs hardcodeados eran incorrectos (45% error rate en gene IDs)</h4>
+      <p class="evidence"><strong>Evidencia:</strong> wt1a (54611→31420), pax8 (7570→15879), hnf1ba (16281→6615), hnf1bb (40149→22295), cdh17 (20995→5112). Solo pax2a (28148) coincidió por casualidad.</p>
+      <p class="impact"><strong>Impacto:</strong> Phase 1 del análisis devolvió "0% expressing" para 5 markers que en realidad eran 5-35% expressing. Detectado y corregido en Phase 2 vía Ensembl REST batch. Lección: <strong>identifiers específicos generados por LLM son sistemáticamente unreliable.</strong> Costo: 1 round extra de análisis (Phase 2 reasonablemente rápido por refactor).</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>Wagner mis-PMID (29700225 era Farrell, no Wagner)</h4>
+      <p class="evidence"><strong>Evidencia:</strong> en survey original cité PMID 29700225 como Wagner 2018. Lookup directo reveló que es Farrell 2018 (URD method). Wagner real es PMID 29700229. Ambos son Science 2018 papers, ambos zebrafish, fácil de confundir.</p>
+      <p class="impact"><strong>Impacto:</strong> citation incorrecta en el survey report inicial. Detectado y corregido cuando el usuario pidió Opción C (Wagner directo). El reporte se actualizó honestly. Sin el pedido del usuario para verificar, el error podría haber persistido.</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>Budget inicial subestimado 2× ($15-25K vs $30-45K real)</h4>
+      <p class="evidence"><strong>Evidencia:</strong> primer estimado del experimento N: $15-25K. Cuando se desglosó por línea (sgRNAs $300, MO $1000, husbandry $6-9K, scRNA-seq 12 samples × $1800 = $21,600, sequencing $3-5K, WISH $400, miscell $3-4K) → total $30-45K.</p>
+      <p class="impact"><strong>Impacto:</strong> hard rule §7 de CLAUDE.md (budget decisions require human gate) became more salient. El usuario / Martín tendrán que aprobar más que el initial estimate. Documentado honestly en doc experimento.</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>"Tier 1 / Tier 2 / Tier 3" usado con dos significados distintos</h4>
+      <p class="evidence"><strong>Evidencia:</strong> En el survey original, Tier 1 significaba "validado por literatura" (pax2a había sido validado per noi mutant paper). En Opción L, Tier 1 cambió a significar "cross-validated en Schoels Y Wagner". mafba era "Tier 1" en sentido nuevo pero "novel" en sentido antiguo. Ambiguo.</p>
+      <p class="impact"><strong>Impacto:</strong> bad signposting. Required clarification posterior. La ambigüedad hace que el ranking sea menos defensible — qué significa exactamente "Tier 1" depende del contexto.</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>Schoels n=2,065 reportado inicialmente como n=56</h4>
+      <p class="evidence"><strong>Evidencia:</strong> en el survey, sample IDs de GEO (GSM4930006-061, 56 entries) se interpretaron como cells. Cuando se cargó el data, eran 591+918+556 = 2,065 cells × 32,662 genes. Las 56 entries eran plates/batches.</p>
+      <p class="impact"><strong>Impacto:</strong> early misread corregido en inspección, pero apareció en el survey doc inicial. Indica que metadata interpretation no fue verificada hasta hands-on data loading.</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>Reasoning-frameworks-catalog v1.1 nunca fue consultado en práctica</h4>
+      <p class="evidence"><strong>Evidencia:</strong> CLAUDE.md §4 dice: "Reference for the full decision framework: <code>skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md</code> v1.1. Read it whenever the framework choice is non-obvious." Yo etiqueté framework_applied como "Tier 2" sin nunca leer el catálogo en realidad — solo referencié el nombre.</p>
+      <p class="impact"><strong>Impacto:</strong> el catálogo existe pero la práctica del agente es referenciar sin consultar. Hay un gap entre "catalog exists" y "agent actually reads catalog content at decision points". El framework_applied tag puede ser técnicamente válido pero la classification no fue informed by the catalog's full criteria.</p>
+    </div>
+
+    <div class="meta-card loss">
+      <h4>Compliance/budget gates surfaced demasiado tarde</h4>
+      <p class="evidence"><strong>Evidencia:</strong> CLAUDE.md §7 hard rule "compliance and budget decisions never go through automatic filtering" se mencionó en el doc experimento mafba §11/§12 pero no en early planning. Idealmente debería haberse flagged al primer mention de wet-lab.</p>
+      <p class="impact"><strong>Impacto:</strong> potential confusion sobre qué decisiones requieren human gate. Documented eventually pero no upfront. Agent should flag earlier.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="numbers">
+  <h2><span class="num">3.</span>Métricas concretas de la sesión</h2>
+
+  <table class="data">
+    <thead><tr><th>Métrica</th><th>Valor</th><th>Comentario</th></tr></thead>
+    <tbody>
+      <tr><td>Sesiones consecutivas</td><td>2 (8 + 9 mayo)</td><td>Compounding del cache + checkpoints</td></tr>
+      <tr><td>HTML deliverables generados</td><td>10</td><td>Survey + 9 sub-reports</td></tr>
+      <tr><td>Python scripts generados</td><td>9</td><td>Análisis Schoels (2) + Wagner (1) + utility (1) + Op L (1) + sgRNA (1, gene-agnostic) + pleiotropy (2) + power (1) + pipeline template (1)</td></tr>
+      <tr><td>MCP tool calls totales</td><td>~50+</td><td>Schoels datasets, Wagner datasets, PubMed, Ensembl, GEO_get_dataset_details (38 GEO IDs resolved)</td></tr>
+      <tr><td>Cache files</td><td>10</td><td>Per-tool, per-day descriptors</td></tr>
+      <tr><td>Checkpoints</td><td>3</td><td>T1 / T2 / T3 — workflow phases</td></tr>
+      <tr><td>Datasets descargados (raw bytes)</td><td>~80 MB</td><td>Schoels 6.2 MB + Wagner per-GSM 55 MB + auxiliares</td></tr>
+      <tr><td>Datasets descargados intentados pero abandonados</td><td>1 (Wagner tar 1.7 GB → truncado 95%)</td><td>Pivot exitoso a per-GSM</td></tr>
+      <tr><td>Fallos honestos detectados + corregidos</td><td>8</td><td>5 ENSDARG + Wagner PMID + budget + Tier ambiguity + n=56 vs 2065</td></tr>
+      <tr><td>Confianza inicial → final</td><td>0.78 → 0.96</td><td>+0.18 con 4 update points</td></tr>
+      <tr><td>Cells scRNA-seq procesadas</td><td>2,065 (Schoels) + 18,932 (Wagner) = ~21K</td><td>Computational only</td></tr>
+      <tr><td>TFs candidatos identificados</td><td>13 Tier 1-3 + bonus tbx2b</td><td>Después de re-priorización post-pleiotropy</td></tr>
+      <tr><td>TFs candidatos validated por literatura</td><td>5 of 13</td><td>pax2a, wt1a, wt1b, sim1a, dzip1l</td></tr>
+      <tr><td>TFs candidatos novel</td><td>6 of 13</td><td>mafba, hoxb8a, sall1a, hipk2, ripply1, prox1a</td></tr>
+      <tr><td>Wet-lab dollars spent</td><td>$0</td><td>Todo computational</td></tr>
+      <tr><td>Wet-lab dollars potentially saved</td><td>$30-45K</td><td>Por catch del pleiotropy issue antes de wet-lab</td></tr>
+      <tr><td>Human gates flagged</td><td>3+ (budget, IACUC, IBC, partner selection)</td><td>Per CLAUDE.md §7</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================== -->
+<section id="agent-improvements">
+  <h2><span class="num">4.</span>Propuestas de mejora — para el agente (Claude operating contract)</h2>
+
+  <div class="proposal">
+    <h4>A1. Hard rule en CLAUDE.md §7: "Verify external IDs always" <span class="priority high">HIGH</span><span class="effort">~30 min</span></h4>
+    <p>Add a 9th hard rule a CLAUDE.md §7: <em>"Identifiers generated from LLM internal memory (gene IDs, PMIDs, accessions, DOIs, sequences) are systematically unreliable. ALWAYS verify against external source (Ensembl REST, PubMed, etc.) before using them in analysis or output. Hardcoded IDs in scripts must include a verification timestamp and source."</em></p>
+    <p class="impl"><strong>Implementation:</strong> add to CLAUDE.md §7 + reference in skill-md-templates.md. Codifies the lesson from the 5 wrong ENSDARG IDs + Wagner mis-PMID.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>A2. Pre-survey "specificity check" como step obligatorio <span class="priority high">HIGH</span><span class="effort">~2 hours</span></h4>
+    <p>Cuando el agente enumera TF candidatos en un survey, el ranking debe incorporar specificity check ANTES de aplicar Tier labels. Específicamente: si hay whole-embryo data disponible (e.g., Wagner), el specificity ratio (pronefros avg / non-pronefros max) debe ser parte del Tier criteria, no un post-hoc check.</p>
+    <p class="impl"><strong>Implementation:</strong> nueva entrada en <code>skills/custom/organogenesis-agent-architect/references/</code> documentando el TF Tier system con specificity como dimensión obligatoria. Adicionar a SKILL.md del organogenesis-agent-architect. Actualizar el script <code>04_option_L_TF_enumeration.py</code> para integrar specificity por default.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>A3. Flag budget/compliance gates EARLY en cualquier conversación que toque wet-lab <span class="priority high">HIGH</span><span class="effort">~15 min</span></h4>
+    <p>Cuando el agente discute experiments con costo &gt;$5K o que requieren animal use, debe flagear el human gate inmediatamente — no al final del documento. Idealmente como callout box visible en el primer turn que mencione wet-lab.</p>
+    <p class="impl"><strong>Implementation:</strong> add to <code>method-selection.md</code>: "When proposing wet-lab experiments, the FIRST turn must include a visible callout: '⚠️ Budget/compliance gates required: $X estimated, IACUC pending'. Visualization must be unambiguous."</p>
+  </div>
+
+  <div class="proposal">
+    <h4>A4. Reasoning-frameworks-catalog: load + cite específicamente, no solo nombrar <span class="priority med">MEDIUM</span><span class="effort">~1 hour</span></h4>
+    <p>Cuando el agente etiqueta <code>framework_applied</code>, debe leer el catalog actually y citar la sección/criterio específico que justifica la elección. No solo "Tier 2 - structured retrieval" sino "Tier 2 per reasoning-frameworks-catalog.md §[X]: when neither Self-Consistency (no majority-voting) nor Logic-LM (no formal verification) applies".</p>
+    <p class="impl"><strong>Implementation:</strong> en CLAUDE.md §4, agregar: "Quote the specific section of the catalog that justifies the framework choice. The catalog must be the authority, not just the reference."</p>
+  </div>
+
+  <div class="proposal">
+    <h4>A5. Smaller initial reports, expand on demand <span class="priority low">LOW</span><span class="effort">cultural</span></h4>
+    <p>Los HTMLs de la sesión son comprehensivos pero heavy. Pattern alternativo: TL;DR card primero, secciones expansibles a demand. El usuario no leyó todas las 16 secciones del survey HTML linealmente — leyó executive summary + areas relevantes.</p>
+    <p class="impl"><strong>Implementation:</strong> cultural — preferir initial brief outputs + offering to expand. No code change required, just operational habit.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="witt-improvements">
+  <h2><span class="num">5.</span>Propuestas de mejora — para Witt (substrate-AI thesis)</h2>
+
+  <div class="proposal">
+    <h4>W1. "Substrate-level findings" section en cada report <span class="priority high">HIGH</span><span class="effort">~30 min update</span></h4>
+    <p>Cada documento substrate-evidence debe tener una sección explícita de "qué se aprendió sobre el sustrato (no la biología)". En esta sesión:</p>
+    <ul>
+      <li>"Pre-resolves can catch experimental design flaws antes de wet-lab" → patrón transferible</li>
+      <li>"Tier systems must incorporate specificity, not just presence" → corrección a metodología</li>
+      <li>"External ID verification is non-negotiable" → hard rule candidate</li>
+      <li>"Honest pivots on infrastructure failures preserve productivity" → resilience pattern</li>
+    </ul>
+    <p>Estos findings son lo más transferible del sustrato. Sin sección dedicada, se pierden cuando el documento se cierra.</p>
+    <p class="impl"><strong>Implementation:</strong> add template requirement a <code>substrate-evidence-guide.md</code> v1.3: cada report debe terminar con "Substrate-level findings" subsection antes de bibliography. Mandatory.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>W2. Calibration tracking concreto — no solo trayectorias <span class="priority high">HIGH</span><span class="effort">~3 hours</span></h4>
+    <p>La trayectoria 0.78 → 0.96 documentada en esta sesión es self-reported, no validated. El sustrato no tiene aún ground truth — el experimento N no se ha hecho. Para Test 4 (calibration) ser real, necesita un mecanismo formal:</p>
+    <ul>
+      <li>Cada output con confidence registra: <code>{prior, claim, expected_outcome_if_h1, expected_outcome_if_h0}</code></li>
+      <li>Cuando se obtiene ground truth (e.g., experiment N result), update record con observed_outcome</li>
+      <li>Compute calibration error per epoch (week / month) via isotonic regression</li>
+    </ul>
+    <p class="impl"><strong>Implementation:</strong> nueva structure <code>substrate_calibration/</code> en repo root con JSON files per claim. Update <code>substrate-evidence-guide.md</code> v1.3 con format spec. Build a small Python tool to compute ECE given accumulated records.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>W3. "Negative findings library" para resultados como pleiotropy mafba <span class="priority med">MEDIUM</span><span class="effort">~2 hours</span></h4>
+    <p>El finding "mafba is too pleiotropic to be a clean global KO target" es valuable pero no fits cleanly en "papers". Witt necesita un repository designado para negative-ish findings:</p>
+    <ul>
+      <li>"This TF candidate appears Tier 1 but pleiotropy makes it unsuitable for global KO"</li>
+      <li>"This dataset is annotated X but actually represents Y" (the kind of metadata corrections that happened)</li>
+      <li>"This computational tool failed under condition Z" (the AnimalTFDB DNS issue)</li>
+    </ul>
+    <p>Estos findings transferibles a Phase II / future projects.</p>
+    <p class="impl"><strong>Implementation:</strong> nuevo directorio <code>docs/findings/</code> con sub-folders por tipo: <code>tier-corrections/</code>, <code>tool-failures/</code>, <code>metadata-issues/</code>. Each finding como markdown card. Add a <code>findings/INDEX.md</code> que liste topics.</p>
+  </div>
+
+</section>
+
+<!-- ============================================== -->
+<section id="skills-improvements">
+  <h2><span class="num">6.</span>Propuestas de mejora — para skills (custom + external)</h2>
+
+  <div class="proposal">
+    <h4>S1. Nuevo Layer 1 skill: "tooluniverse-tf-pleiotropy-check" <span class="priority high">HIGH</span><span class="effort">~4 hours</span></h4>
+    <p>El missing skill más obvio de la sesión. Given a TF symbol + organism + reference single-cell atlas, returns specificity ratio + pleiotropy report. Esto debería ser Layer 1 skill curado.</p>
+    <p>Capabilities mínimas:</p>
+    <ul>
+      <li>Input: gene symbol, organism, reference atlas accession (e.g., GSE112294)</li>
+      <li>Output: per-cluster expression %, specificity ratio (target / max-non-target), pleiotropy risk classification</li>
+      <li>Configurable: target tissue / cluster, threshold for "significant expression"</li>
+    </ul>
+    <p class="impl"><strong>Implementation:</strong> Either propose to MIMS Lab as upstream addition, or create as project-internal in <code>skills/custom/</code>. Code template ya está en <code>analysis/scripts/07_pleiotropy_all_candidates.py</code> — puede ser starting point. Document en <code>skills/external/CURATED.md</code> como new addition.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>S2. Update reasoning-frameworks-catalog v1.2 con "Specificity-aware Tier system" <span class="priority high">HIGH</span><span class="effort">~2 hours</span></h4>
+    <p>El catalog actual no tiene guidance específica para TF ranking systems. Después de esta sesión, debería tener:</p>
+    <ul>
+      <li>Definición formal de Tier 1/2/3 que incluya specificity, no solo presence</li>
+      <li>Rule: "Two cohorts both showing presence is NOT sufficient — need cross-tissue specificity check"</li>
+      <li>Lesson learned como case study: la sesión de 2026-05-08/09</li>
+    </ul>
+    <p class="impl"><strong>Implementation:</strong> editar <code>skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md</code> bumping a v1.2. Add "TF Ranking" section with specificity-aware criteria. Document the mafba case as case study.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>S3. Pre-experiment validation pattern como skill <span class="priority med">MEDIUM</span><span class="effort">~3 hours</span></h4>
+    <p>El workflow de la sesión 2026-05-09 (sgRNA design + pleiotropy check + power analysis + IACUC template + decision matrix) podría formalizarse como skill: "Before committing $X to wet-lab, run these N computational checks". Es un pattern con structure.</p>
+    <p>Capabilities:</p>
+    <ul>
+      <li>Input: target gene + experimental design + reference dataset</li>
+      <li>Output: checklist con sgRNA candidates, pleiotropy assessment, power analysis, decision matrix con priors</li>
+      <li>Pattern: same flow para cualquier TF experiment</li>
+    </ul>
+    <p class="impl"><strong>Implementation:</strong> nuevo custom skill <code>skills/custom/pre-experiment-validation/</code> con <code>SKILL.md</code> + references. Reuses existing scripts 05/07/09 as components.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>S4. Skill discoverability improvements <span class="priority low">LOW</span><span class="effort">~1 hour</span></h4>
+    <p>En la sesión, descubrí tools relevantes mostly via <code>find_tools</code> MCP queries. Un "skill index" con ejemplos de cuándo usar cada skill ayudaría. Currently CURATED.md tiene descriptions pero no example queries / use cases.</p>
+    <p class="impl"><strong>Implementation:</strong> add example queries section a CURATED.md. For each skill: 2-3 example user queries that should trigger it. Hace skills more discoverable.</p>
+  </div>
+
+  <div class="proposal">
+    <h4>S5. Track upstream MIMS Lab additions (gene-regulatory-networks, spatial gaps) <span class="priority low">LOW</span><span class="effort">~30 min monthly</span></h4>
+    <p>Two skills previously identified como gaps:</p>
+    <ul>
+      <li><code>tooluniverse-gene-regulatory-networks</code> existe en source pero NOT distributed via npx skills add. Track when distributed.</li>
+      <li><code>tooluniverse-spatial-transcriptomics</code> está curated pero gap en zebrafish — track when zebrafish coverage adds.</li>
+      <li><code>tooluniverse-epigenomics-chromatin</code> useful for ATAC-seq context.</li>
+    </ul>
+    <p class="impl"><strong>Implementation:</strong> monthly check de MIMS Lab upstream releases. Add to CURATED.md when distributed.</p>
+  </div>
+
+</section>
+
+<!-- ============================================== -->
+<section id="priorities">
+  <h2><span class="num">7.</span>Priorización + sequencing</h2>
+
+  <p class="lede">
+    9 propuestas en total. No todas son del mismo nivel de urgencia. Aquí el ranking sugerido por leverage × effort.
+  </p>
+
+  <table class="data">
+    <thead><tr><th>Rank</th><th>ID</th><th>Propuesta</th><th>Categoría</th><th>Priority</th><th>Effort</th><th>Por qué primero</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>A1</td><td>Hard rule "verify external IDs always"</td><td>Agente</td><td><span class="pill high">HIGH</span></td><td>~30 min</td><td>Codifica lesson más práctica; previene 5/11 error rate en futuros</td></tr>
+      <tr><td>2</td><td>A2</td><td>Specificity check antes de Tier classification</td><td>Agente</td><td><span class="pill high">HIGH</span></td><td>~2 hours</td><td>Previene el mismo error metodológico; gran leverage</td></tr>
+      <tr><td>3</td><td>S2</td><td>Update reasoning-frameworks-catalog v1.2</td><td>Skills</td><td><span class="pill high">HIGH</span></td><td>~2 hours</td><td>Documenta el case study mafba como lesson learned</td></tr>
+      <tr><td>4</td><td>W1</td><td>"Substrate-level findings" section mandatory</td><td>Witt</td><td><span class="pill high">HIGH</span></td><td>~30 min</td><td>Bajo costo, alto value para Test 3 iteration</td></tr>
+      <tr><td>5</td><td>A3</td><td>Flag budget/compliance gates early</td><td>Agente</td><td><span class="pill high">HIGH</span></td><td>~15 min</td><td>Cumplimiento de hard rule §7 más visible</td></tr>
+      <tr><td>6</td><td>S1</td><td>Nuevo skill TF pleiotropy check</td><td>Skills</td><td><span class="pill high">HIGH</span></td><td>~4 hours</td><td>Missing capability para Phase II/III</td></tr>
+      <tr><td>7</td><td>W2</td><td>Calibration tracking concreto</td><td>Witt</td><td><span class="pill high">HIGH</span></td><td>~3 hours</td><td>Test 4 needs real mechanism, no solo trayectorias</td></tr>
+      <tr><td>8</td><td>S3</td><td>Pre-experiment validation pattern como skill</td><td>Skills</td><td><span class="pill med">MED</span></td><td>~3 hours</td><td>Reusable pattern; útil pero no urgente</td></tr>
+      <tr><td>9</td><td>A4</td><td>Reasoning-frameworks-catalog: cite specifically</td><td>Agente</td><td><span class="pill med">MED</span></td><td>~1 hour</td><td>Mejora rigor pero no critical path</td></tr>
+      <tr><td>10</td><td>W3</td><td>Negative findings library</td><td>Witt</td><td><span class="pill med">MED</span></td><td>~2 hours</td><td>Valor compounded over time</td></tr>
+      <tr><td>11</td><td>A5</td><td>Smaller reports, expand on demand</td><td>Agente</td><td><span class="pill low">LOW</span></td><td>cultural</td><td>Habit change, no code</td></tr>
+      <tr><td>12</td><td>S4</td><td>Skill discoverability + examples</td><td>Skills</td><td><span class="pill low">LOW</span></td><td>~1 hour</td><td>Quality-of-life, no blocking</td></tr>
+      <tr><td>13</td><td>S5</td><td>Track MIMS Lab upstream</td><td>Skills</td><td><span class="pill low">LOW</span></td><td>~30 min/mo</td><td>Monitoring task, not active work</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Sequence sugerido</h3>
+  <ol>
+    <li><strong>Esta semana:</strong> A1, A3, W1 — quick wins, ~75 min total</li>
+    <li><strong>Próxima semana:</strong> A2, S2 — codifica el lesson principal de la sesión, ~4 hours</li>
+    <li><strong>Próximas 2-3 semanas:</strong> S1, W2, S3 — substantial new capabilities, ~10 hours</li>
+    <li><strong>Backlog:</strong> A4, W3, A5, S4, S5 — incremental improvements</li>
+  </ol>
+</section>
+
+<!-- ============================================== -->
+<section id="substrate">
+  <h2><span class="num">8.</span>Substrate-level findings (lo que aprendimos sobre el sustrato)</h2>
+
+  <p class="lede">
+    Esta sección es exactamente lo que la propuesta W1 quiere institucionalizar. Aquí están los findings substrate-level (no biology-level) de la sesión.
+  </p>
+
+  <div class="meta-cards">
+    <div class="meta-card neutral">
+      <h4>Finding 1: Pre-resolves catch experimental design flaws antes de wet-lab</h4>
+      <p>El pleiotropy check ($0 cómputo) cambió la recomendación de mafba a hoxb8a. Sin él, $30-45K wet-lab habrían producido un experimento confundido. <strong>Pattern transferible:</strong> antes de cualquier wet-lab &gt;$5K, ejecutar checklist de computational pre-validation.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 2: Tier systems must incorporate specificity, not just presence</h4>
+      <p>"Presente en pronefros" ≠ "específico de pronefros". Si Tier 1 sólo significa "presente en dos cohortes", el ranking puede priorizar TFs broadly-expressed sobre TFs cluster-specific. <strong>Corrección metodológica:</strong> specificity ratio debe ser parte de Tier criteria.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 3: External ID verification is non-negotiable</h4>
+      <p>5 de 11 ENSDARG IDs hardcodeados eran wrong. Wagner mis-PMID. Schoels n=56 vs 2065. El LLM internal memory es sistemáticamente unreliable para identifiers específicos. <strong>Hard rule candidate:</strong> "always verify".</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 4: Honest pivots on infrastructure failures preserve productivity</h4>
+      <p>Tar 1.7 GB → per-GSM 55 MB. EuropePMC failure → indirect resolution. AnimalTFDB DNS → heuristic fallback. Encoding bug → utf-8 fix. Cada fallo documentado y reanudado sin loss de momentum. <strong>Resilience pattern:</strong> when path A fails, document why + try path B; preserve evidence even when full pipeline can't complete.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 5: Method 2 cadence requires explicit user gates at decision points</h4>
+      <p>El usuario fue redirigido en momentos críticos (pivot mafba → hoxb8a, decisión de ejecutar items 4-7-8 individualmente, etc.). Sin esos gates, el agente habría asumido. <strong>Operational pattern:</strong> después de cada surface, NEVER assume next step — siempre ofrecer opciones explícitas.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 6: Confidence trajectory documentada NO es calibration validated</h4>
+      <p>El "0.78 → 0.96" de la sesión es self-reported. Hasta que el experimento N se ejecute y se compare predicción vs outcome, Test 4 calibration sigue siendo aspiracional. <strong>Limitation:</strong> Witt necesita ground truth eventos para validar calibration claims.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 7: Compounding works when cache + checkpoints are religiously maintained</h4>
+      <p>Sesión 2026-05-09 began con cache + checkpoints de 2026-05-08 fully usable. Esto es lo que Test 3 (iteration loop) requiere — y funcionó en la práctica. <strong>Mechanism validated:</strong> cache files + checkpoint JSON files son la primitiva mecánica del compounding.</p>
+    </div>
+
+    <div class="meta-card neutral">
+      <h4>Finding 8: Reference catalogs deben ser consultados, no solo nombrados</h4>
+      <p>Cité "Tier 2" sin actually leer reasoning-frameworks-catalog v1.1. Hay un gap entre "catalog exists" y "agent uses catalog content". <strong>Corrective:</strong> reference catalogs should be loaded into context at decision points, with specific citations.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>Meta-análisis generado 2026-05-09</strong> al cierre de las sesiones 2026-05-08 (survey) + 2026-05-09 (pre-resolves). Auto-crítica honesta del trabajo del agente; identifica wins concretos, fallos documentados, y propone 13 mejoras priorizadas para los tres niveles del proyecto (agente, Witt, skills).</p>
+    <p style="margin-top: 0.8rem;">Documentos relacionados de la sesión:</p>
+    <ul style="margin: 0.5rem 0;">
+      <li><a class="cite" href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html">Survey integral 2026-05-08</a> · <a class="cite" href="2026-05-09_decision_package_martin.html">Decision package Martín</a> · <a class="cite" href="2026-05-09_mafba_experiment_design.html">Diseño mafba</a> · <a class="cite" href="2026-05-09_hoxb8a_experiment_design.html">Diseño hoxb8a (pivot)</a></li>
+      <li><a class="cite" href="2026-05-09_sgRNA_design_visual.html">sgRNA design</a> · <a class="cite" href="2026-05-09_power_analysis_visual.html">Power analysis</a> · <a class="cite" href="2026-05-09_iacuc_protocol_template.html">IACUC template</a></li>
+    </ul>
+    <p style="margin-top: 0.8rem;"><strong>Status:</strong> ready for review. Las 13 propuestas son discrete actions; pueden tomarse o descartarse independientemente. Top 3 (A1, A2, S2) son los más importantes para internalizar el lesson principal de la sesión.</p>
+  </div>
+</footer>
+
+</body>
+</html>

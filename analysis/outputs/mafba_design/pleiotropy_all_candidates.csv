@@ -1,0 +1,1769 @@
+gene,cluster_id,timepoint,cluster_name,n_cells,pct_pos,is_pronephros
+pax2a,100,18,18hpf-endothelial,149,20.13,False
+pax2a,101,18,18hpf-otic placode,51,60.78,False
+pax2a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,9.21,False
+pax2a,103,18,18hpf-germline,9,0.0,False
+pax2a,105,18,18hpf-pronephric duct - posterior,11,81.82,True
+pax2a,106,18,18hpf-neural -  floorplate,6,16.67,False
+pax2a,107,18,18hpf-heart mature,17,5.88,False
+pax2a,108,18,18hpf-macrophage - ly75,14,14.29,False
+pax2a,109,18,18hpf-pronephric duct,10,70.0,True
+pax2a,110,18,18hpf-periderm,15,0.0,False
+pax2a,111,18,18hpf-pancreas primordium,8,12.5,False
+pax2a,112,18,18hpf-differentiating neurons - rohon beard,26,26.92,False
+pax2a,113,18,18hpf-retina pigmented epithelium,46,10.87,False
+pax2a,114,18,18hpf-differentiating neurons - dlx,30,3.33,False
+pax2a,115,18,18hpf-epidermal - pfn1,383,11.49,False
+pax2a,116,18,18hpf-lateral line primordium,46,47.83,False
+pax2a,117,18,18hpf-endoderm,142,23.94,False
+pax2a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,6.35,False
+pax2a,119,18,18hpf-pharyngeal arch,202,12.38,False
+pax2a,120,18,18hpf-neural crest - crestin,148,15.54,False
+pax2a,121,18,18hpf-differentiating neurons - phox2a,8,12.5,False
+pax2a,122,18,18hpf-differentiating neurons - eomesa,28,3.57,False
+pax2a,123,18,18hpf-neural - ventral hindbrain,684,13.16,False
+pax2a,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+pax2a,125,24,24hpf-differentiating neurons - dlx,65,3.08,False
+pax2a,126,24,24hpf-epidermal - prr15la,24,4.17,False
+pax2a,127,24,24hpf-pancreas primordium,6,0.0,False
+pax2a,128,24,24hpf-ionocyte - ca2,31,6.45,False
+pax2a,129,24,24hpf-leukocyte,13,15.38,False
+pax2a,130,24,24hpf-neural - ventral hindbrain,911,4.61,False
+pax2a,131,24,24hpf-erythroid,506,3.36,False
+pax2a,132,24,24hpf-differentiating neurons - phox2a,44,6.82,False
+pax2a,133,24,24hpf-mesoderm - emp2,31,6.45,False
+pax2a,134,24,24hpf-differentiating neurons,523,18.36,False
+pax2a,136,24,24hpf-neural - midbrain,1211,18.74,False
+pax2a,137,24,24hpf-neural - dorsal spinal cord,31,3.23,False
+pax2a,138,24,24hpf-neural - diencephalon,203,4.93,False
+pax2a,139,24,24hpf-neural crest,8,0.0,False
+pax2a,140,24,24hpf-optic cup,772,19.56,False
+pax2a,141,24,24hpf-periderm,22,13.64,False
+pax2a,142,24,24hpf-tailbud - spinal cord,144,1.39,False
+pax2a,143,24,24hpf-pectoral fin bud,104,2.88,False
+pax2a,144,24,24hpf-macrophage,61,4.92,False
+pax2a,145,24,24hpf-epidermal - grhl3,12,0.0,False
+pax2a,146,24,24hpf-epidermal - olfactory placode,44,4.55,False
+pax2a,147,24,24hpf-neural - dorsal hindbrain,667,6.0,False
+pax2a,148,24,24hpf-otic placode,33,30.3,False
+pax2a,149,24,24hpf-endoderm,64,7.81,False
+pax2a,150,24,24hpf-myotome,32,6.25,False
+pax2a,151,24,24hpf-pharyngeal pouch,53,13.21,False
+pax2a,152,24,24hpf-epidermal - anterior,75,29.33,False
+pax2a,153,24,24hpf-tailbud - PSM,23,0.0,False
+pax2a,154,24,24hpf-pharyngeal arch - tbx1,22,0.0,False
+pax2a,155,24,24hpf-endothelial,127,3.15,False
+pax2a,156,24,24hpf-hatching gland,32,28.12,False
+pax2a,157,24,24hpf-differentiating neurons - eomesa,101,6.93,False
+pax2a,158,24,24hpf-pharyngeal arch - cd248b,135,5.19,False
+pax2a,159,24,24hpf-lens,14,7.14,False
+pax2a,160,24,24hpf-neural - floorplate,9,11.11,False
+pax2a,161,24,24hpf-endothelial - posterior,53,0.0,False
+pax2a,164,24,24hpf-epidermal - atp1a1a.2,38,7.89,False
+pax2a,165,24,24hpf-neural - hindbrain roofplate,37,0.0,False
+pax2a,166,24,24hpf-differentiating neurons - rohon beard,62,17.74,False
+pax2a,167,24,24hpf-retina pigmented epithelium,37,13.51,False
+pax2a,168,24,24hpf-neural - telencephalon,351,11.68,False
+pax2a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,6.81,False
+pax2a,170,24,24hpf-neural - hindbrain gsx1,245,2.45,False
+pax2a,171,24,24hpf-neural - posterior ventral nkx6.2,146,2.74,False
+pax2a,172,24,24hpf-germline,9,0.0,False
+pax2a,174,24,24hpf-heart,71,2.82,False
+pax2a,177,24,24hpf-neural - diencephalon posterior,46,6.52,False
+pax2a,178,24,24hpf-pharyngeal arch - ndnf,44,4.55,False
+pax2a,179,24,24hpf-heart - hoxd9a,34,5.88,False
+pax2a,180,24,24hpf-epidermal - muc5ac,17,11.76,False
+pax2a,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+pax2a,183,24,24hpf-neural crest - melanoblast,23,13.04,False
+pax2a,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+pax2a,185,24,24hpf-neural crest - grem2,92,2.17,False
+pax2a,186,24,24hpf-neural crest - mcamb,52,3.85,False
+pax2a,187,24,24hpf-pronephric duct,8,87.5,True
+pax2a,189,24,24hpf-epidermal - s100a11,8,0.0,False
+pax2a,190,24,24hpf-lateral line - krt15,14,21.43,False
+pax2a,191,24,24hpf-epidermal - and1,26,7.69,False
+pax2a,193,24,24hpf-epidermal - rbp4,35,0.0,False
+pax2a,194,24,24hpf-epidermal - col7a1l,60,13.33,False
+pax2a,195,24,24hpf-epidermal - kera,24,4.17,False
+pax2a,51,14,14hpf-epidermal - pfn1,741,4.99,False
+pax2a,52,14,14hpf-optic primordium,223,36.32,False
+pax2a,53,14,14hpf-mesoderm - blood island,43,27.91,False
+pax2a,54,14,14hpf-neural - diencephalon,88,9.09,False
+pax2a,55,14,14hpf-tailbud - PSM,299,7.36,False
+pax2a,56,14,14hpf-epidermal anterior,313,7.03,False
+pax2a,57,14,14hpf-neural - hindbrain,298,11.07,False
+pax2a,58,14,14hpf-endoderm,57,19.3,False
+pax2a,59,14,14hpf-epidermal - foxi3a,75,9.33,False
+pax2a,60,14,14hpf-neural crest,201,5.97,False
+pax2a,61,14,14hpf-mesoderm - pharyngeal arch,71,5.63,False
+pax2a,62,14,14hpf-notocord,42,2.38,False
+pax2a,63,14,14hpf-epidermal - otic placode,69,88.41,False
+pax2a,64,14,14hpf-mesoderm - heart field,67,7.46,False
+pax2a,65,14,14hpf-differentiating neurons - rohon beard,29,0.0,False
+pax2a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,40.91,False
+pax2a,67,14,14hpf-neural crest - crestin,82,7.32,False
+pax2a,68,14,14hpf-neural - midbrain,340,43.82,False
+pax2a,69,14,14hpf-mesoderm - pronephric duct,14,92.86,True
+pax2a,70,14,14hpf-neural -  floorplate,13,7.69,False
+pax2a,71,14,14hpf-germline,5,0.0,False
+pax2a,72,14,14hpf-hatching gland,14,7.14,False
+pax2a,73,14,14hpf-periderm,11,27.27,False
+pax2a,74,14,14hpf-mesoderm - endothelial,33,12.12,False
+pax2a,75,14,14hpf-tailbud - spinal cord,547,7.13,False
+pax2a,76,14,14hpf-neural - telencephalon,174,5.17,False
+pax2a,77,14,14hpf-lateral line primordium,84,40.48,False
+pax2a,78,14,14hpf-differentiating neurons,24,37.5,False
+pax2a,79,18,18hpf-neural - diencephalon,161,10.56,False
+pax2a,80,18,18hpf-neural - midbrain,988,26.11,False
+pax2a,81,18,18hpf-epidermal - olfactory placode,28,10.71,False
+pax2a,82,18,18hpf-neural - telencephalon,301,24.25,False
+pax2a,83,18,18hpf-neural - dorsal hindbrain,578,11.25,False
+pax2a,84,18,18hpf-differentiating neurons,252,21.43,False
+pax2a,85,18,18hpf-ionocyte - ca2,48,14.58,False
+pax2a,86,18,18hpf-epidermal - anterior,182,15.93,False
+pax2a,87,18,18hpf-hatching gland,20,10.0,False
+pax2a,88,18,18hpf-epidermal - sox4b,59,8.47,False
+pax2a,89,18,18hpf-optic cup,390,29.49,False
+pax2a,90,18,18hpf-tailbud - spinal cord,277,6.86,False
+pax2a,91,18,18hpf-pectoral fin field,66,22.73,False
+pax2a,92,18,18hpf-heart field,158,12.03,False
+pax2a,93,18,18hpf-lens placode,39,15.38,False
+pax2a,94,18,18hpf-neural crest - grem2,281,14.59,False
+pax2a,95,18,18hpf-erythroid,256,26.17,False
+pax2a,96,18,18hpf-macrophage,30,16.67,False
+pax2a,97,18,18hpf-tailbud - PSM,407,14.0,False
+pax2a,98,18,18hpf-myotome,169,15.38,False
+pax2a,99,18,18hpf-notocord,28,14.29,False
+pax2a,NaN,?,(unknown),17,5.88,False
+wt1a,100,18,18hpf-endothelial,149,5.37,False
+wt1a,101,18,18hpf-otic placode,51,3.92,False
+wt1a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,2.63,False
+wt1a,103,18,18hpf-germline,9,0.0,False
+wt1a,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+wt1a,106,18,18hpf-neural -  floorplate,6,0.0,False
+wt1a,107,18,18hpf-heart mature,17,0.0,False
+wt1a,108,18,18hpf-macrophage - ly75,14,0.0,False
+wt1a,109,18,18hpf-pronephric duct,10,0.0,True
+wt1a,110,18,18hpf-periderm,15,0.0,False
+wt1a,111,18,18hpf-pancreas primordium,8,0.0,False
+wt1a,112,18,18hpf-differentiating neurons - rohon beard,26,3.85,False
+wt1a,113,18,18hpf-retina pigmented epithelium,46,0.0,False
+wt1a,114,18,18hpf-differentiating neurons - dlx,30,3.33,False
+wt1a,115,18,18hpf-epidermal - pfn1,383,0.26,False
+wt1a,116,18,18hpf-lateral line primordium,46,0.0,False
+wt1a,117,18,18hpf-endoderm,142,3.52,False
+wt1a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,0.79,False
+wt1a,119,18,18hpf-pharyngeal arch,202,1.98,False
+wt1a,120,18,18hpf-neural crest - crestin,148,2.7,False
+wt1a,121,18,18hpf-differentiating neurons - phox2a,8,12.5,False
+wt1a,122,18,18hpf-differentiating neurons - eomesa,28,3.57,False
+wt1a,123,18,18hpf-neural - ventral hindbrain,684,1.17,False
+wt1a,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+wt1a,125,24,24hpf-differentiating neurons - dlx,65,0.0,False
+wt1a,126,24,24hpf-epidermal - prr15la,24,4.17,False
+wt1a,127,24,24hpf-pancreas primordium,6,0.0,False
+wt1a,128,24,24hpf-ionocyte - ca2,31,0.0,False
+wt1a,129,24,24hpf-leukocyte,13,0.0,False
+wt1a,130,24,24hpf-neural - ventral hindbrain,911,0.55,False
+wt1a,131,24,24hpf-erythroid,506,1.19,False
+wt1a,132,24,24hpf-differentiating neurons - phox2a,44,2.27,False
+wt1a,133,24,24hpf-mesoderm - emp2,31,0.0,False
+wt1a,134,24,24hpf-differentiating neurons,523,0.19,False
+wt1a,136,24,24hpf-neural - midbrain,1211,0.58,False
+wt1a,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+wt1a,138,24,24hpf-neural - diencephalon,203,0.0,False
+wt1a,139,24,24hpf-neural crest,8,0.0,False
+wt1a,140,24,24hpf-optic cup,772,0.39,False
+wt1a,141,24,24hpf-periderm,22,0.0,False
+wt1a,142,24,24hpf-tailbud - spinal cord,144,0.0,False
+wt1a,143,24,24hpf-pectoral fin bud,104,0.0,False
+wt1a,144,24,24hpf-macrophage,61,0.0,False
+wt1a,145,24,24hpf-epidermal - grhl3,12,0.0,False
+wt1a,146,24,24hpf-epidermal - olfactory placode,44,0.0,False
+wt1a,147,24,24hpf-neural - dorsal hindbrain,667,1.05,False
+wt1a,148,24,24hpf-otic placode,33,0.0,False
+wt1a,149,24,24hpf-endoderm,64,0.0,False
+wt1a,150,24,24hpf-myotome,32,0.0,False
+wt1a,151,24,24hpf-pharyngeal pouch,53,0.0,False
+wt1a,152,24,24hpf-epidermal - anterior,75,0.0,False
+wt1a,153,24,24hpf-tailbud - PSM,23,0.0,False
+wt1a,154,24,24hpf-pharyngeal arch - tbx1,22,0.0,False
+wt1a,155,24,24hpf-endothelial,127,0.79,False
+wt1a,156,24,24hpf-hatching gland,32,0.0,False
+wt1a,157,24,24hpf-differentiating neurons - eomesa,101,1.98,False
+wt1a,158,24,24hpf-pharyngeal arch - cd248b,135,0.74,False
+wt1a,159,24,24hpf-lens,14,0.0,False
+wt1a,160,24,24hpf-neural - floorplate,9,0.0,False
+wt1a,161,24,24hpf-endothelial - posterior,53,0.0,False
+wt1a,164,24,24hpf-epidermal - atp1a1a.2,38,0.0,False
+wt1a,165,24,24hpf-neural - hindbrain roofplate,37,2.7,False
+wt1a,166,24,24hpf-differentiating neurons - rohon beard,62,0.0,False
+wt1a,167,24,24hpf-retina pigmented epithelium,37,0.0,False
+wt1a,168,24,24hpf-neural - telencephalon,351,0.28,False
+wt1a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,0.0,False
+wt1a,170,24,24hpf-neural - hindbrain gsx1,245,1.22,False
+wt1a,171,24,24hpf-neural - posterior ventral nkx6.2,146,0.68,False
+wt1a,172,24,24hpf-germline,9,0.0,False
+wt1a,174,24,24hpf-heart,71,1.41,False
+wt1a,177,24,24hpf-neural - diencephalon posterior,46,0.0,False
+wt1a,178,24,24hpf-pharyngeal arch - ndnf,44,0.0,False
+wt1a,179,24,24hpf-heart - hoxd9a,34,0.0,False
+wt1a,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+wt1a,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+wt1a,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+wt1a,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+wt1a,185,24,24hpf-neural crest - grem2,92,0.0,False
+wt1a,186,24,24hpf-neural crest - mcamb,52,0.0,False
+wt1a,187,24,24hpf-pronephric duct,8,0.0,True
+wt1a,189,24,24hpf-epidermal - s100a11,8,0.0,False
+wt1a,190,24,24hpf-lateral line - krt15,14,0.0,False
+wt1a,191,24,24hpf-epidermal - and1,26,0.0,False
+wt1a,193,24,24hpf-epidermal - rbp4,35,5.71,False
+wt1a,194,24,24hpf-epidermal - col7a1l,60,0.0,False
+wt1a,195,24,24hpf-epidermal - kera,24,4.17,False
+wt1a,51,14,14hpf-epidermal - pfn1,741,0.13,False
+wt1a,52,14,14hpf-optic primordium,223,0.45,False
+wt1a,53,14,14hpf-mesoderm - blood island,43,2.33,False
+wt1a,54,14,14hpf-neural - diencephalon,88,1.14,False
+wt1a,55,14,14hpf-tailbud - PSM,299,1.0,False
+wt1a,56,14,14hpf-epidermal anterior,313,0.32,False
+wt1a,57,14,14hpf-neural - hindbrain,298,0.34,False
+wt1a,58,14,14hpf-endoderm,57,1.75,False
+wt1a,59,14,14hpf-epidermal - foxi3a,75,1.33,False
+wt1a,60,14,14hpf-neural crest,201,1.0,False
+wt1a,61,14,14hpf-mesoderm - pharyngeal arch,71,0.0,False
+wt1a,62,14,14hpf-notocord,42,0.0,False
+wt1a,63,14,14hpf-epidermal - otic placode,69,0.0,False
+wt1a,64,14,14hpf-mesoderm - heart field,67,1.49,False
+wt1a,65,14,14hpf-differentiating neurons - rohon beard,29,0.0,False
+wt1a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,0.0,False
+wt1a,67,14,14hpf-neural crest - crestin,82,0.0,False
+wt1a,68,14,14hpf-neural - midbrain,340,0.29,False
+wt1a,69,14,14hpf-mesoderm - pronephric duct,14,0.0,True
+wt1a,70,14,14hpf-neural -  floorplate,13,0.0,False
+wt1a,71,14,14hpf-germline,5,0.0,False
+wt1a,72,14,14hpf-hatching gland,14,0.0,False
+wt1a,73,14,14hpf-periderm,11,0.0,False
+wt1a,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+wt1a,75,14,14hpf-tailbud - spinal cord,547,0.0,False
+wt1a,76,14,14hpf-neural - telencephalon,174,0.57,False
+wt1a,77,14,14hpf-lateral line primordium,84,0.0,False
+wt1a,78,14,14hpf-differentiating neurons,24,0.0,False
+wt1a,79,18,18hpf-neural - diencephalon,161,1.86,False
+wt1a,80,18,18hpf-neural - midbrain,988,2.53,False
+wt1a,81,18,18hpf-epidermal - olfactory placode,28,3.57,False
+wt1a,82,18,18hpf-neural - telencephalon,301,0.66,False
+wt1a,83,18,18hpf-neural - dorsal hindbrain,578,1.38,False
+wt1a,84,18,18hpf-differentiating neurons,252,2.38,False
+wt1a,85,18,18hpf-ionocyte - ca2,48,2.08,False
+wt1a,86,18,18hpf-epidermal - anterior,182,1.65,False
+wt1a,87,18,18hpf-hatching gland,20,0.0,False
+wt1a,88,18,18hpf-epidermal - sox4b,59,1.69,False
+wt1a,89,18,18hpf-optic cup,390,3.33,False
+wt1a,90,18,18hpf-tailbud - spinal cord,277,1.81,False
+wt1a,91,18,18hpf-pectoral fin field,66,1.52,False
+wt1a,92,18,18hpf-heart field,158,5.7,False
+wt1a,93,18,18hpf-lens placode,39,0.0,False
+wt1a,94,18,18hpf-neural crest - grem2,281,1.78,False
+wt1a,95,18,18hpf-erythroid,256,6.25,False
+wt1a,96,18,18hpf-macrophage,30,3.33,False
+wt1a,97,18,18hpf-tailbud - PSM,407,2.21,False
+wt1a,98,18,18hpf-myotome,169,2.37,False
+wt1a,99,18,18hpf-notocord,28,0.0,False
+wt1a,NaN,?,(unknown),17,0.0,False
+wt1b,100,18,18hpf-endothelial,149,6.71,False
+wt1b,101,18,18hpf-otic placode,51,5.88,False
+wt1b,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,3.95,False
+wt1b,103,18,18hpf-germline,9,0.0,False
+wt1b,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+wt1b,106,18,18hpf-neural -  floorplate,6,0.0,False
+wt1b,107,18,18hpf-heart mature,17,23.53,False
+wt1b,108,18,18hpf-macrophage - ly75,14,21.43,False
+wt1b,109,18,18hpf-pronephric duct,10,0.0,True
+wt1b,110,18,18hpf-periderm,15,6.67,False
+wt1b,111,18,18hpf-pancreas primordium,8,12.5,False
+wt1b,112,18,18hpf-differentiating neurons - rohon beard,26,11.54,False
+wt1b,113,18,18hpf-retina pigmented epithelium,46,4.35,False
+wt1b,114,18,18hpf-differentiating neurons - dlx,30,0.0,False
+wt1b,115,18,18hpf-epidermal - pfn1,383,3.92,False
+wt1b,116,18,18hpf-lateral line primordium,46,2.17,False
+wt1b,117,18,18hpf-endoderm,142,11.27,False
+wt1b,118,18,18hpf-neural - midbrain ventral nkx6.2,126,5.56,False
+wt1b,119,18,18hpf-pharyngeal arch,202,11.88,False
+wt1b,120,18,18hpf-neural crest - crestin,148,5.41,False
+wt1b,121,18,18hpf-differentiating neurons - phox2a,8,12.5,False
+wt1b,122,18,18hpf-differentiating neurons - eomesa,28,0.0,False
+wt1b,123,18,18hpf-neural - ventral hindbrain,684,4.68,False
+wt1b,124,24,24hpf-differentiating neurons - hmx,30,3.33,False
+wt1b,125,24,24hpf-differentiating neurons - dlx,65,3.08,False
+wt1b,126,24,24hpf-epidermal - prr15la,24,4.17,False
+wt1b,127,24,24hpf-pancreas primordium,6,0.0,False
+wt1b,128,24,24hpf-ionocyte - ca2,31,0.0,False
+wt1b,129,24,24hpf-leukocyte,13,0.0,False
+wt1b,130,24,24hpf-neural - ventral hindbrain,911,1.65,False
+wt1b,131,24,24hpf-erythroid,506,2.57,False
+wt1b,132,24,24hpf-differentiating neurons - phox2a,44,9.09,False
+wt1b,133,24,24hpf-mesoderm - emp2,31,3.23,False
+wt1b,134,24,24hpf-differentiating neurons,523,2.68,False
+wt1b,136,24,24hpf-neural - midbrain,1211,2.48,False
+wt1b,137,24,24hpf-neural - dorsal spinal cord,31,3.23,False
+wt1b,138,24,24hpf-neural - diencephalon,203,1.97,False
+wt1b,139,24,24hpf-neural crest,8,12.5,False
+wt1b,140,24,24hpf-optic cup,772,3.5,False
+wt1b,141,24,24hpf-periderm,22,13.64,False
+wt1b,142,24,24hpf-tailbud - spinal cord,144,3.47,False
+wt1b,143,24,24hpf-pectoral fin bud,104,8.65,False
+wt1b,144,24,24hpf-macrophage,61,3.28,False
+wt1b,145,24,24hpf-epidermal - grhl3,12,8.33,False
+wt1b,146,24,24hpf-epidermal - olfactory placode,44,2.27,False
+wt1b,147,24,24hpf-neural - dorsal hindbrain,667,1.95,False
+wt1b,148,24,24hpf-otic placode,33,3.03,False
+wt1b,149,24,24hpf-endoderm,64,9.38,False
+wt1b,150,24,24hpf-myotome,32,0.0,False
+wt1b,151,24,24hpf-pharyngeal pouch,53,1.89,False
+wt1b,152,24,24hpf-epidermal - anterior,75,4.0,False
+wt1b,153,24,24hpf-tailbud - PSM,23,4.35,False
+wt1b,154,24,24hpf-pharyngeal arch - tbx1,22,9.09,False
+wt1b,155,24,24hpf-endothelial,127,2.36,False
+wt1b,156,24,24hpf-hatching gland,32,9.38,False
+wt1b,157,24,24hpf-differentiating neurons - eomesa,101,1.98,False
+wt1b,158,24,24hpf-pharyngeal arch - cd248b,135,4.44,False
+wt1b,159,24,24hpf-lens,14,0.0,False
+wt1b,160,24,24hpf-neural - floorplate,9,0.0,False
+wt1b,161,24,24hpf-endothelial - posterior,53,3.77,False
+wt1b,164,24,24hpf-epidermal - atp1a1a.2,38,5.26,False
+wt1b,165,24,24hpf-neural - hindbrain roofplate,37,2.7,False
+wt1b,166,24,24hpf-differentiating neurons - rohon beard,62,4.84,False
+wt1b,167,24,24hpf-retina pigmented epithelium,37,0.0,False
+wt1b,168,24,24hpf-neural - telencephalon,351,1.42,False
+wt1b,169,24,24hpf-neural - midbrain ventral nkx6.2,191,1.05,False
+wt1b,170,24,24hpf-neural - hindbrain gsx1,245,3.67,False
+wt1b,171,24,24hpf-neural - posterior ventral nkx6.2,146,1.37,False
+wt1b,172,24,24hpf-germline,9,11.11,False
+wt1b,174,24,24hpf-heart,71,28.17,False
+wt1b,177,24,24hpf-neural - diencephalon posterior,46,2.17,False
+wt1b,178,24,24hpf-pharyngeal arch - ndnf,44,4.55,False
+wt1b,179,24,24hpf-heart - hoxd9a,34,5.88,False
+wt1b,180,24,24hpf-epidermal - muc5ac,17,5.88,False
+wt1b,182,24,24hpf-neural crest - xanthophore,27,3.7,False
+wt1b,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+wt1b,184,24,24hpf-neural crest - iridoblast,5,20.0,False
+wt1b,185,24,24hpf-neural crest - grem2,92,3.26,False
+wt1b,186,24,24hpf-neural crest - mcamb,52,3.85,False
+wt1b,187,24,24hpf-pronephric duct,8,0.0,True
+wt1b,189,24,24hpf-epidermal - s100a11,8,25.0,False
+wt1b,190,24,24hpf-lateral line - krt15,14,21.43,False
+wt1b,191,24,24hpf-epidermal - and1,26,7.69,False
+wt1b,193,24,24hpf-epidermal - rbp4,35,2.86,False
+wt1b,194,24,24hpf-epidermal - col7a1l,60,1.67,False
+wt1b,195,24,24hpf-epidermal - kera,24,0.0,False
+wt1b,51,14,14hpf-epidermal - pfn1,741,3.24,False
+wt1b,52,14,14hpf-optic primordium,223,5.38,False
+wt1b,53,14,14hpf-mesoderm - blood island,43,2.33,False
+wt1b,54,14,14hpf-neural - diencephalon,88,4.55,False
+wt1b,55,14,14hpf-tailbud - PSM,299,1.67,False
+wt1b,56,14,14hpf-epidermal anterior,313,6.39,False
+wt1b,57,14,14hpf-neural - hindbrain,298,2.68,False
+wt1b,58,14,14hpf-endoderm,57,5.26,False
+wt1b,59,14,14hpf-epidermal - foxi3a,75,4.0,False
+wt1b,60,14,14hpf-neural crest,201,6.47,False
+wt1b,61,14,14hpf-mesoderm - pharyngeal arch,71,0.0,False
+wt1b,62,14,14hpf-notocord,42,4.76,False
+wt1b,63,14,14hpf-epidermal - otic placode,69,4.35,False
+wt1b,64,14,14hpf-mesoderm - heart field,67,11.94,False
+wt1b,65,14,14hpf-differentiating neurons - rohon beard,29,13.79,False
+wt1b,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,4.55,False
+wt1b,67,14,14hpf-neural crest - crestin,82,4.88,False
+wt1b,68,14,14hpf-neural - midbrain,340,4.71,False
+wt1b,69,14,14hpf-mesoderm - pronephric duct,14,0.0,True
+wt1b,70,14,14hpf-neural -  floorplate,13,7.69,False
+wt1b,71,14,14hpf-germline,5,0.0,False
+wt1b,72,14,14hpf-hatching gland,14,0.0,False
+wt1b,73,14,14hpf-periderm,11,0.0,False
+wt1b,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+wt1b,75,14,14hpf-tailbud - spinal cord,547,3.47,False
+wt1b,76,14,14hpf-neural - telencephalon,174,1.15,False
+wt1b,77,14,14hpf-lateral line primordium,84,1.19,False
+wt1b,78,14,14hpf-differentiating neurons,24,8.33,False
+wt1b,79,18,18hpf-neural - diencephalon,161,4.97,False
+wt1b,80,18,18hpf-neural - midbrain,988,5.57,False
+wt1b,81,18,18hpf-epidermal - olfactory placode,28,10.71,False
+wt1b,82,18,18hpf-neural - telencephalon,301,3.99,False
+wt1b,83,18,18hpf-neural - dorsal hindbrain,578,7.27,False
+wt1b,84,18,18hpf-differentiating neurons,252,11.51,False
+wt1b,85,18,18hpf-ionocyte - ca2,48,6.25,False
+wt1b,86,18,18hpf-epidermal - anterior,182,2.75,False
+wt1b,87,18,18hpf-hatching gland,20,5.0,False
+wt1b,88,18,18hpf-epidermal - sox4b,59,6.78,False
+wt1b,89,18,18hpf-optic cup,390,6.41,False
+wt1b,90,18,18hpf-tailbud - spinal cord,277,3.61,False
+wt1b,91,18,18hpf-pectoral fin field,66,12.12,False
+wt1b,92,18,18hpf-heart field,158,28.48,False
+wt1b,93,18,18hpf-lens placode,39,5.13,False
+wt1b,94,18,18hpf-neural crest - grem2,281,7.12,False
+wt1b,95,18,18hpf-erythroid,256,10.16,False
+wt1b,96,18,18hpf-macrophage,30,16.67,False
+wt1b,97,18,18hpf-tailbud - PSM,407,6.14,False
+wt1b,98,18,18hpf-myotome,169,5.92,False
+wt1b,99,18,18hpf-notocord,28,7.14,False
+wt1b,NaN,?,(unknown),17,0.0,False
+sim1a,100,18,18hpf-endothelial,149,7.38,False
+sim1a,101,18,18hpf-otic placode,51,1.96,False
+sim1a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,1.32,False
+sim1a,103,18,18hpf-germline,9,0.0,False
+sim1a,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+sim1a,106,18,18hpf-neural -  floorplate,6,0.0,False
+sim1a,107,18,18hpf-heart mature,17,5.88,False
+sim1a,108,18,18hpf-macrophage - ly75,14,7.14,False
+sim1a,109,18,18hpf-pronephric duct,10,0.0,True
+sim1a,110,18,18hpf-periderm,15,0.0,False
+sim1a,111,18,18hpf-pancreas primordium,8,0.0,False
+sim1a,112,18,18hpf-differentiating neurons - rohon beard,26,3.85,False
+sim1a,113,18,18hpf-retina pigmented epithelium,46,0.0,False
+sim1a,114,18,18hpf-differentiating neurons - dlx,30,6.67,False
+sim1a,115,18,18hpf-epidermal - pfn1,383,2.09,False
+sim1a,116,18,18hpf-lateral line primordium,46,0.0,False
+sim1a,117,18,18hpf-endoderm,142,2.11,False
+sim1a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,2.38,False
+sim1a,119,18,18hpf-pharyngeal arch,202,2.48,False
+sim1a,120,18,18hpf-neural crest - crestin,148,2.03,False
+sim1a,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+sim1a,122,18,18hpf-differentiating neurons - eomesa,28,0.0,False
+sim1a,123,18,18hpf-neural - ventral hindbrain,684,2.19,False
+sim1a,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+sim1a,125,24,24hpf-differentiating neurons - dlx,65,0.0,False
+sim1a,126,24,24hpf-epidermal - prr15la,24,0.0,False
+sim1a,127,24,24hpf-pancreas primordium,6,0.0,False
+sim1a,128,24,24hpf-ionocyte - ca2,31,0.0,False
+sim1a,129,24,24hpf-leukocyte,13,7.69,False
+sim1a,130,24,24hpf-neural - ventral hindbrain,911,0.44,False
+sim1a,131,24,24hpf-erythroid,506,0.4,False
+sim1a,132,24,24hpf-differentiating neurons - phox2a,44,2.27,False
+sim1a,133,24,24hpf-mesoderm - emp2,31,0.0,False
+sim1a,134,24,24hpf-differentiating neurons,523,0.57,False
+sim1a,136,24,24hpf-neural - midbrain,1211,0.17,False
+sim1a,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+sim1a,138,24,24hpf-neural - diencephalon,203,0.49,False
+sim1a,139,24,24hpf-neural crest,8,12.5,False
+sim1a,140,24,24hpf-optic cup,772,0.39,False
+sim1a,141,24,24hpf-periderm,22,0.0,False
+sim1a,142,24,24hpf-tailbud - spinal cord,144,0.0,False
+sim1a,143,24,24hpf-pectoral fin bud,104,0.0,False
+sim1a,144,24,24hpf-macrophage,61,1.64,False
+sim1a,145,24,24hpf-epidermal - grhl3,12,0.0,False
+sim1a,146,24,24hpf-epidermal - olfactory placode,44,0.0,False
+sim1a,147,24,24hpf-neural - dorsal hindbrain,667,0.15,False
+sim1a,148,24,24hpf-otic placode,33,0.0,False
+sim1a,149,24,24hpf-endoderm,64,0.0,False
+sim1a,150,24,24hpf-myotome,32,0.0,False
+sim1a,151,24,24hpf-pharyngeal pouch,53,0.0,False
+sim1a,152,24,24hpf-epidermal - anterior,75,0.0,False
+sim1a,153,24,24hpf-tailbud - PSM,23,4.35,False
+sim1a,154,24,24hpf-pharyngeal arch - tbx1,22,0.0,False
+sim1a,155,24,24hpf-endothelial,127,0.0,False
+sim1a,156,24,24hpf-hatching gland,32,0.0,False
+sim1a,157,24,24hpf-differentiating neurons - eomesa,101,0.0,False
+sim1a,158,24,24hpf-pharyngeal arch - cd248b,135,0.0,False
+sim1a,159,24,24hpf-lens,14,0.0,False
+sim1a,160,24,24hpf-neural - floorplate,9,0.0,False
+sim1a,161,24,24hpf-endothelial - posterior,53,1.89,False
+sim1a,164,24,24hpf-epidermal - atp1a1a.2,38,2.63,False
+sim1a,165,24,24hpf-neural - hindbrain roofplate,37,0.0,False
+sim1a,166,24,24hpf-differentiating neurons - rohon beard,62,0.0,False
+sim1a,167,24,24hpf-retina pigmented epithelium,37,2.7,False
+sim1a,168,24,24hpf-neural - telencephalon,351,0.57,False
+sim1a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,0.0,False
+sim1a,170,24,24hpf-neural - hindbrain gsx1,245,1.22,False
+sim1a,171,24,24hpf-neural - posterior ventral nkx6.2,146,0.0,False
+sim1a,172,24,24hpf-germline,9,0.0,False
+sim1a,174,24,24hpf-heart,71,2.82,False
+sim1a,177,24,24hpf-neural - diencephalon posterior,46,0.0,False
+sim1a,178,24,24hpf-pharyngeal arch - ndnf,44,0.0,False
+sim1a,179,24,24hpf-heart - hoxd9a,34,0.0,False
+sim1a,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+sim1a,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+sim1a,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+sim1a,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+sim1a,185,24,24hpf-neural crest - grem2,92,1.09,False
+sim1a,186,24,24hpf-neural crest - mcamb,52,0.0,False
+sim1a,187,24,24hpf-pronephric duct,8,0.0,True
+sim1a,189,24,24hpf-epidermal - s100a11,8,0.0,False
+sim1a,190,24,24hpf-lateral line - krt15,14,0.0,False
+sim1a,191,24,24hpf-epidermal - and1,26,3.85,False
+sim1a,193,24,24hpf-epidermal - rbp4,35,2.86,False
+sim1a,194,24,24hpf-epidermal - col7a1l,60,0.0,False
+sim1a,195,24,24hpf-epidermal - kera,24,4.17,False
+sim1a,51,14,14hpf-epidermal - pfn1,741,0.4,False
+sim1a,52,14,14hpf-optic primordium,223,1.35,False
+sim1a,53,14,14hpf-mesoderm - blood island,43,0.0,False
+sim1a,54,14,14hpf-neural - diencephalon,88,0.0,False
+sim1a,55,14,14hpf-tailbud - PSM,299,0.0,False
+sim1a,56,14,14hpf-epidermal anterior,313,0.32,False
+sim1a,57,14,14hpf-neural - hindbrain,298,0.0,False
+sim1a,58,14,14hpf-endoderm,57,0.0,False
+sim1a,59,14,14hpf-epidermal - foxi3a,75,0.0,False
+sim1a,60,14,14hpf-neural crest,201,0.5,False
+sim1a,61,14,14hpf-mesoderm - pharyngeal arch,71,1.41,False
+sim1a,62,14,14hpf-notocord,42,0.0,False
+sim1a,63,14,14hpf-epidermal - otic placode,69,0.0,False
+sim1a,64,14,14hpf-mesoderm - heart field,67,1.49,False
+sim1a,65,14,14hpf-differentiating neurons - rohon beard,29,0.0,False
+sim1a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,2.27,False
+sim1a,67,14,14hpf-neural crest - crestin,82,1.22,False
+sim1a,68,14,14hpf-neural - midbrain,340,0.0,False
+sim1a,69,14,14hpf-mesoderm - pronephric duct,14,0.0,True
+sim1a,70,14,14hpf-neural -  floorplate,13,0.0,False
+sim1a,71,14,14hpf-germline,5,0.0,False
+sim1a,72,14,14hpf-hatching gland,14,0.0,False
+sim1a,73,14,14hpf-periderm,11,0.0,False
+sim1a,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+sim1a,75,14,14hpf-tailbud - spinal cord,547,0.18,False
+sim1a,76,14,14hpf-neural - telencephalon,174,1.15,False
+sim1a,77,14,14hpf-lateral line primordium,84,3.57,False
+sim1a,78,14,14hpf-differentiating neurons,24,0.0,False
+sim1a,79,18,18hpf-neural - diencephalon,161,2.48,False
+sim1a,80,18,18hpf-neural - midbrain,988,1.72,False
+sim1a,81,18,18hpf-epidermal - olfactory placode,28,0.0,False
+sim1a,82,18,18hpf-neural - telencephalon,301,0.66,False
+sim1a,83,18,18hpf-neural - dorsal hindbrain,578,1.38,False
+sim1a,84,18,18hpf-differentiating neurons,252,2.38,False
+sim1a,85,18,18hpf-ionocyte - ca2,48,2.08,False
+sim1a,86,18,18hpf-epidermal - anterior,182,2.75,False
+sim1a,87,18,18hpf-hatching gland,20,0.0,False
+sim1a,88,18,18hpf-epidermal - sox4b,59,1.69,False
+sim1a,89,18,18hpf-optic cup,390,1.54,False
+sim1a,90,18,18hpf-tailbud - spinal cord,277,1.08,False
+sim1a,91,18,18hpf-pectoral fin field,66,7.58,False
+sim1a,92,18,18hpf-heart field,158,2.53,False
+sim1a,93,18,18hpf-lens placode,39,5.13,False
+sim1a,94,18,18hpf-neural crest - grem2,281,3.91,False
+sim1a,95,18,18hpf-erythroid,256,4.3,False
+sim1a,96,18,18hpf-macrophage,30,23.33,False
+sim1a,97,18,18hpf-tailbud - PSM,407,1.72,False
+sim1a,98,18,18hpf-myotome,169,3.55,False
+sim1a,99,18,18hpf-notocord,28,0.0,False
+sim1a,NaN,?,(unknown),17,0.0,False
+dzip1l,100,18,18hpf-endothelial,149,4.03,False
+dzip1l,101,18,18hpf-otic placode,51,3.92,False
+dzip1l,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,5.26,False
+dzip1l,103,18,18hpf-germline,9,0.0,False
+dzip1l,105,18,18hpf-pronephric duct - posterior,11,9.09,True
+dzip1l,106,18,18hpf-neural -  floorplate,6,0.0,False
+dzip1l,107,18,18hpf-heart mature,17,0.0,False
+dzip1l,108,18,18hpf-macrophage - ly75,14,14.29,False
+dzip1l,109,18,18hpf-pronephric duct,10,20.0,True
+dzip1l,110,18,18hpf-periderm,15,0.0,False
+dzip1l,111,18,18hpf-pancreas primordium,8,0.0,False
+dzip1l,112,18,18hpf-differentiating neurons - rohon beard,26,3.85,False
+dzip1l,113,18,18hpf-retina pigmented epithelium,46,4.35,False
+dzip1l,114,18,18hpf-differentiating neurons - dlx,30,6.67,False
+dzip1l,115,18,18hpf-epidermal - pfn1,383,1.04,False
+dzip1l,116,18,18hpf-lateral line primordium,46,0.0,False
+dzip1l,117,18,18hpf-endoderm,142,0.7,False
+dzip1l,118,18,18hpf-neural - midbrain ventral nkx6.2,126,3.97,False
+dzip1l,119,18,18hpf-pharyngeal arch,202,7.43,False
+dzip1l,120,18,18hpf-neural crest - crestin,148,2.7,False
+dzip1l,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+dzip1l,122,18,18hpf-differentiating neurons - eomesa,28,7.14,False
+dzip1l,123,18,18hpf-neural - ventral hindbrain,684,3.36,False
+dzip1l,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+dzip1l,125,24,24hpf-differentiating neurons - dlx,65,0.0,False
+dzip1l,126,24,24hpf-epidermal - prr15la,24,0.0,False
+dzip1l,127,24,24hpf-pancreas primordium,6,16.67,False
+dzip1l,128,24,24hpf-ionocyte - ca2,31,3.23,False
+dzip1l,129,24,24hpf-leukocyte,13,0.0,False
+dzip1l,130,24,24hpf-neural - ventral hindbrain,911,0.66,False
+dzip1l,131,24,24hpf-erythroid,506,0.79,False
+dzip1l,132,24,24hpf-differentiating neurons - phox2a,44,2.27,False
+dzip1l,133,24,24hpf-mesoderm - emp2,31,3.23,False
+dzip1l,134,24,24hpf-differentiating neurons,523,2.49,False
+dzip1l,136,24,24hpf-neural - midbrain,1211,0.33,False
+dzip1l,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+dzip1l,138,24,24hpf-neural - diencephalon,203,0.99,False
+dzip1l,139,24,24hpf-neural crest,8,0.0,False
+dzip1l,140,24,24hpf-optic cup,772,0.39,False
+dzip1l,141,24,24hpf-periderm,22,0.0,False
+dzip1l,142,24,24hpf-tailbud - spinal cord,144,2.08,False
+dzip1l,143,24,24hpf-pectoral fin bud,104,0.96,False
+dzip1l,144,24,24hpf-macrophage,61,0.0,False
+dzip1l,145,24,24hpf-epidermal - grhl3,12,8.33,False
+dzip1l,146,24,24hpf-epidermal - olfactory placode,44,13.64,False
+dzip1l,147,24,24hpf-neural - dorsal hindbrain,667,1.05,False
+dzip1l,148,24,24hpf-otic placode,33,6.06,False
+dzip1l,149,24,24hpf-endoderm,64,1.56,False
+dzip1l,150,24,24hpf-myotome,32,0.0,False
+dzip1l,151,24,24hpf-pharyngeal pouch,53,1.89,False
+dzip1l,152,24,24hpf-epidermal - anterior,75,0.0,False
+dzip1l,153,24,24hpf-tailbud - PSM,23,0.0,False
+dzip1l,154,24,24hpf-pharyngeal arch - tbx1,22,0.0,False
+dzip1l,155,24,24hpf-endothelial,127,1.57,False
+dzip1l,156,24,24hpf-hatching gland,32,31.25,False
+dzip1l,157,24,24hpf-differentiating neurons - eomesa,101,2.97,False
+dzip1l,158,24,24hpf-pharyngeal arch - cd248b,135,2.96,False
+dzip1l,159,24,24hpf-lens,14,0.0,False
+dzip1l,160,24,24hpf-neural - floorplate,9,22.22,False
+dzip1l,161,24,24hpf-endothelial - posterior,53,0.0,False
+dzip1l,164,24,24hpf-epidermal - atp1a1a.2,38,5.26,False
+dzip1l,165,24,24hpf-neural - hindbrain roofplate,37,0.0,False
+dzip1l,166,24,24hpf-differentiating neurons - rohon beard,62,0.0,False
+dzip1l,167,24,24hpf-retina pigmented epithelium,37,0.0,False
+dzip1l,168,24,24hpf-neural - telencephalon,351,1.14,False
+dzip1l,169,24,24hpf-neural - midbrain ventral nkx6.2,191,1.05,False
+dzip1l,170,24,24hpf-neural - hindbrain gsx1,245,0.41,False
+dzip1l,171,24,24hpf-neural - posterior ventral nkx6.2,146,0.68,False
+dzip1l,172,24,24hpf-germline,9,0.0,False
+dzip1l,174,24,24hpf-heart,71,1.41,False
+dzip1l,177,24,24hpf-neural - diencephalon posterior,46,0.0,False
+dzip1l,178,24,24hpf-pharyngeal arch - ndnf,44,0.0,False
+dzip1l,179,24,24hpf-heart - hoxd9a,34,2.94,False
+dzip1l,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+dzip1l,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+dzip1l,183,24,24hpf-neural crest - melanoblast,23,4.35,False
+dzip1l,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+dzip1l,185,24,24hpf-neural crest - grem2,92,0.0,False
+dzip1l,186,24,24hpf-neural crest - mcamb,52,0.0,False
+dzip1l,187,24,24hpf-pronephric duct,8,0.0,True
+dzip1l,189,24,24hpf-epidermal - s100a11,8,0.0,False
+dzip1l,190,24,24hpf-lateral line - krt15,14,14.29,False
+dzip1l,191,24,24hpf-epidermal - and1,26,0.0,False
+dzip1l,193,24,24hpf-epidermal - rbp4,35,0.0,False
+dzip1l,194,24,24hpf-epidermal - col7a1l,60,0.0,False
+dzip1l,195,24,24hpf-epidermal - kera,24,0.0,False
+dzip1l,51,14,14hpf-epidermal - pfn1,741,1.08,False
+dzip1l,52,14,14hpf-optic primordium,223,0.45,False
+dzip1l,53,14,14hpf-mesoderm - blood island,43,0.0,False
+dzip1l,54,14,14hpf-neural - diencephalon,88,0.0,False
+dzip1l,55,14,14hpf-tailbud - PSM,299,1.0,False
+dzip1l,56,14,14hpf-epidermal anterior,313,0.96,False
+dzip1l,57,14,14hpf-neural - hindbrain,298,1.34,False
+dzip1l,58,14,14hpf-endoderm,57,5.26,False
+dzip1l,59,14,14hpf-epidermal - foxi3a,75,0.0,False
+dzip1l,60,14,14hpf-neural crest,201,1.99,False
+dzip1l,61,14,14hpf-mesoderm - pharyngeal arch,71,1.41,False
+dzip1l,62,14,14hpf-notocord,42,0.0,False
+dzip1l,63,14,14hpf-epidermal - otic placode,69,0.0,False
+dzip1l,64,14,14hpf-mesoderm - heart field,67,1.49,False
+dzip1l,65,14,14hpf-differentiating neurons - rohon beard,29,3.45,False
+dzip1l,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,4.55,False
+dzip1l,67,14,14hpf-neural crest - crestin,82,2.44,False
+dzip1l,68,14,14hpf-neural - midbrain,340,1.18,False
+dzip1l,69,14,14hpf-mesoderm - pronephric duct,14,0.0,True
+dzip1l,70,14,14hpf-neural -  floorplate,13,0.0,False
+dzip1l,71,14,14hpf-germline,5,0.0,False
+dzip1l,72,14,14hpf-hatching gland,14,0.0,False
+dzip1l,73,14,14hpf-periderm,11,0.0,False
+dzip1l,74,14,14hpf-mesoderm - endothelial,33,3.03,False
+dzip1l,75,14,14hpf-tailbud - spinal cord,547,0.73,False
+dzip1l,76,14,14hpf-neural - telencephalon,174,0.57,False
+dzip1l,77,14,14hpf-lateral line primordium,84,0.0,False
+dzip1l,78,14,14hpf-differentiating neurons,24,0.0,False
+dzip1l,79,18,18hpf-neural - diencephalon,161,3.11,False
+dzip1l,80,18,18hpf-neural - midbrain,988,3.64,False
+dzip1l,81,18,18hpf-epidermal - olfactory placode,28,17.86,False
+dzip1l,82,18,18hpf-neural - telencephalon,301,2.66,False
+dzip1l,83,18,18hpf-neural - dorsal hindbrain,578,3.98,False
+dzip1l,84,18,18hpf-differentiating neurons,252,3.97,False
+dzip1l,85,18,18hpf-ionocyte - ca2,48,4.17,False
+dzip1l,86,18,18hpf-epidermal - anterior,182,0.0,False
+dzip1l,87,18,18hpf-hatching gland,20,0.0,False
+dzip1l,88,18,18hpf-epidermal - sox4b,59,3.39,False
+dzip1l,89,18,18hpf-optic cup,390,3.85,False
+dzip1l,90,18,18hpf-tailbud - spinal cord,277,1.44,False
+dzip1l,91,18,18hpf-pectoral fin field,66,1.52,False
+dzip1l,92,18,18hpf-heart field,158,3.8,False
+dzip1l,93,18,18hpf-lens placode,39,5.13,False
+dzip1l,94,18,18hpf-neural crest - grem2,281,3.56,False
+dzip1l,95,18,18hpf-erythroid,256,8.59,False
+dzip1l,96,18,18hpf-macrophage,30,16.67,False
+dzip1l,97,18,18hpf-tailbud - PSM,407,3.69,False
+dzip1l,98,18,18hpf-myotome,169,3.55,False
+dzip1l,99,18,18hpf-notocord,28,0.0,False
+dzip1l,NaN,?,(unknown),17,0.0,False
+mafba,100,18,18hpf-endothelial,149,44.97,False
+mafba,101,18,18hpf-otic placode,51,1.96,False
+mafba,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,21.05,False
+mafba,103,18,18hpf-germline,9,0.0,False
+mafba,105,18,18hpf-pronephric duct - posterior,11,18.18,True
+mafba,106,18,18hpf-neural -  floorplate,6,0.0,False
+mafba,107,18,18hpf-heart mature,17,5.88,False
+mafba,108,18,18hpf-macrophage - ly75,14,7.14,False
+mafba,109,18,18hpf-pronephric duct,10,20.0,True
+mafba,110,18,18hpf-periderm,15,6.67,False
+mafba,111,18,18hpf-pancreas primordium,8,12.5,False
+mafba,112,18,18hpf-differentiating neurons - rohon beard,26,3.85,False
+mafba,113,18,18hpf-retina pigmented epithelium,46,6.52,False
+mafba,114,18,18hpf-differentiating neurons - dlx,30,6.67,False
+mafba,115,18,18hpf-epidermal - pfn1,383,5.74,False
+mafba,116,18,18hpf-lateral line primordium,46,4.35,False
+mafba,117,18,18hpf-endoderm,142,5.63,False
+mafba,118,18,18hpf-neural - midbrain ventral nkx6.2,126,10.32,False
+mafba,119,18,18hpf-pharyngeal arch,202,12.38,False
+mafba,120,18,18hpf-neural crest - crestin,148,24.32,False
+mafba,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+mafba,122,18,18hpf-differentiating neurons - eomesa,28,10.71,False
+mafba,123,18,18hpf-neural - ventral hindbrain,684,21.93,False
+mafba,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+mafba,125,24,24hpf-differentiating neurons - dlx,65,6.15,False
+mafba,126,24,24hpf-epidermal - prr15la,24,0.0,False
+mafba,127,24,24hpf-pancreas primordium,6,0.0,False
+mafba,128,24,24hpf-ionocyte - ca2,31,3.23,False
+mafba,129,24,24hpf-leukocyte,13,30.77,False
+mafba,130,24,24hpf-neural - ventral hindbrain,911,15.48,False
+mafba,131,24,24hpf-erythroid,506,3.75,False
+mafba,132,24,24hpf-differentiating neurons - phox2a,44,4.55,False
+mafba,133,24,24hpf-mesoderm - emp2,31,0.0,False
+mafba,134,24,24hpf-differentiating neurons,523,9.94,False
+mafba,136,24,24hpf-neural - midbrain,1211,2.81,False
+mafba,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+mafba,138,24,24hpf-neural - diencephalon,203,3.45,False
+mafba,139,24,24hpf-neural crest,8,12.5,False
+mafba,140,24,24hpf-optic cup,772,5.31,False
+mafba,141,24,24hpf-periderm,22,0.0,False
+mafba,142,24,24hpf-tailbud - spinal cord,144,3.47,False
+mafba,143,24,24hpf-pectoral fin bud,104,6.73,False
+mafba,144,24,24hpf-macrophage,61,77.05,False
+mafba,145,24,24hpf-epidermal - grhl3,12,8.33,False
+mafba,146,24,24hpf-epidermal - olfactory placode,44,2.27,False
+mafba,147,24,24hpf-neural - dorsal hindbrain,667,16.79,False
+mafba,148,24,24hpf-otic placode,33,3.03,False
+mafba,149,24,24hpf-endoderm,64,3.12,False
+mafba,150,24,24hpf-myotome,32,3.12,False
+mafba,151,24,24hpf-pharyngeal pouch,53,3.77,False
+mafba,152,24,24hpf-epidermal - anterior,75,4.0,False
+mafba,153,24,24hpf-tailbud - PSM,23,21.74,False
+mafba,154,24,24hpf-pharyngeal arch - tbx1,22,4.55,False
+mafba,155,24,24hpf-endothelial,127,51.97,False
+mafba,156,24,24hpf-hatching gland,32,3.12,False
+mafba,157,24,24hpf-differentiating neurons - eomesa,101,14.85,False
+mafba,158,24,24hpf-pharyngeal arch - cd248b,135,2.22,False
+mafba,159,24,24hpf-lens,14,71.43,False
+mafba,160,24,24hpf-neural - floorplate,9,0.0,False
+mafba,161,24,24hpf-endothelial - posterior,53,86.79,False
+mafba,164,24,24hpf-epidermal - atp1a1a.2,38,5.26,False
+mafba,165,24,24hpf-neural - hindbrain roofplate,37,10.81,False
+mafba,166,24,24hpf-differentiating neurons - rohon beard,62,6.45,False
+mafba,167,24,24hpf-retina pigmented epithelium,37,5.41,False
+mafba,168,24,24hpf-neural - telencephalon,351,2.85,False
+mafba,169,24,24hpf-neural - midbrain ventral nkx6.2,191,1.57,False
+mafba,170,24,24hpf-neural - hindbrain gsx1,245,5.31,False
+mafba,171,24,24hpf-neural - posterior ventral nkx6.2,146,21.92,False
+mafba,172,24,24hpf-germline,9,0.0,False
+mafba,174,24,24hpf-heart,71,7.04,False
+mafba,177,24,24hpf-neural - diencephalon posterior,46,2.17,False
+mafba,178,24,24hpf-pharyngeal arch - ndnf,44,4.55,False
+mafba,179,24,24hpf-heart - hoxd9a,34,2.94,False
+mafba,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+mafba,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+mafba,183,24,24hpf-neural crest - melanoblast,23,4.35,False
+mafba,184,24,24hpf-neural crest - iridoblast,5,20.0,False
+mafba,185,24,24hpf-neural crest - grem2,92,6.52,False
+mafba,186,24,24hpf-neural crest - mcamb,52,28.85,False
+mafba,187,24,24hpf-pronephric duct,8,12.5,True
+mafba,189,24,24hpf-epidermal - s100a11,8,100.0,False
+mafba,190,24,24hpf-lateral line - krt15,14,0.0,False
+mafba,191,24,24hpf-epidermal - and1,26,3.85,False
+mafba,193,24,24hpf-epidermal - rbp4,35,2.86,False
+mafba,194,24,24hpf-epidermal - col7a1l,60,1.67,False
+mafba,195,24,24hpf-epidermal - kera,24,16.67,False
+mafba,51,14,14hpf-epidermal - pfn1,741,4.45,False
+mafba,52,14,14hpf-optic primordium,223,3.59,False
+mafba,53,14,14hpf-mesoderm - blood island,43,20.93,False
+mafba,54,14,14hpf-neural - diencephalon,88,6.82,False
+mafba,55,14,14hpf-tailbud - PSM,299,4.68,False
+mafba,56,14,14hpf-epidermal anterior,313,4.15,False
+mafba,57,14,14hpf-neural - hindbrain,298,25.17,False
+mafba,58,14,14hpf-endoderm,57,7.02,False
+mafba,59,14,14hpf-epidermal - foxi3a,75,25.33,False
+mafba,60,14,14hpf-neural crest,201,4.48,False
+mafba,61,14,14hpf-mesoderm - pharyngeal arch,71,5.63,False
+mafba,62,14,14hpf-notocord,42,2.38,False
+mafba,63,14,14hpf-epidermal - otic placode,69,1.45,False
+mafba,64,14,14hpf-mesoderm - heart field,67,4.48,False
+mafba,65,14,14hpf-differentiating neurons - rohon beard,29,0.0,False
+mafba,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,11.36,False
+mafba,67,14,14hpf-neural crest - crestin,82,46.34,False
+mafba,68,14,14hpf-neural - midbrain,340,5.88,False
+mafba,69,14,14hpf-mesoderm - pronephric duct,14,7.14,True
+mafba,70,14,14hpf-neural -  floorplate,13,0.0,False
+mafba,71,14,14hpf-germline,5,0.0,False
+mafba,72,14,14hpf-hatching gland,14,0.0,False
+mafba,73,14,14hpf-periderm,11,9.09,False
+mafba,74,14,14hpf-mesoderm - endothelial,33,33.33,False
+mafba,75,14,14hpf-tailbud - spinal cord,547,5.48,False
+mafba,76,14,14hpf-neural - telencephalon,174,2.3,False
+mafba,77,14,14hpf-lateral line primordium,84,10.71,False
+mafba,78,14,14hpf-differentiating neurons,24,8.33,False
+mafba,79,18,18hpf-neural - diencephalon,161,9.94,False
+mafba,80,18,18hpf-neural - midbrain,988,8.7,False
+mafba,81,18,18hpf-epidermal - olfactory placode,28,7.14,False
+mafba,82,18,18hpf-neural - telencephalon,301,4.98,False
+mafba,83,18,18hpf-neural - dorsal hindbrain,578,23.18,False
+mafba,84,18,18hpf-differentiating neurons,252,18.65,False
+mafba,85,18,18hpf-ionocyte - ca2,48,8.33,False
+mafba,86,18,18hpf-epidermal - anterior,182,10.99,False
+mafba,87,18,18hpf-hatching gland,20,0.0,False
+mafba,88,18,18hpf-epidermal - sox4b,59,27.12,False
+mafba,89,18,18hpf-optic cup,390,11.54,False
+mafba,90,18,18hpf-tailbud - spinal cord,277,5.78,False
+mafba,91,18,18hpf-pectoral fin field,66,16.67,False
+mafba,92,18,18hpf-heart field,158,15.19,False
+mafba,93,18,18hpf-lens placode,39,79.49,False
+mafba,94,18,18hpf-neural crest - grem2,281,14.95,False
+mafba,95,18,18hpf-erythroid,256,13.28,False
+mafba,96,18,18hpf-macrophage,30,53.33,False
+mafba,97,18,18hpf-tailbud - PSM,407,9.34,False
+mafba,98,18,18hpf-myotome,169,8.88,False
+mafba,99,18,18hpf-notocord,28,3.57,False
+mafba,NaN,?,(unknown),17,35.29,False
+ripply1,100,18,18hpf-endothelial,149,1.34,False
+ripply1,101,18,18hpf-otic placode,51,1.96,False
+ripply1,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,3.95,False
+ripply1,103,18,18hpf-germline,9,11.11,False
+ripply1,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+ripply1,106,18,18hpf-neural -  floorplate,6,0.0,False
+ripply1,107,18,18hpf-heart mature,17,0.0,False
+ripply1,108,18,18hpf-macrophage - ly75,14,14.29,False
+ripply1,109,18,18hpf-pronephric duct,10,20.0,True
+ripply1,110,18,18hpf-periderm,15,6.67,False
+ripply1,111,18,18hpf-pancreas primordium,8,12.5,False
+ripply1,112,18,18hpf-differentiating neurons - rohon beard,26,3.85,False
+ripply1,113,18,18hpf-retina pigmented epithelium,46,6.52,False
+ripply1,114,18,18hpf-differentiating neurons - dlx,30,13.33,False
+ripply1,115,18,18hpf-epidermal - pfn1,383,2.09,False
+ripply1,116,18,18hpf-lateral line primordium,46,6.52,False
+ripply1,117,18,18hpf-endoderm,142,17.61,False
+ripply1,118,18,18hpf-neural - midbrain ventral nkx6.2,126,3.17,False
+ripply1,119,18,18hpf-pharyngeal arch,202,44.06,False
+ripply1,120,18,18hpf-neural crest - crestin,148,5.41,False
+ripply1,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+ripply1,122,18,18hpf-differentiating neurons - eomesa,28,7.14,False
+ripply1,123,18,18hpf-neural - ventral hindbrain,684,5.41,False
+ripply1,124,24,24hpf-differentiating neurons - hmx,30,0.0,False
+ripply1,125,24,24hpf-differentiating neurons - dlx,65,3.08,False
+ripply1,126,24,24hpf-epidermal - prr15la,24,0.0,False
+ripply1,127,24,24hpf-pancreas primordium,6,0.0,False
+ripply1,128,24,24hpf-ionocyte - ca2,31,3.23,False
+ripply1,129,24,24hpf-leukocyte,13,0.0,False
+ripply1,130,24,24hpf-neural - ventral hindbrain,911,2.2,False
+ripply1,131,24,24hpf-erythroid,506,0.99,False
+ripply1,132,24,24hpf-differentiating neurons - phox2a,44,2.27,False
+ripply1,133,24,24hpf-mesoderm - emp2,31,22.58,False
+ripply1,134,24,24hpf-differentiating neurons,523,3.06,False
+ripply1,136,24,24hpf-neural - midbrain,1211,3.39,False
+ripply1,137,24,24hpf-neural - dorsal spinal cord,31,6.45,False
+ripply1,138,24,24hpf-neural - diencephalon,203,3.45,False
+ripply1,139,24,24hpf-neural crest,8,12.5,False
+ripply1,140,24,24hpf-optic cup,772,4.15,False
+ripply1,141,24,24hpf-periderm,22,0.0,False
+ripply1,142,24,24hpf-tailbud - spinal cord,144,4.86,False
+ripply1,143,24,24hpf-pectoral fin bud,104,37.5,False
+ripply1,144,24,24hpf-macrophage,61,1.64,False
+ripply1,145,24,24hpf-epidermal - grhl3,12,0.0,False
+ripply1,146,24,24hpf-epidermal - olfactory placode,44,0.0,False
+ripply1,147,24,24hpf-neural - dorsal hindbrain,667,3.75,False
+ripply1,148,24,24hpf-otic placode,33,0.0,False
+ripply1,149,24,24hpf-endoderm,64,18.75,False
+ripply1,150,24,24hpf-myotome,32,3.12,False
+ripply1,151,24,24hpf-pharyngeal pouch,53,18.87,False
+ripply1,152,24,24hpf-epidermal - anterior,75,5.33,False
+ripply1,153,24,24hpf-tailbud - PSM,23,13.04,False
+ripply1,154,24,24hpf-pharyngeal arch - tbx1,22,9.09,False
+ripply1,155,24,24hpf-endothelial,127,3.15,False
+ripply1,156,24,24hpf-hatching gland,32,6.25,False
+ripply1,157,24,24hpf-differentiating neurons - eomesa,101,7.92,False
+ripply1,158,24,24hpf-pharyngeal arch - cd248b,135,22.96,False
+ripply1,159,24,24hpf-lens,14,0.0,False
+ripply1,160,24,24hpf-neural - floorplate,9,0.0,False
+ripply1,161,24,24hpf-endothelial - posterior,53,1.89,False
+ripply1,164,24,24hpf-epidermal - atp1a1a.2,38,0.0,False
+ripply1,165,24,24hpf-neural - hindbrain roofplate,37,32.43,False
+ripply1,166,24,24hpf-differentiating neurons - rohon beard,62,8.06,False
+ripply1,167,24,24hpf-retina pigmented epithelium,37,5.41,False
+ripply1,168,24,24hpf-neural - telencephalon,351,3.42,False
+ripply1,169,24,24hpf-neural - midbrain ventral nkx6.2,191,1.05,False
+ripply1,170,24,24hpf-neural - hindbrain gsx1,245,2.45,False
+ripply1,171,24,24hpf-neural - posterior ventral nkx6.2,146,1.37,False
+ripply1,172,24,24hpf-germline,9,11.11,False
+ripply1,174,24,24hpf-heart,71,14.08,False
+ripply1,177,24,24hpf-neural - diencephalon posterior,46,4.35,False
+ripply1,178,24,24hpf-pharyngeal arch - ndnf,44,36.36,False
+ripply1,179,24,24hpf-heart - hoxd9a,34,5.88,False
+ripply1,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+ripply1,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+ripply1,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+ripply1,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+ripply1,185,24,24hpf-neural crest - grem2,92,3.26,False
+ripply1,186,24,24hpf-neural crest - mcamb,52,5.77,False
+ripply1,187,24,24hpf-pronephric duct,8,0.0,True
+ripply1,189,24,24hpf-epidermal - s100a11,8,0.0,False
+ripply1,190,24,24hpf-lateral line - krt15,14,0.0,False
+ripply1,191,24,24hpf-epidermal - and1,26,3.85,False
+ripply1,193,24,24hpf-epidermal - rbp4,35,2.86,False
+ripply1,194,24,24hpf-epidermal - col7a1l,60,1.67,False
+ripply1,195,24,24hpf-epidermal - kera,24,0.0,False
+ripply1,51,14,14hpf-epidermal - pfn1,741,1.75,False
+ripply1,52,14,14hpf-optic primordium,223,4.04,False
+ripply1,53,14,14hpf-mesoderm - blood island,43,4.65,False
+ripply1,54,14,14hpf-neural - diencephalon,88,2.27,False
+ripply1,55,14,14hpf-tailbud - PSM,299,20.4,False
+ripply1,56,14,14hpf-epidermal anterior,313,3.83,False
+ripply1,57,14,14hpf-neural - hindbrain,298,1.68,False
+ripply1,58,14,14hpf-endoderm,57,15.79,False
+ripply1,59,14,14hpf-epidermal - foxi3a,75,1.33,False
+ripply1,60,14,14hpf-neural crest,201,1.0,False
+ripply1,61,14,14hpf-mesoderm - pharyngeal arch,71,66.2,False
+ripply1,62,14,14hpf-notocord,42,0.0,False
+ripply1,63,14,14hpf-epidermal - otic placode,69,1.45,False
+ripply1,64,14,14hpf-mesoderm - heart field,67,5.97,False
+ripply1,65,14,14hpf-differentiating neurons - rohon beard,29,17.24,False
+ripply1,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,9.09,False
+ripply1,67,14,14hpf-neural crest - crestin,82,6.1,False
+ripply1,68,14,14hpf-neural - midbrain,340,1.47,False
+ripply1,69,14,14hpf-mesoderm - pronephric duct,14,14.29,True
+ripply1,70,14,14hpf-neural -  floorplate,13,0.0,False
+ripply1,71,14,14hpf-germline,5,20.0,False
+ripply1,72,14,14hpf-hatching gland,14,28.57,False
+ripply1,73,14,14hpf-periderm,11,0.0,False
+ripply1,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+ripply1,75,14,14hpf-tailbud - spinal cord,547,7.31,False
+ripply1,76,14,14hpf-neural - telencephalon,174,2.3,False
+ripply1,77,14,14hpf-lateral line primordium,84,2.38,False
+ripply1,78,14,14hpf-differentiating neurons,24,4.17,False
+ripply1,79,18,18hpf-neural - diencephalon,161,2.48,False
+ripply1,80,18,18hpf-neural - midbrain,988,5.06,False
+ripply1,81,18,18hpf-epidermal - olfactory placode,28,0.0,False
+ripply1,82,18,18hpf-neural - telencephalon,301,2.99,False
+ripply1,83,18,18hpf-neural - dorsal hindbrain,578,7.61,False
+ripply1,84,18,18hpf-differentiating neurons,252,6.75,False
+ripply1,85,18,18hpf-ionocyte - ca2,48,0.0,False
+ripply1,86,18,18hpf-epidermal - anterior,182,3.3,False
+ripply1,87,18,18hpf-hatching gland,20,0.0,False
+ripply1,88,18,18hpf-epidermal - sox4b,59,5.08,False
+ripply1,89,18,18hpf-optic cup,390,6.41,False
+ripply1,90,18,18hpf-tailbud - spinal cord,277,4.33,False
+ripply1,91,18,18hpf-pectoral fin field,66,13.64,False
+ripply1,92,18,18hpf-heart field,158,17.72,False
+ripply1,93,18,18hpf-lens placode,39,0.0,False
+ripply1,94,18,18hpf-neural crest - grem2,281,9.61,False
+ripply1,95,18,18hpf-erythroid,256,5.47,False
+ripply1,96,18,18hpf-macrophage,30,10.0,False
+ripply1,97,18,18hpf-tailbud - PSM,407,35.14,False
+ripply1,98,18,18hpf-myotome,169,12.43,False
+ripply1,99,18,18hpf-notocord,28,7.14,False
+ripply1,NaN,?,(unknown),17,11.76,False
+sall1a,100,18,18hpf-endothelial,149,13.42,False
+sall1a,101,18,18hpf-otic placode,51,0.0,False
+sall1a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,40.79,False
+sall1a,103,18,18hpf-germline,9,0.0,False
+sall1a,105,18,18hpf-pronephric duct - posterior,11,36.36,True
+sall1a,106,18,18hpf-neural -  floorplate,6,50.0,False
+sall1a,107,18,18hpf-heart mature,17,17.65,False
+sall1a,108,18,18hpf-macrophage - ly75,14,0.0,False
+sall1a,109,18,18hpf-pronephric duct,10,20.0,True
+sall1a,110,18,18hpf-periderm,15,6.67,False
+sall1a,111,18,18hpf-pancreas primordium,8,12.5,False
+sall1a,112,18,18hpf-differentiating neurons - rohon beard,26,15.38,False
+sall1a,113,18,18hpf-retina pigmented epithelium,46,4.35,False
+sall1a,114,18,18hpf-differentiating neurons - dlx,30,30.0,False
+sall1a,115,18,18hpf-epidermal - pfn1,383,12.27,False
+sall1a,116,18,18hpf-lateral line primordium,46,4.35,False
+sall1a,117,18,18hpf-endoderm,142,23.94,False
+sall1a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,38.1,False
+sall1a,119,18,18hpf-pharyngeal arch,202,11.88,False
+sall1a,120,18,18hpf-neural crest - crestin,148,4.05,False
+sall1a,121,18,18hpf-differentiating neurons - phox2a,8,100.0,False
+sall1a,122,18,18hpf-differentiating neurons - eomesa,28,0.0,False
+sall1a,123,18,18hpf-neural - ventral hindbrain,684,44.15,False
+sall1a,124,24,24hpf-differentiating neurons - hmx,30,20.0,False
+sall1a,125,24,24hpf-differentiating neurons - dlx,65,33.85,False
+sall1a,126,24,24hpf-epidermal - prr15la,24,4.17,False
+sall1a,127,24,24hpf-pancreas primordium,6,16.67,False
+sall1a,128,24,24hpf-ionocyte - ca2,31,3.23,False
+sall1a,129,24,24hpf-leukocyte,13,0.0,False
+sall1a,130,24,24hpf-neural - ventral hindbrain,911,53.9,False
+sall1a,131,24,24hpf-erythroid,506,2.96,False
+sall1a,132,24,24hpf-differentiating neurons - phox2a,44,68.18,False
+sall1a,133,24,24hpf-mesoderm - emp2,31,3.23,False
+sall1a,134,24,24hpf-differentiating neurons,523,43.02,False
+sall1a,136,24,24hpf-neural - midbrain,1211,23.29,False
+sall1a,137,24,24hpf-neural - dorsal spinal cord,31,35.48,False
+sall1a,138,24,24hpf-neural - diencephalon,203,46.8,False
+sall1a,139,24,24hpf-neural crest,8,25.0,False
+sall1a,140,24,24hpf-optic cup,772,7.12,False
+sall1a,141,24,24hpf-periderm,22,9.09,False
+sall1a,142,24,24hpf-tailbud - spinal cord,144,50.0,False
+sall1a,143,24,24hpf-pectoral fin bud,104,17.31,False
+sall1a,144,24,24hpf-macrophage,61,6.56,False
+sall1a,145,24,24hpf-epidermal - grhl3,12,0.0,False
+sall1a,146,24,24hpf-epidermal - olfactory placode,44,25.0,False
+sall1a,147,24,24hpf-neural - dorsal hindbrain,667,3.6,False
+sall1a,148,24,24hpf-otic placode,33,12.12,False
+sall1a,149,24,24hpf-endoderm,64,18.75,False
+sall1a,150,24,24hpf-myotome,32,6.25,False
+sall1a,151,24,24hpf-pharyngeal pouch,53,32.08,False
+sall1a,152,24,24hpf-epidermal - anterior,75,8.0,False
+sall1a,153,24,24hpf-tailbud - PSM,23,65.22,False
+sall1a,154,24,24hpf-pharyngeal arch - tbx1,22,18.18,False
+sall1a,155,24,24hpf-endothelial,127,7.09,False
+sall1a,156,24,24hpf-hatching gland,32,6.25,False
+sall1a,157,24,24hpf-differentiating neurons - eomesa,101,6.93,False
+sall1a,158,24,24hpf-pharyngeal arch - cd248b,135,3.7,False
+sall1a,159,24,24hpf-lens,14,7.14,False
+sall1a,160,24,24hpf-neural - floorplate,9,44.44,False
+sall1a,161,24,24hpf-endothelial - posterior,53,5.66,False
+sall1a,164,24,24hpf-epidermal - atp1a1a.2,38,7.89,False
+sall1a,165,24,24hpf-neural - hindbrain roofplate,37,5.41,False
+sall1a,166,24,24hpf-differentiating neurons - rohon beard,62,20.97,False
+sall1a,167,24,24hpf-retina pigmented epithelium,37,2.7,False
+sall1a,168,24,24hpf-neural - telencephalon,351,42.74,False
+sall1a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,49.21,False
+sall1a,170,24,24hpf-neural - hindbrain gsx1,245,42.86,False
+sall1a,171,24,24hpf-neural - posterior ventral nkx6.2,146,72.6,False
+sall1a,172,24,24hpf-germline,9,0.0,False
+sall1a,174,24,24hpf-heart,71,18.31,False
+sall1a,177,24,24hpf-neural - diencephalon posterior,46,19.57,False
+sall1a,178,24,24hpf-pharyngeal arch - ndnf,44,4.55,False
+sall1a,179,24,24hpf-heart - hoxd9a,34,29.41,False
+sall1a,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+sall1a,182,24,24hpf-neural crest - xanthophore,27,3.7,False
+sall1a,183,24,24hpf-neural crest - melanoblast,23,4.35,False
+sall1a,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+sall1a,185,24,24hpf-neural crest - grem2,92,9.78,False
+sall1a,186,24,24hpf-neural crest - mcamb,52,5.77,False
+sall1a,187,24,24hpf-pronephric duct,8,50.0,True
+sall1a,189,24,24hpf-epidermal - s100a11,8,25.0,False
+sall1a,190,24,24hpf-lateral line - krt15,14,0.0,False
+sall1a,191,24,24hpf-epidermal - and1,26,19.23,False
+sall1a,193,24,24hpf-epidermal - rbp4,35,2.86,False
+sall1a,194,24,24hpf-epidermal - col7a1l,60,5.0,False
+sall1a,195,24,24hpf-epidermal - kera,24,4.17,False
+sall1a,51,14,14hpf-epidermal - pfn1,741,9.45,False
+sall1a,52,14,14hpf-optic primordium,223,24.66,False
+sall1a,53,14,14hpf-mesoderm - blood island,43,27.91,False
+sall1a,54,14,14hpf-neural - diencephalon,88,46.59,False
+sall1a,55,14,14hpf-tailbud - PSM,299,10.7,False
+sall1a,56,14,14hpf-epidermal anterior,313,6.07,False
+sall1a,57,14,14hpf-neural - hindbrain,298,18.79,False
+sall1a,58,14,14hpf-endoderm,57,24.56,False
+sall1a,59,14,14hpf-epidermal - foxi3a,75,0.0,False
+sall1a,60,14,14hpf-neural crest,201,1.49,False
+sall1a,61,14,14hpf-mesoderm - pharyngeal arch,71,11.27,False
+sall1a,62,14,14hpf-notocord,42,21.43,False
+sall1a,63,14,14hpf-epidermal - otic placode,69,7.25,False
+sall1a,64,14,14hpf-mesoderm - heart field,67,29.85,False
+sall1a,65,14,14hpf-differentiating neurons - rohon beard,29,13.79,False
+sall1a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,31.82,False
+sall1a,67,14,14hpf-neural crest - crestin,82,1.22,False
+sall1a,68,14,14hpf-neural - midbrain,340,22.65,False
+sall1a,69,14,14hpf-mesoderm - pronephric duct,14,92.86,True
+sall1a,70,14,14hpf-neural -  floorplate,13,46.15,False
+sall1a,71,14,14hpf-germline,5,20.0,False
+sall1a,72,14,14hpf-hatching gland,14,7.14,False
+sall1a,73,14,14hpf-periderm,11,18.18,False
+sall1a,74,14,14hpf-mesoderm - endothelial,33,9.09,False
+sall1a,75,14,14hpf-tailbud - spinal cord,547,30.16,False
+sall1a,76,14,14hpf-neural - telencephalon,174,16.67,False
+sall1a,77,14,14hpf-lateral line primordium,84,1.19,False
+sall1a,78,14,14hpf-differentiating neurons,24,33.33,False
+sall1a,79,18,18hpf-neural - diencephalon,161,53.42,False
+sall1a,80,18,18hpf-neural - midbrain,988,17.51,False
+sall1a,81,18,18hpf-epidermal - olfactory placode,28,3.57,False
+sall1a,82,18,18hpf-neural - telencephalon,301,36.54,False
+sall1a,83,18,18hpf-neural - dorsal hindbrain,578,5.88,False
+sall1a,84,18,18hpf-differentiating neurons,252,39.68,False
+sall1a,85,18,18hpf-ionocyte - ca2,48,0.0,False
+sall1a,86,18,18hpf-epidermal - anterior,182,16.48,False
+sall1a,87,18,18hpf-hatching gland,20,5.0,False
+sall1a,88,18,18hpf-epidermal - sox4b,59,6.78,False
+sall1a,89,18,18hpf-optic cup,390,7.69,False
+sall1a,90,18,18hpf-tailbud - spinal cord,277,37.91,False
+sall1a,91,18,18hpf-pectoral fin field,66,33.33,False
+sall1a,92,18,18hpf-heart field,158,22.15,False
+sall1a,93,18,18hpf-lens placode,39,20.51,False
+sall1a,94,18,18hpf-neural crest - grem2,281,7.83,False
+sall1a,95,18,18hpf-erythroid,256,9.38,False
+sall1a,96,18,18hpf-macrophage,30,10.0,False
+sall1a,97,18,18hpf-tailbud - PSM,407,25.55,False
+sall1a,98,18,18hpf-myotome,169,6.51,False
+sall1a,99,18,18hpf-notocord,28,46.43,False
+sall1a,NaN,?,(unknown),17,29.41,False
+hipk2,100,18,18hpf-endothelial,149,12.08,False
+hipk2,101,18,18hpf-otic placode,51,13.73,False
+hipk2,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,13.16,False
+hipk2,103,18,18hpf-germline,9,11.11,False
+hipk2,105,18,18hpf-pronephric duct - posterior,11,36.36,True
+hipk2,106,18,18hpf-neural -  floorplate,6,16.67,False
+hipk2,107,18,18hpf-heart mature,17,11.76,False
+hipk2,108,18,18hpf-macrophage - ly75,14,14.29,False
+hipk2,109,18,18hpf-pronephric duct,10,0.0,True
+hipk2,110,18,18hpf-periderm,15,13.33,False
+hipk2,111,18,18hpf-pancreas primordium,8,12.5,False
+hipk2,112,18,18hpf-differentiating neurons - rohon beard,26,15.38,False
+hipk2,113,18,18hpf-retina pigmented epithelium,46,17.39,False
+hipk2,114,18,18hpf-differentiating neurons - dlx,30,16.67,False
+hipk2,115,18,18hpf-epidermal - pfn1,383,7.57,False
+hipk2,116,18,18hpf-lateral line primordium,46,6.52,False
+hipk2,117,18,18hpf-endoderm,142,9.15,False
+hipk2,118,18,18hpf-neural - midbrain ventral nkx6.2,126,7.94,False
+hipk2,119,18,18hpf-pharyngeal arch,202,14.36,False
+hipk2,120,18,18hpf-neural crest - crestin,148,12.84,False
+hipk2,121,18,18hpf-differentiating neurons - phox2a,8,12.5,False
+hipk2,122,18,18hpf-differentiating neurons - eomesa,28,10.71,False
+hipk2,123,18,18hpf-neural - ventral hindbrain,684,17.25,False
+hipk2,124,24,24hpf-differentiating neurons - hmx,30,3.33,False
+hipk2,125,24,24hpf-differentiating neurons - dlx,65,9.23,False
+hipk2,126,24,24hpf-epidermal - prr15la,24,4.17,False
+hipk2,127,24,24hpf-pancreas primordium,6,0.0,False
+hipk2,128,24,24hpf-ionocyte - ca2,31,3.23,False
+hipk2,129,24,24hpf-leukocyte,13,7.69,False
+hipk2,130,24,24hpf-neural - ventral hindbrain,911,6.59,False
+hipk2,131,24,24hpf-erythroid,506,8.1,False
+hipk2,132,24,24hpf-differentiating neurons - phox2a,44,9.09,False
+hipk2,133,24,24hpf-mesoderm - emp2,31,3.23,False
+hipk2,134,24,24hpf-differentiating neurons,523,9.94,False
+hipk2,136,24,24hpf-neural - midbrain,1211,7.1,False
+hipk2,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+hipk2,138,24,24hpf-neural - diencephalon,203,7.88,False
+hipk2,139,24,24hpf-neural crest,8,12.5,False
+hipk2,140,24,24hpf-optic cup,772,5.57,False
+hipk2,141,24,24hpf-periderm,22,13.64,False
+hipk2,142,24,24hpf-tailbud - spinal cord,144,6.94,False
+hipk2,143,24,24hpf-pectoral fin bud,104,10.58,False
+hipk2,144,24,24hpf-macrophage,61,13.11,False
+hipk2,145,24,24hpf-epidermal - grhl3,12,16.67,False
+hipk2,146,24,24hpf-epidermal - olfactory placode,44,4.55,False
+hipk2,147,24,24hpf-neural - dorsal hindbrain,667,6.3,False
+hipk2,148,24,24hpf-otic placode,33,15.15,False
+hipk2,149,24,24hpf-endoderm,64,9.38,False
+hipk2,150,24,24hpf-myotome,32,3.12,False
+hipk2,151,24,24hpf-pharyngeal pouch,53,5.66,False
+hipk2,152,24,24hpf-epidermal - anterior,75,8.0,False
+hipk2,153,24,24hpf-tailbud - PSM,23,13.04,False
+hipk2,154,24,24hpf-pharyngeal arch - tbx1,22,4.55,False
+hipk2,155,24,24hpf-endothelial,127,7.87,False
+hipk2,156,24,24hpf-hatching gland,32,15.62,False
+hipk2,157,24,24hpf-differentiating neurons - eomesa,101,13.86,False
+hipk2,158,24,24hpf-pharyngeal arch - cd248b,135,4.44,False
+hipk2,159,24,24hpf-lens,14,21.43,False
+hipk2,160,24,24hpf-neural - floorplate,9,11.11,False
+hipk2,161,24,24hpf-endothelial - posterior,53,11.32,False
+hipk2,164,24,24hpf-epidermal - atp1a1a.2,38,15.79,False
+hipk2,165,24,24hpf-neural - hindbrain roofplate,37,2.7,False
+hipk2,166,24,24hpf-differentiating neurons - rohon beard,62,8.06,False
+hipk2,167,24,24hpf-retina pigmented epithelium,37,2.7,False
+hipk2,168,24,24hpf-neural - telencephalon,351,7.69,False
+hipk2,169,24,24hpf-neural - midbrain ventral nkx6.2,191,5.24,False
+hipk2,170,24,24hpf-neural - hindbrain gsx1,245,6.94,False
+hipk2,171,24,24hpf-neural - posterior ventral nkx6.2,146,10.96,False
+hipk2,172,24,24hpf-germline,9,0.0,False
+hipk2,174,24,24hpf-heart,71,8.45,False
+hipk2,177,24,24hpf-neural - diencephalon posterior,46,13.04,False
+hipk2,178,24,24hpf-pharyngeal arch - ndnf,44,0.0,False
+hipk2,179,24,24hpf-heart - hoxd9a,34,0.0,False
+hipk2,180,24,24hpf-epidermal - muc5ac,17,17.65,False
+hipk2,182,24,24hpf-neural crest - xanthophore,27,3.7,False
+hipk2,183,24,24hpf-neural crest - melanoblast,23,13.04,False
+hipk2,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+hipk2,185,24,24hpf-neural crest - grem2,92,11.96,False
+hipk2,186,24,24hpf-neural crest - mcamb,52,3.85,False
+hipk2,187,24,24hpf-pronephric duct,8,0.0,True
+hipk2,189,24,24hpf-epidermal - s100a11,8,12.5,False
+hipk2,190,24,24hpf-lateral line - krt15,14,14.29,False
+hipk2,191,24,24hpf-epidermal - and1,26,11.54,False
+hipk2,193,24,24hpf-epidermal - rbp4,35,5.71,False
+hipk2,194,24,24hpf-epidermal - col7a1l,60,15.0,False
+hipk2,195,24,24hpf-epidermal - kera,24,4.17,False
+hipk2,51,14,14hpf-epidermal - pfn1,741,8.64,False
+hipk2,52,14,14hpf-optic primordium,223,10.31,False
+hipk2,53,14,14hpf-mesoderm - blood island,43,6.98,False
+hipk2,54,14,14hpf-neural - diencephalon,88,9.09,False
+hipk2,55,14,14hpf-tailbud - PSM,299,8.03,False
+hipk2,56,14,14hpf-epidermal anterior,313,12.78,False
+hipk2,57,14,14hpf-neural - hindbrain,298,9.73,False
+hipk2,58,14,14hpf-endoderm,57,5.26,False
+hipk2,59,14,14hpf-epidermal - foxi3a,75,17.33,False
+hipk2,60,14,14hpf-neural crest,201,15.42,False
+hipk2,61,14,14hpf-mesoderm - pharyngeal arch,71,7.04,False
+hipk2,62,14,14hpf-notocord,42,28.57,False
+hipk2,63,14,14hpf-epidermal - otic placode,69,13.04,False
+hipk2,64,14,14hpf-mesoderm - heart field,67,16.42,False
+hipk2,65,14,14hpf-differentiating neurons - rohon beard,29,17.24,False
+hipk2,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,11.36,False
+hipk2,67,14,14hpf-neural crest - crestin,82,10.98,False
+hipk2,68,14,14hpf-neural - midbrain,340,10.0,False
+hipk2,69,14,14hpf-mesoderm - pronephric duct,14,14.29,True
+hipk2,70,14,14hpf-neural -  floorplate,13,15.38,False
+hipk2,71,14,14hpf-germline,5,20.0,False
+hipk2,72,14,14hpf-hatching gland,14,14.29,False
+hipk2,73,14,14hpf-periderm,11,9.09,False
+hipk2,74,14,14hpf-mesoderm - endothelial,33,3.03,False
+hipk2,75,14,14hpf-tailbud - spinal cord,547,8.23,False
+hipk2,76,14,14hpf-neural - telencephalon,174,7.47,False
+hipk2,77,14,14hpf-lateral line primordium,84,11.9,False
+hipk2,78,14,14hpf-differentiating neurons,24,4.17,False
+hipk2,79,18,18hpf-neural - diencephalon,161,13.66,False
+hipk2,80,18,18hpf-neural - midbrain,988,16.4,False
+hipk2,81,18,18hpf-epidermal - olfactory placode,28,10.71,False
+hipk2,82,18,18hpf-neural - telencephalon,301,11.63,False
+hipk2,83,18,18hpf-neural - dorsal hindbrain,578,15.05,False
+hipk2,84,18,18hpf-differentiating neurons,252,12.3,False
+hipk2,85,18,18hpf-ionocyte - ca2,48,10.42,False
+hipk2,86,18,18hpf-epidermal - anterior,182,5.49,False
+hipk2,87,18,18hpf-hatching gland,20,10.0,False
+hipk2,88,18,18hpf-epidermal - sox4b,59,13.56,False
+hipk2,89,18,18hpf-optic cup,390,10.26,False
+hipk2,90,18,18hpf-tailbud - spinal cord,277,13.36,False
+hipk2,91,18,18hpf-pectoral fin field,66,19.7,False
+hipk2,92,18,18hpf-heart field,158,12.66,False
+hipk2,93,18,18hpf-lens placode,39,7.69,False
+hipk2,94,18,18hpf-neural crest - grem2,281,12.81,False
+hipk2,95,18,18hpf-erythroid,256,12.11,False
+hipk2,96,18,18hpf-macrophage,30,13.33,False
+hipk2,97,18,18hpf-tailbud - PSM,407,13.27,False
+hipk2,98,18,18hpf-myotome,169,9.47,False
+hipk2,99,18,18hpf-notocord,28,25.0,False
+hipk2,NaN,?,(unknown),17,17.65,False
+hoxb8a,100,18,18hpf-endothelial,149,18.79,False
+hoxb8a,101,18,18hpf-otic placode,51,1.96,False
+hoxb8a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,11.84,False
+hoxb8a,103,18,18hpf-germline,9,0.0,False
+hoxb8a,105,18,18hpf-pronephric duct - posterior,11,72.73,True
+hoxb8a,106,18,18hpf-neural -  floorplate,6,16.67,False
+hoxb8a,107,18,18hpf-heart mature,17,11.76,False
+hoxb8a,108,18,18hpf-macrophage - ly75,14,0.0,False
+hoxb8a,109,18,18hpf-pronephric duct,10,20.0,True
+hoxb8a,110,18,18hpf-periderm,15,20.0,False
+hoxb8a,111,18,18hpf-pancreas primordium,8,25.0,False
+hoxb8a,112,18,18hpf-differentiating neurons - rohon beard,26,11.54,False
+hoxb8a,113,18,18hpf-retina pigmented epithelium,46,2.17,False
+hoxb8a,114,18,18hpf-differentiating neurons - dlx,30,16.67,False
+hoxb8a,115,18,18hpf-epidermal - pfn1,383,16.45,False
+hoxb8a,116,18,18hpf-lateral line primordium,46,17.39,False
+hoxb8a,117,18,18hpf-endoderm,142,14.79,False
+hoxb8a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,8.73,False
+hoxb8a,119,18,18hpf-pharyngeal arch,202,9.9,False
+hoxb8a,120,18,18hpf-neural crest - crestin,148,25.0,False
+hoxb8a,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+hoxb8a,122,18,18hpf-differentiating neurons - eomesa,28,3.57,False
+hoxb8a,123,18,18hpf-neural - ventral hindbrain,684,10.38,False
+hoxb8a,124,24,24hpf-differentiating neurons - hmx,30,6.67,False
+hoxb8a,125,24,24hpf-differentiating neurons - dlx,65,7.69,False
+hoxb8a,126,24,24hpf-epidermal - prr15la,24,8.33,False
+hoxb8a,127,24,24hpf-pancreas primordium,6,0.0,False
+hoxb8a,128,24,24hpf-ionocyte - ca2,31,12.9,False
+hoxb8a,129,24,24hpf-leukocyte,13,7.69,False
+hoxb8a,130,24,24hpf-neural - ventral hindbrain,911,5.16,False
+hoxb8a,131,24,24hpf-erythroid,506,6.13,False
+hoxb8a,132,24,24hpf-differentiating neurons - phox2a,44,4.55,False
+hoxb8a,133,24,24hpf-mesoderm - emp2,31,41.94,False
+hoxb8a,134,24,24hpf-differentiating neurons,523,8.03,False
+hoxb8a,136,24,24hpf-neural - midbrain,1211,4.13,False
+hoxb8a,137,24,24hpf-neural - dorsal spinal cord,31,45.16,False
+hoxb8a,138,24,24hpf-neural - diencephalon,203,2.46,False
+hoxb8a,139,24,24hpf-neural crest,8,37.5,False
+hoxb8a,140,24,24hpf-optic cup,772,5.05,False
+hoxb8a,141,24,24hpf-periderm,22,4.55,False
+hoxb8a,142,24,24hpf-tailbud - spinal cord,144,22.22,False
+hoxb8a,143,24,24hpf-pectoral fin bud,104,52.88,False
+hoxb8a,144,24,24hpf-macrophage,61,8.2,False
+hoxb8a,145,24,24hpf-epidermal - grhl3,12,0.0,False
+hoxb8a,146,24,24hpf-epidermal - olfactory placode,44,4.55,False
+hoxb8a,147,24,24hpf-neural - dorsal hindbrain,667,6.3,False
+hoxb8a,148,24,24hpf-otic placode,33,0.0,False
+hoxb8a,149,24,24hpf-endoderm,64,12.5,False
+hoxb8a,150,24,24hpf-myotome,32,6.25,False
+hoxb8a,151,24,24hpf-pharyngeal pouch,53,5.66,False
+hoxb8a,152,24,24hpf-epidermal - anterior,75,6.67,False
+hoxb8a,153,24,24hpf-tailbud - PSM,23,8.7,False
+hoxb8a,154,24,24hpf-pharyngeal arch - tbx1,22,9.09,False
+hoxb8a,155,24,24hpf-endothelial,127,11.02,False
+hoxb8a,156,24,24hpf-hatching gland,32,6.25,False
+hoxb8a,157,24,24hpf-differentiating neurons - eomesa,101,6.93,False
+hoxb8a,158,24,24hpf-pharyngeal arch - cd248b,135,6.67,False
+hoxb8a,159,24,24hpf-lens,14,0.0,False
+hoxb8a,160,24,24hpf-neural - floorplate,9,0.0,False
+hoxb8a,161,24,24hpf-endothelial - posterior,53,43.4,False
+hoxb8a,164,24,24hpf-epidermal - atp1a1a.2,38,2.63,False
+hoxb8a,165,24,24hpf-neural - hindbrain roofplate,37,5.41,False
+hoxb8a,166,24,24hpf-differentiating neurons - rohon beard,62,1.61,False
+hoxb8a,167,24,24hpf-retina pigmented epithelium,37,0.0,False
+hoxb8a,168,24,24hpf-neural - telencephalon,351,5.41,False
+hoxb8a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,4.71,False
+hoxb8a,170,24,24hpf-neural - hindbrain gsx1,245,2.86,False
+hoxb8a,171,24,24hpf-neural - posterior ventral nkx6.2,146,8.9,False
+hoxb8a,172,24,24hpf-germline,9,11.11,False
+hoxb8a,174,24,24hpf-heart,71,8.45,False
+hoxb8a,177,24,24hpf-neural - diencephalon posterior,46,4.35,False
+hoxb8a,178,24,24hpf-pharyngeal arch - ndnf,44,6.82,False
+hoxb8a,179,24,24hpf-heart - hoxd9a,34,2.94,False
+hoxb8a,180,24,24hpf-epidermal - muc5ac,17,5.88,False
+hoxb8a,182,24,24hpf-neural crest - xanthophore,27,7.41,False
+hoxb8a,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+hoxb8a,184,24,24hpf-neural crest - iridoblast,5,20.0,False
+hoxb8a,185,24,24hpf-neural crest - grem2,92,4.35,False
+hoxb8a,186,24,24hpf-neural crest - mcamb,52,13.46,False
+hoxb8a,187,24,24hpf-pronephric duct,8,37.5,True
+hoxb8a,189,24,24hpf-epidermal - s100a11,8,0.0,False
+hoxb8a,190,24,24hpf-lateral line - krt15,14,28.57,False
+hoxb8a,191,24,24hpf-epidermal - and1,26,7.69,False
+hoxb8a,193,24,24hpf-epidermal - rbp4,35,0.0,False
+hoxb8a,194,24,24hpf-epidermal - col7a1l,60,8.33,False
+hoxb8a,195,24,24hpf-epidermal - kera,24,8.33,False
+hoxb8a,51,14,14hpf-epidermal - pfn1,741,16.06,False
+hoxb8a,52,14,14hpf-optic primordium,223,8.07,False
+hoxb8a,53,14,14hpf-mesoderm - blood island,43,11.63,False
+hoxb8a,54,14,14hpf-neural - diencephalon,88,4.55,False
+hoxb8a,55,14,14hpf-tailbud - PSM,299,12.37,False
+hoxb8a,56,14,14hpf-epidermal anterior,313,6.07,False
+hoxb8a,57,14,14hpf-neural - hindbrain,298,6.71,False
+hoxb8a,58,14,14hpf-endoderm,57,14.04,False
+hoxb8a,59,14,14hpf-epidermal - foxi3a,75,5.33,False
+hoxb8a,60,14,14hpf-neural crest,201,6.47,False
+hoxb8a,61,14,14hpf-mesoderm - pharyngeal arch,71,7.04,False
+hoxb8a,62,14,14hpf-notocord,42,11.9,False
+hoxb8a,63,14,14hpf-epidermal - otic placode,69,0.0,False
+hoxb8a,64,14,14hpf-mesoderm - heart field,67,11.94,False
+hoxb8a,65,14,14hpf-differentiating neurons - rohon beard,29,24.14,False
+hoxb8a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,31.82,False
+hoxb8a,67,14,14hpf-neural crest - crestin,82,15.85,False
+hoxb8a,68,14,14hpf-neural - midbrain,340,7.06,False
+hoxb8a,69,14,14hpf-mesoderm - pronephric duct,14,35.71,True
+hoxb8a,70,14,14hpf-neural -  floorplate,13,7.69,False
+hoxb8a,71,14,14hpf-germline,5,0.0,False
+hoxb8a,72,14,14hpf-hatching gland,14,7.14,False
+hoxb8a,73,14,14hpf-periderm,11,0.0,False
+hoxb8a,74,14,14hpf-mesoderm - endothelial,33,9.09,False
+hoxb8a,75,14,14hpf-tailbud - spinal cord,547,16.45,False
+hoxb8a,76,14,14hpf-neural - telencephalon,174,7.47,False
+hoxb8a,77,14,14hpf-lateral line primordium,84,8.33,False
+hoxb8a,78,14,14hpf-differentiating neurons,24,8.33,False
+hoxb8a,79,18,18hpf-neural - diencephalon,161,6.83,False
+hoxb8a,80,18,18hpf-neural - midbrain,988,7.69,False
+hoxb8a,81,18,18hpf-epidermal - olfactory placode,28,10.71,False
+hoxb8a,82,18,18hpf-neural - telencephalon,301,7.64,False
+hoxb8a,83,18,18hpf-neural - dorsal hindbrain,578,9.69,False
+hoxb8a,84,18,18hpf-differentiating neurons,252,20.63,False
+hoxb8a,85,18,18hpf-ionocyte - ca2,48,2.08,False
+hoxb8a,86,18,18hpf-epidermal - anterior,182,8.24,False
+hoxb8a,87,18,18hpf-hatching gland,20,10.0,False
+hoxb8a,88,18,18hpf-epidermal - sox4b,59,6.78,False
+hoxb8a,89,18,18hpf-optic cup,390,7.18,False
+hoxb8a,90,18,18hpf-tailbud - spinal cord,277,38.27,False
+hoxb8a,91,18,18hpf-pectoral fin field,66,19.7,False
+hoxb8a,92,18,18hpf-heart field,158,21.52,False
+hoxb8a,93,18,18hpf-lens placode,39,12.82,False
+hoxb8a,94,18,18hpf-neural crest - grem2,281,12.46,False
+hoxb8a,95,18,18hpf-erythroid,256,12.89,False
+hoxb8a,96,18,18hpf-macrophage,30,10.0,False
+hoxb8a,97,18,18hpf-tailbud - PSM,407,15.72,False
+hoxb8a,98,18,18hpf-myotome,169,5.92,False
+hoxb8a,99,18,18hpf-notocord,28,32.14,False
+hoxb8a,NaN,?,(unknown),17,17.65,False
+prox1a,100,18,18hpf-endothelial,149,12.08,False
+prox1a,101,18,18hpf-otic placode,51,23.53,False
+prox1a,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,7.89,False
+prox1a,103,18,18hpf-germline,9,0.0,False
+prox1a,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+prox1a,106,18,18hpf-neural -  floorplate,6,0.0,False
+prox1a,107,18,18hpf-heart mature,17,17.65,False
+prox1a,108,18,18hpf-macrophage - ly75,14,14.29,False
+prox1a,109,18,18hpf-pronephric duct,10,10.0,True
+prox1a,110,18,18hpf-periderm,15,13.33,False
+prox1a,111,18,18hpf-pancreas primordium,8,12.5,False
+prox1a,112,18,18hpf-differentiating neurons - rohon beard,26,42.31,False
+prox1a,113,18,18hpf-retina pigmented epithelium,46,4.35,False
+prox1a,114,18,18hpf-differentiating neurons - dlx,30,13.33,False
+prox1a,115,18,18hpf-epidermal - pfn1,383,7.05,False
+prox1a,116,18,18hpf-lateral line primordium,46,28.26,False
+prox1a,117,18,18hpf-endoderm,142,13.38,False
+prox1a,118,18,18hpf-neural - midbrain ventral nkx6.2,126,10.32,False
+prox1a,119,18,18hpf-pharyngeal arch,202,5.94,False
+prox1a,120,18,18hpf-neural crest - crestin,148,12.84,False
+prox1a,121,18,18hpf-differentiating neurons - phox2a,8,25.0,False
+prox1a,122,18,18hpf-differentiating neurons - eomesa,28,17.86,False
+prox1a,123,18,18hpf-neural - ventral hindbrain,684,13.3,False
+prox1a,124,24,24hpf-differentiating neurons - hmx,30,13.33,False
+prox1a,125,24,24hpf-differentiating neurons - dlx,65,10.77,False
+prox1a,126,24,24hpf-epidermal - prr15la,24,87.5,False
+prox1a,127,24,24hpf-pancreas primordium,6,0.0,False
+prox1a,128,24,24hpf-ionocyte - ca2,31,6.45,False
+prox1a,129,24,24hpf-leukocyte,13,15.38,False
+prox1a,130,24,24hpf-neural - ventral hindbrain,911,33.04,False
+prox1a,131,24,24hpf-erythroid,506,1.78,False
+prox1a,132,24,24hpf-differentiating neurons - phox2a,44,40.91,False
+prox1a,133,24,24hpf-mesoderm - emp2,31,9.68,False
+prox1a,134,24,24hpf-differentiating neurons,523,44.17,False
+prox1a,136,24,24hpf-neural - midbrain,1211,10.24,False
+prox1a,137,24,24hpf-neural - dorsal spinal cord,31,25.81,False
+prox1a,138,24,24hpf-neural - diencephalon,203,4.93,False
+prox1a,139,24,24hpf-neural crest,8,12.5,False
+prox1a,140,24,24hpf-optic cup,772,7.77,False
+prox1a,141,24,24hpf-periderm,22,4.55,False
+prox1a,142,24,24hpf-tailbud - spinal cord,144,14.58,False
+prox1a,143,24,24hpf-pectoral fin bud,104,5.77,False
+prox1a,144,24,24hpf-macrophage,61,0.0,False
+prox1a,145,24,24hpf-epidermal - grhl3,12,16.67,False
+prox1a,146,24,24hpf-epidermal - olfactory placode,44,6.82,False
+prox1a,147,24,24hpf-neural - dorsal hindbrain,667,6.15,False
+prox1a,148,24,24hpf-otic placode,33,21.21,False
+prox1a,149,24,24hpf-endoderm,64,20.31,False
+prox1a,150,24,24hpf-myotome,32,6.25,False
+prox1a,151,24,24hpf-pharyngeal pouch,53,7.55,False
+prox1a,152,24,24hpf-epidermal - anterior,75,5.33,False
+prox1a,153,24,24hpf-tailbud - PSM,23,0.0,False
+prox1a,154,24,24hpf-pharyngeal arch - tbx1,22,9.09,False
+prox1a,155,24,24hpf-endothelial,127,16.54,False
+prox1a,156,24,24hpf-hatching gland,32,21.88,False
+prox1a,157,24,24hpf-differentiating neurons - eomesa,101,14.85,False
+prox1a,158,24,24hpf-pharyngeal arch - cd248b,135,2.96,False
+prox1a,159,24,24hpf-lens,14,42.86,False
+prox1a,160,24,24hpf-neural - floorplate,9,33.33,False
+prox1a,161,24,24hpf-endothelial - posterior,53,18.87,False
+prox1a,164,24,24hpf-epidermal - atp1a1a.2,38,5.26,False
+prox1a,165,24,24hpf-neural - hindbrain roofplate,37,2.7,False
+prox1a,166,24,24hpf-differentiating neurons - rohon beard,62,33.87,False
+prox1a,167,24,24hpf-retina pigmented epithelium,37,2.7,False
+prox1a,168,24,24hpf-neural - telencephalon,351,5.13,False
+prox1a,169,24,24hpf-neural - midbrain ventral nkx6.2,191,14.66,False
+prox1a,170,24,24hpf-neural - hindbrain gsx1,245,17.55,False
+prox1a,171,24,24hpf-neural - posterior ventral nkx6.2,146,25.34,False
+prox1a,172,24,24hpf-germline,9,0.0,False
+prox1a,174,24,24hpf-heart,71,12.68,False
+prox1a,177,24,24hpf-neural - diencephalon posterior,46,13.04,False
+prox1a,178,24,24hpf-pharyngeal arch - ndnf,44,4.55,False
+prox1a,179,24,24hpf-heart - hoxd9a,34,5.88,False
+prox1a,180,24,24hpf-epidermal - muc5ac,17,52.94,False
+prox1a,182,24,24hpf-neural crest - xanthophore,27,11.11,False
+prox1a,183,24,24hpf-neural crest - melanoblast,23,8.7,False
+prox1a,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+prox1a,185,24,24hpf-neural crest - grem2,92,4.35,False
+prox1a,186,24,24hpf-neural crest - mcamb,52,5.77,False
+prox1a,187,24,24hpf-pronephric duct,8,0.0,True
+prox1a,189,24,24hpf-epidermal - s100a11,8,50.0,False
+prox1a,190,24,24hpf-lateral line - krt15,14,28.57,False
+prox1a,191,24,24hpf-epidermal - and1,26,15.38,False
+prox1a,193,24,24hpf-epidermal - rbp4,35,8.57,False
+prox1a,194,24,24hpf-epidermal - col7a1l,60,10.0,False
+prox1a,195,24,24hpf-epidermal - kera,24,0.0,False
+prox1a,51,14,14hpf-epidermal - pfn1,741,2.43,False
+prox1a,52,14,14hpf-optic primordium,223,6.28,False
+prox1a,53,14,14hpf-mesoderm - blood island,43,9.3,False
+prox1a,54,14,14hpf-neural - diencephalon,88,4.55,False
+prox1a,55,14,14hpf-tailbud - PSM,299,2.68,False
+prox1a,56,14,14hpf-epidermal anterior,313,14.7,False
+prox1a,57,14,14hpf-neural - hindbrain,298,2.68,False
+prox1a,58,14,14hpf-endoderm,57,8.77,False
+prox1a,59,14,14hpf-epidermal - foxi3a,75,5.33,False
+prox1a,60,14,14hpf-neural crest,201,7.96,False
+prox1a,61,14,14hpf-mesoderm - pharyngeal arch,71,0.0,False
+prox1a,62,14,14hpf-notocord,42,2.38,False
+prox1a,63,14,14hpf-epidermal - otic placode,69,4.35,False
+prox1a,64,14,14hpf-mesoderm - heart field,67,8.96,False
+prox1a,65,14,14hpf-differentiating neurons - rohon beard,29,27.59,False
+prox1a,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,0.0,False
+prox1a,67,14,14hpf-neural crest - crestin,82,4.88,False
+prox1a,68,14,14hpf-neural - midbrain,340,2.06,False
+prox1a,69,14,14hpf-mesoderm - pronephric duct,14,7.14,True
+prox1a,70,14,14hpf-neural -  floorplate,13,7.69,False
+prox1a,71,14,14hpf-germline,5,0.0,False
+prox1a,72,14,14hpf-hatching gland,14,14.29,False
+prox1a,73,14,14hpf-periderm,11,9.09,False
+prox1a,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+prox1a,75,14,14hpf-tailbud - spinal cord,547,4.75,False
+prox1a,76,14,14hpf-neural - telencephalon,174,9.77,False
+prox1a,77,14,14hpf-lateral line primordium,84,9.52,False
+prox1a,78,14,14hpf-differentiating neurons,24,0.0,False
+prox1a,79,18,18hpf-neural - diencephalon,161,5.59,False
+prox1a,80,18,18hpf-neural - midbrain,988,11.44,False
+prox1a,81,18,18hpf-epidermal - olfactory placode,28,7.14,False
+prox1a,82,18,18hpf-neural - telencephalon,301,7.64,False
+prox1a,83,18,18hpf-neural - dorsal hindbrain,578,8.82,False
+prox1a,84,18,18hpf-differentiating neurons,252,29.37,False
+prox1a,85,18,18hpf-ionocyte - ca2,48,10.42,False
+prox1a,86,18,18hpf-epidermal - anterior,182,6.59,False
+prox1a,87,18,18hpf-hatching gland,20,10.0,False
+prox1a,88,18,18hpf-epidermal - sox4b,59,55.93,False
+prox1a,89,18,18hpf-optic cup,390,18.21,False
+prox1a,90,18,18hpf-tailbud - spinal cord,277,7.22,False
+prox1a,91,18,18hpf-pectoral fin field,66,3.03,False
+prox1a,92,18,18hpf-heart field,158,20.89,False
+prox1a,93,18,18hpf-lens placode,39,92.31,False
+prox1a,94,18,18hpf-neural crest - grem2,281,18.51,False
+prox1a,95,18,18hpf-erythroid,256,9.77,False
+prox1a,96,18,18hpf-macrophage,30,26.67,False
+prox1a,97,18,18hpf-tailbud - PSM,407,8.11,False
+prox1a,98,18,18hpf-myotome,169,15.38,False
+prox1a,99,18,18hpf-notocord,28,7.14,False
+prox1a,NaN,?,(unknown),17,5.88,False
+foxj1b,100,18,18hpf-endothelial,149,1.34,False
+foxj1b,101,18,18hpf-otic placode,51,3.92,False
+foxj1b,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,0.0,False
+foxj1b,103,18,18hpf-germline,9,0.0,False
+foxj1b,105,18,18hpf-pronephric duct - posterior,11,0.0,True
+foxj1b,106,18,18hpf-neural -  floorplate,6,50.0,False
+foxj1b,107,18,18hpf-heart mature,17,0.0,False
+foxj1b,108,18,18hpf-macrophage - ly75,14,7.14,False
+foxj1b,109,18,18hpf-pronephric duct,10,0.0,True
+foxj1b,110,18,18hpf-periderm,15,0.0,False
+foxj1b,111,18,18hpf-pancreas primordium,8,12.5,False
+foxj1b,112,18,18hpf-differentiating neurons - rohon beard,26,0.0,False
+foxj1b,113,18,18hpf-retina pigmented epithelium,46,2.17,False
+foxj1b,114,18,18hpf-differentiating neurons - dlx,30,30.0,False
+foxj1b,115,18,18hpf-epidermal - pfn1,383,0.52,False
+foxj1b,116,18,18hpf-lateral line primordium,46,0.0,False
+foxj1b,117,18,18hpf-endoderm,142,1.41,False
+foxj1b,118,18,18hpf-neural - midbrain ventral nkx6.2,126,1.59,False
+foxj1b,119,18,18hpf-pharyngeal arch,202,2.97,False
+foxj1b,120,18,18hpf-neural crest - crestin,148,1.35,False
+foxj1b,121,18,18hpf-differentiating neurons - phox2a,8,0.0,False
+foxj1b,122,18,18hpf-differentiating neurons - eomesa,28,3.57,False
+foxj1b,123,18,18hpf-neural - ventral hindbrain,684,2.05,False
+foxj1b,124,24,24hpf-differentiating neurons - hmx,30,10.0,False
+foxj1b,125,24,24hpf-differentiating neurons - dlx,65,3.08,False
+foxj1b,126,24,24hpf-epidermal - prr15la,24,0.0,False
+foxj1b,127,24,24hpf-pancreas primordium,6,0.0,False
+foxj1b,128,24,24hpf-ionocyte - ca2,31,3.23,False
+foxj1b,129,24,24hpf-leukocyte,13,0.0,False
+foxj1b,130,24,24hpf-neural - ventral hindbrain,911,1.54,False
+foxj1b,131,24,24hpf-erythroid,506,4.94,False
+foxj1b,132,24,24hpf-differentiating neurons - phox2a,44,0.0,False
+foxj1b,133,24,24hpf-mesoderm - emp2,31,0.0,False
+foxj1b,134,24,24hpf-differentiating neurons,523,1.91,False
+foxj1b,136,24,24hpf-neural - midbrain,1211,2.06,False
+foxj1b,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+foxj1b,138,24,24hpf-neural - diencephalon,203,9.36,False
+foxj1b,139,24,24hpf-neural crest,8,0.0,False
+foxj1b,140,24,24hpf-optic cup,772,1.3,False
+foxj1b,141,24,24hpf-periderm,22,0.0,False
+foxj1b,142,24,24hpf-tailbud - spinal cord,144,2.78,False
+foxj1b,143,24,24hpf-pectoral fin bud,104,1.92,False
+foxj1b,144,24,24hpf-macrophage,61,1.64,False
+foxj1b,145,24,24hpf-epidermal - grhl3,12,0.0,False
+foxj1b,146,24,24hpf-epidermal - olfactory placode,44,36.36,False
+foxj1b,147,24,24hpf-neural - dorsal hindbrain,667,1.8,False
+foxj1b,148,24,24hpf-otic placode,33,12.12,False
+foxj1b,149,24,24hpf-endoderm,64,1.56,False
+foxj1b,150,24,24hpf-myotome,32,0.0,False
+foxj1b,151,24,24hpf-pharyngeal pouch,53,0.0,False
+foxj1b,152,24,24hpf-epidermal - anterior,75,1.33,False
+foxj1b,153,24,24hpf-tailbud - PSM,23,0.0,False
+foxj1b,154,24,24hpf-pharyngeal arch - tbx1,22,0.0,False
+foxj1b,155,24,24hpf-endothelial,127,0.79,False
+foxj1b,156,24,24hpf-hatching gland,32,0.0,False
+foxj1b,157,24,24hpf-differentiating neurons - eomesa,101,2.97,False
+foxj1b,158,24,24hpf-pharyngeal arch - cd248b,135,0.74,False
+foxj1b,159,24,24hpf-lens,14,7.14,False
+foxj1b,160,24,24hpf-neural - floorplate,9,22.22,False
+foxj1b,161,24,24hpf-endothelial - posterior,53,0.0,False
+foxj1b,164,24,24hpf-epidermal - atp1a1a.2,38,0.0,False
+foxj1b,165,24,24hpf-neural - hindbrain roofplate,37,8.11,False
+foxj1b,166,24,24hpf-differentiating neurons - rohon beard,62,4.84,False
+foxj1b,167,24,24hpf-retina pigmented epithelium,37,0.0,False
+foxj1b,168,24,24hpf-neural - telencephalon,351,6.55,False
+foxj1b,169,24,24hpf-neural - midbrain ventral nkx6.2,191,3.66,False
+foxj1b,170,24,24hpf-neural - hindbrain gsx1,245,0.41,False
+foxj1b,171,24,24hpf-neural - posterior ventral nkx6.2,146,1.37,False
+foxj1b,172,24,24hpf-germline,9,0.0,False
+foxj1b,174,24,24hpf-heart,71,0.0,False
+foxj1b,177,24,24hpf-neural - diencephalon posterior,46,2.17,False
+foxj1b,178,24,24hpf-pharyngeal arch - ndnf,44,2.27,False
+foxj1b,179,24,24hpf-heart - hoxd9a,34,0.0,False
+foxj1b,180,24,24hpf-epidermal - muc5ac,17,5.88,False
+foxj1b,182,24,24hpf-neural crest - xanthophore,27,0.0,False
+foxj1b,183,24,24hpf-neural crest - melanoblast,23,0.0,False
+foxj1b,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+foxj1b,185,24,24hpf-neural crest - grem2,92,1.09,False
+foxj1b,186,24,24hpf-neural crest - mcamb,52,0.0,False
+foxj1b,187,24,24hpf-pronephric duct,8,0.0,True
+foxj1b,189,24,24hpf-epidermal - s100a11,8,0.0,False
+foxj1b,190,24,24hpf-lateral line - krt15,14,0.0,False
+foxj1b,191,24,24hpf-epidermal - and1,26,0.0,False
+foxj1b,193,24,24hpf-epidermal - rbp4,35,0.0,False
+foxj1b,194,24,24hpf-epidermal - col7a1l,60,0.0,False
+foxj1b,195,24,24hpf-epidermal - kera,24,0.0,False
+foxj1b,51,14,14hpf-epidermal - pfn1,741,0.67,False
+foxj1b,52,14,14hpf-optic primordium,223,0.9,False
+foxj1b,53,14,14hpf-mesoderm - blood island,43,4.65,False
+foxj1b,54,14,14hpf-neural - diencephalon,88,7.95,False
+foxj1b,55,14,14hpf-tailbud - PSM,299,1.0,False
+foxj1b,56,14,14hpf-epidermal anterior,313,2.88,False
+foxj1b,57,14,14hpf-neural - hindbrain,298,1.34,False
+foxj1b,58,14,14hpf-endoderm,57,3.51,False
+foxj1b,59,14,14hpf-epidermal - foxi3a,75,2.67,False
+foxj1b,60,14,14hpf-neural crest,201,0.5,False
+foxj1b,61,14,14hpf-mesoderm - pharyngeal arch,71,0.0,False
+foxj1b,62,14,14hpf-notocord,42,2.38,False
+foxj1b,63,14,14hpf-epidermal - otic placode,69,43.48,False
+foxj1b,64,14,14hpf-mesoderm - heart field,67,1.49,False
+foxj1b,65,14,14hpf-differentiating neurons - rohon beard,29,0.0,False
+foxj1b,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,0.0,False
+foxj1b,67,14,14hpf-neural crest - crestin,82,1.22,False
+foxj1b,68,14,14hpf-neural - midbrain,340,2.35,False
+foxj1b,69,14,14hpf-mesoderm - pronephric duct,14,42.86,True
+foxj1b,70,14,14hpf-neural -  floorplate,13,38.46,False
+foxj1b,71,14,14hpf-germline,5,0.0,False
+foxj1b,72,14,14hpf-hatching gland,14,0.0,False
+foxj1b,73,14,14hpf-periderm,11,0.0,False
+foxj1b,74,14,14hpf-mesoderm - endothelial,33,0.0,False
+foxj1b,75,14,14hpf-tailbud - spinal cord,547,3.29,False
+foxj1b,76,14,14hpf-neural - telencephalon,174,1.15,False
+foxj1b,77,14,14hpf-lateral line primordium,84,7.14,False
+foxj1b,78,14,14hpf-differentiating neurons,24,0.0,False
+foxj1b,79,18,18hpf-neural - diencephalon,161,6.83,False
+foxj1b,80,18,18hpf-neural - midbrain,988,2.02,False
+foxj1b,81,18,18hpf-epidermal - olfactory placode,28,32.14,False
+foxj1b,82,18,18hpf-neural - telencephalon,301,2.99,False
+foxj1b,83,18,18hpf-neural - dorsal hindbrain,578,1.38,False
+foxj1b,84,18,18hpf-differentiating neurons,252,1.98,False
+foxj1b,85,18,18hpf-ionocyte - ca2,48,0.0,False
+foxj1b,86,18,18hpf-epidermal - anterior,182,1.65,False
+foxj1b,87,18,18hpf-hatching gland,20,0.0,False
+foxj1b,88,18,18hpf-epidermal - sox4b,59,0.0,False
+foxj1b,89,18,18hpf-optic cup,390,1.79,False
+foxj1b,90,18,18hpf-tailbud - spinal cord,277,5.78,False
+foxj1b,91,18,18hpf-pectoral fin field,66,1.52,False
+foxj1b,92,18,18hpf-heart field,158,2.53,False
+foxj1b,93,18,18hpf-lens placode,39,0.0,False
+foxj1b,94,18,18hpf-neural crest - grem2,281,1.42,False
+foxj1b,95,18,18hpf-erythroid,256,10.55,False
+foxj1b,96,18,18hpf-macrophage,30,10.0,False
+foxj1b,97,18,18hpf-tailbud - PSM,407,3.93,False
+foxj1b,98,18,18hpf-myotome,169,4.14,False
+foxj1b,99,18,18hpf-notocord,28,7.14,False
+foxj1b,NaN,?,(unknown),17,5.88,False
+tbx2b,100,18,18hpf-endothelial,149,4.03,False
+tbx2b,101,18,18hpf-otic placode,51,80.39,False
+tbx2b,102,18,18hpf-neural - hindbrain ventral nkx6.2,76,1.32,False
+tbx2b,103,18,18hpf-germline,9,0.0,False
+tbx2b,105,18,18hpf-pronephric duct - posterior,11,45.45,True
+tbx2b,106,18,18hpf-neural -  floorplate,6,0.0,False
+tbx2b,107,18,18hpf-heart mature,17,5.88,False
+tbx2b,108,18,18hpf-macrophage - ly75,14,14.29,False
+tbx2b,109,18,18hpf-pronephric duct,10,0.0,True
+tbx2b,110,18,18hpf-periderm,15,6.67,False
+tbx2b,111,18,18hpf-pancreas primordium,8,12.5,False
+tbx2b,112,18,18hpf-differentiating neurons - rohon beard,26,61.54,False
+tbx2b,113,18,18hpf-retina pigmented epithelium,46,28.26,False
+tbx2b,114,18,18hpf-differentiating neurons - dlx,30,6.67,False
+tbx2b,115,18,18hpf-epidermal - pfn1,383,15.4,False
+tbx2b,116,18,18hpf-lateral line primordium,46,2.17,False
+tbx2b,117,18,18hpf-endoderm,142,4.93,False
+tbx2b,118,18,18hpf-neural - midbrain ventral nkx6.2,126,1.59,False
+tbx2b,119,18,18hpf-pharyngeal arch,202,4.46,False
+tbx2b,120,18,18hpf-neural crest - crestin,148,3.38,False
+tbx2b,121,18,18hpf-differentiating neurons - phox2a,8,12.5,False
+tbx2b,122,18,18hpf-differentiating neurons - eomesa,28,0.0,False
+tbx2b,123,18,18hpf-neural - ventral hindbrain,684,1.32,False
+tbx2b,124,24,24hpf-differentiating neurons - hmx,30,3.33,False
+tbx2b,125,24,24hpf-differentiating neurons - dlx,65,1.54,False
+tbx2b,126,24,24hpf-epidermal - prr15la,24,0.0,False
+tbx2b,127,24,24hpf-pancreas primordium,6,33.33,False
+tbx2b,128,24,24hpf-ionocyte - ca2,31,0.0,False
+tbx2b,129,24,24hpf-leukocyte,13,0.0,False
+tbx2b,130,24,24hpf-neural - ventral hindbrain,911,0.44,False
+tbx2b,131,24,24hpf-erythroid,506,0.79,False
+tbx2b,132,24,24hpf-differentiating neurons - phox2a,44,6.82,False
+tbx2b,133,24,24hpf-mesoderm - emp2,31,3.23,False
+tbx2b,134,24,24hpf-differentiating neurons,523,1.72,False
+tbx2b,136,24,24hpf-neural - midbrain,1211,0.91,False
+tbx2b,137,24,24hpf-neural - dorsal spinal cord,31,0.0,False
+tbx2b,138,24,24hpf-neural - diencephalon,203,13.79,False
+tbx2b,139,24,24hpf-neural crest,8,0.0,False
+tbx2b,140,24,24hpf-optic cup,772,42.1,False
+tbx2b,141,24,24hpf-periderm,22,0.0,False
+tbx2b,142,24,24hpf-tailbud - spinal cord,144,0.69,False
+tbx2b,143,24,24hpf-pectoral fin bud,104,17.31,False
+tbx2b,144,24,24hpf-macrophage,61,0.0,False
+tbx2b,145,24,24hpf-epidermal - grhl3,12,16.67,False
+tbx2b,146,24,24hpf-epidermal - olfactory placode,44,2.27,False
+tbx2b,147,24,24hpf-neural - dorsal hindbrain,667,0.6,False
+tbx2b,148,24,24hpf-otic placode,33,72.73,False
+tbx2b,149,24,24hpf-endoderm,64,10.94,False
+tbx2b,150,24,24hpf-myotome,32,0.0,False
+tbx2b,151,24,24hpf-pharyngeal pouch,53,1.89,False
+tbx2b,152,24,24hpf-epidermal - anterior,75,8.0,False
+tbx2b,153,24,24hpf-tailbud - PSM,23,0.0,False
+tbx2b,154,24,24hpf-pharyngeal arch - tbx1,22,4.55,False
+tbx2b,155,24,24hpf-endothelial,127,2.36,False
+tbx2b,156,24,24hpf-hatching gland,32,18.75,False
+tbx2b,157,24,24hpf-differentiating neurons - eomesa,101,3.96,False
+tbx2b,158,24,24hpf-pharyngeal arch - cd248b,135,9.63,False
+tbx2b,159,24,24hpf-lens,14,7.14,False
+tbx2b,160,24,24hpf-neural - floorplate,9,0.0,False
+tbx2b,161,24,24hpf-endothelial - posterior,53,1.89,False
+tbx2b,164,24,24hpf-epidermal - atp1a1a.2,38,5.26,False
+tbx2b,165,24,24hpf-neural - hindbrain roofplate,37,0.0,False
+tbx2b,166,24,24hpf-differentiating neurons - rohon beard,62,48.39,False
+tbx2b,167,24,24hpf-retina pigmented epithelium,37,13.51,False
+tbx2b,168,24,24hpf-neural - telencephalon,351,1.71,False
+tbx2b,169,24,24hpf-neural - midbrain ventral nkx6.2,191,1.05,False
+tbx2b,170,24,24hpf-neural - hindbrain gsx1,245,0.0,False
+tbx2b,171,24,24hpf-neural - posterior ventral nkx6.2,146,0.0,False
+tbx2b,172,24,24hpf-germline,9,0.0,False
+tbx2b,174,24,24hpf-heart,71,12.68,False
+tbx2b,177,24,24hpf-neural - diencephalon posterior,46,0.0,False
+tbx2b,178,24,24hpf-pharyngeal arch - ndnf,44,0.0,False
+tbx2b,179,24,24hpf-heart - hoxd9a,34,11.76,False
+tbx2b,180,24,24hpf-epidermal - muc5ac,17,0.0,False
+tbx2b,182,24,24hpf-neural crest - xanthophore,27,3.7,False
+tbx2b,183,24,24hpf-neural crest - melanoblast,23,4.35,False
+tbx2b,184,24,24hpf-neural crest - iridoblast,5,0.0,False
+tbx2b,185,24,24hpf-neural crest - grem2,92,26.09,False
+tbx2b,186,24,24hpf-neural crest - mcamb,52,11.54,False
+tbx2b,187,24,24hpf-pronephric duct,8,12.5,True
+tbx2b,189,24,24hpf-epidermal - s100a11,8,0.0,False
+tbx2b,190,24,24hpf-lateral line - krt15,14,0.0,False
+tbx2b,191,24,24hpf-epidermal - and1,26,0.0,False
+tbx2b,193,24,24hpf-epidermal - rbp4,35,17.14,False
+tbx2b,194,24,24hpf-epidermal - col7a1l,60,13.33,False
+tbx2b,195,24,24hpf-epidermal - kera,24,4.17,False
+tbx2b,51,14,14hpf-epidermal - pfn1,741,27.13,False
+tbx2b,52,14,14hpf-optic primordium,223,30.04,False
+tbx2b,53,14,14hpf-mesoderm - blood island,43,0.0,False
+tbx2b,54,14,14hpf-neural - diencephalon,88,18.18,False
+tbx2b,55,14,14hpf-tailbud - PSM,299,3.34,False
+tbx2b,56,14,14hpf-epidermal anterior,313,10.54,False
+tbx2b,57,14,14hpf-neural - hindbrain,298,1.34,False
+tbx2b,58,14,14hpf-endoderm,57,14.04,False
+tbx2b,59,14,14hpf-epidermal - foxi3a,75,0.0,False
+tbx2b,60,14,14hpf-neural crest,201,1.0,False
+tbx2b,61,14,14hpf-mesoderm - pharyngeal arch,71,1.41,False
+tbx2b,62,14,14hpf-notocord,42,9.52,False
+tbx2b,63,14,14hpf-epidermal - otic placode,69,75.36,False
+tbx2b,64,14,14hpf-mesoderm - heart field,67,7.46,False
+tbx2b,65,14,14hpf-differentiating neurons - rohon beard,29,68.97,False
+tbx2b,66,14,14hpf-mesoderm - lateral plate - cxcl12a,44,6.82,False
+tbx2b,67,14,14hpf-neural crest - crestin,82,2.44,False
+tbx2b,68,14,14hpf-neural - midbrain,340,0.59,False
+tbx2b,69,14,14hpf-mesoderm - pronephric duct,14,0.0,True
+tbx2b,70,14,14hpf-neural -  floorplate,13,0.0,False
+tbx2b,71,14,14hpf-germline,5,0.0,False
+tbx2b,72,14,14hpf-hatching gland,14,7.14,False
+tbx2b,73,14,14hpf-periderm,11,0.0,False
+tbx2b,74,14,14hpf-mesoderm - endothelial,33,3.03,False
+tbx2b,75,14,14hpf-tailbud - spinal cord,547,1.65,False
+tbx2b,76,14,14hpf-neural - telencephalon,174,4.6,False
+tbx2b,77,14,14hpf-lateral line primordium,84,14.29,False
+tbx2b,78,14,14hpf-differentiating neurons,24,0.0,False
+tbx2b,79,18,18hpf-neural - diencephalon,161,18.01,False
+tbx2b,80,18,18hpf-neural - midbrain,988,3.04,False
+tbx2b,81,18,18hpf-epidermal - olfactory placode,28,0.0,False
+tbx2b,82,18,18hpf-neural - telencephalon,301,1.33,False
+tbx2b,83,18,18hpf-neural - dorsal hindbrain,578,2.6,False
+tbx2b,84,18,18hpf-differentiating neurons,252,1.98,False
+tbx2b,85,18,18hpf-ionocyte - ca2,48,4.17,False
+tbx2b,86,18,18hpf-epidermal - anterior,182,2.75,False
+tbx2b,87,18,18hpf-hatching gland,20,0.0,False
+tbx2b,88,18,18hpf-epidermal - sox4b,59,5.08,False
+tbx2b,89,18,18hpf-optic cup,390,47.44,False
+tbx2b,90,18,18hpf-tailbud - spinal cord,277,2.17,False
+tbx2b,91,18,18hpf-pectoral fin field,66,12.12,False
+tbx2b,92,18,18hpf-heart field,158,10.76,False
+tbx2b,93,18,18hpf-lens placode,39,7.69,False
+tbx2b,94,18,18hpf-neural crest - grem2,281,13.17,False
+tbx2b,95,18,18hpf-erythroid,256,5.86,False
+tbx2b,96,18,18hpf-macrophage,30,6.67,False
+tbx2b,97,18,18hpf-tailbud - PSM,407,3.93,False
+tbx2b,98,18,18hpf-myotome,169,5.33,False
+tbx2b,99,18,18hpf-notocord,28,10.71,False
+tbx2b,NaN,?,(unknown),17,5.88,False

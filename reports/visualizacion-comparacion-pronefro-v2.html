@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparación Lado a Lado v2 · Cascada Completa (3 etapas)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
+    color: #E8E4DF;
+  }
+  #canvas { width: 100vw; height: 100vh; display: block; position: fixed; top: 0; left: 0; z-index: 0; }
+
+  .hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 14px 24px 12px;
+    background: linear-gradient(180deg, rgba(10,10,10,0.92) 0%, rgba(10,10,10,0) 100%);
+    pointer-events: none;
+    z-index: 10;
+    height: 80px;
+  }
+  .hud-title { font-size: 14px; font-weight: 600; letter-spacing: 1px; color: #E8E4DF; }
+  .hud-version {
+    display: inline-block;
+    background: rgba(78,205,196,0.15);
+    color: #4ECDC4;
+    border: 1px solid rgba(78,205,196,0.4);
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .hud-sub { font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: #8A847D; margin-top: 3px; }
+  .hud-row { display: flex; gap: 18px; margin-top: 7px; font-size: 12px; color: #B5B0A8; align-items: center; }
+  .hud-row strong { color: #4ECDC4; font-weight: 500; }
+
+  .layout-switcher {
+    pointer-events: auto;
+    display: flex; gap: 4px; margin-left: auto;
+    background: rgba(20, 20, 20, 0.6);
+    border: 1px solid #2A2A2A;
+    border-radius: 4px; padding: 2px;
+  }
+  .layout-btn {
+    background: none; border: none; color: #8A847D;
+    padding: 4px 12px;
+    font-family: inherit; font-size: 10px; letter-spacing: 1px;
+    cursor: pointer; border-radius: 3px;
+    transition: all 0.18s;
+  }
+  .layout-btn:hover { color: #E8E4DF; }
+  .layout-btn.active { background: rgba(78, 205, 196, 0.18); color: #4ECDC4; }
+
+  .panel-header {
+    position: fixed; top: 80px; height: 60px; z-index: 11;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(15,15,15,0.85) 0%, rgba(10,10,10,0.4) 100%);
+    border-left: 1px solid rgba(60,60,60,0.4);
+    border-right: 1px solid rgba(60,60,60,0.4);
+    pointer-events: none;
+  }
+  .panel-header-inner { display: flex; align-items: center; gap: 8px; }
+  .panel-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(78,205,196,0.15); color: #4ECDC4;
+    border: 1px solid rgba(78,205,196,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+  }
+  .panel-select {
+    pointer-events: auto; flex: 1;
+    background: rgba(30, 30, 30, 0.9); color: #E8E4DF;
+    border: 1px solid #3A3A3A; border-radius: 4px;
+    padding: 5px 26px 5px 10px;
+    font-family: inherit; font-size: 12px;
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M1 1l4 4 4-4' stroke='%238A847D' stroke-width='1.5' fill='none' stroke-linecap='round'/%3e%3c/svg%3e");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  .panel-select:hover { border-color: #4ECDC4; }
+  .panel-select:focus { outline: none; border-color: #4ECDC4; }
+  .panel-select optgroup { color: #8A847D; font-style: normal; }
+
+  .panel-stagepill {
+    margin-top: 5px;
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 9px;
+    letter-spacing: 0.6px;
+    background: rgba(60,60,60,0.5);
+    color: #B5B0A8;
+    border: 1px solid rgba(80,80,80,0.5);
+  }
+  .panel-stagepill.s0 { background: rgba(78,205,196,0.15); color: #4ECDC4; border-color: rgba(78,205,196,0.3); }
+  .panel-stagepill.s1 { background: rgba(214, 113, 78, 0.15); color: #D4724E; border-color: rgba(214,113,78,0.3); }
+  .panel-stagepill.s2 { background: rgba(155, 90, 138, 0.18); color: #C880B0; border-color: rgba(155,90,138,0.35); }
+  .panel-stagepill.s3 { background: rgba(74, 143, 165, 0.18); color: #6FB7CE; border-color: rgba(74,143,165,0.35); }
+
+  .panel-footer {
+    position: fixed; height: 80px; z-index: 11;
+    padding: 10px 12px;
+    background: linear-gradient(0deg, rgba(15,15,15,0.88) 0%, rgba(10,10,10,0.2) 100%);
+    border-left: 1px solid rgba(60,60,60,0.4);
+    border-right: 1px solid rgba(60,60,60,0.4);
+    pointer-events: none; overflow: hidden;
+  }
+  .panel-footer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .conf-pill {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px; padding: 2px 8px; border-radius: 8px; border: 1px solid;
+  }
+  .decouple-pill {
+    font-size: 9px; letter-spacing: 0.4px;
+    padding: 2px 7px; border-radius: 8px;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .decouple-pill.pass    { background: rgba(45, 106, 79, 0.25);   color: #7FB069; }
+  .decouple-pill.partial { background: rgba(184, 134, 11, 0.25);  color: #D4A442; }
+  .decouple-pill.fail    { background: rgba(180, 77, 77, 0.25);   color: #E68A8A; }
+  .decouple-pill.na      { background: rgba(60,60,60,0.4);        color: #8A847D; }
+
+  .ablation-tag {
+    font-size: 9px; letter-spacing: 0.3px;
+    padding: 2px 7px; border-radius: 8px;
+    background: rgba(230, 57, 70, 0.18);
+    color: #FF8A95;
+    border: 1px solid rgba(230, 57, 70, 0.4);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .ablation-tag.active { opacity: 1; }
+
+  .pheno-text {
+    font-size: 10.5px; color: #B5B0A8; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .timeline {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 14px 24px 18px;
+    background: linear-gradient(0deg, rgba(10,10,10,0.95) 0%, rgba(10,10,10,0) 100%);
+    z-index: 12; height: 80px;
+  }
+  .timeline-bar {
+    position: relative; width: 100%; height: 5px;
+    background: #2A2A2A; border-radius: 3px;
+    cursor: pointer; margin-bottom: 10px;
+  }
+  .timeline-fill { height: 100%; background: #4ECDC4; border-radius: 3px; width: 0%; }
+  .ablation-marker-row {
+    position: absolute; top: -14px; left: 0; right: 0; height: 12px; pointer-events: none;
+  }
+  .am-band {
+    position: absolute; height: 3px; border-radius: 2px;
+    background: rgba(230, 57, 70, 0.12);
+    border-top: 1px solid rgba(230,57,70,0.4);
+    border-bottom: 1px solid rgba(230,57,70,0.4);
+  }
+  .timeline-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #8A847D; }
+  .btn-play {
+    background: none; border: 1px solid #4ECDC4; color: #4ECDC4;
+    padding: 5px 16px; border-radius: 4px; cursor: pointer;
+    font-family: inherit; font-size: 10px; letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .btn-play:hover { background: rgba(78, 205, 196, 0.12); }
+
+  .gate-notice {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 20, 20, 0.85);
+    border: 1px solid rgba(212, 164, 66, 0.4);
+    border-radius: 4px; padding: 4px 12px;
+    font-size: 9px; letter-spacing: 0.5px; color: #D4A442;
+    z-index: 11; backdrop-filter: blur(4px);
+  }
+
+  .stage-dots { display: flex; gap: 3px; margin-left: 10px; }
+  .stage-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #2A2A2A; transition: background 0.2s;
+  }
+  .stage-dot.active { background: #4ECDC4; box-shadow: 0 0 6px rgba(78,205,196,0.6); }
+  .stage-dot.done { background: #2D6A4F; }
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div>
+    <span class="hud-title">Comparación Lado a Lado · Cascada de Ablaciones Pronefro</span>
+    <span class="hud-version">v2 · 13 escenarios · 3 etapas</span>
+  </div>
+  <div class="hud-sub">cámara sincronizada · timeline compartido · escenarios independientes por panel</div>
+  <div class="hud-row">
+    <span>t = <strong id="hudTime">3.0 hpf</strong></span>
+    <span>etapa: <strong id="hudStage">blástula</strong></span>
+    <div class="stage-dots" id="stageDots"></div>
+    <div class="layout-switcher">
+      <button class="layout-btn" data-n="2">2 PANELES</button>
+      <button class="layout-btn active" data-n="3">3 PANELES</button>
+      <button class="layout-btn" data-n="4">4 PANELES</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+<div id="panelOverlays"></div>
+
+<div class="gate-notice">Hipótesis-generación · puerta humana antes de uso aguas abajo (CLAUDE.md §7)</div>
+
+<div class="timeline">
+  <div class="timeline-bar" id="timelineBar">
+    <div class="timeline-fill" id="timelineFill"></div>
+    <div class="ablation-marker-row" id="ablationMarkers"></div>
+  </div>
+  <div class="timeline-row">
+    <span id="timelineStage">— inicializando —</span>
+    <button class="btn-play" id="btnPlay">❚❚ PAUSE</button>
+    <span style="font-family:ui-monospace,Menlo,monospace">t = <span id="timeValue">0.00</span></span>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+               "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/" }}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// 13 SCENARIOS
+// ============================================================
+const SCENARIOS = {
+  'control': { label: 'Control (WT)', etapa: 0, ablationWindow: null, ablationMode: null, dose: 0, confidence: 1.00, decouple: 'na', decoupleLabel: 'N/A',
+    pheno: 'Pronefro bilateral simétrico · túbulo normal · lumen formado.' },
+  '1A-hipo': { label: '1A · stage-specific · hipo', etapa: 1, ablationWindow: [0.13, 0.27], ablationMode: 'A', dose: 0.50, confidence: 0.78, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: 'DISLOCACIÓN · varianza posicional alta · longitud cercana a normal.' },
+  '1A-KO':  { label: '1A · stage-specific · KO',  etapa: 1, ablationWindow: [0.13, 0.27], ablationMode: 'A', dose: 0.95, confidence: 0.74, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: 'Asimetría bilateral · truncamiento unilateral · glomérulo dislocado.' },
+  '1B-hipo': { label: '1B · persistente · hipo', etapa: 1, ablationWindow: [0.13, 1.0],  ablationMode: 'B', dose: 0.50, confidence: 0.62, decouple: 'partial', decoupleLabel: 'PARCIAL',
+    pheno: 'Dislocado + malformado · cascada acumulativa no separable.' },
+  '1B-KO':  { label: '1B · persistente · KO',   etapa: 1, ablationWindow: [0.13, 1.0],  ablationMode: 'B', dose: 0.95, confidence: 0.55, decouple: 'fail', decoupleLabel: 'FALLA',
+    pheno: 'Catastrófico · identidad comprometida · sin pronefro reconocible.' },
+  '2A-hipo': { label: '2A · stage-specific · hipo', etapa: 2, ablationWindow: [0.32, 0.46], ablationMode: 'A', dose: 0.50, confidence: 0.80, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: 'COMPRESIÓN · túbulo ~70–80% longitud · posición correcta · lumen formado.' },
+  '2A-KO':  { label: '2A · stage-specific · KO',  etapa: 2, ablationWindow: [0.32, 0.46], ablationMode: 'A', dose: 0.95, confidence: 0.75, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: 'Quiste compacto · cluster esférico sin túbulo lineal.' },
+  '2B-hipo': { label: '2B · persistente · hipo', etapa: 2, ablationWindow: [0.32, 1.0],  ablationMode: 'B', dose: 0.50, confidence: 0.66, decouple: 'partial', decoupleLabel: 'PARCIAL',
+    pheno: 'Comprimido + falla polaridad · posición AP correcta (distinto de 1B).' },
+  '2B-KO':  { label: '2B · persistente · KO',   etapa: 2, ablationWindow: [0.32, 1.0],  ablationMode: 'B', dose: 0.95, confidence: 0.58, decouple: 'pass', decoupleLabel: 'PASA paradigma',
+    pheno: 'Sin túbulo · foci wt1a+ dispersos · identidad preservada (vs 1B-KO).' },
+  '3A-hipo': { label: '3A · stage-specific · hipo', etapa: 3, ablationWindow: [0.52, 0.62], ablationMode: 'A', dose: 0.50, confidence: 0.82, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: 'PARED BUMPY · lumen 1.4–1.6× diámetro · superficie apical irregular · longitud normal.' },
+  '3A-KO':  { label: '3A · stage-specific · KO',  etapa: 3, ablationWindow: [0.52, 0.62], ablationMode: 'A', dose: 0.95, confidence: 0.78, decouple: 'pass', decoupleLabel: 'PASA',
+    pheno: '"SWISS CHEESE" · múltiples micro-lumens dispersos · identidad bulk normal.' },
+  '3B-hipo': { label: '3B · persistente · hipo', etapa: 3, ablationWindow: [0.52, 1.0],  ablationMode: 'B', dose: 0.50, confidence: 0.65, decouple: 'partial', decoupleLabel: 'PARCIAL',
+    pheno: 'Pared sostenidamente mal polarizada · lumen amplio sin diámetro consistente.' },
+  '3B-KO':  { label: '3B · persistente · KO',   etapa: 3, ablationWindow: [0.52, 1.0],  ablationMode: 'B', dose: 0.95, confidence: 0.62, decouple: 'pass', decoupleLabel: 'PASA · firma más limpia',
+    pheno: 'MASA SIN ARQUITECTURA · identidad pronéfrica preservada · sin organización tubular.' },
+};
+
+const SCENARIO_GROUPS = {
+  'Referencia':       ['control'],
+  'Etapa 1 (6–8 hpf)':  ['1A-hipo','1A-KO','1B-hipo','1B-KO'],
+  'Etapa 2 (10–12 hpf)': ['2A-hipo','2A-KO','2B-hipo','2B-KO'],
+  'Etapa 3 (14–16 hpf)': ['3A-hipo','3A-KO','3B-hipo','3B-KO'],
+};
+
+// Default panels showcase the cascade
+const DEFAULT_SCENARIOS = {
+  2: ['control', '3A-hipo'],
+  3: ['1A-hipo', '2A-hipo', '3A-hipo'],
+  4: ['control', '1A-hipo', '2A-hipo', '3A-hipo'],
+};
+
+// ============================================================
+// STAGES
+// ============================================================
+const STAGES = [
+  { name: 'blástula',                    t0: 0.00, t1: 0.13, hpf: '3–6 hpf' },
+  { name: 'gastrul. · mesendodermo',     t0: 0.13, t1: 0.30, hpf: '6–10 hpf' },
+  { name: 'LPM bilateral · IM emergente', t0: 0.30, t1: 0.50, hpf: '10–14 hpf' },
+  { name: 'MET · pre-tubulogénesis',     t0: 0.50, t1: 0.72, hpf: '14–18 hpf' },
+  { name: 'túbulo · lumenogénesis',      t0: 0.72, t1: 1.00, hpf: '18–24 hpf' },
+];
+function getStage(t) {
+  for (let i = 0; i < STAGES.length; i++) {
+    if (t >= STAGES[i].t0 && t < STAGES[i].t1) return { ...STAGES[i], index: i };
+  }
+  return { ...STAGES[STAGES.length-1], index: STAGES.length-1 };
+}
+function tToHpf(t) { return (3 + t * 21).toFixed(1); }
+
+// ============================================================
+// SHARED RESOURCES
+// ============================================================
+const canvas = document.getElementById('canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x0a0a0a);
+renderer.autoClear = false;
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(2.8, 1.6, 3.2);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.4;
+
+const bodyGeometry = new THREE.SphereGeometry(1, 64, 48);
+const bodyOrigPositions = bodyGeometry.attributes.position.array.slice();
+const bodyMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0xE8E0D0, roughness: 0.55, metalness: 0.0,
+  clearcoat: 0.4, clearcoatRoughness: 0.4,
+  transparent: true, opacity: 0.22, side: THREE.DoubleSide,
+});
+const wireMaterial = new THREE.MeshBasicMaterial({ color: 0x6A6660, wireframe: true, transparent: true, opacity: 0.05 });
+
+const cellGeometry = new THREE.SphereGeometry(0.06, 12, 10);
+const cellMaterial = new THREE.MeshPhysicalMaterial({
+  roughness: 0.45, metalness: 0.0, clearcoat: 0.5, clearcoatRoughness: 0.3,
+});
+
+const N_CELLS_PER_SIDE = 60;
+const N_CELLS = N_CELLS_PER_SIDE * 2;
+
+const COL_MESODERM   = new THREE.Color(0xD6856B);
+const COL_IM         = new THREE.Color(0xD4724E);
+const COL_PROGENITOR = new THREE.Color(0x9B5A8A);
+const COL_TUBULE     = new THREE.Color(0x4A8FA5);
+const COL_PERTURB    = new THREE.Color(0xE63946);
+
+function fateColor(t) {
+  if (t < 0.20) return COL_MESODERM;
+  if (t < 0.42) return COL_MESODERM.clone().lerp(COL_IM, (t - 0.20) / 0.22);
+  if (t < 0.58) return COL_IM.clone().lerp(COL_PROGENITOR, (t - 0.42) / 0.16);
+  return COL_PROGENITOR.clone().lerp(COL_TUBULE, Math.min(1, (t - 0.58) / 0.20));
+}
+
+function rand(seed) {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function deformBody(t) {
+  const positions = bodyGeometry.attributes.position;
+  for (let i = 0; i < positions.count; i++) {
+    const ix = i * 3;
+    const x = bodyOrigPositions[ix], y = bodyOrigPositions[ix+1], z = bodyOrigPositions[ix+2];
+    let sx, sy, sz, headBulge = 0, tailTaper = 1;
+    if (t < 0.13) { sx = sy = sz = 1.0; }
+    else if (t < 0.30) {
+      const lt = (t - 0.13) / 0.17;
+      sx = 1.0 - 0.10 * lt; sy = 1.0 - 0.05 * lt; sz = 1.0 + 0.35 * lt;
+    } else if (t < 0.50) {
+      const lt = (t - 0.30) / 0.20;
+      sx = 0.90 - 0.15 * lt; sy = 0.95 - 0.10 * lt; sz = 1.35 + 0.45 * lt;
+    } else if (t < 0.72) {
+      const lt = (t - 0.50) / 0.22;
+      sx = 0.75 - 0.10 * lt; sy = 0.85 - 0.10 * lt; sz = 1.80 + 0.50 * lt;
+      if (z > 0.4) headBulge = (z - 0.4) * 1.5 * 0.12 * lt;
+    } else {
+      const lt = (t - 0.72) / 0.28;
+      sx = 0.65 - 0.05 * lt; sy = 0.75 - 0.05 * lt; sz = 2.30 + 0.40 * lt;
+      if (z > 0.4) headBulge = (z - 0.4) * 1.5 * (0.12 + 0.10 * lt);
+      if (z < -0.3) tailTaper = 1.0 - Math.abs(z + 0.3) * 0.5 * lt;
+    }
+    positions.setXYZ(i,
+      x * sx * tailTaper + (z > 0.4 ? x * headBulge : 0),
+      y * sy * tailTaper + (z > 0.4 ? y * headBulge : 0),
+      z * sz);
+  }
+  positions.needsUpdate = true;
+  bodyGeometry.computeVertexNormals();
+}
+
+function computeCellPosition(cellId, t, scenario) {
+  const side = cellId < N_CELLS_PER_SIDE ? -1 : 1;
+  const apIndex = cellId % N_CELLS_PER_SIDE;
+  const apNorm = (apIndex / (N_CELLS_PER_SIDE - 1)) - 0.5;
+  const seed = cellId * 7.3;
+
+  let lateralFactor, apFactor, dorsalFactor;
+  if (t < 0.13) {
+    lateralFactor = 0.55 + (rand(seed) - 0.5) * 0.2;
+    apFactor = 0.55 + (rand(seed + 1) - 0.5) * 0.25;
+    dorsalFactor = 0.25 + (rand(seed + 2) - 0.5) * 0.4;
+  } else if (t < 0.30) {
+    const lt = (t - 0.13) / 0.17;
+    lateralFactor = 0.55 - lt * 0.20 + (rand(seed) - 0.5) * 0.15 * (1 - lt);
+    apFactor = 0.55 + lt * 0.35;
+    dorsalFactor = 0.25 + lt * 0.30 + (rand(seed + 2) - 0.5) * 0.2 * (1 - lt);
+  } else if (t < 0.50) {
+    const lt = (t - 0.30) / 0.20;
+    lateralFactor = 0.35 - lt * 0.05;
+    apFactor = 0.90 + lt * 0.50;
+    dorsalFactor = 0.55 + (rand(seed + 2) - 0.5) * 0.06;
+  } else if (t < 0.72) {
+    const lt = (t - 0.50) / 0.22;
+    lateralFactor = 0.30 - lt * 0.08;
+    apFactor = 1.40 + lt * 0.25;
+    dorsalFactor = 0.55 + lt * 0.05;
+  } else {
+    const lt = Math.min(1, (t - 0.72) / 0.28);
+    lateralFactor = 0.22 - lt * 0.02;
+    apFactor = 1.65 + lt * 0.15;
+    dorsalFactor = 0.60 + lt * 0.03;
+  }
+
+  let posX = side * lateralFactor + (rand(seed + 3) - 0.5) * 0.025;
+  let posY = dorsalFactor + (rand(seed + 4) - 0.5) * 0.02;
+  let posZ = apNorm * apFactor + (rand(seed + 5) - 0.5) * 0.015;
+
+  let perturbActive = false;
+
+  if (scenario.ablationWindow) {
+    const [wStart, wEnd] = scenario.ablationWindow;
+    const dose = scenario.dose;
+    const isStage1 = wStart < 0.25;
+    const isStage2 = wStart >= 0.25 && wStart < 0.50;
+    const isStage3 = wStart >= 0.50;
+
+    let perturbStrength = 0;
+    if (scenario.ablationMode === 'A') {
+      if (t < wStart) perturbStrength = 0;
+      else if (t <= wEnd) { perturbStrength = dose; perturbActive = true; }
+      else {
+        if (isStage1) perturbStrength = dose * 0.35;
+        else if (isStage2) perturbStrength = dose * 0.55;
+        else perturbStrength = dose * 0.75;
+      }
+    } else if (scenario.ablationMode === 'B') {
+      if (t >= wStart) {
+        perturbStrength = dose * 0.75;
+        if (t <= Math.min(wStart + 0.10, wEnd)) perturbActive = true;
+      }
+    }
+
+    if (perturbStrength > 0) {
+      if (isStage1) {
+        // DISLOCATION
+        posX += (rand(seed + 10) - 0.5) * perturbStrength * 0.45;
+        posY += (rand(seed + 11) - 0.5) * perturbStrength * 0.20;
+        posZ += (rand(seed + 12) - 0.5) * perturbStrength * 0.55;
+        if (perturbStrength > 0.6 && rand(seed + 13) < 0.18) {
+          posX *= -0.6; posZ *= 0.85;
+        }
+        if (dose > 0.9 && scenario.ablationMode === 'B' && t > wStart + 0.15) {
+          const chaos = perturbStrength * 0.7;
+          posX += (rand(seed + 20) - 0.5) * chaos * 0.65;
+          posY += (rand(seed + 21) - 0.5) * chaos * 0.35;
+          posZ += (rand(seed + 22) - 0.5) * chaos * 0.85;
+        }
+      } else if (isStage2) {
+        // COMPRESSION
+        posZ *= (1.0 - perturbStrength * 0.55);
+        if (dose > 0.8) {
+          posZ *= 0.6;
+          posX *= (1.0 - perturbStrength * 0.15);
+          posZ += (rand(seed + 14) - 0.5) * perturbStrength * 0.10;
+          posX += (rand(seed + 15) - 0.5) * perturbStrength * 0.06;
+        }
+        if (dose > 0.9 && scenario.ablationMode === 'B' && t > wStart + 0.15) {
+          const chaos = perturbStrength * 0.7;
+          posX += (rand(seed + 20) - 0.5) * chaos * 0.65;
+          posY += (rand(seed + 21) - 0.5) * chaos * 0.35;
+          posZ += (rand(seed + 22) - 0.5) * chaos * 0.85;
+        }
+      } else {
+        // STAGE 3: LUMEN / WALL FAILURE
+        const isPersistent = scenario.ablationMode === 'B';
+        const isKO = dose > 0.8;
+
+        if (isPersistent && isKO) {
+          // 3B-KO: AMORPHOUS MASS
+          const massPull = perturbStrength * 0.45;
+          posZ = posZ * (1 - massPull);
+          posX *= 1.0 - perturbStrength * 0.10;
+          posX += (rand(seed + 60) - 0.5) * perturbStrength * 0.35;
+          posY += (rand(seed + 61) - 0.5) * perturbStrength * 0.25;
+          posZ += (rand(seed + 62) - 0.5) * perturbStrength * 0.30;
+        } else if (isKO) {
+          // 3A-KO: SWISS CHEESE — clusters along AP
+          const clusterSize = 8;
+          const clusterIdLocal = Math.floor(apIndex / clusterSize);
+          const clusterCenterApIndex = clusterIdLocal * clusterSize + clusterSize / 2;
+          const clusterCenterApNorm = (clusterCenterApIndex / (N_CELLS_PER_SIDE - 1)) - 0.5;
+          const clusterCenterZ = clusterCenterApNorm * apFactor;
+
+          const pullStrength = perturbStrength * 0.55;
+          posZ = posZ * (1 - pullStrength) + clusterCenterZ * pullStrength;
+
+          const clusterSeed = clusterIdLocal * 13.7 + (side > 0 ? 100 : 0);
+          posX += (rand(clusterSeed) - 0.5) * perturbStrength * 0.12;
+          posY += (rand(clusterSeed + 1) - 0.5) * perturbStrength * 0.10;
+          posX += (rand(seed + 40) - 0.5) * perturbStrength * 0.05;
+          posY += (rand(seed + 41) - 0.5) * perturbStrength * 0.04;
+          posZ += (rand(seed + 42) - 0.5) * perturbStrength * 0.025;
+        } else {
+          // 3A-hipo / 3B-hipo: BUMPY WALL
+          posX += (rand(seed + 30) - 0.5) * perturbStrength * 0.22;
+          posY += (rand(seed + 31) - 0.5) * perturbStrength * 0.16;
+          posX *= 1.0 + perturbStrength * 0.14;
+          posZ += (rand(seed + 32) - 0.5) * perturbStrength * 0.06;
+        }
+      }
+    }
+  }
+  return { x: posX, y: posY, z: posZ, perturbActive };
+}
+
+// ============================================================
+// PANEL CONSTRUCTION
+// ============================================================
+const panels = [];
+
+function makePanel(scenarioKey) {
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0a0a, 0.025);
+  scene.add(new THREE.AmbientLight(0x404040, 0.6));
+  const k = new THREE.DirectionalLight(0xffffff, 0.9); k.position.set(5,5,5); scene.add(k);
+  const f = new THREE.DirectionalLight(0x8899aa, 0.4); f.position.set(-3,2,-3); scene.add(f);
+  const r = new THREE.DirectionalLight(0x4ECDC4, 0.35); r.position.set(0,-2,-5); scene.add(r);
+
+  const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+  const wireMesh = new THREE.Mesh(bodyGeometry, wireMaterial);
+  scene.add(bodyMesh); scene.add(wireMesh);
+
+  const cells = new THREE.InstancedMesh(cellGeometry, cellMaterial, N_CELLS);
+  cells.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  if (!cells.instanceColor) {
+    const colorArr = new Float32Array(N_CELLS * 3);
+    cells.instanceColor = new THREE.InstancedBufferAttribute(colorArr, 3);
+  }
+  scene.add(cells);
+
+  return { scenarioKey, scenario: SCENARIOS[scenarioKey], scene, cells, perturbActive: false };
+}
+
+// ============================================================
+// LAYOUT
+// ============================================================
+const HUD_H = 80, TIMELINE_H = 80, PANEL_HEADER_H = 60, PANEL_FOOTER_H = 80, PANEL_GAP = 6;
+
+function getPanelRectCSS(i, N) {
+  const w = window.innerWidth;
+  const panelW = (w - (N + 1) * PANEL_GAP) / N;
+  const x = PANEL_GAP + i * (panelW + PANEL_GAP);
+  return { x, w: panelW };
+}
+function getPanelViewport(i, N) {
+  const rect = getPanelRectCSS(i, N);
+  const h = window.innerHeight;
+  const y_webgl = TIMELINE_H + PANEL_FOOTER_H;
+  const height = h - HUD_H - PANEL_HEADER_H - TIMELINE_H - PANEL_FOOTER_H;
+  return { x: rect.x, y: y_webgl, w: rect.w, h: height };
+}
+
+// ============================================================
+// OVERLAYS
+// ============================================================
+const overlaysRoot = document.getElementById('panelOverlays');
+
+function buildOverlays(N) {
+  overlaysRoot.innerHTML = '';
+  panels.forEach((p, i) => {
+    const rect = getPanelRectCSS(i, N);
+
+    const header = document.createElement('div');
+    header.className = 'panel-header';
+    header.style.left = rect.x + 'px';
+    header.style.width = rect.w + 'px';
+    const stageClass = 's' + p.scenario.etapa;
+    const stageLabel = p.scenario.etapa === 0 ? 'CONTROL' :
+                       p.scenario.etapa === 1 ? 'ETAPA 1' :
+                       p.scenario.etapa === 2 ? 'ETAPA 2' : 'ETAPA 3';
+    header.innerHTML = `
+      <div class="panel-header-inner">
+        <div class="panel-num">${i+1}</div>
+        <select class="panel-select" data-panel="${i}"></select>
+      </div>
+      <span class="panel-stagepill ${stageClass}" data-pill="${i}">${stageLabel}</span>
+    `;
+    overlaysRoot.appendChild(header);
+
+    const select = header.querySelector('select');
+    Object.entries(SCENARIO_GROUPS).forEach(([groupLabel, keys]) => {
+      const grp = document.createElement('optgroup');
+      grp.label = groupLabel;
+      keys.forEach(key => {
+        const opt = document.createElement('option');
+        opt.value = key;
+        opt.textContent = SCENARIOS[key].label;
+        if (key === p.scenarioKey) opt.selected = true;
+        grp.appendChild(opt);
+      });
+      select.appendChild(grp);
+    });
+    select.addEventListener('change', (e) => {
+      const newKey = e.target.value;
+      p.scenarioKey = newKey;
+      p.scenario = SCENARIOS[newKey];
+      updatePanelOverlay(i);
+      updateAblationMarkers();
+    });
+
+    const footer = document.createElement('div');
+    footer.className = 'panel-footer';
+    footer.style.left = rect.x + 'px';
+    footer.style.width = rect.w + 'px';
+    footer.innerHTML = `
+      <div class="panel-footer-row">
+        <div class="conf-pill" data-conf="${i}"></div>
+        <div class="decouple-pill" data-decouple="${i}"></div>
+        <div class="ablation-tag" data-ablation="${i}">ABL ↓0%</div>
+      </div>
+      <div class="pheno-text" data-pheno="${i}"></div>
+    `;
+    overlaysRoot.appendChild(footer);
+
+    p.headerEl = header;
+    p.footerEl = footer;
+    updatePanelOverlay(i);
+  });
+}
+
+function updatePanelOverlay(i) {
+  const p = panels[i];
+  const sc = p.scenario;
+  const pill = p.headerEl.querySelector('.panel-stagepill');
+  pill.className = 'panel-stagepill s' + sc.etapa;
+  pill.textContent = sc.etapa === 0 ? 'CONTROL' :
+                     sc.etapa === 1 ? 'ETAPA 1' :
+                     sc.etapa === 2 ? 'ETAPA 2' : 'ETAPA 3';
+
+  const confEl = p.footerEl.querySelector('[data-conf]');
+  let confColor;
+  if (sc.etapa === 0) confColor = '#4ECDC4';
+  else if (sc.confidence >= 0.75) confColor = '#7FB069';
+  else if (sc.confidence >= 0.60) confColor = '#D4A442';
+  else confColor = '#B44D4D';
+  confEl.style.color = confColor;
+  confEl.style.borderColor = confColor + '66';
+  confEl.style.background = confColor + '15';
+  confEl.textContent = `conf ${sc.confidence.toFixed(2)}`;
+
+  const dEl = p.footerEl.querySelector('[data-decouple]');
+  dEl.className = 'decouple-pill ' + sc.decouple;
+  dEl.textContent = sc.decoupleLabel;
+
+  p.footerEl.querySelector('[data-pheno]').textContent = sc.pheno;
+}
+
+function positionOverlays(N) {
+  panels.forEach((p, i) => {
+    const rect = getPanelRectCSS(i, N);
+    p.headerEl.style.left = rect.x + 'px';
+    p.headerEl.style.width = rect.w + 'px';
+    p.footerEl.style.left = rect.x + 'px';
+    p.footerEl.style.width = rect.w + 'px';
+    p.footerEl.style.bottom = TIMELINE_H + 'px';
+  });
+}
+
+// ============================================================
+// LAYOUT SWITCHING
+// ============================================================
+let currentN = 3;
+
+function setLayout(N) {
+  // Reset to defaults when changing N
+  const defaults = DEFAULT_SCENARIOS[N] || DEFAULT_SCENARIOS[3];
+
+  // Adjust panels array
+  while (panels.length < N) {
+    const key = defaults[panels.length] || 'control';
+    panels.push(makePanel(key));
+  }
+  while (panels.length > N) {
+    const p = panels.pop();
+    p.scene.clear();
+  }
+
+  // When N changes, reset scenarios to defaults for clarity
+  panels.forEach((p, i) => {
+    const newKey = defaults[i] || p.scenarioKey;
+    p.scenarioKey = newKey;
+    p.scenario = SCENARIOS[newKey];
+  });
+
+  currentN = N;
+  buildOverlays(N);
+  positionOverlays(N);
+  updateAblationMarkers();
+
+  document.querySelectorAll('.layout-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.n) === N);
+  });
+}
+
+document.querySelectorAll('.layout-btn').forEach(btn => {
+  btn.addEventListener('click', () => setLayout(parseInt(btn.dataset.n)));
+});
+
+// ============================================================
+// ABLATION MARKERS
+// ============================================================
+const ablationMarkers = document.getElementById('ablationMarkers');
+function updateAblationMarkers() {
+  ablationMarkers.innerHTML = '';
+  panels.forEach((p, i) => {
+    const sc = p.scenario;
+    if (!sc.ablationWindow) return;
+    const [s, e] = sc.ablationWindow;
+    const band = document.createElement('div');
+    band.className = 'am-band';
+    band.style.left = (s * 100) + '%';
+    band.style.width = ((e - s) * 100) + '%';
+    band.style.top = (i * 3) + 'px';
+    band.style.opacity = sc.ablationMode === 'A' ? '0.85' : '0.5';
+    ablationMarkers.appendChild(band);
+  });
+}
+
+// ============================================================
+// STAGE DOTS
+// ============================================================
+const stageDots = document.getElementById('stageDots');
+STAGES.forEach(() => {
+  const d = document.createElement('div');
+  d.className = 'stage-dot';
+  stageDots.appendChild(d);
+});
+function updateStageDots(idx) {
+  stageDots.querySelectorAll('.stage-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === idx);
+    d.classList.toggle('done', i < idx);
+  });
+}
+
+// ============================================================
+// TIMELINE
+// ============================================================
+const TOTAL_FRAMES = 480;
+let currentFrame = 0;
+let playing = true;
+const timelineBar = document.getElementById('timelineBar');
+const timelineFill = document.getElementById('timelineFill');
+
+let dragging = false;
+timelineBar.addEventListener('mousedown', (e) => {
+  dragging = true; playing = false;
+  document.getElementById('btnPlay').textContent = '▶ PLAY';
+  seekTimeline(e);
+});
+document.addEventListener('mousemove', (e) => { if (dragging) seekTimeline(e); });
+document.addEventListener('mouseup', () => { dragging = false; });
+function seekTimeline(e) {
+  const rect = timelineBar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  currentFrame = Math.floor(pct * TOTAL_FRAMES);
+}
+
+document.getElementById('btnPlay').addEventListener('click', () => {
+  playing = !playing;
+  document.getElementById('btnPlay').textContent = playing ? '❚❚ PAUSE' : '▶ PLAY';
+});
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    playing = !playing;
+    document.getElementById('btnPlay').textContent = playing ? '❚❚ PAUSE' : '▶ PLAY';
+    e.preventDefault();
+  }
+  if (e.code === 'ArrowRight') currentFrame = Math.min(currentFrame + 10, TOTAL_FRAMES - 1);
+  if (e.code === 'ArrowLeft')  currentFrame = Math.max(currentFrame - 10, 0);
+  if (e.code === 'KeyR') currentFrame = 0;
+});
+
+// ============================================================
+// CELL UPDATE
+// ============================================================
+const dummy = new THREE.Object3D();
+const tmpColor = new THREE.Color();
+
+function updateCells(panel, t) {
+  const baseColor = fateColor(t);
+  let anyPerturb = false;
+  for (let i = 0; i < N_CELLS; i++) {
+    const state = computeCellPosition(i, t, panel.scenario);
+    if (state.perturbActive) anyPerturb = true;
+    dummy.position.set(state.x, state.y, state.z);
+    let scl = 1.0;
+    if (t < 0.13) scl = 0.7;
+    else if (t > 0.72) scl = 1.05;
+    dummy.scale.setScalar(scl);
+    dummy.updateMatrix();
+    panel.cells.setMatrixAt(i, dummy.matrix);
+    if (state.perturbActive) tmpColor.copy(baseColor).lerp(COL_PERTURB, 0.45);
+    else tmpColor.copy(baseColor);
+    panel.cells.setColorAt(i, tmpColor);
+  }
+  panel.cells.instanceMatrix.needsUpdate = true;
+  if (panel.cells.instanceColor) panel.cells.instanceColor.needsUpdate = true;
+  panel.perturbActive = anyPerturb;
+}
+
+// ============================================================
+// RENDER LOOP
+// ============================================================
+function animate() {
+  requestAnimationFrame(animate);
+  if (playing) currentFrame = (currentFrame + 1) % TOTAL_FRAMES;
+  const t = currentFrame / TOTAL_FRAMES;
+
+  deformBody(t);
+  panels.forEach(p => updateCells(p, t));
+
+  const stage = getStage(t);
+  document.getElementById('hudTime').textContent = `${tToHpf(t)} hpf`;
+  document.getElementById('hudStage').textContent = stage.name;
+  document.getElementById('timeValue').textContent = t.toFixed(2);
+  document.getElementById('timelineStage').textContent = `${stage.name} · ${stage.hpf}`;
+  timelineFill.style.width = (t * 100) + '%';
+  updateStageDots(stage.index);
+
+  panels.forEach((p, i) => {
+    const tag = p.footerEl.querySelector('[data-ablation]');
+    if (p.perturbActive) {
+      const dosePct = Math.round(p.scenario.dose * 100);
+      tag.textContent = `ABL ↓${dosePct}% ${p.scenario.ablationMode === 'A' ? '· SS' : '· PERS'}`;
+      tag.classList.add('active');
+    } else {
+      tag.classList.remove('active');
+    }
+  });
+
+  controls.update();
+  renderer.clear();
+  panels.forEach((p, i) => {
+    const vp = getPanelViewport(i, currentN);
+    renderer.setViewport(vp.x, vp.y, vp.w, vp.h);
+    renderer.setScissor(vp.x, vp.y, vp.w, vp.h);
+    renderer.setScissorTest(true);
+    camera.aspect = vp.w / vp.h;
+    camera.updateProjectionMatrix();
+    renderer.render(p.scene, camera);
+  });
+  renderer.setScissorTest(false);
+}
+
+setLayout(3);
+animate();
+
+window.addEventListener('resize', () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  positionOverlays(currentN);
+});
+</script>
+</body>
+</html>

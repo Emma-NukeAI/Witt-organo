@@ -1,0 +1,18 @@
+{
+  "phase": "Option I",
+  "wagner_total_cells_loaded": 18932,
+  "wagner_pronephros_cells": 43,
+  "pronephros_per_timepoint": {
+    "18hpf": 21,
+    "14hpf": 14,
+    "24hpf": 8
+  },
+  "pronephros_per_cluster": {
+    "69": 14,
+    "105": 11,
+    "109": 10,
+    "187": 8
+  },
+  "schoels_pronephros_cells": 2065,
+  "wagner_to_schoels_ratio": 0.020823244552058112
+}

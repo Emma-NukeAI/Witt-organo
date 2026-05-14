@@ -1,0 +1,51 @@
+cluster,rank,ens,symbol,description,is_tf,tf_reason,score,padj,anchor_label
+0,15,ENSDARG00000056023,hoxb9a,homeobox B9a [Source:NCBI gene (formerly Entrezgene);Acc:30344],True,desc:homeobox,10.421030044555664,3.1766374630748735e-22,
+0,19,ENSDARG00000007982,onecut1,one cut homeobox 1 [Source:NCBI gene (formerly Entrezgene);Acc:393545],True,desc:homeobox,10.286637306213379,1.0212979088776593e-21,
+0,21,ENSDARG00000056175,scrt2,scratch family zinc finger 2 [Source:NCBI gene (formerly Entrezgene);Acc:325372],True,desc:zinc finger,10.14373779296875,4.032833275323213e-21,
+0,23,ENSDARG00000074030,myt1a,myelin transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:7622],True,desc:transcription factor,10.056034088134766,9.005392761498155e-21,
+1,5,ENSDARG00000053569,sox3,SRY-box transcription factor 3 [Source:NCBI gene (formerly Entrezgene);Acc:30529],True,desc:transcription factor,18.253711700439453,9.267651297974669e-71,intermed_meso (20%)
+1,11,ENSDARG00000028335,hmga1a,high mobility group AT-hook 1a [Source:NCBI gene (formerly Entrezgene);Acc:406447],True,desc:high mobility group,17.505558013916016,2.831629082112524e-65,intermed_meso (20%)
+1,13,ENSDARG00000010770,sox19a,SRY-box transcription factor 19a [Source:NCBI gene (formerly Entrezgene);Acc:30038],True,desc:transcription factor,16.658235549926758,4.862023756848342e-59,intermed_meso (20%)
+1,19,ENSDARG00000052150,pbx4,pre-B-cell leukemia transcription factor 4 [Source:NCBI gene (formerly Entrezgene);Acc:30728],True,desc:transcription factor,16.112497329711914,2.6295422805915753e-55,intermed_meso (20%)
+1,27,ENSDARG00000010192,pax3a,paired box 3a [Source:NCBI gene (formerly Entrezgene);Acc:30532],True,desc:paired box,15.600817680358887,6.3802329280243425e-52,intermed_meso (20%)
+11,9,ENSDARG00000017195,foxf2a,forkhead box F2a [Source:NCBI gene (formerly Entrezgene);Acc:407681],True,desc:forkhead,4.716006755828857,0.005820441344817379,
+11,23,ENSDARG00000069912,hmga2,high mobility group AT-hook 2 [Source:NCBI gene (formerly Entrezgene);Acc:324428],True,desc:high mobility group,4.218146800994873,0.024796219987958383,
+11,26,ENSDARG00000039095,nkx2.3,NK2 homeobox 3 [Source:NCBI gene (formerly Entrezgene);Acc:30698],True,desc:homeobox,4.185768127441406,0.02620138846979743,
+12,22,ENSDARG00000013477,gata1a,GATA binding protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:30481],True,family:^gata\d+[a-z]?$,7.830078601837158,5.312236729428797e-12,podocyte_PT_transition
+12,23,ENSDARG00000019930,tal1,T-cell acute lymphocytic leukemia 1 [Source:NCBI gene (formerly Entrezgene);Acc:30766],True,family:^tal\d$,7.793329238891602,6.801872810640029e-12,podocyte_PT_transition
+12,28,ENSDARG00000038792,klf17,Kruppel like factor 17 [Source:NCBI gene (formerly Entrezgene);Acc:65238],True,desc:kruppel,7.52148962020874,4.636113183236612e-11,podocyte_PT_transition
+15,1,ENSDARG00000028148,pax2a,paired box 2a [Source:NCBI gene (formerly Entrezgene);Acc:30425],True,desc:paired box,8.01537036895752,9.246320342124984e-12,progenitors_canonical_id (27%)
+15,20,ENSDARG00000088290,foxj1b,forkhead box J1b [Source:NCBI gene (formerly Entrezgene);Acc:494105],True,desc:forkhead,6.697487831115723,2.5412167405454254e-08,progenitors_canonical_id (27%)
+15,21,ENSDARG00000074265,dzip1l,DAZ interacting zinc finger protein 1-like [Source:NCBI gene (formerly Entrezgene);Acc:553313],True,desc:zinc finger,6.639893531799316,3.5830598160497506e-08,progenitors_canonical_id (27%)
+16,6,ENSDARG00000074319,sall1a,spalt-like transcription factor 1a [Source:NCBI gene (formerly Entrezgene);Acc:555721],True,desc:transcription factor,10.615682601928711,1.006521601750102e-22,progenitors_TF_rich (intermed_meso 28% + TF_panel 24%)
+16,8,ENSDARG00000042518,hipk2,homeodomain interacting protein kinase 2 [Source:NCBI gene (formerly Entrezgene);Acc:557551],True,desc:homeodomain,10.321693420410156,1.6845788026046183e-21,progenitors_TF_rich (intermed_meso 28% + TF_panel 24%)
+16,17,ENSDARG00000055158,prox1a,prospero homeobox 1a [Source:NCBI gene (formerly Entrezgene);Acc:30679],True,desc:homeobox,8.99094295501709,3.4561558327561104e-16,progenitors_TF_rich (intermed_meso 28% + TF_panel 24%)
+16,19,ENSDARG00000023316,sim1a,SIM bHLH transcription factor 1a [Source:NCBI gene (formerly Entrezgene);Acc:260351],True,desc:transcription factor,8.475966453552246,2.9412031907142064e-14,progenitors_TF_rich (intermed_meso 28% + TF_panel 24%)
+16,22,ENSDARG00000056027,hoxb8a,homeobox B8a [Source:NCBI gene (formerly Entrezgene);Acc:30343],True,desc:homeobox,8.228747367858887,2.0612170891692547e-13,progenitors_TF_rich (intermed_meso 28% + TF_panel 24%)
+17,2,ENSDARG00000031420,wt1a,WT1 transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:30245],True,desc:transcription factor,11.411778450012207,4.37675498545892e-26,podocyte (81%)
+17,13,ENSDARG00000017121,mafba,MAF bZIP transcription factor Ba [Source:NCBI gene (formerly Entrezgene);Acc:30210],True,desc:transcription factor,9.944104194641113,4.933581833939586e-20,podocyte (81%)
+17,16,ENSDARG00000007990,wt1b,WT1 transcription factor b [Source:NCBI gene (formerly Entrezgene);Acc:568416],True,desc:transcription factor,9.697696685791016,4.619950438897705e-19,podocyte (81%)
+17,27,ENSDARG00000054103,ripply1,ripply transcriptional repressor 1 [Source:NCBI gene (formerly Entrezgene);Acc:654446],True,desc:transcriptional,8.743467330932617,2.0069328450841907e-15,podocyte (81%)
+18,29,ENSDARG00000069912,hmga2,high mobility group AT-hook 2 [Source:NCBI gene (formerly Entrezgene);Acc:324428],True,desc:high mobility group,7.05661678314209,1.4101401919845137e-09,
+20,20,ENSDARG00000042106,mnx2a,motor neuron and pancreas homeobox 2a [Source:NCBI gene (formerly Entrezgene);Acc:406205],True,desc:homeobox,8.099631309509277,6.606839793937904e-13,
+20,28,ENSDARG00000055158,prox1a,prospero homeobox 1a [Source:NCBI gene (formerly Entrezgene);Acc:30679],True,desc:homeobox,7.681086540222168,1.3504067525744981e-11,
+21,18,ENSDARG00000023362,nr5a1b,"nuclear receptor subfamily 5, group A, member 1b [Source:NCBI gene (formerly Entrezgene);Acc:405759]",True,desc:nuclear receptor,9.65705680847168,6.110422525835493e-19,
+21,28,ENSDARG00000052695,nr2f1a,"nuclear receptor subfamily 2, group F, member 1a [Source:NCBI gene (formerly Entrezgene);Acc:30418]",True,desc:nuclear receptor,8.53102970123291,1.2417364517350589e-14,
+22,7,ENSDARG00000088332,alx4a,ALX homeobox 4 [Source:HGNC Symbol;Acc:HGNC:450],True,desc:homeobox,5.461407661437988,0.00016175414367811163,
+22,10,ENSDARG00000028335,hmga1a,high mobility group AT-hook 1a [Source:NCBI gene (formerly Entrezgene);Acc:406447],True,desc:high mobility group,5.049429893493652,0.0009576826186686574,
+22,17,ENSDARG00000007369,tcf7l1b,transcription factor 7 like 1b [Source:NCBI gene (formerly Entrezgene);Acc:30556],True,desc:transcription factor,4.356802940368652,0.018608614986944935,
+22,24,ENSDARG00000077467,sox10,SRY-box transcription factor 10 [Source:NCBI gene (formerly Entrezgene);Acc:140616],True,desc:transcription factor,4.095943450927734,0.041992698122696834,
+22,30,ENSDARG00000015890,mafa,MAF bZIP transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:114467],True,desc:transcription factor,3.66664981842041,0.18408139991605107,
+3,2,ENSDARG00000077467,sox10,SRY-box transcription factor 10 [Source:NCBI gene (formerly Entrezgene);Acc:140616],True,desc:transcription factor,13.78654956817627,3.680611896271823e-39,
+3,5,ENSDARG00000062338,zeb2a,zinc finger E-box binding homeobox 2a [Source:NCBI gene (formerly Entrezgene);Acc:100003889],True,desc:homeobox,12.184188842773438,1.809214220872239e-30,
+3,19,ENSDARG00000033172,nr2f5,"nuclear receptor subfamily 2, group F, member 5 [Source:NCBI gene (formerly Entrezgene);Acc:30427]",True,desc:nuclear receptor,10.146971702575684,4.31215881133781e-21,
+3,21,ENSDARG00000059279,tfap2a,transcription factor AP-2 alpha [Source:NCBI gene (formerly Entrezgene);Acc:140618],True,desc:transcription factor,9.838578224182129,8.764811542449618e-20,
+3,22,ENSDARG00000028335,hmga1a,high mobility group AT-hook 1a [Source:NCBI gene (formerly Entrezgene);Acc:406447],True,desc:high mobility group,9.755830764770508,1.8976444420165496e-19,
+4,17,ENSDARG00000079985,nrip2,nuclear receptor interacting protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:565865],True,desc:nuclear receptor,18.096275329589844,4.807560060462596e-70,proximal_tubule (37%)
+5,5,ENSDARG00000003732,mitfa,melanocyte inducing transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:30080],True,desc:transcription factor,10.577201843261719,1.8223979890806886e-22,
+5,6,ENSDARG00000062338,zeb2a,zinc finger E-box binding homeobox 2a [Source:NCBI gene (formerly Entrezgene);Acc:100003889],True,desc:homeobox,10.377001762390137,1.2605396070970078e-21,
+5,11,ENSDARG00000077467,sox10,SRY-box transcription factor 10 [Source:NCBI gene (formerly Entrezgene);Acc:140616],True,desc:transcription factor,10.31513500213623,1.311737552104456e-21,
+8,2,ENSDARG00000012078,meis1b,Meis homeobox 1 b [Source:NCBI gene (formerly Entrezgene);Acc:170446],True,desc:homeobox,14.969890594482422,1.3843926099440279e-46,
+8,24,ENSDARG00000078459,cux1a,cut like homeobox 1 [Source:HGNC Symbol;Acc:HGNC:2557],True,desc:homeobox,10.788640022277832,3.5909983728250444e-24,
+8,27,ENSDARG00000002937,meis1a,Meis homeobox 1 a [Source:NCBI gene (formerly Entrezgene);Acc:170455],True,desc:homeobox,10.724266052246094,6.472432796777949e-24,
+8,30,ENSDARG00000069912,hmga2,high mobility group AT-hook 2 [Source:NCBI gene (formerly Entrezgene);Acc:324428],True,desc:high mobility group,10.666352272033691,1.0955470109708467e-23,

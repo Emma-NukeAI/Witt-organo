@@ -1,0 +1,3182 @@
+{
+  "ENSDARG00000042931": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000068103": {
+    "symbol": "cfap45",
+    "description": "cilia and flagella associated protein 45 [Source:NCBI gene (formerly Entrezgene);Acc:325276]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000030349": {
+    "symbol": "cryba2a",
+    "description": "crystallin, beta A2a [Source:NCBI gene (formerly Entrezgene);Acc:415139]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003732": {
+    "symbol": "mitfa",
+    "description": "melanocyte inducing transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:30080]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058318": {
+    "symbol": "c1qtnf9",
+    "description": "C1q and TNF related 9 [Source:NCBI gene (formerly Entrezgene);Acc:799425]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000075956": {
+    "symbol": "faxca",
+    "description": "failed axon connections homolog, metaxin like GST domain containing [Source:HGNC Symbol;Acc:HGNC:20742]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062970": {
+    "symbol": "niban2a",
+    "description": "niban apoptosis regulator 2a [Source:NCBI gene (formerly Entrezgene);Acc:563073]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088332": {
+    "symbol": "alx4a",
+    "description": "ALX homeobox 4 [Source:HGNC Symbol;Acc:HGNC:450]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000054103": {
+    "symbol": "ripply1",
+    "description": "ripply transcriptional repressor 1 [Source:NCBI gene (formerly Entrezgene);Acc:654446]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016256": {
+    "symbol": "nudt3a",
+    "description": "nudix (nucleoside diphosphate linked moiety X)-type motif 3a [Source:NCBI gene (formerly Entrezgene);Acc:394120]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042993": {
+    "symbol": "prss1",
+    "description": "serine protease 1 [Source:NCBI gene (formerly Entrezgene);Acc:65223]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000001994": {
+    "symbol": "stxbp1a",
+    "description": "syntaxin binding protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:574003]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070171": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000019353": {
+    "symbol": "sparc",
+    "description": "secreted protein, acidic, cysteine-rich (osteonectin) [Source:NCBI gene (formerly Entrezgene);Acc:321357]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055996": {
+    "symbol": "rps8a",
+    "description": "ribosomal protein S8a [Source:NCBI gene (formerly Entrezgene);Acc:407690]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000010770": {
+    "symbol": "sox19a",
+    "description": "SRY-box transcription factor 19a [Source:NCBI gene (formerly Entrezgene);Acc:30038]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087592": {
+    "symbol": "si:dkey-14o1.14",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000020521": {
+    "symbol": "exoc6",
+    "description": "exocyst complex component 6 [Source:NCBI gene (formerly Entrezgene);Acc:406591]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007576": {
+    "symbol": "crybb1l1",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000034700": {
+    "symbol": "vegfab",
+    "description": "vascular endothelial growth factor Ab [Source:NCBI gene (formerly Entrezgene);Acc:558154]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058327": {
+    "symbol": "neu3.3",
+    "description": "sialidase 3 (membrane sialidase), tandem duplicate 3 [Source:NCBI gene (formerly Entrezgene);Acc:555206]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062077": {
+    "symbol": "acsbg1",
+    "description": "acyl-CoA synthetase bubblegum family member 1 [Source:HGNC Symbol;Acc:HGNC:29567]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000075549": {
+    "symbol": "cdh5",
+    "description": "cadherin 5 [Source:NCBI gene (formerly Entrezgene);Acc:445471]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053301": {
+    "symbol": "insm1b",
+    "description": "insulinoma-associated 1b [Source:NCBI gene (formerly Entrezgene);Acc:323882]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090113": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000062631": {
+    "symbol": "npffr1l2",
+    "description": "neuropeptide FF receptor 1 like 2 [Source:NCBI gene (formerly Entrezgene);Acc:570189]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045143": {
+    "symbol": "hbbe2",
+    "description": "hemoglobin beta embryonic-2 [Source:NCBI gene (formerly Entrezgene);Acc:405772]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000096508": {
+    "symbol": "si:ch211-265g21.1",
+    "description": null,
+    "biotype": "lincRNA"
+  },
+  "ENSDARG00000056680": {
+    "symbol": "stc2a",
+    "description": "stanniocalcin 2a [Source:NCBI gene (formerly Entrezgene);Acc:544665]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026395": {
+    "symbol": "rfx4",
+    "description": "regulatory factor X, 4 [Source:NCBI gene (formerly Entrezgene);Acc:403016]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087390": {
+    "symbol": "hbbe1.3",
+    "description": "hemoglobin, beta embryonic 1.3 [Source:NCBI gene (formerly Entrezgene);Acc:573653]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044441": {
+    "symbol": "myo7ba",
+    "description": "myosin VIIB [Source:HGNC Symbol;Acc:HGNC:7607]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056175": {
+    "symbol": "scrt2",
+    "description": "scratch family zinc finger 2 [Source:NCBI gene (formerly Entrezgene);Acc:325372]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074796": {
+    "symbol": "dbf4",
+    "description": "DBF4-CDC7 kinase regulatory subunit [Source:NCBI gene (formerly Entrezgene);Acc:799015]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014690": {
+    "symbol": "rps4x",
+    "description": "ribosomal protein S4 X-linked [Source:NCBI gene (formerly Entrezgene);Acc:449547]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040532": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000012881": {
+    "symbol": "slc4a1a",
+    "description": "solute carrier family 4 member 1a (Diego blood group) [Source:NCBI gene (formerly Entrezgene);Acc:84703]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087765": {
+    "symbol": "crygm2d10",
+    "description": "crystallin, gamma M2d10 [Source:NCBI gene (formerly Entrezgene);Acc:100126134]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036700": {
+    "symbol": "si:ch211-114n24.6",
+    "description": "si:ch211-114n24.6 [Source:NCBI gene (formerly Entrezgene);Acc:795591]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000004015": {
+    "symbol": "adcyap1a",
+    "description": "adenylate cyclase activating polypeptide 1a [Source:NCBI gene (formerly Entrezgene);Acc:259257]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000021590": {
+    "symbol": "magi2a",
+    "description": "membrane associated guanylate kinase, WW and PDZ domain containing 2a [Source:NCBI gene (formerly Entrezgene);Acc:564112]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053058": {
+    "symbol": "rps11",
+    "description": "ribosomal protein S11 [Source:NCBI gene (formerly Entrezgene);Acc:406686]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044562": {
+    "symbol": "cycsb",
+    "description": "cytochrome c, somatic b [Source:NCBI gene (formerly Entrezgene);Acc:415158]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012244": {
+    "symbol": "ube2e3",
+    "description": "ubiquitin-conjugating enzyme E2E 3 (UBC4/5 homolog, yeast) [Source:NCBI gene (formerly Entrezgene);Acc:321689]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092696": {
+    "symbol": "cyp11a1.2",
+    "description": "cytochrome P450 family 11 subfamily A member 1 [Source:HGNC Symbol;Acc:HGNC:2590]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018178": {
+    "symbol": "pgm2",
+    "description": "phosphoglucomutase 2 [Source:NCBI gene (formerly Entrezgene);Acc:405822]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090228": {
+    "symbol": "gsta.1",
+    "description": "glutathione S-transferase, alpha tandem duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:406703]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000024548": {
+    "symbol": "cryba4",
+    "description": "crystallin, beta A4 [Source:NCBI gene (formerly Entrezgene);Acc:553178]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069817": {
+    "symbol": "crygm2d17",
+    "description": "crystallin, gamma M2d17 [Source:NCBI gene (formerly Entrezgene);Acc:561929]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076223": {
+    "symbol": "SERP1",
+    "description": "zgc:92744 [Source:NCBI gene (formerly Entrezgene);Acc:436846]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035715": {
+    "symbol": "marcksl1b",
+    "description": "MARCKS-like 1b [Source:NCBI gene (formerly Entrezgene);Acc:406504]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087815": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000076790": {
+    "symbol": "crygm2d16",
+    "description": "crystallin, gamma M2d16 [Source:NCBI gene (formerly Entrezgene);Acc:798701]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057706": {
+    "symbol": "tm4sf21a",
+    "description": "transmembrane 4 L six family member 21a [Source:NCBI gene (formerly Entrezgene);Acc:565274]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039341": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000028071": {
+    "symbol": "bmp1a",
+    "description": "bone morphotic protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:572452]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014420": {
+    "symbol": "elavl3",
+    "description": "ELAV like neuron-specific RNA binding protein 3 [Source:NCBI gene (formerly Entrezgene);Acc:30732]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000015978": {
+    "symbol": "cox5ba",
+    "description": "cytochrome c oxidase subunit 5Ba [Source:NCBI gene (formerly Entrezgene);Acc:415253]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074630": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000075557": {
+    "symbol": "apcdd1l",
+    "description": "APC down-regulated 1 like [Source:HGNC Symbol;Acc:HGNC:26892]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017772": {
+    "symbol": "mdh1aa",
+    "description": "malate dehydrogenase 1Aa, NAD (soluble) [Source:NCBI gene (formerly Entrezgene);Acc:399662]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079340": {
+    "symbol": "slc47a4",
+    "description": "solute carrier family 47 member 4 [Source:NCBI gene (formerly Entrezgene);Acc:555258]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000063288": {
+    "symbol": "slc2a11b",
+    "description": "solute carrier family 2 member 11b [Source:NCBI gene (formerly Entrezgene);Acc:564970]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002600": {
+    "symbol": "pcsk1",
+    "description": "proprotein convertase subtilisin/kexin type 1 [Source:NCBI gene (formerly Entrezgene);Acc:100005716]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000022013": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000042899": {
+    "symbol": "elapor1",
+    "description": "endosome-lysosome associated apoptosis and autophagy regulator 1 [Source:HGNC Symbol;Acc:HGNC:29618]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000015831": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000093642": {
+    "symbol": "si:dkey-57c15.9",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000053569": {
+    "symbol": "sox3",
+    "description": "SRY-box transcription factor 3 [Source:NCBI gene (formerly Entrezgene);Acc:30529]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089361": {
+    "symbol": "tfpil",
+    "description": "tissue factor pathway inhibitor-like [Source:NCBI gene (formerly Entrezgene);Acc:322379]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000078473": {
+    "symbol": "nucks1a",
+    "description": "nuclear casein kinase and cyclin-dependent kinase substrate 1a [Source:NCBI gene (formerly Entrezgene);Acc:447862]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000000103": {
+    "symbol": "myh10",
+    "description": "myosin heavy chain 10 [Source:HGNC Symbol;Acc:HGNC:7568]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045909": {
+    "symbol": "dynlt1b",
+    "description": "dynein light chain Tctex-type 1b [Source:NCBI gene (formerly Entrezgene);Acc:565740]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070425": {
+    "symbol": "dll4",
+    "description": "delta-like 4 (Drosophila) [Source:NCBI gene (formerly Entrezgene);Acc:563920]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019986": {
+    "symbol": "grhprb",
+    "description": "glyoxylate reductase/hydroxypyruvate reductase b [Source:NCBI gene (formerly Entrezgene);Acc:402985]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019930": {
+    "symbol": "tal1",
+    "description": "T-cell acute lymphocytic leukemia 1 [Source:NCBI gene (formerly Entrezgene);Acc:30766]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044760": {
+    "symbol": "gnaia",
+    "description": "guanine nucleotide binding protein (G protein), alpha inhibiting activity polypeptide a [Source:NCBI gene (formerly Entrezgene);Acc:323509]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058451": {
+    "symbol": "rpl6",
+    "description": "ribosomal protein L6 [Source:NCBI gene (formerly Entrezgene);Acc:336727]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060051": {
+    "symbol": "slc47a2.1",
+    "description": "solute carrier family 47 member 2, tandem duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:560024]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000023316": {
+    "symbol": "sim1a",
+    "description": "SIM bHLH transcription factor 1a [Source:NCBI gene (formerly Entrezgene);Acc:260351]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041960": {
+    "symbol": "olfm4.2",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008697": {
+    "symbol": "epas1a",
+    "description": "endothelial PAS domain protein 1 [Source:HGNC Symbol;Acc:HGNC:3374]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053862": {
+    "symbol": "crygmx",
+    "description": "crystallin, gamma MX [Source:NCBI gene (formerly Entrezgene);Acc:335789]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037350": {
+    "symbol": "rpl9",
+    "description": "ribosomal protein L9 [Source:NCBI gene (formerly Entrezgene);Acc:336702]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000024746": {
+    "symbol": "hsp90aa1.2",
+    "description": "heat shock protein 90, alpha (cytosolic), class A member 1, tandem duplicate 2 [Source:NCBI gene (formerly Entrezgene);Acc:565155]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052343": {
+    "symbol": "spata18",
+    "description": "spermatosis associated 18 [Source:NCBI gene (formerly Entrezgene);Acc:497395]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000009782": {
+    "symbol": "myh11a",
+    "description": "myosin, heavy chain 11a, smooth muscle [Source:NCBI gene (formerly Entrezgene);Acc:554168]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076689": {
+    "symbol": "gramd1a",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000033466": {
+    "symbol": "tagln2",
+    "description": "transgelin 2 [Source:NCBI gene (formerly Entrezgene);Acc:259183]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000023362": {
+    "symbol": "nr5a1b",
+    "description": "nuclear receptor subfamily 5, group A, member 1b [Source:NCBI gene (formerly Entrezgene);Acc:405759]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000068398": {
+    "symbol": "cep126",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069928": {
+    "symbol": "prkceb",
+    "description": "protein kinase C epsilon [Source:HGNC Symbol;Acc:HGNC:9401]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059634": {
+    "symbol": "thumpd3",
+    "description": "THUMP domain containing 3 [Source:NCBI gene (formerly Entrezgene);Acc:561938]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095598": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000096655": {
+    "symbol": "si:ch211-184m19.3",
+    "description": null,
+    "biotype": "antisense"
+  },
+  "ENSDARG00000013430": {
+    "symbol": "bhmt",
+    "description": "betaine-homocysteine methyltransferase [Source:NCBI gene (formerly Entrezgene);Acc:322228]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029832": {
+    "symbol": "slc26a1",
+    "description": "solute carrier family 26 member 1 [Source:NCBI gene (formerly Entrezgene);Acc:791185]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026039": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000074528": {
+    "symbol": "prtfdc1a",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000010192": {
+    "symbol": "pax3a",
+    "description": "paired box 3a [Source:NCBI gene (formerly Entrezgene);Acc:30532]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074602": {
+    "symbol": "mrvi1",
+    "description": "inositol 1,4,5-triphosphate receptor associated 1 [Source:HGNC Symbol;Acc:HGNC:7237]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060010": {
+    "symbol": "iqgap2",
+    "description": "IQ motif containing GTPase activating protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:563030]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011553": {
+    "symbol": "atp5pb",
+    "description": "ATP synthase peripheral stalk-membrane subunit b [Source:NCBI gene (formerly Entrezgene);Acc:449787]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058476": {
+    "symbol": "stc1l",
+    "description": "stanniocalcin 1, like [Source:NCBI gene (formerly Entrezgene);Acc:393511]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086201": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000056554": {
+    "symbol": "rap1gapa",
+    "description": "RAP1 GTPase activating protein a [Source:NCBI gene (formerly Entrezgene);Acc:100144557]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079305": {
+    "symbol": "hbae3",
+    "description": "hemoglobin alpha embryonic-3 [Source:NCBI gene (formerly Entrezgene);Acc:30601]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020164": {
+    "symbol": "efnb2a",
+    "description": "ephrin-B2a [Source:NCBI gene (formerly Entrezgene);Acc:30219]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000033172": {
+    "symbol": "nr2f5",
+    "description": "nuclear receptor subfamily 2, group F, member 5 [Source:NCBI gene (formerly Entrezgene);Acc:30427]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005176": {
+    "symbol": "zgc:101040",
+    "description": "zgc:101040 [Source:NCBI gene (formerly Entrezgene);Acc:445194]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089134": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000041215": {
+    "symbol": "cetn4",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061399": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000045514": {
+    "symbol": "atp5f1c",
+    "description": "ATP synthase F1 subunit gamma [Source:NCBI gene (formerly Entrezgene);Acc:336957]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002587": {
+    "symbol": "dpysl3",
+    "description": "dihydropyrimidinase like 3 [Source:NCBI gene (formerly Entrezgene);Acc:553166]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095556": {
+    "symbol": "si:dkey-238c7.12",
+    "description": "si:dkey-238c7.12 [Source:NCBI gene (formerly Entrezgene);Acc:795545]",
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000096403": {
+    "symbol": "si:dkey-153m14.1",
+    "description": null,
+    "biotype": "lincRNA"
+  },
+  "ENSDARG00000087956": {
+    "symbol": "she",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000093549": {
+    "symbol": "selenop",
+    "description": "selenoprotein P [Source:NCBI gene (formerly Entrezgene);Acc:352931]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003219": {
+    "symbol": "bin2a",
+    "description": "bridging integrator 2a [Source:NCBI gene (formerly Entrezgene);Acc:492780]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018383": {
+    "symbol": "frzb",
+    "description": "frizzled related protein [Source:NCBI gene (formerly Entrezgene);Acc:30119]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055835": {
+    "symbol": null,
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006215": {
+    "symbol": "akr1b1.1",
+    "description": "aldo-keto reductase family 1, member B1 (aldose reductase), tandem duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:415138]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000093572": {
+    "symbol": "lamc3",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000013414": {
+    "symbol": "lin7a",
+    "description": "lin-7 homolog A (C. elegans) [Source:NCBI gene (formerly Entrezgene);Acc:393682]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018259": {
+    "symbol": "atp1a3a",
+    "description": "ATPase Na+/K+ transporting subunit alpha 3a [Source:NCBI gene (formerly Entrezgene);Acc:64610]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071692": {
+    "symbol": "prex2",
+    "description": "phosphatidylinositol-3,4,5-trisphosphate dependent Rac exchange factor 2 [Source:HGNC Symbol;Acc:HGNC:22950]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086735": {
+    "symbol": "SAMD4B",
+    "description": "sterile alpha motif domain containing 4B [Source:HGNC Symbol;Acc:HGNC:25492]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016706": {
+    "symbol": "atic",
+    "description": "5-aminoimidazole-4-carboxamide ribonucleotide formyltransferase/IMP cyclohydrolase [Source:NCBI gene (formerly Entrezgene);Acc:140622]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077291": {
+    "symbol": "rps2",
+    "description": "ribosomal protein S2 [Source:NCBI gene (formerly Entrezgene);Acc:406565]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095201": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000061140": {
+    "symbol": "colec12",
+    "description": "collectin sub-family member 12 [Source:NCBI gene (formerly Entrezgene);Acc:558942]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012340": {
+    "symbol": "ptpn11b",
+    "description": "protein tyrosine phosphatase non-receptor type 11b [Source:NCBI gene (formerly Entrezgene);Acc:393426]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041619": {
+    "symbol": "rack1",
+    "description": "receptor for activated C kinase 1 [Source:NCBI gene (formerly Entrezgene);Acc:30722]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074908": {
+    "symbol": "col6a1",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076484": {
+    "symbol": "stab1",
+    "description": "stabilin 1 [Source:NCBI gene (formerly Entrezgene);Acc:570626]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040190": {
+    "symbol": "qdpra",
+    "description": "quinoid dihydropteridine reductase a [Source:NCBI gene (formerly Entrezgene);Acc:566323]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000030154": {
+    "symbol": "pak5",
+    "description": "p21 protein (Cdc42/Rac)-activated kinase 5 [Source:NCBI gene (formerly Entrezgene);Acc:405898]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057430": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000029394": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000045269": {
+    "symbol": "pts",
+    "description": "6-pyruvoyltetrahydropterin synthase [Source:HGNC Symbol;Acc:HGNC:9689]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079276": {
+    "symbol": "ube2ql1",
+    "description": "ubiquitin conjugating enzyme E2 QL1 [Source:HGNC Symbol;Acc:HGNC:37269]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086199": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000038995": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000043757": {
+    "symbol": "ptbp3",
+    "description": "polypyrimidine tract binding protein 3 [Source:HGNC Symbol;Acc:HGNC:10253]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007369": {
+    "symbol": "tcf7l1b",
+    "description": "transcription factor 7 like 1b [Source:NCBI gene (formerly Entrezgene);Acc:30556]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000023290": {
+    "symbol": "fabp3",
+    "description": "fatty acid binding protein 3, muscle and heart [Source:NCBI gene (formerly Entrezgene);Acc:171478]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008423": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000020504": {
+    "symbol": "h3f3a",
+    "description": "H3 histone, family 3A [Source:NCBI gene (formerly Entrezgene);Acc:406269]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000015890": {
+    "symbol": "mafa",
+    "description": "MAF bZIP transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:114467]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008413": {
+    "symbol": "atp11a",
+    "description": "ATPase phospholipid transporting 11A [Source:HGNC Symbol;Acc:HGNC:13552]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028776": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000015866": {
+    "symbol": "apoa2",
+    "description": "apolipoprotein A-II [Source:NCBI gene (formerly Entrezgene);Acc:322327]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016300": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000088325": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000069801": {
+    "symbol": "crygm2d12",
+    "description": "crystallin, gamma M2d12 [Source:NCBI gene (formerly Entrezgene);Acc:100000256]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036834": {
+    "symbol": "krt92",
+    "description": "keratin 92 [Source:NCBI gene (formerly Entrezgene);Acc:550522]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059120": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000010008": {
+    "symbol": "vim",
+    "description": "vimentin [Source:NCBI gene (formerly Entrezgene);Acc:140599]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000068507": {
+    "symbol": "crybb1",
+    "description": "crystallin, beta B1 [Source:NCBI gene (formerly Entrezgene);Acc:114418]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039134": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000006487": {
+    "symbol": "anp32a",
+    "description": "acidic (leucine-rich) nuclear phosphoprotein 32 family, member A [Source:NCBI gene (formerly Entrezgene);Acc:335907]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074030": {
+    "symbol": "myt1a",
+    "description": "myelin transcription factor 1 [Source:HGNC Symbol;Acc:HGNC:7622]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000034555": {
+    "symbol": "pard3bb",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092807": {
+    "symbol": "si:dkey-151g10.6",
+    "description": "si:dkey-151g10.6 [Source:NCBI gene (formerly Entrezgene);Acc:335588]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035521": {
+    "symbol": "sfrp1a",
+    "description": "secreted frizzled-related protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:402843]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036036": {
+    "symbol": "mdka",
+    "description": "midkine a [Source:NCBI gene (formerly Entrezgene);Acc:30277]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005191": {
+    "symbol": "ahcy",
+    "description": "adenosylhomocysteinase [Source:NCBI gene (formerly Entrezgene);Acc:387530]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055723": {
+    "symbol": "hsp70l",
+    "description": "heat shock cognate 70-kd protein, like [Source:NCBI gene (formerly Entrezgene);Acc:560210]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056877": {
+    "symbol": "vamp2",
+    "description": "vesicle-associated membrane protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:336281]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061005": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000038153": {
+    "symbol": "lgals2b",
+    "description": "lectin, galactoside-binding, soluble, 2b [Source:NCBI gene (formerly Entrezgene);Acc:393486]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070391": {
+    "symbol": "tspan4b",
+    "description": "tetraspanin 4b [Source:NCBI gene (formerly Entrezgene);Acc:556934]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000063264": {
+    "symbol": "pcdh9",
+    "description": "protocadherin 9 [Source:HGNC Symbol;Acc:HGNC:8661]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000030585": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000093484": {
+    "symbol": "si:dkey-95p16.2",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000015512": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000024540": {
+    "symbol": "tspan36",
+    "description": "tetraspanin 36 [Source:NCBI gene (formerly Entrezgene);Acc:437021]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062080": {
+    "symbol": "shc2",
+    "description": "SHC (Src homology 2 domain containing) transforming protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:562011]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012593": {
+    "symbol": "col5a1",
+    "description": "collagen type V alpha 1 chain [Source:HGNC Symbol;Acc:HGNC:2209]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059738": {
+    "symbol": "ptprsa",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028335": {
+    "symbol": "hmga1a",
+    "description": "high mobility group AT-hook 1a [Source:NCBI gene (formerly Entrezgene);Acc:406447]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055009": {
+    "symbol": "col4a1",
+    "description": "collagen type IV alpha 1 chain [Source:HGNC Symbol;Acc:HGNC:2202]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029146": {
+    "symbol": "lrp1ab",
+    "description": "LDL receptor related protein 1 [Source:HGNC Symbol;Acc:HGNC:6692]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056998": {
+    "symbol": "kirrel1b",
+    "description": "kirre like nephrin family adhesion molecule 1b [Source:NCBI gene (formerly Entrezgene);Acc:100170816]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074697": {
+    "symbol": "npdc1a",
+    "description": "neural proliferation, differentiation and control, 1a [Source:NCBI gene (formerly Entrezgene);Acc:794093]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005704": {
+    "symbol": "eps8l3b",
+    "description": "EPS8 signaling adaptor L3b [Source:NCBI gene (formerly Entrezgene);Acc:393332]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058630": {
+    "symbol": "zgc:162472",
+    "description": "zgc:162472 [Source:NCBI gene (formerly Entrezgene);Acc:553495]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000075201": {
+    "symbol": "inpp4b",
+    "description": "inositol polyphosphate-4-phosphatase type II B [Source:HGNC Symbol;Acc:HGNC:6075]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035692": {
+    "symbol": "rps3a",
+    "description": "ribosomal protein S3A [Source:NCBI gene (formerly Entrezgene);Acc:337240]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052470": {
+    "symbol": "igfbp2a",
+    "description": "insulin-like growth factor binding protein 2a [Source:NCBI gene (formerly Entrezgene);Acc:794176]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070212": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000016793": {
+    "symbol": "crybb1l2",
+    "description": "crystallin, beta B1, like 2 [Source:NCBI gene (formerly Entrezgene);Acc:560055]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006786": {
+    "symbol": "copz2",
+    "description": "COPI coat complex subunit zeta 2 [Source:NCBI gene (formerly Entrezgene);Acc:57969]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092259": {
+    "symbol": "si:dkey-211g8.5",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043509": {
+    "symbol": "rpl11",
+    "description": "ribosomal protein L11 [Source:NCBI gene (formerly Entrezgene);Acc:415229]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002791": {
+    "symbol": "atp1a1a.1",
+    "description": "ATPase Na+/K+ transporting subunit alpha 1a, tandem duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:64612]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000032724": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000086917": {
+    "symbol": "crygm2d2",
+    "description": "crystallin, gamma M2d2 [Source:NCBI gene (formerly Entrezgene);Acc:558501]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000013477": {
+    "symbol": "gata1a",
+    "description": "GATA binding protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:30481]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086912": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000086658": {
+    "symbol": "crygm2d21",
+    "description": "crystallin, gamma M2d21 [Source:NCBI gene (formerly Entrezgene);Acc:569000]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000009447": {
+    "symbol": "atp5mc3b",
+    "description": "ATP synthase membrane subunit c locus 3b [Source:NCBI gene (formerly Entrezgene);Acc:81541]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038956": {
+    "symbol": "fdx1b",
+    "description": "ferredoxin 1b [Source:NCBI gene (formerly Entrezgene);Acc:562135]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011602": {
+    "symbol": "cracd",
+    "description": "capping protein inhibiting regulator of actin dynamics [Source:NCBI gene (formerly Entrezgene);Acc:570321]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000075593": {
+    "symbol": "trim71",
+    "description": "tripartite motif containing 71, E3 ubiquitin protein ligase [Source:NCBI gene (formerly Entrezgene);Acc:561754]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077285": {
+    "symbol": "scarf1",
+    "description": "scavenger receptor class F member 1 [Source:HGNC Symbol;Acc:HGNC:16820]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012405": {
+    "symbol": "col1a1a",
+    "description": "collagen, type I, alpha 1a [Source:NCBI gene (formerly Entrezgene);Acc:337158]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092873": {
+    "symbol": "atp5mj",
+    "description": "ATP synthase membrane subunit j [Source:NCBI gene (formerly Entrezgene);Acc:557217]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056929": {
+    "symbol": "kdm6bb",
+    "description": "lysine (K)-specific demethylase 6B, b [Source:NCBI gene (formerly Entrezgene);Acc:563644]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000010376": {
+    "symbol": "slc5a3a",
+    "description": "solute carrier family 5 member 3a [Source:NCBI gene (formerly Entrezgene);Acc:100004287]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007982": {
+    "symbol": "onecut1",
+    "description": "one cut homeobox 1 [Source:NCBI gene (formerly Entrezgene);Acc:393545]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052094": {
+    "symbol": "notch1b",
+    "description": "notch receptor 1b [Source:NCBI gene (formerly Entrezgene);Acc:794892]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019420": {
+    "symbol": "etnk1",
+    "description": "ethanolamine kinase 1 [Source:HGNC Symbol;Acc:HGNC:24649]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045748": {
+    "symbol": "stab2",
+    "description": "stabilin 2 [Source:NCBI gene (formerly Entrezgene);Acc:565194]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092693": {
+    "symbol": "tpt1",
+    "description": "tumor protein, translationally-controlled 1 [Source:NCBI gene (formerly Entrezgene);Acc:30723]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052063": {
+    "symbol": "col4a5",
+    "description": "collagen, type IV, alpha 5 (Alport syndrome) [Source:NCBI gene (formerly Entrezgene);Acc:323561]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016081": {
+    "symbol": "cldn15la",
+    "description": "claudin 15-like a [Source:NCBI gene (formerly Entrezgene);Acc:81591]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055381": {
+    "symbol": "bambia",
+    "description": "BMP and activin membrane-bound inhibitor (Xenopus laevis) homolog a [Source:NCBI gene (formerly Entrezgene);Acc:83496]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060649": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000074829": {
+    "symbol": "rasip1",
+    "description": "Ras interacting protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:102725533]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029019": {
+    "symbol": "epb41b",
+    "description": "erythrocyte membrane protein band 4.1b [Source:NCBI gene (formerly Entrezgene);Acc:326287]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074001": {
+    "symbol": "crygmxl2",
+    "description": "crystallin, gamma MX, like 2 [Source:NCBI gene (formerly Entrezgene);Acc:554132]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076572": {
+    "symbol": "crygm2d7",
+    "description": "crystallin, gamma M2d7 [Source:NCBI gene (formerly Entrezgene);Acc:566558]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037550": {
+    "symbol": "cyp21a2",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003142": {
+    "symbol": "dachc",
+    "description": "dachshund c [Source:NCBI gene (formerly Entrezgene);Acc:692255]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020153": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000031248": {
+    "symbol": "enkur",
+    "description": "enkurin, TRPC channel interacting protein [Source:NCBI gene (formerly Entrezgene);Acc:402794]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000073928": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000005368": {
+    "symbol": "mcamb",
+    "description": "melanoma cell adhesion molecule b [Source:NCBI gene (formerly Entrezgene);Acc:338313]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053875": {
+    "symbol": "cryba1b",
+    "description": "crystallin, beta A1b [Source:NCBI gene (formerly Entrezgene);Acc:436859]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056023": {
+    "symbol": "hoxb9a",
+    "description": "homeobox B9a [Source:NCBI gene (formerly Entrezgene);Acc:30344]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020845": {
+    "symbol": "tns1b",
+    "description": "tensin 1 [Source:HGNC Symbol;Acc:HGNC:11973]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059128": {
+    "symbol": "uqcrh",
+    "description": "ubiquinol-cytochrome c reductase hinge protein [Source:NCBI gene (formerly Entrezgene);Acc:566723]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020178": {
+    "symbol": "nova1",
+    "description": "NOVA alternative splicing regulator 1 [Source:NCBI gene (formerly Entrezgene);Acc:555590]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008840": {
+    "symbol": "hmbsa",
+    "description": "hydroxymethylbilane synthase a [Source:NCBI gene (formerly Entrezgene);Acc:394129]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036044": {
+    "symbol": "rps20",
+    "description": "ribosomal protein S20 [Source:NCBI gene (formerly Entrezgene);Acc:406485]",
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000042850": {
+    "symbol": "nphs2",
+    "description": "NPHS2 stomatin family member, podocin [Source:NCBI gene (formerly Entrezgene);Acc:557914]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036848": {
+    "symbol": "slc43a2a",
+    "description": "solute carrier family 43 member 2 [Source:HGNC Symbol;Acc:HGNC:23087]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061794": {
+    "symbol": "jam3b",
+    "description": "junctional adhesion molecule 3b [Source:NCBI gene (formerly Entrezgene);Acc:569217]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020007": {
+    "symbol": "col1a2",
+    "description": "collagen, type I, alpha 2 [Source:NCBI gene (formerly Entrezgene);Acc:336471]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000033539": {
+    "symbol": "paics",
+    "description": "phosphoribosylaminoimidazole carboxylase, phosphoribosylaminoimidazole succinocarboxamide synthetase [Source:NCBI gene (formerly Entrezgene);Acc:321193]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020781": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000008803": {
+    "symbol": "marcksb",
+    "description": "myristoylated alanine-rich protein kinase C substrate b [Source:NCBI gene (formerly Entrezgene);Acc:323201]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019230": {
+    "symbol": "rpl7a",
+    "description": "ribosomal protein L7a [Source:NCBI gene (formerly Entrezgene);Acc:337010]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092981": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000057556": {
+    "symbol": "rpl17",
+    "description": "ribosomal protein L17 [Source:NCBI gene (formerly Entrezgene);Acc:336641]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040184": {
+    "symbol": "syncrip",
+    "description": "synaptotagmin binding, cytoplasmic RNA interacting protein [Source:NCBI gene (formerly Entrezgene);Acc:326663]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000001889": {
+    "symbol": "tuba1a",
+    "description": "tubulin, alpha 1a [Source:NCBI gene (formerly Entrezgene);Acc:573216]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000009534": {
+    "symbol": "wls",
+    "description": "Wnt ligand secretion mediator [Source:NCBI gene (formerly Entrezgene);Acc:406420]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000030490": {
+    "symbol": "sptb",
+    "description": "spectrin, beta, erythrocytic [Source:NCBI gene (formerly Entrezgene);Acc:58040]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000091992": {
+    "symbol": "mrap",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003697": {
+    "symbol": "slc5a8l",
+    "description": "solute carrier family 5 member 8, like [Source:NCBI gene (formerly Entrezgene);Acc:556156]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037402": {
+    "symbol": "lim2.3",
+    "description": "lens intrinsic membrane protein 2.3 [Source:NCBI gene (formerly Entrezgene);Acc:436860]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041435": {
+    "symbol": "uba52",
+    "description": "ubiquitin A-52 residue ribosomal protein fusion product 1 [Source:NCBI gene (formerly Entrezgene);Acc:641289]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044954": {
+    "symbol": "slit1a",
+    "description": "slit homolog 1a (Drosophila) [Source:NCBI gene (formerly Entrezgene);Acc:556123]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002795": {
+    "symbol": "meis3",
+    "description": "myeloid ecotropic viral integration site 3 [Source:NCBI gene (formerly Entrezgene);Acc:81885]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088091": {
+    "symbol": "pfn1",
+    "description": "profilin 1 [Source:NCBI gene (formerly Entrezgene);Acc:799355]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052139": {
+    "symbol": "notch3",
+    "description": "notch receptor 3 [Source:NCBI gene (formerly Entrezgene);Acc:58066]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000025566": {
+    "symbol": "slc25a3b",
+    "description": "solute carrier family 25 member 3b [Source:NCBI gene (formerly Entrezgene);Acc:322362]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087164": {
+    "symbol": "crygm2d4",
+    "description": "crystallin, gamma M2d4 [Source:NCBI gene (formerly Entrezgene);Acc:790917]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090185": {
+    "symbol": "si:dkeyp-73b11.8",
+    "description": "si:dkeyp-73b11.8 [Source:NCBI gene (formerly Entrezgene);Acc:100333708]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017127": {
+    "symbol": "pdzk1ip1",
+    "description": "PDZK1 interacting protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:368722]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005525": {
+    "symbol": "acy3.2",
+    "description": "aspartoacylase (aminocyclase) 3, tandem duplicate 2 [Source:NCBI gene (formerly Entrezgene);Acc:436619]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043716": {
+    "symbol": "cldn5a",
+    "description": "claudin 5a [Source:NCBI gene (formerly Entrezgene);Acc:406559]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035652": {
+    "symbol": "sat1a.1",
+    "description": "spermidine/spermine N1-acetyltransferase 1a, duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:565700]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058784": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000067829": {
+    "symbol": "ppargc1a",
+    "description": "PPARG coactivator 1 alpha [Source:HGNC Symbol;Acc:HGNC:9237]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076892": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000009689": {
+    "symbol": "daam1b",
+    "description": "dishevelled associated activator of morphosis 1b [Source:NCBI gene (formerly Entrezgene);Acc:560060]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000033655": {
+    "symbol": "stmn1b",
+    "description": "stathmin 1b [Source:NCBI gene (formerly Entrezgene);Acc:550548]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000031020": {
+    "symbol": "pip4k2ca",
+    "description": "phosphatidylinositol-5-phosphate 4-kinase, type II, gamma a [Source:NCBI gene (formerly Entrezgene);Acc:373124]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026369": {
+    "symbol": "dbi",
+    "description": "diazepam binding inhibitor (GABA receptor modulator, acyl-CoA binding protein) [Source:NCBI gene (formerly Entrezgene);Acc:393831]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088687": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000006137": {
+    "symbol": "star",
+    "description": "steroidogenic acute regulatory protein [Source:NCBI gene (formerly Entrezgene);Acc:63999]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060345": {
+    "symbol": "apoda.1",
+    "description": "apolipoprotein Da, duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:767642]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000075161": {
+    "symbol": "defbl1",
+    "description": "defensin, beta-like 1 [Source:NCBI gene (formerly Entrezgene);Acc:100009619]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006526": {
+    "symbol": "fn1b",
+    "description": "fibronectin 1b [Source:NCBI gene (formerly Entrezgene);Acc:334613]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000001870": {
+    "symbol": "atp1a1a.4",
+    "description": "ATPase Na+/K+ transporting subunit alpha 1a, tandem duplicate 4 [Source:NCBI gene (formerly Entrezgene);Acc:64615]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018693": {
+    "symbol": "cdh2",
+    "description": "cadherin 2, type 1, N-cadherin (neuronal) [Source:NCBI gene (formerly Entrezgene);Acc:30291]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006497": {
+    "symbol": "rtn1a",
+    "description": "reticulon 1a [Source:NCBI gene (formerly Entrezgene);Acc:323706]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000023963": {
+    "symbol": "tpm4a",
+    "description": "tropomyosin 4a [Source:NCBI gene (formerly Entrezgene);Acc:406437]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077631": {
+    "symbol": "wu:fc11c11",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000015445": {
+    "symbol": "lim2.4",
+    "description": "lens intrinsic membrane protein 2.4 [Source:NCBI gene (formerly Entrezgene);Acc:436680]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019341": {
+    "symbol": "gpc1a",
+    "description": "glypican 1a [Source:NCBI gene (formerly Entrezgene);Acc:553367]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005112": {
+    "symbol": "cdh17",
+    "description": "cadherin 17, LI cadherin (liver-intestine) [Source:NCBI gene (formerly Entrezgene);Acc:378452]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092362": {
+    "symbol": "hsp70.2",
+    "description": "heat shock cognate 70-kd protein, tandem duplicate 2 [Source:NCBI gene (formerly Entrezgene);Acc:100535101]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074925": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000020944": {
+    "symbol": "ezra",
+    "description": "ezrin a [Source:NCBI gene (formerly Entrezgene);Acc:403009]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056453": {
+    "symbol": "afap1l1b",
+    "description": "actin filament associated protein 1-like 1b [Source:NCBI gene (formerly Entrezgene);Acc:768144]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090106": {
+    "symbol": "slc17a7b",
+    "description": "solute carrier family 17 member 7 [Source:HGNC Symbol;Acc:HGNC:16704]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000023694": {
+    "symbol": "spon1b",
+    "description": "spondin 1b [Source:NCBI gene (formerly Entrezgene);Acc:58029]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058365": {
+    "symbol": "hspb8",
+    "description": "heat shock protein b8 [Source:NCBI gene (formerly Entrezgene);Acc:791580]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090703": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000069841": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000056653": {
+    "symbol": "fhl1b",
+    "description": "four and a half LIM domains 1b [Source:NCBI gene (formerly Entrezgene);Acc:387528]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059269": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000015490": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000040747": {
+    "symbol": "tm4sf4",
+    "description": "transmembrane 4 L six family member 4 [Source:NCBI gene (formerly Entrezgene);Acc:445095]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070453": {
+    "symbol": "gch1",
+    "description": "GTP cyclohydrolase 1 [Source:NCBI gene (formerly Entrezgene);Acc:100192219]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007320": {
+    "symbol": "rpl7",
+    "description": "ribosomal protein L7 [Source:NCBI gene (formerly Entrezgene);Acc:336710]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040253": {
+    "symbol": "onecutl",
+    "description": "one cut domain, family member, like [Source:NCBI gene (formerly Entrezgene);Acc:246225]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089475": {
+    "symbol": "hbae1.1",
+    "description": "hemoglobin, alpha embryonic 1.1 [Source:NCBI gene (formerly Entrezgene);Acc:30597]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057429": {
+    "symbol": "arg1",
+    "description": "arginase 1 [Source:NCBI gene (formerly Entrezgene);Acc:570368]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029402": {
+    "symbol": "sort1a",
+    "description": "sortilin 1a [Source:NCBI gene (formerly Entrezgene);Acc:406511]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071424": {
+    "symbol": "ap3d1",
+    "description": "adaptor related protein complex 3 subunit delta 1 [Source:NCBI gene (formerly Entrezgene);Acc:563359]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000032083": {
+    "symbol": "dpysl2b",
+    "description": "dihydropyrimidinase like 2b [Source:NCBI gene (formerly Entrezgene);Acc:553412]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090943": {
+    "symbol": null,
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035423": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000089369": {
+    "symbol": "fdxr",
+    "description": "ferredoxin reductase [Source:HGNC Symbol;Acc:HGNC:3642]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055874": {
+    "symbol": "cpe",
+    "description": "carboxypeptidase E [Source:NCBI gene (formerly Entrezgene);Acc:407979]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000094581": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000057460": {
+    "symbol": "crygm2d13",
+    "description": "crystallin, gamma M2d13 [Source:NCBI gene (formerly Entrezgene);Acc:436681]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018921": {
+    "symbol": "lratd1",
+    "description": "LRAT domain containing 1 [Source:NCBI gene (formerly Entrezgene);Acc:393590]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029688": {
+    "symbol": "hsp70.1",
+    "description": "heat shock cognate 70-kd protein, tandem duplicate 1 [Source:NCBI gene (formerly Entrezgene);Acc:100126123]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000031228": {
+    "symbol": "podxl",
+    "description": "podocalyxin-like [Source:NCBI gene (formerly Entrezgene);Acc:563365]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062020": {
+    "symbol": "gse1b",
+    "description": "Gse1 coiled-coil protein b [Source:NCBI gene (formerly Entrezgene);Acc:567033]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019404": {
+    "symbol": "atp5f1d",
+    "description": "ATP synthase F1 subunit delta [Source:NCBI gene (formerly Entrezgene);Acc:335709]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043443": {
+    "symbol": "kcnj13",
+    "description": "potassium inwardly rectifying channel subfamily J member 13 [Source:NCBI gene (formerly Entrezgene);Acc:555691]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005039": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000076693": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000061120": {
+    "symbol": "slc43a2b",
+    "description": "solute carrier family 43 member 2b [Source:NCBI gene (formerly Entrezgene);Acc:494042]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052856": {
+    "symbol": "khdrbs1a",
+    "description": "KH domain containing, RNA binding, signal transduction associated 1a [Source:NCBI gene (formerly Entrezgene);Acc:30082]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026900": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000059486": {
+    "symbol": "cplx4b",
+    "description": "complexin 4b [Source:NCBI gene (formerly Entrezgene);Acc:797490]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077467": {
+    "symbol": "sox10",
+    "description": "SRY-box transcription factor 10 [Source:NCBI gene (formerly Entrezgene);Acc:140616]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000096667": {
+    "symbol": "hemgn",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000051887": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000074519": {
+    "symbol": "si:dkey-224j12.3",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000092553": {
+    "symbol": "slc25a5",
+    "description": "solute carrier family 25 member 5 [Source:NCBI gene (formerly Entrezgene);Acc:192321]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000020242": {
+    "symbol": "fermt2",
+    "description": "FERM domain containing kindlin 2 [Source:NCBI gene (formerly Entrezgene);Acc:553051]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000005154": {
+    "symbol": "aspa",
+    "description": "aspartoacylase [Source:NCBI gene (formerly Entrezgene);Acc:557232]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000078459": {
+    "symbol": "cux1a",
+    "description": "cut like homeobox 1 [Source:HGNC Symbol;Acc:HGNC:2557]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069926": {
+    "symbol": "hsd3b1",
+    "description": "hydroxy-delta-5-steroid dehydrogenase, 3 beta- and steroid delta-isomerase 1 [Source:NCBI gene (formerly Entrezgene);Acc:553532]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014329": {
+    "symbol": "npm1a",
+    "description": "nucleophosmin 1a [Source:NCBI gene (formerly Entrezgene);Acc:266985]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095603": {
+    "symbol": "grid2ipb",
+    "description": "glutamate receptor, ionotropic, delta 2 (Grid2) interacting protein, b [Source:NCBI gene (formerly Entrezgene);Acc:559717]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095236": {
+    "symbol": "si:ch73-110p20.1",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000086346": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000024276": {
+    "symbol": "pcbp4",
+    "description": "poly(rC) binding protein 4 [Source:NCBI gene (formerly Entrezgene);Acc:406391]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089749": {
+    "symbol": "aqp8b",
+    "description": "aquaporin 8b [Source:NCBI gene (formerly Entrezgene);Acc:555598]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000022682": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000034187": {
+    "symbol": "calm1b",
+    "description": "calmodulin 1b [Source:NCBI gene (formerly Entrezgene);Acc:368217]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000025206": {
+    "symbol": "syt2a",
+    "description": "synaptotagmin 2 [Source:HGNC Symbol;Acc:HGNC:11510]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089963": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000092035": {
+    "symbol": "si:ch211-156j16.1",
+    "description": "si:ch211-156j16.1 [Source:NCBI gene (formerly Entrezgene);Acc:564557]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056167": {
+    "symbol": "hspe1",
+    "description": "heat shock 10 protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:58041]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062688": {
+    "symbol": "gpnmb",
+    "description": "glycoprotein nmb [Source:HGNC Symbol;Acc:HGNC:4462]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000068992": {
+    "symbol": "hspa8",
+    "description": "heat shock protein 8 [Source:NCBI gene (formerly Entrezgene);Acc:573376]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000001788": {
+    "symbol": "atp5po",
+    "description": "ATP synthase peripheral stalk subunit OSCP [Source:NCBI gene (formerly Entrezgene);Acc:335191]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055172": {
+    "symbol": "si:ch211-256m1.8",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000091395": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000042518": {
+    "symbol": "hipk2",
+    "description": "homeodomain interacting protein kinase 2 [Source:NCBI gene (formerly Entrezgene);Acc:557551]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061591": {
+    "symbol": "abcb10",
+    "description": "ATP binding cassette subfamily B member 10 [Source:HGNC Symbol;Acc:HGNC:41]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057575": {
+    "symbol": "pnp4a",
+    "description": "purine nucleoside phosphorylase 4a [Source:NCBI gene (formerly Entrezgene);Acc:415192]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041799": {
+    "symbol": "gja1b",
+    "description": "gap junction protein alpha 1b [Source:NCBI gene (formerly Entrezgene);Acc:30236]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040466": {
+    "symbol": "vil1",
+    "description": "villin 1 [Source:NCBI gene (formerly Entrezgene);Acc:393207]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036993": {
+    "symbol": "erbb3b",
+    "description": "erb-b2 receptor tyrosine kinase 3b [Source:NCBI gene (formerly Entrezgene);Acc:544664]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008107": {
+    "symbol": "src",
+    "description": "v-src avian sarcoma (Schmidt-Ruppin A-2) viral onco homolog [Source:NCBI gene (formerly Entrezgene);Acc:325084]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019307": {
+    "symbol": "dusp5",
+    "description": "dual specificity phosphatase 5 [Source:NCBI gene (formerly Entrezgene);Acc:114436]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095453": {
+    "symbol": "si:rp71-17i16.6",
+    "description": "si:rp71-17i16.6 [Source:NCBI gene (formerly Entrezgene);Acc:100148415]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000068214": {
+    "symbol": "ccni",
+    "description": "cyclin I [Source:NCBI gene (formerly Entrezgene);Acc:406239]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000051876": {
+    "symbol": "ush1c",
+    "description": "Usher syndrome 1C [Source:NCBI gene (formerly Entrezgene);Acc:564412]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000078748": {
+    "symbol": "si:ch211-137a8.4",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026751": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000020984": {
+    "symbol": "slc16a10",
+    "description": "solute carrier family 16 member 10 [Source:NCBI gene (formerly Entrezgene);Acc:566499]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095351": {
+    "symbol": "si:ch73-308b14.1",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000055115": {
+    "symbol": "dtnbp1a",
+    "description": "dystrobrevin binding protein 1a [Source:NCBI gene (formerly Entrezgene);Acc:394109]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062780": {
+    "symbol": "aifm3",
+    "description": "AIF family member 3 [Source:NCBI gene (formerly Entrezgene);Acc:100150876]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000027249": {
+    "symbol": "btg1",
+    "description": "B-cell translocation 1, anti-proliferative [Source:NCBI gene (formerly Entrezgene);Acc:114432]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035683": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000079752": {
+    "symbol": "col6a4a",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071586": {
+    "symbol": "tgfbi",
+    "description": "transforming growth factor, beta-induced [Source:NCBI gene (formerly Entrezgene);Acc:321421]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003599": {
+    "symbol": "rpl3",
+    "description": "ribosomal protein L3 [Source:NCBI gene (formerly Entrezgene);Acc:322571]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002710": {
+    "symbol": "ncl",
+    "description": "nucleolin [Source:NCBI gene (formerly Entrezgene);Acc:767714]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007990": {
+    "symbol": "wt1b",
+    "description": "WT1 transcription factor b [Source:NCBI gene (formerly Entrezgene);Acc:568416]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000031420": {
+    "symbol": "wt1a",
+    "description": "WT1 transcription factor a [Source:NCBI gene (formerly Entrezgene);Acc:30245]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011600": {
+    "symbol": "epha4b",
+    "description": "eph receptor A4b [Source:NCBI gene (formerly Entrezgene);Acc:64270]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070844": {
+    "symbol": "gamt",
+    "description": "guanidinoacetate N-methyltransferase [Source:NCBI gene (formerly Entrezgene);Acc:796865]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079578": {
+    "symbol": "rbpms2b",
+    "description": "RNA binding protein, mRNA processing factor 2b [Source:NCBI gene (formerly Entrezgene);Acc:393229]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058999": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000092077": {
+    "symbol": "fbxo44.10",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012896": {
+    "symbol": "anos1a",
+    "description": "anosmin 1a [Source:NCBI gene (formerly Entrezgene);Acc:30630]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037870": {
+    "symbol": "actb2",
+    "description": "actin, beta 2 [Source:NCBI gene (formerly Entrezgene);Acc:57935]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041430": {
+    "symbol": "bmp2b",
+    "description": "bone morphotic protein 2b [Source:NCBI gene (formerly Entrezgene);Acc:30632]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045601": {
+    "symbol": "cax1",
+    "description": "cation/H+ exchanger protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:560283]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028973": {
+    "symbol": "tekt2",
+    "description": "tektin 2 (testicular) [Source:NCBI gene (formerly Entrezgene);Acc:550629]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011407": {
+    "symbol": "col2a1b",
+    "description": "collagen, type II, alpha 1b [Source:NCBI gene (formerly Entrezgene);Acc:503730]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044902": {
+    "symbol": "atp2b4",
+    "description": "ATPase plasma membrane Ca2+ transporting 4 [Source:NCBI gene (formerly Entrezgene);Acc:768304]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059545": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000011233": {
+    "symbol": "pcyt1aa",
+    "description": "phosphate cytidylyltransferase 1A, choline a [Source:NCBI gene (formerly Entrezgene);Acc:550327]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017673": {
+    "symbol": "nova2",
+    "description": "NOVA alternative splicing regulator 2 [Source:NCBI gene (formerly Entrezgene);Acc:553201]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058462": {
+    "symbol": "zgc:158846",
+    "description": "zgc:158846 [Source:NCBI gene (formerly Entrezgene);Acc:100009654]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035809": {
+    "symbol": "col1a1b",
+    "description": "collagen, type I, alpha 1b [Source:NCBI gene (formerly Entrezgene);Acc:325675]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039034": {
+    "symbol": "marcksl1a",
+    "description": "MARCKS-like 1a [Source:NCBI gene (formerly Entrezgene);Acc:406407]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079757": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000061985": {
+    "symbol": "rbm47",
+    "description": "RNA binding motif protein 47 [Source:NCBI gene (formerly Entrezgene);Acc:562991]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041182": {
+    "symbol": "rpl4",
+    "description": "ribosomal protein L4 [Source:NCBI gene (formerly Entrezgene);Acc:337090]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014556": {
+    "symbol": "serpinb1l3",
+    "description": "serpin peptidase inhibitor, clade B (ovalbumin), member 1, like 3 [Source:NCBI gene (formerly Entrezgene);Acc:335119]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000092798": {
+    "symbol": "ppib",
+    "description": "peptidylprolyl isomerase B (cyclophilin B) [Source:NCBI gene (formerly Entrezgene);Acc:406292]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019566": {
+    "symbol": "neurod1",
+    "description": "neuronal differentiation 1 [Source:NCBI gene (formerly Entrezgene);Acc:30169]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095019": {
+    "symbol": "lmo2",
+    "description": "LIM domain only 2 (rhombotin-like 1) [Source:NCBI gene (formerly Entrezgene);Acc:30332]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000051783": {
+    "symbol": "rplp0",
+    "description": "ribosomal protein, large, P0 [Source:NCBI gene (formerly Entrezgene);Acc:58101]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088079": {
+    "symbol": "tmed6",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042556": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000009285": {
+    "symbol": "rpl15",
+    "description": "ribosomal protein L15 [Source:NCBI gene (formerly Entrezgene);Acc:445053]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006818": {
+    "symbol": "urod",
+    "description": "uroporphyrinogen decarboxylase [Source:NCBI gene (formerly Entrezgene);Acc:30617]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000032929": {
+    "symbol": "cryba1l1",
+    "description": "crystallin, beta A1, like 1 [Source:NCBI gene (formerly Entrezgene);Acc:550433]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058875": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000016744": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000020708": {
+    "symbol": "mdkb",
+    "description": "midkine b [Source:NCBI gene (formerly Entrezgene);Acc:65231]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036875": {
+    "symbol": "rps12",
+    "description": "ribosomal protein S12 [Source:NCBI gene (formerly Entrezgene);Acc:337007]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074316": {
+    "symbol": "itga1",
+    "description": "integrin subunit alpha 1 [Source:HGNC Symbol;Acc:HGNC:6134]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038792": {
+    "symbol": "klf17",
+    "description": "Kruppel like factor 17 [Source:NCBI gene (formerly Entrezgene);Acc:65238]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000006691": {
+    "symbol": "rpl12",
+    "description": "ribosomal protein L12 [Source:NCBI gene (formerly Entrezgene);Acc:327089]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019181": {
+    "symbol": "rpsa",
+    "description": "ribosomal protein SA [Source:NCBI gene (formerly Entrezgene);Acc:394027]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037997": {
+    "symbol": "tubb5",
+    "description": "tubulin, beta 5 [Source:NCBI gene (formerly Entrezgene);Acc:386701]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000022261": {
+    "symbol": "pdzk1",
+    "description": "PDZ domain containing 1 [Source:NCBI gene (formerly Entrezgene);Acc:337325]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035676": {
+    "symbol": "ptp4a2b",
+    "description": "protein tyrosine phosphatase 4A2b [Source:NCBI gene (formerly Entrezgene);Acc:334483]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060350": {
+    "symbol": "apoda.2",
+    "description": "apolipoprotein Da, duplicate 2 [Source:NCBI gene (formerly Entrezgene);Acc:100148022]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038006": {
+    "symbol": "osr2",
+    "description": "odd-skipped related transciption factor 2 [Source:NCBI gene (formerly Entrezgene);Acc:550389]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017121": {
+    "symbol": "mafba",
+    "description": "MAF bZIP transcription factor Ba [Source:NCBI gene (formerly Entrezgene);Acc:30210]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061436": {
+    "symbol": "col6a2",
+    "description": "collagen type VI alpha 2 chain [Source:HGNC Symbol;Acc:HGNC:2212]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045971": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000028148": {
+    "symbol": "pax2a",
+    "description": "paired box 2a [Source:NCBI gene (formerly Entrezgene);Acc:30425]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036161": {
+    "symbol": "hnrnpa0l",
+    "description": "heteroous nuclear ribonucleoprotein A0, like [Source:NCBI gene (formerly Entrezgene);Acc:321899]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039729": {
+    "symbol": "asap1b",
+    "description": "ArfGAP with SH3 domain, ankyrin repeat and PH domain 1 [Source:HGNC Symbol;Acc:HGNC:2720]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087625": {
+    "symbol": "olfm4.1",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042620": {
+    "symbol": "gstr",
+    "description": "glutathione S-transferase rho [Source:NCBI gene (formerly Entrezgene);Acc:564619]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000026218": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000087007": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000016676": {
+    "symbol": "gnao1a",
+    "description": "guanine nucleotide binding protein (G protein), alpha activating activity polypeptide O, a [Source:NCBI gene (formerly Entrezgene);Acc:393760]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061328": {
+    "symbol": "cdon",
+    "description": "cell adhesion associated, onco regulated [Source:NCBI gene (formerly Entrezgene);Acc:280652]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000025200": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000009978": {
+    "symbol": "icn",
+    "description": "ictacalcin [Source:NCBI gene (formerly Entrezgene);Acc:336655]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000091148": {
+    "symbol": "crygm2d20",
+    "description": "crystallin, gamma M2d20 [Source:NCBI gene (formerly Entrezgene);Acc:100000175]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056008": {
+    "symbol": "atp5mc1",
+    "description": "ATP synthase membrane subunit c locus 1 [Source:NCBI gene (formerly Entrezgene);Acc:406301]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043631": {
+    "symbol": "bcas2",
+    "description": "BCAS2 pre-mRNA processing factor [Source:NCBI gene (formerly Entrezgene);Acc:493614]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060675": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000008363": {
+    "symbol": "mcl1b",
+    "description": "MCL1 apoptosis regulator, BCL2 family member b [Source:NCBI gene (formerly Entrezgene);Acc:373102]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052695": {
+    "symbol": "nr2f1a",
+    "description": "nuclear receptor subfamily 2, group F, member 1a [Source:NCBI gene (formerly Entrezgene);Acc:30418]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055678": {
+    "symbol": "akap12b",
+    "description": "A kinase (PRKA) anchor protein 12b [Source:NCBI gene (formerly Entrezgene);Acc:567365]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055991": {
+    "symbol": "hmbsb",
+    "description": "hydroxymethylbilane synthase, b [Source:NCBI gene (formerly Entrezgene);Acc:338290]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000094561": {
+    "symbol": "fxyd2",
+    "description": "FXYD domain containing ion transport regulator 2 [Source:NCBI gene (formerly Entrezgene);Acc:794522]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000013144": {
+    "symbol": "atp1b1a",
+    "description": "ATPase Na+/K+ transporting subunit beta 1a [Source:NCBI gene (formerly Entrezgene);Acc:64267]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071601": {
+    "symbol": "pvalb9",
+    "description": "parvalbumin 9 [Source:NCBI gene (formerly Entrezgene);Acc:360209]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000060070": {
+    "symbol": "adcy7",
+    "description": "adenylate cyclase 7 [Source:NCBI gene (formerly Entrezgene);Acc:568726]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000009212": {
+    "symbol": "ppiaa",
+    "description": "peptidylprolyl isomerase Aa (cyclophilin A) [Source:NCBI gene (formerly Entrezgene);Acc:336612]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088330": {
+    "symbol": "hbae1.2",
+    "description": "hemoglobin, alpha embryonic 1.2 [Source:NCBI gene (formerly Entrezgene);Acc:572729]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045180": {
+    "symbol": "acta2",
+    "description": "actin alpha 2, smooth muscle [Source:NCBI gene (formerly Entrezgene);Acc:322509]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056481": {
+    "symbol": "vat1",
+    "description": "vesicle amine transport 1 [Source:NCBI gene (formerly Entrezgene);Acc:368752]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036008": {
+    "symbol": "caly",
+    "description": "calcyon neuron-specific vesicular protein [Source:NCBI gene (formerly Entrezgene);Acc:100307104]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055839": {
+    "symbol": "marchf4a",
+    "description": "membrane-associated ring finger (C3HC4) 4a [Source:NCBI gene (formerly Entrezgene);Acc:100000640]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019644": {
+    "symbol": "ldhba",
+    "description": "lactate dehydrogenase Ba [Source:NCBI gene (formerly Entrezgene);Acc:30497]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045750": {
+    "symbol": "syt10",
+    "description": "synaptotagmin X [Source:NCBI gene (formerly Entrezgene);Acc:564226]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039578": {
+    "symbol": "pa2g4a",
+    "description": "proliferation-associated 2G4, a [Source:NCBI gene (formerly Entrezgene);Acc:368737]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036462": {
+    "symbol": "rab11fip1b",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000013730": {
+    "symbol": "slc4a4a",
+    "description": "solute carrier family 4 member 4a [Source:NCBI gene (formerly Entrezgene);Acc:568631]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069792": {
+    "symbol": "crygm2d5",
+    "description": "crystallin, gamma M2d5 [Source:NCBI gene (formerly Entrezgene);Acc:558470]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089334": {
+    "symbol": "ednrba",
+    "description": "endothelin receptor Ba [Source:NCBI gene (formerly Entrezgene);Acc:30442]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000024278": {
+    "symbol": "adh8b",
+    "description": "alcohol dehydrogenase 8b [Source:NCBI gene (formerly Entrezgene);Acc:402841]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045142": {
+    "symbol": "hbae5",
+    "description": "hemoglobin, alpha embryonic 5 [Source:NCBI gene (formerly Entrezgene);Acc:561790]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019451": {
+    "symbol": "pcsk2",
+    "description": "proprotein convertase subtilisin/kexin type 2 [Source:NCBI gene (formerly Entrezgene);Acc:100004460]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000091937": {
+    "symbol": "si:dkey-16m19.4",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000075978": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000082180": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000073874": {
+    "symbol": "crygm2d6",
+    "description": "crystallin, gamma M2d6 [Source:NCBI gene (formerly Entrezgene);Acc:415228]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059279": {
+    "symbol": "tfap2a",
+    "description": "transcription factor AP-2 alpha [Source:NCBI gene (formerly Entrezgene);Acc:140618]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000025635": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000039576": {
+    "symbol": "fstl1b",
+    "description": "follistatin-like 1b [Source:NCBI gene (formerly Entrezgene);Acc:324309]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055283": {
+    "symbol": "id2a",
+    "description": "inhibitor of DNA binding 2a [Source:NCBI gene (formerly Entrezgene);Acc:266599]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090712": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000090148": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000021059": {
+    "symbol": "alas1",
+    "description": "aminolevulinate, delta-, synthase 1 [Source:NCBI gene (formerly Entrezgene);Acc:64608]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055158": {
+    "symbol": "prox1a",
+    "description": "prospero homeobox 1a [Source:NCBI gene (formerly Entrezgene);Acc:30679]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000015551": {
+    "symbol": "fth1a",
+    "description": "ferritin, heavy polypeptide 1a [Source:NCBI gene (formerly Entrezgene);Acc:58108]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014522": {
+    "symbol": "cdh6",
+    "description": "cadherin 6 [Source:NCBI gene (formerly Entrezgene);Acc:541393]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079848": {
+    "symbol": "gmps",
+    "description": "guanine monophosphate synthase [Source:NCBI gene (formerly Entrezgene);Acc:393559]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000094557": {
+    "symbol": "nupr1b",
+    "description": "nuclear protein 1b [Source:NCBI gene (formerly Entrezgene);Acc:799637]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069827": {
+    "symbol": "crygm2d11",
+    "description": "crystallin, gamma M2d11 [Source:NCBI gene (formerly Entrezgene);Acc:100126132]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042106": {
+    "symbol": "mnx2a",
+    "description": "motor neuron and pancreas homeobox 2a [Source:NCBI gene (formerly Entrezgene);Acc:406205]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061282": {
+    "symbol": "glg1a",
+    "description": "golgi glycoprotein 1 [Source:HGNC Symbol;Acc:HGNC:4316]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000010816": {
+    "symbol": "slc7a14a",
+    "description": "solute carrier family 7 member 14a [Source:NCBI gene (formerly Entrezgene);Acc:566270]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069912": {
+    "symbol": "hmga2",
+    "description": "high mobility group AT-hook 2 [Source:NCBI gene (formerly Entrezgene);Acc:324428]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041006": {
+    "symbol": "st3gal4",
+    "description": "ST3 beta-galactoside alpha-2,3-sialyltransferase 4 [Source:NCBI gene (formerly Entrezgene);Acc:504044]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007099": {
+    "symbol": "gjc4b",
+    "description": "gap junction protein gamma 4b [Source:NCBI gene (formerly Entrezgene);Acc:30276]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000030411": {
+    "symbol": "crygn2",
+    "description": "crystallin, gamma N2 [Source:NCBI gene (formerly Entrezgene);Acc:445034]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045248": {
+    "symbol": "h3f3d",
+    "description": "H3 histone, family 3D [Source:NCBI gene (formerly Entrezgene);Acc:394076]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038577": {
+    "symbol": "cox6c",
+    "description": "cytochrome c oxidase subunit 6C [Source:NCBI gene (formerly Entrezgene);Acc:494577]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057698": {
+    "symbol": "ctsd",
+    "description": "cathepsin D [Source:NCBI gene (formerly Entrezgene);Acc:65225]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059035": {
+    "symbol": "porb",
+    "description": "P450 (cytochrome) oxidoreductase b [Source:NCBI gene (formerly Entrezgene);Acc:327556]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003795": {
+    "symbol": "idh2",
+    "description": "isocitrate dehydrogenase (NADP(+)) 2 [Source:NCBI gene (formerly Entrezgene);Acc:386951]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089998": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000079985": {
+    "symbol": "nrip2",
+    "description": "nuclear receptor interacting protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:565865]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044521": {
+    "symbol": "eef1b2",
+    "description": "eukaryotic translation elongation factor 1 beta 2 [Source:NCBI gene (formerly Entrezgene);Acc:335370]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042014": {
+    "symbol": "cyp11c1",
+    "description": "cytochrome P450, family 11, subfamily C, polypeptide 1 [Source:NCBI gene (formerly Entrezgene);Acc:791124]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011493": {
+    "symbol": "dcun1d3",
+    "description": "defective in cullin neddylation 1 domain containing 3 [Source:NCBI gene (formerly Entrezgene);Acc:557682]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000046119": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000089124": {
+    "symbol": "hbae1.3",
+    "description": "hemoglobin, alpha embryonic 1.3 [Source:NCBI gene (formerly Entrezgene);Acc:100334599]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062909": {
+    "symbol": "furina",
+    "description": "furin (paired basic amino acid cleaving enzyme) a [Source:NCBI gene (formerly Entrezgene);Acc:566557]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002131": {
+    "symbol": "celf2",
+    "description": "cugbp, Elav-like family member 2 [Source:NCBI gene (formerly Entrezgene);Acc:373117]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000087636": {
+    "symbol": "hmgn6",
+    "description": "high mobility group nucleosome binding domain 6 [Source:NCBI gene (formerly Entrezgene);Acc:100151347]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011841": {
+    "symbol": "atp5l",
+    "description": "ATP synthase, H+ transporting, mitochondrial F0 complex, subunit g [Source:NCBI gene (formerly Entrezgene);Acc:326977]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019231": {
+    "symbol": "sptan1",
+    "description": "spectrin alpha, non-erythrocytic 1 [Source:NCBI gene (formerly Entrezgene);Acc:553383]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038068": {
+    "symbol": "ddx5",
+    "description": "DEAD (Asp-Glu-Ala-Asp) box helicase 5 [Source:NCBI gene (formerly Entrezgene);Acc:322206]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089390": {
+    "symbol": "pnpla2",
+    "description": "patatin like domain 2, triacylglycerol lipase [Source:HGNC Symbol;Acc:HGNC:30802]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000061231": {
+    "symbol": "tinagl1",
+    "description": "tubulointerstitial nephritis antigen-like 1 [Source:NCBI gene (formerly Entrezgene);Acc:562116]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012820": {
+    "symbol": "nop56",
+    "description": "NOP56 ribonucleoprotein homolog [Source:NCBI gene (formerly Entrezgene);Acc:394196]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000021864": {
+    "symbol": "rplp1",
+    "description": "ribosomal protein lateral stalk subunit P1 [Source:NCBI gene (formerly Entrezgene);Acc:336719]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086288": {
+    "symbol": "scg3",
+    "description": "secretogranin III [Source:NCBI gene (formerly Entrezgene);Acc:393730]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076532": {
+    "symbol": "si:ch211-222l21.1",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077653": {
+    "symbol": "rabl6b",
+    "description": "RAB, member RAS oncogene family like 6 [Source:HGNC Symbol;Acc:HGNC:24703]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000088290": {
+    "symbol": "foxj1b",
+    "description": "forkhead box J1b [Source:NCBI gene (formerly Entrezgene);Acc:494105]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000067831": {
+    "symbol": "tbata",
+    "description": "thymus, brain and testes associated [Source:HGNC Symbol;Acc:HGNC:23511]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000033184": {
+    "symbol": "prkar2aa",
+    "description": "protein kinase, cAMP-dependent, regulatory, type II, alpha A [Source:NCBI gene (formerly Entrezgene);Acc:556042]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000010149": {
+    "symbol": "atp5fa1",
+    "description": "ATP synthase F1 subunit alpha [Source:NCBI gene (formerly Entrezgene);Acc:553755]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000080381": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000017339": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000036433": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000093817": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000061478": {
+    "symbol": "igf2bp1",
+    "description": "insulin-like growth factor 2 mRNA binding protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:558182]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029036": {
+    "symbol": "rab32a",
+    "description": "RAB32a, member RAS onco family [Source:NCBI gene (formerly Entrezgene);Acc:378969]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029894": {
+    "symbol": "slc2a15a",
+    "description": "solute carrier family 2 member 15a [Source:NCBI gene (formerly Entrezgene);Acc:394245]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014488": {
+    "symbol": "ca2",
+    "description": "carbonic anhydrase II [Source:NCBI gene (formerly Entrezgene);Acc:387526]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000000503": {
+    "symbol": "stx1b",
+    "description": "syntaxin 1B [Source:NCBI gene (formerly Entrezgene);Acc:58038]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056331": {
+    "symbol": "ahcyl1",
+    "description": "adenosylhomocysteinase-like 1 [Source:NCBI gene (formerly Entrezgene);Acc:798918]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039150": {
+    "symbol": "lgmn",
+    "description": "legumain [Source:NCBI gene (formerly Entrezgene);Acc:406625]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043457": {
+    "symbol": "gapdh",
+    "description": "glyceraldehyde-3-phosphate dehydrogenase [Source:NCBI gene (formerly Entrezgene);Acc:317743]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043342": {
+    "symbol": "gpx3",
+    "description": "glutathione peroxidase 3 [Source:NCBI gene (formerly Entrezgene);Acc:798788]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011166": {
+    "symbol": "cahz",
+    "description": "carbonic anhydrase [Source:NCBI gene (formerly Entrezgene);Acc:30331]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000031164": {
+    "symbol": "tuba8l2",
+    "description": "tubulin, alpha 8 like 2 [Source:NCBI gene (formerly Entrezgene);Acc:393664]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074265": {
+    "symbol": "dzip1l",
+    "description": "DAZ interacting zinc finger protein 1-like [Source:NCBI gene (formerly Entrezgene);Acc:553313]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028533": {
+    "symbol": "macf1a",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000044462": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000043371": {
+    "symbol": "mdh2",
+    "description": "malate dehydrogenase 2, NAD (mitochondrial) [Source:NCBI gene (formerly Entrezgene);Acc:406405]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036232": {
+    "symbol": "trpm7",
+    "description": "transient receptor potential cation channel, subfamily M, member 7 [Source:NCBI gene (formerly Entrezgene);Acc:280653]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038643": {
+    "symbol": "alas2",
+    "description": "aminolevulinate, delta-, synthase 2 [Source:NCBI gene (formerly Entrezgene);Acc:64607]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071353": {
+    "symbol": "mgarpa",
+    "description": "mitochondria localized glutamic acid rich protein a [Source:NCBI gene (formerly Entrezgene);Acc:100002196]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000011405": {
+    "symbol": "rps9",
+    "description": "ribosomal protein S9 [Source:NCBI gene (formerly Entrezgene);Acc:114420]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090689": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000075629": {
+    "symbol": "ifi30b",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000009040": {
+    "symbol": "si:ch73-141c7.1",
+    "description": "si:ch73-141c7.1 [Source:NCBI gene (formerly Entrezgene);Acc:393762]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000093303": {
+    "symbol": "ifitm1",
+    "description": "interferon induced transmembrane protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:100003209]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041627": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000070083": {
+    "symbol": "atp5f1b",
+    "description": "ATP synthase F1 subunit beta [Source:NCBI gene (formerly Entrezgene);Acc:554135]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052061": {
+    "symbol": "col4a6",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042502": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000083950": {
+    "symbol": "SNORD83A",
+    "description": "small nucleolar RNA, C/D box 83A [Source:HGNC Symbol;Acc:HGNC:17131]",
+    "biotype": "snoRNA"
+  },
+  "ENSDARG00000063097": {
+    "symbol": "scube1",
+    "description": "signal peptide, CUB domain, EGF-like 1 [Source:NCBI gene (formerly Entrezgene);Acc:797832]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000041723": {
+    "symbol": "zgc:55461",
+    "description": "zgc:55461 [Source:NCBI gene (formerly Entrezgene);Acc:406811]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000032849": {
+    "symbol": "ndrg1a",
+    "description": "N-myc downstream regulated 1a [Source:NCBI gene (formerly Entrezgene);Acc:792085]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000021913": {
+    "symbol": "ak9",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000013623": {
+    "symbol": "vdac2",
+    "description": "voltage-dependent anion channel 2 [Source:NCBI gene (formerly Entrezgene);Acc:322126]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000094423": {
+    "symbol": "si:ch211-270n8.4",
+    "description": null,
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000041925": {
+    "symbol": "cryba2b",
+    "description": "crystallin, beta A2b [Source:NCBI gene (formerly Entrezgene);Acc:436857]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062262": {
+    "symbol": "ednrab",
+    "description": "endothelin receptor type Ab [Source:NCBI gene (formerly Entrezgene);Acc:405866]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056888": {
+    "symbol": "dnah5l",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012078": {
+    "symbol": "meis1b",
+    "description": "Meis homeobox 1 b [Source:NCBI gene (formerly Entrezgene);Acc:170446]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000069503": {
+    "symbol": "cldn3c",
+    "description": "claudin 3c [Source:NCBI gene (formerly Entrezgene);Acc:81587]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000040874": {
+    "symbol": "add3a",
+    "description": "adducin 3 (gamma) a [Source:NCBI gene (formerly Entrezgene);Acc:556762]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000032614": {
+    "symbol": "msi2b",
+    "description": "musashi RNA-binding protein 2b [Source:NCBI gene (formerly Entrezgene);Acc:394084]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058128": {
+    "symbol": "msna",
+    "description": "moesin a [Source:NCBI gene (formerly Entrezgene);Acc:286739]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000021113": {
+    "symbol": "ptmaa",
+    "description": "prothymosin alpha a [Source:NCBI gene (formerly Entrezgene);Acc:335707]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017624": {
+    "symbol": "krt4",
+    "description": "keratin 4 [Source:NCBI gene (formerly Entrezgene);Acc:794486]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053684": {
+    "symbol": "aldob",
+    "description": "aldolase b, fructose-bisphosphate [Source:NCBI gene (formerly Entrezgene);Acc:321664]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000036456": {
+    "symbol": "anxa4",
+    "description": "annexin A4 [Source:NCBI gene (formerly Entrezgene);Acc:353362]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000019881": {
+    "symbol": "bsg",
+    "description": "basigin [Source:NCBI gene (formerly Entrezgene);Acc:337692]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018263": {
+    "symbol": "pdia2",
+    "description": "protein disulfide isomerase family A, member 2 [Source:NCBI gene (formerly Entrezgene);Acc:394023]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000076170": {
+    "symbol": "pcsk1nl",
+    "description": "proprotein convertase subtilisin/kexin type 1 inhibitor, like [Source:NCBI gene (formerly Entrezgene);Acc:570305]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000057206": {
+    "symbol": "nmt1b",
+    "description": "N-myristoyltransferase 1b [Source:NCBI gene (formerly Entrezgene);Acc:562651]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000090190": {
+    "symbol": "bcam",
+    "description": "basal cell adhesion molecule (Lutheran blood group) [Source:NCBI gene (formerly Entrezgene);Acc:767689]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000074319": {
+    "symbol": "sall1a",
+    "description": "spalt-like transcription factor 1a [Source:NCBI gene (formerly Entrezgene);Acc:555721]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016375": {
+    "symbol": "asns",
+    "description": "asparagine synthetase [Source:NCBI gene (formerly Entrezgene);Acc:394138]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012824": {
+    "symbol": "itga3b",
+    "description": "integrin, alpha 3b [Source:NCBI gene (formerly Entrezgene);Acc:100331874]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014867": {
+    "symbol": "rpl8",
+    "description": "ribosomal protein L8 [Source:NCBI gene (formerly Entrezgene);Acc:393686]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000003462": {
+    "symbol": "fech",
+    "description": "ferrochelatase [Source:NCBI gene (formerly Entrezgene);Acc:58215]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016153": {
+    "symbol": "dag1",
+    "description": "dystroglycan 1 [Source:NCBI gene (formerly Entrezgene);Acc:286829]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000012066": {
+    "symbol": "dcn",
+    "description": "decorin [Source:NCBI gene (formerly Entrezgene);Acc:64698]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045930": {
+    "symbol": "rbpms2a",
+    "description": "RNA binding protein, mRNA processing factor 2a [Source:NCBI gene (formerly Entrezgene);Acc:436682]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000022560": {
+    "symbol": "clcnk",
+    "description": "chloride channel K [Source:NCBI gene (formerly Entrezgene);Acc:393353]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035750": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000025581": {
+    "symbol": "rpl10",
+    "description": "ribosomal protein L10 [Source:NCBI gene (formerly Entrezgene);Acc:336712]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000001975": {
+    "symbol": "hsd11b2",
+    "description": "hydroxysteroid (11-beta) dehydrogenase 2 [Source:NCBI gene (formerly Entrezgene);Acc:334098]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000035519": {
+    "symbol": "histh1l1",
+    "description": "histone H1 like1 [Source:NCBI gene (formerly Entrezgene);Acc:550353]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053493": {
+    "symbol": "aldh1a2",
+    "description": "aldehyde dehydrogenase 1 family, member A2 [Source:NCBI gene (formerly Entrezgene);Acc:116713]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000045408": {
+    "symbol": "tagln",
+    "description": "transgelin [Source:NCBI gene (formerly Entrezgene);Acc:751758]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000031761": {
+    "symbol": "dab2",
+    "description": "DAB adaptor protein 2 [Source:NCBI gene (formerly Entrezgene);Acc:404040]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028213": {
+    "symbol": "ttn.2",
+    "description": "titin [Source:HGNC Symbol;Acc:HGNC:12403]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095268": {
+    "symbol": "cd34",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000017195": {
+    "symbol": "foxf2a",
+    "description": "forkhead box F2a [Source:NCBI gene (formerly Entrezgene);Acc:407681]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000055216": {
+    "symbol": "tuba1c",
+    "description": "tubulin, alpha 1c [Source:NCBI gene (formerly Entrezgene);Acc:573122]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000021124": {
+    "symbol": "cfl1",
+    "description": "cofilin 1 [Source:NCBI gene (formerly Entrezgene);Acc:321496]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000054274": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000095861": {
+    "symbol": "si:ch1073-441p17.1",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000029533": {
+    "symbol": "rpl18",
+    "description": "ribosomal protein L18 [Source:NCBI gene (formerly Entrezgene);Acc:445038]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000059931": {
+    "symbol": "hyal2a",
+    "description": "hyaluronidase 2 [Source:HGNC Symbol;Acc:HGNC:5321]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000089464": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000056160": {
+    "symbol": "hspd1",
+    "description": "heat shock 60 protein 1 [Source:NCBI gene (formerly Entrezgene);Acc:282676]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000086583": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000056027": {
+    "symbol": "hoxb8a",
+    "description": "homeobox B8a [Source:NCBI gene (formerly Entrezgene);Acc:30343]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000043453": {
+    "symbol": "rps5",
+    "description": "ribosomal protein S5 [Source:NCBI gene (formerly Entrezgene);Acc:192297]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000039095": {
+    "symbol": "nkx2.3",
+    "description": "NK2 homeobox 3 [Source:NCBI gene (formerly Entrezgene);Acc:30698]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000034457": {
+    "symbol": "si:ch211-163l21.7",
+    "description": "si:ch211-163l21.7 [Source:NCBI gene (formerly Entrezgene);Acc:567726]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095752": {
+    "symbol": "si:dkeyp-13a3.7p",
+    "description": null,
+    "biotype": "processed_pseudogene"
+  },
+  "ENSDARG00000029663": {
+    "symbol": "rab1ab",
+    "description": "RAB1A, member RAS onco family b [Source:NCBI gene (formerly Entrezgene);Acc:368883]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000018351": {
+    "symbol": "hpda",
+    "description": "4-hydroxyphenylpyruvate dioxygenase a [Source:NCBI gene (formerly Entrezgene);Acc:394142]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077777": {
+    "symbol": "tmsb4x",
+    "description": "thymosin beta 4 X-linked [Source:NCBI gene (formerly Entrezgene);Acc:793949]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000095767": {
+    "symbol": "dio3b",
+    "description": "iodothyronine deiodinase 3b [Source:NCBI gene (formerly Entrezgene);Acc:798872]",
+    "biotype": "processed_transcript"
+  },
+  "ENSDARG00000035598": {
+    "symbol": "coro1ca",
+    "description": "coronin, actin binding protein, 1Ca [Source:NCBI gene (formerly Entrezgene);Acc:317741]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000042049": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000087324": {
+    "symbol": "crygm2d1",
+    "description": "crystallin, gamma M2d1 [Source:NCBI gene (formerly Entrezgene);Acc:553710]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000014796": {
+    "symbol": "wnt11",
+    "description": "wingless-type MMTV integration site family, member 11 [Source:NCBI gene (formerly Entrezgene);Acc:30283]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000028173": {
+    "symbol": "slc4a2a",
+    "description": "solute carrier family 4 member 2a [Source:NCBI gene (formerly Entrezgene);Acc:566075]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037917": {
+    "symbol": "itga3a",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000079317": {
+    "symbol": "dlc1",
+    "description": "DLC1 Rho GTPase activating protein [Source:HGNC Symbol;Acc:HGNC:2897]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000077570": {
+    "symbol": "cdh16",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000062338": {
+    "symbol": "zeb2a",
+    "description": "zinc finger E-box binding homeobox 2a [Source:NCBI gene (formerly Entrezgene);Acc:100003889]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000007354": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000037425": {
+    "symbol": "s100a10a",
+    "description": "S100 calcium binding protein A10a [Source:NCBI gene (formerly Entrezgene);Acc:449788]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000093823": {
+    "symbol": "si:ch211-102c2.8",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000070585": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000087504": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000056740": {
+    "symbol": "tmeff1b",
+    "description": "transmembrane protein with EGF-like and two follistatin-like domains 1b [Source:NCBI gene (formerly Entrezgene);Acc:553511]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000008263": {
+    "symbol": "mfsd4ab",
+    "description": "major facilitator superfamily domain containing 4Ab [Source:NCBI gene (formerly Entrezgene);Acc:558146]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000037746": {
+    "symbol": "actb1",
+    "description": "actin, beta 1 [Source:NCBI gene (formerly Entrezgene);Acc:57934]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053868": {
+    "symbol": "etsrp",
+    "description": "ETS1-related protein [Source:NCBI gene (formerly Entrezgene);Acc:555766]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000038147": {
+    "symbol": "hbbe3",
+    "description": "hemoglobin beta embryonic-3 [Source:NCBI gene (formerly Entrezgene);Acc:30596]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000056623": {
+    "symbol": "ptenb",
+    "description": "phosphatase and tensin homolog B [Source:NCBI gene (formerly Entrezgene);Acc:368415]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000053912": {
+    "symbol": "fbl",
+    "description": "fibrillarin [Source:NCBI gene (formerly Entrezgene);Acc:406275]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002731": {
+    "symbol": "sdc2",
+    "description": "syndecan 2 [Source:NCBI gene (formerly Entrezgene);Acc:282667]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000052150": {
+    "symbol": "pbx4",
+    "description": "pre-B-cell leukemia transcription factor 4 [Source:NCBI gene (formerly Entrezgene);Acc:30728]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000025522": {
+    "symbol": "sgk1",
+    "description": "serum/glucocorticoid regulated kinase 1 [Source:NCBI gene (formerly Entrezgene);Acc:324140]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000002937": {
+    "symbol": "meis1a",
+    "description": "Meis homeobox 1 a [Source:NCBI gene (formerly Entrezgene);Acc:170455]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000071052": {
+    "symbol": "si:dkey-150i13.2",
+    "description": null,
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000058337": {
+    "symbol": null,
+    "description": null,
+    "biotype": null
+  },
+  "ENSDARG00000013968": {
+    "symbol": "psap",
+    "description": "prosaposin [Source:NCBI gene (formerly Entrezgene);Acc:140811]",
+    "biotype": "protein_coding"
+  },
+  "ENSDARG00000016484": {
+    "symbol": "dkc1",
+    "description": "dyskeratosis congenita 1, dyskerin [Source:NCBI gene (formerly Entrezgene);Acc:613144]",
+    "biotype": "protein_coding"
+  }
+}

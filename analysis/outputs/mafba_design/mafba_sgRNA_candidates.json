@@ -1,0 +1,560 @@
+{
+  "mafba_ens_id": "ENSDARG00000017121",
+  "symbol": "mafba",
+  "canonical_transcript": "ENSDART00000002309",
+  "cds_length_nt": 1194,
+  "cds_n_codons": 398,
+  "search_window_nt": 300,
+  "n_sites_found": 44,
+  "top10_candidates": [
+    {
+      "strand": "+",
+      "position_in_seq": 212,
+      "sgRNA_20nt": "GGTAAAGAAAGAGGCCATGG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "GGTAAAGAAAGAGGCCATGGCGG",
+      "score": 75,
+      "notes": "GC ok (50%); G at position 20; G at position 1 (good for U6)",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 43,
+      "sgRNA_20nt": "AACATTGCATGCGCAAAGAG",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "AACATTGCATGCGCAAAGAGAGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 20",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 45,
+      "sgRNA_20nt": "CATTGCATGCGCAAAGAGAG",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "CATTGCATGCGCAAAGAGAGGGG",
+      "score": 70,
+      "notes": "GC ok (50%); G at position 20",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 96,
+      "sgRNA_20nt": "AACACTTTGCTGAAGAACAG",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "AACACTTTGCTGAAGAACAGGGG",
+      "score": 70,
+      "notes": "GC ok (40%); G at position 20",
+      "gc_content": 0.4
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 247,
+      "sgRNA_20nt": "GCGGTTGCACTGCCGTATAT",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GCGGTTGCACTGCCGTATATTGG",
+      "score": 70,
+      "notes": "GC ok (55%); G at position 1 (good for U6)",
+      "gc_content": 0.55
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 242,
+      "sgRNA_20nt": "TGCACTGCCGTATATTGGCG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TGCACTGCCGTATATTGGCGCGG",
+      "score": 70,
+      "notes": "GC ok (55%); G at position 20",
+      "gc_content": 0.55
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 165,
+      "sgRNA_20nt": "TTGACATATTCCAACGCCAG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TTGACATATTCCAACGCCAGCGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 20",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 34,
+      "sgRNA_20nt": "GCGCATGCAATGTTCTTGAT",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "GCGCATGCAATGTTCTTGATGGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 1 (good for U6)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 21,
+      "sgRNA_20nt": "TCTTGATGGGTCTCCGACCG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TCTTGATGGGTCTCCGACCGCGG",
+      "score": 70,
+      "notes": "GC ok (60%); G at position 20",
+      "gc_content": 0.6
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 44,
+      "sgRNA_20nt": "ACATTGCATGCGCAAAGAGA",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "ACATTGCATGCGCAAAGAGAGGG",
+      "score": 65,
+      "notes": "GC ok (45%)",
+      "gc_content": 0.45
+    }
+  ],
+  "all_candidates": [
+    {
+      "strand": "+",
+      "position_in_seq": 212,
+      "sgRNA_20nt": "GGTAAAGAAAGAGGCCATGG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "GGTAAAGAAAGAGGCCATGGCGG",
+      "score": 75,
+      "notes": "GC ok (50%); G at position 20; G at position 1 (good for U6)",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 43,
+      "sgRNA_20nt": "AACATTGCATGCGCAAAGAG",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "AACATTGCATGCGCAAAGAGAGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 20",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 45,
+      "sgRNA_20nt": "CATTGCATGCGCAAAGAGAG",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "CATTGCATGCGCAAAGAGAGGGG",
+      "score": 70,
+      "notes": "GC ok (50%); G at position 20",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 96,
+      "sgRNA_20nt": "AACACTTTGCTGAAGAACAG",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "AACACTTTGCTGAAGAACAGGGG",
+      "score": 70,
+      "notes": "GC ok (40%); G at position 20",
+      "gc_content": 0.4
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 247,
+      "sgRNA_20nt": "GCGGTTGCACTGCCGTATAT",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GCGGTTGCACTGCCGTATATTGG",
+      "score": 70,
+      "notes": "GC ok (55%); G at position 1 (good for U6)",
+      "gc_content": 0.55
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 242,
+      "sgRNA_20nt": "TGCACTGCCGTATATTGGCG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TGCACTGCCGTATATTGGCGCGG",
+      "score": 70,
+      "notes": "GC ok (55%); G at position 20",
+      "gc_content": 0.55
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 165,
+      "sgRNA_20nt": "TTGACATATTCCAACGCCAG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TTGACATATTCCAACGCCAGCGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 20",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 34,
+      "sgRNA_20nt": "GCGCATGCAATGTTCTTGAT",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "GCGCATGCAATGTTCTTGATGGG",
+      "score": 70,
+      "notes": "GC ok (45%); G at position 1 (good for U6)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 21,
+      "sgRNA_20nt": "TCTTGATGGGTCTCCGACCG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TCTTGATGGGTCTCCGACCGCGG",
+      "score": 70,
+      "notes": "GC ok (60%); G at position 20",
+      "gc_content": 0.6
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 44,
+      "sgRNA_20nt": "ACATTGCATGCGCAAAGAGA",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "ACATTGCATGCGCAAAGAGAGGG",
+      "score": 65,
+      "notes": "GC ok (45%)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 94,
+      "sgRNA_20nt": "CCAACACTTTGCTGAAGAAC",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "CCAACACTTTGCTGAAGAACAGG",
+      "score": 65,
+      "notes": "GC ok (45%)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 95,
+      "sgRNA_20nt": "CAACACTTTGCTGAAGAACA",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "CAACACTTTGCTGAAGAACAGGG",
+      "score": 65,
+      "notes": "GC ok (40%)",
+      "gc_content": 0.4
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 123,
+      "sgRNA_20nt": "ATGAGCGCCGATCTCGCCAT",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "ATGAGCGCCGATCTCGCCATGGG",
+      "score": 65,
+      "notes": "GC ok (60%)",
+      "gc_content": 0.6
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 209,
+      "sgRNA_20nt": "CGAGGTAAAGAAAGAGGCCA",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "CGAGGTAAAGAAAGAGGCCATGG",
+      "score": 65,
+      "notes": "GC ok (50%)",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 235,
+      "sgRNA_20nt": "CGCACGACCGCGCCAATATA",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "CGCACGACCGCGCCAATATACGG",
+      "score": 65,
+      "notes": "GC ok (60%)",
+      "gc_content": 0.6
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 164,
+      "sgRNA_20nt": "TGACATATTCCAACGCCAGC",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "TGACATATTCCAACGCCAGCGGG",
+      "score": 65,
+      "notes": "GC ok (50%)",
+      "gc_content": 0.5
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 160,
+      "sgRNA_20nt": "ATATTCCAACGCCAGCGGGC",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "ATATTCCAACGCCAGCGGGCTGG",
+      "score": 65,
+      "notes": "GC ok (60%)",
+      "gc_content": 0.6
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 94,
+      "sgRNA_20nt": "CCTGTTCTTCAGCAAAGTGT",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "CCTGTTCTTCAGCAAAGTGTTGG",
+      "score": 65,
+      "notes": "GC ok (45%)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 93,
+      "sgRNA_20nt": "CTGTTCTTCAGCAAAGTGTT",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "CTGTTCTTCAGCAAAGTGTTGGG",
+      "score": 65,
+      "notes": "GC ok (40%)",
+      "gc_content": 0.4
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 35,
+      "sgRNA_20nt": "TGCGCATGCAATGTTCTTGA",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "TGCGCATGCAATGTTCTTGATGG",
+      "score": 65,
+      "notes": "GC ok (45%)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 66,
+      "sgRNA_20nt": "GGAGAAAAAACGCCAAAGTC",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GGAGAAAAAACGCCAAAGTCTGG",
+      "score": 60,
+      "notes": "GC ok (45%); homopolymer A4; G at position 1 (good for U6)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 203,
+      "sgRNA_20nt": "GAAATTCGAGGTAAAGAAAG",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "GAAATTCGAGGTAAAGAAAGAGG",
+      "score": 60,
+      "notes": "G at position 20; G at position 1 (good for U6)",
+      "gc_content": 0.35
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 276,
+      "sgRNA_20nt": "GTGGAGGACACGGAGCCCTG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "GTGGAGGACACGGAGCCCTGCGG",
+      "score": 60,
+      "notes": "G at position 20; G at position 1 (good for U6)",
+      "gc_content": 0.7
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 78,
+      "sgRNA_20nt": "GTGTTGGGAAAACCAGACTT",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GTGTTGGGAAAACCAGACTTTGG",
+      "score": 60,
+      "notes": "GC ok (45%); homopolymer A4; G at position 1 (good for U6)",
+      "gc_content": 0.45
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 122,
+      "sgRNA_20nt": "GATGAGCGCCGATCTCGCCA",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GATGAGCGCCGATCTCGCCATGG",
+      "score": 55,
+      "notes": "G at position 1 (good for U6)",
+      "gc_content": 0.65
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 124,
+      "sgRNA_20nt": "TGAGCGCCGATCTCGCCATG",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "TGAGCGCCGATCTCGCCATGGGG",
+      "score": 55,
+      "notes": "G at position 20",
+      "gc_content": 0.65
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 157,
+      "sgRNA_20nt": "TTCCAACGCCAGCGGGCTGG",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "TTCCAACGCCAGCGGGCTGGTGG",
+      "score": 55,
+      "notes": "G at position 20",
+      "gc_content": 0.7
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 261,
+      "sgRNA_20nt": "TGCAACCGCCTCCAGCCGCA",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "TGCAACCGCCTCCAGCCGCAGGG",
+      "score": 50,
+      "notes": "",
+      "gc_content": 0.7
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 156,
+      "sgRNA_20nt": "TCCAACGCCAGCGGGCTGGT",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "TCCAACGCCAGCGGGCTGGTGGG",
+      "score": 50,
+      "notes": "",
+      "gc_content": 0.7
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 130,
+      "sgRNA_20nt": "CTCGGGCCCCATGGCGAGAT",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "CTCGGGCCCCATGGCGAGATCGG",
+      "score": 40,
+      "notes": "homopolymer C4",
+      "gc_content": 0.7
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 4,
+      "sgRNA_20nt": "TCCAGCGCTCGAGCGCGCCG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "TCCAGCGCTCGAGCGCGCCGCGG",
+      "score": 35,
+      "notes": "GC suboptimal (80%); G at position 20",
+      "gc_content": 0.8
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 8,
+      "sgRNA_20nt": "GCGCTCGAGCGCGCCGCGGT",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "GCGCTCGAGCGCGCCGCGGTCGG",
+      "score": 35,
+      "notes": "GC suboptimal (85%); G at position 1 (good for U6)",
+      "gc_content": 0.85
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 155,
+      "sgRNA_20nt": "GCCCACCAGCCCGCTGGCGT",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GCCCACCAGCCCGCTGGCGTTGG",
+      "score": 35,
+      "notes": "GC suboptimal (80%); G at position 1 (good for U6)",
+      "gc_content": 0.8
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 191,
+      "sgRNA_20nt": "CTTTGATTTAATGAAATTCG",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "CTTTGATTTAATGAAATTCGAGG",
+      "score": 35,
+      "notes": "GC suboptimal (25%); G at position 20",
+      "gc_content": 0.25
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 260,
+      "sgRNA_20nt": "GTGCAACCGCCTCCAGCCGC",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "GTGCAACCGCCTCCAGCCGCAGG",
+      "score": 35,
+      "notes": "GC suboptimal (75%); G at position 1 (good for U6)",
+      "gc_content": 0.75
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 269,
+      "sgRNA_20nt": "ACACGGAGCCCTGCGGCTGG",
+      "PAM_NGG": "AGG",
+      "full_target_23nt": "ACACGGAGCCCTGCGGCTGGAGG",
+      "score": 35,
+      "notes": "GC suboptimal (75%); G at position 20",
+      "gc_content": 0.75
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 266,
+      "sgRNA_20nt": "CGGAGCCCTGCGGCTGGAGG",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "CGGAGCCCTGCGGCTGGAGGCGG",
+      "score": 35,
+      "notes": "GC suboptimal (80%); G at position 20",
+      "gc_content": 0.8
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 226,
+      "sgRNA_20nt": "GGCGCGGTCGTGCGCCGCCA",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GGCGCGGTCGTGCGCCGCCATGG",
+      "score": 35,
+      "notes": "GC suboptimal (85%); G at position 1 (good for U6)",
+      "gc_content": 0.85
+    },
+    {
+      "strand": "+",
+      "position_in_seq": 149,
+      "sgRNA_20nt": "CGAGCTGCCCACCAGCCCGC",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "CGAGCTGCCCACCAGCCCGCTGG",
+      "score": 30,
+      "notes": "GC suboptimal (80%)",
+      "gc_content": 0.8
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 272,
+      "sgRNA_20nt": "AGGACACGGAGCCCTGCGGC",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "AGGACACGGAGCCCTGCGGCTGG",
+      "score": 30,
+      "notes": "GC suboptimal (75%)",
+      "gc_content": 0.75
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 148,
+      "sgRNA_20nt": "CAGCGGGCTGGTGGGCAGCT",
+      "PAM_NGG": "CGG",
+      "full_target_23nt": "CAGCGGGCTGGTGGGCAGCTCGG",
+      "score": 30,
+      "notes": "GC suboptimal (75%)",
+      "gc_content": 0.75
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 147,
+      "sgRNA_20nt": "AGCGGGCTGGTGGGCAGCTC",
+      "PAM_NGG": "GGG",
+      "full_target_23nt": "AGCGGGCTGGTGGGCAGCTCGGG",
+      "score": 30,
+      "notes": "GC suboptimal (75%)",
+      "gc_content": 0.75
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 5,
+      "sgRNA_20nt": "ACCGCGGCGCGCTCGAGCGC",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "ACCGCGGCGCGCTCGAGCGCTGG",
+      "score": 30,
+      "notes": "GC suboptimal (85%)",
+      "gc_content": 0.85
+    },
+    {
+      "strand": "-",
+      "position_in_seq": 139,
+      "sgRNA_20nt": "GGTGGGCAGCTCGGGCCCCA",
+      "PAM_NGG": "TGG",
+      "full_target_23nt": "GGTGGGCAGCTCGGGCCCCATGG",
+      "score": 25,
+      "notes": "GC suboptimal (80%); homopolymer C4; G at position 1 (good for U6)",
+      "gc_content": 0.8
+    }
+  ],
+  "design_notes": [
+    "These are heuristic candidates based on PAM site search + simple scoring rules.",
+    "BEFORE ordering: validate with production tools (CRISPRscan, CHOPCHOP, CRISPOR).",
+    "Off-target prediction NOT included here; production tools have full off-target databases.",
+    "Recommend wet-lab partner: select 2-3 sgRNAs from top 10, prioritize different strands and positions for orthogonality.",
+    "In vitro cleavage assay before microinjection is essential."
+  ]
+}

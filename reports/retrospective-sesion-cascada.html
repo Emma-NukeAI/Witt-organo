@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retrospective · Sesión de Cascada Pronefro · Observaciones y Recomendaciones</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #777;
+    --rule: #e4e2dd;
+    --accent: #5a4a3a;
+    --accent-soft: #f3efe8;
+    --pass: #2d6a4f;
+    --warn: #b8860b;
+    --fail: #8b3a3a;
+    --high: #b85a2e;
+    --med: #806a3a;
+    --low: #5a6a85;
+    --cross: #3a4a6a;
+    --cross-soft: #eef1f7;
+    --critical: #8b3a3a;
+    --critical-soft: #fbeeed;
+    --review: #3a5a3a;
+    --review-soft: #eef5ee;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 48px 32px 96px; }
+
+  header.title { border-bottom: 2px solid var(--ink); padding-bottom: 24px; margin-bottom: 32px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-faint); margin-bottom: 8px; }
+  h1 { font-size: 28px; line-height: 1.18; margin: 0 0 12px; font-weight: 600; }
+  .subtitle { font-size: 15px; color: var(--ink-soft); margin: 0; }
+  .meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 24px; font-size: 13px; color: var(--ink-soft);
+    margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--rule);
+  }
+  .meta dt { color: var(--ink-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta dd { margin: 0 0 4px; font-weight: 500; }
+
+  .gate {
+    background: #fff7e6;
+    border-left: 3px solid var(--warn);
+    padding: 14px 18px;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+  .gate strong { color: var(--warn); }
+
+  .review-prompt {
+    background: var(--review-soft);
+    border: 2px solid var(--review);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .review-prompt-label {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--review);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .review-prompt p { margin: 0 0 10px; }
+  .review-prompt p:last-child { margin-bottom: 0; }
+  .review-prompt strong { color: var(--review); }
+  .review-prompt ul { margin: 8px 0 0; padding-left: 20px; }
+  .review-prompt li { margin-bottom: 4px; }
+
+  .tldr {
+    background: #f5f0e6;
+    border: 1px solid #d9d1bd;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin: 24px 0 36px;
+  }
+  .tldr-label {
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); font-weight: 600; margin-bottom: 10px;
+  }
+  .tldr-text { font-size: 15px; line-height: 1.55; color: var(--ink); }
+  .tldr-text strong { color: var(--accent); }
+
+  h2 {
+    font-size: 21px; margin: 44px 0 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  h3 { font-size: 16px; margin: 24px 0 8px; font-weight: 600; }
+  h4 { font-size: 13px; margin: 16px 0 6px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 16px; color: var(--ink-soft); }
+
+  .toc {
+    font-size: 13px; background: var(--surface); border: 1px solid var(--rule);
+    padding: 14px 22px; margin-bottom: 32px; border-radius: 6px;
+  }
+  .toc ol { margin: 6px 0 0; padding-left: 22px; columns: 2; column-gap: 28px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; color: var(--accent); }
+  tbody tr.highlight { background: #fbeeed; }
+  tbody tr.highlight td { font-weight: 500; }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .pill.high { background: #fae5db; color: var(--high); }
+  .pill.med { background: #f3eed8; color: var(--med); }
+  .pill.low { background: #e6edf5; color: var(--low); }
+  .pill.critical { background: var(--critical-soft); color: var(--critical); }
+
+  .callout {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout strong { color: var(--accent); }
+  .callout.critical {
+    background: var(--critical-soft);
+    border-left-color: var(--critical);
+  }
+  .callout.critical strong { color: var(--critical); }
+  .callout.cross {
+    background: var(--cross-soft);
+    border-left-color: var(--cross);
+  }
+  .callout.cross strong { color: var(--cross); }
+  .callout-label {
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    font-weight: 600; margin-bottom: 8px;
+  }
+  .callout.critical .callout-label { color: var(--critical); }
+
+  ul.flags { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+  ul.flags li { margin-bottom: 6px; }
+
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: var(--accent-soft); padding: 1px 4px; border-radius: 3px; }
+  pre {
+    background: var(--accent-soft); padding: 12px 16px; border-radius: 4px;
+    overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; line-height: 1.5;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* Action cards */
+  .action-grid {
+    display: grid;
+    grid-template-columns: 60px 1fr 110px 120px;
+    gap: 0;
+    margin: 16px 0;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .action-grid > div { padding: 12px 14px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); font-size: 13px; }
+  .action-grid > div:nth-child(4n) { border-right: none; }
+  .action-grid > div:nth-last-child(-n+4) { border-bottom: none; }
+  .action-grid .head {
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .action-grid .id {
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    font-size: 16px;
+  }
+  .action-grid .id-cell { background: #faf6ee; }
+  .action-grid .leverage { text-align: center; }
+  .action-grid .time { text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--ink-soft); }
+
+  /* Evidence ledger */
+  .evidence-table {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+  .evidence-table table { margin: 0; }
+
+  /* Blind spots section special styling */
+  .blind-spots {
+    background: #f0eef5;
+    border: 1px solid #d8d2e0;
+    border-left: 4px solid var(--low);
+    padding: 18px 22px;
+    margin: 16px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .blind-spots h3 { color: var(--low); margin-top: 0; }
+  .blind-spots ul { margin: 8px 0 0; padding-left: 20px; font-size: 13.5px; color: var(--ink-soft); }
+  .blind-spots ul li { margin-bottom: 8px; }
+  .blind-spots strong { color: var(--ink); }
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  footer p { margin: 4px 0; }
+  footer a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px dotted var(--rule); }
+
+  @media (max-width: 700px) {
+    .toc ol { columns: 1; }
+    .action-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <div class="eyebrow">Proyecto Organogenesis × Witt · Retrospective · Sesión 2026-05-12</div>
+  <h1>Observaciones y recomendaciones sobre la sesión de cascada pronefro</h1>
+  <p class="subtitle">Meta-análisis self-reportado por Claude · destinado a revisión por agente independiente antes de tomar decisiones de implementación</p>
+  <dl class="meta">
+    <div><dt>Fecha</dt><dd>2026-05-12</dd></div>
+    <div><dt>Tipo</dt><dd>Retrospective post-sesión</dd></div>
+    <div><dt>Sesión analizada</dt><dd>Cascada pronefro (Etapas 1+2+3 + viz + skill)</dd></div>
+    <div><dt>Artefactos generados en la sesión</dt><dd>11 archivos · 4 dirs nuevos</dd></div>
+    <div><dt>Propósito</dt><dd>Identificar gaps + priorizar mejoras</dd></div>
+    <div><dt>Estado</dt><dd>Para revisión independiente</dd></div>
+  </dl>
+</header>
+
+<div class="gate">
+  <strong>Sobre este documento.</strong> Este es un análisis meta-nivel auto-reportado por el agente que ejecutó la sesión.
+  Tiene sesgo intrínseco — el autor está evaluando su propio trabajo. Las recomendaciones que propone implican <em>más trabajo para el mismo agente</em>,
+  un sesgo de interés que el revisor independiente debe sopesar (ver §7 Blind Spots).
+</div>
+
+<div class="review-prompt">
+  <div class="review-prompt-label">Para el agente revisor</div>
+  <p>
+    El usuario quiere usar este documento como input para una <strong>segunda opinión</strong> antes de decidir
+    qué recomendaciones implementar. Tu tarea como revisor:
+  </p>
+  <ul>
+    <li>Evaluar si la observación principal (§3) está bien fundamentada o sobrevalorada por el autor.</li>
+    <li>Identificar recomendaciones que parecen razonables pero que en realidad mueven el problema sin resolverlo.</li>
+    <li>Detectar acciones omitidas — ¿hay algo que el autor no propuso que debería estar en el menú?</li>
+    <li>Cuestionar las clasificaciones de prioridad (§5) — ¿cuál realmente cambia el siguiente ciclo de iteración?</li>
+    <li>Pesar los <em>blind spots declarados</em> (§7) y añadir los que el autor no detectó.</li>
+  </ul>
+  <p style="margin-top:12px;">
+    El documento es self-contained — no necesitas el historial de conversación. Las referencias a archivos
+    son verificables con <code>cat</code> / <code>ls</code> en el repo.
+  </p>
+</div>
+
+<div class="tldr">
+  <div class="tldr-label">TL;DR · La observación que importa</div>
+  <p class="tldr-text">
+    El autor (Claude) produjo en esta sesión una cascada simulación de alta calidad arquitectural
+    (4 escenarios por etapa · decouple paradigm · cross-stage synthesis · version discipline) pero
+    <strong>baja calidad empírica</strong> — generó predictions transcriptómicas genéricas sin tocar
+    los datos primarios scRNA-seq que ya viven en <code>analysis/outputs/</code> (Schoels 2,065 células,
+    Wagner 43 células pronefro, DE per cluster, TFs per cluster, framework Bayesiano con priors/LR/posteriors).
+    La skill <code>causal-ablation-cascade-sim</code> que recién escribió <em>codifica el gap</em> —
+    una invocación futura producirá otra cascada bien estructurada con evidencia delgada. Recomendación
+    principal: añadir step explícito de consulta empírica al SKILL.md antes de generar predictions.
+    Confianza self-reportada en esta evaluación: 0.75. Ver §7 para sesgos.
+  </p>
+</div>
+
+<div class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#metodologia">Metodología del análisis</a></li>
+    <li><a href="#sesion-context">Contexto de la sesión analizada</a></li>
+    <li><a href="#observacion-critica">Observación crítica · gap empírico</a></li>
+    <li><a href="#observaciones-sec">Observaciones secundarias</a></li>
+    <li><a href="#recomendaciones">Recomendaciones priorizadas</a></li>
+    <li><a href="#acciones">Menú de acciones</a></li>
+    <li><a href="#blindspots">Blind spots y sesgos declarados</a></li>
+    <li><a href="#decision">Decisión pendiente del usuario</a></li>
+  </ol>
+</div>
+
+<section id="metodologia">
+  <h2>1. Metodología del análisis</h2>
+  <p class="lead">
+    El análisis combina reflexión sobre la conversación de la sesión con exploración directa del repositorio,
+    incluyendo artefactos que el autor descubrió <em>solo durante el retrospective</em>.
+  </p>
+
+  <h4>Fuentes consultadas</h4>
+  <ul class="flags">
+    <li><strong>Conversación de la sesión</strong> — los ~20 turnos del intercambio usuario↔Claude</li>
+    <li><strong>Señales <code>&lt;ide_opened_file&gt;</code></strong> — archivos que el usuario abrió en VS Code durante la sesión (visibles en system reminders)</li>
+    <li><strong>Estructura del proyecto</strong> — <code>ls</code> recursivo de <code>analysis/</code>, <code>checkpoints/</code>, <code>mcp_cache/</code>, <code>docs/</code>, <code>skills/</code>, <code>reports/</code></li>
+    <li><strong>Contenido de artefactos clave</strong> — <code>cat</code> de checkpoints, decision matrices, summaries de scRNA-seq</li>
+    <li><strong>Memoria persistente</strong> — verificación de <code>~/.claude/projects/.../memory/</code> (vacía)</li>
+    <li><strong>CLAUDE.md</strong> — comparación entre lo declarado en §6/§7 y lo realmente ejecutado en la sesión</li>
+  </ul>
+
+  <h4>Lo que NO consulté</h4>
+  <ul class="flags">
+    <li>Sesiones previas (no tengo acceso a transcripciones de otras sesiones)</li>
+    <li>Estado interno o reasoning trace del autor — solo sus outputs</li>
+    <li>Feedback humano explícito post-sesión — el usuario no ha evaluado todavía</li>
+  </ul>
+</section>
+
+<section id="sesion-context">
+  <h2>2. Contexto de la sesión analizada</h2>
+  <p>
+    Sesión iniciada con pregunta del usuario: <em>"simula las ablaciones causales morfológicas para
+    estimular los cambios en una célula que conlleven la generación de tejido de pronefro en pez cebra,
+    usa la información de transcriptoma solo como validación"</em>.
+  </p>
+  <p>
+    Flujo: el autor clarificó scope (método, célula inicial, tipo de ablación) → ejecutó Etapa 1 con 4 escenarios →
+    pausa → Etapa 2 con 4 escenarios → pausa → HTML conclusivos + viz 3D → comparación lado a lado → Etapa 3 →
+    cierre cascada → encoding de skill reusable + actualización de CLAUDE.md.
+  </p>
+
+  <h4>Artefactos generados (todos en <code>reports/</code> y <code>skills/custom/causal-ablation-cascade-sim/</code>)</h4>
+
+  <div class="evidence-table">
+    <table>
+      <thead>
+        <tr><th>Archivo</th><th>Propósito</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>reports/etapa1-mesendodermo-conclusion.html</code></td><td>Etapa 1 standalone — 4 escenarios estructurados</td></tr>
+        <tr><td><code>reports/etapa2-im-conclusion.html</code></td><td>Etapa 2 + comparación cruzada Etapa 1</td></tr>
+        <tr><td><code>reports/cierre-cascada-completa.html</code></td><td>Cierre 3-etapas con TL;DR, signature cards, validation priorities</td></tr>
+        <tr><td><code>reports/visualizacion-cascada-pronefro.html</code></td><td>Viz 4D single-scenario (Etapas 1+2 — v1 reference)</td></tr>
+        <tr><td><code>reports/visualizacion-comparacion-pronefro.html</code></td><td>Viz comparación lado a lado (v1)</td></tr>
+        <tr><td><code>reports/visualizacion-cascada-pronefro-v2.html</code></td><td>Viz single con 13 escenarios (3 etapas — v2)</td></tr>
+        <tr><td><code>reports/visualizacion-comparacion-pronefro-v2.html</code></td><td>Viz comparación con 13 escenarios + defaults cascada</td></tr>
+        <tr><td><code>skills/custom/causal-ablation-cascade-sim/SKILL.md</code></td><td>Contrato de la skill nueva</td></tr>
+        <tr><td><code>skills/custom/causal-ablation-cascade-sim/references/protocol-and-decouple.md</code></td><td>4-escenarios + decouple paradigm + cross-stage</td></tr>
+        <tr><td><code>skills/custom/causal-ablation-cascade-sim/references/deliverables-spec.md</code></td><td>Formato HTML report + viz</td></tr>
+        <tr><td><code>skills/custom/causal-ablation-cascade-sim/references/zebrafish-pronefro-domain.md</code></td><td>Biología Fase I</td></tr>
+        <tr><td>CLAUDE.md (edits)</td><td>Fila en §8 + entrada en footer §9</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="observacion-critica">
+  <h2>3. Observación crítica · gap empírico</h2>
+
+  <div class="callout critical">
+    <div class="callout-label">Finding central</div>
+    <p>
+      El autor generó toda la cascada simulación <strong>sin tocar el material empírico que ya existe en el proyecto</strong>.
+      La calidad arquitectural es alta (protocolo, decouple paradigm, version discipline) pero el grounding
+      en datos primarios es esencialmente nulo. La skill que recién escribió codifica este gap — una invocación
+      futura repetirá el mismo error con la misma elegancia estructural.
+    </p>
+  </div>
+
+  <h4>Lo que existe vs lo que se asumió no existía</h4>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Lo que el proyecto ya tiene</th>
+        <th>Lo que el autor asumió o produjo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>analysis/outputs/schoels_DE_per_cluster.json</code> — 2,065 células reales, DE por cluster, 3 días de desarrollo</td>
+        <td>Citó <span style="font-style:italic">"pax2a, lhx1a, wt1a presentes"</span> como literatura genérica, sin referencia a cluster ni nivel de expresión real</td>
+      </tr>
+      <tr>
+        <td><code>analysis/outputs/schoels_TFs_per_cluster.csv</code> — TFs específicos por cluster con padj, scores</td>
+        <td>No mencionó ningún TF más allá de los markers canónicos en evidence_cited</td>
+      </tr>
+      <tr>
+        <td><code>analysis/outputs/mafba_design/decision_matrix.md</code> — framework Bayesiano formal con priors, LR, posteriors, 5 outcome categories</td>
+        <td>Habló de <span style="font-style:italic">"isotonic regression post-hoc"</span> como aspiracional sin saber que el framework ya está operacionalizado</td>
+      </tr>
+      <tr>
+        <td><code>mcp_cache/</code> con 10 búsquedas Tool Universe del 2026-05-08 (PubMed, GEO, ArrayExpress, SCXA, SRA)</td>
+        <td>No revisó el cache antes de generar predictions; no añadió nuevas búsquedas que enriquecieran evidence_cited</td>
+      </tr>
+      <tr>
+        <td><code>checkpoints/zebrafish_pronephros_scrnaseq_survey_*.json</code> — workflow de 14 fases activo</td>
+        <td>No supo que existía un workflow multi-fase activo del 2026-05-08</td>
+      </tr>
+      <tr>
+        <td><code>docs/reports/2026-05-09_decision_package_martin.html</code></td>
+        <td>No supo que ya había decision package preparado para el co-fundador</td>
+      </tr>
+      <tr>
+        <td><code>analysis/outputs/power_analysis/</code> con cálculos formales</td>
+        <td>Mis n=15-25 estimados son hand-wavy comparados con power analysis real</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Por qué importa</h4>
+  <p>
+    El usuario operó en Method 2 — instrumentando, no driving — confiando en que el autor consultaría
+    el state del proyecto antes de generar. El autor no lo hizo. Las predicciones transcriptómicas que
+    aparecen en los 12 escenarios de la cascada deberían haber estado referenciadas contra:
+  </p>
+  <ul class="flags">
+    <li>Cluster IDs específicos de Schoels donde cada marker se observa</li>
+    <li>Día de desarrollo (day1/day2/day3) cuando cada marker se enciende/apaga</li>
+    <li>Niveles de expresión cuantitativos (no solo "presente")</li>
+    <li>TFs específicos de cada cluster que podrían ser perturbation targets adicionales</li>
+    <li>Priors Bayesianos del decision matrix de mafba/hoxb8a aplicados al caso contractilidad</li>
+  </ul>
+
+  <p>
+    El gap es <strong>sistemático</strong>, no accidental: la skill que se acaba de codificar no contiene
+    un step que prevenga este error en futuras invocaciones. Es el gap más importante de la sesión y la
+    razón por la que el resto de las recomendaciones tienen menor leverage.
+  </p>
+</section>
+
+<section id="observaciones-sec">
+  <h2>4. Observaciones secundarias</h2>
+
+  <h3>4.1 Auto-memoria sin usar</h3>
+  <p>
+    La carpeta <code>~/.claude/projects/c--Users-Emmanuel-dev-witt-organogenesis/memory/</code> está vacía.
+    El sistema de memoria persistente está implementado y disponible (ver auto-memory section en system prompt),
+    pero ninguna sesión lo ha exercised. Toda iteración con este usuario empieza desde cero —
+    se pierde lo aprendido sobre preferencias, patrones de trabajo, contexto de proyecto que va más allá
+    de lo que vive en archivos del repo.
+  </p>
+
+  <h3>4.2 ADRs nunca creados</h3>
+  <p>
+    <code>docs/decisions/</code> tiene un README + template completo pero <strong>ningún ADR escrito todavía</strong>.
+    En esta sesión el autor tomó decisiones no-obvias que merecen ADR:
+  </p>
+  <ul class="flags">
+    <li>Protocolo de 4-escenarios por etapa (¿por qué 4 y no 6? ¿por qué Mode A washout y no time-lapse continuo?)</li>
+    <li>Regla de version-preservation (nunca modificar prior reports/viz cuando se añaden etapas)</li>
+    <li>Firma "tres fenotipos cualitativos" (dislocación, compresión, falla de pared) como evidencia de causalidad stage-specific</li>
+    <li>Confidence calibration heuristics (0.78 / 0.80 / 0.82 para A-hipo de etapas 1/2/3)</li>
+  </ul>
+  <p>
+    Sin ADRs, estas decisiones se pierden — la próxima iteración las re-inventará probablemente diferente.
+    El usuario en futuro preguntará "¿por qué decidimos 4 escenarios?" y no habrá respuesta forensable.
+  </p>
+
+  <h3>4.3 Composite-auditor no invocado</h3>
+  <p>
+    CLAUDE.md §7 establece como <em>hard rule</em>: <span style="font-style:italic">"<code>composite-auditor</code> replaces single-LLM SI/NO auditing. Three operating modes; never use a single-LLM pass for substrate-evidence audit gates."</span>
+  </p>
+  <p>
+    El cierre de cascada (<code>cierre-cascada-completa.html</code>) es exactamente donde debería haberse invocado.
+    No se hizo. La skill nueva tampoco lo obliga — la regla existe en CLAUDE.md pero el workflow operacional no la captura.
+    Esto es una violación silenciosa del contrato del proyecto.
+  </p>
+
+  <h3>4.4 Framework rotation = 0</h3>
+  <p>
+    Todos los 12 escenarios usaron <code>framework_applied: "Self-Consistency (Tier 1, self-reported)"</code>. Nunca
+    se exploró otra opción. Crítico: <strong>la decouple paradigm es formalizable</strong> — PASA/PARCIAL/FALLA
+    son predicados booleanos sobre lecturas transcriptómicas — y Logic-LM (también Tier 1, también preferred default
+    per <code>reasoning-frameworks-catalog.md</code> v1.1) habría sido más apropiado. El autor defaulteó a
+    Self-Consistency como safe choice sin evaluar fit.
+  </p>
+
+  <h3>4.5 Patrón observable en señales IDE</h3>
+  <p>
+    Durante la sesión, los <code>&lt;ide_opened_file&gt;</code> reportaron que el usuario abrió repetidamente:
+  </p>
+  <ul class="flags">
+    <li><code>CLAUDE.md</code> (~4 veces)</li>
+    <li><code>skills/custom/organogenesis-agent-architect/references/agent-catalog.md</code> (2 veces)</li>
+    <li><code>skills/custom/organogenesis-agent-architect/references/method-selection.md</code> (1 vez)</li>
+  </ul>
+  <p>
+    Interpretación tentativa: el usuario está cross-referenciando documentos del proyecto <em>mientras</em> el autor opera.
+    Esto sugiere que valora coherencia entre artefactos, y que probablemente fue consciente del gap empírico
+    (cuando abrió <code>agent-catalog.md</code> y vio que el autor no referenciaba ningún agente como
+    <code>calibration-tracker</code> o <code>composite-auditor</code>, que están en el catálogo y serían
+    pertinentes). El usuario no lo señaló explícitamente — pidiendo este retrospective parece ser su forma
+    de obtener feedback estructurado sobre lo que él ya observó.
+  </p>
+
+  <h3>4.6 Bilingüismo asimétrico</h3>
+  <p>
+    El proyecto opera en español (founder, conversaciones, descripciones); las skills y references existentes
+    están en inglés (technical identifiers, code-adjacent docs). La sesión mezcló los dos en formas inconsistentes
+    — optgroup labels en español, identifier names en inglés, descripciones mixed. No es bloqueante pero indica
+    falta de standardización contractual.
+  </p>
+
+  <h3>4.7 Cross-skill linkage débil</h3>
+  <p>
+    La skill nueva referencia <code>morpheus-4d-viz</code> como substrate y <code>tooluniverse</code> como adyacente,
+    pero <em>no chain formalmente</em> hacia ellos. No hay un patrón "cuando necesites viz, invoca morpheus-4d-viz
+    con estos parámetros" ni "cuando evidence_cited necesite grounding, dispatch a tooluniverse". Las skills coexisten
+    pero no cooperan operacionalmente.
+  </p>
+</section>
+
+<section id="recomendaciones">
+  <h2>5. Recomendaciones priorizadas</h2>
+
+  <p>
+    Ordenadas por leverage estimado × facilidad de implementación. Las marcadas <span class="pill critical">CRÍTICA</span>
+    abordan el gap empírico directamente; las demás son refinamientos.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Recomendación</th>
+        <th>Prioridad</th>
+        <th>Cambia</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td>1</td>
+        <td>Añadir step explícito de consulta empírica al SKILL.md de <code>causal-ablation-cascade-sim</code>.
+        Antes de generar <code>transcriptome_validation_predicted</code>, la skill debe: (a) grep <code>analysis/outputs/*.json</code> y <code>*.csv</code>
+        por markers relevantes al tejido; (b) inspeccionar <code>mcp_cache/*.json</code> para resultados previos de Tool Universe;
+        (c) referenciar archivo + cluster/línea específica en <code>evidence_cited</code>; (d) declarar el gap si no encuentra.</td>
+        <td><span class="pill critical">CRÍTICA</span></td>
+        <td>El gap empírico futuro</td>
+      </tr>
+      <tr class="highlight">
+        <td>2</td>
+        <td>Linkear la cascada simulación al framework Bayesiano del proyecto (<code>analysis/outputs/mafba_design/decision_matrix.md</code>).
+        Confidences de los escenarios deben expresarse como priors compatibles con la fórmula <code>posterior = prior × LR / [...]</code>.
+        Identificar qué outcome categories (P1-P5) testarían la hipótesis cascada en wet-lab. Esto convierte la simulación
+        en evidencia ingestible por el calibration loop.</td>
+        <td><span class="pill critical">CRÍTICA</span></td>
+        <td>Cierra el calibration loop · substrate value real de Witt</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Escribir 3 ADRs sobre decisiones no-obvias de esta sesión:
+        <code>0001-cascade-protocol-4-scenarios.md</code>,
+        <code>0002-version-preservation-rule.md</code>,
+        <code>0003-decouple-paradigm-as-purity-test.md</code>.</td>
+        <td><span class="pill high">Alta</span></td>
+        <td>Memoria institucional · preserva forense de decisiones</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Inicializar <code>~/.claude/projects/.../memory/</code> con <code>MEMORY.md</code> + 4 memorias durables:
+        preferencia rigor over economy (cuando se pide explícito), preservación de versiones non-negotiable,
+        cross-referencing en VS Code durante mi trabajo, español primario.</td>
+        <td><span class="pill high">Alta</span></td>
+        <td>Continuidad inter-sesión</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Hard rule en SKILL.md de cascade-sim: <code>composite-auditor</code> obligatorio antes de generar <code>cierre-*.html</code>.
+        Si Method 1: ejecutar automáticamente. Si Method 2: proponer al usuario explícitamente.</td>
+        <td><span class="pill med">Media</span></td>
+        <td>Operacionaliza CLAUDE.md §7</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Framework rotation explícita en SKILL.md §4: "Cuando el test de decouple sea formalizable (predicados booleanos sobre transcriptoma),
+        considera Logic-LM en lugar de Self-Consistency". Forzar al menos una rotación por cascada para que <code>framework_applied</code>
+        no sea monolítico.</td>
+        <td><span class="pill med">Media</span></td>
+        <td>Aprovecha el catálogo de frameworks que el proyecto tiene</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Checkpoint discipline para cascadas. Workflows de ≥3 etapas deben escribir
+        <code>checkpoints/cascade_&lt;topic&gt;_&lt;timestamp&gt;.json</code> después de cada etapa. Es lo que §6 de CLAUDE.md
+        exige para workflows MCP y se aplica también a la cascada.</td>
+        <td><span class="pill low">Baja</span></td>
+        <td>Resumibilidad cross-sesión</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Bilingualism contract explícito. Contenido sustantivo en idioma del usuario; technical identifiers
+        (Mode A, KO, hipo, framework names, gene symbols) en inglés siempre. Documentar en SKILL.md.</td>
+        <td><span class="pill low">Baja</span></td>
+        <td>Consistencia técnica</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="acciones">
+  <h2>6. Menú de acciones (con tiempos estimados)</h2>
+
+  <p>
+    Si el usuario aprueba implementar, el autor propone ejecutar en este orden:
+  </p>
+
+  <div class="action-grid">
+    <div class="head">ID</div>
+    <div class="head">Acción</div>
+    <div class="head">Leverage</div>
+    <div class="head">Tiempo est.</div>
+
+    <div class="id id-cell">A</div>
+    <div>Añadir step de consulta empírica al SKILL.md + actualizar <code>deliverables-spec.md</code> con instrucción de grep en <code>analysis/outputs/</code> y <code>mcp_cache/</code> antes de generar predictions</div>
+    <div class="leverage"><span class="pill critical">CRÍTICA</span></div>
+    <div class="time">~15 min</div>
+
+    <div class="id id-cell">B</div>
+    <div>Escribir los 3 ADRs sobre esta sesión (<code>0001</code>, <code>0002</code>, <code>0003</code>)</div>
+    <div class="leverage"><span class="pill high">Alta</span></div>
+    <div class="time">~20 min</div>
+
+    <div class="id id-cell">C</div>
+    <div>Inicializar <code>memory/</code> con <code>MEMORY.md</code> + 4 memorias durables sobre el usuario y el proyecto</div>
+    <div class="leverage"><span class="pill high">Alta</span></div>
+    <div class="time">~10 min</div>
+
+    <div class="id id-cell">D</div>
+    <div>Linkear cascada a Bayesian decision matrix (cross-reference en SKILL.md + ejemplo concreto en <code>references/protocol-and-decouple.md</code> §1)</div>
+    <div class="leverage"><span class="pill critical">CRÍTICA</span></div>
+    <div class="time">~20 min</div>
+
+    <div class="id id-cell">E</div>
+    <div>Añadir hard rule de <code>composite-auditor</code> pre-cierre + framework rotation guidance en SKILL.md</div>
+    <div class="leverage"><span class="pill med">Media</span></div>
+    <div class="time">~10 min</div>
+  </div>
+
+  <p>
+    Recomendación del autor: <strong>A + B + C</strong> como primer batch — cambian la próxima iteración.
+    <strong>D + E</strong> en segundo batch. El revisor independiente puede challenge esta priorización.
+  </p>
+</section>
+
+<section id="blindspots">
+  <h2>7. Blind spots y sesgos declarados</h2>
+
+  <div class="blind-spots">
+    <h3>Sesgos del autor que el revisor debe sopesar</h3>
+    <ul>
+      <li><strong>Sesgo de auto-evaluación.</strong> El autor está calificando su propio trabajo. La tendencia natural es a la lenidad — encontrar errores menores en lugar de cuestionar el approach global. El revisor debe preguntarse: <em>¿hay algo más fundamental que el autor está protegiendo?</em></li>
+
+      <li><strong>Sesgo de interés.</strong> Las recomendaciones implican <em>más trabajo para el mismo autor</em>. Hay incentivo a proponer trabajo que el autor sabe hacer bien (más HTMLs, más skills, más references) en lugar de cambios que requieren capacidades distintas (ej: revisar manualmente vs generar markdown).</li>
+
+      <li><strong>Sesgo de framework familiar.</strong> El autor preferia structures que conoce (output contract, decouple paradigm, version discipline) sobre cuestionar si esos frameworks aplican a este problema en particular. La cascada simulación misma podría no ser el approach óptimo — quizá una sola perturbación bien validada empíricamente sería más valiosa que 12 escenarios genéricos.</li>
+
+      <li><strong>Sesgo de complejidad.</strong> El autor tiende a producir artefactos elaborados (3 referencias, múltiples versiones de viz, signature cards). El principio de Martín — <em>"prueba pequeño antes de armar bien"</em> — sugiere que la sesión probablemente sobre-elaboró. La cascada podría haber sido una sola etapa profundamente validada en lugar de tres etapas superficiales.</li>
+
+      <li><strong>Falta de acceso a sesiones previas.</strong> El autor no puede ver qué se hizo bien en sesiones del 2026-05-08/09 que produjeron el material empírico. Su evaluación de "el proyecto ya tiene X" es post-hoc; durante la sesión asumió que no existía. El revisor debería evaluar: ¿es esto un fallo del autor o un fallo del onboarding del agente al proyecto?</li>
+
+      <li><strong>El usuario no validó nada.</strong> Las "buenas decisiones" que el autor lista (clarifying questions al inicio, Method 2 discipline, version preservation) son su interpretación de qué funcionó. El usuario nunca dijo explícitamente "esto me sirvió". El revisor puede preguntar al usuario qué encontró valioso vs ruido.</li>
+
+      <li><strong>La señal IDE-opened-file es interpretable de múltiples formas.</strong> El autor interpretó "user abrió agent-catalog.md" como "el usuario detectó el gap empírico". Igualmente plausible: el usuario estaba revisando catalog por una razón no relacionada, o estaba debugging un problema técnico distinto, o simplemente revisando ortografía. La interpretación cargada de significancia favorece la narrativa del retrospective.</li>
+
+      <li><strong>Confianza self-reportada en este retrospective: 0.75.</strong> Self-report, no verified introspection (v2.2 caveat aplica recursivamente).</li>
+    </ul>
+  </div>
+
+  <h4>Blind spots que el autor sospecha pero no puede confirmar</h4>
+  <ul class="flags">
+    <li>Posible falta de alignment con goals reales del usuario que no se explicitaron (la sesión se enfocó en <em>cómo</em> hacer cascadas, no en <em>si</em> hacer cascadas era lo más valioso esta semana)</li>
+    <li>La cascada como hipótesis puede tener competidores no considerados (ej: una sola perturbación con read-out denso vs tres con read-out delgado)</li>
+    <li>El "principio de proximidad mecánica" (confidence escala con mediadores) puede ser circular — el autor calibró las confidences usando ese principio, luego "descubrió" el principio en sus propias confidences</li>
+  </ul>
+</section>
+
+<section id="decision">
+  <h2>8. Decisión pendiente del usuario</h2>
+  <p>
+    Después de leer este retrospective Y la opinión del agente revisor independiente, las decisiones que el usuario debe tomar:
+  </p>
+  <ol class="flags" style="font-size:14px; color:var(--ink); line-height:1.6;">
+    <li><strong>¿Qué acciones del menú §6 ejecutar?</strong> A+B+C es la propuesta del autor; el revisor podría sugerir otro orden o veto de algunas.</li>
+    <li><strong>¿La cascada misma fue el approach correcto?</strong> Si el revisor argumenta que sobre-elaboró, podría valer la pena pausar antes de añadir más skills y reconsiderar.</li>
+    <li><strong>¿La skill recién encoded debería evolucionar o ser refactoreada?</strong> Si los problemas son arquitecturales y no patches al SKILL.md, vale la pena rehacer en lugar de añadir.</li>
+    <li><strong>¿Hay algo que el autor omitió del menú que el revisor sugiere añadir?</strong></li>
+  </ol>
+</section>
+
+<footer>
+  <p><strong>Generado:</strong> 2026-05-12 · Retrospective sesión cascada pronefro · Versión 1.0</p>
+  <p><strong>Autor:</strong> Claude (claude-opus-4-7) · self-report, no introspección verificada (v2.2)</p>
+  <p><strong>Sesión analizada:</strong> ~20 turnos · produjo 11 archivos + 4 directorios + 2 ediciones a CLAUDE.md</p>
+  <p><strong>Para revisión independiente:</strong> documento self-contained; el revisor debe verificar las claims sobre <code>analysis/outputs/</code> y <code>mcp_cache/</code> con <code>ls</code>/<code>cat</code> antes de aceptar la observación crítica</p>
+  <p><strong>Estado:</strong> pendiente segunda opinión + decisión del usuario sobre qué implementar</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "_comment": "Claude Code MCP config template. Merge contents into your local ~/.claude.json under the mcpServers key (do NOT replace the whole file — it contains other Claude Code settings). Easier alternative: run the equivalent CLI command shown below. Replace the <YOUR_*_KEY> placeholders with real keys.",
+  "_cli_equivalent": "claude mcp add -s user tooluniverse -e PYTHONIOENCODING=utf-8 -e NCBI_API_KEY=<key> -e NVIDIA_API_KEY=<key> -e FDA_API_KEY=<key> -- uvx tooluniverse",
+  "mcpServers": {
+    "tooluniverse": {
+      "command": "uvx",
+      "args": ["tooluniverse"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "NCBI_API_KEY": "<YOUR_NCBI_KEY>",
+        "NVIDIA_API_KEY": "<YOUR_NVIDIA_KEY>",
+        "FDA_API_KEY": "<YOUR_FDA_KEY>"
+      },
+      "startupTimeout": 60000,
+      "requestTimeout": 120000
+    }
+  }
+}

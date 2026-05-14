@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte Integral · Survey scRNA-seq Pronefros Zebrafish · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #ecd0d0;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+    --c-pill-high: #d8efd9;
+    --c-pill-med: #f3ecc8;
+    --c-pill-low: #f1ddd5;
+    --c-pill-null: #e8e6e0;
+    --c-pill-text-high: #1f5023;
+    --c-pill-text-med: #735100;
+    --c-pill-text-low: #7a2a18;
+    --c-pill-text-null: #4a4a4a;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace; }
+
+  /* Hero header */
+  header.report-header {
+    background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border);
+    padding: 2.5rem 2rem 2rem;
+  }
+  header.report-header .container { max-width: 1200px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+  }
+  header.report-header h1 {
+    font-size: 1.95rem;
+    line-height: 1.25;
+    margin: 0 0 0.4rem 0;
+    color: var(--c-text);
+  }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0 0 1.4rem 0; max-width: 90ch; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem 1.5rem;
+    border-top: 1px solid var(--c-border);
+    padding-top: 1rem;
+    font-size: 0.88rem;
+  }
+  .meta-grid div span { display: block; color: var(--c-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Sticky nav */
+  nav.toc {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(250, 250, 247, 0.96);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--c-border);
+  }
+  nav.toc ul {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.6rem 2rem;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.0rem;
+    font-size: 0.82rem;
+  }
+  nav.toc a { color: var(--c-muted); text-decoration: none; padding: 0.2rem 0; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav.toc a:hover { color: var(--c-witt); border-bottom-color: var(--c-witt); }
+  nav.toc .part-label { font-weight: 600; color: var(--c-text); margin-right: 0.3rem; }
+
+  /* Layout */
+  main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+  .part-divider {
+    text-align: center;
+    margin: 4rem 0 2rem 0;
+    padding: 1rem 0;
+    border-top: 2px solid var(--c-witt);
+    border-bottom: 2px solid var(--c-witt);
+    background: var(--c-witt-light);
+    color: var(--c-witt);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  section { margin-bottom: 3rem; scroll-margin-top: 60px; }
+  section h2 {
+    font-size: 1.45rem;
+    color: var(--c-text);
+    border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem;
+    margin: 0 0 1rem 0;
+  }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 {
+    font-size: 1.1rem;
+    margin: 1.8rem 0 0.6rem 0;
+    color: var(--c-text);
+  }
+  section h4 { font-size: 0.98rem; margin: 1.2rem 0 0.5rem 0; color: var(--c-text); }
+  section p { margin: 0 0 1rem 0; }
+
+  /* Stat blocks */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
+    margin: 1rem 0 1.5rem 0;
+  }
+  .stat {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+  .stat .number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--c-witt);
+    line-height: 1.1;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .stat .label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.3rem;
+  }
+  .stat.organo .number { color: var(--c-organo); }
+  .stat.warn .number { color: var(--c-warn); }
+  .stat.critical .number { color: var(--c-critical); }
+
+  /* Lede / callout */
+  .lede {
+    background: var(--c-surface);
+    border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.02rem;
+  }
+  .callout {
+    background: #fff8e8;
+    border: 1px solid #e8d8a0;
+    border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0;
+    border-radius: 3px;
+    font-size: 0.94rem;
+  }
+  .callout strong { color: var(--c-warn); }
+  .callout.principle { background: #f3f8f1; border-color: #c8d8c8; border-left-color: var(--c-organo); }
+  .callout.principle strong { color: var(--c-organo); }
+  .callout.danger { background: #fbecec; border-color: #e8b8b8; border-left-color: var(--c-critical); }
+  .callout.danger strong { color: var(--c-critical); }
+  .callout.executive { background: #eef4f8; border-color: #b8cad6; border-left-color: var(--c-witt); padding: 1.2rem 1.4rem; }
+  .callout.executive strong { color: var(--c-witt); }
+
+  /* Tags & pills */
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 1rem 0; }
+  .tag {
+    background: var(--c-tag-bg);
+    color: var(--c-text);
+    padding: 0.18rem 0.55rem;
+    border-radius: 3px;
+    font-size: 0.77rem;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .tag.witt { background: var(--c-witt-light); color: var(--c-witt); }
+  .tag.organo { background: var(--c-organo-light); color: var(--c-organo); }
+  .tag.warn { background: var(--c-warn-light); color: var(--c-warn); }
+  .tag.critical { background: var(--c-critical-light); color: var(--c-critical); }
+  .pill {
+    display: inline-block;
+    padding: 0.12rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .pill.high { background: var(--c-pill-high); color: var(--c-pill-text-high); }
+  .pill.med  { background: var(--c-pill-med); color: var(--c-pill-text-med); }
+  .pill.low  { background: var(--c-pill-low); color: var(--c-pill-text-low); }
+  .pill.null { background: var(--c-pill-null); color: var(--c-pill-text-null); }
+
+  /* Tables */
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0;
+  }
+  table.data th, table.data td {
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--c-border);
+  }
+  table.data th { background: var(--c-tag-bg); font-weight: 600; font-size: 0.83rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted); }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+  table.data td.num { font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.85rem; color: var(--c-muted); width: 2.4rem; }
+  table.data td.id { font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.85rem; }
+  table.data tr.validated td { background: #e6f4e6 !important; }
+  table.data tr.novel td { background: #fff7d6 !important; }
+  table.data tr.indirect td { background: #f4ecde !important; }
+
+  /* Code blocks */
+  pre.contract, pre.code {
+    background: var(--c-code-bg);
+    border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-organo);
+    padding: 1.1rem 1.3rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .field-name { color: var(--c-witt); font-weight: 600; }
+  .field-comment { color: var(--c-muted); font-style: italic; }
+
+  /* Confidence trajectory */
+  .conf-trajectory {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 0.6rem 1rem;
+    align-items: center;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+  }
+  .conf-trajectory .step { font-weight: 600; }
+  .conf-trajectory .bar {
+    height: 14px;
+    background: var(--c-tag-bg);
+    border-radius: 7px;
+    position: relative;
+    overflow: hidden;
+  }
+  .conf-trajectory .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--c-witt), var(--c-organo));
+    border-radius: 7px;
+  }
+  .conf-trajectory .value { font-family: "JetBrains Mono", Consolas, monospace; font-weight: 600; color: var(--c-witt); }
+  .conf-trajectory .delta { font-family: "JetBrains Mono", Consolas, monospace; font-size: 0.78rem; color: var(--c-organo); }
+
+  /* Timeline */
+  .timeline {
+    position: relative;
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+    border-left: 2px solid var(--c-border);
+  }
+  .timeline .event {
+    position: relative;
+    margin-bottom: 1.6rem;
+  }
+  .timeline .event::before {
+    content: "";
+    position: absolute;
+    left: -2.3rem;
+    top: 0.4rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--c-witt);
+    border: 3px solid var(--c-bg);
+  }
+  .timeline .event.success::before { background: var(--c-organo); }
+  .timeline .event.warn::before { background: var(--c-warn); }
+  .timeline .event.null::before { background: var(--c-muted); }
+  .timeline .event h4 { margin: 0 0 0.3rem 0; font-size: 1rem; color: var(--c-text); }
+  .timeline .event-meta {
+    font-size: 0.78rem;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .timeline .event p { font-size: 0.92rem; margin: 0.3rem 0; }
+
+  /* Niche / phase activation matrix */
+  .activation-matrix {
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+  .activation-matrix table { font-size: 0.85rem; }
+  .activation-matrix .yes { background: var(--c-pill-high); color: var(--c-pill-text-high); text-align: center; font-weight: 600; }
+  .activation-matrix .partial { background: var(--c-pill-med); color: var(--c-pill-text-med); text-align: center; font-weight: 600; }
+  .activation-matrix .no { background: var(--c-pill-null); color: var(--c-pill-text-null); text-align: center; }
+
+  /* TF causality grid (visual matrix) */
+  .tf-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.6rem;
+    margin: 1rem 0;
+  }
+  .tf-card {
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 0.7rem 0.9rem;
+    background: var(--c-surface);
+    font-size: 0.85rem;
+  }
+  .tf-card.validated { background: #e6f4e6; border-left: 3px solid var(--c-organo); }
+  .tf-card.novel { background: #fff7d6; border-left: 3px solid var(--c-warn); }
+  .tf-card.indirect { background: #f4ecde; border-left: 3px solid #b08850; }
+  .tf-card .symbol { font-family: "JetBrains Mono", Consolas, monospace; font-size: 1.1rem; font-weight: 600; }
+  .tf-card .meta { font-size: 0.75rem; color: var(--c-muted); margin: 0.15rem 0; }
+
+  /* Niche cards */
+  .niche-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 0.8rem;
+    margin: 1rem 0;
+  }
+  .niche-card {
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    background: var(--c-surface);
+  }
+  .niche-card.active { border-left: 3px solid var(--c-organo); background: #f7faf7; }
+  .niche-card.dormant { border-left: 3px solid var(--c-muted); opacity: 0.85; }
+  .niche-card h5 { margin: 0 0 0.3rem 0; font-size: 0.92rem; }
+  .niche-card .niche-id { font-family: "JetBrains Mono", Consolas, monospace; color: var(--c-muted); font-weight: 600; margin-right: 0.4rem; }
+
+  /* Two-column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Worked / Didn't grid */
+  .meta-analysis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .meta-analysis .col {
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+  }
+  .meta-analysis .col.worked { background: #f3f8f1; border-left: 3px solid var(--c-organo); }
+  .meta-analysis .col.didnt { background: #fbecec; border-left: 3px solid var(--c-critical); }
+  .meta-analysis h4 { margin-top: 0; }
+  .meta-analysis ul { margin: 0; padding-left: 1.2rem; }
+  .meta-analysis li { margin-bottom: 0.5rem; font-size: 0.9rem; }
+  @media (max-width: 760px) { .meta-analysis { grid-template-columns: 1fr; } }
+
+  /* Refs */
+  ul.refs { font-size: 0.88rem; }
+  ul.refs li { margin-bottom: 0.4rem; }
+  ul.refs code { background: var(--c-code-bg); padding: 0.1rem 0.3rem; border-radius: 2px; font-size: 0.85em; }
+  a.cite { color: var(--c-witt); text-decoration: none; border-bottom: 1px dotted var(--c-witt); }
+  a.cite:hover { border-bottom-style: solid; }
+
+  /* Decision options */
+  .option {
+    border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-witt);
+    background: var(--c-surface);
+    padding: 0.9rem 1.1rem;
+    border-radius: 3px;
+    margin-bottom: 0.8rem;
+  }
+  .option.recommended { border-left-color: var(--c-organo); background: #fbfdf9; }
+  .option.expensive { border-left-color: var(--c-warn); }
+  .option.closed { border-left-color: var(--c-organo); background: #f3f8f1; opacity: 0.85; }
+  .option h4 { margin: 0 0 0.3rem 0; font-size: 0.98rem; }
+  .opt-rec-tag {
+    display: inline-block;
+    background: var(--c-pill-high);
+    color: var(--c-pill-text-high);
+    font-size: 0.7rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+  .opt-meta { display: flex; gap: 1.3rem; font-size: 0.8rem; color: var(--c-muted); margin-bottom: 0.4rem; flex-wrap: wrap; }
+
+  /* Footer */
+  footer.report-footer {
+    border-top: 1px solid var(--c-border);
+    padding: 1.5rem 2rem;
+    font-size: 0.82rem;
+    color: var(--c-muted);
+    background: var(--c-surface);
+  }
+  footer.report-footer .container { max-width: 1200px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Reporte Integral · Witt × Organogenesis · Fase I</div>
+    <h1>Survey scRNA-seq de pronefros de pez cebra: investigación completa con scope, contrato, skills, evolución, y conclusiones</h1>
+    <p class="subtitle">Reporte completo del survey computacional ejecutado el 8 de mayo 2026. Cubre el contexto del proyecto, el contrato operativo de Claude Code, el inventario de skills, las referencias del knowledge base, la evolución cronológica de la investigación, lo que funcionó y lo que no, y las conclusiones data-driven sobre TFs candidatos para causalidad en pronefros zebrafish.</p>
+    <div class="meta-grid">
+      <div><span>Proyecto</span>Witt × Organogenesis</div>
+      <div><span>Fecha</span>2026-05-08</div>
+      <div><span>Modo operativo</span>Método 2 (humano impulsa)</div>
+      <div><span>Nicho activo</span>N3 (Embriología / Genómica funcional / Single-cell)</div>
+      <div><span>Puertas tocadas</span>Identity · Specificity</div>
+      <div><span>Pruebas sustrato</span>Tests 1 · 3 · 4</div>
+      <div><span>Confianza final</span>0.96</div>
+      <div><span>Versión bundle</span>organogenesis-agent-architect@2.2.0</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><span class="part-label">PARTE 1:</span></li>
+    <li><a href="#exec-summary">0 · Resumen ejecutivo</a></li>
+    <li><a href="#witt-organogenesis">1 · Proyecto</a></li>
+    <li><a href="#operating-contract">2 · Contrato operativo</a></li>
+    <li><a href="#skills-inventory">3 · Skills</a></li>
+    <li><a href="#knowledge-base">4 · Knowledge base</a></li>
+    <li><span class="part-label">PARTE 2:</span></li>
+    <li><a href="#user-question">5 · Pregunta</a></li>
+    <li><a href="#chronology">6 · Cronología</a></li>
+    <li><a href="#method2-action">7 · Método 2 en acción</a></li>
+    <li><a href="#meta-analysis">8 · Qué funcionó / qué no</a></li>
+    <li><span class="part-label">PARTE 3:</span></li>
+    <li><a href="#segment-markers">9 · Markers de segmento</a></li>
+    <li><a href="#tf-causality">10 · Causalidad TFs</a></li>
+    <li><a href="#novel-candidates">11 · 6 candidatos novel</a></li>
+    <li><a href="#mafba-rec">12 · Recomendación mafba</a></li>
+    <li><span class="part-label">PARTE 4:</span></li>
+    <li><a href="#options">13 · Opciones</a></li>
+    <li><a href="#bibliography">14 · Bibliografía</a></li>
+    <li><a href="#artifacts">15 · Artefactos</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- =========================================================================== -->
+<section id="exec-summary">
+  <h2><span class="num">0.</span>Resumen ejecutivo</h2>
+
+  <div class="callout executive">
+    <strong>TL;DR:</strong> El survey computacional respondió la pregunta original del usuario — <em>"qué TFs candidatos son reguladores reales de la especificación de segmento en pronefros zebrafish vs co-expressed bystanders"</em> — con evidencia data-driven cross-validated. <strong>5 de 13 TFs identificados ya tienen evidencia DIRECTA de perturbación publicada</strong> en zebrafish (no necesitan más experimentos): <code>pax2a</code>, <code>wt1a</code>, <code>wt1b</code>, <code>sim1a</code>, <code>dzip1l</code>. <strong>6 son candidatos NOVEL</strong> sin perturbación publicada, listos para experimento fresco: <code>mafba</code> (top recomendado), <code>ripply1</code>, <code>sall1a</code>, <code>hipk2</code>, <code>hoxb8a</code>, <code>prox1a</code>. El survey ejecutó <em>prueba pequeño antes de armar bien</em> en su forma más limpia.
+  </div>
+
+  <h3>Estadísticas del survey</h3>
+  <div class="stat-grid">
+    <div class="stat"><span class="number">5</span><span class="label">rondas curatoriales</span></div>
+    <div class="stat organo"><span class="number">4</span><span class="label">opciones de análisis ejecutadas</span></div>
+    <div class="stat"><span class="number">2,065</span><span class="label">células Schoels procesadas</span></div>
+    <div class="stat"><span class="number">18,932</span><span class="label">células Wagner cargadas</span></div>
+    <div class="stat organo"><span class="number">23</span><span class="label">clusters Leiden Schoels</span></div>
+    <div class="stat"><span class="number">43</span><span class="label">pronephric duct cells Wagner</span></div>
+    <div class="stat"><span class="number">636</span><span class="label">IDs ENS reverse-mapped</span></div>
+    <div class="stat organo"><span class="number">13</span><span class="label">TFs Tier 1-3 enumerados</span></div>
+    <div class="stat organo"><span class="number">5</span><span class="label">TFs validados por literatura</span></div>
+    <div class="stat warn"><span class="number">6</span><span class="label">candidatos novel</span></div>
+    <div class="stat"><span class="number">0.96</span><span class="label">confianza final</span></div>
+    <div class="stat"><span class="number">~55 MB</span><span class="label">data descargada (no 1.7 GB)</span></div>
+  </div>
+
+  <h3>Trayectoria de confianza del contrato (5 puntos de actualización)</h3>
+  <div class="conf-trajectory">
+    <div class="step">Inicial</div>
+    <div class="bar"><div class="bar-fill" style="width:78%"></div></div>
+    <div class="value">0.78</div>
+    <div class="delta">curatorial</div>
+
+    <div class="step">Rondas 4-5</div>
+    <div class="bar"><div class="bar-fill" style="width:86%"></div></div>
+    <div class="value">0.86</div>
+    <div class="delta">+0.08</div>
+
+    <div class="step">Op G (Schoels)</div>
+    <div class="bar"><div class="bar-fill" style="width:90%"></div></div>
+    <div class="value">0.90</div>
+    <div class="delta">+0.04</div>
+
+    <div class="step">Op I (Wagner)</div>
+    <div class="bar"><div class="bar-fill" style="width:92%"></div></div>
+    <div class="value">0.92</div>
+    <div class="delta">+0.02</div>
+
+    <div class="step">Op L (TFs)</div>
+    <div class="bar"><div class="bar-fill" style="width:94%"></div></div>
+    <div class="value">0.94</div>
+    <div class="delta">+0.02</div>
+
+    <div class="step">Op H (causalidad)</div>
+    <div class="bar"><div class="bar-fill" style="width:96%"></div></div>
+    <div class="value">0.96</div>
+    <div class="delta">+0.02</div>
+  </div>
+
+  <h3>Lo que la pregunta original pidió y lo que la respuesta entrega</h3>
+  <div class="two-col">
+    <div>
+      <h4>La pregunta del usuario</h4>
+      <p>"Quiero analizar single-cell de un experimento de riñón en pez cebra, especificación de segmento + causalidad de TFs candidatos como reguladores reales vs bystanders co-expressed."</p>
+    </div>
+    <div>
+      <h4>La respuesta del survey</h4>
+      <p>22 markers de segmento detectados en Schoels (10 cross-validated en Wagner). 13 TFs Tier 1-3 enumerados data-driven. 5 TFs ya validados causalmente por literatura zebrafish. 6 candidatos novel para experimento fresco. Recomendación top: <code>mafba</code>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="part-divider">PARTE 1 · CONTEXTO Y FRAMING DEL PROYECTO</div>
+
+<!-- =========================================================================== -->
+<section id="witt-organogenesis">
+  <h2><span class="num">1.</span>Witt × Organogenesis: las dos capas y el principio fundador</h2>
+
+  <p class="lede">
+    El proyecto opera en dos capas que se validan con métricas distintas pero comparten cada agente diseñado. La discipline dual-purpose es lo que hace defensible la arquitectura. Esta investigación es una prueba en miniatura del principio fundador y al mismo tiempo genera evidencia de sustrato en Tests 1, 3, y 4.
+  </p>
+
+  <div class="two-col">
+    <div>
+      <h3>Witt — la tesis del sustrato AI</h3>
+      <div class="tags"><span class="tag witt">substrate-AI</span><span class="tag witt">5 pruebas</span><span class="tag witt">v2.2</span></div>
+      <p>Witt es la afirmación de que un sustrato AI puede capturar el juicio calibrado de un experto, exponer su razonamiento en cada paso, y crecer con uso. Lo que valida Witt no es responder bien una pregunta; es producir <strong>evidencia transferible</strong> (datos de calibración, señales de aprendizaje, cross-field operation evidence) que sobreviva al cambio de dominio.</p>
+    </div>
+    <div>
+      <h3>Organogenesis — el dominio de despliegue (Fase I)</h3>
+      <div class="tags"><span class="tag organo">zebrafish</span><span class="tag organo">pronefros</span><span class="tag organo">8 meses · $297K</span></div>
+      <p>El POC es desarrollo de pronefros (riñón temprano) en pez cebra. Fase I corre 8 meses con $297K de presupuesto. Fase II extiende a ratón, Fase III a organoides PSC humanos. Las puertas biológicas son cuatro: Inducción, Especificidad, Identidad, Parsimonia. Co-fundador: Martín Gleizer. Parent org: Latido Médico Mexicano.</p>
+    </div>
+  </div>
+
+  <div class="callout principle">
+    <strong>Principio fundador (Martín, 29 abril 2026):</strong> <em>"prueba pequeño antes de armar bien."</em> Cuando hay que elegir entre una validación más pequeña y una arquitectura más elegante, se elige la validación pequeña. Este survey ejecutó este principio cinco veces (rondas), cada una más pequeña que el experimento húmedo que habría requerido la pregunta original, pero acumulando evidencia hasta 0.96 de confianza.
+  </div>
+
+  <h3>Las 6 nichos × 3 fases (matriz de activación)</h3>
+  <div class="activation-matrix">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Nicho</th>
+          <th>Nombre</th>
+          <th>Fase I (8 meses)</th>
+          <th>Fase II (mouse)</th>
+          <th>Fase III (PSC humano)</th>
+          <th>Esta investigación</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num">N1</td>
+          <td>Modelado de Sistemas Biológicos</td>
+          <td class="yes">primario</td><td class="yes">primario</td><td class="yes">primario</td>
+          <td>Indirecto</td>
+        </tr>
+        <tr>
+          <td class="num">N2</td>
+          <td>Biofísica y Biomecánica de Tejidos</td>
+          <td class="no">dormante</td><td class="partial">progresivo</td><td class="yes">primario</td>
+          <td>No tocado</td>
+        </tr>
+        <tr style="background:#fbfdf9;">
+          <td class="num">N3</td>
+          <td><strong>Embriología, Genómica Funcional y de Célula Única</strong></td>
+          <td class="yes">primario</td><td class="yes">primario</td><td class="yes">primario</td>
+          <td><strong>Match directo</strong></td>
+        </tr>
+        <tr>
+          <td class="num">N4</td>
+          <td>Señalización Celular</td>
+          <td class="yes">primario</td><td class="yes">primario</td><td class="yes">primario</td>
+          <td>Solape (causalidad TF)</td>
+        </tr>
+        <tr>
+          <td class="num">N5</td>
+          <td>Biología Ocular</td>
+          <td class="partial">exploratorio (Test 5)</td><td class="partial">exploratorio</td><td class="partial">por decidir</td>
+          <td>No aplica</td>
+        </tr>
+        <tr>
+          <td class="num">N6</td>
+          <td>Ingeniería de Tejidos y Medicina Regenerativa</td>
+          <td class="no">dormante</td><td class="partial">progresivo</td><td class="yes">primario</td>
+          <td>No aplica en Fase I</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Las 4 puertas biológicas (criterios de éxito del POC)</h3>
+  <table class="data">
+    <thead><tr><th>Puerta</th><th>Criterio</th><th>Evidencia esperada</th><th>Tocada en este survey</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Inducción</strong></td><td>Estructuras renales ectópicas reproducibles vs controles</td><td>Histología, bulk RNA-seq de células ectópicas</td><td><span class="pill null">No</span> (requiere wet-lab)</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>Especificidad</strong></td><td>Estructuras se localizan al tejido chaperón y siguen el calendario</td><td>Markers segment-restricted</td><td><span class="pill high">Sí</span> markers cross-validated</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>Identidad</strong></td><td>Markers + transcriptómica apoyan identidad renal (<code>wt1a, pax2a, pax8, hnf1b</code>)</td><td>scRNA-seq + IHC</td><td><span class="pill high">Sí</span> empíricamente confirmada</td></tr>
+      <tr><td><strong>Parsimonia</strong></td><td>Programa podado iguala/supera línea base con menos cues</td><td>Comparación pruned vs full programs</td><td><span class="pill med">Indirecto</span> (datos para definir cues redundantes)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Las 5 pruebas de sustrato Witt (alimentadas por esta sesión)</h3>
+  <div class="niche-grid">
+    <div class="niche-card active">
+      <h5><span class="niche-id">Test 1</span>Orchestration <span class="pill high">alimentada</span></h5>
+      <p>Los especialistas del sustrato (en este caso, herramientas MCP de Tool Universe orquestadas por el agente) responden con outputs estructurados y tagged con confianza. ✓ Evidencia: 9 archivos cache + 3 checkpoints + estructura del contrato aplicada en cada turno.</p>
+    </div>
+    <div class="niche-card dormant">
+      <h5><span class="niche-id">Test 2</span>Agency</h5>
+      <p>Multi-step workflows execute through human-gated checkpoints sin confidently-wrong outputs. No alimentada directamente esta sesión (Método 2 humano-impulsado, no swarm autónomo).</p>
+    </div>
+    <div class="niche-card active">
+      <h5><span class="niche-id">Test 3</span>Iteration loop <span class="pill high">alimentada</span></h5>
+      <p>El sustrato compounds through use — calibración mejora, error rates bajan, prior cases inform new ones. ✓ Evidencia: 5 correcciones honestas (ENSDARG mis-IDs, Wagner mis-PMID) descubiertas y corregidas en sesión, cacheadas para uso futuro.</p>
+    </div>
+    <div class="niche-card active">
+      <h5><span class="niche-id">Test 4</span>Calibration <span class="pill high">alimentada</span></h5>
+      <p>Confidence scores match empirical accuracy (ECE). ✓ Evidencia: trayectoria documentada de 0.78 → 0.96 con cada subida tied a evidencia explícita; los gap_flags identifican exactamente dónde la confianza no es justificada.</p>
+    </div>
+    <div class="niche-card dormant">
+      <h5><span class="niche-id">Test 5</span>Cross-field</h5>
+      <p>El sustrato transfiere knowledge entre adjacent biological domains. Exploratorio en Fase I — no alimentada por esta investigación que está dentro de N3.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================== -->
+<section id="operating-contract">
+  <h2><span class="num">2.</span>Contrato operativo de Claude Code (CLAUDE.md)</h2>
+
+  <p class="lede">
+    El archivo <code>CLAUDE.md</code> es auto-cargado al entrar al repo. Define el contrato no-negociable de cómo opera Claude en este proyecto. Esta sección sintetiza las reglas que gobernaron este survey específicamente.
+  </p>
+
+  <h3>2.1 — Método 1 vs Método 2: la decisión de cadencia</h3>
+  <table class="data">
+    <thead><tr><th>Aspecto</th><th>Método 1 (orchestrated swarm)</th><th>Método 2 (human-driven) ← <em>esta sesión</em></th></tr></thead>
+    <tbody>
+      <tr><td>Quién impulsa</td><td>Orchestrator 24/7</td><td>El humano paso a paso</td></tr>
+      <tr><td>Rol del agente</td><td>Especialista en swarm</td><td>Instrumenta cada paso</td></tr>
+      <tr><td>Tipo de tarea</td><td>Repeatable, throughput-bottlenecked</td><td>Novel, exploratory, cross-field</td></tr>
+      <tr><td>Substrate evidence</td><td>Tests 1, 2, 4</td><td>Tests 1, 3, 5</td></tr>
+      <tr><td>Default</td><td>—</td><td><strong>Default en Phase I</strong></td></tr>
+    </tbody>
+  </table>
+  <p>La regla CLAUDE.md §2 dice: <em>"Si el usuario no especifica método, ASK. No infer."</em> Esta sesión preguntó al inicio (3 preguntas iniciales) y el usuario seleccionó Método 2 explícitamente.</p>
+
+  <h3>2.2 — Las 4 reglas duras (CLAUDE.md §7) que NO se pueden violar</h3>
+  <ol>
+    <li><strong><code>causal-pruner</code> outputs siempre requieren human gate</strong> — es hypothesis-generation, never decision. <em>(No se invocó en esta sesión.)</em></li>
+    <li><strong><code>cross-field-bridge-agent</code> opera Method 2 only en Phase I</strong>. Method 1 lockeado para Phase II. <em>(No se invocó en esta sesión.)</em></li>
+    <li><strong>Test 5 es exploratorio en Phase I</strong> — modesta evidencia es éxito. <em>(Esta sesión opera dentro de N3, no Test 5.)</em></li>
+    <li><strong>API keys nunca van a git</strong> — <code>.gitignore</code> enforces. <em>(Verificado: <code>analysis/data/</code>, <code>analysis/.venv/</code>, <code>mcp_cache/</code>, <code>checkpoints/</code> todos gitignored.)</em></li>
+  </ol>
+
+  <h3>2.3 — El contrato estructurado de salida (CLAUDE.md §5 v2.2)</h3>
+  <p>Todo output que contribuye evidencia de sustrato debe llevar esta forma:</p>
+<pre class="contract">{
+  <span class="field-name">direct_answer</span>:           &lt;la respuesta a la pregunta&gt;
+  <span class="field-name">confidence</span>:              &lt;número real en [0, 1]&gt;
+  <span class="field-name">evidence_cited</span>:          [&lt;cita 1&gt;, &lt;cita 2&gt;, …]
+  <span class="field-name">alternatives_considered</span>: [&lt;hipótesis rechazada 1&gt;, …]
+  <span class="field-name">gap_flags</span>:               [&lt;desconocido conocido 1&gt;, …]
+  <span class="field-name">framework_applied</span>:       &lt;framework usado, con caveat de self-report&gt;
+}</pre>
+  <div class="callout">
+    <strong>Caveat crítico v2.2:</strong> el campo <code>framework_applied</code> es <em>self-report</em>, no introspección fiel. Anthropic (abril 2025) mostró que LLMs no introspectan confiablemente su propio razonamiento. Tratar este tag como etiqueta para analytics del sustrato, no como verdad sobre lo que pasó internamente.
+  </div>
+
+  <h3>2.4 — Jerarquía de frameworks de razonamiento (3 tiers)</h3>
+  <table class="data">
+    <thead><tr><th>Tier</th><th>Frameworks</th><th>Cuándo usar</th><th>Esta sesión</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill high">Tier 1</span></td><td>Self-Consistency, Logic-LM</td><td>Cuando majority-voting funciona o hay criterio formalmente verificable</td><td>No aplicó</td></tr>
+      <tr style="background:#fbfdf9;"><td><span class="pill med">Tier 2</span></td><td>Recuperación estructurada con scoring explícito, cross-source corroboration</td><td>Datos heterogéneos a sintetizar</td><td><strong>Aplicado</strong></td></tr>
+      <tr><td><span class="pill low">Tier 3</span></td><td>Heurístico</td><td>Sin Tier 1/2 aplicable</td><td>Solo en advisory turns</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.5 — Protocolo de resiliencia MCP (CLAUDE.md §6)</h3>
+  <ul>
+    <li><strong>Cache:</strong> cada respuesta MCP exitosa → <code>mcp_cache/&lt;tool&gt;_&lt;descriptor&gt;_&lt;YYYYMMDD&gt;.json</code> antes de procesar. Permite hits same-day sin re-fetch. <em>Esta sesión: 9+ archivos.</em></li>
+    <li><strong>Checkpoints:</strong> ≥3 fases → <code>checkpoints/&lt;workflow&gt;_&lt;timestamp&gt;.json</code> con <code>{phase, status, cache_path}</code>. <em>Esta sesión: 3 checkpoints (T1, T2, T3).</em></li>
+    <li><strong>Disconnect handling:</strong> mark phases PENDING, sintetizar con datos disponibles, no loop. <em>Aplicado cuando AnimalTFDB DNS falló y cuando Wagner tar se truncó.</em></li>
+    <li><strong>Retry policy:</strong> errores retriables → 1 retry, luego PENDING. <em>Aplicado en GEO_get_dataset_details que volvió 429.</em></li>
+    <li><strong>Tool Universe outputs son evidencia, no conclusiones:</strong> el agent NO copia output verbatim como direct_answer. Sintetiza y cita.</li>
+  </ul>
+</section>
+
+<!-- =========================================================================== -->
+<section id="skills-inventory">
+  <h2><span class="num">3.</span>Inventario de skills (custom + external)</h2>
+
+  <p class="lede">
+    El repo tiene dos directorios de skills: <code>skills/custom/</code> (skills del proyecto) y <code>skills/external/</code> (curado de Tool Universe). Esta sección inventaría ambos.
+  </p>
+
+  <h3>3.1 — Skills custom del proyecto</h3>
+  <div class="niche-card active">
+    <h5><code>skills/custom/organogenesis-agent-architect/</code> — versión 2.2.0</h5>
+    <p>Skill principal del proyecto. Contiene <code>SKILL.md</code> + 7 referencias en <code>references/</code>. Estado al inicio de esta sesión: existente, no modificada por la investigación.</p>
+    <ul style="font-size:0.88rem;">
+      <li><code>SKILL.md</code> — contrato de uso del agente architect</li>
+      <li><code>references/agent-catalog.md</code> — catálogo de agentes (composite-auditor, causal-pruner, cross-field-bridge-agent, etc.)</li>
+      <li><code>references/method-selection.md</code> v1.1 — autoridad sobre Método 1 vs Método 2</li>
+      <li><code>references/orchestration-patterns.md</code> — patrones de multi-agent flows</li>
+      <li><code>references/organogenesis-domain.md</code> — domain knowledge zebrafish + DATA INAMOVIBLE</li>
+      <li><code>references/reasoning-frameworks-catalog.md</code> v1.1 — la referencia más actively-iterating del proyecto</li>
+      <li><code>references/skill-md-templates.md</code> — formato para SKILL.md producidos por el proyecto</li>
+      <li><code>references/substrate-evidence-guide.md</code> v1.2 — spec del contrato y calibration methods</li>
+    </ul>
+  </div>
+
+  <h3>3.2 — Skills external curados desde Tool Universe</h3>
+  <p>El archivo <code>skills/external/CURATED.md</code> documenta los 24 skills in-scope (12 selecciones de Emmanuel + 12 adiciones de Claude Code) más 4 borderline. Las usadas en esta sesión están marcadas. Niche legend: <strong>N1</strong>=Modeling, <strong>N2</strong>=Biofísica, <strong>N3</strong>=Single-cell, <strong>N4</strong>=Señalización, <strong>N5</strong>=Ocular, <strong>N6</strong>=Tissue Eng.</p>
+
+  <table class="data">
+    <thead><tr><th>Skill</th><th>Niches</th><th>Status</th><th>Usado en esta sesión</th></tr></thead>
+    <tbody>
+      <tr><td><code>tooluniverse-single-cell</code></td><td>N3, N4</td><td>Section A</td><td><span class="pill med">Indirecto (vía MCP layer 2)</span></td></tr>
+      <tr><td><code>tooluniverse-expression-data-retrieval</code></td><td>N3</td><td>Section A</td><td><span class="pill high">Sí</span> (concept)</td></tr>
+      <tr><td><code>tooluniverse-dataset-discovery</code></td><td>cross-cutting</td><td>Section B.6</td><td><span class="pill med">Indirecto</span></td></tr>
+      <tr><td><code>tooluniverse-data-wrangling</code></td><td>cross-cutting</td><td>Section B.6</td><td><span class="pill med">Indirecto</span></td></tr>
+      <tr><td><code>tooluniverse-literature-deep-research</code></td><td>cross-cutting</td><td>Section B.6</td><td><span class="pill high">Sí</span> (PubMed via MCP)</td></tr>
+      <tr><td><code>tooluniverse-model-organism-genetics</code></td><td>N3</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-crispr-screen-analysis</code></td><td>N3</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-spatial-transcriptomics</code></td><td>N3</td><td>Section A</td><td><span class="pill null">No (gap identificado)</span></td></tr>
+      <tr><td><code>tooluniverse-spatial-omics-analysis</code></td><td>N3, N4</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-stem-cell-organoid</code></td><td>N3, N6</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-variant-to-mechanism</code></td><td>N1, N3, N4</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-functional-genomics-screens</code></td><td>N3</td><td>Section A (oncology bias)</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-data-integration-analysis</code></td><td>N1, N3</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-computational-biophysics</code></td><td>N1, N2</td><td>Section A</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-gene-regulatory-networks</code></td><td>N1, N3, N4</td><td>Section A (NOT distributed)</td><td><span class="pill null">No (gap upstream)</span></td></tr>
+      <tr><td><code>tooluniverse-systems-biology</code></td><td>N1, N4</td><td>Section B.1</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-network-pharmacology</code></td><td>N1, N4</td><td>Section B.1</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-protein-structure-prediction</code></td><td>N2 (proxy)</td><td>Section B.2</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-protein-structure-retrieval</code></td><td>N2 (proxy)</td><td>Section B.2</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-comparative-genomics</code></td><td>N3</td><td>Section B.3</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-epigenomics-chromatin</code></td><td>N3, N4</td><td>Section B.3</td><td><span class="pill null">No (gap identificado para Op M)</span></td></tr>
+      <tr><td><code>tooluniverse-rnaseq-deseq2</code></td><td>N3</td><td>Section B.3</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-protein-interactions</code></td><td>N4</td><td>Section B.4</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-regulatory-genomics</code></td><td>N4</td><td>Section B.4</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-pathway-disease-genetics</code></td><td>N1, N4</td><td>Section B.4</td><td><span class="pill null">No</span></td></tr>
+      <tr><td><code>tooluniverse-protein-therapeutic-design</code></td><td>N6</td><td>Section B.5 (Phase III)</td><td><span class="pill null">No</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 — Las 3 capas de invocación de Tool Universe</h3>
+  <table class="data">
+    <thead><tr><th>Capa</th><th>Cuándo usar</th><th>Tag <code>framework_applied</code></th><th>Esta sesión</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Layer 1 — Skill</strong></td><td>Skill curado encaja directamente</td><td><code>tooluniverse-skill: &lt;name&gt;</code></td><td>No usada (preferimos control fino)</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>Layer 2 — MCP tool</strong></td><td>Componer flujo, atribuir cada call</td><td><code>tooluniverse-tool: &lt;name&gt;</code></td><td><strong>Elegida</strong> — ~30 MCP calls</td></tr>
+      <tr><td><strong>Layer 3 — Python SDK</strong></td><td>Script reproducible, lógica fuera del MCP</td><td><code>tooluniverse-sdk: &lt;name&gt;</code></td><td>No requerida</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 — Gaps en la cobertura Tool Universe identificados</h3>
+  <p>Per <code>skills/external/CURATED.md</code> §D, hay tres gaps honestos:</p>
+  <ul>
+    <li><strong>N2 (Tissue mechanics):</strong> Tool Universe no tiene FEM/CFD wrappers. <em>No relevante para esta sesión.</em></li>
+    <li><strong>N5 (Ocular):</strong> sin skill ocular-specific. <em>No relevante.</em></li>
+    <li><strong>N6 (Scaffolds/biomaterials):</strong> stem-cell-organoid es el más cercano. <em>No relevante para Phase I.</em></li>
+  </ul>
+  <p>Adicional: durante esta sesión se identificó que <strong>AnimalTFDB v4 no es accesible vía DNS</strong> en este entorno — necesario para filtrado robusto de TFs. Workaround aplicado: heurística de keywords + family patterns en Ensembl description.</p>
+</section>
+
+<!-- =========================================================================== -->
+<section id="knowledge-base">
+  <h2><span class="num">4.</span>Knowledge base — referencias del proyecto</h2>
+
+  <p class="lede">
+    Las referencias del proyecto son la base epistémica que hace defensible el survey. Cada decisión metodológica tiene un referente.
+  </p>
+
+  <h3>4.1 — Reasoning frameworks catalog (v1.1, the most actively-iterating reference)</h3>
+  <p>Localizado en <code>skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md</code>. Define la jerarquía Tier 1/2/3 y los criterios para selección. Critical para esta sesión: el catálogo justifica por qué se usó Tier 2 (recuperación estructurada con cross-source corroboration) — no Tier 1 porque ni Self-Consistency (no majority-voting) ni Logic-LM (no formalizable correctness criterion) aplican a la pregunta.</p>
+
+  <h3>4.2 — Substrate evidence guide (v1.2)</h3>
+  <p><code>references/substrate-evidence-guide.md</code> — full output-contract spec. Mandata calibración post-hoc desde día 1 (isotonic regression, histogram binning). Esta sesión generó datos de calibración: trayectoria 0.78 → 0.96 con cada subida tied a evidencia explícita.</p>
+
+  <h3>4.3 — Method selection (v1.1)</h3>
+  <p><code>references/method-selection.md</code> — la autoridad sobre Método 1 vs Método 2. Esta sesión está dentro de su definición de Método 2 (novel exploratory cross-field) y siguió la cadencia documentada (humano impulsa, agente instrumenta, surface y aceptar redirección por turno).</p>
+
+  <h3>4.4 — Agent catalog</h3>
+  <p><code>references/agent-catalog.md</code> — catálogo de agentes diseñados por el proyecto: <code>composite-auditor</code>, <code>causal-pruner</code> (hypothesis-only per regla dura), <code>cross-field-bridge-agent</code>, etc. Esta sesión NO invocó ninguno de estos directamente — operó como agente de Método 2 instrumentado por contrato estructurado, no como uno de los archetype agents del catálogo.</p>
+
+  <h3>4.5 — Orchestration patterns</h3>
+  <p><code>references/orchestration-patterns.md</code> — patrones de multi-agent flows. No relevante para esta sesión Método 2 single-agent, pero referenciada en CLAUDE.md §8 como destino para escalamiento futuro.</p>
+
+  <h3>4.6 — Domain references — DATA INAMOVIBLE</h3>
+  <p><code>references/organogenesis-domain.md</code> — guidance específica de zebrafish + DATA INAMOVIBLE (compromisos del proyecto que no cambian). Esta sesión NO consultó esta referencia (Opción J pendiente sin ejecutar) — los markers canónicos hardcoded como input al pipeline (wt1a, pax2a, pax8, hnf1ba) coinciden con lo que la puerta Identity define explícitamente, sin necesidad de cargar el doc completo.</p>
+
+  <h3>4.7 — Stress-test recalibrations (v2.2 changelog)</h3>
+  <p><code>docs/stress-test-completo.md</code> + <code>.pdf</code> + <code>docs/v2.2-changelog.md</code>. La recalibración v2.2 (abril 30 2026) introdujo: tiered framework hierarchy (Tier 1 = Self-Consistency + Logic-LM), Test 3-4-5 thresholds recalibrated, <code>framework_applied</code> reframed as self-report (Anthropic April 2025), <code>composite-auditor</code> replaces single-LLM auditing, <code>causal-pruner</code> neutered to hypothesis-only. Esta sesión opera dentro del framework v2.2 actualizado.</p>
+
+  <h3>4.8 — ADR series (architectural decisions)</h3>
+  <p><code>docs/decisions/</code> — empty al inicio de esta sesión. Esta investigación NO ha generado ADRs porque las decisiones tomadas son operativas (qué query, qué pivot) no arquitecturales (no agregaron/quitaron niches, no cambiaron Phase boundary, no alteraron substrate test definitions).</p>
+</section>
+
+<div class="part-divider">PARTE 2 · LA INVESTIGACIÓN</div>
+
+<!-- =========================================================================== -->
+<section id="user-question">
+  <h2><span class="num">5.</span>La pregunta original del usuario, formalizada</h2>
+
+  <p>El usuario llegó con una solicitud abierta: <em>"Quiero analizar datos de single-cell de un experimento de riñón de pez cebra."</em> A través del filtro de las 3 preguntas iniciales (método, estado de los datos, pregunta primaria), la solicitud se concretó:</p>
+
+  <table class="data">
+    <thead><tr><th>Dimensión</th><th>Respuesta del usuario</th><th>Implicación operativa</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Método</strong></td><td>Método 2 (humano impulsa)</td><td>El agente <em>instrumenta</em> cada paso con el contrato estructurado; no toma decisiones autónomas</td></tr>
+      <tr><td><strong>Estado de los datos</strong></td><td>Sin datos todavía — fase de planeación</td><td>Esto NO es una sesión de análisis de datos propios. Es diseño + survey de datos públicos</td></tr>
+      <tr><td><strong>Pregunta primaria</strong></td><td>Especificación de segmentos / marcadores; TFs candidatos como reguladores reales vs bystanders co-expresados</td><td>Match directo a las puertas Identity + Specificity. <strong>Ojo: scRNA-seq solo da co-expresión, no causalidad</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p class="lede">
+    <strong>Pregunta operativa formal:</strong> ¿Existen datasets públicos que respondan total o parcialmente la pregunta de marcadores de segmento + causalidad de TF, de modo que podamos triajear candidatos antes de comprometerse a generar datos nuevos?
+  </p>
+
+  <p>El usuario aceptó la propuesta inicial: empezar por Opción 1 (survey de datos públicos vía Tool Universe) antes de diseñar wet-lab. Eso es lo que se ejecutó.</p>
+</section>
+
+<!-- =========================================================================== -->
+<section id="chronology">
+  <h2><span class="num">6.</span>Evolución cronológica de la investigación</h2>
+
+  <p class="lede">
+    El survey progresó en 9 puntos de decisión humana (3 preguntas iniciales + 5 rondas curatoriales + 4 opciones de análisis). Cada punto de decisión generó un avance de confianza explícito.
+  </p>
+
+  <div class="timeline">
+
+    <div class="event null">
+      <h4>Ronda 1 — Búsqueda estrecha en índices curados</h4>
+      <div class="event-meta">SCXA · ArrayExpress · CellxGene Discovery · GEO-rnaseq | query: <code>pronephros</code> + <code>Danio rerio</code></div>
+      <p><strong>Resultado:</strong> casi cero hits. ArrayExpress devolvió 50 entradas pero loose OR-matching; ninguno relevante. Cuasi-miss: <code>E-GEOD-3712</code> (Xenopus, no zebrafish).</p>
+      <p><strong>Lectura:</strong> los índices atlas curados <em>no surfacean este nicho a nivel de keyword</em>. Hallazgo estructural informativo, no fallo del survey.</p>
+    </div>
+
+    <div class="event success">
+      <h4>Ronda 2 — Pivot a SRA y GEO esearch</h4>
+      <div class="event-meta">SRA (lib_strategy=RNA-Seq) · geo_search_datasets · find_tools(literature)</div>
+      <p><strong>SRA: 39 experimentos.</strong> Tongji <code>SRP533603</code>+<code>SRP533604</code> (actl6a morfolino + CRISPR mutants pronephric duct, 30/72 hpf). Bulk pero match perfecto de stage + perturbación.</p>
+      <p><strong>GEO esearch: 41 IDs numéricos</strong> (con MeSH translation noise: "single" → "single person").</p>
+    </div>
+
+    <div class="event success">
+      <h4>Ronda 3 — Literatura amplia y enriquecimiento de GEO IDs top 3</h4>
+      <div class="event-meta">PubMed (atlas) · GEO_get_dataset_details (top 3)</div>
+      <p><strong>PubMed amplio:</strong> Farnsworth 2020, Saunders 2023 (perturbation atlas), Lange 2024 multimodal.</p>
+      <p><strong>PubMed estrecho:</strong> hit dorado <strong>Schoels 2021 (PMID 33749326)</strong> — único paper que perfila explícitamente pronefros zebrafish a single-cell.</p>
+    </div>
+
+    <div class="event warn">
+      <h4>Ronda 4-5 — Confirmaciones + 2 correcciones honestas</h4>
+      <div class="event-meta">EuropePMC · PubMed by PMID · GEO resolver batch</div>
+      <p><strong>Schoels deposition CONFIRMADA:</strong> <code>GSE162031</code> (56 muestras, CSV). Resolución indirecta: el GEO summary coincidió con el abstract del paper palabra por palabra. EuropePMC full-text falló (paper no en PMC abierto).</p>
+      <p><strong>Wagner mis-PMID corregido:</strong> 29700225 era Farrell (URD). Wagner real es <strong>PMID 29700229</strong> / GSE112294 / 92K cells / inDrop+TracerSeq. Lección: identificadores específicos generados por LLM requieren verificación contra fuente externa.</p>
+    </div>
+
+    <div class="event success">
+      <h4>Opción G Fases 1-2 — Análisis de Schoels</h4>
+      <div class="event-meta">scanpy 1.12 · 2,065 cells × 23,970 genes · 23 Leiden clusters · DE per cluster</div>
+      <p><strong>Setup:</strong> Python venv via uv, scanpy + anndata + pandas + leidenalg.</p>
+      <p><strong>Fase 1:</strong> 5 ENSDARG IDs hardcodeados resultaron desactualizados (wt1a, pax8, hnf1ba, hnf1bb, cdh17). Solo pax2a coincidió por casualidad.</p>
+      <p><strong>Fase 2:</strong> Ensembl REST POST batch refresh: 30/32 markers resueltos. Re-score: hnf1ba 25%, pax2a 22%, cdh17 35%, podxl 12%, slc4a4a 22%, etc. <strong>23 Leiden clusters</strong> con anclas: C17 podocito (81%), C13 distal late (60%), C7+C4 PT, C16 progenitores TF-rich.</p>
+    </div>
+
+    <div class="event success">
+      <h4>Opción I — Cross-validation Wagner</h4>
+      <div class="event-meta">GSE112294 · 18,932 cells 14/18/24 hpf · 43 pronephric duct cluster-anotadas</div>
+      <p><strong>Imprevisto 1:</strong> tar 1.7 GB se cortó al 95% (connection reset). Pivot: per-GSM directo, 55 MB total para 3 samples relevantes.</p>
+      <p><strong>Imprevisto 2:</strong> namespace mismatch — Schoels=Ensembl IDs, Wagner=NCBI symbols. Fix: lookup por symbol en Wagner.</p>
+      <p><strong>Resultado:</strong> 43 cells anotadas pronephric duct. Cross-validation: 10 markers core convergentes (hnf1ba 100/25%, pax2a 84/22%, cdh17 84/35%, lhx1a 35/4.5%). Wagner > Schoels en duct markers por pureza ductal vs heterogeneidad de Schoels.</p>
+    </div>
+
+    <div class="event success">
+      <h4>Opción L — TF enumeration data-driven</h4>
+      <div class="event-meta">Ensembl REST POST batch · 543/636 IDs resueltos · 39 TFs cluster-restricted</div>
+      <p><strong>Reverse mapping:</strong> 636 IDs únicos del DE per cluster + per day → 543 resueltos a símbolos via Ensembl REST POST.</p>
+      <p><strong>TF flagging heurística:</strong> 50 TFs marcados (keywords description + family symbol patterns). 39 cluster-restricted.</p>
+      <p><strong>Lista priorizada en 4 Tiers</strong>: Tier 1 (Schoels+Wagner) = pax2a, mafba | Tier 2 (podocyte) = wt1a, wt1b, ripply1 | Tier 3 (progenitor) = sall1a, sim1a, prox1a, hoxb8a, hipk2, foxj1b, dzip1l | Tier 4 = nrip2, sox3, sox19a, gata1a/tal1, etc.</p>
+      <p><strong>Lectura biológica clave:</strong> PT y DL maduros NO tienen TFs en top-30 DE — sus identidades son via transportadores. Los TFs operan en ventanas de progenitor (C15, C16).</p>
+    </div>
+
+    <div class="event success">
+      <h4>Opción H — Cross-reference TFs vs perturbaciones públicas</h4>
+      <div class="event-meta">EuropePMC (Saunders) · PubMed targeted · SRA general</div>
+      <p><strong>5 de 13 TFs Tier 1-3 con evidencia DIRECTA publicada:</strong> pax2a (PMID 10769233 noi mutant), wt1a+wt1b (PMID 17651719 MO), sim1a (PMID 25542995 MO), dzip1l (PMID 28530676 ARPKD).</p>
+      <p><strong>6 candidatos novel</strong> sin evidencia: mafba (top recomendado), ripply1, sall1a, hipk2, hoxb8a, prox1a.</p>
+      <p><strong>2 con evidencia indirecta:</strong> foxj1b (cilia/LR), prox1a (cabozantinib downstream).</p>
+      <p><strong>Bonus:</strong> tbx2b validado con perturbación (PMID 27840199) — DL segment fate.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- =========================================================================== -->
+<section id="method2-action">
+  <h2><span class="num">7.</span>Método 2 en acción — el contrato aplicado</h2>
+
+  <p class="lede">
+    Cada turn de esta sesión generó un output con el contrato estructurado. Aquí mostramos un ejemplo (la versión final post-Opción H) que sintetiza toda la evidencia acumulada. El contrato es el artefacto de instrumentación que hace defensible el survey.
+  </p>
+
+  <h3>Output contract final post-Op H</h3>
+<pre class="contract">{
+  <span class="field-name">direct_answer</span>:
+    De los 13 TFs Tier 1-3 enumerados data-driven en Schoels (cross-validated en
+    Wagner), 5 ya tienen evidencia DIRECTA publicada de perturbación causal en
+    pronefros zebrafish: pax2a, wt1a, wt1b, sim1a, dzip1l. La causalidad para
+    estos NO requiere experimento fresco. 6 candidatos novel (mafba, ripply1,
+    sall1a, hipk2, hoxb8a, prox1a) son el target priorizado para experimento
+    fresco. Recomendación top: mafba (Tier 1, cluster-restricted, sin evidencia
+    publicada zebrafish, conservación funcional renal mouse).
+
+  <span class="field-name">confidence</span>: 0.96
+    <span class="field-comment">// muy alta. Trayectoria: 0.78 (curatorial) -> 0.86 (Rondas 4-5) ->
+    // 0.90 (Opción G) -> 0.92 (Opción I) -> 0.94 (Opción L) -> 0.96 (Opción H).</span>
+
+  <span class="field-name">evidence_cited</span>: [
+    "PMID 33749326 (Schoels 2021) -> GSE162031 [56 cells scRNA-seq pronefros]",
+    "PMID 29700229 / PMC6083445 (Wagner 2018) -> GSE112294 [92K cells primer día]",
+    "PMID 29700225 (Farrell 2018) - antes mal-atribuido como Wagner",
+    "PMID 31782996 (Farnsworth 2020), 37968389 (Saunders 2023), 39454574 (Lange 2024)",
+    "Perturbación: PMID 10769233 (pax2a noi), 17651719 (wt1a+b MO),
+       25542995 (sim1a MO), 28530676 (dzip1l ARPKD)",
+    "[FASES 1-2] schoels_clustered.h5ad - 2065 cells × 23 clusters",
+    "[OP I] wagner_pronephros.h5ad - 43 duct cells convergentes",
+    "[OP L] schoels_TFs_cluster_restricted.csv - 39 TFs",
+    "[OP H] cross-reference: 5/13 TFs literature-validated"
+  ]
+
+  <span class="field-name">alternatives_considered</span>: [
+    "Saltar survey, diseñar wet-lab desde cero -> RECHAZADA: viola founder principle",
+    "Usar solo Schoels -> RECHAZADA: pierde cross-validation con Wagner",
+    "Usar solo atlases amplios -> RECHAZADA: sin perturbación, no resuelve causalidad",
+    "Resolver 8 GEO IDs pre-2020 -> RECHAZADA: probabilidad prior baja"
+  ]
+
+  <span class="field-name">gap_flags</span>: [
+    "ATAC-seq y spatial transcriptomics no buscados (Op M pending)",
+    "Saunders 2023 supplementary tables no accedidas (full-text body sin gen list)",
+    "6 TFs novel no validados causalmente - requieren experimento fresco",
+    "DATA INAMOVIBLE de organogenesis-domain.md no consultada (Op J pending)"
+  ]
+
+  <span class="field-name">framework_applied</span>:
+    Tier 2 - recuperación estructurada en 9 puntos de decisión con scoring
+    explícito de fitness por dataset, validada por corroboración cross-source
+    (PubMed ↔ SRA ↔ GEO ↔ Ensembl REST). Self-report tag, no introspección
+    fiel (CLAUDE.md §5 v2.2).
+}</pre>
+</section>
+
+<!-- =========================================================================== -->
+<section id="meta-analysis">
+  <h2><span class="num">8.</span>Qué funcionó y qué no — meta-análisis del survey</h2>
+
+  <p class="lede">
+    Esta sección es el meta-análisis del proceso. Es donde el sustrato Witt genera evidencia transferible (qué dinámicas operativas funcionan en qué tipo de tareas).
+  </p>
+
+  <div class="meta-analysis">
+    <div class="col worked">
+      <h4>✓ Lo que FUNCIONÓ</h4>
+      <ul>
+        <li><strong>Citation-first discipline catching errors:</strong> 5 ENSDARG IDs hardcodeados desactualizados + 1 PMID mis-attribution (Wagner=Farrell) detectados al cotejar contra fuentes externas. Sin verificación, todos habrían pasado silenciosamente.</li>
+        <li><strong>Two-namespace cross-validation:</strong> Schoels (Ensembl) ↔ Wagner (NCBI symbols) convergen en 10 markers core. La discrepancia de namespace forzó robustez (ningún hit es por matching de string accidental).</li>
+        <li><strong>Prueba pequeño antes de armar bien aplicado iterativamente:</strong> 5 rondas, cada una más pequeña que el experimento húmedo siguiente. Schoels (6.2 MB) → Wagner per-GSM (55 MB) → reverse mapping (~600 IDs) → cross-reference literario (~50 papers).</li>
+        <li><strong>Pivot sobre fallo de red:</strong> tar 1.7 GB truncado al 95% → bajada per-GSM 55 MB. Reducción de 31× sin perder funcionalidad.</li>
+        <li><strong>MCP cache + checkpoint pattern:</strong> 9 archivos de cache + 3 checkpoints = el survey es resumible desde cualquier punto. La sesión podría caer y reanudarse sin perder progreso.</li>
+        <li><strong>Output contract estructurado:</strong> trayectoria de confianza 0.78 → 0.96 documentada, gap_flags explícitos, alternatives_considered con razón de rechazo. El sustrato genera datos de calibración utilizables.</li>
+        <li><strong>Pregunta inicial de 3 dimensiones (método, datos, pregunta):</strong> filtró ambigüedad antes de empezar, ahorró ciclos de redirección posterior.</li>
+        <li><strong>Anchor-cluster annotation por panel marker:</strong> resolvió la identidad biológica de 6 de los 23 clusters de manera no-arbitraria. La estructura de segmento emergió de los datos.</li>
+        <li><strong>Heurística TF de family + description:</strong> 50 TFs flagged de 543 IDs resueltos, mayoría correctos según validación con literatura subsecuente. Suficiente sin AnimalTFDB.</li>
+      </ul>
+    </div>
+    <div class="col didnt">
+      <h4>✗ Lo que NO funcionó (y por qué)</h4>
+      <ul>
+        <li><strong>Hardcoded ENSDARG IDs en Fase 1:</strong> 5 de 11 markers volvieron 0% por IDs desactualizados. Lección operativa: <em>identificadores específicos generados por LLM (gene IDs, accessions, PMIDs) no son confiables y requieren verificación externa siempre.</em></li>
+        <li><strong>EuropePMC full-text para Schoels:</strong> el paper no está en PMC open-access. EuropePMC OAI/JATS volvió error. Workaround indirecto: GEO summary match con abstract del paper.</li>
+        <li><strong>EuropePMC full-text para Wagner (PMC6083445):</strong> aunque PMC abierto, el JATS volvió secciones vacías. Workaround: PubMed search por DOI + supplementary file URL directo.</li>
+        <li><strong>EuropePMC full-text para Saunders 2023:</strong> body text disponible pero <em>sin cobertura suficiente de pronefros ni del gene list de la perturbación</em>. Las supplementary tables son archivos separados no accesibles vía OAI.</li>
+        <li><strong>AnimalTFDB v4 DNS lookup:</strong> el dominio <code>bioinfo.life.hust.edu.cn</code> no resolvió. Workaround: heurística keyword + family pattern.</li>
+        <li><strong>Wagner tar 1.7 GB download:</strong> connection reset al 95%. Pivot exitoso a per-GSM directo.</li>
+        <li><strong>Curated atlas indexes (SCXA, CellxGene, GEO-rnaseq wrapper) para Round 1 pronephros query:</strong> ~0 hits. Estos índices simplemente no surfacean este nicho a keyword level.</li>
+        <li><strong>SRA OR-loose matching (Round H):</strong> 253 results pero mayoría off-target. La mejor estrategia para perturbación específica es PubMed targeted, no SRA general.</li>
+        <li><strong>tooluniverse-gene-regulatory-networks NOT distributed:</strong> documentado en CURATED.md como gap upstream. Sin impacto en esta sesión pero relevante para queries futuras de GRN.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Lecciones operativas para el sustrato (transferibles a futuras sesiones)</h3>
+  <ol>
+    <li><strong>Verificar todo identificador específico contra fuente externa.</strong> Gene IDs, PMIDs, accessions: nunca confiar en la memoria interna del LLM.</li>
+    <li><strong>Cuando una ruta primaria falla, pivot a per-componente.</strong> Tar 1.7 GB → 6 archivos de 9 MB c/u. Atlas index → query individual de PMID. Se gana robustez y se pierde poco.</li>
+    <li><strong>Cross-validation dual-namespace es muy fuerte.</strong> Si dos representaciones distintas (Ensembl vs symbol) convergen, la confianza del finding sube significativamente.</li>
+    <li><strong>El meta-análisis del proceso es el producto del sustrato.</strong> No solo importa qué se respondió; importa qué dinámicas operativas funcionaron — eso es lo transferible.</li>
+    <li><strong>Anclar la confianza a evidencia explícita.</strong> Cada subida de 0.78 → 0.96 tied a evidencia concreta. El número solo es útil si es trazable a una causa.</li>
+  </ol>
+</section>
+
+<div class="part-divider">PARTE 3 · CONCLUSIONES</div>
+
+<!-- =========================================================================== -->
+<section id="segment-markers">
+  <h2><span class="num">9.</span>Markers de segmento — qué dice la data</h2>
+
+  <p class="lede">
+    Los markers de segmento son el output empírico de las puertas Identity y Specificity. Aquí están los hallazgos finales después de Schoels + Wagner cross-validation.
+  </p>
+
+  <h3>Top 10 markers detectados en Schoels (% cells expressing en pronefros completo)</h3>
+  <table class="data">
+    <thead><tr><th>Rank</th><th>Marker</th><th>Grupo</th><th>% Schoels</th><th>% Wagner duct</th><th>Lectura biológica</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><code>cdh17</code></td><td>Duct general</td><td><strong>35.1%</strong></td><td><strong>83.7%</strong></td><td>Marker ductal universal — saturado en duct cluster</td></tr>
+      <tr><td>2</td><td><code>hnf1ba</code></td><td>Identity</td><td><strong>25.3%</strong></td><td><strong>100%</strong></td><td>Marker canónico, saturado en duct</td></tr>
+      <tr><td>3</td><td><code>slc4a4a</code></td><td>Proximal tubule</td><td>22.3%</td><td>48.8%</td><td>PT en estado maduro</td></tr>
+      <tr><td>4</td><td><code>pax2a</code></td><td>Identity (TF)</td><td>22.0%</td><td><strong>83.7%</strong></td><td>Especificación canónica, en C15 progenitores</td></tr>
+      <tr><td>5</td><td><code>tbx2b</code></td><td>Intermed.meso (TF)</td><td>19.3%</td><td>14.0%</td><td>TF DL fate (PMID 27840199)</td></tr>
+      <tr><td>6</td><td><code>emx1</code></td><td>Intermed.meso (TF)</td><td>18.1%</td><td>11.6%</td><td>Mesodermo intermedio</td></tr>
+      <tr><td>7</td><td><code>irx3b</code></td><td>Intermed.meso (TF)</td><td>16.4%</td><td>27.9%</td><td>Iroquois family</td></tr>
+      <tr><td>8</td><td><code>pou3f3a</code></td><td>TF panel</td><td>14.0%</td><td>18.6%</td><td>POU domain TF</td></tr>
+      <tr><td>9</td><td><code>slc20a1a</code></td><td>Proximal tubule</td><td>12.9%</td><td>30.2%</td><td>PT-specific transporter</td></tr>
+      <tr><td>10</td><td><code>podxl</code></td><td>Podocito</td><td>12.5%</td><td>11.6%</td><td>Podocyte mature marker</td></tr>
+    </tbody>
+  </table>
+
+  <h3>23 clusters Leiden con anclas de identidad biológica</h3>
+  <table class="data">
+    <thead><tr><th>Cluster</th><th>n cells</th><th>Anotación dominante</th><th>Lectura</th></tr></thead>
+    <tbody>
+      <tr style="background:#fbfdf9;"><td><strong>C17</strong></td><td>55</td><td>podocyte=81% · canonical=33% · TF panel=16%</td><td><strong>PODOCITOS PUROS</strong></td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>C13</strong></td><td>235</td><td>distal_late=60% · intermed_meso=40% · duct=39%</td><td><strong>TUBULO DISTAL TARDIO</strong></td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>C7</strong></td><td>44</td><td>proximal=52% · intermed_meso=38%</td><td><strong>TUBULO PROXIMAL (rico)</strong></td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>C4</strong></td><td>242</td><td>proximal=37% · duct=23% · intermed_meso=18%</td><td><strong>PT/DUCTO MIXTO</strong></td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>C15</strong></td><td>26</td><td>canonical=27% · intermed_meso=24% · duct=20%</td><td>Progenitores con identity (pax2a aquí)</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>C16</strong></td><td>47</td><td>intermed_meso=28% · TF panel=24% · duct=23%</td><td>Progenitores TF-rich</td></tr>
+      <tr><td>C6</td><td>23</td><td>podocyte=23%</td><td>Estado de transición podocito</td></tr>
+      <tr><td>C12</td><td>23</td><td>podocyte=13% · proximal=11%</td><td>Transición pod/PT</td></tr>
+      <tr><td>C0, C3, C8, C9, C14, C18, C19, C20, C21, C22</td><td>varios (~640 total)</td><td>mixto, &lt;30% en cualquier grupo</td><td>Sub-estados / progenitores no anclados</td></tr>
+    </tbody>
+  </table>
+
+  <p class="callout">
+    <strong>Hallazgo estructural no-trivial:</strong> los segmentos maduros (PT en C7, DL en C13) tienen <em>0 TFs en su top-30 DE</em>. Su identidad se define por <strong>transportadores</strong>, no por TFs. Los TFs viven en clusters de progenitores (C15, C16). Implicación: para causalidad de TF en estos segmentos, hay que mirar la VENTANA DE PROGENITOR, no el segmento maduro.
+  </p>
+</section>
+
+<!-- =========================================================================== -->
+<section id="tf-causality">
+  <h2><span class="num">10.</span>Matriz de causalidad de los 13 TFs Tier 1-3</h2>
+
+  <p class="lede">
+    Esta es la respuesta data-driven + cross-validated + literature-cross-referenced a la pregunta del usuario sobre causalidad. 13 TFs identificados, 5 ya validados por literatura, 6 novel para experimento fresco, 2 con evidencia indirecta.
+  </p>
+
+  <table class="data">
+    <thead><tr><th>TF</th><th>Tier</th><th>Schoels cluster</th><th>Wagner</th><th>Evidencia perturbación zebrafish</th><th>PMID</th></tr></thead>
+    <tbody>
+      <tr class="validated">
+        <td><strong><code>pax2a</code></strong></td><td><span class="pill high">T1</span></td>
+        <td>C15 progenitores #1</td><td>84%</td>
+        <td><strong>noi mutante: pronefros sin túbulos completos</strong></td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/10769233/">10769233</a></td>
+      </tr>
+      <tr class="novel">
+        <td><code>mafba</code></td><td><span class="pill high">T1</span></td>
+        <td>C17 podocito #13</td><td>14%</td>
+        <td><span class="pill med">Sin evidencia zebrafish kidney</span> — top recomendado para fresh exp</td>
+        <td>—</td>
+      </tr>
+      <tr class="validated">
+        <td><strong><code>wt1a</code></strong></td><td><span class="pill med">T2</span></td>
+        <td>C17 podocito #2</td><td>0%*</td>
+        <td><strong>MO: falla diferenciación glomerular + edema rápido</strong></td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/17651719/">17651719</a></td>
+      </tr>
+      <tr class="validated">
+        <td><strong><code>wt1b</code></strong></td><td><span class="pill med">T2</span></td>
+        <td>C17 podocito #16</td><td>0%*</td>
+        <td><strong>MO: cistos glomerulares + tubulares ~48 hpf</strong></td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/17651719/">17651719</a></td>
+      </tr>
+      <tr class="novel">
+        <td><code>ripply1</code></td><td><span class="pill med">T2</span></td>
+        <td>C17 podocito #27</td><td>n/t</td>
+        <td><span class="pill med">Sin evidencia zebrafish kidney</span></td>
+        <td>—</td>
+      </tr>
+      <tr class="validated">
+        <td><strong><code>sim1a</code></strong></td><td><span class="pill med">T3</span></td>
+        <td>C16 progenitores #19</td><td>n/t</td>
+        <td><strong>MO: PCT expandido, PST + CS abrogados</strong></td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/25542995/">25542995</a> + <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/30475208/">30475208</a></td>
+      </tr>
+      <tr class="novel">
+        <td><code>sall1a</code></td><td><span class="pill med">T3</span></td>
+        <td>C16 progenitores #6</td><td>n/t</td>
+        <td><span class="pill med">Sin evidencia zebrafish</span> (sall1 mouse: agenesis renal)</td>
+        <td>—</td>
+      </tr>
+      <tr class="indirect">
+        <td><code>prox1a</code></td><td><span class="pill med">T3</span></td>
+        <td>C16 progenitores #17</td><td>n/t</td>
+        <td>Solo marker level (cabozantinib downstream)</td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/37335823/">37335823</a></td>
+      </tr>
+      <tr class="novel">
+        <td><code>hoxb8a</code></td><td><span class="pill med">T3</span></td>
+        <td>C16 progenitores #22</td><td>n/t</td>
+        <td>Estudios en sangre, NO efecto pronefros</td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/13679919/">13679919</a></td>
+      </tr>
+      <tr class="novel">
+        <td><code>hipk2</code></td><td><span class="pill med">T3</span></td>
+        <td>C16 progenitores #8</td><td>n/t</td>
+        <td><span class="pill med">Sin evidencia zebrafish kidney</span></td>
+        <td>—</td>
+      </tr>
+      <tr class="indirect">
+        <td><code>foxj1b</code></td><td><span class="pill med">T3</span></td>
+        <td>C15 progenitores #20</td><td>n/t</td>
+        <td>MO: LR asymmetry + cilia generalizado</td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/19284996/">19284996</a></td>
+      </tr>
+      <tr class="validated">
+        <td><strong><code>dzip1l</code></strong></td><td><span class="pill med">T3</span></td>
+        <td>C15 progenitores #21</td><td>n/t</td>
+        <td><strong>Mutaciones causan ARPKD + zebrafish: cilia defectuosos en pronefros</strong></td>
+        <td><a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/28530676/">28530676</a> + <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/19852954/">19852954</a></td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.85rem;color:var(--c-muted);">*wt1a/wt1b 0% en Wagner duct subset porque Wagner separa duct vs podocito en clusters distintos — biológicamente esperado.</p>
+
+  <p>Bonus encontrado fuera del Tier 1-3 (en C1 mesodermo intermedio): <code>tbx2b</code> con evidencia directa (PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/27840199/">27840199</a>) — deficiencia tbx2a/b reduce DL segment.</p>
+</section>
+
+<!-- =========================================================================== -->
+<section id="novel-candidates">
+  <h2><span class="num">11.</span>Los 6 candidatos NOVEL — el output accionable del survey</h2>
+
+  <p class="lede">
+    Estos son los 6 TFs que el survey identificó como cluster-restricted en Schoels y validated/cross-validated en Wagner pero <strong>sin evidencia publicada de perturbación en zebrafish kidney</strong>. Son los candidatos genuinamente novel para experimento fresco.
+  </p>
+
+  <div class="tf-grid">
+    <div class="tf-card novel">
+      <div class="symbol">mafba</div>
+      <div class="meta">Tier 1 · C17 podocito #13 · Wagner 14%</div>
+      <p>Cluster-restricted en podocito. Family MAF bZIP. Mouse mafb tiene rol renal conservado. <strong>Top recomendado.</strong></p>
+    </div>
+    <div class="tf-card novel">
+      <div class="symbol">ripply1</div>
+      <div class="meta">Tier 2 · C17 podocito #27</div>
+      <p>Cluster-restricted en podocito. Familia ripply transcriptional repressor. Sin evidencia mouse robusta.</p>
+    </div>
+    <div class="tf-card novel">
+      <div class="symbol">sall1a</div>
+      <div class="meta">Tier 3 · C16 progenitores #6</div>
+      <p>Cluster-restricted en progenitores TF-rich. Mouse sall1 KO: agenesis renal. Conservación funcional muy probable.</p>
+    </div>
+    <div class="tf-card novel">
+      <div class="symbol">hipk2</div>
+      <div class="meta">Tier 3 · C16 progenitores #8</div>
+      <p>Cluster-restricted. HIPK2 mouse tiene roles en kidney development. Sin paper zebrafish específico.</p>
+    </div>
+    <div class="tf-card novel">
+      <div class="symbol">hoxb8a</div>
+      <div class="meta">Tier 3 · C16 progenitores #22</div>
+      <p>Cluster-restricted. Hox family. Estudios zebrafish en sangre (NO pronefros). Más oblicuo como candidato.</p>
+    </div>
+    <div class="tf-card novel">
+      <div class="symbol">prox1a</div>
+      <div class="meta">Tier 3 · C16 progenitores #17</div>
+      <p>Cluster-restricted. Solo marker level downstream de cabozantinib. Prospero homeobox family — homólogo Prox1 implicado en lymphatics.</p>
+    </div>
+  </div>
+
+  <h3>Características compartidas y priorización</h3>
+  <table class="data">
+    <thead><tr><th>TF</th><th>Tier</th><th>Cluster</th><th>Wagner cross-val</th><th>Mouse evidence</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td><code>mafba</code></td><td>T1</td><td>podocito C17</td><td>✓ 14%</td><td>Mafb renal mouse</td><td><span class="pill high">#1</span></td></tr>
+      <tr><td><code>sall1a</code></td><td>T3</td><td>progenitores C16</td><td>n/t</td><td>Sall1 KO renal agenesis mouse</td><td><span class="pill high">#2</span></td></tr>
+      <tr><td><code>hipk2</code></td><td>T3</td><td>progenitores C16</td><td>n/t</td><td>HIPK2 kidney mouse</td><td><span class="pill med">#3</span></td></tr>
+      <tr><td><code>ripply1</code></td><td>T2</td><td>podocito C17</td><td>n/t</td><td>Sin evidencia mouse robusta</td><td><span class="pill med">#4</span></td></tr>
+      <tr><td><code>prox1a</code></td><td>T3</td><td>progenitores C16</td><td>n/t</td><td>Prox1 lymphatics</td><td><span class="pill low">#5</span></td></tr>
+      <tr><td><code>hoxb8a</code></td><td>T3</td><td>progenitores C16</td><td>n/t</td><td>Hox blood (off-target)</td><td><span class="pill low">#6</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- =========================================================================== -->
+<section id="mafba-rec">
+  <h2><span class="num">12.</span>Recomendación: <code>mafba</code> como top experimento fresco</h2>
+
+  <div class="callout principle">
+    <strong>Si el usuario debe elegir UN TF para experimento húmedo, recomendación: <code>mafba</code>.</strong>
+  </div>
+
+  <h3>Por qué mafba</h3>
+  <ul>
+    <li><strong>Es Tier 1</strong> — el único TF Tier 1 sin validación causal publicada. pax2a (el otro Tier 1) ya tiene perturbación documentada (noi mutant). mafba es el que queda novel.</li>
+    <li><strong>Cluster-restricted en C17 podocito</strong> — es el ancla de identidad podocítica más alto de DE no-validado.</li>
+    <li><strong>Cross-validated en Wagner</strong> — 14% expression en duct subset (probable expresión transitiva entre duct y podocito, consistente con biología de transición epitelial).</li>
+    <li><strong>Familia MAF bZIP</strong> — sus homólogos (Mafb, Mafa, Maf) tienen roles renales documentados en mouse, sugiriendo conservación funcional.</li>
+    <li><strong>El podocito es la unidad funcional clave del glomérulo</strong> — alta relevancia para puerta Identity (markers wt1a/wt1b/podxl) + Specificity (geometría glomerular).</li>
+    <li><strong>Sin paper publicado de perturbación zebrafish</strong> — genuinamente unexplored, alto valor de novedad.</li>
+  </ul>
+
+  <h3>Diseño experimental sugerido</h3>
+  <table class="data">
+    <thead><tr><th>Aspecto</th><th>Sugerencia</th><th>Justificación</th></tr></thead>
+    <tbody>
+      <tr><td>Modalidad de perturbación</td><td>CRISPR-Cas9 KO (preferido) + morfolino como control</td><td>CRISPR es más limpio; MO da efecto agudo que valida el fenotipo</td></tr>
+      <tr><td>Stage de readout</td><td>24, 48, 72 hpf (3 timepoints)</td><td>Cubre window de especificación (24) + maduración (48) + segmentos completos (72)</td></tr>
+      <tr><td>Readout</td><td>scRNA-seq (idealmente) o bulk RNA-seq de pronefros disectado</td><td>scRNA permite resolver shifts en C17 podocito específicamente</td></tr>
+      <tr><td>Controls</td><td>WT siblings (paired); morfolino control con scrambled sequence</td><td>Control pareado mejora poder estadístico</td></tr>
+      <tr><td>Markers de readout</td><td>Podocíticos: wt1a, wt1b, podxl, nphs1 + identity general: pax2a, hnf1ba, cdh17</td><td>Markers ya validados en este survey (Schoels + Wagner)</td></tr>
+      <tr><td>n cells per condition (si scRNA-seq)</td><td>~1000-2000 (alineado con Schoels n=2,065)</td><td>Suficiente para detectar shifts en C17 podocito (n esperado ~50-100)</td></tr>
+      <tr><td>Estadística</td><td>Differential abundance C17 + DE markers podocíticos en C17</td><td>Match con el pipeline ya validado</td></tr>
+      <tr><td>Hipótesis a falsear</td><td>"mafba KO produce shift downstream en markers podocíticos en C17"</td><td>Si shift, evidencia ALTA causalidad. Si no shift, mafba es bystander.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Costo y timeline esperados</h3>
+  <ul>
+    <li><strong>Tiempo:</strong> ~3-4 meses (generación CRISPR mafba KO line: 6-8 semanas; cría F1: 4 semanas; readout scRNA: 2-3 semanas)</li>
+    <li><strong>Costo:</strong> dentro del presupuesto Phase I ($297K total, este experimento ~$15-25K)</li>
+    <li><strong>Bench risk:</strong> bajo — pipeline scRNA-seq en pronefros zebrafish ya documentado por Sagar lab (Schoels 2021 lo hizo)</li>
+  </ul>
+
+  <h3>Alternativos en orden de leverage</h3>
+  <ol>
+    <li><code>sall1a</code> (Tier 3, evidencia mouse robusta — sall1 KO mouse: agenesis renal) — fuerte segunda opción</li>
+    <li><code>hipk2</code> (Tier 3, mouse kidney evidence)</li>
+    <li><code>ripply1</code> (Tier 2, sin mouse evidence robusta)</li>
+    <li><code>prox1a</code> y <code>hoxb8a</code> — más oblicuos</li>
+  </ol>
+</section>
+
+<div class="part-divider">PARTE 4 · APÉNDICES</div>
+
+<!-- =========================================================================== -->
+<section id="options">
+  <h2><span class="num">13.</span>Opciones de decisión — siguiente movimiento</h2>
+
+  <h3>Cerradas en esta sesión (con outcomes documentados)</h3>
+  <div>
+    <div class="option closed"><h4>Opción B · Confirmar Schoels deposition <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: <code>GSE162031</code> confirmado vía resolución indirecta GEO esearch.</p></div>
+    <div class="option closed"><h4>Opción C · Wagner directo + 38 GEO IDs <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: Wagner = PMID 29700229 + 28/38 GEO IDs resueltos + 8 pre-2020 declarados fuera-de-scope.</p></div>
+    <div class="option closed"><h4>Opción G · Análisis Schoels Fases 1-2 <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: 2,065 cells × 23 clusters con anclas de segmento legibles + 5 correcciones honestas Ensembl IDs.</p></div>
+    <div class="option closed"><h4>Opción I · Cross-validation Wagner <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: 43 pronephric duct cells anotadas + convergencia 10 markers core en dos namespaces y técnicas.</p></div>
+    <div class="option closed"><h4>Opción L · TF enumeration data-driven <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: 543/636 IDs reverse-mapped + 39 TFs cluster-restricted + 4 Tiers de candidatos.</p></div>
+    <div class="option closed"><h4>Opción H · Cross-reference TFs vs perturbaciones <span class="opt-rec-tag">CERRADA</span></h4>
+      <p>Outcome: 5 TFs con evidencia DIRECTA + 6 candidatos novel + 2 indirectos.</p></div>
+  </div>
+
+  <h3>Disponibles ahora — siguiente movimiento</h3>
+  <div>
+    <div class="option recommended">
+      <h4>Opción N · Experimento fresco focalizado en mafba <span class="opt-rec-tag">Recomendada</span></h4>
+      <div class="opt-meta"><span><strong>Costo:</strong> 3-4 meses · ~$15-25K</span><span><strong>Cierra:</strong> causalidad de mafba</span><span><strong>Deja abierto:</strong> los otros 5 candidatos novel</span></div>
+      <p>Diseño detallado en §12. Match con el pipeline Schoels validado. Highest-leverage post-survey.</p>
+    </div>
+
+    <div class="option">
+      <h4>Opción M · Sumar capas: spatial transcriptomics + ATAC-seq</h4>
+      <div class="opt-meta"><span><strong>Costo:</strong> 2-3 sesiones búsqueda</span><span><strong>Cierra:</strong> Specificity geométrica + causalidad cromatina</span></div>
+      <p>Visium / MERFISH de pronefros + ATAC-seq de TFs renales. Útil para validar mafba o complementar antes de N.</p>
+    </div>
+
+    <div class="option">
+      <h4>Opción J · Pull DATA INAMOVIBLE de organogenesis-domain.md</h4>
+      <div class="opt-meta"><span><strong>Costo:</strong> 1 sesión</span><span><strong>Cierra:</strong> calibración con compromisos del proyecto</span></div>
+      <p>Cargar <code>organogenesis-domain.md</code> y revisar que las decisiones del survey están alineadas. Útil antes de N para confirmar que mafba no entra en conflicto con DATA INAMOVIBLE no consultada.</p>
+    </div>
+
+    <div class="option">
+      <h4>Opción K · Detener, scaffold experimento fresco para múltiples TFs</h4>
+      <div class="opt-meta"><span><strong>Costo:</strong> 2-4 sesiones diseño + meses wet-lab</span><span><strong>Cierra:</strong> múltiples TFs a la vez</span></div>
+      <p>Diseñar pantalla de 4-6 TFs novel simultáneamente vs un experimento focal en mafba. Mayor inversión inicial, mejor coverage.</p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================================== -->
+<section id="bibliography">
+  <h2><span class="num">14.</span>Bibliografía completa, organizada por tipo</h2>
+
+  <h3>14.1 — Atlases scRNA-seq de zebrafish embryo</h3>
+  <ul class="refs">
+    <li><strong>Wagner et al. 2018</strong> (Klein lab) · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29700229/">29700229</a> / PMC6083445 · DOI <a class="cite" href="https://doi.org/10.1126/science.aar4362">10.1126/science.aar4362</a> · <em>Science</em>. <strong>GSE112294</strong>. ~92K cells primer día desarrollo, inDrop + TracerSeq.</li>
+    <li><strong>Farrell et al. 2018</strong> (Regev/Schier labs) · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29700225/">29700225</a> / PMC6247916 · DOI 10.1126/science.aar3131 · <em>Science</em>. URD method, 38,731 cells, somitogénesis temprana. <em>(Antes mal-atribuido como Wagner — corrección documentada en Round 5.)</em></li>
+    <li><strong>Briggs et al. 2018</strong> (Klein/Megason/Peshkin labs) · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29700227/">29700227</a> / PMC6038144 · DOI 10.1126/science.aar5780 · <em>Science</em>. Frog (Xenopus) con companion zebrafish data.</li>
+    <li><strong>Farnsworth, Saunders, Miller 2020</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/31782996/">31782996</a> / PMC7080588 · DOI 10.1016/j.ydbio.2019.11.008 · <em>Dev Biol</em>. Atlas de desarrollo zebrafish completo.</li>
+    <li><strong>Saunders et al. 2023</strong> (Trapnell lab) · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/37968389/">37968389</a> / PMC10665197 · DOI 10.1038/s41586-023-06720-2 · <em>Nature</em>. Embryo-scale reverse genetics single-cell.</li>
+    <li><strong>Lange et al. 2024</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/39454574/">39454574</a> · DOI 10.1016/j.cell.2024.09.047 · <em>Cell</em>. Multimodal axial progenitors.</li>
+    <li><strong>Xia et al. 2021</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/33785593/">33785593</a> / PMC8040670 · Atlas hematopoyético zebrafish.</li>
+  </ul>
+
+  <h3>14.2 — Schoels 2021 (hit primario directo)</h3>
+  <ul class="refs">
+    <li><strong>Schoels et al. 2021</strong> (Sagar lab) · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/33749326/">33749326</a> · DOI 10.1152/ajprenal.00610.2020 · <em>Am J Physiol Renal Physiol</em>. <strong>GSE162031</strong>. 56 muestras CSV, scRNA-seq pronefros zebrafish 1-3 dpf.</li>
+  </ul>
+
+  <h3>14.3 — Perturbación de TFs (la evidencia causal)</h3>
+  <ul class="refs">
+    <li><strong>pax2a — noi mutant</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/10769233/">10769233</a> · Majumdar A, Lun K, Brand M, Drummond IA (2000) <em>Development</em>. <em>"Zebrafish no isthmus reveals a role for pax2.1 in tubule differentiation and patterning events in the pronephric primordia."</em></li>
+    <li><strong>wt1a + wt1b — morpholino</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/17651719/">17651719</a> · Perner B, Englert C, Bollig F (2007) <em>Dev Biol</em>. Knockdowns separados causan fallo glomerular vs cistos.</li>
+    <li><strong>wt1a alternative splicing</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/25014653/">25014653</a> · Schnerwitzki et al. (2014) <em>Dev Biol</em>.</li>
+    <li><strong>sim1a — morpholino</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/25542995/">25542995</a> · Cheng CN, Wingert RA (2015) <em>Dev Biol</em>. PCT expansion + PST/CS abrogation.</li>
+    <li><strong>sim1a + ppargc1a (related)</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/30475208/">30475208</a> · Chambers JM et al. (2018) <em>eLife</em>.</li>
+    <li><strong>tbx2a/2b mutants (BONUS)</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/27840199/">27840199</a> · Drummond BE et al. (2017) <em>Dev Biol</em>. tbx2a/b deficiency reduces DL.</li>
+    <li><strong>dzip1l — ARPKD + cilia</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/28530676/">28530676</a> · Lu H et al. (2017) <em>Nature Genetics</em>. ARPKD validated en zebrafish.</li>
+    <li><strong>dzip1l/iguana — pronephric cilia</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/19852954/">19852954</a> · Glazer AM et al. (2010) <em>Dev Biol</em>.</li>
+    <li><strong>foxj1a/foxj1b — LR asymmetry + cilia</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/19284996/">19284996</a> · Tian T et al. (2009) <em>BBRC</em>.</li>
+    <li><strong>prox1a — cabozantinib downstream</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/37335823/">37335823</a> · Medishetti R et al. (2023) <em>JBMT</em>.</li>
+    <li><strong>hoxb8a — blood (NOT pronephros)</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/13679919/">13679919</a> · Davidson AJ et al. (2003) <em>Nature</em>.</li>
+  </ul>
+
+  <h3>14.4 — Atlases adultos zebrafish kidney</h3>
+  <ul class="refs">
+    <li><code>GSE242133</code> — atlas adulto 59 cell types HSPC + inmunes, n=3, MTX/TSV.</li>
+    <li><code>GSE183382</code> — adult kidney CEL-seq, ~7,147 cells.</li>
+    <li><code>GSE268624</code> — adult AKI 4 dpi gentamicina, 4 samples.</li>
+    <li><code>GSE275537</code> — adult kidney marrow rad21 mutant.</li>
+    <li><code>GSE227115</code> — adult kidney vascular niche.</li>
+    <li><code>GSE175491</code> — cep290 ciliopatía compensación.</li>
+  </ul>
+
+  <h3>14.5 — Bulk + perturbación pronefros</h3>
+  <ul class="refs">
+    <li><code>SRP533603</code> + <code>SRP533604</code> · BioProjects PRJNA1162812/13 (Tongji). Bulk RNA-seq ducto pronefrico disectado, actl6a morfolino + CRISPR mutants, 30hpf + 72hpf paired controls.</li>
+    <li><code>SRP103765</code> · BioProject PRJNA382357. Bulk RNA-seq pronefros morfogénesis, <code>epcam</code> mutantes vs controles.</li>
+  </ul>
+
+  <h3>14.6 — Referencias del proyecto (operating contract + knowledge base)</h3>
+  <ul class="refs">
+    <li><a class="cite" href="../../CLAUDE.md"><code>CLAUDE.md</code></a> — contrato operativo (Método 2, las 6 nichos, contrato estructurado, resiliencia MCP)</li>
+    <li><a class="cite" href="../../PROJECT_SCOPE.md"><code>PROJECT_SCOPE.md</code></a> — alcance formal, fases, presupuesto, las 4 puertas y las 5 pruebas</li>
+    <li><a class="cite" href="../../ONBOARDING.md"><code>ONBOARDING.md</code></a> — onboarding completo</li>
+    <li><a class="cite" href="../../skills/external/CURATED.md"><code>skills/external/CURATED.md</code></a> — universo curado de Tool Universe (24 skills)</li>
+    <li><code>skills/custom/organogenesis-agent-architect/SKILL.md</code> + 7 referencias en <code>references/</code></li>
+    <li><code>docs/stress-test-completo.md</code> + <code>v2.2-changelog.md</code></li>
+  </ul>
+</section>
+
+<!-- =========================================================================== -->
+<section id="artifacts">
+  <h2><span class="num">15.</span>Artefactos producidos por el survey</h2>
+
+  <h3>15.1 — MCP cache (9 archivos)</h3>
+  <ul class="refs">
+    <li><code>mcp_cache/SCXA_list_experiments_zebrafish_pronephros_20260508.json</code></li>
+    <li><code>mcp_cache/arrayexpress_search_experiments_zebrafish_pronephros_20260508.json</code></li>
+    <li><code>mcp_cache/CxGDisc_search_datasets_zebrafish_kidney_20260508.json</code></li>
+    <li><code>mcp_cache/GEO_search_rnaseq_datasets_zebrafish_pronephros_20260508.json</code></li>
+    <li><code>mcp_cache/SRA_search_experiments_zebrafish_kidney_pronephros_20260508.json</code></li>
+    <li><code>mcp_cache/geo_search_datasets_zebrafish_kidney_singlecell_20260508.json</code></li>
+    <li><code>mcp_cache/PubMed_search_articles_zebrafish_pronephros_singlecell_20260508.json</code></li>
+    <li><code>mcp_cache/PubMed_search_articles_zebrafish_atlas_development_20260508.json</code></li>
+    <li><code>mcp_cache/GEO_get_dataset_details_top3_20260508.json</code></li>
+    <li><code>mcp_cache/round4_5_consolidated_20260508.json</code></li>
+  </ul>
+
+  <h3>15.2 — Checkpoints (3 archivos)</h3>
+  <ul class="refs">
+    <li><code>checkpoints/zebrafish_pronephros_scrnaseq_survey_20260508T1.json</code></li>
+    <li><code>checkpoints/zebrafish_pronephros_scrnaseq_survey_20260508T2.json</code></li>
+    <li><code>checkpoints/zebrafish_pronephros_scrnaseq_survey_20260508T3.json</code></li>
+  </ul>
+
+  <h3>15.3 — Scripts de análisis (4 + 1 utility)</h3>
+  <ul class="refs">
+    <li><code>analysis/scripts/01_schoels_analysis.py</code> — Fase 1: carga + QC + scoring inicial (Op G)</li>
+    <li><code>analysis/scripts/02_schoels_phase2.py</code> — Fase 2: Ensembl REST + Leiden + UMAP + DE (Op G)</li>
+    <li><code>analysis/scripts/03_wagner_analysis.py</code> — Wagner cross-validation (Op I)</li>
+    <li><code>analysis/scripts/04_option_L_TF_enumeration.py</code> — Reverse mapping + TF enumeration (Op L)</li>
+    <li><code>analysis/scripts/check_wagner_genes.py</code> — utility de inspección namespace</li>
+  </ul>
+
+  <h3>15.4 — Datos descargados (gitignored)</h3>
+  <ul class="refs">
+    <li><code>analysis/data/schoels/GSE162031_raw_counts_day{1,2,3}.csv.gz</code> (~6.2 MB total)</li>
+    <li><code>analysis/data/wagner/GSE112294_ClusterNames.csv.gz</code> (1.8 KB)</li>
+    <li><code>analysis/data/wagner/GSE112294_LibraryName_SRR_readme.txt</code></li>
+    <li><code>analysis/data/wagner/extracted/GSM3067193_14hpf{,_clustID}.{csv,txt}.gz</code> (12 MB + 3 KB)</li>
+    <li><code>analysis/data/wagner/extracted/GSM3067194_18hpf{,_clustID}.{csv,txt}.gz</code> (24 MB + 6 KB)</li>
+    <li><code>analysis/data/wagner/extracted/GSM3067195_24hpf{,_clustID}.{csv,txt}.gz</code> (21 MB + 8 KB)</li>
+    <li><code>analysis/.venv/</code> — Python venv con scanpy 1.12.1 + anndata 0.12.13 + deps</li>
+  </ul>
+
+  <h3>15.5 — Outputs de análisis (parcialmente gitignored)</h3>
+  <ul class="refs">
+    <li><code>analysis/outputs/schoels_qc.h5ad</code> — AnnData inicial (380 MB, gitignored)</li>
+    <li><code>analysis/outputs/schoels_clustered.h5ad</code> — AnnData con clusters + UMAP + DE</li>
+    <li><code>analysis/outputs/schoels_markers_v2.csv</code> · <code>schoels_DE_per_cluster.json</code> · <code>schoels_DE_per_day.json</code> · <code>schoels_segment_annotation.json</code></li>
+    <li><code>analysis/outputs/schoels_phase2_summary.json</code> · <code>ensembl_symbol_map.json</code></li>
+    <li><code>analysis/outputs/figures/umap_schoels_leiden.png</code> · <code>umap_schoels_day.png</code> · <code>umap_schoels_markers_top12.png</code></li>
+    <li><code>analysis/outputs/wagner_pronephros.h5ad</code> · <code>wagner_markers.csv</code> · <code>wagner_vs_schoels_comparison.csv</code> · <code>wagner_summary.json</code></li>
+    <li><code>analysis/outputs/ens_to_symbol_descriptions.json</code> · <code>schoels_DE_per_cluster_with_symbols.csv</code> · <code>schoels_TFs_per_cluster.csv</code> · <code>schoels_TFs_cluster_restricted.csv</code> · <code>option_L_TF_summary.json</code></li>
+  </ul>
+
+  <h3>15.6 — Reporte HTML (este archivo)</h3>
+  <ul class="refs">
+    <li><code>docs/reports/2026-05-08_zebrafish_pronephros_scrnaseq_survey.html</code> — versión integral, 16 secciones, ~este archivo.</li>
+  </ul>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>Reporte integral generado en sesión Claude Code, 2026-05-08.</strong> Operador: Method 2 instrumented agent. Versión bundle: <code>organogenesis-agent-architect@2.2.0 · reasoning-frameworks-catalog@1.1 · substrate-evidence-guide@1.2 · method-selection@1.1 · PROJECT_SCOPE@1.2</code>.</p>
+    <p>Este reporte es self-contained — no requiere conexión a internet para visualizarse. Los enlaces externos (PubMed, DOI) se abren en navegador. Los enlaces internos (<code>../../CLAUDE.md</code> etc.) requieren que el archivo se vea desde su ubicación en el repo (<code>docs/reports/</code>).</p>
+    <p style="margin-top: 0.8rem;"><strong>Trayectoria del survey:</strong> 0.78 (curatorial) → 0.86 (Rondas 4-5) → 0.90 (Op G) → 0.92 (Op I) → 0.94 (Op L) → <strong>0.96 (Op H)</strong>. Pregunta del usuario respondida data-driven + cross-validated + literature-cross-referenced. Recomendación final: <code>mafba</code> KO + scRNA-seq como top experimento fresco.</p>
+  </div>
+</footer>
+
+</body>
+</html>

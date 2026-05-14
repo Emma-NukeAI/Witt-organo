@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Etapa 1 — Ablación de Contractilidad Cortical en Mesendodermo (6–8 hpf) · Reporte Conclusivo</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #777;
+    --rule: #e4e2dd;
+    --accent: #5a4a3a;
+    --accent-soft: #f3efe8;
+    --pass: #2d6a4f;
+    --warn: #b8860b;
+    --fail: #8b3a3a;
+    --code-bg: #1f1d1a;
+    --code-ink: #e8e4d8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  header.title {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 24px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .meta dt { color: var(--ink-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta dd { margin: 0 0 4px; font-weight: 500; }
+  .gate {
+    background: #fff7e6;
+    border-left: 3px solid var(--warn);
+    padding: 14px 18px;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+  .gate strong { color: var(--warn); }
+  h2 {
+    font-size: 20px;
+    margin: 44px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  h3 { font-size: 16px; margin: 24px 0 8px; font-weight: 600; }
+  h4 { font-size: 14px; margin: 16px 0 6px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 16px; color: var(--ink-soft); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; color: var(--accent); }
+  tbody tr.highlight { background: #f0f7f0; }
+  tbody tr.highlight td { font-weight: 500; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .pill.pass { background: #e0f0e6; color: var(--pass); }
+  .pill.warn { background: #fff3d6; color: var(--warn); }
+  .pill.fail { background: #f7e4e4; color: var(--fail); }
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 16px 0;
+  }
+  .scenario.best { border-left: 4px solid var(--pass); }
+  .scenario.confounded { border-left: 4px solid var(--warn); opacity: 0.92; }
+  .scenario.failed { border-left: 4px solid var(--fail); opacity: 0.85; }
+  .scenario header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .scenario header h3 { margin: 0; font-size: 16px; }
+  .conf {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .conf strong { color: var(--ink); }
+  .scenario p { margin: 6px 0; font-size: 14px; }
+  .scenario .grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 4px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .scenario .grid dt { color: var(--ink-faint); font-weight: 600; }
+  .scenario .grid dd { margin: 0; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .gene { font-style: italic; }
+  .callout {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout strong { color: var(--accent); }
+  ul.flags { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+  ul.flags li { margin-bottom: 4px; }
+  .toc { font-size: 13px; background: var(--surface); border: 1px solid var(--rule); padding: 14px 22px; margin-bottom: 32px; border-radius: 6px; }
+  .toc ol { margin: 6px 0 0; padding-left: 22px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <div class="eyebrow">Proyecto Organogenesis × Witt · Cascada Pronefro · Etapa 1 de 3</div>
+  <h1>Ablación de contractilidad cortical en mesendodermo (6–8 hpf)</h1>
+  <p class="subtitle">Reporte conclusivo de simulación causal morfológica · pez cebra · validación transcriptómica post-hoc</p>
+  <dl class="meta">
+    <div><dt>Fecha</dt><dd>2026-05-12</dd></div>
+    <div><dt>Modo operativo</dt><dd>Método 2 (humano-conducido)</dd></div>
+    <div><dt>Marco de razonamiento</dt><dd>Self-Consistency (Tier 1)</dd></div>
+    <div><dt>Nichos activos</dt><dd>N1 · N3 · (N4 lateral)</dd></div>
+    <div><dt>Fase de proyecto</dt><dd>Fase I — POC zebrafish</dd></div>
+    <div><dt>Estado</dt><dd>Hipótesis generada · pendiente puerta humana</dd></div>
+  </dl>
+</header>
+
+<div class="gate">
+  <strong>Puerta humana obligatoria.</strong> Esta salida es generación de hipótesis tipo <code>causal-pruner</code>.
+  No debe usarse aguas abajo (planeación wet-lab, asignación de presupuesto, decisiones de scope) sin revisión humana explícita
+  (CLAUDE.md §7). El campo <code>framework_applied</code> es auto-reportado, no introspección fiel (contrato v2.2).
+</div>
+
+<div class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#contexto">Contexto y pregunta</a></li>
+    <li><a href="#diseno">Diseño experimental</a></li>
+    <li><a href="#escenarios">Resultados por escenario</a></li>
+    <li><a href="#sintesis">Síntesis comparativa</a></li>
+    <li><a href="#hallazgo">Hallazgo principal</a></li>
+    <li><a href="#validacion">Validación transcriptómica consolidada</a></li>
+    <li><a href="#limites">Límites e incertidumbres</a></li>
+    <li><a href="#siguiente">Recomendación para Etapa 2</a></li>
+  </ol>
+</div>
+
+<section id="contexto">
+  <h2>1. Contexto y pregunta</h2>
+  <p class="lead">
+    En pez cebra, el pronefro (riñón embrionario) deriva del mesodermo intermedio (IM), que a su vez emerge del
+    posicionamiento correcto del mesodermo de placa lateral (LPM) durante gastrulación. Las decisiones de identidad
+    celular (BMP, RA, Wnt) están razonablemente caracterizadas; la pregunta abierta — y la que aborda este simulacro —
+    es <strong>cuánto del fenotipo pronéfrico final depende de la mecánica cortical (actomiosina) durante las
+    ventanas de movimiento celular masivo</strong>, independiente de la programación transcripcional.
+  </p>
+  <p>
+    Esta Etapa 1 se enfoca en la ventana <strong>6–8 hpf (mesendodermo, gastrulación temprana)</strong>: convergencia-extensión,
+    internalización por involución/ingression. La perturbación causal es <strong>ablación de contractilidad cortical</strong>
+    vía reducción combinada de miosina no-muscular II y RhoA-quinasa (<span class="gene">myh9a</span>/<span class="gene">b</span>
+    + <span class="gene">rock1</span>/<span class="gene">2</span>). El transcriptoma se usa exclusivamente como
+    <strong>lectura de validación post-hoc</strong>, no como driver de identificación causal.
+  </p>
+</section>
+
+<section id="diseno">
+  <h2>2. Diseño experimental</h2>
+  <p>
+    Cuatro escenarios cruzando <strong>modo temporal</strong> × <strong>dosis</strong>. Esta estructura mitiga el riesgo
+    de parsimonia (Gate 4): la diferencia A vs B aísla causalidad de etapa de causalidad cascada.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Eje</th><th>Niveles</th><th>Función causal</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Modo temporal</strong></td>
+        <td>A: stage-specific con washout 8→10 hpf<br>B: persistente desde 6 hpf en adelante</td>
+        <td>A aísla efecto puramente de la ventana 6–8 hpf; B captura cascada acumulada</td>
+      </tr>
+      <tr>
+        <td><strong>Dosis</strong></td>
+        <td>Hipomorfo (~50% actividad)<br>KO (~5% actividad)</td>
+        <td>Curva dosis–fenotipo; permite distinguir efecto modal de efecto catastrófico</td>
+      </tr>
+      <tr>
+        <td><strong>Lectura morfológica</strong></td>
+        <td>C-E (6–8 hpf), posición LPM (10–12 hpf), arquitectura pronéfrica (24 hpf)</td>
+        <td>Time-series multi-escala; permite distinguir defecto inmediato de defecto downstream</td>
+      </tr>
+      <tr>
+        <td><strong>Lectura transcriptómica (validación)</strong></td>
+        <td>Marcadores identidad (<span class="gene">pax2a, lhx1a, wt1a, hand2</span>); estrés/mecano (<span class="gene">fos, jun, ctgf, cyr61</span>); especificación previa (<span class="gene">gsc, ntl/tbxta, eve1</span>)</td>
+        <td>Test de desacople morfología-vs-identidad: confirma que la ablación es <em>morfológica pura</em></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="escenarios">
+  <h2>3. Resultados por escenario</h2>
+
+  <div class="scenario best">
+    <header>
+      <h3>1A-hipo · stage-specific, hipomorfo (washout 8→10 hpf)</h3>
+      <div class="conf">Confianza: <strong>0.78</strong> · <span class="pill pass">Mejor rendimiento causal</span></div>
+    </header>
+    <p>
+      ↓50% <span class="gene">myh9a</span> + ↓50% <span class="gene">rock1</span> durante 6–8 hpf, luego liberación.
+      C-E parcialmente comprometida (células lentas, no abortadas). Internalización mesendodérmica con retraso ~30 min
+      y ángulos de involución desviados ~15°. A 10–12 hpf: LPM lateral ligeramente más ancho, IM presente y bilateral
+      pero con dispersión AP aumentada. A 24 hpf: probable túbulo funcional con <em>stretch</em> geométrico (mayor
+      variabilidad longitud glomérulo→cloaca).
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd><span class="gene">pax2a/lhx1a</span> identidad presente · localización dispersa → <span class="pill pass">PASA</span></dd>
+      <dt>Marcadores previos</dt><dd><span class="gene">gsc, ntl</span> sin cambio (ablación no toca especificación)</dd>
+      <dt>Firma mecánica</dt><dd>↑ <span class="gene">fos, jun</span> durante; ↓ <span class="gene">ctgf</span> (target YAP); retorno post-washout</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Asume cinética de washout instantánea; en realidad t½ de blebbistatina-foto es de minutos</li>
+      <li>Variabilidad inter-embrión no modelada explícitamente</li>
+    </ul>
+  </div>
+
+  <div class="scenario best">
+    <header>
+      <h3>1A-KO · stage-specific, KO (washout 8→10 hpf)</h3>
+      <div class="conf">Confianza: <strong>0.74</strong> · <span class="pill pass">Causal limpio, alta varianza</span></div>
+    </header>
+    <p>
+      ↓95% <span class="gene">myh9a</span> + ↓95% <span class="gene">rock1</span> durante 6–8 hpf, luego liberación.
+      C-E esencialmente abolida en la ventana. Internalización fragmentada — subconjunto de células mesendodérmicas
+      queda en epibolia sin involutar. Washout permite internalización tardía (~9–10 hpf), pero con posición AP
+      corrida posteriormente. A 10–12 hpf: LPM presente pero con <strong>asimetría bilateral</strong> estocástica.
+      IM duplicado o truncado unilateral. A 24 hpf: defecto pronéfrico unilateral — cisticidad o ausencia parcial.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Identidad correcta + geometría rota severa → <span class="pill pass">PASA con alta varianza</span></dd>
+      <dt>Marcadores previos</dt><dd><span class="gene">gsc, ntl</span> persisten en cells rezagadas (señal de falla de involución)</dd>
+      <dt>Firma mecánica</dt><dd>↑↑ <span class="gene">fos, jun, egr1</span>; ↓↓ targets YAP; normalización retrasada ~1h post-washout</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Letalidad embrionaria parcial (10–20%) sesga la muestra hacia embriones menos afectados</li>
+      <li>Estocasticidad alta → requiere n ≥ 20 embriones para señal limpia</li>
+    </ul>
+  </div>
+
+  <div class="scenario confounded">
+    <header>
+      <h3>1B-hipo · persistente, hipomorfo</h3>
+      <div class="conf">Confianza: <strong>0.62</strong> · <span class="pill warn">Confundido — solo referencia</span></div>
+    </header>
+    <p>
+      ↓50% <span class="gene">myh9a</span> + ↓50% <span class="gene">rock1</span> desde 6 hpf sin liberación.
+      C-E comprometida y mantenida. A 10–12 hpf: LPM mal posicionado + dificultad adicional para elongación AP
+      (la contractilidad sigue baja). A 14–16 hpf: progenitores pronéfricos con polaridad apicobasal deficiente
+      desde el inicio. A 24 hpf: túbulo malformado, posible falla de lumenogénesis.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Parcial — persistencia altera targets mecánicos sostenidamente → <span class="pill warn">PARCIAL</span></dd>
+      <dt>Atribución causal</dt><dd><strong>Imposible separar</strong> efecto de ventana 6–8 hpf vs. contractilidad reducida persistente</dd>
+      <dt>Adaptación</dt><dd>Posible upregulación compensatoria de <span class="gene">myh10</span></dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li><strong>Cascada no separable</strong> — útil como referencia, no como evidencia causal de etapa específica</li>
+      <li>Adaptación transcripcional confunde la lectura de validación</li>
+    </ul>
+  </div>
+
+  <div class="scenario failed">
+    <header>
+      <h3>1B-KO · persistente, KO</h3>
+      <div class="conf">Confianza: <strong>0.55</strong> · <span class="pill fail">Catastrófico — solo control positivo</span></div>
+    </header>
+    <p>
+      ↓95% <span class="gene">myh9a</span> + ↓95% <span class="gene">rock1</span> desde 6 hpf. Fenotipo catastrófico
+      acumulativo. Alta probabilidad de letalidad antes de 16 hpf. Para embriones sobrevivientes: IM ausente o muy
+      reducido, pronefro no se forma o forma rudimento no funcional.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Identidad también comprometida → <span class="pill fail">FALLA paradigma morfología-pura</span></dd>
+      <dt>Atribución causal</dt><dd>Solo confirma necesidad global de actomiosina; no aporta especificidad de etapa</dd>
+      <dt>Sobrevivencia</dt><dd>&lt; 30% → no informativo estadísticamente</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Rescate parcial por redundancia <span class="gene">myh10</span> improbable a este nivel</li>
+      <li>Confirma necesidad pero NO contribución específica de etapa — control positivo de fenotipo extremo</li>
+    </ul>
+  </div>
+</section>
+
+<section id="sintesis">
+  <h2>4. Síntesis comparativa</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Escenario</th>
+        <th>Confianza</th>
+        <th>Causal claim limpio</th>
+        <th>Test desacople</th>
+        <th>Valor para Gate 4 (parsimonia)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td><strong>1A-hipo</strong></td>
+        <td>0.78</td>
+        <td>Sí — óptimo</td>
+        <td><span class="pill pass">PASA</span></td>
+        <td>Alto</td>
+      </tr>
+      <tr>
+        <td>1A-KO</td>
+        <td>0.74</td>
+        <td>Sí, con varianza</td>
+        <td><span class="pill pass">PASA</span></td>
+        <td>Alto</td>
+      </tr>
+      <tr>
+        <td>1B-hipo</td>
+        <td>0.62</td>
+        <td>No — confundido</td>
+        <td><span class="pill warn">PARCIAL</span></td>
+        <td>Bajo (referencia)</td>
+      </tr>
+      <tr>
+        <td>1B-KO</td>
+        <td>0.55</td>
+        <td>No — catastrófico</td>
+        <td><span class="pill fail">FALLA</span></td>
+        <td>Solo control positivo</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="hallazgo">
+  <h2>5. Hallazgo principal</h2>
+  <div class="callout">
+    <p>
+      <strong>La contractilidad cortical de 6–8 hpf contribuye al posicionamiento del LPM y a la geometría
+      del IM, pero NO a la identidad transcripcional del IM.</strong>
+    </p>
+    <p style="margin-bottom:0">
+      La identidad pronéfrica (<span class="gene">pax2a, lhx1a, wt1a, hand2</span>) se determina aguas abajo por
+      BMP/RA y resulta robusta al daño mecánico moderado durante mesendodermo. Lo que la ablación cortical
+      compromete es la <em>arquitectura espacial</em> que esa identidad ocupará — la diferencia entre un IM
+      bilateralmente simétrico y elongado AP, y un IM disperso o desplazado lateralmente.
+    </p>
+  </div>
+  <p>
+    <strong>Confianza global de la cadena causal (mesendodermo → pronefro vía contractilidad): 0.72.</strong>
+    El claim resiste a través de los cuatro escenarios pero es más fuerte en hipomorfo stage-specific (1A-hipo)
+    y se diluye con persistencia (1B). El escenario óptimo de validación wet-lab futura es <strong>1A-hipo</strong>:
+    máxima señal causal con mínima confusión por cascada o por catástrofe.
+  </p>
+</section>
+
+<section id="validacion">
+  <h2>6. Validación transcriptómica consolidada</h2>
+  <p>
+    Predicciones que distinguen ablación-morfológica-pura de alteración-de-identidad. Si un experimento wet-lab
+    contradice estos patrones, la premisa del diseño (perturbación mecánica decoupled de programa transcripcional)
+    requiere revisión.
+  </p>
+
+  <h4>Debe permanecer sin cambio (control de pureza de ablación)</h4>
+  <ul class="flags">
+    <li><span class="gene">gsc, ntl/tbxta, sox17, eve1</span> — especificación mesendodérmica intacta a 6–8 hpf</li>
+    <li><span class="gene">pax2a, lhx1a, wt1a</span> presentes a 10–12 hpf — identidad IM no comprometida</li>
+  </ul>
+
+  <h4>Debe cambiar transitoriamente (firma mecánica esperada)</h4>
+  <ul class="flags">
+    <li>↑ <span class="gene">fos, jun, egr1</span> durante la ventana de ablación; retorno a baseline post-washout</li>
+    <li>↓ targets de YAP/TAZ (<span class="gene">ctgf/ccn2, cyr61/ccn1, ankrd1</span>) durante ablación; recuperación post-washout</li>
+  </ul>
+
+  <h4>Debe mostrar dislocación espacial sin cambio de nivel (firma morfológica)</h4>
+  <ul class="flags">
+    <li><span class="gene">hand2</span> (LPM lateral) — expresado pero geometría rota (ISH in situ requerido, no solo bulk RNA-seq)</li>
+    <li><span class="gene">pax2a/lhx1a</span> — presentes en cantidad pero con varianza espacial aumentada en muestras 1A vs control</li>
+  </ul>
+
+  <p style="margin-top:14px;">
+    <strong>Resolución requerida:</strong> bulk RNA-seq es insuficiente para distinguir 1A de control en marcadores
+    de identidad (los niveles agregados son normales). Se requiere <em>spatial transcriptomics</em> o <em>HCR-FISH</em>
+    cuantitativa para detectar la dislocación predicha. Esto es restricción metodológica importante para validación.
+  </p>
+</section>
+
+<section id="limites">
+  <h2>7. Límites e incertidumbres</h2>
+  <ul class="flags">
+    <li>Magnitud de ablación simulada (~50% y ~5%) es aproximación; experimentos reales muestran fenotipos dosis-dependientes con transiciones no-lineales.</li>
+    <li>Estocasticidad inter-embrión no modelada — varianza biológica subestimada.</li>
+    <li>Redundancia de paralogs (<span class="gene">myh9a/myh9b/myh10</span>; <span class="gene">rock1/rock2a/rock2b</span>) puede generar rescate parcial no capturado.</li>
+    <li>Sin acceso a datos de mosaic-rescue de <span class="gene">myh9</span> en pez cebra dentro de esta sesión; afirmaciones derivadas de literatura referenciada, no de re-análisis primario.</li>
+    <li>El campo <code>framework_applied</code> es self-report, no introspección verificada (v2.2). La etiqueta "Self-Consistency" describe la estrategia prompt-time, no garantía de razonamiento interno.</li>
+    <li>Gate 4 (parsimonia): los escenarios 1B fueron diseñados precisamente para exponer cascada confundida; su uso correcto es de referencia, no de evidencia causal limpia.</li>
+  </ul>
+</section>
+
+<section id="siguiente">
+  <h2>8. Recomendación para Etapa 2</h2>
+  <p>
+    Avanzar a <strong>Etapa 2 (LPM/IM, 10–12 hpf)</strong> con el mismo protocolo de cuatro escenarios. La hipótesis a
+    contrastar es que la contractilidad cortical en esta ventana contribuye específicamente a la <em>elongación AP
+    del IM y a la pre-organización para MET</em>, separable del posicionamiento inicial determinado en Etapa 1.
+  </p>
+  <p>
+    El control crítico entre etapas es: <strong>¿el fenotipo pronéfrico de una ablación 1B-hipo es indistinguible del
+    de una ablación 2A-hipo?</strong> Si sí, el evento causal dominante reside en Etapa 1 y Etapa 2 tiene rol mínimo
+    independiente. Si no, ambas ventanas contribuyen y la causalidad es multi-stage.
+  </p>
+  <p>
+    <strong>Decisión pendiente del usuario:</strong> proceder con Etapa 2 estándar, o introducir refinamientos
+    (dosis intermedia, perturbación alternativa dentro de "contractilidad" como <span class="gene">myh10</span> en
+    lugar de <span class="gene">myh9</span>, readout morfológico adicional).
+  </p>
+</section>
+
+<footer>
+  <p><strong>Generado:</strong> 2026-05-12 · Reporte conclusivo de Etapa 1 · Versión 1.0</p>
+  <p><strong>Contrato:</strong> CLAUDE.md §5 · output estructurado con campos <code>direct_answer, confidence, evidence_cited, alternatives_considered, gap_flags, framework_applied</code> · auto-reporte (v2.2)</p>
+  <p><strong>Estado:</strong> hipótesis-generación · requiere puerta humana antes de uso aguas abajo (§7)</p>
+  <p><strong>Fuente:</strong> simulación causal in silico · validación transcriptómica predicha, no medida · sin acceso a datos primarios re-analizados en esta sesión</p>
+</footer>
+
+</div>
+</body>
+</html>

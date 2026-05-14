@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decision Package · Para Martín · Survey + Pleiotropy · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #ecd0d0;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+
+  header.report-header {
+    background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border);
+    padding: 2.5rem 2rem 2rem;
+  }
+  header.report-header .container { max-width: 980px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--c-muted); margin-bottom: 0.4rem;
+  }
+  header.report-header h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 0.4rem 0; }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0 0 1.2rem 0; max-width: 80ch; }
+  .meta-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.8rem 1.5rem; border-top: 1px solid var(--c-border);
+    padding-top: 1rem; font-size: 0.86rem;
+  }
+  .meta-grid div span { display: block; color: var(--c-muted); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  main { max-width: 980px; margin: 0 auto; padding: 1.5rem 2rem; }
+  section { margin-bottom: 2.6rem; scroll-margin-top: 60px; }
+  section h2 {
+    font-size: 1.3rem; border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem; margin: 0 0 1rem 0;
+  }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 { font-size: 1.05rem; margin: 1.5rem 0 0.5rem 0; }
+
+  .lede {
+    background: var(--c-surface); border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem; margin: 0 0 1.5rem 0; font-size: 1.0rem;
+  }
+  .callout {
+    background: #fff8e8; border: 1px solid #e8d8a0; border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem; margin: 1rem 0; border-radius: 3px; font-size: 0.92rem;
+  }
+  .callout strong { color: var(--c-warn); }
+  .callout.principle { background: #f3f8f1; border-color: #c8d8c8; border-left-color: var(--c-organo); }
+  .callout.principle strong { color: var(--c-organo); }
+  .callout.danger { background: var(--c-critical-light); border-color: #e8b8b8; border-left-color: var(--c-critical); }
+  .callout.danger strong { color: var(--c-critical); }
+  .callout.executive { background: #eef4f8; border-color: #b8cad6; border-left-color: var(--c-witt); padding: 1.2rem 1.4rem; }
+  .callout.executive strong { color: var(--c-witt); }
+
+  .stat-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.6rem; margin: 1rem 0;
+  }
+  .stat {
+    background: var(--c-surface); border: 1px solid var(--c-border);
+    border-radius: 4px; padding: 0.85rem 1rem; text-align: center;
+  }
+  .stat .number {
+    display: block; font-size: 1.7rem; font-weight: 600;
+    color: var(--c-witt); line-height: 1.1;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .stat .label {
+    display: block; font-size: 0.76rem; color: var(--c-muted);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.3rem;
+  }
+  .stat.organo .number { color: var(--c-organo); }
+  .stat.warn .number { color: var(--c-warn); }
+  .stat.critical .number { color: var(--c-critical); }
+
+  table.data {
+    width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0;
+  }
+  table.data th, table.data td {
+    padding: 0.6rem 0.8rem; text-align: left; vertical-align: top;
+    border-bottom: 1px solid var(--c-border);
+  }
+  table.data th {
+    background: var(--c-tag-bg); font-weight: 600; font-size: 0.81rem;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted);
+  }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+  table.data tr.recommended td { background: #e6f4e6 !important; }
+  table.data tr.problematic td { background: var(--c-critical-light) !important; }
+
+  .pill {
+    display: inline-block; padding: 0.12rem 0.55rem; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 500;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .pill.high { background: #d8efd9; color: #1f5023; }
+  .pill.med  { background: #f3ecc8; color: #735100; }
+  .pill.low  { background: #f1ddd5; color: #7a2a18; }
+  .pill.gate { background: var(--c-critical); color: white; }
+
+  .option {
+    border: 1px solid var(--c-border); border-left: 3px solid var(--c-witt);
+    background: var(--c-surface); padding: 1rem 1.2rem; border-radius: 3px;
+    margin-bottom: 0.8rem;
+  }
+  .option.recommended { border-left-color: var(--c-organo); background: #fbfdf9; }
+  .option.expensive { border-left-color: var(--c-warn); }
+  .option h4 { margin: 0 0 0.4rem 0; font-size: 1.0rem; }
+  .option .opt-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.83rem; color: var(--c-muted); margin-bottom: 0.5rem; }
+
+  footer.report-footer {
+    border-top: 1px solid var(--c-border); padding: 1.5rem 2rem;
+    font-size: 0.82rem; color: var(--c-muted); background: var(--c-surface);
+  }
+  footer.report-footer .container { max-width: 980px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Decision Package · Witt × Organogenesis · Para Martín · 2026-05-09</div>
+    <h1>Pivot estratégico recomendado: del candidato top original (mafba) a un candidato re-priorizado (hoxb8a) — qué cambió, qué requiere tu call</h1>
+    <p class="subtitle">Documento ejecutivo de 5 secciones. Resume dos sesiones de trabajo (survey computacional + pre-resolves del experimento) y presenta una decisión estratégica que requiere tu input antes de comprometer budget de wet-lab. La pregunta operativa: ¿pivoteamos a hoxb8a, hacemos conditional KO de mafba en Phase II, o re-evaluamos scope?</p>
+    <div class="meta-grid">
+      <div><span>Co-fundador objetivo</span>Martín Gleizer</div>
+      <div><span>Documentos ref.</span>Survey 2026-05-08 · Design 2026-05-09</div>
+      <div><span>Decisión requerida</span>Pivot strategy + budget gate</div>
+      <div><span>Lectura estimada</span>10-15 min</div>
+      <div><span>Costo si se decide ya</span>$30-45K (gate humano)</div>
+      <div><span>Principio fundador aplicado</span>Prueba pequeño ✓</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ==================================================================== -->
+<section id="exec">
+  <h2><span class="num">1.</span>Resumen ejecutivo</h2>
+
+  <div class="callout executive">
+    <strong>En una frase:</strong> El survey computacional + los pre-resolves del experimento detectaron a tiempo (sin gastar wet-lab) que <code>mafba</code> — el target top recomendado originalmente — tiene pleiotropy alta (más expresado en endothelial/lens/macrophage que en pronefros). El KO global produciría un fenotipo confundido. La re-priorización data-driven sugiere pivot a <code>hoxb8a</code>, que es 5× más pronefros-específico. Esto requiere tu call estratégica antes de comprometer $30-45K.
+  </div>
+
+  <h3>Lo que cambió (en 4 puntos)</h3>
+  <ol>
+    <li><strong>Survey original (8 mayo):</strong> identificó 13 TFs candidatos, 5 con perturbación publicada, 6 novel para experimento fresco. <code>mafba</code> recomendado top (Tier 1, podocyte-restricted en Schoels + Wagner cross-validated).</li>
+    <li><strong>Diseño experimental mafba (9 mayo, mañana):</strong> documento de 19 secciones con timeline, budget, hipótesis, predicciones falsificables, risk register.</li>
+    <li><strong>Pre-resolves (9 mayo, tarde):</strong> antes de gastar wet-lab, computational checks. Item 1 sgRNAs OK. Item 2 pleiotropy reveló el problema. Item 7 re-priorizó: <code>hoxb8a</code> emerge como nuevo top.</li>
+    <li><strong>Implicación:</strong> el survey + pre-resolves cumplieron <em>prueba pequeño antes de armar bien</em> exactamente como tú lo formulaste: $0 de wet-lab, evidencia que invierte la decisión.</li>
+  </ol>
+
+  <h3>Lo que necesita tu call</h3>
+  <table class="data">
+    <thead><tr><th>Decisión</th><th>Status</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td>Pivot estratégico: mafba → hoxb8a (vs alternativas)</td><td><span class="pill gate">PENDING</span></td><td>Martín + Emmanuel</td></tr>
+      <tr><td>Budget approval $30-45K</td><td><span class="pill gate">PENDING</span></td><td>Martín + Emmanuel</td></tr>
+      <tr><td>Wet-lab partner selection</td><td><span class="pill gate">PENDING</span></td><td>Emmanuel (con tu input)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================================================================== -->
+<section id="situation">
+  <h2><span class="num">2.</span>Dónde estamos: estado actual del proyecto</h2>
+
+  <p>Phase I del POC zebrafish pronefros, mes 1, dentro del envelope de 8 meses / $297K. La pregunta del survey original era: <em>"¿qué TFs candidatos son reguladores reales vs co-expressed bystanders en pronefros?"</em></p>
+
+  <h3>Lo que se ha completado computacionalmente (sin wet-lab)</h3>
+  <div class="stat-grid">
+    <div class="stat"><span class="number">5</span><span class="label">rondas curatoriales survey</span></div>
+    <div class="stat organo"><span class="number">4</span><span class="label">opciones análisis ejecutadas (G/I/L/H)</span></div>
+    <div class="stat"><span class="number">2,065</span><span class="label">cells Schoels procesadas</span></div>
+    <div class="stat"><span class="number">18,932</span><span class="label">cells Wagner cross-validation</span></div>
+    <div class="stat organo"><span class="number">13</span><span class="label">TFs Tier 1-3 enumerados</span></div>
+    <div class="stat warn"><span class="number">5</span><span class="label">pre-resolves antes wet-lab</span></div>
+    <div class="stat organo"><span class="number">0.96</span><span class="label">confianza survey</span></div>
+    <div class="stat"><span class="number">$0</span><span class="label">wet-lab gastado</span></div>
+  </div>
+
+  <h3>Substrate evidence acumulada (puertas + tests Witt)</h3>
+  <ul>
+    <li><strong>Identity gate:</strong> markers canónicos (hnf1ba 25%, pax2a 22%) confirmados empíricamente en Schoels + Wagner. ✓</li>
+    <li><strong>Specificity gate:</strong> 5 anclas claras de segmento (podocito C17, distal late C13, PT C7+C4, progenitores C15/C16). ✓</li>
+    <li><strong>Test 1 (orchestration):</strong> 9 archivos cache + 3 checkpoints + outputs estructurados con confidence en cada turno. ✓</li>
+    <li><strong>Test 3 (iteration loop):</strong> survey → design → pre-resolves → re-priorización. Compounding documented. ✓</li>
+    <li><strong>Test 4 (calibration):</strong> trayectoria 0.78 → 0.96 con cada subida tied a evidencia explícita. ✓</li>
+  </ul>
+
+  <p><strong>El survey está completo. Lo que quedaba era validar la recomendación con experimento fresco (Opción N).</strong> Ahí los pre-resolves cambiaron la recomendación.</p>
+</section>
+
+<!-- ==================================================================== -->
+<section id="finding">
+  <h2><span class="num">3.</span>El hallazgo crítico — pleiotropy de mafba</h2>
+
+  <div class="callout danger">
+    <strong>Hallazgo:</strong> <code>mafba</code> está más fuertemente expresado en tejidos no-renales (endothelial 87%, lens 80%, macrophage 77%) que en pronefros (7-20%). Specificity ratio 0.145. Un KO global produciría fenotipo sistémico confundido — posible letalidad embrionaria por defectos vasculares antes de poder hacer readout pronefros.
+  </div>
+
+  <h3>Datos: mafba expression cross-tissue en Wagner 14-24 hpf</h3>
+  <table class="data">
+    <thead><tr><th>Cluster</th><th>Tejido</th><th>n cells</th><th>% mafba+</th></tr></thead>
+    <tbody>
+      <tr class="problematic"><td>161</td><td>24hpf endothelial - posterior</td><td>53</td><td><strong>86.8%</strong></td></tr>
+      <tr class="problematic"><td>93</td><td>18hpf lens placode</td><td>39</td><td><strong>79.5%</strong></td></tr>
+      <tr class="problematic"><td>144</td><td>24hpf macrophage</td><td>61</td><td><strong>77.1%</strong></td></tr>
+      <tr><td>159</td><td>24hpf lens</td><td>14</td><td>71.4%</td></tr>
+      <tr><td>96</td><td>18hpf macrophage</td><td>30</td><td>53.3%</td></tr>
+      <tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+      <tr><td>109</td><td><strong>18hpf pronephric duct</strong></td><td>10</td><td><strong>20.0%</strong></td></tr>
+      <tr><td>105</td><td><strong>18hpf pronephric duct - posterior</strong></td><td>11</td><td><strong>18.2%</strong></td></tr>
+      <tr><td>187</td><td><strong>24hpf pronephric duct</strong></td><td>8</td><td><strong>12.5%</strong></td></tr>
+      <tr><td>69</td><td><strong>14hpf mesoderm - pronephric duct</strong></td><td>14</td><td><strong>7.1%</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h3>¿Por qué el survey original no lo detectó?</h3>
+  <p>El survey clasificó <code>mafba</code> como Tier 1 porque (1) Schoels lo mostró en cluster C17 podocito y (2) Wagner lo mostró en duct cluster. Pero <strong>"presente en pronefros"</strong> es distinto de <strong>"específico de pronefros"</strong>. El survey usó Schoels (que microdisecta pronefros — solo ve células renales) y miraba solo el subset de pronefros en Wagner. Cuando los pre-resolves miraron Wagner whole-embryo y compararon mafba en pronefros vs los otros 195 clusters, la pleiotropy se hizo visible.</p>
+
+  <p><strong>Esta es exactamente la dinámica del principio fundador.</strong> El survey costó ~horas de cómputo. Los pre-resolves costaron ~horas más. La inversión total fue minúscula vs los $30-45K + 3-4 meses que hubiera costado un experimento húmedo confundido.</p>
+
+  <h3>Re-priorización completa de los 6 candidatos novel</h3>
+  <table class="data">
+    <thead><tr><th>Rank nuevo</th><th>Gene</th><th>Tier</th><th>Pronefros %</th><th>Non-PN max %</th><th>Specificity ratio</th><th>Pre-pleiotropy prior</th><th>Post-pleiotropy prior</th></tr></thead>
+    <tbody>
+      <tr class="recommended"><td><strong>#1</strong></td><td><strong><code>hoxb8a</code></strong></td><td>T3</td><td>41.5%</td><td>52.9%</td><td><strong>0.785</strong></td><td>0.55</td><td><strong>0.65</strong></td></tr>
+      <tr><td>#2</td><td><code>sall1a</code></td><td>T3</td><td>49.8%</td><td>100%</td><td>0.498</td><td>0.55</td><td>0.55</td></tr>
+      <tr><td>#3</td><td><code>hipk2</code></td><td>T3</td><td>12.7%</td><td>28.6%</td><td>0.443</td><td>0.55</td><td>0.45</td></tr>
+      <tr class="problematic"><td>#4 (era #1)</td><td><code>mafba</code></td><td>T1</td><td>14.5%</td><td><strong>100%</strong></td><td><strong>0.145</strong></td><td>0.55</td><td><strong>0.30</strong></td></tr>
+      <tr class="problematic"><td>#5</td><td><code>ripply1</code></td><td>T2</td><td>8.6%</td><td>66.2%</td><td>0.129</td><td>0.55</td><td>0.28</td></tr>
+      <tr class="problematic"><td>#6</td><td><code>prox1a</code></td><td>T3</td><td>4.3%</td><td>92.3%</td><td>0.046</td><td>0.55</td><td>0.18</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================================================================== -->
+<section id="options">
+  <h2><span class="num">4.</span>Opciones estratégicas — costo / información gain / riesgo</h2>
+
+  <p class="lede">
+    Cuatro caminos posibles. La métrica clave es <strong>information gain</strong> = qué tanto resuelve la pregunta original (TF candidato es regulador real?) por dólar invertido. Bayesian-flavored: posterior range con outcome positivo - posterior con outcome negativo.
+  </p>
+
+  <div class="option recommended">
+    <h4>Opción A · Pivot a hoxb8a <span class="pill high">RECOMENDADA</span></h4>
+    <div class="opt-meta">
+      <span><strong>Costo:</strong> $30-45K · 3-4 meses</span>
+      <span><strong>Information gain:</strong> ~0.79 (posterior 0.95 si H1, 0.16 si H0)</span>
+      <span><strong>Riesgo:</strong> hoxb8a es Tier 3 (no Tier 1 que era mafba)</span>
+    </div>
+    <p><strong>Qué se hace:</strong> mismo experimento N (CRISPR-Cas9 F0 crispants + scRNA-seq) pero con hoxb8a como target. Re-design sgRNAs para hoxb8a. Re-define markers (target cluster es C16 progenitores TF-rich, no C17 podocito). Mismo budget, mismo timeline.</p>
+    <p><strong>Por qué:</strong> specificity ratio 5.4× mayor que mafba (0.785 vs 0.145). Information gain máximo del set de candidatos novel. KO global probablemente producirá fenotipo aislable. <code>hoxb8a</code> sin evidencia publicada zebrafish kidney = genuinamente novel.</p>
+    <p><strong>Caveat:</strong> Tier 3 vs Tier 1 significa menor evidencia previa de relevance funcional. Pero el ranking original Tier era ingenuo — no consideraba specificity, que es lo que importa para experimento global.</p>
+  </div>
+
+  <div class="option expensive">
+    <h4>Opción B · Conditional KO de mafba (Phase II level)</h4>
+    <div class="opt-meta">
+      <span><strong>Costo:</strong> $80-150K · 8-12 meses</span>
+      <span><strong>Information gain:</strong> ~0.4 (mafba ya tiene prior bajo 0.30)</span>
+      <span><strong>Riesgo:</strong> Phase II complexity en Phase I budget</span>
+    </div>
+    <p><strong>Qué se hace:</strong> Tg(wt1a:Cre) o equivalente + mafba<sup>flox/flox</sup> stable line. Solo así se puede hacer KO específico en podocyte sin afectar endothelial/lens/macrophage. O alternativa: inducible CRISPRi en podocyte usando split-Cas9 + tissue-specific promoter.</p>
+    <p><strong>Por qué:</strong> mafba sigue siendo Tier 1 por evidencia cross-cohort. Si la pleiotropy fuera el único obstáculo, conditional KO lo elimina.</p>
+    <p><strong>Por qué NO recomendado para Phase I:</strong> 3-4× el budget, 2-3× el tiempo. Viola <em>prueba pequeño antes de armar bien</em>. Si Phase II procede como planeado en mouse, esto puede hacerse allá. Para Phase I con $297K total, no es viable a menos que reasignemos significativamente.</p>
+  </div>
+
+  <div class="option expensive">
+    <h4>Opción C · Multi-TF screen de los 4 mejor-rankeados</h4>
+    <div class="opt-meta">
+      <span><strong>Costo:</strong> $80-120K · 4-6 meses</span>
+      <span><strong>Information gain:</strong> ~1.5 (4 TFs simultáneos)</span>
+      <span><strong>Riesgo:</strong> mayor complejidad, costo arriba envelope Phase I</span>
+    </div>
+    <p><strong>Qué se hace:</strong> screen paralelo de hoxb8a + sall1a + hipk2 + mafba (con caveat). 4 grupos KO + controles. scRNA-seq en pool. Identifica el TF con mayor efecto.</p>
+    <p><strong>Por qué:</strong> evita lock-in en un candidato. Un fail de hoxb8a no detiene el survey completo.</p>
+    <p><strong>Por qué NO recomendado:</strong> ~3× el costo de single experiment. Phase I budget no alcanza. Va contra <em>prueba pequeño</em>.</p>
+  </div>
+
+  <div class="option">
+    <h4>Opción D · Stop, re-evaluar Phase I scope</h4>
+    <div class="opt-meta">
+      <span><strong>Costo:</strong> $0 (1-2 sesiones de re-planning)</span>
+      <span><strong>Information gain:</strong> N/A (no experimento)</span>
+      <span><strong>Riesgo:</strong> retraso del POC validation</span>
+    </div>
+    <p><strong>Qué se hace:</strong> pausar el experimento N. Re-evaluar: ¿la pregunta de causalidad de TF requiere este approach o hay otra forma? E.g., usar la lista de 5 TFs ya validados por literatura (pax2a, wt1a, wt1b, sim1a, dzip1l) como prueba de concepto del survey, sin generar nuevos datos. Esto colapsa la Opción N a un computational follow-up.</p>
+    <p><strong>Por qué considerar:</strong> el survey ya respondió la pregunta original "qué TFs candidatos extrae el dataset" data-driven. La validación de UN candidato adicional via wet-lab no cambia la calidad de la respuesta; solo la profundidad. Si el budget de Phase I está ajustado para wet-lab posterior (e.g., generación de chaperone tissue), pelar este experimento puede hacer sentido.</p>
+  </div>
+</section>
+
+<!-- ==================================================================== -->
+<section id="recommendation">
+  <h2><span class="num">5.</span>Recomendación + lo que requiere tu call</h2>
+
+  <div class="callout principle">
+    <strong>Recomendación del agente: Opción A — Pivot a hoxb8a.</strong> Conserva el approach <em>prueba pequeño</em>, mantiene budget/timeline original, maximiza information gain, y produce datos publicables sea H1 o H0 el outcome (negative finding sobre hoxb8a sigue siendo evidencia para Phase II priorización).
+  </div>
+
+  <h3>Trade-offs explícitos de la recomendación</h3>
+  <table class="data">
+    <thead><tr><th>Aspecto</th><th>Opción A (hoxb8a)</th><th>vs alternativas</th></tr></thead>
+    <tbody>
+      <tr><td>Tier de evidencia previa</td><td>Tier 3 (single-cluster restricted)</td><td>mafba era Tier 1, pero Tier 1 ingenuo (sin specificity)</td></tr>
+      <tr><td>Specificity ratio</td><td>0.785 (MEDIUM risk)</td><td>5.4× mejor que mafba</td></tr>
+      <tr><td>Posterior si H1 soportada</td><td>0.95</td><td>Mejor que mafba (0.81), peor que pax2a (ya validado)</td></tr>
+      <tr><td>Posterior si H0 soportada</td><td>0.16</td><td>Limpio negative finding</td></tr>
+      <tr><td>Budget</td><td>$30-45K</td><td>Igual mafba; menor que B/C</td></tr>
+      <tr><td>Timeline</td><td>3-4 meses</td><td>Igual mafba</td></tr>
+      <tr><td>Mouse evidence</td><td>Hox family bien establecido en patterning, no específico de pronefros</td><td>mafba (mafb mouse) tiene evidencia más directa para riñón</td></tr>
+      <tr><td>Novedad publicable</td><td>Alta (0 papers zebrafish kidney perturbación)</td><td>Igual mafba</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Qué necesita tu call específicamente</h3>
+  <ol>
+    <li><strong>Strategic direction:</strong> ¿pivotamos a hoxb8a (A), conditional mafba (B), multi-TF screen (C), o re-scope (D)?</li>
+    <li><strong>Budget approval $30-45K si A o C:</strong> per CLAUDE.md hard rule §7, esto requiere tu sign-off explícito. No puedo proceder sin él.</li>
+    <li><strong>Wet-lab partner selection:</strong> ¿Latido tiene zebrafish facility, o partnership externo (Sagar Freiburg, Wingert Notre Dame)?</li>
+    <li><strong>Pre-registration sí/no:</strong> ¿OSF.io para defensibility?</li>
+  </ol>
+
+  <h3>Lo que el agente puede pre-resolver mientras decides</h3>
+  <ul>
+    <li>Si decides A (hoxb8a): re-correr sgRNA design para hoxb8a (1 sesión), actualizar HTML del experimento (1 sesión), pre-resolves restantes (items 3 power, 5 partners, 6 IACUC, 7 OSF) (~3-4 sesiones)</li>
+    <li>Si decides B/C (Phase II level): documento separado con análisis Phase II implications + budget reallocation</li>
+    <li>Si decides D (re-scope): revisar si los 5 TFs validados literarios alcanzan para Phase I claim, sin experimento adicional</li>
+  </ul>
+
+  <h3>Por qué este finding es importante (más allá del experimento)</h3>
+  <div class="callout principle">
+    <strong>Substrate-level demonstration:</strong> el survey computacional + cross-validation + pre-resolves caught a critical issue sin gastar wet-lab. Sin estas capas, $30-45K + 3-4 meses se habrían invertido en un experimento confundido por pleiotropy. <strong>El sustrato Witt produjo un dato transferible:</strong> "el ranking de TFs cluster-restricted no automáticamente refleja specificity" — eso aplica a Phase II/III y a futuras queries del proyecto.
+  </div>
+
+  <p>Eso es lo que hace defensible el approach: cada sesión computacional acumula evidencia que reduces el riesgo de las inversiones wet-lab subsiguientes. La inversión es pequeña, pero el ROI escala con el costo del experimento que se evita.</p>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>Decision package generado 2026-05-09.</strong> Documentos referenciados:</p>
+    <ul style="margin: 0.5rem 0;">
+      <li><a href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html">Survey integral 2026-05-08</a> — todo el trabajo computacional</li>
+      <li><a href="2026-05-09_mafba_experiment_design.html">Diseño experimental mafba 2026-05-09</a> — plan original que llevó al pre-resolve</li>
+      <li><code>analysis/outputs/mafba_design/</code> — 7 archivos de output: sgRNA candidates, pleiotropy data, decision matrix</li>
+    </ul>
+    <p style="margin-top: 0.8rem;"><strong>Status:</strong> esperando call estratégica + budget gate. El agente puede pre-resolver los items técnicos que no requieren tu input mientras consideras (sgRNA hoxb8a + HTML pivot + items operativos).</p>
+  </div>
+</footer>
+
+</body>
+</html>

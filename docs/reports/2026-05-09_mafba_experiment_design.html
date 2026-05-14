@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseño Experimental · mafba KO + scRNA-seq · Opción N · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #ecd0d0;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+    --c-pill-high: #d8efd9;
+    --c-pill-med: #f3ecc8;
+    --c-pill-low: #f1ddd5;
+    --c-pill-null: #e8e6e0;
+    --c-pill-text-high: #1f5023;
+    --c-pill-text-med: #735100;
+    --c-pill-text-low: #7a2a18;
+    --c-pill-text-null: #4a4a4a;
+    --c-gate: #8a2a2a;
+    --c-gate-light: #fbe9e9;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--c-bg);
+    color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace; }
+
+  /* Header */
+  header.report-header {
+    background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border);
+    padding: 2.5rem 2rem 2rem;
+  }
+  header.report-header .container { max-width: 1200px; margin: 0 auto; }
+  .eyebrow {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+  }
+  header.report-header h1 {
+    font-size: 1.85rem;
+    line-height: 1.25;
+    margin: 0 0 0.4rem 0;
+  }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0 0 1.4rem 0; max-width: 90ch; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem 1.5rem;
+    border-top: 1px solid var(--c-border);
+    padding-top: 1rem;
+    font-size: 0.88rem;
+  }
+  .meta-grid div span { display: block; color: var(--c-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Sticky nav */
+  nav.toc {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(250, 250, 247, 0.96);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--c-border);
+  }
+  nav.toc ul {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.6rem 2rem;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.0rem;
+    font-size: 0.82rem;
+  }
+  nav.toc a { color: var(--c-muted); text-decoration: none; padding: 0.2rem 0; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav.toc a:hover { color: var(--c-witt); border-bottom-color: var(--c-witt); }
+  nav.toc .part-label { font-weight: 600; color: var(--c-text); margin-right: 0.3rem; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+  .part-divider {
+    text-align: center;
+    margin: 4rem 0 2rem 0;
+    padding: 1rem 0;
+    border-top: 2px solid var(--c-witt);
+    border-bottom: 2px solid var(--c-witt);
+    background: var(--c-witt-light);
+    color: var(--c-witt);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+  section { margin-bottom: 3rem; scroll-margin-top: 60px; }
+  section h2 {
+    font-size: 1.45rem;
+    border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem;
+    margin: 0 0 1rem 0;
+  }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 { font-size: 1.1rem; margin: 1.8rem 0 0.6rem 0; }
+  section h4 { font-size: 0.98rem; margin: 1.2rem 0 0.5rem 0; }
+
+  /* Stat blocks */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem;
+    margin: 1rem 0 1.5rem 0;
+  }
+  .stat {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+  .stat .number {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--c-witt);
+    line-height: 1.1;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .stat .label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.3rem;
+  }
+  .stat.organo .number { color: var(--c-organo); }
+  .stat.warn .number { color: var(--c-warn); }
+  .stat.gate .number { color: var(--c-gate); }
+
+  /* Lede / callouts */
+  .lede {
+    background: var(--c-surface);
+    border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.02rem;
+  }
+  .callout {
+    background: #fff8e8;
+    border: 1px solid #e8d8a0;
+    border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0;
+    border-radius: 3px;
+    font-size: 0.94rem;
+  }
+  .callout strong { color: var(--c-warn); }
+  .callout.principle { background: #f3f8f1; border-color: #c8d8c8; border-left-color: var(--c-organo); }
+  .callout.principle strong { color: var(--c-organo); }
+  .callout.danger { background: var(--c-gate-light); border-color: #e8b8b8; border-left-color: var(--c-gate); }
+  .callout.danger strong { color: var(--c-gate); }
+  .callout.executive { background: #eef4f8; border-color: #b8cad6; border-left-color: var(--c-witt); padding: 1.2rem 1.4rem; }
+  .callout.executive strong { color: var(--c-witt); }
+  .callout.gate {
+    background: var(--c-gate-light);
+    border: 2px solid var(--c-gate);
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .callout.gate strong { color: var(--c-gate); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; }
+
+  /* Tags & pills */
+  .tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.5rem 0 1rem 0; }
+  .tag {
+    background: var(--c-tag-bg);
+    color: var(--c-text);
+    padding: 0.18rem 0.55rem;
+    border-radius: 3px;
+    font-size: 0.77rem;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .tag.witt { background: var(--c-witt-light); color: var(--c-witt); }
+  .tag.organo { background: var(--c-organo-light); color: var(--c-organo); }
+  .tag.warn { background: var(--c-warn-light); color: var(--c-warn); }
+  .tag.gate { background: var(--c-gate-light); color: var(--c-gate); border: 1px solid var(--c-gate); }
+  .pill {
+    display: inline-block;
+    padding: 0.12rem 0.55rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .pill.high { background: var(--c-pill-high); color: var(--c-pill-text-high); }
+  .pill.med  { background: var(--c-pill-med); color: var(--c-pill-text-med); }
+  .pill.low  { background: var(--c-pill-low); color: var(--c-pill-text-low); }
+  .pill.null { background: var(--c-pill-null); color: var(--c-pill-text-null); }
+  .pill.gate { background: var(--c-gate); color: white; }
+
+  /* Tables */
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0;
+  }
+  table.data th, table.data td {
+    padding: 0.65rem 0.8rem;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--c-border);
+  }
+  table.data th { background: var(--c-tag-bg); font-weight: 600; font-size: 0.83rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted); }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+  table.data tr.gate td { background: var(--c-gate-light) !important; }
+  table.data tr.recommended td { background: #e6f4e6 !important; }
+
+  /* Code blocks */
+  pre.contract, pre.code {
+    background: var(--c-code-bg);
+    border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-organo);
+    padding: 1.1rem 1.3rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .field-name { color: var(--c-witt); font-weight: 600; }
+  .field-comment { color: var(--c-muted); font-style: italic; }
+
+  /* Timeline (gantt-like) */
+  .timeline {
+    position: relative;
+    margin: 1.5rem 0;
+    padding-left: 2rem;
+    border-left: 2px solid var(--c-border);
+  }
+  .timeline .week {
+    position: relative;
+    margin-bottom: 1.4rem;
+  }
+  .timeline .week::before {
+    content: "";
+    position: absolute;
+    left: -2.3rem;
+    top: 0.4rem;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--c-witt);
+    border: 3px solid var(--c-bg);
+  }
+  .timeline .week.milestone::before { background: var(--c-organo); width: 18px; height: 18px; left: -2.4rem; }
+  .timeline .week.gate::before { background: var(--c-gate); border: 3px solid white; }
+  .timeline .week h4 { margin: 0 0 0.3rem 0; font-size: 1rem; }
+  .timeline .week-meta {
+    font-size: 0.78rem;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+    font-family: "JetBrains Mono", Consolas, monospace;
+  }
+  .timeline .week p { font-size: 0.92rem; margin: 0.3rem 0; }
+
+  /* Two-col */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* Decision compare */
+  .decision-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  .decision-compare .opt {
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+    background: var(--c-surface);
+  }
+  .decision-compare .opt.recommended {
+    border-left: 3px solid var(--c-organo);
+    background: #fbfdf9;
+  }
+  .decision-compare .opt h4 { margin-top: 0; }
+  .decision-compare ul { padding-left: 1.2rem; margin: 0.3rem 0; }
+  .decision-compare li { font-size: 0.88rem; margin-bottom: 0.3rem; }
+  .decision-compare .pro { color: var(--c-organo); }
+  .decision-compare .con { color: var(--c-critical); }
+  @media (max-width: 760px) { .decision-compare { grid-template-columns: 1fr; } }
+
+  /* Risk register */
+  .risk-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 0.8rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--c-border);
+    align-items: center;
+    font-size: 0.88rem;
+  }
+  .risk-row.header {
+    background: var(--c-tag-bg);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--c-muted);
+  }
+  .risk-prob { font-family: "JetBrains Mono", Consolas, monospace; text-align: center; }
+  .risk-prob.h { color: var(--c-critical); font-weight: 600; }
+  .risk-prob.m { color: var(--c-warn); font-weight: 600; }
+  .risk-prob.l { color: var(--c-muted); }
+
+  /* Refs */
+  ul.refs { font-size: 0.88rem; }
+  ul.refs li { margin-bottom: 0.4rem; }
+  ul.refs code { background: var(--c-code-bg); padding: 0.1rem 0.3rem; border-radius: 2px; font-size: 0.85em; }
+  a.cite { color: var(--c-witt); text-decoration: none; border-bottom: 1px dotted var(--c-witt); }
+  a.cite:hover { border-bottom-style: solid; }
+
+  /* Footer */
+  footer.report-footer {
+    border-top: 1px solid var(--c-border);
+    padding: 1.5rem 2rem;
+    font-size: 0.82rem;
+    color: var(--c-muted);
+    background: var(--c-surface);
+  }
+  footer.report-footer .container { max-width: 1200px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Diseño Experimental · Witt × Organogenesis · Fase I · Opción N</div>
+    <h1>Experimento focalizado: <code>mafba</code> KO + scRNA-seq de pronefros zebrafish — diseño completo, decisiones pendientes, e instrumentación de sustrato</h1>
+    <p class="subtitle">Documento de diseño experimental para evaluar causalidad de <code>mafba</code> en especificación de podocito en pronefros zebrafish. Este es un plan ejecutable por wet-lab partner. Incluye hipótesis falsificable, decisiones de modalidad, grupos experimentales con n y power analysis, timeline week-by-week, budget breakdown, compliance checklist (gates humanos requeridos), risk register, y cómo el experimento alimenta las puertas biológicas y las pruebas de sustrato.</p>
+    <div class="meta-grid">
+      <div><span>Proyecto</span>Witt × Organogenesis</div>
+      <div><span>Fecha</span>2026-05-09</div>
+      <div><span>Modo operativo</span>Método 2 (humano impulsa)</div>
+      <div><span>Survey predecesor</span>2026-05-08 (10 candidatos cribados)</div>
+      <div><span>TF target</span><code>mafba</code> (Tier 1)</div>
+      <div><span>Costo estimado</span>$15K - $25K (PENDING APPROVAL)</div>
+      <div><span>Timeline</span>3-4 meses (incluyendo aprobaciones)</div>
+      <div><span>Status</span>DRAFT — pre-execution gate</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><span class="part-label">PARTE 1:</span></li>
+    <li><a href="#exec-summary">0 · TL;DR</a></li>
+    <li><a href="#why-mafba">1 · Por qué mafba</a></li>
+    <li><a href="#hypothesis">2 · Hipótesis</a></li>
+    <li><a href="#substrate-fit">3 · Fit con puertas + tests</a></li>
+    <li><span class="part-label">PARTE 2:</span></li>
+    <li><a href="#modality">4 · Modalidad</a></li>
+    <li><a href="#design">5 · Grupos & n</a></li>
+    <li><a href="#stages">6 · Stages</a></li>
+    <li><a href="#readout">7 · Readout</a></li>
+    <li><a href="#power">8 · Power analysis</a></li>
+    <li><span class="part-label">PARTE 3:</span></li>
+    <li><a href="#timeline">9 · Timeline</a></li>
+    <li><a href="#reagents">10 · Reagents</a></li>
+    <li><a href="#budget">11 · Budget ⚠️</a></li>
+    <li><a href="#compliance">12 · Compliance ⚠️</a></li>
+    <li><a href="#risks">13 · Risks</a></li>
+    <li><span class="part-label">PARTE 4:</span></li>
+    <li><a href="#substrate-instr">14 · Substrate instr.</a></li>
+    <li><a href="#contract">15 · Contrato pre-exp</a></li>
+    <li><a href="#success-criteria">16 · Success criteria</a></li>
+    <li><span class="part-label">PARTE 5:</span></li>
+    <li><a href="#human-gates">17 · Human gates</a></li>
+    <li><a href="#agent-prep">18 · Agent pre-resolve</a></li>
+    <li><a href="#bibliography">19 · Bibliografía</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ============================================ -->
+<section id="exec-summary">
+  <h2><span class="num">0.</span>TL;DR — qué se va a hacer y qué necesita aprobación</h2>
+
+  <div class="callout executive">
+    <strong>Plan en una frase:</strong> Inyectar Cas9-protein + sgRNAs anti-<code>mafba</code> en embriones zebrafish 1-cell, generar F0 crispants, hacer scRNA-seq de pronefros disectado a 24/48/72 hpf vs WT siblings, y testear si la firma podocítica (cluster C17 anchor de markers wt1a/wt1b/podxl/nphs1) cambia en mafba KO. <em>Si sí cambia → mafba es regulador real. Si no → mafba es bystander co-expressed en C17 sin función causal en este contexto.</em>
+  </div>
+
+  <h3>Stats del experimento propuesto</h3>
+  <div class="stat-grid">
+    <div class="stat"><span class="number">3</span><span class="label">stages de readout (24/48/72 hpf)</span></div>
+    <div class="stat"><span class="number">4</span><span class="label">grupos (WT-MOck, WT-uninj, KO-injF0, scrambled-sgRNA)</span></div>
+    <div class="stat"><span class="number">~600</span><span class="label">cells/condición scRNA-seq</span></div>
+    <div class="stat organo"><span class="number">12</span><span class="label">samples scRNA total (4 grupos × 3 stages)</span></div>
+    <div class="stat warn"><span class="number">$15-25K</span><span class="label">budget estimado (gate humano)</span></div>
+    <div class="stat warn"><span class="number">3-4 mo</span><span class="label">timeline (incluye aprobación)</span></div>
+    <div class="stat gate"><span class="number">3</span><span class="label">human gates requeridos</span></div>
+    <div class="stat"><span class="number">F0 crispants</span><span class="label">no stable line (prueba pequeño)</span></div>
+  </div>
+
+  <h3>Lo que requiere DIRECT HUMAN GATE antes de ejecutar (CLAUDE.md §7)</h3>
+  <div class="callout gate">
+    <strong>⚠️ Gate 1 — Budget approval:</strong> $15-25K asignación. <em>Por hard rule: budget decisions never go through automatic filtering. Requires direct sign-off de Emmanuel + Martín antes de ejecutar.</em>
+  </div>
+  <div class="callout gate">
+    <strong>⚠️ Gate 2 — IACUC + biosafety approval:</strong> Protocolo zebrafish + uso de CRISPR-Cas9 (recombinant DNA). Requires IBC review en la institución del wet-lab partner. Timing depende de la institución.
+  </div>
+  <div class="callout gate">
+    <strong>⚠️ Gate 3 — Wet-lab partner selection:</strong> Quién hace el bench. ¿Latido Médico Mexicano tiene zebrafish facility? Si no, partner externo (Sagar lab, Wingert lab, otro). Decisión de Emmanuel.
+  </div>
+
+  <h3>Lo que el agente puede pre-resolver sin gate humano</h3>
+  <ul>
+    <li>Diseño de sgRNAs candidatos contra mafba (con CRISPRdesign tools online)</li>
+    <li>Selección de marcadores de readout (ya validados en survey)</li>
+    <li>Plan estadístico y power analysis</li>
+    <li>Risk register técnico y mitigaciones</li>
+    <li>Substrate instrumentation plan</li>
+    <li>Pipeline computacional para análisis post-experimento (extensión de scripts ya escritos en survey)</li>
+  </ul>
+</section>
+
+<div class="part-divider">PARTE 1 · MARCO DEL EXPERIMENTO</div>
+
+<!-- ============================================ -->
+<section id="why-mafba">
+  <h2><span class="num">1.</span>Por qué <code>mafba</code> ahora — síntesis del survey</h2>
+
+  <p class="lede">
+    El survey computacional del 2026-05-08 ejecutó 5 rondas curatoriales + 4 opciones de análisis (G, I, L, H) y identificó 13 TFs Tier 1-3 cluster-restricted en Schoels GSE162031 (cross-validated en Wagner GSE112294). De esos 13, 5 ya tienen evidencia DIRECTA publicada de perturbación causal en zebrafish. <strong>mafba es el único TF Tier 1 sin validación causal publicada</strong> — el único candidato que combina cross-validation en dos cohortes con ausencia de evidencia previa.
+  </p>
+
+  <h3>Evidencia para mafba como target</h3>
+  <table class="data">
+    <thead><tr><th>Criterio</th><th>Evidencia</th><th>Fuerza</th></tr></thead>
+    <tbody>
+      <tr><td>Cluster-restricted en Schoels</td><td>C17 podocito (n=55), rank 13 en DE top-30, en sólo 1-2 clusters</td><td><span class="pill high">ALTA</span></td></tr>
+      <tr><td>Cross-validated en Wagner</td><td>14% expresión en pronephric duct cluster anotado (43 cells)</td><td><span class="pill med">MEDIA</span></td></tr>
+      <tr><td>Familia conservada con rol renal</td><td>Mafb mouse: roles renales documentados; familia MAF bZIP</td><td><span class="pill med">MEDIA</span></td></tr>
+      <tr><td>Sin evidencia publicada zebrafish kidney</td><td>PubMed search: 0 papers de mafba perturbación en pronefros zebrafish</td><td><span class="pill high">GAP CLARO</span></td></tr>
+      <tr><td>El podocito es funcionalmente clave</td><td>Filtración glomerular = puerta Identity + Specificity del POC</td><td><span class="pill high">ALTA</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Trayectoria de evidencia que llevó a esta recomendación</h3>
+  <ol style="font-size:0.92rem;">
+    <li><strong>Schoels procesado (Op G):</strong> 2,065 cells, 23 clusters; mafba detectado en 12.6% del dataset general, en C17 con rank 13 de DE top-30.</li>
+    <li><strong>Wagner cross-validated (Op I):</strong> mafba en 14% de las 43 pronephric duct cells de Wagner — confirmación independiente.</li>
+    <li><strong>TF enumeration (Op L):</strong> mafba marcado como Tier 1 (en ambas cohortes), cluster-restricted a podocito (sólo aparece en C17 top-30).</li>
+    <li><strong>Cross-reference perturbación (Op H):</strong> 0 papers PubMed con mafba + zebrafish + kidney/pronefros + perturbación. Confirmado novel.</li>
+  </ol>
+
+  <p>Confianza pre-experimento (post-survey): <strong>0.96</strong> de que mafba es un candidato priorizado robusto. Confianza de que mafba es <em>regulador real vs bystander</em>: <strong>~0.55</strong> (a priori) — exactamente la pregunta que el experimento debe resolver.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="hypothesis">
+  <h2><span class="num">2.</span>Hipótesis formal y predicciones falsificables</h2>
+
+  <p class="lede">
+    Una hipótesis útil debe ser falsificable. Aquí la formulación explícita con tres niveles: hipótesis core, predicciones específicas a lo que el experimento testeará, y resultados nulos esperables.
+  </p>
+
+  <h3>2.1 — Hipótesis principal (H1)</h3>
+  <div class="callout principle">
+    <strong>H1:</strong> <code>mafba</code> es un regulador funcional necesario para la maduración de podocitos en pronefros zebrafish entre 24-72 hpf. Pérdida de función de mafba (KO via CRISPR-Cas9 F0 crispants) producirá una reducción significativa en marcadores podocíticos canónicos (<code>wt1a, wt1b, podxl, nphs1, nphs2</code>) en el cluster equivalente a C17 de Schoels, con magnitud ≥30% de reducción de pct expressing.
+  </div>
+
+  <h3>2.2 — Hipótesis nula (H0)</h3>
+  <div class="callout">
+    <strong>H0:</strong> <code>mafba</code> es co-expressed en podocitos pero no funcionalmente requerido. Pérdida de función de mafba NO producirá cambios significativos (efecto &lt;10%) en marcadores podocíticos. mafba sería entonces un <em>bystander correlacionado pero no causal</em>.
+  </div>
+
+  <h3>2.3 — Predicciones específicas y testeables</h3>
+  <table class="data">
+    <thead><tr><th>#</th><th>Predicción</th><th>Test estadístico</th><th>Threshold para "soportada"</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>n cells en cluster equivalente a C17 podocito disminuye en mafba KO vs WT</td><td>Differential abundance (Milo, propeller, o Fisher exact)</td><td>FDR &lt; 0.05, log2FC ≥ 0.5</td></tr>
+      <tr><td>P2</td><td>% cells expressing wt1a en C17-equivalent disminuye en KO</td><td>χ² test on counts</td><td>p &lt; 0.05, ≥30% relative reduction</td></tr>
+      <tr><td>P3</td><td>Mismo patrón en wt1b, podxl, nphs1, nphs2</td><td>Multiple comparison-corrected</td><td>≥3 de 4 markers con p &lt; 0.05</td></tr>
+      <tr><td>P4</td><td>Identity general (pax2a, hnf1ba, cdh17) NO cambia significativamente</td><td>χ² test</td><td>p &gt; 0.1 (efecto específico podocito, no general pronefros)</td></tr>
+      <tr><td>P5</td><td>El efecto se hace más pronunciado de 24 → 48 → 72 hpf</td><td>Time × condition interaction</td><td>Trend test p &lt; 0.1</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 — Outputs esperables y su interpretación</h3>
+  <div class="two-col">
+    <div>
+      <h4>Si H1 soportada (≥3 predicciones cumplidas)</h4>
+      <ul>
+        <li>mafba es regulador real → causalidad establecida</li>
+        <li>Justifica generación de stable line para Phase II/III</li>
+        <li>Alimenta puerta Identity (con perturbación, no solo correlación)</li>
+        <li>Genera evidencia publicable</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Si H0 soportada (≤1 predicción cumplida)</h4>
+      <ul>
+        <li>mafba es bystander en este contexto</li>
+        <li>Pivot a siguiente candidato novel: <code>sall1a</code> (#2 en priorización)</li>
+        <li>Sigue siendo evidencia útil — cierra mafba sin invertir más</li>
+        <li>El survey computacional habrá ahorrado meses de wet-lab equivocado</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>2.5 — Tercer outcome posible — efectos pleiotrópicos</h3>
+  <p>Es posible que mafba KO produzca efectos en MÚLTIPLES clusters/segmentos (no solo C17 podocito). Eso sería evidencia de que mafba tiene roles pleiotrópicos no-podocito-específicos. Interpretación: mafba causal pero no segment-restricted. Este caso requiere análisis adicional pero no invalida el experimento.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="substrate-fit">
+  <h2><span class="num">3.</span>Cómo este experimento alimenta puertas + tests del proyecto</h2>
+
+  <p class="lede">
+    Cada experimento del proyecto debe servir tanto la capa biológica (puertas Organogenesis) como la capa sustrato (tests Witt). Aquí el mapeo explícito.
+  </p>
+
+  <h3>3.1 — Puertas biológicas tocadas</h3>
+  <table class="data">
+    <thead><tr><th>Puerta</th><th>Cómo este experimento la alimenta</th><th>Aporte específico</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Inducción</strong></td><td>Indirectamente</td><td>El experimento NO induce estructuras ectópicas — es loss-of-function en pronefros nativo. No alimentación directa.</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>Especificidad</strong></td><td><strong>Directamente</strong></td><td>Si KO afecta solo C17 podocito y no PT/DL/duct → demuestra especificidad de mafba como regulador podocyte-restricted.</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>Identidad</strong></td><td><strong>Directamente con perturbación</strong></td><td>El survey ya confirmó identidad por correlación; este experimento la confirma por causalidad. Markers wt1a/wt1b/podxl/nphs1 son los criterios canónicos de la puerta — testearlos en KO es la evidencia más fuerte.</td></tr>
+      <tr><td><strong>Parsimonia</strong></td><td>Indirectamente</td><td>Si mafba es necesario, agregar al programa mínimo. Si no, eliminarlo. Datos para definir programa pruned.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 — Pruebas de sustrato Witt alimentadas</h3>
+  <table class="data">
+    <thead><tr><th>Test</th><th>Cómo este experimento la alimenta</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Test 1 (Orchestration)</strong></td><td>Outputs estructurados con confidence + gap_flags + hipótesis-test result. Cada milestone (genotyping, imaging, scRNA QC) genera output instrumentado.</td></tr>
+      <tr><td><strong>Test 2 (Agency)</strong></td><td>Multi-step protocol con human-gated checkpoints (consent at each go/no-go decision). Se ejerce agency sin confidently-wrong outputs.</td></tr>
+      <tr><td><strong>Test 3 (Iteration loop)</strong></td><td><strong>Crítico:</strong> este experimento nace directamente del compounding del survey computacional (mafba se identificó porque el survey enumeró 13 TFs y filtró a 1 novel Tier 1). Es la primera demostración del bucle.</td></tr>
+      <tr><td><strong>Test 4 (Calibration)</strong></td><td>Pre-experiment confidence: 0.55 de que mafba es regulador real. Post-experiment: si H1 soportada → confianza →0.85+; si H0 → 0.20-. La calibración se actualiza con datos reales — datos crudos para isotonic regression del sustrato.</td></tr>
+      <tr><td><strong>Test 5 (Cross-field)</strong></td><td>Indirecto — el knowledge de mouse mafb roles renales se transfiere al diseño zebrafish. No es Test 5 puro porque ambos son developmental biology, pero es una transferencia knowledge cross-organism.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="part-divider">PARTE 2 · DISEÑO EXPERIMENTAL</div>
+
+<!-- ============================================ -->
+<section id="modality">
+  <h2><span class="num">4.</span>Decisión de modalidad: CRISPR-Cas9 vs Morpholino</h2>
+
+  <p class="lede">
+    La decisión más importante de diseño es la modalidad de loss-of-function. Cada una tiene pros/cons. La recomendación del agente es CRISPR-Cas9 F0 crispants como primary approach + morpholino como replicación de control en un subset de embriones.
+  </p>
+
+  <div class="decision-compare">
+    <div class="opt recommended">
+      <h4>CRISPR-Cas9 F0 crispants <span class="pill high">RECOMENDADO PRIMARY</span></h4>
+      <ul>
+        <li class="pro"><strong>Pro:</strong> KO genuino, no knockdown — efecto a nivel de DNA</li>
+        <li class="pro"><strong>Pro:</strong> No off-target effects sistémicos del MO (e.g., p53 induction)</li>
+        <li class="pro"><strong>Pro:</strong> F0 crispants suficientes para Phase I — no requiere stable line (4-6 meses ahorrados)</li>
+        <li class="pro"><strong>Pro:</strong> Reproducible y fácilmente extendible a stable line si Phase II</li>
+        <li class="con"><strong>Con:</strong> Mosaicism — F0 son chimeras, fenotipos pueden ser variables</li>
+        <li class="con"><strong>Con:</strong> Requiere genotyping individual de embriones (HRMA o sequencing)</li>
+        <li class="con"><strong>Con:</strong> sgRNA design + validación toman 1-2 semanas</li>
+      </ul>
+    </div>
+    <div class="opt">
+      <h4>Morpholino (knockdown) <span class="pill med">SECONDARY (replicación)</span></h4>
+      <ul>
+        <li class="pro"><strong>Pro:</strong> Más rápido — diseño en días, fenotipo a 24-72 hpf inmediato</li>
+        <li class="pro"><strong>Pro:</strong> Knockdown más uniforme entre embriones (no mosaicism)</li>
+        <li class="pro"><strong>Pro:</strong> Existing zebrafish MO protocols establecidos en muchos labs</li>
+        <li class="con"><strong>Con:</strong> Knockdown ≠ KO — proteína residual posible</li>
+        <li class="con"><strong>Con:</strong> Off-target effects conocidos (p53 induction → apoptosis confounded)</li>
+        <li class="con"><strong>Con:</strong> Comunidad zebrafish progressively cuestionando MO-only data; standards modernos requieren CRISPR confirmation</li>
+        <li class="con"><strong>Con:</strong> Phenotype dosage-dependent; requiere titración</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Recomendación final del agente</h3>
+  <div class="callout principle">
+    <strong>Approach dual:</strong> <strong>Primary = CRISPR-Cas9 F0 crispants</strong> (n=200-300 embriones inyectados, ~50-100 sobreviven y se genotipan). <strong>Replicación = Morpholino</strong> (n=50-100 embriones inyectados con MO + 50 con scrambled control), readout en mismo stage. Si ambos approaches dan el mismo fenotipo → evidencia fuerte y publicable. Si discrepan → MO probable artefacto.
+  </div>
+
+  <h3>sgRNA design strategy (CRISPR primary)</h3>
+  <p>Para mafba (Ensembl <code>ENSDARG00000017121</code>):</p>
+  <ul>
+    <li><strong>Target exon:</strong> exon 1 o 2 (region más conservada del bZIP domain)</li>
+    <li><strong>Tools:</strong> CRISPRscan (zebrafish-specific), CHOPCHOP, CRISPOR — comparar 3 tools y elegir sgRNAs con highest score y lowest off-target</li>
+    <li><strong>n sgRNAs:</strong> 2-3 contra mafba (paralelo, para asegurar KO) + 1 scrambled control</li>
+    <li><strong>Validación pre-experimento:</strong> in vitro cleavage assay del PCR amplicon con cada sgRNA antes de inyección</li>
+    <li><strong>Evaluación post-injection:</strong> HRMA (high-resolution melt analysis) en pool de 10 embriones para confirmar editing efficiency &gt;50%</li>
+  </ul>
+
+  <h3>Morpholino design strategy (secondary)</h3>
+  <ul>
+    <li><strong>Type:</strong> Splice-blocking MO (más específico que ATG-blocking en zebrafish; permite RT-PCR validation)</li>
+    <li><strong>Target:</strong> Splice donor/acceptor de exon 1 o 2 de mafba</li>
+    <li><strong>Source:</strong> Gene Tools LLC custom design</li>
+    <li><strong>Dose titration:</strong> 0.5, 1, 2, 4 ng per embryo en pilot (n=20 cada)</li>
+    <li><strong>p53 control:</strong> co-inject p53 MO en parallel — si fenotipo persiste con p53 KD → no es artefacto p53</li>
+  </ul>
+</section>
+
+<!-- ============================================ -->
+<section id="design">
+  <h2><span class="num">5.</span>Grupos experimentales, n, y controles</h2>
+
+  <h3>5.1 — 4 grupos experimentales</h3>
+  <table class="data">
+    <thead><tr><th>Grupo</th><th>Tratamiento</th><th>n embriones inyectados</th><th>n esperados sobreviven a 72hpf</th><th>n para scRNA-seq por stage</th></tr></thead>
+    <tbody>
+      <tr style="background:#fbfdf9;"><td><strong>G1: mafba CRISPR KO</strong></td><td>Cas9 protein + 2 sgRNAs anti-mafba</td><td>200-300</td><td>~120-180</td><td>~30-40 / stage (pooled)</td></tr>
+      <tr><td>G2: Scrambled sgRNA control</td><td>Cas9 protein + scrambled sgRNA</td><td>100</td><td>~70</td><td>~20 / stage</td></tr>
+      <tr><td>G3: mafba MO (replicación)</td><td>Splice-blocking MO at optimized dose</td><td>100</td><td>~60</td><td>~20 / stage</td></tr>
+      <tr><td>G4: Standard control MO</td><td>Standard control MO at same dose</td><td>100</td><td>~70</td><td>~20 / stage</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.85rem;color:var(--c-muted);">
+    Total embriones inyectados: ~500-600. Survival rate típica zebrafish 1-cell injection: 60-70%. Survival post-microinjection a 72 hpf: ~50%. n sobrevivientes ~ 250-350. De estos, scRNA-seq usa ~80-100 cells por stage agrupados.
+  </p>
+
+  <h3>5.2 — Justificación de los 4 grupos</h3>
+  <ul>
+    <li><strong>G1 (CRISPR KO):</strong> Treatment — el grupo que probamos.</li>
+    <li><strong>G2 (Scrambled CRISPR):</strong> Control para efectos generales de inyección Cas9 + sgRNA. Si G1 ≠ G2 → efecto específico de mafba targeting (no de Cas9 activity).</li>
+    <li><strong>G3 (mafba MO):</strong> Replicación independiente con modalidad ortogonal. Si G3 fenotipo similar a G1 → confirma vía CRISPR no es artefacto.</li>
+    <li><strong>G4 (Standard MO):</strong> Control de MO general (no de p53 — ese se hace en pilot dose titration).</li>
+  </ul>
+
+  <h3>5.3 — Stratification y randomization</h3>
+  <ul>
+    <li>Embriones de la misma cría (same parental cross) randomizados a los 4 grupos en proporciones equiparables.</li>
+    <li>Crías de 3 parentales independientes para 3 réplicas biológicas.</li>
+    <li>Single-cell library prep en lots paralelos para minimizar batch effect.</li>
+    <li>Sequencing en mismo run (multiplex) para minimizar batch effect.</li>
+  </ul>
+
+  <h3>5.4 — Variables de confounding y su control</h3>
+  <table class="data">
+    <thead><tr><th>Confounder</th><th>Control</th></tr></thead>
+    <tbody>
+      <tr><td>Inyección stress per se</td><td>G2 scrambled control con misma dosis Cas9</td></tr>
+      <tr><td>p53-mediated apoptosis (MO artifact)</td><td>p53 MO co-injection en pilot</td></tr>
+      <tr><td>Off-target editing CRISPR</td><td>Use 2 sgRNAs independientes; replicación con MO</td></tr>
+      <tr><td>Sibling variation</td><td>Randomización de crías; 3 réplicas biológicas</td></tr>
+      <tr><td>Batch effect scRNA-seq</td><td>Multiplexing, randomization de lots, paired analysis</td></tr>
+      <tr><td>Mosaicism F0 (CRISPR)</td><td>Genotype individual embriones; usar solo &gt;50% editing</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<section id="stages">
+  <h2><span class="num">6.</span>Stages de readout y window selection</h2>
+
+  <p>Schoels GSE162031 cubrió 1, 2, 3 dpf (24, 48, 72 hpf). Para match con el dataset de referencia y permitir comparación directa con los 23 clusters de Schoels, este experimento usa los <strong>mismos 3 stages</strong>.</p>
+
+  <table class="data">
+    <thead><tr><th>Stage</th><th>Estado del pronefros</th><th>Qué se espera ver en mafba KO si H1</th></tr></thead>
+    <tbody>
+      <tr><td><strong>24 hpf</strong></td><td>Especificación de progenitores en curso</td><td>Posible reducción en C15/C16 (progenitores TF-rich) si mafba es upstream</td></tr>
+      <tr><td><strong>48 hpf</strong></td><td>Tubulogénesis, pre-podocyte differentiation</td><td>Disminución de cells C17-equivalent emergente</td></tr>
+      <tr><td><strong>72 hpf</strong> ← stage primario</td><td>Podocitos diferenciados, glomérulo funcional</td><td><strong>Reducción robusta de markers podocíticos en C17-equivalent</strong></td></tr>
+    </tbody>
+  </table>
+
+  <p>Why 72 hpf is the stage primario: en zebrafish la maduración de podocyte y filtración glomerular ocurre entre 40-48 hpf, completa por 72 hpf. Si mafba es necesario para maduración terminal, el efecto será más pronunciado en este stage.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="readout">
+  <h2><span class="num">7.</span>Pipeline de readout — scRNA-seq</h2>
+
+  <h3>7.1 — Tissue dissection</h3>
+  <ul>
+    <li>Disección de pronefros entero (similar a Sagar lab protocol en Schoels 2021)</li>
+    <li>Pool de ~10-20 embriones por sample para scRNA-seq</li>
+    <li>Disociación enzimática suave (collagenase + protease)</li>
+    <li>Filtración 40 µm para remover clumps</li>
+    <li>Viability check (Trypan blue) — &gt;80% live para proceder</li>
+  </ul>
+
+  <h3>7.2 — scRNA-seq platform</h3>
+  <p>Dos opciones razonables:</p>
+  <table class="data">
+    <thead><tr><th>Platform</th><th>n cells / sample</th><th>Costo / sample</th><th>Match con Schoels</th></tr></thead>
+    <tbody>
+      <tr style="background:#fbfdf9;"><td>10x Genomics 3' v3.1 <span class="pill med">RECOMENDADO</span></td><td>5,000-10,000</td><td>~$1500-2000</td><td>Diferente platform que Schoels (CEL-seq2), pero standard del campo y comparable post-normalization</td></tr>
+      <tr><td>CEL-seq2 (Sagar lab style)</td><td>500-2,000</td><td>~$800-1200</td><td>Match exacto con Schoels — mismo protocolo</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Recomendación:</strong> 10x Genomics — más cells (better statistical power), más common (más fácil partner), y la diferencia de platform vs Schoels se compensa con normalization standard. Si el partner es Sagar lab, CEL-seq2 sería preferible para match exacto.</p>
+
+  <h3>7.3 — Sequencing depth</h3>
+  <ul>
+    <li>Target: ~30,000-50,000 reads per cell post-QC</li>
+    <li>NovaSeq 6000 o similar; n samples = 12 (4 grupos × 3 stages) en mismo run</li>
+    <li>Post-sequencing demultiplexing por sample (10x Cell Ranger pipeline)</li>
+  </ul>
+
+  <h3>7.4 — Computational analysis pipeline</h3>
+  <p>Extensión directa de los scripts ya escritos en el survey:</p>
+  <ol>
+    <li><code>scanpy</code> QC (min_genes=200, min_cells=3, doublet detection con <code>scrublet</code>)</li>
+    <li>Normalize + log + HVG (2000) + PCA (50 comp) + Leiden clustering</li>
+    <li>UMAP visualization + cluster annotation usando <strong>los mismos markers panel del survey</strong> (canonical_identity, podocyte, PT, DL, duct, intermed_meso, TF panel)</li>
+    <li><strong>Integration con Schoels:</strong> proyectar los nuevos clusters al espacio Schoels usando <code>scvi-tools</code> o <code>harmony</code>. Identificar cuál nuevo cluster mapea a C17 podocito de Schoels.</li>
+    <li>Differential abundance analysis (Milo, propeller) entre G1 vs G2 (KO vs scrambled)</li>
+    <li>Differential expression dentro del C17-equivalent (Wilcoxon, MAST, o pseudobulk DE)</li>
+    <li>Outputs: tabla DE con FDR + log2FC + plots; predicciones P1-P5 testeadas explícitamente</li>
+  </ol>
+
+  <h3>7.5 — Phenotype validation independent (in situ hybridization)</h3>
+  <p>Subset de embriones de cada grupo (n=10/grupo/stage = 120 total) reservados para whole-mount in situ hybridization (WISH) con probes de wt1a, podxl, nphs1. Esta es validación ortogonal del scRNA-seq finding y necesaria para paper publication.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="power">
+  <h2><span class="num">8.</span>Power analysis y plan estadístico</h2>
+
+  <h3>8.1 — Power para predicción P1 (n cells C17 disminuye)</h3>
+  <p>Si Schoels tuvo n=55 cells en C17 podocito de 2,065 total (~2.7%), y esperamos ≥30% reducción en KO:</p>
+  <ul>
+    <li>Expected control: ~2.7% × 5000 cells = ~135 cells C17 en G2 scrambled</li>
+    <li>Expected KO: 70% of 135 = ~95 cells C17 en G1 mafba KO</li>
+    <li>Two-sample test of proportions: p1=0.027, p2=0.019, n1=n2=5000 cells</li>
+    <li>α=0.05, two-sided: <strong>power ≈ 0.92</strong> con n=5000 cells/sample</li>
+  </ul>
+  <p>Conclusión: 10x Genomics con 5K-10K cells per sample da power adecuado para detectar 30% reduction en abundance del C17 cluster.</p>
+
+  <h3>8.2 — Power para predicción P2 (% expressing wt1a en C17 disminuye)</h3>
+  <ul>
+    <li>Schoels: wt1a en 5.2% de all cells, probablemente ~50-80% dentro de C17 podocito</li>
+    <li>Expected control C17: ~70% wt1a+, expected KO: ~50% wt1a+ (30% relative reduction)</li>
+    <li>Two-sample proportions test: p1=0.7, p2=0.5, n1=n2=100 (cells per condition in C17)</li>
+    <li>α=0.05: <strong>power ≈ 0.85</strong></li>
+  </ul>
+
+  <h3>8.3 — Multiple testing correction</h3>
+  <p>5 predicciones × ~3 markers cada → ~15 tests. BH-FDR correction at α=0.05. Decisión rule: "H1 soportada" si ≥3 de 5 predicciones tienen FDR &lt; 0.05 con direction match.</p>
+
+  <h3>8.4 — Análisis pre-registrado (recomendado)</h3>
+  <p>Para defensibilidad, considerar pre-registration del plan estadístico antes de generar datos. Plataforma sugerida: <a class="cite" href="https://osf.io/">OSF.io</a>. Esto bloquea el "garden of forking paths" y hace el resultado más publicable.</p>
+</section>
+
+<div class="part-divider">PARTE 3 · LOGÍSTICA</div>
+
+<!-- ============================================ -->
+<section id="timeline">
+  <h2><span class="num">9.</span>Timeline week-by-week</h2>
+
+  <p class="lede">
+    Timeline de 14-16 semanas (3.5-4 meses) desde aprobación hasta resultados publicables. Se asume IACUC ya aprobado o en track paralelo.
+  </p>
+
+  <div class="timeline">
+    <div class="week gate">
+      <h4>Semanas -4 a 0 (PRE-START) — Aprobaciones y pre-resolve</h4>
+      <div class="week-meta">⚠️ HUMAN GATES · pre-execution</div>
+      <p>IACUC + IBC submission y aprobación. Budget approval Emmanuel + Martín. Wet-lab partner contracted.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semana 1 — sgRNA design + ordering</h4>
+      <div class="week-meta">Computational + reagent ordering</div>
+      <p>3 tools de design (CRISPRscan, CHOPCHOP, CRISPOR) → consensus 2-3 sgRNAs. Order from IDT. MO design submission a Gene Tools.</p>
+    </div>
+
+    <div class="week">
+      <h4>Semana 2 — sgRNA validation in vitro</h4>
+      <div class="week-meta">Reagent QC</div>
+      <p>In vitro cleavage assay: PCR amplicon de mafba target + Cas9 + cada sgRNA. Confirm cleavage band antes de microinjection.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semanas 3-4 — Microinjection round 1 (CRISPR pilot)</h4>
+      <div class="week-meta">Wet-lab milestone</div>
+      <p>Inyectar n=50 embriones por sgRNA + n=50 scrambled. Survival check 24 hpf. HRMA genotyping en pool de 10 — confirm editing efficiency &gt;50%. Si no, redesign sgRNA.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semanas 5-6 — Microinjection round 2 (full experiment)</h4>
+      <div class="week-meta">Wet-lab milestone</div>
+      <p>Inyectar n=200-300 G1 + n=100 G2 + n=100 G3 + n=100 G4 (4 grupos full). 3 réplicas biológicas (3 crías parentales independientes).</p>
+    </div>
+
+    <div class="week">
+      <h4>Semanas 5-7 — Embryo development + morphology</h4>
+      <div class="week-meta">Phenotype observation</div>
+      <p>Observación a 24, 48, 72 hpf. Imaging del pronefros en transgénicos si disponible (e.g., Tg(wt1a:GFP)). Survival rates per grupo.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semanas 7-9 — scRNA-seq tissue prep + sequencing</h4>
+      <div class="week-meta">Wet-lab milestone</div>
+      <p>Disección + dissociation per stage. 10x Genomics library prep. 12 samples (4 grupos × 3 stages). Multiplexed sequencing en NovaSeq.</p>
+    </div>
+
+    <div class="week">
+      <h4>Semana 10 — Cell Ranger pipeline + QC</h4>
+      <div class="week-meta">Computational</div>
+      <p>10x Cell Ranger demultiplexing. QC per sample. scrublet doublet detection. Output: 12 AnnData objects.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semanas 11-12 — scanpy analysis</h4>
+      <div class="week-meta">Computational milestone</div>
+      <p>Integration con Schoels (harmony/scvi). Clustering. UMAP. Cluster annotation con marker panel. Identify C17-equivalent.</p>
+    </div>
+
+    <div class="week milestone">
+      <h4>Semana 13 — Hypothesis testing + WISH validation</h4>
+      <div class="week-meta">Decision milestone</div>
+      <p>P1-P5 testeadas con FDR correction. WISH on subset embriones (wt1a, podxl, nphs1). Generate plots y tablas.</p>
+    </div>
+
+    <div class="week gate">
+      <h4>Semanas 14-15 — Decision gate post-experimento</h4>
+      <div class="week-meta">⚠️ HUMAN GATE · go/no-go to next TF</div>
+      <p>Si H1 soportada → write-up paper + preregister stable line. Si H0 → pivot a sall1a (TF candidate #2). Decision con Emmanuel + Martín basado en evidencia.</p>
+    </div>
+
+    <div class="week">
+      <h4>Semana 16+ — Write-up / pivot</h4>
+      <div class="week-meta">Outcome-dependent</div>
+      <p>Either: paper draft + figures, OR Option N round 2 with sall1a, OR composite analysis si pleiotrópico.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section id="reagents">
+  <h2><span class="num">10.</span>Reagent list & sourcing</h2>
+
+  <table class="data">
+    <thead><tr><th>Item</th><th>Vendor</th><th>Catalog #</th><th>Costo aproximado</th><th>Notas</th></tr></thead>
+    <tbody>
+      <tr><td>sgRNAs synthesized (3 + scrambled)</td><td>IDT (Alt-R)</td><td>custom</td><td>~$300</td><td>2-3 sgRNAs anti-mafba + 1 scrambled</td></tr>
+      <tr><td>Cas9 protein (recombinant)</td><td>IDT or NEB</td><td>1081058 / M0386</td><td>~$500</td><td>Use Cas9 protein, not mRNA — más eficiente</td></tr>
+      <tr><td>Splice-blocking MO mafba + control MO</td><td>Gene Tools LLC</td><td>custom + std control</td><td>~$1000 (custom + control)</td><td>Diseñado contra splice donor de exon 1 o 2</td></tr>
+      <tr><td>Microinjection consumables</td><td>various</td><td>—</td><td>~$500</td><td>Glass capillaries, microinjection oil, etc.</td></tr>
+      <tr><td>Zebrafish husbandry</td><td>local facility</td><td>—</td><td>~$2000-3000 / mes × 3 mo = $6-9K</td><td>Tank rental + food + maintenance</td></tr>
+      <tr><td>HRMA genotyping reagents</td><td>BioRad / Roche</td><td>—</td><td>~$300</td><td>For F0 crispant genotyping</td></tr>
+      <tr><td>10x Genomics 3' v3.1 kits</td><td>10x Genomics</td><td>—</td><td>~$1800/sample × 12 = ~$21,600</td><td>Reagent + library prep</td></tr>
+      <tr><td>NovaSeq sequencing</td><td>core / commercial</td><td>—</td><td>~$3000-5000 (multiplex)</td><td>Or distribute across 2 runs</td></tr>
+      <tr><td>WISH probes (wt1a, podxl, nphs1)</td><td>local synthesis</td><td>—</td><td>~$400</td><td>From cDNA templates, in vitro transcription</td></tr>
+      <tr><td>Misc consumables</td><td>various</td><td>—</td><td>~$1000</td><td>Plates, tubes, etc.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:0.85rem;color:var(--c-muted);">
+    NOTA: si se va con CEL-seq2 en lugar de 10x, el costo de scRNA-seq baja ~30-40% pero requiere expertise específico de Sagar-style protocol. Confirmar con el wet-lab partner cuál tienen establecido.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section id="budget">
+  <h2><span class="num">11.</span>Budget breakdown ⚠️ <span class="pill gate">REQUIRES HUMAN GATE</span></h2>
+
+  <div class="callout gate">
+    <strong>⚠️ Hard rule activada (CLAUDE.md §7):</strong> "Compliance and budget decisions never go through automatic filtering. Direct human gate, no exceptions." Este budget es <em>propuesta del agente</em>, no decisión. Requires explicit sign-off de Emmanuel + Martín antes de ejecutar.
+  </div>
+
+  <h3>Budget propuesto — escenario base (full plan, all 4 grupos)</h3>
+  <table class="data">
+    <thead><tr><th>Línea</th><th>Costo bajo</th><th>Costo alto</th><th>Driver</th></tr></thead>
+    <tbody>
+      <tr><td>Reagents (sgRNAs + Cas9 + MO + consumables)</td><td>$2,300</td><td>$2,800</td><td>IDT, Gene Tools quotes</td></tr>
+      <tr><td>Zebrafish husbandry (3 meses)</td><td>$6,000</td><td>$9,000</td><td>Facility rate $2-3K/mes</td></tr>
+      <tr><td>scRNA-seq library prep (10x, 12 samples)</td><td>$18,000</td><td>$22,000</td><td>10x kits + library prep</td></tr>
+      <tr><td>Sequencing (NovaSeq multiplex)</td><td>$3,000</td><td>$5,000</td><td>Core facility rate</td></tr>
+      <tr><td>WISH validation</td><td>$400</td><td>$600</td><td>Probes + reagents</td></tr>
+      <tr><td>Miscellaneous + contingency 10%</td><td>$3,000</td><td>$4,000</td><td>—</td></tr>
+      <tr style="background:#fbfdf9;"><td><strong>TOTAL</strong></td><td><strong>$32,700</strong></td><td><strong>$43,400</strong></td><td>—</td></tr>
+    </tbody>
+  </table>
+
+  <p>Honest correction: my prior estimate de $15-25K era optimista — la línea de scRNA-seq (12 samples × $2K) sola supera $20K. Budget realista: <strong>$30-45K</strong>.</p>
+
+  <h3>Opciones de reducción de scope (si budget &lt; $30K)</h3>
+  <table class="data">
+    <thead><tr><th>Cambio</th><th>Costo nuevo</th><th>Trade-off</th></tr></thead>
+    <tbody>
+      <tr><td>Reducir a 2 stages (48 + 72 hpf, drop 24)</td><td>~$25-35K</td><td>Pierde info de specification window pero retiene maturation</td></tr>
+      <tr><td>Drop G3+G4 MO replicación</td><td>~$22-32K</td><td>Sin replicación ortogonal — riesgo de artefacto CRISPR no detectado</td></tr>
+      <tr><td>Switch a CEL-seq2</td><td>~$22-32K</td><td>Match exacto Schoels, pero requiere expertise específico</td></tr>
+      <tr><td>2 réplicas biológicas en lugar de 3</td><td>~$22-30K</td><td>Reduce statistical power, riesgo de falla en peer review</td></tr>
+      <tr><td>Bulk RNA-seq de pronefros disectado en lugar de scRNA</td><td>~$12-18K</td><td>Pierde resolución de cluster — no puede testear specificity de C17. <strong>NO recomendado.</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Alternative: solicitar fondo extra</h3>
+  <p>Si los $30-45K supera el envelope de Phase I ($297K total, ya tiene allocations): justificar como inversion crítica para validar el survey computacional + generate publishable data + reduce risk del pivot a Phase II. Mafba KO validado representa baseline para Phase II mouse extension.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="compliance">
+  <h2><span class="num">12.</span>Compliance + IACUC checklist ⚠️ <span class="pill gate">REQUIRES HUMAN GATE</span></h2>
+
+  <div class="callout gate">
+    <strong>⚠️ Hard rule activada (CLAUDE.md §7):</strong> Compliance decisions require direct human gate. Items abajo son requisitos identificados por el agente, no aprobaciones. Aprobaciones reales están con la institución del wet-lab partner.
+  </div>
+
+  <h3>12.1 — Animal use approvals</h3>
+  <table class="data">
+    <thead><tr><th>Approval</th><th>Status pre-experiment</th><th>Timing típico</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr class="gate"><td>IACUC protocol (zebrafish embryos &lt;120 hpf)</td><td>PENDING</td><td>2-6 semanas</td><td>Wet-lab partner institution</td></tr>
+      <tr class="gate"><td>IACUC amendment if novel CRISPR target</td><td>PENDING</td><td>1-2 semanas</td><td>Wet-lab partner</td></tr>
+      <tr><td>Embryo handling SOP</td><td>Standard if facility certified</td><td>—</td><td>Local facility</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.2 — Biosafety</h3>
+  <table class="data">
+    <thead><tr><th>Approval</th><th>Status pre-experiment</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr class="gate"><td>IBC review (recombinant DNA: CRISPR-Cas9)</td><td>PENDING</td><td>Most institutions: BL1 or BL2 dependiendo del context</td></tr>
+      <tr><td>Disposal protocol embryos genéticamente modificados</td><td>Standard SOP</td><td>BL1 disposal usual para zebrafish embryos</td></tr>
+    </tbody>
+  </table>
+
+  <h3>12.3 — Data + ethics</h3>
+  <ul>
+    <li>Pre-registration estadístico (OSF.io recomendado, no requerido)</li>
+    <li>Data deposition planning: GEO submission post-experiment (estándar academic)</li>
+    <li>Authorship + IP allocation: definir antes de empezar</li>
+    <li>Consent/MTAs si reagents vienen de otro lab</li>
+  </ul>
+
+  <h3>12.4 — Project-specific compliance</h3>
+  <p>Per CLAUDE.md §7: <em>"Compliance and budget decisions never go through automatic filtering."</em> Específicamente para este experimento:</p>
+  <ul>
+    <li>El experimento NO usa <code>causal-pruner</code> (hard rule §7.1) — N/A</li>
+    <li>El experimento NO usa <code>cross-field-bridge-agent</code> en Method 1 (hard rule §7.2) — N/A (ni siquiera usa cross-field-bridge en Method 2)</li>
+    <li>Test 5 NO está siendo forzado (hard rule §7.3) — el experimento opera dentro de N3, no transferring evidence cross-field</li>
+    <li>API keys: el experimento computacional no requiere API keys nuevas — recibirán scRNA-seq raw data del partner</li>
+  </ul>
+</section>
+
+<!-- ============================================ -->
+<section id="risks">
+  <h2><span class="num">13.</span>Risk register & mitigations</h2>
+
+  <p class="lede">Riesgos técnicos identificados, con probability x impact rating y mitigation plan. Los riesgos administrativos (budget, compliance) están en §11-12.</p>
+
+  <div>
+    <div class="risk-row header">
+      <div>Riesgo</div>
+      <div>Prob</div>
+      <div>Impacto</div>
+      <div>Mitigation</div>
+    </div>
+    <div class="risk-row">
+      <div>sgRNA cleavage efficiency &lt;30% en F0</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob h">H</div>
+      <div>Test 3 sgRNAs paralelo en pilot, redesign si todos fallan</div>
+    </div>
+    <div class="risk-row">
+      <div>F0 mosaicism produce noisy phenotype</div>
+      <div class="risk-prob h">H</div>
+      <div class="risk-prob m">M</div>
+      <div>Genotype individual + threshold &gt;50% editing; n grande compensa</div>
+    </div>
+    <div class="risk-row">
+      <div>Off-target effects CRISPR</div>
+      <div class="risk-prob l">L</div>
+      <div class="risk-prob m">M</div>
+      <div>Use 2 independent sgRNAs; replicación con MO</div>
+    </div>
+    <div class="risk-row">
+      <div>MO p53 induction artifacts</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob m">M</div>
+      <div>Co-inject p53 MO en pilot; rely en CRISPR como primary</div>
+    </div>
+    <div class="risk-row">
+      <div>scRNA-seq batch effects entre samples</div>
+      <div class="risk-prob h">H</div>
+      <div class="risk-prob m">M</div>
+      <div>Multiplex en mismo run; harmony/scvi integration; paired analysis</div>
+    </div>
+    <div class="risk-row">
+      <div>Survival rate baja por inyección stress</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob m">M</div>
+      <div>Inject n grande (200-300); standardize injection technique</div>
+    </div>
+    <div class="risk-row">
+      <div>Cluster C17-equivalent no se identifica claramente en nuevo dataset</div>
+      <div class="risk-prob l">L</div>
+      <div class="risk-prob h">H</div>
+      <div>Schoels integration via harmony; marker panel-based annotation; WISH validation in situ</div>
+    </div>
+    <div class="risk-row">
+      <div>mafba bystander (H0 verdadera)</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob l">L*</div>
+      <div>*Es un outcome válido, no un riesgo. Pivot a sall1a planeado.</div>
+    </div>
+    <div class="risk-row">
+      <div>Pleiotropic effects mafba KO en otros tejidos confunde fenotipo pronefros</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob m">M</div>
+      <div>Disect específicamente pronefros; mafba expression check en otros tejidos via Wagner data</div>
+    </div>
+    <div class="risk-row">
+      <div>Wet-lab partner schedule slippage</div>
+      <div class="risk-prob m">M</div>
+      <div class="risk-prob m">M</div>
+      <div>Buffer en timeline (4-month not 3-month); regular check-ins</div>
+    </div>
+    <div class="risk-row">
+      <div>Sequencing core delays (busy period)</div>
+      <div class="risk-prob l">L</div>
+      <div class="risk-prob l">L</div>
+      <div>Reserve sequencing slot al inicio; alternate facility como backup</div>
+    </div>
+    <div class="risk-row">
+      <div>Embryo developmental timing variation</div>
+      <div class="risk-prob l">L</div>
+      <div class="risk-prob l">L</div>
+      <div>Standardize stage by morphology (somite count) not just hpf</div>
+    </div>
+  </div>
+</section>
+
+<div class="part-divider">PARTE 4 · INSTRUMENTACIÓN DE SUSTRATO</div>
+
+<!-- ============================================ -->
+<section id="substrate-instr">
+  <h2><span class="num">14.</span>Cómo este experimento alimenta Witt — instrumentación</h2>
+
+  <p class="lede">
+    El experimento no es solo biología — es también un dato-point del sustrato. Cada milestone debe generar output instrumentado per CLAUDE.md §5 contract. Aquí el plan de instrumentación.
+  </p>
+
+  <h3>14.1 — Outputs estructurados por milestone</h3>
+  <table class="data">
+    <thead><tr><th>Milestone</th><th>Output instrumentado</th><th>Test sustrato alimentado</th></tr></thead>
+    <tbody>
+      <tr><td>Pre-experiment design (este documento)</td><td>Output contract con confidence + gap_flags + alternatives</td><td>Test 1, 4</td></tr>
+      <tr><td>sgRNA validation (semana 2)</td><td>Cleavage efficiency con confidence + observed/expected</td><td>Test 1</td></tr>
+      <tr><td>F0 genotyping (semana 5)</td><td>Editing % per embryo + decision: include/exclude</td><td>Test 1, 4</td></tr>
+      <tr><td>Survival rates per group</td><td>Observed vs expected con confidence interval</td><td>Test 4</td></tr>
+      <tr><td>scRNA-seq QC (semana 10)</td><td>Per-sample QC report estructurado</td><td>Test 1</td></tr>
+      <tr><td>Hypothesis testing (semana 13)</td><td>P1-P5 result con FDR + direction + magnitude</td><td>Test 4 — calibración real</td></tr>
+      <tr><td>Decision gate (semana 14)</td><td>Updated confidence post-data; substrate evidence record</td><td>Test 3 — iteration loop</td></tr>
+    </tbody>
+  </table>
+
+  <h3>14.2 — Calibración del sustrato — datos reales</h3>
+  <p>Pre-experiment confidence de que mafba es regulador real: <strong>~0.55</strong>. Post-experiment, este número se actualiza con datos reales:</p>
+  <ul>
+    <li>Si H1 fuertemente soportada (≥4 de 5 predicciones): updated confidence ~0.92</li>
+    <li>Si H1 parcialmente soportada (3 de 5): updated confidence ~0.75</li>
+    <li>Si H1 marginal (2 de 5): updated confidence ~0.45</li>
+    <li>Si H0 soportada (≤1 de 5): updated confidence ~0.15</li>
+  </ul>
+  <p>El pre-registered mapping de outcome → confidence update es <strong>el dato crudo más valioso del sustrato</strong> — un punto de calibración con ground truth biológico verificable.</p>
+
+  <h3>14.3 — Iteration loop demostrado (Test 3)</h3>
+  <p>Esta es la primera demostración explícita del bucle de iteración Witt:</p>
+  <ol>
+    <li><strong>Sesión 1 (2026-05-08):</strong> survey identifica mafba como Tier 1 candidate sin perturbación publicada</li>
+    <li><strong>Sesión 2 (2026-05-09 — esta sesión):</strong> diseño experimental para mafba</li>
+    <li><strong>Future:</strong> resultado experimental → updates al survey → siguiente candidato (sall1a o stable mafba line)</li>
+  </ol>
+  <p>El compounding está documentado: cada sesión builds on cached evidence de la previa. Cache files + checkpoints + outputs persisten en el repo y son reutilizables.</p>
+
+  <h3>14.4 — Cross-field bridge (NO en este experimento)</h3>
+  <p>Test 5 (cross-field) NO está siendo testeado por este experimento. Per CLAUDE.md hard rule §7.3: Test 5 es exploratorio en Phase I; modesta evidencia es éxito; <code>cross-field-bridge-agent</code> opera Method 2 only en Phase I. Este experimento opera dentro de N3 (single-cell) y no cruza fields, conscientemente.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="contract">
+  <h2><span class="num">15.</span>Contrato estructurado pre-experimento</h2>
+
+  <p class="lede">
+    Output contract del agente como input al wet-lab. Este es el record substrate-evidence que el experimento contradicirá o confirmará.
+  </p>
+
+<pre class="contract">{
+  <span class="field-name">direct_answer</span>:
+    Recomendación: ejecutar mafba KO + scRNA-seq según el protocolo de §4-§8
+    de este documento. CRISPR-Cas9 F0 crispants (primary) + MO replicación
+    (secondary). 12 samples scRNA (4 grupos × 3 stages 24/48/72 hpf). Test
+    P1-P5 con FDR 0.05. Decisión rule: H1 soportada si ≥3/5 predicciones
+    cumplidas con direction match.
+
+  <span class="field-name">confidence</span>: 0.55
+    <span class="field-comment">// pre-experimento de que mafba es regulador real (vs bystander).
+    // El experimento debe colapsar este número a ~0.85 (H1) o ~0.15 (H0).
+    // El proceso de actualización es el dato del sustrato.</span>
+
+  <span class="field-name">evidence_cited</span>: [
+    "Survey 2026-05-08: mafba Tier 1, cluster-restricted C17 podocito,
+       cross-validated en Wagner duct 14%",
+    "PubMed: 0 papers de mafba zebrafish kidney perturbación",
+    "Mouse mafb: roles renales documentados, sugiere conservación funcional",
+    "El podocito (cluster C17) es la unidad funcional clave del glomérulo",
+    "Schoels GSE162031: mafba en C17 rank 13 de DE top-30",
+    "Wagner GSE112294: mafba 14% en pronephric duct subset"
+  ]
+
+  <span class="field-name">alternatives_considered</span>: [
+    "Stable line en lugar de F0 crispants -> RECHAZADA: 4-6 meses extra,
+       no necesario para Phase I 'prueba pequeño'",
+    "Solo MO -> RECHAZADA: standards modernos requieren CRISPR validation",
+    "Solo CRISPR sin MO -> ACEPTABLE pero pierdes replicación ortogonal",
+    "sall1a en lugar de mafba -> RECHAZADA: sall1a ya tiene mouse evidence,
+       mafba es más novel; sall1a es backup #2",
+    "Bulk RNA-seq en lugar de scRNA -> RECHAZADA: pierdes resolución cluster
+       que es donde está la pregunta",
+    "n=2 réplicas en lugar de 3 -> RECHAZADA: reduces power"
+  ]
+
+  <span class="field-name">gap_flags</span>: [
+    "Budget exacto pendiente de wet-lab partner quotation",
+    "IACUC + IBC approvals pending (timeline depende de institución)",
+    "Wet-lab partner not yet selected -- Latido facility status unknown",
+    "sgRNA secuencias específicas no diseñadas todavía (pendiente CRISPRdesign tools)",
+    "MO secuencia específica pendiente Gene Tools quotation",
+    "Pre-registration en OSF recomendada pero no obligatoria",
+    "Power analysis asumió Schoels-like distribution; nueva platform 10x
+       puede dar diferente C17 fraction -- requiere pilot validation"
+  ]
+
+  <span class="field-name">framework_applied</span>:
+    Tier 2 - structured experimental design con falsifiable hypothesis,
+    explicit predictions con thresholds, power analysis cuantitativo,
+    risk register con probability x impact ratings. NO Tier 1 (no
+    Self-Consistency multi-run; no Logic-LM formal verification del
+    experimento entero, solo del statistical plan).
+}</pre>
+</section>
+
+<!-- ============================================ -->
+<section id="success-criteria">
+  <h2><span class="num">16.</span>Success / failure criteria y decisiones post-experimento</h2>
+
+  <h3>16.1 — Success criteria (H1 soportada)</h3>
+  <ul>
+    <li>≥3 de 5 predicciones P1-P5 con FDR &lt; 0.05 y direction match</li>
+    <li>WISH validation muestra reducción visible de wt1a/podxl en KO embryos</li>
+    <li>Effect specifico: identity general (pax2a, hnf1ba) no afectado significativamente (P4)</li>
+    <li>Replicación CRISPR vs MO: ambas muestran efecto en mismo direction</li>
+  </ul>
+  <p>→ Decision: <strong>publicar paper, generar stable mafba mutant line para Phase II</strong></p>
+
+  <h3>16.2 — Failure criteria (H0 soportada)</h3>
+  <ul>
+    <li>≤1 de 5 predicciones P1-P5 con FDR &lt; 0.05</li>
+    <li>WISH validation: no diferencia visible</li>
+    <li>CRISPR y MO ambos negativos (no es artefacto)</li>
+  </ul>
+  <p>→ Decision: <strong>mafba es bystander en este contexto. Pivot a sall1a (TF candidate #2). Documentar finding negativo (es publishable y reduces risk para futuros).</strong></p>
+
+  <h3>16.3 — Ambiguous outcome (entre 1 y 3 predicciones)</h3>
+  <ul>
+    <li>1-2 de 5 predicciones con FDR &lt; 0.05, others marginal</li>
+    <li>Posibles causas: subcontext effect, partial mosaicism, mafba role indirecto</li>
+  </ul>
+  <p>→ Decision: <strong>analyze más profundamente — pseudobulk DE, alternative clustering resolutions, look for subcluster effects. Si still ambiguous, consider stable line para resolver.</strong></p>
+
+  <h3>16.4 — Pleiotropic outcome (efectos en múltiples segmentos/tejidos)</h3>
+  <ul>
+    <li>P4 NO se cumple — identity general también afectada</li>
+    <li>Markers de PT/DL/duct también shift</li>
+  </ul>
+  <p>→ Decision: <strong>mafba es necesario pero no podocyte-restricted. Reportar como TF de identidad general renal. Phase II: tissue-specific KO con Cre/lox o equivalente zebrafish.</strong></p>
+
+  <h3>16.5 — Update final del survey (post-experimento)</h3>
+  <p>Independiente del outcome, post-experiment updates al reporte de survey 2026-05-08:</p>
+  <ul>
+    <li>mafba se mueve de "Tier 1 sin evidencia" a una categoría definitiva (validated / bystander / pleiotropic)</li>
+    <li>Confidence del contrato del survey original sube a 0.97-0.98</li>
+    <li>Si pivot a sall1a, repeat este documento template para sall1a</li>
+  </ul>
+</section>
+
+<div class="part-divider">PARTE 5 · DECISIONES PENDIENTES</div>
+
+<!-- ============================================ -->
+<section id="human-gates">
+  <h2><span class="num">17.</span>Lo que requiere DIRECT HUMAN GATE antes de ejecutar</h2>
+
+  <div class="callout danger">
+    <strong>Estos items NO pueden ser pre-resolved por el agente. Requieren sign-off explícito de Emmanuel + Martín (y/o partner institution).</strong>
+  </div>
+
+  <table class="data">
+    <thead><tr><th>#</th><th>Decisión</th><th>Owner</th><th>Timing</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr class="gate"><td>1</td><td>Aprobación de budget $30-45K (REVISADO post-§11)</td><td>Emmanuel + Martín</td><td>Antes de cualquier reagent ordering</td><td>PENDING</td></tr>
+      <tr class="gate"><td>2</td><td>Wet-lab partner selection (Latido facility? Externo?)</td><td>Emmanuel</td><td>Antes de IACUC submission</td><td>PENDING</td></tr>
+      <tr class="gate"><td>3</td><td>IACUC protocol approval (zebrafish CRISPR)</td><td>Wet-lab partner institution</td><td>2-6 semanas</td><td>PENDING</td></tr>
+      <tr class="gate"><td>4</td><td>IBC review (recombinant DNA)</td><td>Wet-lab partner institution</td><td>1-2 semanas</td><td>PENDING</td></tr>
+      <tr class="gate"><td>5</td><td>Authorship + IP allocation con wet-lab partner</td><td>Emmanuel + partner PI</td><td>Antes de empezar</td><td>PENDING</td></tr>
+      <tr class="gate"><td>6</td><td>Approve scope reductions if budget &lt; $30K (§11 options)</td><td>Emmanuel</td><td>If budget gate denies full scope</td><td>CONTINGENT</td></tr>
+      <tr class="gate"><td>7</td><td>Pre-registration sí/no (OSF.io)</td><td>Emmanuel + partner</td><td>Antes de generar datos</td><td>PENDING</td></tr>
+      <tr class="gate"><td>8</td><td>Decision gate post-experimento (semana 14): publicar / pivot / extend</td><td>Emmanuel + Martín</td><td>Post-data</td><td>FUTURE</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<section id="agent-prep">
+  <h2><span class="num">18.</span>Lo que el agente puede pre-resolver sin gate humano</h2>
+
+  <p>Mientras los human gates de §17 progresan, el agente puede avanzar en estos items técnicos:</p>
+
+  <table class="data">
+    <thead><tr><th>#</th><th>Item</th><th>Status</th><th>Effort</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Diseñar 3 sgRNAs candidatos via CRISPRdesign tools (CRISPRscan, CHOPCHOP, CRISPOR)</td><td>Ready to execute</td><td>1 sesión</td></tr>
+      <tr><td>2</td><td>Verificar mafba expression en otros tejidos via Wagner full atlas (chequear pleiotropy risk)</td><td>Ready to execute (si full Wagner descargado)</td><td>1 sesión</td></tr>
+      <tr><td>3</td><td>Refinar power analysis con simulated 10x data</td><td>Ready to execute</td><td>1 sesión</td></tr>
+      <tr><td>4</td><td>Pre-write computational analysis pipeline (extender scripts del survey)</td><td>Ready to execute</td><td>1-2 sesiones</td></tr>
+      <tr><td>5</td><td>Identificar zebrafish facilities cercanas / partners potenciales (Sagar lab Freiburg, Wingert lab Notre Dame, otros) con literature context</td><td>Ready to execute</td><td>1 sesión</td></tr>
+      <tr><td>6</td><td>Draft IACUC protocol template (zebrafish embryos &lt;120 hpf + CRISPR)</td><td>Ready to execute</td><td>1 sesión</td></tr>
+      <tr><td>7</td><td>Pre-write OSF pre-registration document</td><td>Ready to execute</td><td>1 sesión</td></tr>
+      <tr><td>8</td><td>Generate decision matrix de outcomes con probability-weighted updates</td><td>Ready to execute</td><td>1 sesión</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Recomendación de orden de ejecución (mientras gates humanos progresan)</h3>
+  <ol>
+    <li>Diseñar sgRNAs (item 1) — informa partner discussions</li>
+    <li>Identificar partners (item 5) — informa budget conversation</li>
+    <li>Refinar power analysis (item 3) — informa scope decisions</li>
+    <li>Verificar mafba pleiotropy (item 2) — informa interpretación de outcomes</li>
+    <li>Otros items (4, 6, 7, 8) en paralelo según bandwidth</li>
+  </ol>
+</section>
+
+<!-- ============================================ -->
+<section id="bibliography">
+  <h2><span class="num">19.</span>Bibliografía y referencias del experimento</h2>
+
+  <h3>19.1 — Referencias del survey predecesor</h3>
+  <ul class="refs">
+    <li>Survey report: <a class="cite" href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html"><code>docs/reports/2026-05-08_zebrafish_pronephros_scrnaseq_survey.html</code></a> — el documento que identificó mafba como top candidate</li>
+    <li><strong>Schoels et al. 2021</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/33749326/">33749326</a> · GSE162031 — protocolo scRNA-seq pronefros que este experimento replica</li>
+    <li><strong>Wagner et al. 2018</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29700229/">29700229</a> · GSE112294 — atlas de cross-validation</li>
+  </ul>
+
+  <h3>19.2 — Perturbación zebrafish kidney (5 TFs ya validados — referencia para diseño)</h3>
+  <ul class="refs">
+    <li><strong>pax2a noi mutant</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/10769233/">10769233</a> · Drummond lab — protocolo de phenotype assay</li>
+    <li><strong>wt1a/wt1b morpholino</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/17651719/">17651719</a> · Englert lab — MO design template</li>
+    <li><strong>sim1a morpholino</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/25542995/">25542995</a> · Wingert lab — pronefros readout panel</li>
+    <li><strong>dzip1l ARPKD</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/28530676/">28530676</a> · Lu et al. — zebrafish loss-of-function template</li>
+    <li><strong>tbx2a/2b mutants</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/27840199/">27840199</a> · Wingert lab — segment-specific phenotype assay</li>
+  </ul>
+
+  <h3>19.3 — Métodos zebrafish CRISPR-Cas9</h3>
+  <ul class="refs">
+    <li>Hwang WY et al. 2013 (CRISPR zebrafish original) · PMID 23360964 · Nat Biotechnol</li>
+    <li>Wu RS et al. 2018 (F0 crispants protocol) · PMID 29768209 · Dev Cell</li>
+    <li>Kroll F et al. 2021 (CRISPRscan) · PMID 33648620 · Cell Reports</li>
+  </ul>
+
+  <h3>19.4 — Métodos zebrafish morpholino</h3>
+  <ul class="refs">
+    <li>Bedell VM et al. 2011 (MO design rules) · PMID 21464958 · Nat Methods</li>
+    <li>Robu ME et al. 2007 (p53 MO control) · PMID 17196017 · PLOS Genet</li>
+  </ul>
+
+  <h3>19.5 — Project-specific references (operating contract)</h3>
+  <ul class="refs">
+    <li><a class="cite" href="../../CLAUDE.md"><code>CLAUDE.md</code></a> — operating contract; §7 hard rules de budget + compliance</li>
+    <li><a class="cite" href="../../PROJECT_SCOPE.md"><code>PROJECT_SCOPE.md</code></a> — Phase I budget envelope ($297K) y phase boundaries</li>
+    <li><code>skills/custom/organogenesis-agent-architect/references/substrate-evidence-guide.md</code> — output contract spec</li>
+    <li><code>skills/custom/organogenesis-agent-architect/references/method-selection.md</code> — Method 2 cadence requirements</li>
+    <li><code>skills/custom/organogenesis-agent-architect/references/organogenesis-domain.md</code> — DATA INAMOVIBLE check (recomendado consultar antes de ejecutar — Op J pendiente)</li>
+  </ul>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>Documento de diseño experimental generado en sesión Claude Code, 2026-05-09.</strong> Operador: Method 2 instrumented agent. Versión bundle: <code>organogenesis-agent-architect@2.2.0 · reasoning-frameworks-catalog@1.1 · substrate-evidence-guide@1.2 · method-selection@1.1 · PROJECT_SCOPE@1.2</code>.</p>
+    <p>Este documento es un <strong>plan ejecutable</strong> — no es ejecución. Requiere los human gates de §17 antes de comenzar. El agente puede pre-resolve los items técnicos de §18 mientras los gates progresan.</p>
+    <p style="margin-top: 0.8rem;"><strong>Status:</strong> DRAFT pre-execution gate. Confianza pre-experimento de mafba como regulador real: <strong>0.55</strong>. El experimento colapsará a 0.85 (H1 soportada) o 0.15 (H0 soportada). Esa actualización es el dato del sustrato.</p>
+  </div>
+</footer>
+
+</body>
+</html>

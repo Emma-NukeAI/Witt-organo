@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diseño Experimental · hoxb8a KO + scRNA-seq · Pivot Opción N · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #ecd0d0;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+    --c-pill-high: #d8efd9;
+    --c-pill-med: #f3ecc8;
+    --c-pill-low: #f1ddd5;
+    --c-pill-null: #e8e6e0;
+    --c-pill-text-high: #1f5023;
+    --c-pill-text-med: #735100;
+    --c-pill-text-low: #7a2a18;
+    --c-pill-text-null: #4a4a4a;
+    --c-gate: #8a2a2a;
+    --c-gate-light: #fbe9e9;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--c-bg); color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; line-height: 1.6; }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+  header.report-header { background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border); padding: 2.5rem 2rem 2rem; }
+  header.report-header .container { max-width: 1200px; margin: 0 auto; }
+  .eyebrow { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--c-muted); margin-bottom: 0.4rem; }
+  header.report-header h1 { font-size: 1.85rem; line-height: 1.25; margin: 0 0 0.4rem 0; }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0 0 1.4rem 0; max-width: 90ch; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.8rem 1.5rem; border-top: 1px solid var(--c-border); padding-top: 1rem; font-size: 0.88rem; }
+  .meta-grid div span { display: block; color: var(--c-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  nav.toc { position: sticky; top: 0; z-index: 10; background: rgba(250, 250, 247, 0.96);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--c-border); }
+  nav.toc ul { max-width: 1200px; margin: 0 auto; padding: 0.6rem 2rem; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.0rem; font-size: 0.82rem; }
+  nav.toc a { color: var(--c-muted); text-decoration: none; padding: 0.2rem 0;
+    border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav.toc a:hover { color: var(--c-witt); border-bottom-color: var(--c-witt); }
+  nav.toc .part-label { font-weight: 600; color: var(--c-text); margin-right: 0.3rem; }
+  main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 2rem; }
+  .part-divider { text-align: center; margin: 4rem 0 2rem 0; padding: 1rem 0;
+    border-top: 2px solid var(--c-witt); border-bottom: 2px solid var(--c-witt);
+    background: var(--c-witt-light); color: var(--c-witt); font-size: 1.1rem;
+    font-weight: 600; text-transform: uppercase; letter-spacing: 0.15em; }
+  section { margin-bottom: 3rem; scroll-margin-top: 60px; }
+  section h2 { font-size: 1.45rem; border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem; margin: 0 0 1rem 0; }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 { font-size: 1.1rem; margin: 1.8rem 0 0.6rem 0; }
+  section h4 { font-size: 0.98rem; margin: 1.2rem 0 0.5rem 0; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.6rem; margin: 1rem 0 1.5rem 0; }
+  .stat { background: var(--c-surface); border: 1px solid var(--c-border);
+    border-radius: 4px; padding: 0.9rem 1rem; text-align: center; }
+  .stat .number { display: block; font-size: 1.8rem; font-weight: 600;
+    color: var(--c-witt); line-height: 1.1;
+    font-family: "JetBrains Mono", Consolas, monospace; }
+  .stat .label { display: block; font-size: 0.78rem; color: var(--c-muted);
+    text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.3rem; }
+  .stat.organo .number { color: var(--c-organo); }
+  .stat.warn .number { color: var(--c-warn); }
+  .stat.gate .number { color: var(--c-gate); }
+  .lede { background: var(--c-surface); border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem; margin: 0 0 1.5rem 0; font-size: 1.02rem; }
+  .callout { background: #fff8e8; border: 1px solid #e8d8a0; border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem; margin: 1rem 0; border-radius: 3px; font-size: 0.94rem; }
+  .callout strong { color: var(--c-warn); }
+  .callout.principle { background: #f3f8f1; border-color: #c8d8c8; border-left-color: var(--c-organo); }
+  .callout.principle strong { color: var(--c-organo); }
+  .callout.danger { background: var(--c-gate-light); border-color: #e8b8b8; border-left-color: var(--c-gate); }
+  .callout.danger strong { color: var(--c-gate); }
+  .callout.executive { background: #eef4f8; border-color: #b8cad6; border-left-color: var(--c-witt); padding: 1.2rem 1.4rem; }
+  .callout.executive strong { color: var(--c-witt); }
+  .callout.gate { background: var(--c-gate-light); border: 2px solid var(--c-gate);
+    padding: 1rem 1.2rem; margin: 1rem 0; border-radius: 3px; font-weight: 500; }
+  .callout.gate strong { color: var(--c-gate); text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.8rem; }
+  .pill { display: inline-block; padding: 0.12rem 0.55rem; border-radius: 12px;
+    font-size: 0.75rem; font-weight: 500; font-family: "JetBrains Mono", Consolas, monospace; }
+  .pill.high { background: var(--c-pill-high); color: var(--c-pill-text-high); }
+  .pill.med  { background: var(--c-pill-med); color: var(--c-pill-text-med); }
+  .pill.low  { background: var(--c-pill-low); color: var(--c-pill-text-low); }
+  .pill.null { background: var(--c-pill-null); color: var(--c-pill-text-null); }
+  .pill.gate { background: var(--c-gate); color: white; }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0; }
+  table.data th, table.data td { padding: 0.65rem 0.8rem; text-align: left;
+    vertical-align: top; border-bottom: 1px solid var(--c-border); }
+  table.data th { background: var(--c-tag-bg); font-weight: 600; font-size: 0.83rem;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted); }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+  table.data tr.gate td { background: var(--c-gate-light) !important; }
+  table.data tr.recommended td { background: #e6f4e6 !important; }
+  pre.contract, pre.code { background: var(--c-code-bg); border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-organo); padding: 1.1rem 1.3rem; overflow-x: auto;
+    font-size: 0.85rem; line-height: 1.55; border-radius: 3px;
+    white-space: pre-wrap; word-break: break-word; }
+  .field-name { color: var(--c-witt); font-weight: 600; }
+  .field-comment { color: var(--c-muted); font-style: italic; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .compare .col { border: 1px solid var(--c-border); border-radius: 4px;
+    padding: 1rem 1.2rem; background: var(--c-surface); }
+  .compare .col.old { border-left: 3px solid var(--c-muted); opacity: 0.85; }
+  .compare .col.new { border-left: 3px solid var(--c-organo); background: #fbfdf9; }
+  @media (max-width: 760px) { .compare { grid-template-columns: 1fr; } }
+  ul.refs { font-size: 0.88rem; }
+  ul.refs li { margin-bottom: 0.4rem; }
+  ul.refs code { background: var(--c-code-bg); padding: 0.1rem 0.3rem; border-radius: 2px; font-size: 0.85em; }
+  a.cite { color: var(--c-witt); text-decoration: none; border-bottom: 1px dotted var(--c-witt); }
+  a.cite:hover { border-bottom-style: solid; }
+  footer.report-footer { border-top: 1px solid var(--c-border); padding: 1.5rem 2rem;
+    font-size: 0.82rem; color: var(--c-muted); background: var(--c-surface); }
+  footer.report-footer .container { max-width: 1200px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Diseño Experimental · Witt × Organogenesis · Fase I · Pivot Opción N</div>
+    <h1>Experimento focalizado: <code>hoxb8a</code> KO + scRNA-seq de pronefros zebrafish — pivot post-pleiotropy desde mafba</h1>
+    <p class="subtitle">Versión revisada del experimento N tras los pre-resolves del 2026-05-09 que revelaron pleiotropy crítica de mafba. Este documento es paralelo al de mafba (2026-05-09_mafba_experiment_design.html) — no lo reemplaza, lo suplementa con el pivot data-driven a hoxb8a. Mantiene el mismo budget envelope ($30-45K) y timeline (3-4 meses) pero ahora con un target 5.4× más pronefros-específico.</p>
+    <div class="meta-grid">
+      <div><span>Proyecto</span>Witt × Organogenesis</div>
+      <div><span>Fecha</span>2026-05-09 (pivot del documento mafba mismo día)</div>
+      <div><span>Modo operativo</span>Método 2 (humano impulsa)</div>
+      <div><span>TF target</span><code>hoxb8a</code> (ENSDARG00000056027)</div>
+      <div><span>Tier</span>T3 (no Tier 1 — caveat documentado)</div>
+      <div><span>Specificity ratio</span>0.785 (vs mafba 0.145)</div>
+      <div><span>Pre-experiment prior</span>0.65 (vs mafba 0.30)</div>
+      <div><span>Status</span>DRAFT — pre-execution gate</div>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><span class="part-label">Pivot:</span></li>
+    <li><a href="#pivot-summary">0 · Pivot summary</a></li>
+    <li><a href="#why-hoxb8a">1 · Por qué hoxb8a</a></li>
+    <li><a href="#hypothesis">2 · Hipótesis (ajustada)</a></li>
+    <li><a href="#substrate-fit">3 · Fit puertas + tests</a></li>
+    <li><span class="part-label">Diseño:</span></li>
+    <li><a href="#sgrna">4 · sgRNAs hoxb8a</a></li>
+    <li><a href="#design">5 · Grupos & n</a></li>
+    <li><a href="#stages">6 · Stages</a></li>
+    <li><a href="#readout">7 · Readout</a></li>
+    <li><span class="part-label">Logística:</span></li>
+    <li><a href="#budget">8 · Budget ⚠️</a></li>
+    <li><a href="#compliance">9 · Compliance ⚠️</a></li>
+    <li><a href="#risks">10 · Risks</a></li>
+    <li><span class="part-label">Final:</span></li>
+    <li><a href="#contract">11 · Contrato pre-exp</a></li>
+    <li><a href="#decision">12 · Decision matrix hoxb8a</a></li>
+    <li><a href="#bibliography">13 · Bibliografía</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ============================================ -->
+<section id="pivot-summary">
+  <h2><span class="num">0.</span>Pivot summary — qué cambió respecto al doc mafba</h2>
+
+  <div class="callout executive">
+    <strong>Pivot resumen:</strong> El doc original recomendaba <code>mafba</code> KO. Los pre-resolves revelaron pleiotropy HIGH para mafba (specificity ratio 0.145 — más expresado en endothelial/lens/macrophage que en pronefros). La re-priorización data-driven identificó <code>hoxb8a</code> como mejor target (specificity ratio 0.785, Bayesian information gain 1.6× mayor). Mismo budget, mismo timeline, mismo wet-lab approach — pero target distinto y mejor pronosticado. Este documento describe el experimento revisado.
+  </div>
+
+  <h3>Comparación lado-a-lado</h3>
+  <div class="compare">
+    <div class="col old">
+      <h4>Original (doc mafba) — 2026-05-09 mañana</h4>
+      <ul style="font-size:0.9rem;">
+        <li>Target: <code>mafba</code> (Tier 1)</li>
+        <li>Cluster Schoels: C17 podocito</li>
+        <li>Markers primarios: wt1a, wt1b, podxl, nphs1</li>
+        <li>Specificity ratio: 0.145 (HIGH risk)</li>
+        <li>Pre-experiment prior: 0.55</li>
+        <li>Posterior si H1: 0.81 / si H0: 0.04</li>
+        <li>Information gain: ~0.77</li>
+        <li>Pleiotropy: endothelial 87%, lens 80%, macrophage 77%</li>
+      </ul>
+    </div>
+    <div class="col new">
+      <h4>Pivot (este doc) — 2026-05-09 tarde</h4>
+      <ul style="font-size:0.9rem;">
+        <li>Target: <code>hoxb8a</code> (Tier 3)</li>
+        <li>Cluster Schoels: C16 progenitores TF-rich</li>
+        <li>Markers primarios: pax2a, lhx1a, sall1a, sim1a</li>
+        <li>Specificity ratio: 0.785 (MEDIUM risk)</li>
+        <li>Pre-experiment prior: 0.65</li>
+        <li>Posterior si H1: 0.95 / si H0: 0.16</li>
+        <li>Information gain: ~0.79</li>
+        <li>Pleiotropy: posterior body adyacente (manageable)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Lo que NO cambia</h3>
+  <ul>
+    <li>Modalidad: CRISPR-Cas9 F0 crispants (primary) + MO replicación (secondary)</li>
+    <li>Stages de readout: 24, 48, 72 hpf</li>
+    <li>n grupos: 4 (KO + scrambled + MO + MO control)</li>
+    <li>scRNA-seq platform: 10x Genomics 3' v3.1</li>
+    <li>Budget envelope: $30-45K</li>
+    <li>Timeline: 3-4 meses post-aprobaciones</li>
+    <li>Computational pipeline: <code>analysis/scripts/08_experiment_pipeline_template.py</code> (gene-agnostic, ya escrito)</li>
+    <li>Human gates required: budget, IACUC, IBC, partner selection</li>
+  </ul>
+
+  <h3>Stats actualizados</h3>
+  <div class="stat-grid">
+    <div class="stat"><span class="number">hoxb8a</span><span class="label">target gene</span></div>
+    <div class="stat organo"><span class="number">0.785</span><span class="label">specificity ratio (vs 0.145 mafba)</span></div>
+    <div class="stat organo"><span class="number">0.65</span><span class="label">pre-exp prior (vs 0.55 mafba)</span></div>
+    <div class="stat"><span class="number">10</span><span class="label">sgRNAs candidatos diseñados</span></div>
+    <div class="stat"><span class="number">$30-45K</span><span class="label">budget (igual mafba)</span></div>
+    <div class="stat"><span class="number">3-4 mo</span><span class="label">timeline (igual mafba)</span></div>
+    <div class="stat warn"><span class="number">3</span><span class="label">human gates pendientes</span></div>
+    <div class="stat organo"><span class="number">~0.79</span><span class="label">information gain Bayesian</span></div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<section id="why-hoxb8a">
+  <h2><span class="num">1.</span>Por qué <code>hoxb8a</code> ahora — la lógica del pivot</h2>
+
+  <p class="lede">
+    <code>hoxb8a</code> emergió como top candidate después del pleiotropy comparativo de los 6 candidatos novel. No estaba en Tier 1 originalmente, pero el sistema de Tiers no medía specificity — solo presence. Cuando se incluye specificity, hoxb8a sube al primer puesto.
+  </p>
+
+  <h3>Datos cuantitativos hoxb8a</h3>
+  <table class="data">
+    <thead><tr><th>Métrica</th><th>Valor</th><th>Interpretación</th></tr></thead>
+    <tbody>
+      <tr><td>Schoels cluster restricted</td><td>C16 progenitores TF-rich (rank 22)</td><td>Cluster ya identificado como TF-rich en survey</td></tr>
+      <tr><td>Wagner pronefros avg</td><td>41.5%</td><td>Buena expresión en pronefros</td></tr>
+      <tr><td>Wagner non-PN max</td><td>52.9%</td><td>Existe en otros tejidos pero no saturado</td></tr>
+      <tr><td>Specificity ratio</td><td>0.785</td><td>MEDIUM risk — el más alto de candidatos novel</td></tr>
+      <tr><td>Tier original</td><td>T3</td><td>Sin Tier 1/2 evidence cross-cohort robusta</td></tr>
+      <tr><td>Mouse evidence</td><td>Hox family in patterning, no pronefros-specific</td><td>Conservación funcional posible pero no establecida</td></tr>
+      <tr><td>Zebrafish kidney perturbation</td><td>0 papers</td><td>Genuinamente novel</td></tr>
+      <tr><td>Pre-experiment prior</td><td>0.65</td><td>Más alto que mafba (0.30) por specificity superior</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Caveats honestos</h3>
+  <ul>
+    <li><strong>Tier 3 vs Tier 1:</strong> hoxb8a tiene menos evidencia previa de relevance funcional que mafba tenía. Pero el "Tier 1" original era ingenuo — no consideraba specificity, que es lo que importa para experimento global.</li>
+    <li><strong>Mouse evidence más débil:</strong> Hox family es bien establecido en patterning embrionario pero NO específicamente en pronefros mouse. mafb tenía evidencia más directa en mouse kidney.</li>
+    <li><strong>Specificity ratio 0.785 sigue siendo MEDIUM risk:</strong> es mejor que mafba pero no LOW. Implica que el experimento puede tener phenotypes en tejidos posteriores adyacentes (PSM, tail mesoderm). Dissección específica de pronefros es crítica.</li>
+    <li><strong>Cluster target distinto:</strong> hoxb8a está en C16 progenitores TF-rich, no en C17 podocito como mafba. La biología es de specification, no maturation. El readout time-window cambia (24-48 hpf más relevante que 48-72 hpf).</li>
+  </ul>
+
+  <h3>¿Por qué no mejor pivotamos al #2 (sall1a)?</h3>
+  <p><code>sall1a</code> tiene specificity ratio 0.498 (lower que hoxb8a) pero evidencia mouse fuerte (sall1 KO mouse: agenesis renal completa). El trade-off es:</p>
+  <ul>
+    <li>hoxb8a: mejor specificity → KO global más limpio. Mouse evidence flaca.</li>
+    <li>sall1a: peor specificity → KO global más confundido. Mouse evidence robusta.</li>
+  </ul>
+  <p>Para Phase I "prueba pequeño" donde queremos un experimento <em>interpretable</em>, hoxb8a es mejor. Para Phase II donde mouse extension validaría sall1a, sall1a es mejor. Esta sesión recomienda hoxb8a; sall1a queda como #2 backup.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="hypothesis">
+  <h2><span class="num">2.</span>Hipótesis ajustada — markers de progenitor, no podocyte</h2>
+
+  <p class="lede">
+    El cambio de target de mafba (podocyte) a hoxb8a (progenitor) requiere ajuste de hipótesis. La pregunta sigue siendo "es regulador real vs bystander" pero con readout en cluster diferente.
+  </p>
+
+  <h3>2.1 — Hipótesis principal (H1)</h3>
+  <div class="callout principle">
+    <strong>H1:</strong> <code>hoxb8a</code> es un regulador funcional necesario para la especificación o supervivencia de progenitores pronefricos en zebrafish entre 14-48 hpf. Pérdida de función de hoxb8a (KO via CRISPR-Cas9 F0 crispants) producirá:
+    <ul style="margin-top:0.5rem;">
+      <li>Reducción significativa en n cells del cluster equivalente a C16 de Schoels (progenitores TF-rich)</li>
+      <li>Reducción en markers de progenitor pronefros (<code>pax2a</code>, <code>lhx1a</code>, <code>sall1a</code>, <code>sim1a</code>)</li>
+      <li>Posible (pero no necesariamente) reducción en derivados maduros (markers de C17 podocito) en stages tardíos</li>
+    </ul>
+  </div>
+
+  <h3>2.2 — Predicciones P1-P5 ajustadas para hoxb8a</h3>
+  <table class="data">
+    <thead><tr><th>#</th><th>Predicción</th><th>Test</th><th>Threshold</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>n cells en cluster equivalente a C16 progenitores disminuye en hoxb8a KO vs scrambled</td><td>Differential abundance (Milo / Fisher exact)</td><td>FDR &lt; 0.05, log2FC ≥ 0.5</td></tr>
+      <tr><td>P2</td><td>% cells expressing pax2a en C16-equivalent disminuye en KO</td><td>χ² test on counts</td><td>p &lt; 0.05, ≥30% relative reduction</td></tr>
+      <tr><td>P3</td><td>Mismo patrón en lhx1a, sall1a, sim1a (3 of 4 progenitor markers)</td><td>Multiple comparison-corrected</td><td>≥3 de 4 markers con p &lt; 0.05</td></tr>
+      <tr><td>P4</td><td><strong>Control:</strong> markers podocíticos (wt1a, podxl) NO cambian significativamente — hoxb8a debería ser progenitor-specific, no podocyte-specific</td><td>χ² test, expecting null</td><td>p &gt; 0.10 (especificidad)</td></tr>
+      <tr><td>P5</td><td>Efecto se hace pronunciado de 14 → 18 → 24 hpf, plateau o decline 48-72 hpf</td><td>Trend test</td><td>p &lt; 0.10 con peak 24 hpf</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.3 — Outcomes esperados</h3>
+  <table class="data">
+    <thead><tr><th>Outcome</th><th>n predicciones soportadas</th><th>Posterior confidence</th><th>Interpretación</th></tr></thead>
+    <tbody>
+      <tr class="recommended"><td><strong>STRONGLY SUPPORTED</strong></td><td>4-5/5</td><td>~0.95</td><td>hoxb8a es regulador real de progenitores pronefros</td></tr>
+      <tr><td>PARTIALLY SUPPORTED</td><td>3/5</td><td>~0.85</td><td>hoxb8a contribuye pero efecto modesto</td></tr>
+      <tr><td>MARGINAL</td><td>2/5</td><td>~0.65</td><td>Ambiguous; análisis adicional</td></tr>
+      <tr><td>WEAKLY AGAINST</td><td>1/5</td><td>~0.36</td><td>Probablemente bystander</td></tr>
+      <tr><td>NOT SUPPORTED (H0)</td><td>0/5</td><td>~0.16</td><td>hoxb8a es bystander en este contexto. Pivot a sall1a (#2 backup).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<section id="substrate-fit">
+  <h2><span class="num">3.</span>Fit con puertas + tests del proyecto (igual que mafba doc)</h2>
+  <p>Idéntico al doc mafba §3 — el experimento alimenta:</p>
+  <ul>
+    <li><strong>Puerta Identity:</strong> directamente con perturbación (causalidad, no solo correlación)</li>
+    <li><strong>Puerta Specificity:</strong> directamente (markers segment-specific)</li>
+    <li><strong>Test 1 (Orchestration):</strong> outputs estructurados por milestone</li>
+    <li><strong>Test 3 (Iteration):</strong> compounding del survey → design → pivot → re-design</li>
+    <li><strong>Test 4 (Calibration):</strong> trayectoria de confidence pre-/post-experimento como dato del sustrato</li>
+  </ul>
+  <p><strong>Bonus para Test 3:</strong> este pivot mismo es evidence del iteration loop. El survey identificó mafba; los pre-resolves identificaron pleiotropy; el pivot a hoxb8a es la corrección. Cada paso construye sobre el anterior con cached evidence.</p>
+</section>
+
+<div class="part-divider">DISEÑO EXPERIMENTAL — hoxb8a-specific</div>
+
+<!-- ============================================ -->
+<section id="sgrna">
+  <h2><span class="num">4.</span>sgRNAs candidatos hoxb8a — pre-screening computacional</h2>
+
+  <p class="lede">
+    10 candidatos sgRNAs anti-hoxb8a generados por <code>analysis/scripts/05_mafba_sgRNA_design.py --gene hoxb8a</code>. Heuristic scoring: GC content + polyT terminator + position rules. Para validación final usar production tools (CRISPRscan/CHOPCHOP/CRISPOR).
+  </p>
+
+  <h3>Datos del gen</h3>
+  <ul>
+    <li><strong>Symbol:</strong> hoxb8a</li>
+    <li><strong>Ensembl ID:</strong> <code>ENSDARG00000056027</code></li>
+    <li><strong>Description:</strong> homeobox B8a (NCBI gene 30343)</li>
+    <li><strong>Canonical transcript:</strong> ENSDART00000046638 (1 transcript total)</li>
+    <li><strong>CDS length:</strong> 738 nt (246 codones) — más corto que mafba (1194 nt)</li>
+    <li><strong>n exons:</strong> 2 (vs mafba 1 exon)</li>
+    <li><strong>Search window:</strong> primeros 300 nt de CDS (early KO target)</li>
+    <li><strong>n PAM sites encontrados:</strong> 39 (19 sense + 20 antisense)</li>
+  </ul>
+
+  <h3>Top 5 candidatos sgRNA hoxb8a</h3>
+  <table class="data">
+    <thead><tr><th>Rank</th><th>Score</th><th>Strand</th><th>Pos</th><th>sgRNA 20nt</th><th>PAM</th><th>GC%</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>#1</td><td>70</td><td>+</td><td>57</td><td><code>CGACCAAACTATTACGAGTG</code></td><td>CGG</td><td>45%</td><td>GC ok; G@20</td></tr>
+      <tr><td>#2</td><td>70</td><td>+</td><td>76</td><td><code>GCGGATTTGCTCAGGACCTA</code></td><td>GGG</td><td>55%</td><td>GC ok; G@1</td></tr>
+      <tr><td>#3</td><td>70</td><td>+</td><td>111</td><td><code>GTCGTGTATGGTCCAGGCAC</code></td><td>CGG</td><td>60%</td><td>GC ok; G@1</td></tr>
+      <tr><td>#4</td><td>70</td><td>+</td><td>206</td><td><code>TTACCAGCAGAGTCCATGTG</code></td><td>CGG</td><td>50%</td><td>GC ok; G@20</td></tr>
+      <tr><td>#5</td><td>70</td><td>+</td><td>240</td><td><code>GGCGAGCCGGGTAACTTCTA</code></td><td>CGG</td><td>60%</td><td>GC ok; G@1</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Recomendación al wet-lab partner</h3>
+  <ol>
+    <li>Validar los 5 top con CRISPRscan + CHOPCHOP + CRISPOR (3 tools, consensus)</li>
+    <li>Seleccionar 2-3 candidatos con strand diversity + position diversity (no overlap)</li>
+    <li>In vitro cleavage assay con cada sgRNA + Cas9 + PCR amplicon hoxb8a antes de inyección</li>
+    <li>Order como Alt-R sgRNA from IDT (zebrafish RNP injection standard)</li>
+  </ol>
+
+  <p>Output completo en <a href="../../analysis/outputs/hoxb8a_design/hoxb8a_sgRNA_candidates.md"><code>analysis/outputs/hoxb8a_design/hoxb8a_sgRNA_candidates.md</code></a> + <a href="../../analysis/outputs/hoxb8a_design/hoxb8a_sgRNA_candidates.json">.json</a></p>
+</section>
+
+<!-- ============================================ -->
+<section id="design">
+  <h2><span class="num">5.</span>Grupos experimentales (igual estructura que mafba)</h2>
+
+  <p>Estructura idéntica al diseño mafba — 4 grupos × 3 stages = 12 samples scRNA-seq. Solo cambia el target gene.</p>
+
+  <table class="data">
+    <thead><tr><th>Grupo</th><th>Tratamiento</th><th>n embriones</th><th>n esperados sobreviven</th></tr></thead>
+    <tbody>
+      <tr><td><strong>G1: hoxb8a CRISPR KO</strong></td><td>Cas9 protein + 2 sgRNAs anti-hoxb8a (top 3 + diverse strands)</td><td>200-300</td><td>~120-180</td></tr>
+      <tr><td>G2: Scrambled sgRNA control</td><td>Cas9 + scrambled sgRNA</td><td>100</td><td>~70</td></tr>
+      <tr><td>G3: hoxb8a MO replicación</td><td>Splice-blocking MO at optimized dose</td><td>100</td><td>~60</td></tr>
+      <tr><td>G4: Standard control MO</td><td>Standard control MO at same dose</td><td>100</td><td>~70</td></tr>
+    </tbody>
+  </table>
+
+  <p>Total embriones: ~500-600. Survival rate típica zebrafish 1-cell injection: 60-70%. n sobrevivientes ~250-350. scRNA-seq usa ~80-100 cells per stage agrupados.</p>
+
+  <p style="font-size:0.88rem;color:var(--c-muted);">
+    Nota: porque hoxb8a tiene specificity ratio MEDIUM (no LOW), survival rate puede ser mejor que mafba (que era HIGH risk de letalidad). hoxb8a expression en posterior body mesoderm sugiere posibles defectos de tail/somite, no de vasculature/heart letales.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<section id="stages">
+  <h2><span class="num">6.</span>Stages — ajuste a window de progenitor</h2>
+
+  <p>Diferencia con mafba: hoxb8a actúa en progenitores (C16). El window de readout más informativo es <strong>14-24 hpf</strong> (specification window), con 48 y 72 hpf como follow-up para ver si el efecto progenitor se propaga a derivados maduros.</p>
+
+  <table class="data">
+    <thead><tr><th>Stage</th><th>Estado</th><th>Lo que se espera ver</th></tr></thead>
+    <tbody>
+      <tr><td><strong>24 hpf</strong> (was secondary, now PRIMARY)</td><td>Progenitores activos, specification</td><td><strong>Reducción C16-equivalent + markers de progenitor (pax2a, lhx1a)</strong></td></tr>
+      <tr><td>48 hpf</td><td>Tubulogénesis, transición a maduros</td><td>Posible reducción carry-over en C16; ¿afecta derivados?</td></tr>
+      <tr><td>72 hpf</td><td>Pronefros maduro</td><td>Si efecto persiste — wt1a/podxl posiblemente afectados (efecto downstream)</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Stage primario para hoxb8a: 24 hpf</strong> (no 72 hpf como mafba). Esto puede ahorrar reagentes si los stages 48-72 hpf se hacen como follow-up condicional al hallazgo en 24 hpf.</p>
+</section>
+
+<!-- ============================================ -->
+<section id="readout">
+  <h2><span class="num">7.</span>Readout pipeline — gene-agnostic, ya escrito</h2>
+
+  <p>Pipeline computacional ya escrito en <a href="../../analysis/scripts/08_experiment_pipeline_template.py"><code>analysis/scripts/08_experiment_pipeline_template.py</code></a>. Configurable para hoxb8a:</p>
+
+<pre class="code">python 08_experiment_pipeline_template.py \\
+    --target-gene hoxb8a \\
+    --samples-dir analysis/data/experiment_N/ \\
+    --reference-h5ad analysis/outputs/schoels_clustered.h5ad \\
+    --output-dir analysis/outputs/experiment_N_hoxb8a_results/ \\
+    --prior-confidence 0.65</pre>
+
+  <p>El script ya tiene <code>TF_TARGET_CONFIG["hoxb8a"]</code> con:</p>
+  <ul>
+    <li><code>schoels_target_cluster</code>: "16" (progenitores TF-rich)</li>
+    <li><code>primary_markers</code>: pax2a, lhx1a, sall1a, sim1a</li>
+    <li><code>control_markers</code>: wt1a, podxl (podocyte — no debería cambiar)</li>
+    <li><code>expected_direction</code>: shift (no decrease — porque puede haber expansión de otros clusters compensatorios)</li>
+  </ul>
+
+  <p>Pipeline pasos (igual que mafba doc §7.4):</p>
+  <ol>
+    <li>scanpy QC (min_genes=200, doublet detection)</li>
+    <li>Normalize + log + HVG + PCA</li>
+    <li>Harmony integration con Schoels reference</li>
+    <li>UMAP + Leiden clustering en harmony space</li>
+    <li>Cluster mapping: identificar cluster equivalente a Schoels C16</li>
+    <li>Differential abundance (Fisher exact per stage)</li>
+    <li>Marker proportion testing en C16-equivalent</li>
+    <li>Hipótesis testing P1-P5 + posterior confidence update</li>
+    <li>WISH validation independent (subset embriones)</li>
+  </ol>
+</section>
+
+<div class="part-divider">LOGÍSTICA</div>
+
+<!-- ============================================ -->
+<section id="budget">
+  <h2><span class="num">8.</span>Budget — igual al doc mafba ⚠️ <span class="pill gate">REQUIRES HUMAN GATE</span></h2>
+
+  <div class="callout gate">
+    <strong>⚠️ Hard rule activada (CLAUDE.md §7):</strong> Budget decisions require direct human gate. Esta línea idéntica al doc mafba: $30-45K total. La selección del target (hoxb8a vs mafba) NO afecta budget — solo cambia los sgRNAs ordenados (~$300 reagent diff).
+  </div>
+
+  <p>Ver doc mafba <code>2026-05-09_mafba_experiment_design.html</code> §11 para breakdown completo. Único cambio:</p>
+  <ul>
+    <li>sgRNAs hoxb8a: ~$300 (en lugar de mafba sgRNAs $300) — mismo orden de magnitud</li>
+    <li>MO splice-blocking hoxb8a: ~$1000 from Gene Tools</li>
+    <li>Resto idéntico</li>
+  </ul>
+</section>
+
+<!-- ============================================ -->
+<section id="compliance">
+  <h2><span class="num">9.</span>Compliance — igual al doc mafba ⚠️ <span class="pill gate">REQUIRES HUMAN GATE</span></h2>
+
+  <p>IACUC + IBC + ethics requirements idénticos al doc mafba §12. Ver allá. Único cambio: el protocolo IACUC incluye hoxb8a como gene targeted (not mafba).</p>
+</section>
+
+<!-- ============================================ -->
+<section id="risks">
+  <h2><span class="num">10.</span>Risk register — diferencias vs mafba</h2>
+
+  <p>La mayoría de riesgos del doc mafba aplican aquí también. Diferencias clave:</p>
+
+  <table class="data">
+    <thead><tr><th>Riesgo</th><th>Mafba</th><th>hoxb8a (este doc)</th></tr></thead>
+    <tbody>
+      <tr><td>Pleiotropy confounding</td><td><span class="pill low">HIGH</span></td><td><span class="pill med">MEDIUM</span></td></tr>
+      <tr><td>Letalidad embrionaria por defectos vasculares</td><td><span class="pill low">HIGH (mafba en endothelial 87%)</span></td><td><span class="pill med">LOW-MEDIUM (no expresión vascular alta)</span></td></tr>
+      <tr><td>Confounding por tail/posterior body defects</td><td><span class="pill med">LOW</span></td><td><span class="pill med">MEDIUM (hox family in posterior patterning)</span></td></tr>
+      <tr><td>Tier 3 → mouse evidence weaker</td><td><span class="pill med">LOW (mafb mouse evidence)</span></td><td><span class="pill med">MEDIUM (Hox in patterning, not pronefros)</span></td></tr>
+      <tr><td>Cluster C16 progenitores es n=47 in Schoels (small)</td><td>n/a (C17 was n=55)</td><td><span class="pill med">MEDIUM (mismo orden, but power ajustado)</span></td></tr>
+      <tr><td>Falla de hoxb8a → pivot</td><td>Pivot a sall1a (#2)</td><td>Pivot a sall1a (#2 sigue igual)</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:0.88rem;color:var(--c-muted);">Mitigations también iguales al doc mafba — 2 sgRNAs paralelos, MO replicación, multiplex sequencing, etc.</p>
+</section>
+
+<div class="part-divider">FINAL</div>
+
+<!-- ============================================ -->
+<section id="contract">
+  <h2><span class="num">11.</span>Contrato pre-experimento (actualizado para hoxb8a)</h2>
+
+<pre class="contract">{
+  <span class="field-name">direct_answer</span>:
+    Recomendación: ejecutar hoxb8a KO + scRNA-seq según protocolo de §4-§7. CRISPR-Cas9
+    F0 crispants (primary) + MO replicación (secondary). 12 samples scRNA-seq (4 grupos
+    × 3 stages 24/48/72 hpf, con 24 hpf como primary). Test predicciones P1-P5 con
+    pax2a/lhx1a/sall1a/sim1a como markers primarios y wt1a/podxl como control de
+    specificity. Decisión rule: H1 soportada si ≥3/5 predicciones cumplidas.
+
+  <span class="field-name">confidence</span>: 0.65
+    <span class="field-comment">// pre-experimento de que hoxb8a es regulador real (vs bystander).
+    // Más alto que mafba (0.30) por specificity ratio mayor (0.785 vs 0.145).
+    // El experimento debe colapsar este número a ~0.95 (H1) o ~0.16 (H0).
+    // Information gain Bayesian: 0.79 (vs mafba 0.77).</span>
+
+  <span class="field-name">evidence_cited</span>: [
+    "Survey 2026-05-08: hoxb8a Tier 3, cluster-restricted C16 progenitores TF-rich",
+    "Pre-resolve item 7 (2026-05-09): hoxb8a top novel candidate por specificity ratio 0.785",
+    "PubMed: 0 papers de hoxb8a zebrafish kidney perturbación; PMID 13679919 estudia
+       hoxb8a en blood (NO pronefros, off-target)",
+    "Wagner GSE112294: hoxb8a 41.5% en pronefros, 52.9% non-PN max (manejable)",
+    "Hox family conservación filogenética en patterning embrionario",
+    "10 sgRNAs candidatos diseñados (analysis/outputs/hoxb8a_design/)"
+  ]
+
+  <span class="field-name">alternatives_considered</span>: [
+    "Mantener mafba con conditional KO -> RECHAZADA: Phase II level complexity, viola
+       prueba pequeño",
+    "Multi-TF screen (hoxb8a + sall1a + hipk2 + mafba) -> RECHAZADA: 3× costo Phase I",
+    "sall1a en lugar de hoxb8a -> RECHAZADA por ahora (sall1a es #2 backup, mejor mouse
+       evidence pero peor specificity para KO global)",
+    "Re-scope Phase I -> RECHAZADA: el survey ya dio respuesta computacional, validación
+       wet-lab agrega valor",
+    "Stable line en lugar de F0 crispants -> RECHAZADA: 4-6 meses extra"
+  ]
+
+  <span class="field-name">gap_flags</span>: [
+    "Specificity ratio 0.785 sigue siendo MEDIUM -- pleiotropy modesto en posterior body",
+    "hoxb8a Tier 3 (no Tier 1) -- menor evidencia previa de relevancia funcional",
+    "Mouse evidence flaca para hoxb8 en kidney (Hox family in patterning, no
+       pronefros-specific)",
+    "Cluster C16 en Schoels es n=47 -- power adecuado para predicciones, pero
+       smaller-than-mafba target (n=55 was C17)",
+    "Stage primario ajustado a 24 hpf -- diferente del original mafba 72 hpf"
+  ]
+
+  <span class="field-name">framework_applied</span>:
+    Tier 2 - structured experimental design con falsifiable hypothesis y predictions
+    falsificables, post-pleiotropy reprioritization Bayesian-flavored. NO Tier 1
+    (no Self-Consistency multi-run; no Logic-LM formal verification).
+}</pre>
+</section>
+
+<!-- ============================================ -->
+<section id="decision">
+  <h2><span class="num">12.</span>Decision matrix actualizada para hoxb8a</h2>
+
+  <p>Por la decision matrix completa de los 13 candidatos, ver <a href="../../analysis/outputs/mafba_design/decision_matrix.md"><code>analysis/outputs/mafba_design/decision_matrix.md</code></a>. Aquí el subset específico para hoxb8a (prior 0.65):</p>
+
+  <table class="data">
+    <thead><tr><th>Outcome</th><th>n predicciones</th><th>LR</th><th>Posterior</th><th>Decisión</th></tr></thead>
+    <tbody>
+      <tr class="recommended"><td><strong>STRONGLY SUPPORTED</strong></td><td>4-5/5</td><td>10×</td><td><strong>0.95</strong></td><td>Publicar, generar stable line, Phase II</td></tr>
+      <tr><td>PARTIALLY SUPPORTED</td><td>3/5</td><td>3×</td><td>0.85</td><td>Análisis adicional + WISH; probable publicar</td></tr>
+      <tr><td>MARGINAL</td><td>2/5</td><td>1×</td><td>0.65</td><td>Análisis subcluster; possibly stable line</td></tr>
+      <tr><td>WEAKLY AGAINST</td><td>1/5</td><td>0.3×</td><td>0.36</td><td>Document negative; pivot a sall1a</td></tr>
+      <tr><td>NOT SUPPORTED (H0)</td><td>0/5</td><td>0.1×</td><td>0.16</td><td>hoxb8a bystander. Pivot a sall1a (#2 backup).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Comparación information gain hoxb8a vs mafba</h3>
+  <ul>
+    <li>hoxb8a: posterior range 0.16 a 0.95 = <strong>spread 0.79</strong></li>
+    <li>mafba: posterior range 0.04 a 0.81 = spread 0.77</li>
+    <li>Diferencia: hoxb8a tiene un techo más alto (0.95 vs 0.81) — un STRONGLY SUPPORTED outcome con hoxb8a es más definitivo</li>
+  </ul>
+
+  <p>Si hoxb8a falla, el siguiente candidato priorizado es <strong>sall1a</strong> (specificity ratio 0.498, mouse evidence robusta, prior 0.55).</p>
+</section>
+
+<!-- ============================================ -->
+<section id="bibliography">
+  <h2><span class="num">13.</span>Bibliografía + referencias</h2>
+
+  <h3>13.1 — Documentos referenciados</h3>
+  <ul class="refs">
+    <li><a class="cite" href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html">Survey integral 2026-05-08</a> — el documento que identificó los 13 TFs candidatos</li>
+    <li><a class="cite" href="2026-05-09_mafba_experiment_design.html">Diseño experimental mafba 2026-05-09</a> — el doc original; este es el pivot</li>
+    <li><a class="cite" href="2026-05-09_decision_package_martin.html">Decision package para Martín 2026-05-09</a> — strategic-level brief</li>
+    <li><code>analysis/outputs/hoxb8a_design/</code> — 2 outputs: sgRNA candidates JSON + MD</li>
+    <li><code>analysis/outputs/mafba_design/decision_matrix.md</code> — Bayesian matrix de outcomes</li>
+    <li><code>analysis/outputs/mafba_design/pleiotropy_reprioritization.md</code> — re-prioritization data</li>
+  </ul>
+
+  <h3>13.2 — Referencias hoxb8a y Hox family</h3>
+  <ul class="refs">
+    <li><strong>Davidson et al. 2003</strong> · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/13679919/">13679919</a> · Nature. <em>"cdx4 mutants fail to specify blood progenitors and can be rescued by multiple hox genes."</em> Estudio en sangre, hoxb8a NO rescata blood phenotype. Sin embargo, sin estudio directo en pronefros — gap claro.</li>
+    <li>Hox family general: numerous papers documenting roles in posterior body patterning</li>
+    <li>NCBI gene 30343 (hoxb8a in zebrafish): homeobox B8a</li>
+  </ul>
+
+  <h3>13.3 — Referencias compartidas con doc mafba</h3>
+  <ul class="refs">
+    <li>scRNA-seq atlases: Schoels 2021 (PMID 33749326 / GSE162031), Wagner 2018 (PMID 29700229 / GSE112294)</li>
+    <li>Métodos zebrafish CRISPR: Hwang 2013 (PMID 23360964), Wu 2018 (PMID 29768209)</li>
+    <li>CRISPR design tools: CRISPRscan, CHOPCHOP, CRISPOR</li>
+    <li>Referencias de proyecto: <code>CLAUDE.md</code>, <code>PROJECT_SCOPE.md</code>, <code>skills/custom/organogenesis-agent-architect/references/</code></li>
+  </ul>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>Documento de pivot generado 2026-05-09 (post-pleiotropy pre-resolves).</strong> Este doc no reemplaza al doc mafba — lo complementa. Tres documentos en serie:</p>
+    <ol style="margin: 0.5rem 0;">
+      <li><a href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html">Survey 2026-05-08</a> — qué TFs candidatos hay</li>
+      <li><a href="2026-05-09_mafba_experiment_design.html">Diseño mafba 2026-05-09 mañana</a> — recomendación original</li>
+      <li><a href="2026-05-09_decision_package_martin.html">Decision package 2026-05-09 tarde</a> — strategic brief para Martín</li>
+      <li><strong>Diseño hoxb8a 2026-05-09 tarde — este documento</strong> — pivot data-driven</li>
+    </ol>
+    <p style="margin-top: 0.8rem;"><strong>Status:</strong> DRAFT pre-execution gate. Confianza pre-experimento de hoxb8a como regulador real: <strong>0.65</strong>. El experimento colapsará a ~0.95 (H1 strongly supported) o ~0.16 (H0 supported). La trayectoria de calibración es el dato del sustrato — independiente del outcome biológico.</p>
+  </div>
+</footer>
+
+</body>
+</html>

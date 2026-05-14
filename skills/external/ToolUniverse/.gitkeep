@@ -1,0 +1,5 @@
+# This file exists so git tracks the empty folder.
+# The folder's contents are gitignored (see project root .gitignore).
+# Collaborators populate it locally via:
+#   cd skills/external/
+#   git clone https://github.com/mims-harvard/ToolUniverse.git

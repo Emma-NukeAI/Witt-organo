@@ -1,0 +1,107 @@
+# =============================================================================
+# witt-organogenesis .gitignore
+#
+# Excludes Python build artifacts, OS metadata, secrets, and the upstream
+# Tool Universe clone (which collaborators populate locally — see
+# skills/external/README.md for clone instructions).
+# =============================================================================
+
+# --- Tool Universe upstream clone (see skills/external/README.md) ---
+# We mirror the upstream repo locally for `git pull` updates but do not
+# commit its contents to this repo. The folder is kept via .gitkeep.
+skills/external/ToolUniverse/*
+!skills/external/ToolUniverse/.gitkeep
+
+# --- Secrets and local environment ---
+*.env
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+.secrets/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# --- Testing / coverage ---
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# --- mypy / type checkers ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# --- Editor/IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Linux ---
+*~
+
+# --- Local agent caches (per CLAUDE.md MCP Resilience Protocol patterns) ---
+mcp_cache/
+checkpoints/
+.claude/settings.local.json
+
+# --- Analysis workspace (Option G scRNA-seq downloads + venv) ---
+analysis/.venv/
+analysis/data/
+analysis/outputs/*.h5ad
+analysis/outputs/*.csv.gz
+analysis/outputs/cache/

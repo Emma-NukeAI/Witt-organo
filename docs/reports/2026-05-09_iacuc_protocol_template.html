@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IACUC Protocol Template · Zebrafish CRISPR-Cas9 · Witt × Organogenesis</title>
+<style>
+  :root {
+    --c-bg: #fafaf7;
+    --c-surface: #ffffff;
+    --c-border: #e5e3dd;
+    --c-text: #1a1a1a;
+    --c-muted: #5a5a5a;
+    --c-witt: #1d4e6e;
+    --c-witt-light: #d6e4ed;
+    --c-organo: #3a6a3f;
+    --c-organo-light: #d8e6d8;
+    --c-warn: #8a5a00;
+    --c-warn-light: #f3e5c0;
+    --c-critical: #8a2a2a;
+    --c-critical-light: #fbe9e9;
+    --c-tag-bg: #eef2f5;
+    --c-code-bg: #f4f1ea;
+    --c-table-stripe: #f7f5ef;
+    --c-placeholder: #b34a4a;
+    --c-placeholder-bg: #fce8e8;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--c-bg); color: var(--c-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px; line-height: 1.6; }
+  code, pre, .mono { font-family: "JetBrains Mono", "Fira Code", Consolas, monospace; }
+  header.report-header {
+    background: linear-gradient(135deg, #f8f6f0 0%, #eee9dc 100%);
+    border-bottom: 1px solid var(--c-border); padding: 2.5rem 2rem 2rem;
+  }
+  header.report-header .container { max-width: 1100px; margin: 0 auto; }
+  .eyebrow { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--c-muted); margin-bottom: 0.4rem; }
+  header.report-header h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 0.4rem 0; }
+  header.report-header .subtitle { color: var(--c-muted); margin: 0; max-width: 90ch; }
+  nav.toc { position: sticky; top: 0; z-index: 10; background: rgba(250, 250, 247, 0.96);
+    backdrop-filter: blur(6px); border-bottom: 1px solid var(--c-border); }
+  nav.toc ul { max-width: 1100px; margin: 0 auto; padding: 0.6rem 2rem; list-style: none;
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.0rem; font-size: 0.82rem; }
+  nav.toc a { color: var(--c-muted); text-decoration: none; padding: 0.2rem 0;
+    border-bottom: 2px solid transparent; transition: all 0.15s; }
+  nav.toc a:hover { color: var(--c-witt); border-bottom-color: var(--c-witt); }
+  main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem; }
+  section { margin-bottom: 2.5rem; scroll-margin-top: 60px; }
+  section h2 { font-size: 1.3rem; border-bottom: 2px solid var(--c-border);
+    padding-bottom: 0.4rem; margin: 0 0 1rem 0; }
+  section h2 .num { color: var(--c-muted); font-weight: 400; margin-right: 0.5rem; }
+  section h3 { font-size: 1.05rem; margin: 1.4rem 0 0.5rem 0; }
+  section h4 { font-size: 0.95rem; margin: 1rem 0 0.4rem 0; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .lede { background: var(--c-surface); border-left: 3px solid var(--c-witt);
+    padding: 1rem 1.2rem; margin: 0 0 1.5rem 0; font-size: 1.0rem; }
+  .callout { background: #fff8e8; border: 1px solid #e8d8a0; border-left: 3px solid var(--c-warn);
+    padding: 0.9rem 1.1rem; margin: 1rem 0; border-radius: 3px; font-size: 0.92rem; }
+  .callout strong { color: var(--c-warn); }
+  .callout.warning { background: var(--c-critical-light); border-color: #e8b8b8; border-left-color: var(--c-critical); }
+  .callout.warning strong { color: var(--c-critical); }
+  .callout.note { background: var(--c-witt-light); border-color: #b8cad6; border-left-color: var(--c-witt); }
+  .callout.note strong { color: var(--c-witt); }
+
+  .placeholder {
+    background: var(--c-placeholder-bg);
+    color: var(--c-placeholder);
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    font-family: "JetBrains Mono", Consolas, monospace;
+    font-size: 0.86rem;
+    font-weight: 500;
+  }
+  .protocol-section {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 4px;
+    padding: 1rem 1.2rem;
+    margin: 1rem 0;
+  }
+  .protocol-section h4 {
+    margin-top: 0;
+    color: var(--c-text);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    margin: 0.8rem 0 1.4rem 0; }
+  table.data th, table.data td { padding: 0.55rem 0.7rem; text-align: left;
+    vertical-align: top; border-bottom: 1px solid var(--c-border); }
+  table.data th { background: var(--c-tag-bg); font-weight: 600; font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--c-muted); }
+  table.data tr:nth-child(even) td { background: var(--c-table-stripe); }
+  .three-rs {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0;
+  }
+  .three-rs .r-card {
+    background: var(--c-surface); border: 1px solid var(--c-border);
+    border-left: 3px solid var(--c-organo); border-radius: 4px;
+    padding: 0.9rem 1.1rem;
+  }
+  .three-rs .r-card h4 { margin: 0 0 0.4rem 0; color: var(--c-organo); text-transform: none; letter-spacing: normal; }
+  @media (max-width: 760px) { .three-rs { grid-template-columns: 1fr; } }
+  ul.refs { font-size: 0.88rem; }
+  ul.refs li { margin-bottom: 0.4rem; }
+  a.cite { color: var(--c-witt); text-decoration: none; border-bottom: 1px dotted var(--c-witt); }
+  a.cite:hover { border-bottom-style: solid; }
+  footer.report-footer { border-top: 1px solid var(--c-border); padding: 1.5rem 2rem;
+    font-size: 0.82rem; color: var(--c-muted); background: var(--c-surface); }
+  footer.report-footer .container { max-width: 1100px; margin: 0 auto; }
+</style>
+</head>
+<body>
+
+<header class="report-header">
+  <div class="container">
+    <div class="eyebrow">Pre-resolve item 6 · IACUC Protocol Template Draft · 2026-05-09</div>
+    <h1>IACUC Protocol Template — Zebrafish embryos &lt;120 hpf + CRISPR-Cas9 / Morpholino microinjection + scRNA-seq readout</h1>
+    <p class="subtitle">Borrador genérico de protocolo IACUC para el experimento N. Cubre las secciones estándar de un protocolo de uso animal con las adaptaciones específicas para zebrafish embryos &lt;120 hpf, CRISPR-Cas9 microinjection, y scRNA-seq tissue dissection. Este es un template — la institución del wet-lab partner debe adaptarlo a su formulario IACUC específico y procesos de aprobación. Reduce ~1 semana del partner trabajando from scratch.</p>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><a href="#header-info">A · Header info</a></li>
+    <li><a href="#summary">B · Project summary</a></li>
+    <li><a href="#justification">C · Animal use justification</a></li>
+    <li><a href="#3rs">D · Three Rs</a></li>
+    <li><a href="#numbers">E · Numbers + power</a></li>
+    <li><a href="#procedures">F · Procedures</a></li>
+    <li><a href="#anesthesia">G · Anesthesia + euthanasia</a></li>
+    <li><a href="#endpoints">H · Humane endpoints</a></li>
+    <li><a href="#biosafety">I · Biosafety</a></li>
+    <li><a href="#personnel">J · Personnel</a></li>
+    <li><a href="#vet">K · Vet consultation</a></li>
+    <li><a href="#alternatives">L · Search for alternatives</a></li>
+    <li><a href="#references">M · References</a></li>
+    <li><a href="#appendix">N · Appendix</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ============================================== -->
+<section id="overview">
+  <h2><span class="num">1.</span>Cómo usar este template</h2>
+
+  <p class="lede">
+    Este documento es un borrador genérico. Cada sección incluye contenido pre-escrito (basado en standard zebrafish IACUC protocols) más placeholders <span class="placeholder">[INSERT XYZ]</span> donde la institución del partner debe completar información específica. La aprobación real se obtiene a través del IACUC committee de la partner institution — no de este documento.
+  </p>
+
+  <div class="callout note">
+    <strong>Naturaleza del template:</strong> está estructurado para US-style IACUC protocols (most common framework). Si el partner institution está en otra jurisdicción (EU, Mexico, UK, Asia), las secciones equivalentes pueden tener nombres distintos pero el contenido es transferible. Para Mexico, ver normativa NOM-062-ZOO-1999.
+  </div>
+
+  <div class="callout warning">
+    <strong>Notas críticas zebrafish embryos:</strong>
+    <ul style="margin: 0.5rem 0 0 0;">
+      <li>En US, NIH y muchos institutional IACUCs consideran que zebrafish embryos &lt;120 hpf NO requieren IACUC (libre-living begins ~5 dpf). PERO la mayoría de instituciones requieren protocol oversight para todo trabajo con vertebrate embryos that may be raised, OR for parental adults breeding fish. <strong>Confirmar con specific institution.</strong></li>
+      <li>El uso de adult zebrafish (parental fish) para breeding SÍ requiere IACUC en todos casos.</li>
+      <li>El uso de CRISPR-Cas9 (recombinant DNA) requiere IBC (Institutional Biosafety Committee) review, separado del IACUC. Both must approve.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="header-info">
+  <h2><span class="num">A.</span>Header / Identification information</h2>
+
+  <div class="protocol-section">
+    <h4>A.1 — Protocol title</h4>
+    <p>Single-cell RNA-sequencing analysis of zebrafish (<em>Danio rerio</em>) pronephros development under loss-of-function of candidate transcription factors via CRISPR-Cas9 F0 crispants and morpholino knockdown.</p>
+
+    <h4>A.2 — Principal Investigator (PI)</h4>
+    <ul>
+      <li><strong>Name:</strong> <span class="placeholder">[PI NAME]</span></li>
+      <li><strong>Department:</strong> <span class="placeholder">[DEPARTMENT]</span></li>
+      <li><strong>Institution:</strong> <span class="placeholder">[INSTITUTION]</span></li>
+      <li><strong>Email:</strong> <span class="placeholder">[PI EMAIL]</span></li>
+      <li><strong>IACUC training completion date:</strong> <span class="placeholder">[DATE]</span></li>
+    </ul>
+
+    <h4>A.3 — Co-investigators / Personnel</h4>
+    <p><span class="placeholder">[LIST CO-INVESTIGATORS WITH IACUC TRAINING STATUS]</span></p>
+
+    <h4>A.4 — Funding source</h4>
+    <p>Witt × Organogenesis Phase I program (Latido Médico Mexicano + project specific). Estimated direct cost for animal use portion: <span class="placeholder">[INSERT INSTITUTION-SPECIFIC]</span> within $30-45K experiment N envelope.</p>
+
+    <h4>A.5 — Collaboration with external entities</h4>
+    <p>Collaborator: Witt × Organogenesis project (Emmanuel <code>emmanuel@nuke-ai.com</code>; Martín Gleizer <code>Md@latidomedico.com</code>). The collaboration provides experimental design, computational analysis pipeline, and statistical support. Wet-lab work is performed at <span class="placeholder">[PARTNER INSTITUTION]</span> under PI supervision.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="summary">
+  <h2><span class="num">B.</span>Project summary (lay summary)</h2>
+
+  <div class="protocol-section">
+    <p>This protocol describes the use of zebrafish (<em>Danio rerio</em>) embryos to study how transcription factors control kidney development. The kidney is one of the most complex organs in vertebrates, and understanding which genes are "master regulators" — those that direct other genes during organ formation — has implications for understanding congenital kidney disease in humans and for tissue engineering. Zebrafish are an ideal model because their embryos are transparent, develop externally and rapidly (kidney function begins by 48 hpf), are easy to manipulate genetically, and have well-conserved kidney development genes with humans.</p>
+
+    <p>We have identified several candidate transcription factors via single-cell RNA sequencing (a technique that profiles thousands of individual cells) of published datasets. Our top candidate is <strong><span class="placeholder">[hoxb8a OR mafba — to be specified per active experiment]</span></strong>, which is expressed in pronephros progenitor cells but whose function has not been tested. We will use CRISPR-Cas9 to knock out this gene in zebrafish embryos, and again profile gene expression at single-cell resolution to determine if the knockout disrupts kidney development.</p>
+
+    <p>The experiment will use ~600 zebrafish embryos (loss <50% expected from injection), all younger than 120 hours post-fertilization. No adult fish will be sacrificed beyond standard breeding practices. Embryos are euthanized humanely at experimental endpoints (24, 48, 72 hpf) using approved methods.</p>
+
+    <p>The experimental knowledge generated will inform Phase II of the project (mouse extension) and contribute to the broader field of regenerative medicine.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="justification">
+  <h2><span class="num">C.</span>Animal use justification</h2>
+
+  <div class="protocol-section">
+    <h4>C.1 — Why use animals at all?</h4>
+    <p>The pronephros (early kidney) is a tissue that develops <em>in vivo</em> through complex interactions between cell types and signaling gradients that cannot be replicated in cell culture. Single-cell RNA sequencing requires intact tissue dissociated at specific developmental timepoints, which can only be obtained from living embryos. <em>In silico</em> modeling and cell line work cannot substitute for in vivo functional analysis of transcription factor regulation during organogenesis.</p>
+
+    <h4>C.2 — Why zebrafish specifically?</h4>
+    <ul>
+      <li><strong>Transparent embryos</strong> allow real-time observation of organ formation without sacrifice.</li>
+      <li><strong>External fertilization and rapid development</strong> (organogenesis at 24-72 hpf) match the experimental window precisely.</li>
+      <li><strong>Single-cell genetics established:</strong> high-quality scRNA-seq atlases exist (Schoels 2021, Wagner 2018) for cross-validation.</li>
+      <li><strong>CRISPR-Cas9 highly efficient</strong> in zebrafish embryos via 1-cell stage microinjection.</li>
+      <li><strong>Pronephros conservation:</strong> zebrafish pronephros uses orthologous transcription factors as mammalian metanephros, making it a relevant model.</li>
+      <li><strong>Lower regulatory burden</strong> on embryonic stages vs. mammalian models, supporting the "Reduction" principle of the 3Rs.</li>
+      <li><strong>Faster turnaround</strong> (3-4 months vs. 12+ months for mouse work) reduces total animal use across the project.</li>
+    </ul>
+
+    <h4>C.3 — Why not in vitro / in silico alternatives?</h4>
+    <ul>
+      <li>scRNA-seq atlases of zebrafish pronephros exist (Schoels, Wagner) and have been used for our preliminary computational survey. The current protocol IS the wet-lab follow-up validation that those datasets cannot provide on their own.</li>
+      <li>Cell lines (e.g., human podocyte lines) lack the cell-cell interactions and morphogenetic context essential for transcription factor functional assessment.</li>
+      <li>Organoid systems (e.g., kidney organoids) are still in development and do not faithfully recapitulate full pronephros segmentation.</li>
+      <li>In silico predictions (the survey work) cannot resolve causality vs. correlation — only loss-of-function in vivo can.</li>
+    </ul>
+
+    <h4>C.4 — Why developmental stage 24-72 hpf?</h4>
+    <p>Pronephros development in zebrafish: progenitor specification at ~14 hpf, tubule formation at 24-30 hpf, glomerular function at 40-48 hpf, fully mature pronephros at 72 hpf. The window 24-72 hpf captures specification through maturation, allowing comparison of effects at different developmental stages. All timepoints are within the &lt;120 hpf range where embryos are not free-feeding and IACUC-exempt under most US guidelines.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="3rs">
+  <h2><span class="num">D.</span>Three Rs — Reduction, Refinement, Replacement</h2>
+
+  <div class="three-rs">
+    <div class="r-card">
+      <h4>Replacement</h4>
+      <p>Where possible, computational pre-screening (already executed) reduced from 13 candidate TFs to 1 priority target via:</p>
+      <ul style="font-size:0.88rem;">
+        <li>scRNA-seq atlas analysis (no animals)</li>
+        <li>Cross-cohort validation with public Wagner GSE112294</li>
+        <li>Pleiotropy assessment via Wagner whole-embryo data</li>
+        <li>Decision matrix Bayesian-flavored</li>
+      </ul>
+      <p style="font-size:0.88rem;">This represents a 13× reduction in candidate experiments before any animal use.</p>
+    </div>
+    <div class="r-card">
+      <h4>Reduction</h4>
+      <p>n animals justified by power analysis (item 3 pre-resolve):</p>
+      <ul style="font-size:0.88rem;">
+        <li>n = 200-300 inj/group × 4 groups = 600 embryos initial</li>
+        <li>Justified for 80%+ power at 30% effect size, 3% target cluster baseline</li>
+        <li>Minimum to support multiple comparisons + biological replicates</li>
+        <li>F0 crispants used INSTEAD of stable line generation, avoiding multiple breeding generations (saving ~80% of animal use vs. stable line approach)</li>
+      </ul>
+    </div>
+    <div class="r-card">
+      <h4>Refinement</h4>
+      <p>Procedures designed to minimize distress:</p>
+      <ul style="font-size:0.88rem;">
+        <li>Microinjection at 1-cell stage (no anesthesia needed; zygote not yet differentiated)</li>
+        <li>Embryos maintained in standard E3 medium, 28.5°C</li>
+        <li>Humane endpoints clearly defined (see §H)</li>
+        <li>Euthanasia by tricaine (MS-222) overdose followed by ice-water immersion (AVMA-approved)</li>
+        <li>No survival surgery beyond microinjection</li>
+        <li>Daily welfare monitoring through scRNA-seq endpoint</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="numbers">
+  <h2><span class="num">E.</span>Numbers required + statistical justification</h2>
+
+  <div class="protocol-section">
+    <h4>E.1 — Total animal numbers</h4>
+    <table class="data">
+      <thead><tr><th>Animal use</th><th>n estimated</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>Adult zebrafish (parental, breeding only)</td><td>~30-50 pairs</td><td>Existing colony; parental crosses for embryos. No experimental manipulation.</td></tr>
+        <tr><td>Embryos produced (E1-E72hpf)</td><td>~600-900</td><td>Multiple clutches; randomized to treatment groups</td></tr>
+        <tr><td>Embryos injected (G1+G2+G3+G4)</td><td>~500-600</td><td>~125-150 per group × 4 groups</td></tr>
+        <tr><td>Embryos surviving to scRNA-seq endpoint</td><td>~250-350</td><td>Survival rate ~50% post-microinjection</td></tr>
+        <tr><td>Embryos used for scRNA-seq (pooled)</td><td>~120-180</td><td>~10-15 per sample, 12 samples total</td></tr>
+        <tr><td>Embryos used for WISH validation</td><td>~120</td><td>10 per group per stage × 4 groups × 3 stages</td></tr>
+      </tbody>
+    </table>
+
+    <h4>E.2 — Statistical justification (from item 3 power analysis)</h4>
+    <p>Power analysis (see <a class="cite" href="2026-05-09_power_analysis_visual.html">power analysis visual report</a>) demonstrates:</p>
+    <ul>
+      <li>n=5,000-8,000 cells per scRNA-seq sample → 80%+ power for 30% relative effect at 3% target cluster baseline</li>
+      <li>12 samples (4 groups × 3 stages) → ~60K-96K cells total</li>
+      <li>~10-15 embryos per sample for tissue dissection (zebrafish pronephros yield ~500-1000 cells per embryo post-dissociation)</li>
+      <li>Multiple comparisons corrected via BH-FDR at α=0.05</li>
+    </ul>
+    <p>Lower n would result in underpowered detection of biological effects, requiring re-experiment and ultimately MORE animal use. Higher n offers diminishing returns and is not justified.</p>
+
+    <h4>E.3 — Replicates</h4>
+    <p>Three biological replicates (3 independent parental crosses) for each treatment group, randomized within and between clutches to control for clutch-specific variation.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="procedures">
+  <h2><span class="num">F.</span>Experimental procedures</h2>
+
+  <div class="protocol-section">
+    <h4>F.1 — Adult breeding (no experimental manipulation)</h4>
+    <p>Adult AB strain (or <span class="placeholder">[INSTITUTION COLONY STRAIN]</span>) zebrafish are paired in standard breeding tanks the evening before injection. Embryos are collected within 30 min of fertilization for microinjection at the 1-cell stage. After breeding, adults return to home tanks under standard housing conditions per institutional zebrafish facility SOPs (~28.5°C, 14h light / 10h dark, monitored daily).</p>
+
+    <h4>F.2 — Microinjection (1-cell stage embryos)</h4>
+    <ul>
+      <li><strong>Reagents prepared:</strong>
+        <ul>
+          <li>CRISPR-Cas9 RNP: Cas9 protein (IDT Alt-R, 0.5 μg/μL) + sgRNA (IDT Alt-R, 1 μg/μL) pre-complexed at 37°C × 10 min</li>
+          <li>OR Splice-blocking morpholino (Gene Tools, 0.5-2 ng/embryo, dose-titrated in pilot)</li>
+          <li>Phenol red 0.05% as injection tracer</li>
+        </ul>
+      </li>
+      <li><strong>Injection volume:</strong> 1-2 nL per embryo, into the cell (yolk-cell interface) at 1-cell stage</li>
+      <li><strong>Injection equipment:</strong> Eppendorf FemtoJet or equivalent; standard glass capillary needles</li>
+      <li><strong>Throughput:</strong> ~50-100 embryos/hour; total injection time ~6-8 hours per session, distributed across 3 sessions (3 biological replicates)</li>
+      <li><strong>Post-injection:</strong> embryos transferred to E3 medium in petri dishes (~50 embryos/dish) at 28.5°C incubator</li>
+    </ul>
+
+    <h4>F.3 — Embryo monitoring (24-72 hpf)</h4>
+    <ul>
+      <li><strong>Daily observations:</strong> survival count, gross morphology (heart beat, body shape, edema), pigmentation</li>
+      <li><strong>Pre-defined humane endpoints:</strong> see §H</li>
+      <li><strong>Imaging (optional):</strong> live brightfield + fluorescence at 24, 48, 72 hpf for transgenic lines (if Tg(wt1a:GFP) or similar used)</li>
+    </ul>
+
+    <h4>F.4 — Genotyping (F0 crispants)</h4>
+    <p>At each scRNA-seq endpoint, a subset of injected embryos (n=10/group) is genotyped via High-Resolution Melt Analysis (HRMA) on PCR amplicon spanning the sgRNA cut site. Embryos with editing efficiency &lt;50% (estimated by HRMA peak shift) are excluded from downstream analysis. This is post-hoc selection, not an experimental treatment.</p>
+
+    <h4>F.5 — Tissue dissection for scRNA-seq</h4>
+    <ul>
+      <li>Embryos (10-15 per sample) are anesthetized in 0.16 mg/mL tricaine (MS-222), then transferred to dissection buffer</li>
+      <li>Pronephros tissue is microdissected using fine forceps under stereomicroscope (Sagar lab protocol, Schoels 2021)</li>
+      <li>Pronephros tissue is enzymatically dissociated (collagenase + protease) to single-cell suspension</li>
+      <li>Filtration through 40 μm strainer; viability assessed via Trypan blue (&gt;80% live for proceed)</li>
+      <li>Cells loaded onto 10x Genomics 3' v3.1 platform</li>
+    </ul>
+
+    <h4>F.6 — Tissue collection for WISH validation</h4>
+    <p>Subset of embryos (n=10/group/stage) is fixed in 4% paraformaldehyde for whole-mount in situ hybridization (WISH) with probes against wt1a, podxl, nphs1 (for podocyte markers) or pax2a, lhx1a (for progenitor markers, hoxb8a context).</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="anesthesia">
+  <h2><span class="num">G.</span>Anesthesia and euthanasia</h2>
+
+  <div class="protocol-section">
+    <h4>G.1 — Anesthesia</h4>
+    <p>Embryos older than 24 hpf may be anesthetized for fine manipulation using <strong>tricaine methanesulfonate (MS-222)</strong> at 0.16 mg/mL in E3 medium. Recovery is achieved by transfer to fresh E3. Only used during tissue dissection at scRNA-seq endpoints; not used for routine handling.</p>
+
+    <h4>G.2 — Euthanasia</h4>
+    <p>All experimental embryos are euthanized at the scRNA-seq endpoint or at predetermined humane endpoints. AVMA-approved methods for zebrafish:</p>
+    <ul>
+      <li><strong>Primary method:</strong> tricaine overdose (≥250 mg/L MS-222 in E3) for ≥10 min</li>
+      <li><strong>Confirmation:</strong> ice-water immersion (4°C) for ≥10 min after tricaine overdose</li>
+      <li><strong>Disposal:</strong> as biological waste per institutional protocol; CRISPR-edited animals require recombinant DNA disposal protocol (see §I)</li>
+    </ul>
+    <p>For embryos &lt;24 hpf, primary method alone is sufficient given less developed nervous system. For embryos 24-120 hpf, both steps performed.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="endpoints">
+  <h2><span class="num">H.</span>Humane endpoints</h2>
+
+  <div class="protocol-section">
+    <p>Embryos are monitored daily; embryos meeting ANY of the following criteria are euthanized humanely (see §G) before reaching the scheduled scRNA-seq timepoint:</p>
+    <ul>
+      <li><strong>No heartbeat</strong> at expected developmental stage (heartbeat begins ~24 hpf; absence at 36 hpf = endpoint)</li>
+      <li><strong>Severe dysmorphology</strong> (body axis defects beyond mild bend, severe yolk extension defects, complete failure of pigmentation)</li>
+      <li><strong>Severe edema</strong> (full-body) without recovery within 12 hours</li>
+      <li><strong>Necrosis</strong> (&gt;25% body coverage) or massive cell death visible</li>
+      <li><strong>No response to touch</strong> at stages where motility is expected (touch response begins ~21 hpf)</li>
+    </ul>
+    <p>Note: in CRISPR F0 crispant experiments, partial dysmorphology is expected as part of the phenotype and not all "abnormal" embryos require euthanasia. Trained personnel must distinguish between informative phenotype and severe distress.</p>
+
+    <h4>Reporting</h4>
+    <p>All early euthanasia events (departing from scheduled endpoints) are logged in a research log including date, embryo identifier, observation, and rationale. Reported to attending veterinarian within 24h if &gt;10% of cohort affected.</p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="biosafety">
+  <h2><span class="num">I.</span>Biosafety + recombinant DNA (IBC review required)</h2>
+
+  <div class="callout warning">
+    <strong>⚠️ IMPORTANT:</strong> CRISPR-Cas9 use constitutes recombinant DNA work. <strong>Institutional Biosafety Committee (IBC) approval is required SEPARATELY from IACUC.</strong> Both must be approved before experiment proceeds.
+  </div>
+
+  <div class="protocol-section">
+    <h4>I.1 — Biosafety level</h4>
+    <p>Biosafety Level 1 (BL1) for zebrafish CRISPR-Cas9 work in most US institutions. The Cas9 protein + synthetic sgRNA does not pose containment risk to humans or environment beyond standard zebrafish husbandry. <span class="placeholder">[CONFIRM PER INSTITUTION POLICY]</span></p>
+
+    <h4>I.2 — Containment</h4>
+    <ul>
+      <li>All injected embryos and progeny housed in dedicated CRISPR-edited animal area within the zebrafish facility</li>
+      <li>No release to non-CRISPR tanks; no mixing with wild-type breeding colonies until F1 (not part of this protocol)</li>
+      <li>Disposal: CRISPR-edited carcasses (post-euthanasia) treated as recombinant DNA biological waste per institutional SOP</li>
+      <li>Effluent from dissociation steps: contains lysed CRISPR-edited cells; treated as recombinant DNA waste</li>
+    </ul>
+
+    <h4>I.3 — Personal protective equipment</h4>
+    <ul>
+      <li>Laboratory coat, nitrile gloves, eye protection during all microinjection and dissection procedures</li>
+      <li>Standard zebrafish facility precautions (closed-toed shoes, no eating/drinking)</li>
+    </ul>
+
+    <h4>I.4 — Hazardous reagents</h4>
+    <table class="data">
+      <thead><tr><th>Reagent</th><th>Hazard</th><th>Disposal</th></tr></thead>
+      <tbody>
+        <tr><td>Tricaine (MS-222)</td><td>Mild irritant; respiratory protection if powder</td><td>Aqueous solution: dilute 1:10 and drain (institutional policy)</td></tr>
+        <tr><td>Cas9 protein + sgRNA</td><td>Recombinant DNA reagent (BL1)</td><td>Autoclave or institutional rDNA waste</td></tr>
+        <tr><td>Morpholinos</td><td>Stable in solution; mild irritant</td><td>Institutional chemical waste</td></tr>
+        <tr><td>Tris-EDTA, PBS, dissociation enzymes</td><td>Standard lab reagents</td><td>Standard biological waste</td></tr>
+        <tr><td>Paraformaldehyde (4%, for WISH)</td><td>Carcinogen; chemical fume hood required</td><td>Hazardous chemical waste</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="personnel">
+  <h2><span class="num">J.</span>Personnel + training</h2>
+
+  <div class="protocol-section">
+    <h4>J.1 — Required training before procedure</h4>
+    <ul>
+      <li>Institutional IACUC standard training (online + in-person)</li>
+      <li>Zebrafish handling certification (institutional course)</li>
+      <li>Microinjection technique training (typically 5-10 sessions with experienced trainer)</li>
+      <li>Tricaine and euthanasia procedure SOP review</li>
+      <li>IBC training for recombinant DNA / CRISPR work</li>
+      <li>Bloodborne pathogen training (if not previously completed)</li>
+    </ul>
+
+    <h4>J.2 — Personnel list</h4>
+    <p>All personnel performing animal procedures must be listed on the protocol with current training status. <span class="placeholder">[INSERT PERSONNEL TABLE]</span></p>
+
+    <h4>J.3 — Standard operating procedures (SOPs)</h4>
+    <p>Reference institutional SOPs for:</p>
+    <ul>
+      <li>Zebrafish husbandry (water quality, feeding, breeding)</li>
+      <li>Embryo collection and maintenance</li>
+      <li>Microinjection</li>
+      <li>Anesthesia and euthanasia</li>
+      <li>Recombinant DNA waste disposal</li>
+      <li>Post-procedure monitoring</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="vet">
+  <h2><span class="num">K.</span>Veterinary consultation plan</h2>
+
+  <div class="protocol-section">
+    <h4>K.1 — Attending veterinarian (AV) involvement</h4>
+    <ul>
+      <li>AV reviews protocol prior to IACUC submission</li>
+      <li>AV consultation if &gt;10% of cohort meets humane endpoints unexpectedly</li>
+      <li>AV consultation if novel phenotypes appear (e.g., severe dysmorphology not previously described in literature)</li>
+      <li>Annual review of protocol for ongoing welfare concerns</li>
+    </ul>
+
+    <h4>K.2 — Emergency contacts</h4>
+    <p><span class="placeholder">[INSTITUTIONAL VET CONTACT INFO + 24-HOUR LINE]</span></p>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="alternatives">
+  <h2><span class="num">L.</span>Search for alternatives</h2>
+
+  <div class="protocol-section">
+    <p>Per IACUC requirements, alternatives to potentially painful procedures must be considered. Documentation of literature search:</p>
+
+    <table class="data">
+      <thead><tr><th>Database</th><th>Search terms</th><th>Date</th><th>Hits reviewed</th><th>Alternatives considered</th></tr></thead>
+      <tbody>
+        <tr><td>PubMed</td><td>(zebrafish OR Danio rerio) AND (pronephros OR kidney) AND (CRISPR OR knockout OR morpholino) AND alternatives</td><td><span class="placeholder">[DATE]</span></td><td><span class="placeholder">[N]</span></td><td>scRNA-seq atlas analysis (Schoels GSE162031) used to identify candidate TFs without animals — already done in pre-resolve item 7</td></tr>
+        <tr><td>USDA Animal Welfare Information Center</td><td>zebrafish embryo CRISPR alternatives</td><td><span class="placeholder">[DATE]</span></td><td><span class="placeholder">[N]</span></td><td>None applicable (zebrafish embryos &lt;120 hpf are USDA-exempt)</td></tr>
+        <tr><td>3Rs methodology resources (NC3Rs UK)</td><td>zebrafish reduction refinement microinjection</td><td><span class="placeholder">[DATE]</span></td><td><span class="placeholder">[N]</span></td><td>F0 crispants (this protocol) reduce animal use vs. stable line generation by ~80%</td></tr>
+      </tbody>
+    </table>
+
+    <h4>L.1 — Specific alternatives evaluated and rejected</h4>
+    <ul>
+      <li><strong>Stable mutant line generation:</strong> rejected — requires 4-6 months and ~5× more animals; F0 crispants achieve same scientific goal with less animal use.</li>
+      <li><strong>Bulk RNA-seq alone:</strong> rejected — does not provide cell-type-specific resolution needed to evaluate cluster-specific phenotype.</li>
+      <li><strong>In vitro kidney organoids:</strong> rejected — current organoid systems do not faithfully recapitulate pronephros segmentation needed to test the hypothesis.</li>
+      <li><strong>Mouse models:</strong> rejected for Phase I — higher animal welfare costs, slower turnaround. Mouse extension planned for Phase II based on this Phase I result.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<section id="references">
+  <h2><span class="num">M.</span>References</h2>
+
+  <ul class="refs">
+    <li>AVMA Guidelines for the Euthanasia of Animals (2020 edition) — Aquatic vertebrates section</li>
+    <li>NIH Guide for the Care and Use of Laboratory Animals — zebrafish chapter</li>
+    <li>NC3Rs zebrafish welfare guidelines: https://www.nc3rs.org.uk/zebrafish</li>
+    <li>Westerfield M. The Zebrafish Book (5th ed.) — standard reference for husbandry and procedures</li>
+    <li><strong>Background scientific references:</strong></li>
+    <li>Schoels et al. 2021 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/33749326/">33749326</a> — pronephros scRNA-seq protocol that this experiment replicates</li>
+    <li>Wagner et al. 2018 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29700229/">29700229</a> — whole-embryo zebrafish atlas (cross-validation reference)</li>
+    <li>Wu et al. 2018 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/29768209/">29768209</a> — F0 crispants methodology</li>
+    <li>Hwang et al. 2013 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/23360964/">23360964</a> — original CRISPR-Cas9 zebrafish microinjection</li>
+    <li>Drummond et al. 1998 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/9806915/">9806915</a> — pronephros development reference</li>
+    <li>Perner et al. 2007 · PMID <a class="cite" href="https://pubmed.ncbi.nlm.nih.gov/17651719/">17651719</a> — wt1a/wt1b morpholino reference (validated TF)</li>
+  </ul>
+</section>
+
+<!-- ============================================== -->
+<section id="appendix">
+  <h2><span class="num">N.</span>Appendix — project context</h2>
+
+  <div class="protocol-section">
+    <h4>N.1 — Project context</h4>
+    <p>This protocol is part of <strong>Witt × Organogenesis Project</strong>, a substrate-AI venture (Latido Médico Mexicano + collaborators). Phase I focuses on zebrafish pronephros as proof-of-concept (8 months, $297K total). The current experiment (N) is one experimental component within Phase I, identified through a computational survey + cross-validation pipeline that pre-screened candidate TFs from public scRNA-seq datasets.</p>
+
+    <h4>N.2 — Documents accompanying this protocol</h4>
+    <ul>
+      <li>Survey integral 2026-05-08 — identification of candidate TFs from public data</li>
+      <li>Diseño experimental detallado 2026-05-09 (mafba) + pivot 2026-05-09 (hoxb8a)</li>
+      <li>Power analysis 2026-05-09 — statistical justification of n animals</li>
+      <li>sgRNA design 2026-05-09 — molecular tools for the experiment</li>
+      <li>Decision package para Martín 2026-05-09 — strategic decision context</li>
+    </ul>
+
+    <h4>N.3 — Compliance with project hard rules (CLAUDE.md §7)</h4>
+    <ul>
+      <li>This protocol DOES require human gates (IACUC + IBC approval + budget + partner selection) — fully compliant.</li>
+      <li>This protocol does NOT use causal-pruner outputs without human gate.</li>
+      <li>This protocol does NOT operate cross-field (single niche N3).</li>
+      <li>API keys / secrets are NOT part of this protocol (only computational data products).</li>
+    </ul>
+
+    <h4>N.4 — Expected outcomes</h4>
+    <p>Three possible scientific outcomes, all valuable for the project:</p>
+    <ul>
+      <li><strong>H1 supported (≥3 of 5 predictions):</strong> target TF is a real regulator. Publication + Phase II stable line.</li>
+      <li><strong>H1 marginal:</strong> additional analyses + possibly Phase II conditional KO.</li>
+      <li><strong>H0 supported:</strong> target TF is a bystander. Pivot to next candidate (sall1a). Negative result is publishable and informative for the field.</li>
+    </ul>
+    <p>None of these outcomes change the protocol scope or animal use. The protocol is one-time approval; if subsequent experiments are needed (e.g., for sall1a KO), an amendment will be filed.</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="report-footer">
+  <div class="container">
+    <p><strong>IACUC Protocol Template Draft generado 2026-05-09.</strong> Pre-resolve item 6 del experimento N.</p>
+    <p><strong>Status:</strong> TEMPLATE — requiere adaptación por la institución del wet-lab partner. Aprobaciones reales (IACUC + IBC) se obtienen vía committees institucionales, no de este documento.</p>
+    <p>Documentos relacionados: <a class="cite" href="2026-05-08_zebrafish_pronephros_scrnaseq_survey.html">survey 2026-05-08</a> · <a class="cite" href="2026-05-09_mafba_experiment_design.html">design mafba</a> · <a class="cite" href="2026-05-09_hoxb8a_experiment_design.html">design hoxb8a</a> · <a class="cite" href="2026-05-09_decision_package_martin.html">decision package</a> · <a class="cite" href="2026-05-09_power_analysis_visual.html">power analysis</a> · <a class="cite" href="2026-05-09_sgRNA_design_visual.html">sgRNA design</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

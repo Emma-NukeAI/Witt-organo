@@ -1,0 +1,15 @@
+{
+  "_comment": "Claude Desktop MCP config template. Copy contents into your local claude_desktop_config.json (path varies by OS — see mcp-config/README.md). The leading underscore on _comment marks it as a comment; Claude Desktop ignores it. Replace the <YOUR_*_KEY> placeholders with real keys (or empty strings if you'd rather use shell env vars).",
+  "mcpServers": {
+    "tooluniverse": {
+      "command": "uvx",
+      "args": ["tooluniverse"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "NCBI_API_KEY": "<YOUR_NCBI_KEY>",
+        "NVIDIA_API_KEY": "<YOUR_NVIDIA_KEY>",
+        "FDA_API_KEY": "<YOUR_FDA_KEY>"
+      }
+    }
+  }
+}

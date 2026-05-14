@@ -1,0 +1,15 @@
+{
+  "_comment": "Cursor IDE MCP config template. Copy contents into ~/.cursor/mcp.json (user-level, all projects) or .cursor/mcp.json in this repo root (project-level, this repo only). Project-level overrides user-level for skill name collisions. Replace the <YOUR_*_KEY> placeholders with real keys.",
+  "mcpServers": {
+    "tooluniverse": {
+      "command": "uvx",
+      "args": ["tooluniverse"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "NCBI_API_KEY": "<YOUR_NCBI_KEY>",
+        "NVIDIA_API_KEY": "<YOUR_NVIDIA_KEY>",
+        "FDA_API_KEY": "<YOUR_FDA_KEY>"
+      }
+    }
+  }
+}

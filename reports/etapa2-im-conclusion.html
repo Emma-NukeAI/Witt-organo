@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Etapa 2 — Ablación de Contractilidad Cortical en LPM/IM (10–12 hpf) · Reporte Conclusivo</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --ink: #1a1a1a;
+    --ink-soft: #4a4a4a;
+    --ink-faint: #777;
+    --rule: #e4e2dd;
+    --accent: #5a4a3a;
+    --accent-soft: #f3efe8;
+    --pass: #2d6a4f;
+    --warn: #b8860b;
+    --fail: #8b3a3a;
+    --cross: #3a4a6a;
+    --cross-soft: #eef1f7;
+    --code-bg: #1f1d1a;
+    --code-ink: #e8e4d8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+    margin: 0;
+    padding: 0;
+  }
+  .wrap {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 48px 32px 96px;
+  }
+  header.title {
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 28px;
+    line-height: 1.2;
+    margin: 0 0 12px;
+    font-weight: 600;
+  }
+  .subtitle {
+    font-size: 15px;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 24px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+  }
+  .meta dt { color: var(--ink-faint); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta dd { margin: 0 0 4px; font-weight: 500; }
+  .gate {
+    background: #fff7e6;
+    border-left: 3px solid var(--warn);
+    padding: 14px 18px;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+  .gate strong { color: var(--warn); }
+  h2 {
+    font-size: 20px;
+    margin: 44px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+  }
+  h3 { font-size: 16px; margin: 24px 0 8px; font-weight: 600; }
+  h4 { font-size: 14px; margin: 16px 0 6px; font-weight: 600; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 14px; }
+  .lead { font-size: 16px; color: var(--ink-soft); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { background: var(--accent-soft); font-weight: 600; color: var(--accent); }
+  tbody tr.highlight { background: #f0f7f0; }
+  tbody tr.highlight td { font-weight: 500; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+  .pill.pass { background: #e0f0e6; color: var(--pass); }
+  .pill.warn { background: #fff3d6; color: var(--warn); }
+  .pill.fail { background: #f7e4e4; color: var(--fail); }
+  .scenario {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 18px 22px;
+    margin: 16px 0;
+  }
+  .scenario.best { border-left: 4px solid var(--pass); }
+  .scenario.confounded { border-left: 4px solid var(--warn); opacity: 0.92; }
+  .scenario.failed { border-left: 4px solid var(--fail); opacity: 0.85; }
+  .scenario header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+  .scenario header h3 { margin: 0; font-size: 16px; }
+  .conf {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .conf strong { color: var(--ink); }
+  .scenario p { margin: 6px 0; font-size: 14px; }
+  .scenario .grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 4px 12px;
+    margin-top: 8px;
+    font-size: 13px;
+  }
+  .scenario .grid dt { color: var(--ink-faint); font-weight: 600; }
+  .scenario .grid dd { margin: 0; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  .gene { font-style: italic; }
+  .callout {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 16px 20px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  .callout strong { color: var(--accent); }
+  .callout.cross {
+    background: var(--cross-soft);
+    border-left-color: var(--cross);
+  }
+  .callout.cross strong { color: var(--cross); }
+  ul.flags { margin: 8px 0 0; padding-left: 20px; font-size: 13px; color: var(--ink-soft); }
+  ul.flags li { margin-bottom: 4px; }
+  .toc { font-size: 13px; background: var(--surface); border: 1px solid var(--rule); padding: 14px 22px; margin-bottom: 32px; border-radius: 6px; }
+  .toc ol { margin: 6px 0 0; padding-left: 22px; }
+  .toc a { color: var(--ink); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .compare-table th:first-child { width: 30%; }
+  .compare-table td:nth-child(2), .compare-table td:nth-child(3) { font-size: 12.5px; }
+  .compare-table .e1 { background: #fcf8f3; }
+  .compare-table .e2 { background: #f3f8fc; }
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+  footer p { margin: 4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="title">
+  <div class="eyebrow">Proyecto Organogenesis × Witt · Cascada Pronefro · Etapa 2 de 3</div>
+  <h1>Ablación de contractilidad cortical en LPM/IM (10–12 hpf)</h1>
+  <p class="subtitle">Reporte conclusivo de simulación causal morfológica · pez cebra · validación transcriptómica post-hoc · incluye comparación cruzada con Etapa 1</p>
+  <dl class="meta">
+    <div><dt>Fecha</dt><dd>2026-05-12</dd></div>
+    <div><dt>Modo operativo</dt><dd>Método 2 (humano-conducido)</dd></div>
+    <div><dt>Marco de razonamiento</dt><dd>Self-Consistency (Tier 1)</dd></div>
+    <div><dt>Nichos activos</dt><dd>N1 · N3 · (N4 lateral)</dd></div>
+    <div><dt>Fase de proyecto</dt><dd>Fase I — POC zebrafish</dd></div>
+    <div><dt>Estado</dt><dd>Hipótesis generada · pendiente puerta humana</dd></div>
+  </dl>
+</header>
+
+<div class="gate">
+  <strong>Puerta humana obligatoria.</strong> Esta salida es generación de hipótesis tipo <code>causal-pruner</code>.
+  No debe usarse aguas abajo (planeación wet-lab, asignación de presupuesto, decisiones de scope) sin revisión humana explícita
+  (CLAUDE.md §7). El campo <code>framework_applied</code> es auto-reportado, no introspección fiel (contrato v2.2).
+</div>
+
+<div class="toc">
+  <strong>Contenido</strong>
+  <ol>
+    <li><a href="#contexto">Contexto y pregunta</a></li>
+    <li><a href="#diseno">Diseño experimental</a></li>
+    <li><a href="#escenarios">Resultados por escenario</a></li>
+    <li><a href="#sintesis">Síntesis comparativa interna</a></li>
+    <li><a href="#hallazgo">Hallazgo principal</a></li>
+    <li><a href="#cruzada">Comparación cruzada con Etapa 1</a></li>
+    <li><a href="#validacion">Validación transcriptómica consolidada</a></li>
+    <li><a href="#limites">Límites e incertidumbres</a></li>
+    <li><a href="#siguiente">Recomendación para Etapa 3</a></li>
+  </ol>
+</div>
+
+<section id="contexto">
+  <h2>1. Contexto y pregunta</h2>
+  <p class="lead">
+    A 10–12 hpf el mesendodermo ya internalizó y el LPM bilateral está establecido. El campo IM emerge dentro del LPM
+    con identidad ya marcada (<span class="gene">pax2a, lhx1a, wt1a</span> encendidos). El evento mecánico dominante
+    en esta ventana es <strong>intercalación celular vía PCP + elongación AP del LPM/IM</strong>, no el
+    posicionamiento inicial (ese fue Etapa 1).
+  </p>
+  <p>
+    La pregunta específica de Etapa 2: <strong>¿la contractilidad cortical durante 10–12 hpf tiene un rol causal
+    independiente de Etapa 1 sobre la arquitectura pronéfrica final?</strong> Si lo tiene, el fenotipo 2A debe ser
+    cualitativamente distinto del fenotipo 1A — no solo "menos severo" sino "de naturaleza diferente". El transcriptoma
+    se usa exclusivamente como lectura de validación post-hoc.
+  </p>
+</section>
+
+<section id="diseno">
+  <h2>2. Diseño experimental</h2>
+  <p>
+    Mismo protocolo que Etapa 1: cuatro escenarios cruzando modo temporal × dosis. Para esta etapa se añade
+    explícitamente el contraste con los escenarios homólogos de Etapa 1.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Eje</th><th>Niveles</th><th>Especificidad para Etapa 2</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Modo temporal</strong></td>
+        <td>A: stage-specific con washout 12→14 hpf<br>B: persistente desde 10 hpf en adelante</td>
+        <td>A aísla efecto puramente de la ventana 10–12 hpf; B confunde con efectos en MET (14–16 hpf)</td>
+      </tr>
+      <tr>
+        <td><strong>Dosis</strong></td>
+        <td>Hipomorfo (~50%)<br>KO (~5%)</td>
+        <td>KO puede producir fenotipo cualitativamente distinto (cluster esférico vs túbulo acortado)</td>
+      </tr>
+      <tr>
+        <td><strong>Lectura morfológica primaria</strong></td>
+        <td>Intercalación AP del IM (10–12 hpf), longitud del stripe LPM, posición glomérulo (24 hpf)</td>
+        <td>Distinta a Etapa 1: aquí lo que se mide es <em>forma alargada</em>, no <em>posición lateral</em></td>
+      </tr>
+      <tr>
+        <td><strong>Lectura transcriptómica</strong></td>
+        <td>PCP (<span class="gene">vangl2, pk1, fzd7</span>); identidad ya estable; pre-MET (<span class="gene">cdh17</span> onset)</td>
+        <td>Mayor robustez de identidad permite test de desacople más limpio que en Etapa 1</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="escenarios">
+  <h2>3. Resultados por escenario</h2>
+
+  <div class="scenario best">
+    <header>
+      <h3>2A-hipo · stage-specific, hipomorfo (washout 12→14 hpf)</h3>
+      <div class="conf">Confianza: <strong>0.80</strong> · <span class="pill pass">Mayor rendimiento causal de toda la cascada</span></div>
+    </header>
+    <p>
+      ↓50% <span class="gene">myh9a</span> + ↓50% <span class="gene">rock1</span> durante 10–12 hpf, washout a 12 hpf.
+      Intercalación PCP-driven de células IM impedida parcialmente — el campo IM se intercala ~60% de lo normal.
+      Stripes LPM ligeramente más anchos y más cortos AP. Distribución bilateral conservada. Post-washout: contractilidad
+      recupera pero la topología espacial ya está fijada (no hay re-intercalación). A 14–16 hpf: campo de progenitores
+      presente con identidad correcta pero geometría comprimida AP. A 24 hpf: túbulo ~70–80% de longitud normal,
+      glomérulo en posición correcta, lumen formado.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd><span class="gene">pax2a/lhx1a/wt1a</span> normales en nivel, dislocados AP → <span class="pill pass">PASA (la firma más limpia)</span></dd>
+      <dt>PCP molecular</dt><dd><span class="gene">vangl2, pk1, fzd7</span> sin alteración — PCP no se regula por contractilidad, solo la requiere downstream</dd>
+      <dt>Pre-MET</dt><dd><span class="gene">cdh17</span> onset correcto (~14 hpf), no retrasado</dd>
+      <dt>Firma mecánica</dt><dd>↑ <span class="gene">fos/jun</span> moderado; ↓ <span class="gene">ctgf/ankrd1</span> moderado; retorno post-washout</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Onset de <span class="gene">cdh17</span> con varianza de ~30 min no capturada explícitamente</li>
+      <li>Intercalación se cuantifica mejor con live-imaging que con transcriptoma</li>
+      <li>Estimación "túbulo 70–80% longitud" tiene rango plausible 50–90%</li>
+    </ul>
+  </div>
+
+  <div class="scenario best">
+    <header>
+      <h3>2A-KO · stage-specific, KO (washout 12→14 hpf)</h3>
+      <div class="conf">Confianza: <strong>0.75</strong> · <span class="pill pass">Causal limpio, fenotipo cualitativamente distinto</span></div>
+    </header>
+    <p>
+      ↓95% <span class="gene">myh9a</span> + ↓95% <span class="gene">rock1</span> durante 10–12 hpf. Intercalación PCP
+      esencialmente abolida. LPM/IM no elonga AP — el campo se queda como una <strong>mancha bilateral redondeada</strong>
+      en lugar de stripe alargado. Bilateralidad mantenida pero distancia midline-LPM reducida. Washout permite recuperación
+      parcial de contractilidad, pero el campo IM ya no tiene la geometría correcta para producir un túbulo lineal — los
+      progenitores forman un <strong>cluster compacto</strong>. A 14–16 hpf: MET inicia en cluster, lumen forma cavidad
+      esférica/pseudo-quística. A 24 hpf: estructura tipo quiste pronéfrico o túbulo severamente acortado con glomérulo
+      desplazado anteriormente.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Identidad intacta, geometría drásticamente alterada → <span class="pill pass">PASA</span></dd>
+      <dt>Distintivo</dt><dd>Fenotipo <strong>cualitativamente distinto</strong> de 1A-KO: quiste compacto vs túbulo dislocado</dd>
+      <dt>Pre-MET</dt><dd><span class="gene">cdh17</span> onset correcto temporalmente pero en geometría incorrecta (cluster vs campo lineal)</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Apoptosis sub-estimada (~10–15% adicional plausible) podría aumentar varianza</li>
+      <li>Distinción quiste vs túbulo-acortado depende de severidad real, frontera no binaria</li>
+      <li>Posibles defectos de lateralidad no modelados</li>
+    </ul>
+  </div>
+
+  <div class="scenario confounded">
+    <header>
+      <h3>2B-hipo · persistente, hipomorfo</h3>
+      <div class="conf">Confianza: <strong>0.66</strong> · <span class="pill warn">Confundido con Etapa 3 — útil por contraste con 1B</span></div>
+    </header>
+    <p>
+      ↓50% <span class="gene">myh9a</span> + ↓50% <span class="gene">rock1</span> desde 10 hpf en adelante. Daño
+      acumulativo: intercalación + MET + lumenogénesis todos comprometidos. A 24 hpf: túbulo severamente acortado, lumen
+      irregular, polaridad apicobasal débil. Cualitativamente indistinguible de cascada 1B-hipo continuada,
+      <strong>con una excepción crítica</strong>: en 2B-hipo el posicionamiento inicial del LPM (6–8 hpf) fue normal,
+      así que la asimetría AP del glomérulo NO está corrida — el defecto es de forma, no de posición.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Parcial — persistencia altera moderadamente targets mecánicos sostenidamente</dd>
+      <dt>Atribución</dt><dd><strong>No separable</strong> internamente de cascada Etapa 2 → Etapa 3</dd>
+      <dt>Valor único</dt><dd>Contraste con 1B-hipo: posición AP del glomérulo respecto a cloaca permite distinguir el origen temporal del defecto</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Confundido con cascada Etapa 2 → Etapa 3</li>
+      <li>Útil principalmente por contraste con 1B-hipo, no como evidencia causal aislada</li>
+      <li>Adaptación transcripcional confunde la lectura</li>
+    </ul>
+  </div>
+
+  <div class="scenario failed">
+    <header>
+      <h3>2B-KO · persistente, KO</h3>
+      <div class="conf">Confianza: <strong>0.58</strong> · <span class="pill fail">Catastrófico — pero informativo por contraste</span></div>
+    </header>
+    <p>
+      ↓95% <span class="gene">myh9a</span> + ↓95% <span class="gene">rock1</span> desde 10 hpf. Fenotipo catastrófico
+      pero <strong>menos letal que 1B-KO</strong> porque la gastrulación se completó. Sobrevivencia ~50–60% a 24 hpf.
+      Para sobrevivientes: campo IM no se organiza, no MET, no túbulo. Estructura pronéfrica esencialmente ausente o
+      reducida a foci dispersos de células <span class="gene">wt1a+</span>.
+    </p>
+    <dl class="grid">
+      <dt>Test desacople</dt><dd>Identidad <span class="gene">pax2a/lhx1a/wt1a</span> PRESENTE pese a morfogénesis abolida → <span class="pill pass">PASA paradigma morfología-pura</span></dd>
+      <dt>Distintivo</dt><dd>1B-KO falla el paradigma (identidad también se pierde); 2B-KO lo conserva — esto es informativo sobre dónde la contractilidad acopla con especificación vs morfogénesis</dd>
+      <dt>Sobrevivencia</dt><dd>~50–60% (vs &lt;30% en 1B-KO)</dd>
+    </dl>
+    <h4>Gap flags</h4>
+    <ul class="flags">
+      <li>Confirma necesidad pero no aporta especificidad fina dentro de Etapa 2</li>
+      <li>Útil como contraste con 1B-KO, no como evidencia causal aislada</li>
+    </ul>
+  </div>
+</section>
+
+<section id="sintesis">
+  <h2>4. Síntesis comparativa interna (Etapa 2)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Escenario</th>
+        <th>Confianza</th>
+        <th>Causal claim limpio</th>
+        <th>Test desacople</th>
+        <th>Valor para análisis cruzado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td><strong>2A-hipo</strong></td>
+        <td>0.80</td>
+        <td>Sí — óptimo</td>
+        <td><span class="pill pass">PASA (firma más limpia)</span></td>
+        <td>Permite comparar firma fina con 1A-hipo</td>
+      </tr>
+      <tr>
+        <td>2A-KO</td>
+        <td>0.75</td>
+        <td>Sí, fenotipo distintivo (quiste)</td>
+        <td><span class="pill pass">PASA</span></td>
+        <td>Demuestra que rol de contractilidad cambia con etapa</td>
+      </tr>
+      <tr>
+        <td>2B-hipo</td>
+        <td>0.66</td>
+        <td>No — confundido con E3</td>
+        <td><span class="pill warn">PARCIAL</span></td>
+        <td>Distinguible de 1B-hipo por posición AP normal</td>
+      </tr>
+      <tr>
+        <td>2B-KO</td>
+        <td>0.58</td>
+        <td>No — catastrófico</td>
+        <td><span class="pill pass">PASA paradigma</span></td>
+        <td>Identidad preservada (contraste con 1B-KO que la pierde)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="hallazgo">
+  <h2>5. Hallazgo principal de Etapa 2</h2>
+  <div class="callout">
+    <p>
+      <strong>La contractilidad cortical de 10–12 hpf gobierna la <em>forma alargada AP</em> del campo IM vía
+      intercalación dependiente de PCP. Su ablación produce un fenotipo cualitativamente distinto al de Etapa 1:
+      <em>comprime</em>, no <em>disloca</em>.</strong>
+    </p>
+    <p style="margin-bottom:0">
+      La identidad transcripcional sigue siendo robusta — el desacople morfología/identidad se mantiene como firma del
+      paradigma, y de hecho es <em>más limpio</em> que en Etapa 1 porque a 10 hpf los marcadores ya están estables.
+      El escenario óptimo de validación wet-lab es <strong>2A-hipo</strong>: máxima señal causal específica de etapa
+      con identidad robusta y geometría medible (longitud AP del stripe IM).
+    </p>
+  </div>
+  <p>
+    <strong>Confianza global de la cadena causal (LPM/IM → pronefro vía contractilidad): 0.74</strong>
+    — ligeramente superior a Etapa 1 (0.72) por la robustez de identidad. El claim se sostiene a través de los cuatro
+    escenarios; se debilita con persistencia (Modo B) como esperado.
+  </p>
+</section>
+
+<section id="cruzada">
+  <h2>6. Comparación cruzada Etapa 1 vs Etapa 2</h2>
+  <p>
+    Este es el punto analítico que justifica haber corrido ambas etapas. La pregunta es: <strong>¿la contractilidad
+    cortical tiene rol stage-specific independiente en cada ventana, o es un rol gradado uniforme a lo largo del
+    desarrollo?</strong>
+  </p>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Dimensión</th>
+        <th>Etapa 1 (6–8 hpf · mesendodermo)</th>
+        <th>Etapa 2 (10–12 hpf · LPM/IM)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Evento mecánico dominante</strong></td>
+        <td class="e1">Convergencia-extensión, internalización</td>
+        <td class="e2">Intercalación PCP, elongación AP</td>
+      </tr>
+      <tr>
+        <td><strong>Tipo de defecto en Modo A</strong></td>
+        <td class="e1"><em>Dislocación</em> — IM presente pero mal posicionado</td>
+        <td class="e2"><em>Compresión</em> — IM en posición correcta pero forma alterada</td>
+      </tr>
+      <tr>
+        <td><strong>Fenotipo terminal característico</strong></td>
+        <td class="e1">Túbulo dislocado, posible asimetría AP del glomérulo, varianza posicional alta</td>
+        <td class="e2">Túbulo acortado o estructura tipo quiste; glomérulo en posición correcta pero comprimida</td>
+      </tr>
+      <tr>
+        <td><strong>Robustez de identidad transcripcional</strong></td>
+        <td class="e1">Buena — identidad mesendodérmica (<span class="gene">gsc, ntl</span>) preservada</td>
+        <td class="e2">Excelente — identidad IM (<span class="gene">pax2a, lhx1a, wt1a</span>) ya estable y robusta</td>
+      </tr>
+      <tr>
+        <td><strong>Confianza global de causalidad</strong></td>
+        <td class="e1">0.72</td>
+        <td class="e2">0.74</td>
+      </tr>
+      <tr>
+        <td><strong>Modo B falla paradigma morfología-pura</strong></td>
+        <td class="e1">1B-KO: SÍ falla (identidad también se pierde)</td>
+        <td class="e2">2B-KO: NO falla (identidad preservada)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout cross">
+    <p>
+      <strong>Conclusión de la comparación cruzada:</strong> los fenotipos 1A y 2A son <em>cualitativamente distintos</em>,
+      no graduados — Etapa 1 disloca, Etapa 2 comprime. Esto apoya la hipótesis de que la contractilidad cortical tiene
+      <strong>roles stage-specific independientes</strong> en cada ventana, mediados por procesos mecánicos distintos
+      (C-E vs PCP-intercalación) que comparten maquinaria molecular pero producen geometrías distintas.
+    </p>
+    <p style="margin-bottom:0">
+      <strong>Tentativo (confianza 0.65):</strong> Etapa 2 contribuye más al fenotipo pronéfrico final que Etapa 1,
+      porque 2A-hipo produce un defecto pronéfrico claro (~70–80% longitud) mientras que 1A-hipo produce un túbulo
+      probablemente más cercano a normal en longitud pero con varianza posicional. Este claim comparativo requiere
+      validación wet-lab antes de ser usado para priorizar intervenciones.
+    </p>
+  </div>
+</section>
+
+<section id="validacion">
+  <h2>7. Validación transcriptómica consolidada</h2>
+  <p>
+    Predicciones que distinguen ablación-morfológica-pura de alteración-de-identidad, ajustadas para la ventana 10–12 hpf
+    donde la identidad ya es estable.
+  </p>
+
+  <h4>Debe permanecer sin cambio (control de pureza)</h4>
+  <ul class="flags">
+    <li><span class="gene">pax2a, lhx1a, wt1a</span> — identidad IM en niveles normales (firma característica de Etapa 2)</li>
+    <li><span class="gene">vangl2, pk1, fzd7</span> — PCP molecular intacta (la contractilidad es downstream de PCP)</li>
+    <li><span class="gene">hand2</span> presente — LPM lateral preservado en identidad</li>
+  </ul>
+
+  <h4>Debe cambiar transitoriamente (firma mecánica esperada)</h4>
+  <ul class="flags">
+    <li>↑ <span class="gene">fos, jun, egr1</span> durante 10–12 hpf en Modo A; retorno post-washout</li>
+    <li>↓ targets YAP/TAZ (<span class="gene">ctgf/ccn2, cyr61/ccn1, ankrd1</span>) durante; recuperación post-washout</li>
+  </ul>
+
+  <h4>Debe mostrar dislocación espacial sin cambio de nivel (firma morfológica de Etapa 2)</h4>
+  <ul class="flags">
+    <li><span class="gene">pax2a, lhx1a, wt1a</span> — dominio comprimido AP, niveles bulk normales (requiere spatial transcriptomics o HCR-FISH)</li>
+    <li><span class="gene">hand2</span> — dominio LPM lateral comprimido AP</li>
+  </ul>
+
+  <h4>Onset retrasado de pre-MET (firma persistente en Modo B)</h4>
+  <ul class="flags">
+    <li><span class="gene">cdh17</span> — en Modo A correcto temporalmente pero en geometría incorrecta; en Modo B retrasado y débil</li>
+    <li>Marcadores apicales (<span class="gene">pard3, prkci, crb2a</span>) — en Modo A onset normal, en Modo B suprimido</li>
+  </ul>
+
+  <p style="margin-top:14px;">
+    <strong>Resolución requerida:</strong> igual que en Etapa 1, bulk RNA-seq es insuficiente. La firma característica
+    de Etapa 2 (compresión AP del dominio IM con niveles totales normales) requiere <em>spatial transcriptomics</em> o
+    <em>HCR-FISH cuantitativa</em> con segmentación AP del campo IM.
+  </p>
+</section>
+
+<section id="limites">
+  <h2>8. Límites e incertidumbres</h2>
+  <ul class="flags">
+    <li>Aproximación de dosis (~50%, ~5%) es esquemática; transiciones reales son no-lineales y dependientes de redundancia entre paralogs (<span class="gene">myh9a/b, myh10</span>; <span class="gene">rock1, rock2a/b</span>).</li>
+    <li>Apoptosis post-ablación subestimada en la simulación — fenotipos catastróficos podrían tener componente celular además del geométrico.</li>
+    <li>Defectos de lateralidad izquierda-derecha no modelados; la asimetría observada en 2A-KO podría tener componente L-R adicional al estocástico.</li>
+    <li>Live-imaging de intercalación AP en zebrafish IM con perturbación química temporal-restringida no fue revisado en datos primarios dentro de esta sesión; afirmaciones de "60% de intercalación normal" son estimación de la literatura, no re-análisis.</li>
+    <li>El campo <code>framework_applied</code> es self-report (v2.2), no introspección verificada.</li>
+    <li>Gate 4 (parsimonia): los escenarios 2B se mantienen como referencia, no como evidencia causal aislada — su valor reside en el contraste cruzado con 1B, no en su contenido individual.</li>
+  </ul>
+</section>
+
+<section id="siguiente">
+  <h2>9. Recomendación para Etapa 3</h2>
+  <p>
+    Avanzar a <strong>Etapa 3 (progenitor pronéfrico, 14–16 hpf, MET y lumenogénesis)</strong> con el mismo protocolo
+    de cuatro escenarios. Esta es la ventana donde la contractilidad tiene su rol más documentado en la literatura:
+    <strong>constricción apical durante la transición mesénquima→epitelio y formación del lumen</strong>.
+  </p>
+  <p>
+    Predicción a priori: el fenotipo 3A debería ser de <strong>poliposis o falla de lumenogénesis</strong> — distinto
+    de la dislocación (1A) y la compresión (2A). Si la predicción se cumple, la cascada completa habrá demostrado que
+    la misma maquinaria molecular (actomiosina cortical) produce tres tipos cualitativamente distintos de defecto
+    pronéfrico según la ventana temporal de su ablación, lo cual sería el resultado más fuerte para argumentar
+    causalidad stage-specific.
+  </p>
+  <p>
+    <strong>Decisión pendiente del usuario:</strong> proceder con Etapa 3 estándar, refinar el diseño (alternativas
+    dentro de "contractilidad" como <span class="gene">myh10</span> o perturbación de constricción apical específica),
+    o pausar para análisis cruzado tri-etapa.
+  </p>
+</section>
+
+<footer>
+  <p><strong>Generado:</strong> 2026-05-12 · Reporte conclusivo de Etapa 2 · Versión 1.0</p>
+  <p><strong>Reporte hermano:</strong> <a href="etapa1-mesendodermo-conclusion.html" style="color:var(--ink-soft);">etapa1-mesendodermo-conclusion.html</a></p>
+  <p><strong>Contrato:</strong> CLAUDE.md §5 · output estructurado con campos <code>direct_answer, confidence, evidence_cited, alternatives_considered, gap_flags, framework_applied</code> · auto-reporte (v2.2)</p>
+  <p><strong>Estado:</strong> hipótesis-generación · requiere puerta humana antes de uso aguas abajo (§7)</p>
+  <p><strong>Fuente:</strong> simulación causal in silico · validación transcriptómica predicha, no medida · sin acceso a datos primarios re-analizados en esta sesión</p>
+</footer>
+
+</div>
+</body>
+</html>

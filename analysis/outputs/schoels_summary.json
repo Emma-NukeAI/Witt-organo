@@ -1,0 +1,15 @@
+{
+  "n_cells_post_filter": 2065,
+  "n_genes_post_filter": 23970,
+  "cells_per_day": {
+    "day2": 918,
+    "day1": 591,
+    "day3": 556
+  },
+  "median_genes_per_cell": 1462,
+  "median_total_counts_per_cell": 2673,
+  "canonical_markers_found": 3,
+  "canonical_markers_total": 5,
+  "segment_markers_found": 2,
+  "segment_markers_total": 11
+}
