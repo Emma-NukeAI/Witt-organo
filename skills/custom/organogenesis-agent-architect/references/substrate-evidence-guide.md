@@ -2,7 +2,7 @@
 
 > **When to read this file:** During Phase 4 (assigning substrate evidence to agents) or when running `/substrate-check`. This file maps each of the five Witt substrate validation tests to which agent behaviors generate evidence for that test.
 >
-> **Maintenance note:** This file is the *most actively iterating* reference. Update it as the technical team makes calibration decisions, defines case-capture protocols, and refines what counts as substrate evidence. Bump version when updating. Last updated: April 30, 2026.
+> **Maintenance note:** This file is the *most actively iterating* reference. Update it as the technical team makes calibration decisions, defines case-capture protocols, and refines what counts as substrate evidence. Bump version when updating. Last updated: 2026-05-14 (v1.4 — HTML report contract integration per ADR-0007).
 
 ---
 
@@ -68,9 +68,10 @@ Any agent that produces structured outputs to organogenesis questions. Specifica
 
 For an agent to produce Test 1 evidence:
 
-1. **Structured output contract enforced** — every response includes the five fields above (answer, confidence, evidence, alternatives, gap flags).
+1. **Structured output contract enforced** — every response includes the five fields above (answer, confidence, evidence, alternatives, gap flags), now extended in v2.4 with `confidence_by_subclaim` (when applicable) and `agents_invoked` (per CLAUDE.md §5).
 2. **Question types tagged** — the agent must declare what category of question it's answering, so aggregate metrics decompose properly.
 3. **Engineer-rating capture** — UI or workflow must allow easy 1–5 ratings + freeform notes after each response.
+4. **HTML report at conclusion (added v1.4 per ADR-0007).** When the response reaches a conclusion or checkpoint (substantive analytical question with confidence ≥ 0.5, user-signaled end-of-inquiry, phase completion), the response MUST be materialized as a self-contained HTML report in `reports/` following one of the 4 canonical TYPES (A comprehensive analytical, B interactive viz grid, C simulation-backed Three.js, D formal retrospective) per `references/html-report-contract.md`. The structured §5 contract fields MUST appear as **visible UI elements** in the HTML body. **Pure markdown or JSON output does NOT satisfy Test 1 evidence for substrate-instrumented work that reaches a conclusion.** The HTML is the audit trail — it is what makes the reasoning replayable across surfaces and reviewers. CLAUDE.md §5 v2.5 enforces this; composite-auditor verifies compliance by checking each claim record's `session_id` field references an existing HTML file in `reports/`.
 
 ### Failure modes
 
@@ -460,4 +461,9 @@ Without a dedicated section, substrate-level lessons get lost when the document 
 
 ---
 
-— End of substrate-evidence-guide.md v1.3 —
+— End of substrate-evidence-guide.md v1.4 —
+
+**v1.4 changes vs v1.3 (2026-05-14, ADR-0007):**
+- Test 1 §Design requirements: added item 4 — HTML report mandatory at conclusion with visible §5 contract UI; 4 TYPES defined in companion `html-report-contract.md` v1.0.
+- Aligns with CLAUDE.md §5/§7/§11 v2.5 (HTML emission rule + simulation-backed-viz hard rule + visual-offer reflex).
+- Test 1 evidence now requires HTML, not just structured output records — the HTML body IS the audit trail. Pure MD/JSON outputs are insufficient for substrate-instrumented work that reaches a conclusion.

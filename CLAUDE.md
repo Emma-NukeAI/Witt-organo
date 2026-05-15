@@ -89,6 +89,16 @@ Every agent output that contributes to substrate evidence MUST be a structured o
 
 **`agents_invoked` is required when the output's work-type matches any row in `references/agent-invocation-matrix.md`.** See §11 below for the agent-invocation preflight that populates this field.
 
+**HTML report emission at conclusion / checkpoint is mandatory (v2.5).** Any analytical output that reaches a conclusion or checkpoint state (substrate-instrumented output per §5; user-signaled end of inquiry; phase completion; substantive analytical answer with confidence ≥ 0.5) MUST emit a self-contained HTML report in `reports/`. The structured contract fields above MUST appear as **visible UI elements** in the HTML body (callouts, badges, dedicated sections) — NOT only as metadata or hidden script blocks. Pure markdown or JSON outputs do NOT satisfy this requirement for substrate-evidence outputs. The HTML IS the audit trail.
+
+Four canonical TYPES (defined in `references/html-report-contract.md`):
+- **TYPE A** — comprehensive analytical (default for substantive research answers)
+- **TYPE B** — interactive viz grid (structured data: candidates × dimensions, scenarios × verdict)
+- **TYPE C** — simulation-backed Three.js (MANDATORY when conclusion is simulation-backed — see §7 hard rule)
+- **TYPE D** — formal retrospective (session retrospectives, meta-analyses, composite-audits)
+
+Multiple TYPES may coexist for a single conclusion (e.g., TYPE A + cross-linked TYPE C). Do NOT generate 4 parallel views of the same evidence — composite audit 2026-05-14 flagged that as `prueba pequeño antes de armar bien` violation.
+
 **Critical interpretation note (v2.2, derived from April 30 2026 stress-test).** The `framework_applied` field is **self-report, not faithful introspection**. Anthropic's April 2025 evidence shows that LLMs do not reliably introspect their own reasoning. Treat this field as a *prompt-time tag* useful for substrate analytics, not as a verified claim about what reasoning actually happened internally. The substrate's downstream pipelines (calibration scoring, framework-effectiveness analytics) must account for this.
 
 **Reference:** `skills/custom/organogenesis-agent-architect/references/substrate-evidence-guide.md` v1.2 — full output-contract spec, calibration-method requirements (post-hoc isotonic regression / histogram binning mandatory from day 1), and three-tier reporting (defensive / ambitious / per-category).
@@ -137,6 +147,8 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 - **External identifiers are never used from internal memory without verification.** Gene IDs (ENSDARG, ENSEMBL, NCBI symbols), PMIDs, GEO/SRA accessions, DOIs, and biological sequences MUST be verified against an authoritative external source (Ensembl REST, PubMed, GEO, NCBI) before being used in analysis, citations, `evidence_cited` fields, or output of any kind. Hardcoded identifiers in scripts must carry an inline `# verified: YYYY-MM-DD source: <db>` comment. The May 8-9 2026 session documented 5 of 11 ENSDARG IDs and 1 PMID generated from internal memory were wrong; this rule prevents recurrence. **Verification is satisfied only when the raw external response is cached per §6 cache discipline** — an AI-processed summary is NOT verification.
 - **Self-audit by the same agent that produced the work is prohibited as a substrate-evidence audit gate.** Use `composite-auditor` (Mode 1 split-and-vote minimum) for any retrospective claimed as audit evidence. Self-reflection by the producing agent is permitted but is NOT an audit gate. The May 14 2026 session generated a single-LLM retrospective that was treated as audit evidence; the composite-audit that followed (ADR-0006) is the operationally correct pattern and this rule makes the distinction explicit. See `skills/custom/organogenesis-agent-architect/references/agent-invocation-matrix.md` for invocation routing.
 - **Catalog-agent invocation discipline.** If the work being produced matches the role description of a catalog agent (per `references/agent-invocation-matrix.md`), that agent MUST be invoked OR the output's `agents_invoked` field MUST record `status: skipped-ad-hoc` with explicit justification. Implicitly performing the role without invocation OR explicit skip is a §7 violation. Particularly: generating ranked candidates / minimal sets / sufficiency hypotheses is `causal-pruner` work and MUST be flagged as such (also covered by the first rule above). Auditing substrate-evidence outputs is `composite-auditor` work and MUST NOT be done by a single-LLM self-audit pass.
+- **HTML report mandatory at conclusion.** Any analytical output that reaches a conclusion or checkpoint state MUST emit a self-contained HTML report in `reports/` per the canonical structure in `references/html-report-contract.md`. The structured §5 contract fields MUST appear as visible UI in the HTML body. Conversational responses, status updates, and trivial tool use are exempt. Skipping at conclusion is a §7 violation flag-able by composite-auditor.
+- **Simulation-backed visual mandatory.** If a conclusion is backed by simulation output (`morpheus-4d-viz`, `causal-ablation-cascade-sim`, `squidiff-in-silico-gate`, BioDynaMo, `sim-orchestrator`, or any other simulator), the HTML report MUST include or cross-link a TYPE C interactive visualization (Three.js scene, scrubable timeline, or equivalent). Static screenshot is NOT sufficient — the visual must be self-contained and interactively explorable. Conclusions presented WITHOUT the simulation's TYPE C viz fail to materialize substrate evidence.
 
 ---
 
@@ -151,6 +163,7 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 | What does a specific agent (e.g., `composite-auditor`) do? | `skills/custom/organogenesis-agent-architect/references/agent-catalog.md` |
 | Which orchestration pattern fits this multi-agent flow? | `skills/custom/organogenesis-agent-architect/references/orchestration-patterns.md` |
 | Which catalog agent should be invoked given this work-type? | `skills/custom/organogenesis-agent-architect/references/agent-invocation-matrix.md` |
+| What HTML structure should my conclusion report follow? Which TYPE? | `skills/custom/organogenesis-agent-architect/references/html-report-contract.md` |
 | Domain-specific guidance (zebrafish, DATA INAMOVIBLE, etc.) | `skills/custom/organogenesis-agent-architect/references/organogenesis-domain.md` |
 | Format for a SKILL.md file produced by this project | `skills/custom/organogenesis-agent-architect/references/skill-md-templates.md` |
 | How do I run a causal ablation cascade simulation (with both numerical report + 4D viz)? | `skills/custom/causal-ablation-cascade-sim/SKILL.md` |
@@ -246,11 +259,14 @@ Does NOT apply to: conversational responses, trivial file operations, search que
 
 **Substrate evidence:** this reflex generates Test 1 (orchestration evidence) and Test 2 (agentic-workflow evidence) directly. Skip-with-justification entries become Test 4 calibration signal (over time, which agents are systematically skipped reveals coverage gaps).
 
+**Closing sub-step — visual-offer reflex (v2.5):** at conclusion / checkpoint, after emitting the mandatory HTML report (per §5 + §7 hard rules), the agent MUST offer the user additional visual artifacts (3D Three.js scrubable viz, side-by-side comparison, animated timeline, heatmap, signature-cards closure). The offer is a single-line question with 2-4 options + "seguimos como está" as the close-checkpoint default. Templates and format per `references/html-report-contract.md` §11. The offer is opt-in additive, never opt-out. Skip is allowed but tracked in `agents_invoked` with `status: skipped-ad-hoc` and reason. Persistence within session: do NOT re-ask the same conclusion if user already declined; re-ask permitted when conclusion changes (new evidence, version bump).
+
 ---
 
 ## 12. Footer
 
-- **Last updated:** 2026-05-14 (post-composite-audit retrospective)
-- **v2.4 bundle synchronized to:** `organogenesis-agent-architect@2.2.0` · `reasoning-frameworks-catalog@1.2` · `substrate-evidence-guide@1.3` · `method-selection@1.2` · `agent-invocation-matrix@1.0` (NEW) · `PROJECT_SCOPE@1.2` · `causal-ablation-cascade-sim@1.0` · `squidiff-in-silico-gate@2.0.1`
+- **Last updated:** 2026-05-14 (post-composite-audit + HTML report contract codification)
+- **v2.5 bundle synchronized to:** `organogenesis-agent-architect@2.2.0` · `reasoning-frameworks-catalog@1.2` · `substrate-evidence-guide@1.4` · `method-selection@1.2` · `agent-invocation-matrix@1.1` · `html-report-contract@1.0` (NEW) · `PROJECT_SCOPE@1.2` · `causal-ablation-cascade-sim@1.0` · `squidiff-in-silico-gate@2.0.1`
+- **v2.5 changes vs v2.4:** §5 (HTML report emission mandatory at conclusion with visible §5 contract UI; 4 TYPES defined) · §7 (added 2 hard rules: HTML-at-conclusion + simulation-backed-viz-mandatory) · §8 (new row for html-report-contract.md) · §11 (added visual-offer reflex as closing sub-step) · `substrate-evidence-guide@1.4` (Test 1 evidence = HTML with visible contract fields) · `agent-invocation-matrix@1.1` (html-report-emitter Hard Rule row) · ADR-0007 (HTML report mandatory at conclusion)
 - **v2.4 changes vs v2.3:** §4 strengthen (section-not-tier citation + framework re-election allowed) · §5 (confidence_by_subclaim + alternatives_considered required in JSON + agents_invoked field) · §6 (raw-response caching for verification) · §7 (added 2 hard rules: self-audit prohibition + catalog-agent invocation discipline) · §8 (new row for agent-invocation-matrix.md) · §11 NEW (agent-invocation preflight parallel to §10) · ADR-0005 (test claim language) · ADR-0006 (catalog agent invocation discipline)
 - **Repo version:** initial setup (Gates 1–5)

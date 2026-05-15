@@ -74,6 +74,7 @@ or external references that informed the decision.
 | [0004](0004-squidiff-as-transcriptomic-gate.md) | 2026-05-13 (patched 2026-05-14) | Adopt Squidiff as transcriptomic hypothesis gate | Accepted |
 | [0005](0005-test-claim-language-discipline.md) | 2026-05-14 | Test claim language: "satisfied" vs "case capture" vs "infrastructure populated" | Proposed |
 | [0006](0006-catalog-agent-invocation-discipline.md) | 2026-05-14 | Catalog agent invocation discipline + decision matrix + §11 preflight | Proposed |
+| [0007](0007-html-report-mandatory-at-conclusion.md) | 2026-05-14 | HTML report mandatory at conclusion + 4 TYPES + simulation-backed-viz hard rule + visual-offer reflex | Accepted |
 
 ---
 

@@ -6,7 +6,7 @@
 >
 > **Authority:** per ADR-0006 (2026-05-14). Updated as new agents enter the catalog or new work-types emerge.
 >
-> **Last updated:** 2026-05-14 · v1.0 initial release alongside ADR-0006.
+> **Last updated:** 2026-05-14 · v1.1 — added html-report-emitter Hard Rule row per ADR-0007.
 
 ---
 
@@ -36,6 +36,8 @@ The matrix is consulted in CLAUDE.md §11 agent-invocation preflight. The output
 | Cross-field framing of organogenesis question in Phase I | **`cross-field-bridge-agent`** (Method 2 only) | Standalone with explicit human invocation (per §7.2) | Test 5 (exploratory) |
 | Wet-lab protocol translation from in-silico recipe | **`experiment-designer`** + budget/compliance preflight | Designer → `regulatory-ethics-advisor` review → HUMAN GATE (per §7 budget rule) | Test 2 |
 | Any claim or output that affects compliance / budget / partner relationships | **`regulatory-ethics-advisor`** + HUMAN GATE | Direct human gate, no automatic filtering (per §7) | Mission-critical safety |
+| **Conclusion / checkpoint of substrate-evidence-producing work** (per §5 contract; user signals end-of-inquiry; phase completion; substantive answer with confidence ≥ 0.5) | **`html-report-emitter`** (skill or ad-hoc) per `html-report-contract.md` | Emit HTML report in `reports/` with visible §5 contract UI; offer additional visuals (visual-offer reflex per §11 closing sub-step). **If conclusion is simulation-backed:** ALSO emit/cross-link TYPE C viz (Three.js). | Test 1 (orchestration / reasoning), Test 2 (workflow output materialized) |
+| **Conclusion backed by simulation output** (`morpheus-4d-viz`, `causal-ablation-cascade-sim`, `squidiff-in-silico-gate`, BioDynaMo, `sim-orchestrator`, future simulators) | **TYPE C viz emitter** (the simulator's own HTML output OR `morpheus-4d-viz` skill) | Per simulator's SKILL.md spec; static screenshot NOT sufficient; must be interactively explorable | Test 1, Test 2 |
 
 ## §2 · Required (must invoke or skip-with-justification)
 
@@ -143,4 +145,6 @@ Required invocations:
 - When a Hard Rule changes in CLAUDE.md §7, the matrix's §1 must be updated to reflect.
 - Backwards-incompatible changes to gate levels (e.g., Recommended → Hard Rule) require a new ADR.
 
-— v1.0 · ADR-0006 ·  2026-05-14 —
+— v1.1 · ADR-0006 + ADR-0007 · 2026-05-14 —
+
+**v1.1 changes vs v1.0:** Added 2 Hard Rule rows (§1) for `html-report-emitter` at conclusion + TYPE C viz emitter when simulation-backed. Tied to CLAUDE.md §5/§7/§11 v2.5 and `html-report-contract.md` v1.0 per ADR-0007.
