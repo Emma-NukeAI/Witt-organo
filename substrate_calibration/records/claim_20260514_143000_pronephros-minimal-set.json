@@ -1,0 +1,50 @@
+{
+  "claim_id": "claim_20260514_143000_pronephros-minimal-set",
+  "claim_timestamp": "2026-05-14T14:30:00Z",
+  "session_id": "reports/proteomic-evidence-pronephros-windows-v1.md",
+  "skill_origin": "manual (CLAUDE.md §10 preflight + WebFetch + WebSearch synthesis)",
+  "skill_version": "manual-WebFetch-1.0",
+  "claim_text": "The 9-protein set {osr1, pax2a, lhx1a, wt1a (Window 2) + prkci, cdh17, myh9a (Window 3) + mafba, podxl (Window 4)} is sufficient to induce zebrafish pronephros tissue identity. UniProt accessions verified 2026-05-14: pax2a→Q90268, lhx1a→Q90476, wt1a→Q9PUT7, prkci→Q90XF2, cdh17→Q90X63, myh9a→A0A8M1NEM1, mafba→A0A2U3TVD3, podxl→Q5RHU2. osr1 accession pending re-verification.",
+  "claim_category": "pruner-generation-ad-hoc",
+  "requires_human_gate": true,
+  "human_gate_rationale": "Set mínimo es causal-pruner-equivalent work; CLAUDE.md §7.1 mandates human gate. Categoría corregida retrospectivamente 2026-05-14 tras composite-audit (docs/findings/2026-05-14-composite-audit-meta-conclusion.md F2). Original category 'generation' did not flag the gate requirement.",
+  "agent_invocation_status": "ad-hoc (causal-pruner agent not invoked); recommended fix: re-run via causal-pruner + Logic-LM composite pattern in future iteration",
+  "framework_applied_corrected": "Chain-of-Verification (Tier 2) — per reasoning-frameworks-catalog.md §8: 'verification questions answered independently with retrieval.' Original framework_applied below cited Self-Discover Tier 2; corrected retrospectively after composite-audit B finding.",
+  "prior": 0.30,
+  "stated_confidence": 0.30,
+  "framework_applied": "Self-Discover (Tier 2) — per reasoning-frameworks-catalog.md §Tier 2: 'Maintain for novel problem types but monitor.' Decomposition into windows → candidates → essentiality → minimal-set hypothesis.",
+  "expected_outcome_if_h1": "A reconstitution experiment (e.g., mRNA injection of the 9 mRNAs into early embryo, or chaperone-tissue delivery of the 9 proteins) produces ectopic pronephric structures with marker confirmation (wt1a+, pax2a+ tubules with lumen and cdh17+ duct). Matches PROJECT_SCOPE §4 success gates Induction + Identity.",
+  "expected_outcome_if_h0": "Reconstitution with the 9-protein set produces incomplete or absent pronephric induction. The minimal set must be larger (>9) or different. Likely missing factor classes: an additional upstream specifier (wnt2ba, fgf signaling, retinoic acid receptors), an additional polarity scaffold, or a missing transporter (slc20a1a / slc4a4a for PT identity).",
+  "observable_at": "Phase II wet-lab reconstitution experiment (no specific date — gated on partner field selection + budget approval; deferred per 2026-05-14 directive Q5)",
+  "observed_outcome": null,
+  "observed_at": null,
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_4"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "causal-pruner",
+      "status": "skipped-ad-hoc",
+      "reason": "VIOLATION: This claim is causal-pruner-equivalent work (sufficiency hypothesis / minimal-set generation) per agent-invocation-matrix.md §1. Should have been invoked with Logic-LM verifier + HUMAN GATE composite pattern per CLAUDE.md §7.1. Backfilled per ADR-0006 §6 step 5. Recommended fix: re-run via causal-pruner formal in future iteration."
+    },
+    {
+      "agent": "Logic-LM",
+      "status": "skipped-ad-hoc",
+      "reason": "Would have followed causal-pruner per v2.2 composite pattern (pruner → Logic-LM → human). The sufficiency claim is formalizable as a minimum-cardinality cover problem over the LoF graph; Logic-LM verification would catch missing factor classes."
+    },
+    {
+      "agent": "composite-auditor",
+      "status": "invoked-retroactively",
+      "invocation_id": "composite-audit-2026-05-14-17:30",
+      "reason": "Initial output (2026-05-14T14:30:00Z) did not invoke. Composite-audit at session retrospective (docs/findings/2026-05-14-composite-audit-meta-conclusion.md) flagged §7.1 violation. This backfill records the audit finding.",
+      "evidence_generated": ["test_1", "test_4"]
+    },
+    {
+      "agent": "reasoning-exposer",
+      "status": "skipped-ad-hoc",
+      "reason": "Manual structured output; contract fields populated by author. alternatives_considered field missing from this JSON (present in companion v1.0 MD report) — flagged in composite audit as §5 contract violation."
+    }
+  ],
+  "notes": "First claim record where the substrate hypothesizes a sufficiency relationship. Critical that observed_outcome stays null until a real reconstitution experiment exists — otherwise the Test 4 ECE for sufficiency claims will be uncalibrated forever. If the project never gates this claim with experiment, the claim should be marked 'unfalsifiable in Phase I' rather than left null indefinitely."
+}

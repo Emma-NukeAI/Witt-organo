@@ -60,7 +60,9 @@ If neither Tier 1 framework's domain of applicability matches the task, fall to 
 **Do not enumerate Tier 2 or Tier 3 here.** They live in:
 `skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md` v1.2 — the **most actively-iterating reference** in the skill. Read it whenever the framework choice is non-obvious.
 
-**Catalog citation is required, not optional.** When the `framework_applied` field is populated in a structured output, the value must be accompanied by a quote of the specific catalog section that justifies the choice. The format is `framework_applied: <name> — per reasoning-frameworks-catalog.md §<section>: "<quoted criterion>"`. Naming the framework without quoting the criterion is a v2.2 audit failure. The 2026-05-09 session flagged this anti-pattern: the agent labelled outputs "Tier 2" without ever consulting the catalog. The fix is to make consultation visible in the output itself.
+**Catalog citation is required, not optional.** When the `framework_applied` field is populated in a structured output, the value must be accompanied by a quote of the specific catalog section that justifies the choice. The format is `framework_applied: <name> — per reasoning-frameworks-catalog.md §<section-number>: "<quoted criterion>"`. **The cited section MUST be the specific framework section (e.g., `§3 Self-Discover`, `§8 Chain-of-Verification`), NOT the tier header (e.g., `§Tier 2`).** Citing the tier alone is a §4 audit failure — it is the soft-form of the anti-pattern §4 was designed to prevent. Naming the framework without quoting the criterion is also a v2.2 audit failure. The 2026-05-09 session flagged this anti-pattern: the agent labelled outputs "Tier 2" without ever consulting the catalog. The 2026-05-14 session repeated it in softer form (cited "§Tier 2:" instead of "§3:" or "§8:"). The fix is to make consultation visible in the output itself.
+
+**Framework_applied may be updated mid-session if the reasoning dynamic changes.** If the work shifts from open-ended decomposition (Self-Discover) to verification-against-multiple-evidence-streams (Chain-of-Verification) or majority-vote-across-runs (Self-Consistency), the framework_applied field SHOULD be re-elected and the change documented in the output. Locking to the v1.0 framework choice across an evolving session is itself an anti-pattern (flagged in composite audit of session 2026-05-14).
 
 ---
 
@@ -71,13 +73,21 @@ Every agent output that contributes to substrate evidence MUST be a structured o
 ```
 {
   direct_answer:           <the answer to the question>,
-  confidence:              <real number in [0, 1]>,
+  confidence:              <real number in [0, 1]>   OR
+  confidence_by_subclaim:  { <subclaim>: <num>, ... },
   evidence_cited:          [<citation 1>, <citation 2>, …],
   alternatives_considered: [<rejected hypothesis 1>, …],
   gap_flags:               [<known unknown 1>, …],
-  framework_applied:       <name of the reasoning framework used>
+  framework_applied:       <name of the reasoning framework used>,
+  agents_invoked:          [{agent, status, invocation_id|reason, evidence_generated}, …]
 }
 ```
+
+**`confidence_by_subclaim` is required when `direct_answer` composes multiple sub-claims of asymmetric evidence-strength.** Aggregating to a single `confidence` value when sub-claims differ materially (e.g., one well-evidenced landscape description, one hypothesis-only minimal-set claim) is a §5 audit failure — it obscures audit signal. The 2026-05-14 session reported `confidence: 0.68` for an answer that aggregated (a) landscape description (real ≈0.85) and (b) minimal-set hypothesis (real ≈0.32); future outputs use `confidence_by_subclaim`.
+
+**`alternatives_considered` is required in BOTH structured JSON outputs AND prose reports.** Asymmetry between presentation formats (e.g., alternatives in MD but absent in companion JSON claim record) is a contract violation flagged in composite audit of session 2026-05-14.
+
+**`agents_invoked` is required when the output's work-type matches any row in `references/agent-invocation-matrix.md`.** See §11 below for the agent-invocation preflight that populates this field.
 
 **Critical interpretation note (v2.2, derived from April 30 2026 stress-test).** The `framework_applied` field is **self-report, not faithful introspection**. Anthropic's April 2025 evidence shows that LLMs do not reliably introspect their own reasoning. Treat this field as a *prompt-time tag* useful for substrate analytics, not as a verified claim about what reasoning actually happened internally. The substrate's downstream pipelines (calibration scoring, framework-effectiveness analytics) must account for this.
 
@@ -107,6 +117,7 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 - **On retriable error (`{"status": "error", "retriable": true}`):** retry once. If it fails again, mark PENDING and move on. Never loop.
 - **On validation error (`retriable: false`):** read the error, fix the parameter (common: `identifiers` string vs. `protein_ids` array), retry once.
 - **For workflows with ≥3 MCP calls:** save each successful response to `mcp_cache/<tool>_<descriptor>_<YYYYMMDD>.json` before processing; check cache before re-fetching same-day. The `mcp_cache/` and `checkpoints/` directories are gitignored.
+- **When WebFetch is used to verify an external identifier per Hard Rule §7.9, the raw fetched content MUST be cached separately from any AI-processed summary.** A processed summary saved as cache is NOT verification — the AI processing layer can hallucinate the very fields being verified. The verification is satisfied only when the raw JSON / TSV / HTML response is preserved at `mcp_cache/raw_<tool>_<descriptor>_<YYYYMMDD>.<ext>`. The 2026-05-14 session violated this softly: 14 UniProt accessions were "verified via WebFetch" but only the AI-restructured candidate JSON was cached; raw UniProt responses were lost. Composite audit flagged this as cache discipline violation requiring this rule.
 - **For workflows with ≥3 phases:** write `checkpoints/<workflow>_<ISO-timestamp>.json` with `{phase, status, cache_path}` per phase. On resume, skip `done` phases.
 - **On oversized responses:** some tools (notably full UniProt entries via `UniProt_get_entry_by_accession`) return ~100K chars. The harness will spool these to a file and ask you to read it. Prefer selective variants of the same tool when available (e.g., feature-specific UniProt endpoints) before reaching for the full entry.
 - **On SOAP-wrapped database tools (IMGT, SAbDab, TheraSAbDab):** these often return only a `search_url` for browser use, not JSON. Treat as directory lookups, not data tools, and synthesize evidence from elsewhere when a structured response is required.
@@ -123,7 +134,9 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 - **API keys never go to git.** `.gitignore` enforces; configs use placeholders. Verify with `git check-ignore` if unsure.
 - **`composite-auditor` replaces single-LLM SI/NO auditing.** Three operating modes; never use a single-LLM pass for substrate-evidence audit gates.
 - **No backwards-incompatible changes to v2.1 agent designs without an ADR.** Document the recalibration in `docs/decisions/`.
-- **External identifiers are never used from internal memory without verification.** Gene IDs (ENSDARG, ENSEMBL, NCBI symbols), PMIDs, GEO/SRA accessions, DOIs, and biological sequences MUST be verified against an authoritative external source (Ensembl REST, PubMed, GEO, NCBI) before being used in analysis, citations, `evidence_cited` fields, or output of any kind. Hardcoded identifiers in scripts must carry an inline `# verified: YYYY-MM-DD source: <db>` comment. The May 8-9 2026 session documented 5 of 11 ENSDARG IDs and 1 PMID generated from internal memory were wrong; this rule prevents recurrence.
+- **External identifiers are never used from internal memory without verification.** Gene IDs (ENSDARG, ENSEMBL, NCBI symbols), PMIDs, GEO/SRA accessions, DOIs, and biological sequences MUST be verified against an authoritative external source (Ensembl REST, PubMed, GEO, NCBI) before being used in analysis, citations, `evidence_cited` fields, or output of any kind. Hardcoded identifiers in scripts must carry an inline `# verified: YYYY-MM-DD source: <db>` comment. The May 8-9 2026 session documented 5 of 11 ENSDARG IDs and 1 PMID generated from internal memory were wrong; this rule prevents recurrence. **Verification is satisfied only when the raw external response is cached per §6 cache discipline** — an AI-processed summary is NOT verification.
+- **Self-audit by the same agent that produced the work is prohibited as a substrate-evidence audit gate.** Use `composite-auditor` (Mode 1 split-and-vote minimum) for any retrospective claimed as audit evidence. Self-reflection by the producing agent is permitted but is NOT an audit gate. The May 14 2026 session generated a single-LLM retrospective that was treated as audit evidence; the composite-audit that followed (ADR-0006) is the operationally correct pattern and this rule makes the distinction explicit. See `skills/custom/organogenesis-agent-architect/references/agent-invocation-matrix.md` for invocation routing.
+- **Catalog-agent invocation discipline.** If the work being produced matches the role description of a catalog agent (per `references/agent-invocation-matrix.md`), that agent MUST be invoked OR the output's `agents_invoked` field MUST record `status: skipped-ad-hoc` with explicit justification. Implicitly performing the role without invocation OR explicit skip is a §7 violation. Particularly: generating ranked candidates / minimal sets / sufficiency hypotheses is `causal-pruner` work and MUST be flagged as such (also covered by the first rule above). Auditing substrate-evidence outputs is `composite-auditor` work and MUST NOT be done by a single-LLM self-audit pass.
 
 ---
 
@@ -137,6 +150,7 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 | What evidence does each substrate test generate? | `skills/custom/organogenesis-agent-architect/references/substrate-evidence-guide.md` |
 | What does a specific agent (e.g., `composite-auditor`) do? | `skills/custom/organogenesis-agent-architect/references/agent-catalog.md` |
 | Which orchestration pattern fits this multi-agent flow? | `skills/custom/organogenesis-agent-architect/references/orchestration-patterns.md` |
+| Which catalog agent should be invoked given this work-type? | `skills/custom/organogenesis-agent-architect/references/agent-invocation-matrix.md` |
 | Domain-specific guidance (zebrafish, DATA INAMOVIBLE, etc.) | `skills/custom/organogenesis-agent-architect/references/organogenesis-domain.md` |
 | Format for a SKILL.md file produced by this project | `skills/custom/organogenesis-agent-architect/references/skill-md-templates.md` |
 | How do I run a causal ablation cascade simulation (with both numerical report + 4D viz)? | `skills/custom/causal-ablation-cascade-sim/SKILL.md` |
@@ -148,6 +162,7 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 | How do I configure MCP for my client? | `mcp-config/README.md` (per-OS paths, API keys, MSIX caveat) |
 | Why was decision X made post-setup? | `docs/decisions/` (ADR series) |
 | Did I consult the repo before generating my output? | This file §10 |
+| Did I invoke the right agents for this work-type? | This file §11 + `agent-invocation-matrix.md` |
 
 ---
 
@@ -186,8 +201,56 @@ Does NOT apply to: conversational responses with no analytical claim, requests f
 
 ---
 
-## 11. Footer
+## 11. Agent-invocation preflight (mandatory before any substrate-instrumented output)
 
-- **Last updated:** 2026-05-14
-- **v2.3 bundle synchronized to:** `organogenesis-agent-architect@2.2.0` · `reasoning-frameworks-catalog@1.2` · `substrate-evidence-guide@1.3` · `method-selection@1.2` · `PROJECT_SCOPE@1.2` · `causal-ablation-cascade-sim@1.0` · `squidiff-in-silico-gate@2.0.1`
+Parallel to §10 (which forces *project-state* consultation), this reflex forces *catalog-agent* consultation. Before generating any structured output that contributes to substrate evidence (any output contract per §5 with `confidence` and `framework_applied`), the agent MUST inspect:
+
+1. **What is the dominant work-type** of the output being produced? (e.g., generating ranked candidates, auditing substrate evidence, integrating multi-modal evidence)
+2. **Which catalog agents own this work-type?** Consult `skills/custom/organogenesis-agent-architect/references/agent-invocation-matrix.md`.
+3. **Will the agent be invoked, or operate ad-hoc?** Either invoke via `Agent` tool / skill / sub-process, OR explicitly skip with justification.
+4. **Populate the output contract's `agents_invoked` field** accordingly.
+
+**Schema of the `agents_invoked` field:**
+
+```json
+"agents_invoked": [
+  {
+    "agent": "causal-pruner",
+    "status": "invoked",
+    "invocation_id": "<agent task ID or invocation reference>",
+    "evidence_generated": ["test_1", "test_4"]
+  },
+  {
+    "agent": "reasoning-exposer",
+    "status": "skipped-ad-hoc",
+    "reason": "Work was a single-file edit not producing substrate evidence; reasoning-exposer overhead disproportionate to scope."
+  },
+  {
+    "agent": "evaluation-runner",
+    "status": "not-applicable",
+    "reason": "No perturbation evaluation against held-out set in this output."
+  }
+]
+```
+
+**Why this is a hard reflex.**
+
+CLAUDE.md §7 already enforces several agent-invocation rules (causal-pruner human gate, composite-auditor for substrate audit). But the May 8-9 and May 14 2026 sessions both demonstrated that **rules in §7 don't bind without a reflex**. The §10 preflight succeeded at fixing the "verify-before-claim" gap because it specifies explicit commands at decision time. §11 applies the same pattern to agent invocation: the matrix is the lookup; the `agents_invoked` field is the audit trail; the explicit skip-with-justification is the safety valve when the matrix overshoots.
+
+**Skip-with-justification is allowed but tracked.** A short, work-specific justification (not boilerplate) is required. Periodic `composite-auditor` audits over skip justifications detect gaming (e.g., always skipping the same agent without genuine reason).
+
+**Scope.**
+
+Applies to: any output that populates the §5 contract (structured outputs with confidence/evidence/framework), claim records under `substrate_calibration/records/`, retrospectives, audit gates, ranked candidate lists, sufficiency hypotheses, cross-modal syntheses.
+Does NOT apply to: conversational responses, trivial file operations, search queries that don't produce substrate evidence, status updates.
+
+**Substrate evidence:** this reflex generates Test 1 (orchestration evidence) and Test 2 (agentic-workflow evidence) directly. Skip-with-justification entries become Test 4 calibration signal (over time, which agents are systematically skipped reveals coverage gaps).
+
+---
+
+## 12. Footer
+
+- **Last updated:** 2026-05-14 (post-composite-audit retrospective)
+- **v2.4 bundle synchronized to:** `organogenesis-agent-architect@2.2.0` · `reasoning-frameworks-catalog@1.2` · `substrate-evidence-guide@1.3` · `method-selection@1.2` · `agent-invocation-matrix@1.0` (NEW) · `PROJECT_SCOPE@1.2` · `causal-ablation-cascade-sim@1.0` · `squidiff-in-silico-gate@2.0.1`
+- **v2.4 changes vs v2.3:** §4 strengthen (section-not-tier citation + framework re-election allowed) · §5 (confidence_by_subclaim + alternatives_considered required in JSON + agents_invoked field) · §6 (raw-response caching for verification) · §7 (added 2 hard rules: self-audit prohibition + catalog-agent invocation discipline) · §8 (new row for agent-invocation-matrix.md) · §11 NEW (agent-invocation preflight parallel to §10) · ADR-0005 (test claim language) · ADR-0006 (catalog agent invocation discipline)
 - **Repo version:** initial setup (Gates 1–5)

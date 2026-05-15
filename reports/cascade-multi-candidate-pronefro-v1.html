@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Cascada multi-candidato pronephros — protocolo 4-scenario aplicado a 14 candidatos</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 24px;
+  line-height: 1.5;
+}
+h1 { font-size: 22px; margin-bottom: 4px; color: #f1f5f9; }
+.subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 16px; }
+.intro {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-left: 4px solid #38bdf8;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.intro h2 { font-size: 14px; margin-bottom: 8px; color: #f1f5f9; }
+.intro ul { margin: 8px 0; padding-left: 20px; }
+.intro code { background: #0f172a; padding: 1px 4px; border-radius: 3px; font-size: 12px; color: #fbbf24; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1e293b;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+th {
+  background: #334155;
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 700;
+  color: #f1f5f9;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #475569;
+}
+th.mode-header { text-align: center; background: #1e3a8a; color: #dbeafe; }
+th.mode-A { background: #047857; }
+th.mode-B { background: #9f1239; }
+td { padding: 10px 8px; border-bottom: 1px solid #334155; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover { background: #25314a; }
+.gene-cell { font-family: 'Cascadia Code', 'Consolas', monospace; font-weight: 700; color: #f1f5f9; font-size: 13px; }
+.gene-acc { font-size: 10px; color: #64748b; font-weight: normal; }
+.window-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; }
+.w-1 { background: #92400e; color: #fef3c7; }
+.w-2 { background: #1d4ed8; color: #dbeafe; }
+.w-3 { background: #065f46; color: #d1fae5; }
+.w-4 { background: #9f1239; color: #fee2e2; }
+.scenario-cell {
+  font-size: 11px;
+  line-height: 1.4;
+}
+.phenotype { display: block; color: #f1f5f9; font-weight: 600; margin-bottom: 2px; }
+.decouple-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 700; margin-right: 4px; }
+.dc-PASA { background: #16a34a; color: #fff; }
+.dc-PARCIAL { background: #f59e0b; color: #1f2937; }
+.dc-FALLA { background: #dc2626; color: #fff; }
+.dc-PARADIGM { background: #a855f7; color: #fff; }
+.dc-REDUNDANT { background: #6366f1; color: #fff; }
+.conf-val { font-size: 9px; color: #64748b; }
+.aggregate {
+  margin-top: 24px;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 16px;
+  border-left: 4px solid #a855f7;
+}
+.aggregate h2 { font-size: 14px; margin-bottom: 12px; color: #f1f5f9; }
+.agg-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.agg-card { text-align: center; padding: 12px; background: #0f172a; border-radius: 6px; }
+.agg-num { font-size: 24px; font-weight: 700; color: #38bdf8; }
+.agg-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; margin-top: 4px; }
+.paradigm-section { margin-top: 16px; }
+.paradigm-card {
+  background: #2e1065;
+  border: 1px solid #a855f7;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.paradigm-card .gene { font-weight: 700; color: #c4b5fd; font-family: monospace; }
+footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+  font-size: 11px;
+  color: #64748b;
+}
+footer a { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<h1>Cascada multi-candidato pronephros — protocolo 4-scenario aplicado al set v1.3</h1>
+<p class="subtitle">14 candidatos · 56 predicciones de fenotipo (4-scenario por candidato) · Cascade-sim methodology aplicada · v1.0 · 2026-05-14</p>
+
+<div class="intro">
+  <h2>Protocolo aplicado</h2>
+  <p>Para cada uno de los 14 candidatos del set mínimo v1.3, se aplica el protocolo 4-scenario del skill <code>causal-ablation-cascade-sim</code> (ADR-0001) en su ventana de esencialidad primaria:</p>
+  <ul>
+    <li><strong>Mode A washout · hipo</strong> (~50% function, perturbación específica del stage)</li>
+    <li><strong>Mode A washout · KO</strong> (~95% function, perturbación específica del stage)</li>
+    <li><strong>Mode B persistente · hipo</strong> (~50% function, perturbación sostenida throughout)</li>
+    <li><strong>Mode B persistente · KO</strong> (~95% function, perturbación sostenida throughout)</li>
+  </ul>
+  <p>Verdict del decouple paradigm por cada scenario (ADR-0003 tripartite):
+    <span class="decouple-badge dc-PASA">PASA</span> = morfología falla pero identidad preservada (paradigm case) ·
+    <span class="decouple-badge dc-PARCIAL">PARCIAL</span> = mixed signal ·
+    <span class="decouple-badge dc-FALLA">FALLA</span> = ambos identidad y morfología disrupted ·
+    <span class="decouple-badge dc-REDUNDANT">REDUN</span> = compensado por parálogo (single morphant insuficiente).
+  </p>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">Candidato</th>
+      <th rowspan="2">W</th>
+      <th colspan="2" class="mode-header mode-A">Mode A · washout (stage-specific)</th>
+      <th colspan="2" class="mode-header mode-B">Mode B · persistente (sostenida)</th>
+    </tr>
+    <tr>
+      <th>hipo (~50%)</th>
+      <th>KO (~95%)</th>
+      <th>hipo (~50%)</th>
+      <th>KO (~95%)</th>
+    </tr>
+  </thead>
+  <tbody id="cascade-tbody"></tbody>
+</table>
+
+<div class="aggregate">
+  <h2>Aggregate — distribución decouple verdict (56 scenarios)</h2>
+  <div class="agg-grid">
+    <div class="agg-card">
+      <div class="agg-num" id="agg-pasa">0</div>
+      <div class="agg-label">PASA paradigm</div>
+    </div>
+    <div class="agg-card">
+      <div class="agg-num" id="agg-parcial">0</div>
+      <div class="agg-label">PARCIAL</div>
+    </div>
+    <div class="agg-card">
+      <div class="agg-num" id="agg-falla">0</div>
+      <div class="agg-label">FALLA</div>
+    </div>
+    <div class="agg-card">
+      <div class="agg-num" id="agg-redun">0</div>
+      <div class="agg-label">REDUNDANT</div>
+    </div>
+    <div class="agg-card">
+      <div class="agg-num" id="agg-total">56</div>
+      <div class="agg-label">Total scenarios</div>
+    </div>
+  </div>
+
+  <div class="paradigm-section">
+    <h2>Paradigm-case shortlist (priorización wet-lab cuando llegue Phase II)</h2>
+    <div class="paradigm-card">
+      <span class="gene">mafba 2B-KO</span> · W4 podocyte differentiation · <span class="decouple-badge dc-PASA">PASA</span>
+      — predicción: foci wt1a+ preservados sin arquitectura podocyte. <strong>Coincide con el paradigm case 2B-KO del project cascade-sim v2 (ADR-0003 origen).</strong>
+    </div>
+    <div class="paradigm-card">
+      <span class="gene">prkci + prkcz double</span> · W3 polarity · <span class="decouple-badge dc-REDUNDANT">REDUN</span> → <span class="decouple-badge dc-FALLA">FALLA</span>
+      — predicción: single morphants mild (compensado), double 90% severe (Gerlach 2014 PMID 25446529). Demuestra "redundancia paralog → necesidad de double KO".
+    </div>
+    <div class="paradigm-card">
+      <span class="gene">wt1a A-KO W2</span> · podocyte commitment · <span class="decouple-badge dc-PARCIAL">PARCIAL</span>
+      — predicción: glomerulus falla pero túbulo puede formarse (disociar podocyte de tubule lineage). Decouple parcial.
+    </div>
+    <div class="paradigm-card">
+      <span class="gene">myh9a stage-specific W1 vs W2 vs W3</span> · <strong>"same machinery, three phenotypes"</strong>
+      — predicción: misma proteína perturbada en distintos windows → DISLOCACIÓN (W1), COMPRESIÓN (W2), FALLA-LUMEN (W3). El project finding más importante de la cascade. Validado en v2 cascade (reportes pre-2026-05-14).
+    </div>
+  </div>
+</div>
+
+<footer>
+  Generado 2026-05-14 · Cascade protocol per <a href="../skills/custom/causal-ablation-cascade-sim/SKILL.md">causal-ablation-cascade-sim</a> ADR-0001 · Decouple tripartite per ADR-0003 ·
+  <a href="proteomic-evidence-pronephros-windows-v1.3.md">Reporte v1.3</a> ·
+  <a href="proteoma-pronefro-viz-14candidates-v1.html">Viz 14 candidatos</a>
+</footer>
+
+<script>
+// Each row: gene, acc, window, [4 scenarios: phenotype, decouple, confidence]
+// Decouple: PASA (paradigm), PARCIAL, FALLA, REDUN
+const ROWS = [
+  // W1
+  { gene: 'vangl2', acc: 'Q8UVJ6', w: 1,
+    s: [
+      { p: 'Dislocación mild — convergencia parcial', d: 'PARCIAL', c: 0.55 },
+      { p: 'Dislocación severa — trilobite phenotype', d: 'FALLA', c: 0.55 },
+      { p: 'Dislocación + AP shortening progresivo', d: 'FALLA', c: 0.55 },
+      { p: 'Catastrófico — gastrulation failure', d: 'FALLA', c: 0.55 },
+    ]},
+  { gene: 'myh9a', acc: 'A0A8M1NEM1', w: 1,
+    s: [
+      { p: 'Dislocación mild — cortex weakened', d: 'PARCIAL', c: 0.80 },
+      { p: 'Dislocación + AP issues moderate', d: 'FALLA', c: 0.80 },
+      { p: 'Progressive multi-window defect', d: 'FALLA', c: 0.80 },
+      { p: 'Catastrófico — same machinery 3 windows', d: 'FALLA', c: 0.80 },
+    ]},
+  // W2
+  { gene: 'osr1', acc: 'Q5XJQ7', w: 2,
+    s: [
+      { p: 'Reduced progenitor survival — parcial IM', d: 'PARCIAL', c: 0.90 },
+      { p: 'Catastrófico — todos los downstream perdidos', d: 'FALLA', c: 0.90 },
+      { p: 'Depleción progresiva — pronephros parcial', d: 'FALLA', c: 0.90 },
+      { p: 'Ausencia total de pronephros', d: 'FALLA', c: 0.90 },
+    ]},
+  { gene: 'pax2a', acc: 'Q90268', w: 2,
+    s: [
+      { p: 'wt1a expansion to neck — mild dysmorph', d: 'PARCIAL', c: 0.85 },
+      { p: 'Boundary tubule-glomerulus perdida', d: 'FALLA', c: 0.85 },
+      { p: 'Identidad progresivamente pobre', d: 'FALLA', c: 0.85 },
+      { p: 'Amorphous mass — no identity', d: 'FALLA', c: 0.85 },
+    ]},
+  { gene: 'lhx1a', acc: 'Q90476', w: 2,
+    s: [
+      { p: 'Reduced anterior IM', d: 'PARCIAL', c: 0.75 },
+      { p: 'Anterior missing, posterior parcial', d: 'FALLA', c: 0.75 },
+      { p: 'Anterior deficit ongoing', d: 'FALLA', c: 0.75 },
+      { p: 'Catastrofic anterior loss', d: 'FALLA', c: 0.75 },
+    ]},
+  { gene: 'wt1a', acc: 'Q9PUT7', w: 2,
+    s: [
+      { p: 'Reduced podocyte commitment', d: 'PARCIAL', c: 0.90 },
+      { p: 'No glomerulus — túbulo puede formarse', d: 'PARCIAL', c: 0.90 },
+      { p: 'Chronic podocyte deficit', d: 'PARCIAL', c: 0.90 },
+      { p: 'Falla glomerular + body edema', d: 'FALLA', c: 0.90 },
+    ]},
+  // W3
+  { gene: 'prkci', acc: 'Q90XF2', w: 3,
+    s: [
+      { p: 'Bumpy wall mild — prkcz compensates', d: 'REDUN', c: 0.92 },
+      { p: '50% phenotype — single KD prkcz compensa parcial', d: 'REDUN', c: 0.92 },
+      { p: 'Polaridad progresiva pérdida', d: 'PARCIAL', c: 0.92 },
+      { p: 'Swiss cheese architecture — double KO 90% severe (Gerlach 2014)', d: 'FALLA', c: 0.92 },
+    ]},
+  { gene: 'pard3', acc: 'A0A8N7V082', w: 3,
+    s: [
+      { p: 'Tight junctions weakened', d: 'PARCIAL', c: 0.70 },
+      { p: 'Pérdida apical-basolateral domains', d: 'FALLA', c: 0.70 },
+      { p: 'Chronic polarity failure', d: 'FALLA', c: 0.70 },
+      { p: 'No tight junctions, no lumen', d: 'FALLA', c: 0.70 },
+    ]},
+  { gene: 'cdh17', acc: 'Q90X63', w: 3,
+    s: [
+      { p: 'Incomplete cadherin switch — partial MET', d: 'PARCIAL', c: 0.65 },
+      { p: 'Identidad epitelial confused', d: 'FALLA', c: 0.65 },
+      { p: 'Chronic cadherin deficit', d: 'FALLA', c: 0.65 },
+      { p: 'No renal epithelium', d: 'FALLA', c: 0.65 },
+    ]},
+  // W4
+  { gene: 'mafba', acc: 'A0A2U3TVD3', w: 4,
+    s: [
+      { p: 'Reduced podocyte maturation', d: 'PARCIAL', c: 0.60 },
+      { p: 'Foci wt1a+ preservados — no arquitectura', d: 'PASA', c: 0.60 },
+      { p: 'Chronic podocyte deficit', d: 'PARCIAL', c: 0.60 },
+      { p: 'Total podocyte failure — foci wt1a+ persist (PARADIGM)', d: 'PASA', c: 0.60 },
+    ]},
+  { gene: 'podxl', acc: 'Q5RHU2', w: 4,
+    s: [
+      { p: 'Lumen parcialmente cerrado', d: 'PARCIAL', c: 0.75 },
+      { p: 'Lumen collapsed — túbulo sin filtración', d: 'PARCIAL', c: 0.75 },
+      { p: 'Progressive lumen failure', d: 'PARCIAL', c: 0.75 },
+      { p: 'No lumen — filtración imposible', d: 'FALLA', c: 0.75 },
+    ]},
+  { gene: 'sept7b', acc: 'A0A8M1NZC4', w: 4,
+    s: [
+      { p: 'Pronephros funcional + L-R defects mild', d: 'PARCIAL', c: 0.55 },
+      { p: 'L-R randomized + pronephric dysfunction', d: 'PARCIAL', c: 0.55 },
+      { p: 'Chronic L-R + pronephros progresivo', d: 'PARCIAL', c: 0.55 },
+      { p: 'Severe L-R + non-functional pronephros', d: 'FALLA', c: 0.55 },
+    ]},
+  { gene: 'itga1', acc: 'A0A8M9QKV2', w: 4,
+    s: [
+      { p: 'Reduced cell division 5 dpf', d: 'PARCIAL', c: 0.60 },
+      { p: 'Stunted pronephric growth (Naylor)', d: 'PARCIAL', c: 0.60 },
+      { p: 'Chronic adhesion deficit', d: 'PARCIAL', c: 0.60 },
+      { p: 'Pronephros hypoplastic', d: 'PARCIAL', c: 0.60 },
+    ]},
+  { gene: 'itgb1a', acc: 'Q3YAA1', w: 4,
+    s: [
+      { p: 'Reduced cell division (paired w itga1)', d: 'PARCIAL', c: 0.60 },
+      { p: 'Stunted growth — same as itga1', d: 'PARCIAL', c: 0.60 },
+      { p: 'Chronic adhesion deficit', d: 'PARCIAL', c: 0.60 },
+      { p: 'Pronephros hypoplastic', d: 'PARCIAL', c: 0.60 },
+    ]},
+];
+
+function renderTable() {
+  const tbody = document.getElementById('cascade-tbody');
+  let aggCounts = { PASA: 0, PARCIAL: 0, FALLA: 0, REDUN: 0 };
+  tbody.innerHTML = ROWS.map(r => `
+    <tr>
+      <td class="gene-cell">${r.gene}<br><span class="gene-acc">${r.acc}</span></td>
+      <td><span class="window-badge w-${r.w}">W${r.w}</span></td>
+      ${r.s.map(sc => {
+        aggCounts[sc.d]++;
+        return `<td class="scenario-cell">
+          <span class="phenotype">${sc.p}</span>
+          <span class="decouple-badge dc-${sc.d}">${sc.d}</span>
+          <span class="conf-val">conf ${sc.c.toFixed(2)}</span>
+        </td>`;
+      }).join('')}
+    </tr>
+  `).join('');
+  document.getElementById('agg-pasa').textContent = aggCounts.PASA;
+  document.getElementById('agg-parcial').textContent = aggCounts.PARCIAL;
+  document.getElementById('agg-falla').textContent = aggCounts.FALLA;
+  document.getElementById('agg-redun').textContent = aggCounts.REDUN;
+}
+document.addEventListener('DOMContentLoaded', renderTable);
+</script>
+
+</body>
+</html>

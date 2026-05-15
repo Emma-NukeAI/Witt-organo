@@ -72,6 +72,8 @@ or external references that informed the decision.
 | [0002](0002-version-preservation-rule.md) | 2026-05-12 (retroactive) | Version preservation: never modify prior session outputs | Accepted |
 | [0003](0003-decouple-paradigm-as-purity-test.md) | 2026-05-12 (retroactive) | Decouple paradigm: PASA / PARCIAL / FALLA tripartite | Accepted |
 | [0004](0004-squidiff-as-transcriptomic-gate.md) | 2026-05-13 (patched 2026-05-14) | Adopt Squidiff as transcriptomic hypothesis gate | Accepted |
+| [0005](0005-test-claim-language-discipline.md) | 2026-05-14 | Test claim language: "satisfied" vs "case capture" vs "infrastructure populated" | Proposed |
+| [0006](0006-catalog-agent-invocation-discipline.md) | 2026-05-14 | Catalog agent invocation discipline + decision matrix + §11 preflight | Proposed |
 
 ---
 

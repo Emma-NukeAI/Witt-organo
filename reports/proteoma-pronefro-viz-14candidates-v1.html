@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Set mínimo proteómico pronephros zebrafish — 14 candidatos v1.3</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 24px;
+  line-height: 1.5;
+}
+h1 { font-size: 22px; margin-bottom: 4px; color: #f1f5f9; }
+h2 { font-size: 14px; margin-bottom: 12px; font-weight: 600; color: #cbd5e1; }
+.subtitle { color: #94a3b8; font-size: 13px; margin-bottom: 24px; }
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+}
+.stat { text-align: center; }
+.stat-num { font-size: 28px; font-weight: 700; color: #38bdf8; }
+.stat-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 12px;
+  background: #1e293b;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid #334155;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.w1-bg { background: #92400e; }
+.w2-bg { background: #1d4ed8; }
+.w3-bg { background: #065f46; }
+.w4-bg { background: #9f1239; }
+.badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; }
+.b-detected { background: #16a34a; color: #fff; }
+.b-lof { background: #f59e0b; color: #1f2937; }
+.b-paradigm { background: #a855f7; color: #fff; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.window-col {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 14px;
+  border-top: 4px solid;
+}
+.window-col.w1 { border-top-color: #f59e0b; }
+.window-col.w2 { border-top-color: #3b82f6; }
+.window-col.w3 { border-top-color: #10b981; }
+.window-col.w4 { border-top-color: #f43f5e; }
+.window-title { font-size: 12px; color: #f1f5f9; margin-bottom: 4px; font-weight: 700; }
+.window-hpf { font-size: 10px; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.card:hover { background: #1e293b; border-color: #38bdf8; transform: translateX(2px); }
+.card-gene { font-weight: 700; font-size: 14px; color: #f1f5f9; font-family: 'Cascadia Code', 'Consolas', monospace; }
+.card-acc { font-size: 10px; color: #64748b; font-family: monospace; }
+.card-role { font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.3; }
+.card-ess-bar { height: 4px; background: #334155; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.card-ess-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); }
+.card-ess-label { font-size: 9px; color: #64748b; text-align: right; margin-top: 2px; }
+.card-badges { position: absolute; top: 8px; right: 8px; display: flex; gap: 3px; }
+.modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 600px;
+  width: 90%;
+  border: 1px solid #475569;
+}
+.modal-close { float: right; cursor: pointer; color: #94a3b8; font-size: 20px; line-height: 1; }
+.modal-close:hover { color: #f1f5f9; }
+.modal-title { font-size: 20px; margin-bottom: 4px; color: #f1f5f9; }
+.modal-subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 16px; }
+.modal-section { margin-bottom: 12px; }
+.modal-section-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.modal-section-value { font-size: 13px; color: #e2e8f0; }
+.modal-section-value a { color: #38bdf8; text-decoration: none; }
+.modal-section-value a:hover { text-decoration: underline; }
+footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #334155;
+  font-size: 11px;
+  color: #64748b;
+}
+footer a { color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<h1>Set mínimo proteómico — pronephros zebrafish</h1>
+<p class="subtitle">v1.3 · 14 candidatos UniProt verificados · Sesión 2026-05-14 · Detección directa PXD036678</p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">14</div>
+    <div class="stat-label">Candidatos verificados</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">4</div>
+    <div class="stat-label">Ventanas desarrollo (W1-W4)</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">2</div>
+    <div class="stat-label">Detectados pre-W1 (PXD036678)</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">0.68</div>
+    <div class="stat-label">Confianza direct_answer</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="swatch w1-bg"></span> W1 mesendodermo (6-10 hpf)</div>
+  <div class="legend-item"><span class="swatch w2-bg"></span> W2 LPM/IM (10-14 hpf)</div>
+  <div class="legend-item"><span class="swatch w3-bg"></span> W3 MET (14-18 hpf)</div>
+  <div class="legend-item"><span class="swatch w4-bg"></span> W4 lumenogénesis (18-24 hpf)</div>
+  <div class="legend-item"><span class="badge b-detected">DETECT</span> Detectado proteína-level en PXD036678</div>
+  <div class="legend-item"><span class="badge b-lof">LoF</span> Loss-of-function documentado</div>
+  <div class="legend-item"><span class="badge b-paradigm">PARAD</span> Decouple paradigm case (PASA preservation)</div>
+</div>
+
+<div class="grid">
+  <div class="window-col w1">
+    <div class="window-title">W1 · Mesendodermo</div>
+    <div class="window-hpf">6-10 hpf · convergencia-extensión</div>
+    <div id="col-w1"></div>
+  </div>
+  <div class="window-col w2">
+    <div class="window-title">W2 · LPM / IM emergence</div>
+    <div class="window-hpf">10-14 hpf · stripes LPM + IM</div>
+    <div id="col-w2"></div>
+  </div>
+  <div class="window-col w3">
+    <div class="window-title">W3 · MET / pre-tubulogénesis</div>
+    <div class="window-hpf">14-18 hpf · cadherin switch + polaridad apical</div>
+    <div id="col-w3"></div>
+  </div>
+  <div class="window-col w4">
+    <div class="window-title">W4 · Lumenogénesis / segmentación</div>
+    <div class="window-hpf">18-24 hpf · lumen + glomérulo + ducto</div>
+    <div id="col-w4"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer>
+  Generado 2026-05-14 · Substrate evidence Tests 1-4 · Confidence trajectory: 0.40 → 0.55 → 0.60 → 0.65 → 0.68 ·
+  <a href="proteomic-evidence-pronephros-windows-v1.3.md">Reporte v1.3</a> ·
+  <a href="../mcp_cache/uniprot_pronephros_candidates_20260514.json">UniProt cache</a> ·
+  <a href="../substrate_calibration/records/">Claim records</a>
+</footer>
+
+<script>
+const CANDIDATES = [
+  { gene: 'vangl2', acc: 'Q8UVJ6', window: 1, role: 'PCP / strabismus / trilobite — convergence-extension', essentiality: 0.55, detected: true, lof_doc: true, peptides_observed: 3, peptide_evidence: 'ELEDSSPLECR, LQDDEAAASPK, SVTIQAPGEPLLDAESTR', notes: 'Maternal-loaded; máximo a 256-cell; función W1 indirecta al pronephros vía C-E' },
+  { gene: 'myh9a', acc: 'A0A8M1NEM1', window: 1, role: 'Non-muscle myosin IIa — actomyosin contractility', essentiality: 0.80, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Same machinery 3 windows (C-E W1, intercalación W2, constricción W3); ausencia PXD036678 puede ser DB-isoforma' },
+  { gene: 'osr1', acc: 'Q5XJQ7', window: 2, role: 'Master TF upstream — odd-skipped related 1', essentiality: 0.90, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'UniProt: "acts upstream of pax2a in kidney development"; regula wt1b/lhx1a/pax2/eya1/six2/sall1/gdnf/wnt2ba' },
+  { gene: 'pax2a', acc: 'Q90268', window: 2, role: 'Paired box TF — tubule identity boundary', essentiality: 0.85, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Negative feedback loop con wt1a define boundary tubule-glomerulus' },
+  { gene: 'lhx1a', acc: 'Q90476', window: 2, role: 'LIM homeobox — anterior progenitor', essentiality: 0.75, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Co-expresada en pronephros anterior; downstream de osr1' },
+  { gene: 'wt1a', acc: 'Q9PUT7', window: 2, role: 'Wilms tumor 1a — podocyte master TF', essentiality: 0.90, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'KO → falla glomerular + edema corporal; pérdida nphs1/nphs2' },
+  { gene: 'prkci', acc: 'Q90XF2', window: 3, role: 'Atypical PKC — "Heart and soul" apical polarity kinase', essentiality: 0.92, detected: true, lof_doc: true, peptides_observed: 6, peptide_evidence: 'DMCSMDNDQLFTMK, ELVNDDEDIDWVQTEK, KLPEEHAR + 3 más', notes: 'Redundante con prkcz (Gerlach 2014 PMID 25446529); 90% phenotype sólo en double morphant; máxima abundancia a epiboly' },
+  { gene: 'pard3', acc: 'A0A8N7V082', window: 3, role: 'Par-3 scaffold — apical polarity partner of prkci', essentiality: 0.70, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: '3× PDZ domains; co-localized tight junctions' },
+  { gene: 'cdh17', acc: 'Q90X63', window: 3, role: 'Cadherin-17 — renal epithelial cadherin', essentiality: 0.65, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Cadherin switch cdh2→cdh17 = MET signature' },
+  { gene: 'mafba', acc: 'A0A2U3TVD3', window: 4, role: 'bZIP TF — podocyte differentiation (Kreisler/Val)', essentiality: 0.60, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Specificity ratio 0.145 (Tier 3 candidate-ranking per reasoning catalog v1.2)' },
+  { gene: 'podxl', acc: 'Q5RHU2', window: 4, role: 'Podocalyxin — apical anti-adhesive / lumen', essentiality: 0.75, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Mantiene lumen patency; epithelial polarization' },
+  { gene: 'sept7b', acc: 'A0A8M1NZC4', window: 4, role: 'Septin-7b — cytoskeleton + L-R asymmetry', essentiality: 0.55, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Fang 2024 PXD036678 paper: "critical for pronephric function and L-R asymmetry"' },
+  { gene: 'itga1', acc: 'A0A8M9QKV2', window: 4, role: 'Integrin alpha-1 — adhesion (Manchester finding)', essentiality: 0.60, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Naylor preliminary 2019-2020 (5 dpf PKD); KO + itgb1a KO reduce división kidney' },
+  { gene: 'itgb1a', acc: 'Q3YAA1', window: 4, role: 'Integrin beta-1 — partner of itga1', essentiality: 0.60, detected: false, lof_doc: true, peptides_observed: 0, peptide_evidence: null, notes: 'Manchester finding; receptor adhesion principal en pronephros' },
+];
+
+function renderCards() {
+  for (let w = 1; w <= 4; w++) {
+    const col = document.getElementById(`col-w${w}`);
+    const list = CANDIDATES.filter(c => c.window === w);
+    col.innerHTML = list.map(c => {
+      const ess_pct = Math.round(c.essentiality * 100);
+      const badges = [];
+      if (c.detected) badges.push('<span class="badge b-detected">DETECT</span>');
+      if (c.lof_doc) badges.push('<span class="badge b-lof">LoF</span>');
+      if (c.gene === 'mafba') badges.push('<span class="badge b-paradigm">PARAD</span>');
+      return `
+        <div class="card" onclick='openModal(${JSON.stringify(c).replace(/'/g,"&apos;")})'>
+          <div class="card-badges">${badges.join('')}</div>
+          <div class="card-gene">${c.gene}</div>
+          <div class="card-acc">${c.acc}</div>
+          <div class="card-role">${c.role}</div>
+          <div class="card-ess-bar"><div class="card-ess-fill" style="width:${ess_pct}%"></div></div>
+          <div class="card-ess-label">essentialidad ${ess_pct}%</div>
+        </div>`;
+    }).join('');
+  }
+}
+
+function openModal(c) {
+  const html = `
+    <span class="modal-close" onclick="closeModal()">&times;</span>
+    <div class="modal-title">${c.gene}</div>
+    <div class="modal-subtitle">UniProt <a href="https://www.uniprot.org/uniprotkb/${c.acc}/entry" target="_blank">${c.acc}</a> · Window W${c.window}</div>
+    <div class="modal-section">
+      <div class="modal-section-label">Role</div>
+      <div class="modal-section-value">${c.role}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Essentiality (LoF-based confidence)</div>
+      <div class="modal-section-value">${(c.essentiality*100).toFixed(0)}% — ${c.lof_doc ? 'LoF documentado en literatura zebrafish' : 'sin LoF directo'}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Detección en PXD036678 (MZT 2-5.3 hpf, 4,122 protein groups)</div>
+      <div class="modal-section-value">${c.detected ? `DETECTADO — ${c.peptides_observed} péptidos: ${c.peptide_evidence}` : 'NO detectado (esperado: candidato cigotic activa W2+, ausente en MZT pre-W1)'}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">Notas</div>
+      <div class="modal-section-value">${c.notes}</div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-label">AlphaFold</div>
+      <div class="modal-section-value"><a href="https://alphafold.ebi.ac.uk/entry/${c.acc}" target="_blank">alphafold.ebi.ac.uk/entry/${c.acc}</a></div>
+    </div>`;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); }
+
+document.addEventListener('DOMContentLoaded', renderCards);
+document.addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+
+</body>
+</html>

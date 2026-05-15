@@ -1,0 +1,41 @@
+{
+  "claim_id": "claim_20260514_150000_proteomic-repositories-located",
+  "claim_timestamp": "2026-05-14T15:00:00Z",
+  "session_id": "reports/proteomic-evidence-pronephros-windows-v1.1.md",
+  "skill_origin": "manual (WebSearch + curl REST APIs + WebFetch synthesis)",
+  "skill_version": "manual-curl-WebFetch-1.0",
+  "claim_text": "Public proteomic datasets covering zebrafish pronephros developmental windows W1-W4 (6-24 hpf) are scarce. Two datasets with confirmed PXD/MSV identifiers exist (PXD036678 pre-W1 MZT 4846 proteins; MSV000096671 post-W4 larval 4-10 dpf), but NEITHER covers W1-W4 directly. The most relevant timeseries dataset is Wan et al. JPR 2023 (PMID 37500539, 10 stages 4-cell to 5 dpf, 5961 proteins) which covers all four windows but PXD identifier is not localizable via PubMed abstract or web search — requires contacting authors. Sept7b is added as a new W4 candidate based on Fang 2024 iScience finding ('critical for pronephric function and left-right asymmetry').",
+  "claim_category": "extraction",
+  "prior": 0.50,
+  "stated_confidence": 0.85,
+  "framework_applied": "Self-Discover (Tier 2) — per reasoning-frameworks-catalog.md §Tier 2. Sub-modules: M5 (repository enumeration), M6 (window-coverage classification), M7 (candidate elevation from proteomics-direct evidence).",
+  "expected_outcome_if_h1": "Contacting Cuihong Wan (Wuhan) for the JPR 2023 PXD yields a deposited dataset accession (e.g., PXD0XXXXX) covering 10 stages from 4-cell to 5 dpf with 5961 proteins quantified. When queried for our 12 candidates, at least 8/12 are detected at protein level with stage-specific abundance changes matching the transcriptomic pattern.",
+  "expected_outcome_if_h0": "Either (a) Wan's data is NOT deposited (inconsistent with JPR editorial policy but possible), or (b) deposit exists but most of our 12 candidates are below detection (suggesting transcript-protein discordance for TFs is large in early zebrafish embryos), or (c) detection is uneven across stages preventing window-by-window inference. In any of these cases, the substrate must operate on indirect / transcript-proxy evidence for Phase I.",
+  "observable_at": "Once Wan lab responds to email request (typical academic turnaround: 1-4 weeks). Falsifiable by: searching ProteomeXchange Central for accessions submitted by Cuihong Wan or Central China Normal University labs in 2022-2023 timeframe.",
+  "observed_outcome": null,
+  "observed_at": null,
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_4"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "This claim is repository-search extraction, not pruner-generation work."
+    },
+    {
+      "agent": "composite-auditor",
+      "status": "invoked-retroactively",
+      "invocation_id": "composite-audit-2026-05-14-17:30",
+      "reason": "Backfilled per ADR-0006 §6 step 5. The 2026-05-14 composite-audit verified the extraction claim's internal consistency.",
+      "evidence_generated": ["test_1"]
+    },
+    {
+      "agent": "reasoning-exposer",
+      "status": "skipped-ad-hoc",
+      "reason": "Manual structured output. alternatives_considered field missing from this JSON — flagged as §5 contract violation."
+    }
+  ],
+  "notes": "Second claim record of this session. This claim is more concretely falsifiable than the minimal-set hypothesis because it requires only locating a public dataset, not running a reconstitution experiment. Confidence 0.85 reflects high probability that JPR editorial policy required PRIDE deposit + the data is searchable via direct PXD lookup once the accession is known."
+}
