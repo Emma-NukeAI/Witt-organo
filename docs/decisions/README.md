@@ -80,6 +80,7 @@ or external references that informed the decision.
 | [0010](0010-rename-bundle-to-gwt-v1.1.md) | 2026-06-10 | Rename the umbrella bundle v2.5 → GWT v1.1 (label reset; v2.x history preserved) | Accepted |
 | [0011](0011-eps-must-be-measured.md) | 2026-06-11 | EPS must be measured (noise-probe before any improvement claim) | Accepted |
 | [0012](0012-reactive-calibration-rolling-k6.md) | 2026-06-11 | Reactive calibration (rolling K=6 + auto-cap) supersedes quarterly-only | Accepted |
+| [0013](0013-governance-proposal-meta-loop.md) | 2026-06-11 | Governance-proposal meta-loop: the agent proposes, the human applies (Sakana safety lesson) | Accepted |
 | [0014](0014-outcome-vocab-and-per-stream-auto-cap.md) | 2026-06-11 | Outcome vocabulary (positive/negative/unfalsifiable) + per-stream auto-cap regime | Accepted |
 | [0015](0015-rag-index-structure-backend-open.md) | 2026-06-11 | RAG index structure-first (13 niches + 9 DBs); backend OPEN (FAISS/Neo4j/graphify/hybrid via spike) | Accepted (structure) |
 | [0016](0016-ril-program-charter.md) | 2026-06-11 | RIL_PROGRAM.md as the canonical Reasoning-Improvement-Loop charter | Accepted |

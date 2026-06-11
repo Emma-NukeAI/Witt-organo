@@ -365,6 +365,33 @@ This skill will iterate constantly as the project develops. The architecture rul
 
 ---
 
+## Meta-loop — governance-proposal templates (NEW v1.1, PR-11 / ADR-0013)
+
+The Reasoning-Improvement Loop improves the *process* (prompts, retrieval, thresholds, even the
+charter) via a **human-gated** governance meta-loop, ported from autoresearch `program.md` §15 and
+reinforced by the Sakana AI-Scientist self-modification safety incident. **Any agent MAY write a
+`governance-proposal`; it MUST NOT self-apply it** (`self_applied: false` is an invariant; a `true`
+entry is rejected and logged as a violation). A human (via `program-manager`) approves; a
+design-changing approval requires an ADR. Queue: `substrate_calibration/retrospectives/governance_queue.jsonl`.
+The `substrate_calibration/RIL_PROGRAM.md` charter itself evolves only this way.
+
+Four **pre-approved templates** (raise one when its telemetry trigger fires):
+
+1. **domain-recall-drop** — a sub-domain's hypotheses fall below the global Completeness median for 2
+   consecutive K=6 windows → fix-cascade: hybrid BM25+dense retrieval → MeSH filters → reranker →
+   (last resort) embedding fine-tune (the last step is an anti-pattern if done earlier — Magraner).
+2. **contradiction-section-empty** — `alternatives_considered.contradictory_evidence_cited` empty in
+   >40% of outputs → enforce a mandatory contradiction-search step (negated query) before pipeline entry.
+3. **citation-coverage-drift** — Proxy-0 citation verification drops with no local change → suspect a
+   provider model-id deprecation / wrapper change → re-pin model-id, re-run the noise-probe.
+4. **sub-domain-calibration-divergence** — Proxy-2 ECE diverges by biological sub-domain → tune the
+   per-sub-domain isotonic bins (regressors exist from day 1, ADR-0014).
+
+See `references/agent-catalog.md` (`program-manager` PIVOT_AFTER + queue clearing) and
+`substrate_calibration/RIL_PROGRAM.md` §7.
+
+---
+
 ## Final Reminder
 
 This skill exists because Project Organogenesis × Witt will run on agents — but more importantly, because every one of those agents is also generating evidence for whether the substrate framing is real. A clear agent architecture is what separates a 4-person virtual biotech that ships its kidney POC AND its substrate validation evidence on time from one that drowns in coordination overhead and produces unsubstantiated claims.
