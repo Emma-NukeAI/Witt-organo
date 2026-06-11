@@ -35,6 +35,12 @@ eggs/
 .eggs/
 lib/
 lib64/
+
+# Re-include the project's SOURCE library (the bare `lib/` above is the Python
+# build-artifact dir, not this package): resolver + verification gate + store builder.
+!analysis/scripts/lib/
+!analysis/scripts/lib/*.py
+
 parts/
 sdist/
 var/

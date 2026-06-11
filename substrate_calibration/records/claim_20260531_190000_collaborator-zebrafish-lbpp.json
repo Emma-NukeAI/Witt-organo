@@ -1,0 +1,46 @@
+{
+  "claim_id": "claim_20260531_190000_collaborator-zebrafish-lbpp",
+  "claim_timestamp": "2026-05-31T19:00:00Z",
+  "session_id": "reports/fit-test-collaborator-zebrafish-v2.html",
+  "skill_origin": "manual (LBPP: scripts/lbpp_verify.py + Ensembl REST + UniProt) + composite-auditor Mode 1 (5 adversarial agents)",
+  "skill_version": "lbpp-1.0",
+  "claim_text": "javierdiegof/zebrafish is a SPLIT asset. DATA layer: all 24 ENSDARP protein IDs in network.tsv resolve to Danio rerio (taxon 7955) via Ensembl 3-hop lookup with resolved gene symbol == asserted preferredName (24/24, zero mismatches; one case-fold-only match evx1/EVX1 flagged); 7 anchors (cdh17, gata3, lhx1a, pax2a, pax8, wt1a, wt1b) match our verified analysis/outputs/ensembl_symbol_map.json exactly; 9/9 UniProt accessions from spatial_data.json are taxon 7955 with gene_primary matching (4/9 unreviewed TrEMBL; 6/9 UniProt match is partly circular since the accession map is the collaborator's own — Ensembl 3-hop is the independent anchor). ANALYSIS layer: nb03's conclusion (116->90 edges, 22 nodes, 'fgf8a eliminated') is mathematically UNREACHABLE — faithful re-execution gives 48 edges/17 nodes/68 pruned, and a 3,721-combo brute force over (threshold x filler-default) yields ZERO settings producing 90 edges or 22 nodes. The surviving network is an artifact of the hardcoded 0.125 filler constant (15/15 undocumented neighbors auto-pass at 0.125 >= 0.12 while 6/9 real genes fail); the GO-substring 'spatial scores' false-positive on liver ('duct' matches 'intrahepatic bile duct') and false-negative on pax2a (canonical pronephros gene scores 0.1); the 0.92/0.95 confidence ladder is asserted pre-ground-truth. Raw responses cached at mcp_cache/raw_ensembl_lookup_{proteins,transcripts,genes}_20260531.json and raw_uniprot_accessions_20260531.json per CLAUDE.md §6/§7.9.",
+  "claim_category": "extraction",
+  "requires_human_gate": true,
+  "human_gate_rationale": "CRITICAL confidentiality/IP incident: the collaborator's PUBLIC repo github.com/javierdiegof/zebrafish ships witt_thesis.docx + witt_validation_tests.docx (Witt's own confidential thesis + validation-test specs, README stamped 'Confidential — Witt Substrate POC Year — Mexico'). Per CLAUDE.md §7, compliance decisions never go through automatic filtering — must escalate to a human gate (Martín) before any reliance on this collaborator as a source. This gates the adopt/reject decision independent of the data verdict.",
+  "agent_invocation_status": "composite-auditor invoked (Mode 1 split-and-vote, 5 adversarial auditors: identifier-integrity, conclusion-validity, adoption-decision, self-critique, completeness). Verdict NOT self-certified.",
+  "prior": 0.50,
+  "stated_confidence": 0.50,
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: 'favored by 2025 literature for high-stakes outputs'. Re-elected from an initial Self-Discover (§3) decomposition once the work became verification-against-multiple-evidence-streams (re-execution of nb03 code, Ensembl/UniProt cross-checks, anchor cross-check against our verified map). Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "identifiers_verify_clean (extraction, the scored claim)": 0.50,
+    "analysis_layer_is_fabricated_nonreproducible": 0.93,
+    "network.tsv_is_genuine_STRING_export (IDs confirmed; edge weights NOT re-pulled)": 0.85,
+    "file_network.tsv_is_safe_to_bless_as_§6_raw_asset (FAILS — unknown STRING version/date)": 0.35
+  },
+  "expected_outcome_if_h1": "Identifiers verify clean against Ensembl/UniProt with raw caching → data layer is a fit curation hint; harvest the verified gene set, re-derive STRING+spatial ourselves under §6 provenance.",
+  "expected_outcome_if_h0": "≥1 of 9 documented or ≥3 of 15 filler IDs fail to resolve / resolve to wrong gene → reject wholesale (the documented 45% ENSDARG failure mode).",
+  "observable_at": "2026-05-31 (resolved same-session via live Ensembl REST + UniProt lookups)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-05-31T19:05:00Z",
+  "observed_outcome_detail": "Extraction claim RESOLVED POSITIVE: 24/24 ENSDARP verified to Danio rerio with exact symbol match, 7/7 anchors match our verified map, 9/9 UniProt taxon+gene match. Prediction was 0.50; outcome clean → underconfident on this extraction sub-claim (a genuine Test-4 calibration signal: identifier-verification predictions for curated third-party data may warrant higher prior). Note: this scores ONLY the identifier-extraction sub-claim; the analysis-layer-fabrication sub-claim (predicted 0.93) also resolved positive via faithful re-execution.",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_2", "test_4"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "invocation_id": "wf_0bcca130-023 (Mode 1, 5 adversarial auditors)",
+      "reason": "CLAUDE.md §7 self-audit prohibition: the adopt/reject verdict is a substrate-evidence audit gate and must pass composite-auditor, not a single-LLM self-pass. 5 lenses: identifier-integrity (holds_up=true, 0.90), conclusion-validity (holds_up=true, 0.96), adoption-decision (holds_up=true, 0.78), self-critique-of-our-project, completeness (is_verdict_safe=FALSE pending human gate).",
+      "evidence_generated": ["test_1", "test_2", "test_4"]
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation in this output; this is an evaluation/verification of a third-party repo, not sufficiency-hypothesis generation."
+    }
+  ],
+  "notes": "First claim record in the substrate with a RESOLVED observed_outcome (all prior 4 records have observed_outcome=null). It is therefore the first record eligible to enter a Test-4 ECE computation. Per ADR-0005 this is 'case capture' (1 resolved record), NOT 'Test 4 satisfied' — no aggregate ECE is meaningful at n=1. Corrects the §4 anti-pattern present in the 2026-05-14 records (which cite '§Tier 2'): this record cites §8 specifically. Adopt/reject verdict GATED on human review of the confidentiality incident (requires_human_gate=true)."
+}

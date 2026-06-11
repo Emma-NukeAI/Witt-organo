@@ -1,0 +1,52 @@
+{
+  "retro_id": "retro_gwt-v1.1-cycle1_20260610T1215",
+  "session_id": "feat/gwt-v1.1-cycle1",
+  "generated_at": "2026-06-10T12:15:00Z",
+  "agent_version": "manual Cycle-1 RIL retrospective (retrospector agent design pending Cycle 3, ADR-0009)",
+  "scope_note": "Reflection over GWT v1.1 Cycle 1 (Track A source-of-truth + bug fix). This is self-reflection, NOT an audit gate (CLAUDE.md §7): any claim used as audit evidence must pass composite-auditor.",
+  "inputs_scanned": {
+    "claim_records": ["substrate_calibration/records/claim_20260610_120000_verified-identifier-store-v1.json", "substrate_calibration/records/claim_20260531_190000_collaborator-zebrafish-lbpp.json", "substrate_calibration/records/(4x 2026-05-14 legacy)"],
+    "failure_log_lines": 4,
+    "reports": ["substrate_calibration/reports/ece_20260610.json"],
+    "prior_retro_prepend_used": false
+  },
+  "rubric_scores": {
+    "factuality": 0.95,
+    "citation_correctness": 0.90,
+    "completeness": 0.75,
+    "novelty": 0.40,
+    "testability": 0.95,
+    "uncertainty": 0.90,
+    "safety_ethics": 1.0
+  },
+  "rubric_note": "Rubric = research-hypothesis-generation-guide §4 (Factuality, Citation correctness, Completeness, Novelty, Testability, Uncertainty, Safety/ethics). Novelty is intentionally low: this is a correction, not novel science. Completeness < 1 because the recovering re-run+diff is pending (data gitignored) and 23/32 store rows are DERIVED tier.",
+  "rubric_gate_passed": true,
+  "mistakes_identified": [
+    {"type": "identifier_from_memory", "evidence_path": "analysis/scripts/01_schoels_analysis.py (pre-fix)", "severity": "high", "recurring": true, "note": "Same memory-sourced-ID anti-pattern as the May 2026 sessions (45% ENSDARG error). The resolver + verify_output gate are the structural fix so it cannot recur silently."},
+    {"type": "silent_failure_path", "evidence_path": "report_marker() returned found=False with no reason", "severity": "medium", "recurring": false, "note": "A wrong ID failed silently; now records reason=id_not_in_var_names."},
+    {"type": "contract_field_missing", "evidence_path": "4x 2026-05-14 records", "severity": "medium", "recurring": true, "note": "alternatives_considered absent; raised governance proposal gp-2026-06-10-contradiction-section-empty."}
+  ],
+  "calibration_snapshot": {
+    "rolling_k": 6,
+    "n_resolved": 2,
+    "hit_rate_high_conf": 1.0,
+    "confidence_capped": false,
+    "cap_value": 0.30
+  },
+  "lessons": [
+    "Resolve external identifiers via resolve_id.require(); never hardcode IDs from memory.",
+    "On any 'found=False' / absent path, record WHY — silent absence hid 15 wrong IDs.",
+    "Every claim record gets top-level alternatives_considered + contradictory_evidence_cited.",
+    "Cite the specific framework section (e.g. §5 Logic-LM) with a quoted criterion, never '§Tier N'."
+  ],
+  "governance_proposals_raised": ["gp-2026-06-10-contradiction-section-empty"],
+  "tests_status": {
+    "test_1": "case capture",
+    "test_3": "case capture",
+    "test_4": "case capture"
+  },
+  "prepend_digest": "GWT v1.1 Cycle 1 corrected a 15/16 wrong-ID corruption via a verified-identifier store + resolver. Reflexes for next session: (1) resolve IDs via require(), never from memory; (2) record reasons on absent markers; (3) include alternatives_considered + contradictory_evidence in every record; (4) cite framework by §section with a quoted criterion. Open: contradiction-section-empty governance proposal awaits human gate; 23/32 store rows are DERIVED (promote to RAW with §7.9 caching, NO-SPEND backlog); schoels Phase-1 re-run+diff pending (data gitignored).",
+  "agents_invoked": [
+    {"agent": "composite-auditor", "status": "not-applicable", "reason": "A retrospective is reflection, not a substrate-evidence audit gate (CLAUDE.md §7). No verdict here is claimed as audit evidence."}
+  ]
+}

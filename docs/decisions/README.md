@@ -75,6 +75,9 @@ or external references that informed the decision.
 | [0005](0005-test-claim-language-discipline.md) | 2026-05-14 | Test claim language: "satisfied" vs "case capture" vs "infrastructure populated" | Proposed |
 | [0006](0006-catalog-agent-invocation-discipline.md) | 2026-05-14 | Catalog agent invocation discipline + decision matrix + §11 preflight | Proposed |
 | [0007](0007-html-report-mandatory-at-conclusion.md) | 2026-05-14 | HTML report mandatory at conclusion + 4 TYPES + simulation-backed-viz hard rule + visual-offer reflex | Accepted |
+| [0008](0008-ceded-slot-hypothesis-generator.md) | 2026-06-10 | Ceded Phase-I slot: +hypothesis-generator, −investor-relations-drafter; keep ip-patent-watcher | Accepted |
+| [0009](0009-retrospector-and-ril-subsystem.md) | 2026-06-10 | retrospector agent + Reasoning-Improvement Loop as a subsystem (full design Cycle 3; reserves 2nd slot) | Proposed |
+| [0010](0010-rename-bundle-to-gwt-v1.1.md) | 2026-06-10 | Rename the umbrella bundle v2.5 → GWT v1.1 (label reset; v2.x history preserved) | Accepted |
 
 ---
 

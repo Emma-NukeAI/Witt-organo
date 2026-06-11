@@ -1,0 +1,32 @@
+{
+  "generated": "2026-06-11T04:29:50.050403Z",
+  "n_total_records": 6,
+  "n_observable": 2,
+  "n_scored": 2,
+  "n_excluded_unfalsifiable": 0,
+  "tests_status": {
+    "test_4": "case capture"
+  },
+  "reporting_note": "Per ADR-0005, 'Test 4 satisfied' requires n_scored>=10 with a computed aggregate ECE. Current state: n_scored=2 -> 'case capture'. ece_raw at n<10 is descriptive only, not a calibration verdict; post-hoc isotonic is not applied until n_scored>=10.",
+  "aggregate": {
+    "ece_raw": 0.275,
+    "defensive_threshold": 0.2,
+    "ambitious_threshold": 0.1
+  },
+  "per_category": {
+    "extraction": {
+      "n": 2,
+      "ece_raw": 0.275
+    }
+  },
+  "per_skill": {
+    "manual (LBPP: scripts/lbpp_verify.py + Ensembl REST + UniProt) + composite-auditor Mode 1 (5 adversarial agents)": {
+      "n": 1,
+      "ece_raw": 0.5
+    },
+    "manual (GWT v1.1 source-of-truth: analysis/scripts/lib/{build_verified_store,resolve_id,verify_output}.py)": {
+      "n": 1,
+      "ece_raw": 0.050000000000000044
+    }
+  }
+}

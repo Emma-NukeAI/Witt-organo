@@ -32,6 +32,8 @@ For common requests, here are the default subsets and patterns. Use these as sta
 
 **Stage caps to respect:** Phase I ≤16 agents (was 14, now 16 to accommodate substrate-instrumentation), Phase II ≤22, Phase III no hard cap. The 4-person virtual biotech that's running Phase I cannot babysit 22 agents.
 
+> **GWT v1.1 Cycle-1 swap (ADR-0008):** `+hypothesis-generator` (Category 4), `−investor-relations-drafter` (suspended in Phase I; recover at the Phase-II financing gate). Net Phase-I active count stays **16**; `ip-patent-watcher` retained (IP moat → C.8). A second slot for the `retrospector` agent is **reserved** (ADR-0009, built Cycle 3, cedes `risk-register-agent` then) — not yet active.
+
 ---
 
 ## Category 1: Compute & Simulation
@@ -354,6 +356,43 @@ For common requests, here are the default subsets and patterns. Use these as sta
 
 ---
 
+### hypothesis-generator (NEW v1.1, PR-01)
+
+**Purpose:** Generate calibrated, evidence-grounded research hypotheses. Consults the
+source-of-truth (verified identifiers + prior artifacts, DATA INAMOVIBLE v1) BEFORE generating,
+then complements via MCP / Tool Universe to verify, complete, and check coverage. Each hypothesis
+carries supporting AND contradicting evidence (obligatory), a testable prediction, a proposed
+experiment, required controls, possible confounders, and calibrated confidence.
+
+**Owns:** Hypothesis generation + the §5 contract per PRE-1 (11→6). Pre-registered prediction +
+confidence (honesty clause) for the Reasoning-Improvement Loop.
+
+**Does NOT own:** Ranking for wet-lab commitment (that is `causal-pruner` + HUMAN GATE), the
+adopt/reject verdict (human), or writing to the source-of-truth (read-only; writes are
+`domain-knowledge-curator` + human gate).
+
+**Inputs:** Seed question (Method 2: human), `resolve_id` / `lookup_prior` results, MCP / Tool
+Universe evidence, `domain-knowledge-curator` KB.
+
+**Outputs:** N structured hypotheses (§5 contract); `requires_ethics_review` flag; governance-proposal
+triggers (contradiction-section-empty, domain-recall-drop).
+
+**Method:** Method 2 default. **Method 1 only on wet-lab escalation, with a 100% human gate** — a
+hypothesis that proposes a wet-lab experiment is ranked-candidate work and routes through
+`causal-pruner` discipline + `regulatory-ethics-advisor` + HUMAN GATE; never auto-dispatched.
+
+**Framework:** Self-Consistency (Tier 1) for candidate ranking; Logic-LM (Tier 1, §5) when criteria
+are formalizable. `framework_applied` is self-report, not introspection (CLAUDE.md §5).
+
+**Substrate evidence:** Test 3 + Test 4 (direct — each hypothesis is a pre-registered, calibratable
+prediction feeding the RIL). Test 1 + Test 2 deferred (`gap_flag`; C.2/C.3 → PR-04/PR-08).
+
+**Reference:** `docs/autoresearch-handoff/research-hypothesis-generation-guide.md` (canonical output
+shape + §4 quality rubric), `docs/autoresearch-handoff/proposals/PR-01-hypothesis-generator.md`,
+`docs/autoresearch-handoff/prerequisites/contract-11-to-6-mapping.md` (PRE-1).
+
+---
+
 ## Category 5: Operations & Reporting
 
 ### program-manager
@@ -399,6 +438,10 @@ For common requests, here are the default subsets and patterns. Use these as sta
 ---
 
 ### investor-relations-drafter
+
+> **SUSPENDED in Phase I (GWT v1.1, ADR-0008).** Slot ceded to `hypothesis-generator`. Monthly
+> investor-update drafting is manual in Phase I; reinstate at the Phase-II financing gate. Retained
+> here for the reactivation criterion. (Substrate evidence: Limited — hence the low-cost cede.)
 
 **Purpose:** Draft monthly investor updates and the milestone data package for the Phase II financing gate. Pulls evidence from `cross-modality-integrator`, `program-manager`, `budget-tracker`.
 

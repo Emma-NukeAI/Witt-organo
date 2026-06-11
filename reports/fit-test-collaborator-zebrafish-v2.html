@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LBPP — Veredicto final: javierdiegof/zebrafish (v2, ejecutado)</title>
+<style>
+:root{
+  --bg-deep:#0f172a; --bg-mid:#1e293b; --bg-card:#25314a; --border:#334155;
+  --text-main:#e2e8f0; --text-dim:#94a3b8; --text-faint:#64748b; --text-bright:#f1f5f9;
+  --accent:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626; --paradigm:#a855f7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-deep);color:var(--text-main);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55;font-size:15px}
+code,.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:.9em}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.layout{display:flex;min-height:100vh}
+nav{width:280px;flex:0 0 280px;background:var(--bg-mid);border-right:1px solid var(--border);
+  padding:24px 18px;position:sticky;top:0;height:100vh;overflow-y:auto}
+nav h2{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-faint);margin:18px 0 8px}
+nav a{display:block;color:var(--text-dim);padding:5px 8px;border-radius:6px;font-size:.86rem}
+nav a:hover{background:var(--bg-card);color:var(--text-bright);text-decoration:none}
+main{flex:1;max-width:1100px;margin:0 auto;padding:34px 44px 90px}
+h1{font-size:1.6rem;color:var(--text-bright);margin:0 0 6px;line-height:1.2}
+h2{font-size:1.22rem;color:var(--text-bright);margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:1.0rem;color:var(--accent);margin:22px 0 8px}
+.sub{color:var(--text-dim);font-size:.9rem;margin-bottom:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:4px 13px;font-size:.78rem;color:var(--text-dim)}
+.chip b{color:var(--text-bright)}
+.pill{display:inline-block;border-radius:6px;padding:2px 9px;font-size:.74rem;font-weight:700;letter-spacing:.02em}
+.pill.good{background:rgba(22,163,74,.18);color:#4ade80;border:1px solid var(--good)}
+.pill.warn{background:rgba(245,158,11,.16);color:#fbbf24;border:1px solid var(--warn)}
+.pill.bad{background:rgba(220,38,38,.16);color:#f87171;border:1px solid var(--bad)}
+.pill.para{background:rgba(168,85,247,.16);color:#c084fc;border:1px solid var(--paradigm)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.stat .n{font-size:1.45rem;font-weight:700;color:var(--text-bright);font-family:'Cascadia Code',monospace}
+.stat .l{font-size:.74rem;color:var(--text-dim);margin-top:3px}
+.callout{border-radius:10px;padding:14px 16px;margin:14px 0;border-left:4px solid}
+.callout.good{background:rgba(22,163,74,.08);border-color:var(--good)}
+.callout.warn{background:rgba(245,158,11,.08);border-color:var(--warn)}
+.callout.bad{background:rgba(220,38,38,.08);border-color:var(--bad)}
+.callout.para{background:rgba(168,85,247,.08);border-color:var(--paradigm)}
+.callout .t{font-weight:700;color:var(--text-bright);margin-bottom:5px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.85rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--text-faint);text-transform:uppercase;font-size:.67rem;letter-spacing:.08em}
+td.mono{color:var(--text-dim);font-family:'Cascadia Code',monospace;font-size:.82rem}
+.tldr{background:linear-gradient(180deg,var(--bg-card),var(--bg-mid));border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;margin:18px 0}
+.tldr .t{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:8px}
+ul{margin:8px 0;padding-left:20px}li{margin:6px 0}
+.box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0}
+.footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-faint);font-size:.8rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){nav{display:none}.grid2{grid-template-columns:1fr}main{padding:24px}}
+.tag{font-size:.7rem;color:var(--text-faint);font-family:'Cascadia Code',monospace}
+.bar{height:10px;border-radius:5px;background:var(--bg-mid);overflow:hidden;margin-top:4px}
+.bar > span{display:block;height:100%}
+.gate{background:rgba(220,38,38,.12);border:2px solid var(--bad);border-radius:12px;padding:18px 20px;margin:18px 0}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div style="font-weight:700;color:var(--text-bright)">LBPP · veredicto v2</div>
+  <div class="tag">ejecutado · 2026-05-31</div>
+  <h2>Secciones</h2>
+  <a href="#resumen">1 · Resumen + veredicto</a>
+  <a href="#gate">⚠ Bloqueador (human gate)</a>
+  <a href="#metodo">2 · Metodología</a>
+  <a href="#datos">3 · Capa de datos: PASS</a>
+  <a href="#analisis">4 · Capa de análisis: FAIL</a>
+  <a href="#audit">5 · Composite-audit</a>
+  <a href="#adoptar">6 · ¿Qué adoptar?</a>
+  <a href="#autocritica">7 · Autocrítica de NUESTRO proyecto</a>
+  <a href="#sintesis">8 · Confianza por sub-claim</a>
+  <a href="#limites">9 · Límites (gap flags)</a>
+  <a href="#roadmap">10 · Próximos pasos</a>
+  <a href="#footer">Footer / refs</a>
+</nav>
+<main>
+  <h1>LBPP ejecutado — Veredicto final sobre <code>javierdiegof/zebrafish</code></h1>
+  <div class="sub">Reporte TYPE A · v2 (ejecutado; v1 = diseño, preservado per ADR-0002) · 2026-05-31</div>
+  <div class="chips">
+    <span class="chip">framework: <b>Chain-of-Verification (CoVe)</b> · catalog §8</span>
+    <span class="chip">data layer: <span class="pill good">PASS</span></span>
+    <span class="chip">analysis layer: <span class="pill bad">FAIL</span></span>
+    <span class="chip">veredicto: <span class="pill warn">REJECT-source + HARVEST-genes + RE-DERIVE</span></span>
+    <span class="chip">safe to proceed: <span class="pill bad">NO — human gate</span></span>
+    <span class="chip">gate: <b>composite-auditor Mode 1</b> (5 auditores)</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">24/24</div><div class="l">ENSDARP → Danio rerio, símbolo correcto</div></div>
+    <div class="stat"><div class="n">7/7</div><div class="l">anclas == nuestro mapa verificado</div></div>
+    <div class="stat"><div class="n">9/9</div><div class="l">UniProt taxon 7955 + gen (4/9 TrEMBL)</div></div>
+    <div class="stat"><div class="n">0 / 3721</div><div class="l">combos que reproducen el "90 edges" de nb03</div></div>
+    <div class="stat"><div class="n">6/9</div><div class="l">genes reales que FALLAN su propio filtro</div></div>
+    <div class="stat"><div class="n">40</div><div class="l">respuestas crudas cacheadas (§6)</div></div>
+  </div>
+
+  <h2 id="resumen">1 · Resumen ejecutivo + veredicto</h2>
+  <div class="tldr">
+    <div class="t">direct_answer</div>
+    El LBPP confirma con datos la hipótesis de <b>activo partido</b>, y la afina:
+    <ul>
+      <li><b>Capa de datos = <span class="pill good">PASS</span>.</b> Los 24 identificadores ENSDARP y las 9 accesiones UniProt son <b>genuinos y correctos</b> (verificados en vivo contra Ensembl + UniProt, crudo cacheado). El temor del 45% de error NO se materializó. <i>Lo adoptable es el conjunto de genes verificado, no el archivo.</i></li>
+      <li><b>Capa de análisis = <span class="pill bad">FAIL</span>.</b> La conclusión de nb03 (90 edges/22 nodos) es <b>matemáticamente irreproducible</b> — fuerza bruta sobre 3,721 combinaciones (umbral × relleno) da CERO coincidencias. La red sobrevive solo por la constante inventada 0.125; 6/9 genes reales fallan su propio filtro; los "spatial scores" dan falsos positivos de hígado y falso negativo en pax2a.</li>
+    </ul>
+    <b>Veredicto operativo:</b> <span class="pill warn">RECHAZAR el repo como fuente confiable</span> y RECHAZAR el análisis completo; <span class="pill good">COSECHAR el conjunto de genes verificado</span> como pista de curación; <b>RE-DERIVAR</b> nosotros la red STRING + anotaciones espaciales bajo nuestra propia procedencia §6. "Adoptar el dato" y "re-derivar nosotros" <b>convergen</b> — no son opuestos.
+  </div>
+
+  <div class="gate" id="gate">
+    <div style="font-weight:700;color:#f87171;font-size:1.05rem;margin-bottom:6px">⚠ BLOQUEADOR — decisión de cumplimiento, NO auto-filtrable (§7)</div>
+    El repo <b>público</b> <code>github.com/javierdiegof/zebrafish</code> contiene <code>witt_thesis.docx</code> + <code>witt_validation_tests.docx</code> (la tesis y los tests de validación <b>confidenciales</b> de Witt; el README está sellado "Confidential — Witt Substrate POC Year — Mexico"). Un colaborador publicó material estratégico confidencial del proyecto en un repo abierto. <b>El veredicto de "safe to proceed" es FALSE hasta que esto se escale a un gate humano (Martín).</b> Per CLAUDE.md §7, las decisiones de compliance nunca pasan por filtrado automático. Esto bloquea cualquier cosecha, independientemente del split data/análisis.
+  </div>
+
+  <h2 id="metodo">2 · Metodología</h2>
+  <p><b>framework_applied:</b> Chain-of-Verification (CoVe) — per <code>reasoning-frameworks-catalog.md §8</code>: <i>"favored by 2025 literature for high-stakes outputs"</i>. Re-electo desde Self-Discover (§3) al volverse verificación-contra-múltiples-flujos. <span class="tag">§5: es self-report, no introspección.</span></p>
+  <div class="box">
+    <b>El LBPP (datos-dirigido — IDs leídos de los archivos del colaborador, nunca de memoria; <code>scripts/lbpp_verify.py</code>):</b>
+    <ul>
+      <li>Ensembl REST 3-hop (POST batch): proteína ENSDARP → transcrito → gen → display_name, para los 24. Crudo → <code>mcp_cache/raw_ensembl_lookup_{proteins,transcripts,genes}_20260531.json</code>.</li>
+      <li>UniProt batch para las 9 accesiones de spatial_data.json. Crudo → <code>raw_uniprot_accessions_20260531.json</code>.</li>
+      <li>Cross-check de 7 anclas contra <code>analysis/outputs/ensembl_symbol_map.json</code>.</li>
+      <li>Recomputo fiel del filtro de nb03 a umbrales {0.10, 0.12, 0.125, 0.13}.</li>
+    </ul>
+    <b>agents_invoked:</b> <code>composite-auditor</code> <span class="pill good">invoked</span> (Mode 1 split-and-vote, 5 auditores adversariales — el veredicto NO se auto-certifica, §7) · <code>causal-pruner</code> <span class="pill">not-applicable</span>.
+  </div>
+
+  <h2 id="datos">3 · Capa de datos — PASS (verificado en vivo)</h2>
+  <table>
+    <tr><th>Check</th><th>Resultado</th><th>Detalle</th></tr>
+    <tr><td>24 ENSDARP existen + Danio rerio</td><td><span class="pill good">24/24</span></td><td class="mono">object_type=Translation, species=danio_rerio, vía 3-hop</td></tr>
+    <tr><td>Símbolo resuelto == afirmado</td><td><span class="pill good">24/24</span></td><td>0 mismatches; paralogos OK (wt1a≠wt1b, six1a≠six1b). 1 match solo por mayúsculas: evx1/EVX1 (benigno, flag)</td></tr>
+    <tr><td>7 anclas vs nuestro mapa verificado</td><td><span class="pill good">7/7</span></td><td class="mono">cdh17, gata3, lhx1a, pax2a, pax8, wt1a, wt1b</td></tr>
+    <tr><td>9 UniProt taxon 7955 + gen</td><td><span class="pill warn">9/9*</span></td><td>*6/9 parcialmente circular (accesión viene del propio archivo del colaborador); 4/9 son TrEMBL no-revisado. <b>El ancla independiente es Ensembl, no UniProt.</b></td></tr>
+    <tr><td>Caché crudo §6/§7.9</td><td><span class="pill good">OK</span></td><td>payloads sin procesar (no resúmenes AI)</td></tr>
+  </table>
+  <div class="callout good"><div class="t">Lo que esto significa</div>El colaborador NO alucinó identificadores. El conjunto de genes (9 documentados + 15 vecinos) es real y correctamente etiquetado. <b>Pero "datos verificados" = la <i>identidad</i> de los genes, NO los pesos de las aristas de STRING</b> (esos no se re-consultaron) ni la procedencia del archivo (sin versión/fecha de STRING).</div>
+
+  <h2 id="analisis">4 · Capa de análisis — FAIL (irreproducible)</h2>
+  <div class="grid2">
+    <div class="box">
+      <h3 style="margin-top:0">El colapso es de la CONSTANTE, no del umbral</h3>
+      <table>
+        <tr><th>Umbral</th><th>Edges</th><th>Nodos</th></tr>
+        <tr><td class="mono">0.10</td><td>99</td><td>23</td></tr>
+        <tr><td class="mono">0.12</td><td>48</td><td>17</td></tr>
+        <tr><td class="mono">0.125</td><td>48</td><td>17</td></tr>
+        <tr><td class="mono">&gt;0.125 (0.13)</td><td style="color:#f87171">2</td><td style="color:#f87171">3</td></tr>
+      </table>
+      <p class="tag">CUALQUIER umbral &gt; 0.125 colapsa. El "0.12 robusto" del README es el punto MENOS robusto del rango. 15 de 18 nodos sobrevivientes son relleno hardcodeado.</p>
+    </div>
+    <div class="box">
+      <h3 style="margin-top:0">"90 edges / 22 nodos" es inalcanzable</h3>
+      <p>Fuerza bruta sobre 3,721 combinaciones (umbral 0–0.30 × relleno 0–0.50): <b>0 producen 90 edges</b>, <b>0 producen 22 nodos</b>. 90 cae entre las mesetas 99 y 48 — irreproducible bajo cualquier parámetro, AND/OR, o node-drop. <b>La conclusión nunca fue producida por el pipeline comprometido.</b></p>
+    </div>
+  </div>
+  <div class="callout bad"><div class="t">Falla de diseño + scoring no defendible</div>
+    <ul>
+      <li><b>Inversión 0.12/0.125:</b> los 15 vecinos sin dato pasan por fiat (0.125 ≥ 0.12); 6/9 genes con dato curado FALLAN (fgf8a=0.0; gata3/jag1b/pax2a/pax8/ret=0.1). El filtro descarta la evidencia y conserva el relleno.</li>
+      <li><b>GO-substring:</b> jag1b puntúa solo porque "duct" matchea "intrahepatic bile <b>duct</b>" (¡hígado!); pax2a, regulador maestro de pronefros, puntúa 0.1. Falso positivo de hígado + falso negativo del gen de libro de texto.</li>
+      <li><b>Control negativo de nb04 circular</b> (el complemento se define con la misma función bajo auditoría) y matriz temporal ZFIN/Zebrahub inventada sin cita.</li>
+      <li><b>Escalera de confianza</b> 0.92 (nb03) / 0.95 (nb04) asertada ANTES de cualquier ground-truth ("[Pending]").</li>
+    </ul>
+  </div>
+
+  <h2 id="audit">5 · Composite-audit (5 auditores adversariales, §7)</h2>
+  <table>
+    <tr><th>Lente</th><th>¿Aguanta?</th><th>Conf.</th><th>Hallazgo / corrección clave</th></tr>
+    <tr><td>Integridad de identificadores</td><td><span class="pill good">sí</span></td><td>0.90</td><td>Re-derivó todo desde el crudo; refutó 4/5 modos de falso-pase. UniProt parcialmente circular; 4/9 TrEMBL.</td></tr>
+    <tr><td>Validez de conclusión (defensa del colaborador)</td><td><span class="pill good">sí</span></td><td>0.96</td><td>Probó mecánicamente cada explicación inocente; 90/22 inalcanzable. FAIL más fuerte de lo planteado.</td></tr>
+    <tr><td>Decisión de adopción</td><td><span class="pill warn">sí*</span></td><td>0.78</td><td>*Solo bajo "re-derivar nosotros". NO bendecir network.tsv como caché §6 (laundering). Confidencialidad → human gate.</td></tr>
+    <tr><td>Autocrítica de nuestro proyecto</td><td>—</td><td>—</td><td>Ver §7. Sin piedad y con evidencia.</td></tr>
+    <tr><td>Completitud</td><td><span class="pill bad">verdict NO safe</span></td><td>—</td><td>Bloqueador de confidencialidad (critical) + procedencia de spatial_data.json irrecuperable.</td></tr>
+  </table>
+
+  <h2 id="adoptar">6 · ¿Hay algo que podamos adoptar?</h2>
+  <div class="callout good"><div class="t">SÍ — tres cosas, ninguna es "el análisis"</div>
+    <ol>
+      <li><b>El conjunto de genes verificado</b> (24 ENSDARP + 9 accesiones) como <i>pista de curación</i> — qué genes/vecinos consultar. Tras el gate humano, re-consultamos STRING + UniProt nosotros con versión/fecha registradas.</li>
+      <li><b>La tabla de feedback simple del README</b> (Exp × confianza × ground-truth × engineer-rating) como patrón de instrumento Test-3/Test-4 — es la versión <i>prueba pequeño</i> de nuestra maquinaria de calibración.</li>
+      <li><b>La disciplina de "notebook ejecutable + datos versionados + README fiel al repo"</b> como <i>lección de proceso</i> (ver §7).</li>
+    </ol>
+  </div>
+  <div class="callout bad"><div class="t">NO adoptar</div>El archivo <code>network.tsv</code> como activo bendecido (sin versión STRING → laundering), los notebooks, el umbral 0.12, los spatial scores, la escalera de confianza, la capa temporal nb04/ZFIN. Y NO adoptar "su lógica para robustez": su lógica ES el anti-patrón.</div>
+
+  <h2 id="autocritica">7 · Autocrítica de NUESTRO proyecto (pediste que se nos critique)</h2>
+  <p class="sub">El colaborador, pese a su análisis fabricado, expone debilidades reales nuestras. Esto viene del auditor de auto-crítica, con evidencia citada.</p>
+  <div class="grid2">
+    <div>
+      <h3>Lo que el colaborador hace MEJOR que nosotros</h3>
+      <ul>
+        <li><b>Código que corre &gt; gobernanza:</b> 4 notebooks que cargan datos reales y producen 5 figuras. Nuestro ratio artefacto/gobernanza está invertido.</li>
+        <li><b>README fiel al repo:</b> cada archivo que enlaza existe. El nuestro promete <code>scripts/validate_setup.py</code> (ausente), dice "docs/decisions vacío" (hay 7 ADRs) y omite analysis/, reports/, SIMULATION_OUTPUTS_DB/.</li>
+        <li><b>Minimalismo declarado como valor</b> ("avoiding esoterism", "the repo IS the database") — operacionaliza <i>prueba pequeño</i> mejor que nuestro stack.</li>
+        <li><b>Loop de calibración visible y concreto</b> (una tabla). El nuestro: 4 records sin resolver, 0 ECE computado.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Lo que SÍ hacemos bien</h3>
+      <ul>
+        <li>Análisis real bajo la gobernanza: scRNA-seq (Schoels/Wagner), diseño sgRNA, power analysis Monte Carlo de 200 sims.</li>
+        <li>Auto-auditoría honesta (v22_adoption_audit grada DOCUMENTED-ONLY / NOT EXERCISED).</li>
+        <li>Disciplina ADR (0001–0007) y de lenguaje de test (ADR-0005: "satisfied" reservado).</li>
+        <li>El pensamiento de calibración es correcto (confidence_by_subclaim, isotonic, "framework_applied es self-report").</li>
+        <li>Los reflejos de verificación §7/§10 atacan fallas reales documentadas (45% ENSDARG). <i>El diagnóstico es correcto; la ejecución es el hueco.</i></li>
+      </ul>
+    </div>
+  </div>
+  <h3>Debilidades nuestras (severidad)</h3>
+  <table>
+    <tr><th>Debilidad</th><th>Sev.</th><th>Evidencia</th></tr>
+    <tr><td>README desactualizado y engañoso (promete archivos ausentes, oculta los reales)</td><td><span class="pill bad">alta</span></td><td class="mono">README.md L25,L39,L29-48</td></tr>
+    <tr><td>Nuestros propios claim records violan §4: citan "§Tier 2" (el anti-patrón exacto que §4 prohíbe)</td><td><span class="pill bad">alta</span></td><td class="mono">claim_20260514_*.json (3/4)</td></tr>
+    <tr><td>Test 4 es solo-infraestructura: 4 records sin observed_outcome, 0 ECE jamás computado</td><td><span class="pill bad">alta</span></td><td class="mono">records observed_outcome=None; reports/ vacío</td></tr>
+    <tr><td>IDs ENSDARG hardcodeados sin el "# verified:" que §7 exige</td><td><span class="pill bad">alta</span></td><td class="mono">01_schoels_analysis.py L31-56</td></tr>
+    <tr><td>Proliferación de artefactos (5 versiones MD + 20 HTML, vistas paralelas)</td><td><span class="pill warn">media</span></td><td class="mono">proteomic-evidence-*.{v1..v1.4}</td></tr>
+    <tr><td>Gobernanza 2.6× el tamaño del código real (7,510 vs 2,883 líneas)</td><td><span class="pill warn">media</span></td><td class="mono">wc CLAUDE.md+refs vs analysis/*.py</td></tr>
+    <tr><td>Mecanismos titulares "documented-only" (composite-auditor D2, eval-runner D9, held-out vacío)</td><td><span class="pill warn">media</span></td><td class="mono">v22_adoption_audit_20260514.md</td></tr>
+  </table>
+  <div class="callout para"><div class="t">El golpe que más duele (over-engineering)</div>
+    Tenemos un CLAUDE.md de 29 KB, contrato de 4 TYPES de HTML, matrices de invocación y schema confidence_by_subclaim — <b>todo antes de que Test 4 produjera un solo número ECE</b>. Las §4/§7 se violan en nuestros propios artefactos: <i>añadir más texto de contrato no cambió el comportamiento</i>. Es exactamente el "armar bien antes de probar pequeño" que el principio fundador advierte.
+  </div>
+
+  <h2 id="sintesis">8 · Confianza por sub-claim</h2>
+  <table>
+    <tr><th>Sub-claim</th><th>Predicho</th><th>Observado</th><th>Señal de calibración</th></tr>
+    <tr><td>Los identificadores verifican limpio (extraction — la claim puntuada)</td><td><span class="pill warn">0.50</span></td><td><span class="pill good">positivo (24/24)</span></td><td><b>Underconfident.</b> Primer record RESUELTO del substrato (los otros 4 = null).</td></tr>
+    <tr><td>La capa de análisis es fabricada/irreproducible</td><td><span class="pill bad">0.93</span></td><td><span class="pill good">confirmado</span></td><td>Bien calibrado (re-ejecución + brute force).</td></tr>
+    <tr><td>network.tsv es STRING genuino (IDs ✓; pesos NO re-consultados)</td><td>0.85</td><td>parcial</td><td>Identidad confirmada, no los pesos.</td></tr>
+    <tr><td>El archivo es seguro como caché §6 "verificado"</td><td><span class="pill bad">0.35</span></td><td>FALLA</td><td>Sin versión/fecha STRING → re-derivar, no bendecir.</td></tr>
+  </table>
+  <p class="tag">confidence_by_subclaim (no agregado) porque el direct_answer compone claims de fuerza asimétrica (§5). Per ADR-0005: 1 record resuelto = "case capture", NO "Test 4 satisfied" (ECE no es significativo a n=1).</p>
+
+  <h2 id="limites">9 · Límites (gap_flags)</h2>
+  <ul>
+    <li><b>CRITICAL:</b> confidencialidad/IP (docs confidenciales en repo público) — gate humano, bloquea el veredicto.</li>
+    <li><b>HIGH:</b> procedencia de <code>spatial_data.json</code> irrecuperable (el <code>fetch_kidney_spatial_data.py</code> no existe; sin release/fecha UniProt) → re-fetch nosotros.</li>
+    <li><b>MEDIUM:</b> pesos de aristas STRING nunca verificados (solo IDs); edges dominados por text-mining son el canal menos fiable.</li>
+    <li><b>MEDIUM:</b> los términos GO son reales (verificados en vivo) pero el scoring es naïve; los 15 "filler" están ID-verificados pero SIN valor espacial (auto-pasan por la constante 0.125).</li>
+    <li><b>MEDIUM:</b> nb04 (temporal) + su capa ZFIN/Zebrahub no auditados — entran al conjunto "descartar análisis".</li>
+    <li><b>Méta:</b> esta verificación cubre identidad, no biología; el LBPP confirma que los genes existen y están bien etiquetados, no que la red sea biológicamente correcta.</li>
+  </ul>
+
+  <h2 id="roadmap">10 · Próximos pasos</h2>
+  <div class="box">
+    <ol>
+      <li><b>Gate humano (Martín) AHORA</b> sobre la exposición de los docx confidenciales en el repo público — bloquea todo lo demás (§7).</li>
+      <li>Si se autoriza continuar: <b>re-derivar</b> STRING (skill protein-interaction-network-analysis, $0, sin API key) keyed al conjunto de genes verificado, con versión/fecha + caché §6 propios.</li>
+      <li><b>Re-fetch</b> anotaciones espaciales UniProt nosotros (reemplazo del fetch script ausente).</li>
+      <li>NO adoptar el análisis. Si reusamos la idea de filtrado espacial, hacerlo con un método defendible (atlas de expresión / ZFIN, GO ponderado con normalización de especificidad), no substring-tally.</li>
+      <li><b>Arreglos en NUESTRO proyecto</b> (de la autocrítica, §7): README fiel; corregir las 3 citas "§Tier 2"; añadir "# verified:" a los 16 ENSDARG; cerrar el loop de ≥1 ECE; colapsar versiones MD duplicadas. <i>(Te los ofrezco abajo — no los hago sin tu OK.)</i></li>
+    </ol>
+  </div>
+
+  <div class="footer" id="footer">
+    <p><b>evidence_cited:</b> <code>mcp_cache/raw_ensembl_lookup_{proteins,transcripts,genes}_20260531.json</code>, <code>raw_uniprot_accessions_20260531.json</code>, <code>mcp_cache/lbpp_result_20260531.json</code>, <code>scripts/lbpp_verify.py</code> · <code>../../zebrafish/{network.tsv,mapped_ids.tsv,spatial_data.json,notebooks/03,notebooks/04}</code> · <code>analysis/outputs/ensembl_symbol_map.json</code> · <code>CLAUDE.md §4/§5/§6/§7</code> · <code>PROJECT_SCOPE.md §5</code> · <code>reasoning-frameworks-catalog.md §8</code> · claim record <code>substrate_calibration/records/claim_20260531_190000_collaborator-zebrafish-lbpp.json</code>.</p>
+    <p><b>alternatives_considered:</b> "adoptar el repo entero" (rechazado: análisis es anti-patrón) · "rechazar todo" (rechazado: descarta un conjunto de genes verificado) · "bendecir network.tsv como caché §6" (rechazado: sin versión STRING) · "adoptar su lógica para robustez" (rechazado: su lógica es la falla).</p>
+    <p><b>agents_invoked:</b> composite-auditor Mode 1 (wf_0bcca130-023, 5 auditores) = invoked · causal-pruner = not-applicable.</p>
+    <p><b>Predecesor (ADR-0002):</b> <code>reports/fit-test-collaborator-zebrafish-v1.html</code> (diseño). · <b>safe_to_proceed:</b> FALSE (human gate). · Generado 2026-05-31 · CoVe §8 · TYPE A.</p>
+  </div>
+</main>
+</div>
+</body>
+</html>

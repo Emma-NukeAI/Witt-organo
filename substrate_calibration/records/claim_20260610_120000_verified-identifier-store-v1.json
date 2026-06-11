@@ -1,0 +1,67 @@
+{
+  "claim_id": "claim_20260610_120000_verified-identifier-store-v1",
+  "claim_timestamp": "2026-06-10T12:00:00Z",
+  "prediction_preregistered_at": "2026-06-10T12:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (GWT v1.1 Cycle 1, Track A)",
+  "skill_origin": "manual (GWT v1.1 source-of-truth: analysis/scripts/lib/{build_verified_store,resolve_id,verify_output}.py)",
+  "skill_version": "resolve_id-1.0 / verified-store-2026-06-10.1",
+  "claim_text": "01_schoels_analysis.py hardcoded 16 ENSDARG marker IDs of which 15 were WRONG vs the verified analysis/outputs/ensembl_symbol_map.json (only pax2a matched), under a misleading '# Ensembl release 111' comment with a non-existent symbol-fallback. The corruption had already materialized on disk: schoels_markers_canonical.csv shows pax2a correct (22.0% cells), wt1a (wrong ID ENSDARG00000054611) and hnf1bb (wrong ID) as FALSE POSITIVES (spurious 0.44%/1.5% expression attributed to an unrelated gene the wrong ID collided with), and pax8 + hnf1ba as FALSE NEGATIVES (found=False); the 11 segment markers used all-wrong IDs. Fix: replaced hardcoded IDs with runtime resolution from a new flat versioned verified-identifier store (DATA INAMOVIBLE v1, 32 records: 7 RAW anchors / 23 DERIVED / 2 positive-NOT_FOUND) via resolve_id.require(); all 16 markers now resolve and equal the verified map (16/16). A deterministic verify_output gate FAILS on the exact fabrication (wt1a==ENSDARG00000054611). Corrupted CSVs preserved under analysis/outputs/_superseded/ per ADR-0002.",
+  "claim_category": "extraction",
+  "sub_domain": "single-cell",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner-relationship impact: this is a data-integrity correction whose verdict is deterministically re-derivable (resolver round-trip vs the verified map). Distinct from the 2026-05-31 LBPP record, which was gated on a confidentiality incident.",
+  "agent_invocation_status": "Deterministic (Logic-LM-class) verification, not an LLM judgment. composite-auditor NOT invoked as a gate (justified below); the verdict is checkable by re-running resolve_id.",
+  "prior": 0.90,
+  "stated_confidence": 0.95,
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (Tier 1; 'produces results perfectly calibrated by construction'). Identifier resolution is a formalizable, deterministic check (does symbol S resolve to exactly ENSDARG X?), so Logic-LM is the correct citation — NOT the §Tier-2 anti-pattern present in the 2026-05-14 records. Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "15_of_16_hardcoded_ids_were_wrong_vs_verified_map": 0.99,
+    "all_16_markers_resolve_and_equal_map_no_spend": 0.98,
+    "prior_phase1_csv_outputs_were_corrupted (false-neg + false-pos observed on disk)": 0.95,
+    "phase2_outputs_unaffected (inferred from independent provenance; not yet re-run-confirmed)": 0.70
+  },
+  "alternatives_considered": [
+    "Hardcode the corrected IDs as literal constants with # verified tags (Form B) — rejected in favor of resolver-driven require() (Form A) so no ID is ever carried from memory and a future wrong ID raises loudly.",
+    "Leave the corrupted CSVs and overwrite on re-run — rejected per ADR-0002 (version preservation); moved to _superseded/ instead.",
+    "Treat phase2 outputs as also corrupted — rejected: 02_schoels_phase2.py rebuilds IDs via live Ensembl symbol-lookup against the verified map (independent), so it is likely sound; flagged at lower confidence (0.70) pending a re-run diff."
+  ],
+  "contradictory_evidence_cited": [
+    "phase2 soundness is inferred, not re-run-confirmed (the GSE162031 data is gitignored, so the recovering re-run + diff is a pending verification step, logged in docs/findings/2026-06-10-schoels-phase1-id-corruption.md)."
+  ],
+  "gap_flags": [
+    "Re-run of 01_schoels_analysis.py to regenerate correct CSVs requires the scanpy env + GSE162031 data (gitignored) — not executed this cycle.",
+    "23 of 32 store records are DERIVED tier (raw response not retained); promoting them to RAW requires re-verification with §7.9 caching (NO-SPEND backlog).",
+    "verify_output v1 gates ENSDARG only; PMIDs/GEO/UniProt are flagged-not-verified offline (no literature store yet)."
+  ],
+  "rater_id": "self (deterministic re-derivation) — generator==rater is acceptable here ONLY because the check is symbolic and reproducible, not an LLM judgment.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "Resolver round-trip: 16/16 schoels symbols resolve and equal ensembl_symbol_map.json; store builds (32 records); verify_output FAILS on wt1a==ENSDARG00000054611; grep '# verified:' present in the script.",
+  "expected_outcome_if_h0": "Any of the 16 fails to resolve / mismatches the map, or the gate passes the known fabrication.",
+  "observable_at": "2026-06-10 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-10T12:05:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE: build_verified_store wrote 32 records (7 RAW / 23 DERIVED / 2 NOT_FOUND); resolver round-trip 16/16 == ensembl_symbol_map.json; resolve('clcnkb') and resolve('nonsense') return NOT_FOUND (positive absence); verify_output FAILED on the wt1a fabrication and PASSED the correct ID. Prediction 0.95, outcome clean.",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_3", "test_4"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "domain-knowledge-curator",
+      "status": "skipped-ad-hoc",
+      "reason": "PR-09 (curator owns the resolve()/store interface) is deferred to a later cycle; in Cycle 1 the store + resolver are built directly. The curator should assume ownership when built."
+    },
+    {
+      "agent": "composite-auditor",
+      "status": "skipped-ad-hoc",
+      "reason": "This output is a deterministic, re-derivable data-integrity correction (resolver round-trip vs verified map), not a substrate-evidence audit verdict over reasoning. A composite-audit adds little over the symbolic re-check; recommend a periodic audit over the verified store itself once it accumulates non-DERIVED edits."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation in this output."
+    }
+  ],
+  "notes": "2nd resolved record toward the n>=10 ECE gate (after claim_20260531_190000_collaborator-zebrafish-lbpp). Per ADR-0005 this is 'case capture' (2 resolved), NOT 'Test 4 satisfied'. Cites §5 (Logic-LM) specifically, fixing the §Tier-2 §4 anti-pattern. Includes top-level alternatives_considered + contradictory_evidence_cited (the §5 contract fields the 2026-05-14 records omitted) and the GWT v1.1 §5.3 honesty-clause fields (prediction_preregistered_at, sub_domain, proxy_level, rater_id, outcome_horizon)."
+}

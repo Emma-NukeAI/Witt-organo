@@ -11,7 +11,7 @@ Two intertwined components:
 
 The repo is the version-controlled source of truth for: the custom agent skill (`organogenesis-agent-architect` v2.2), the master scope document (`PROJECT_SCOPE.md` v1.2), the stress-test brief that drives v2.2 architectural decisions, the curated subset of Tool Universe skills relevant to the project's six niches, MCP configuration for any client, and operating instructions (`CLAUDE.md`) so any AI agent invoked here is immediately project-aware.
 
-The repo is **not** a Tool Universe fork, **not** a code repository for biological simulation, **not** a wet-lab protocol repository, and **not** a place to store biological data. See `ONBOARDING.md` for what does live here vs. elsewhere.
+The repo is **not** a Tool Universe fork, **not** a code repository for biological simulation, and **not** a wet-lab protocol repository. Raw biological datasets are **not** stored here (they are gitignored under `analysis/data/`); what does live here is the **verified, derived** layer — analysis scripts, the verified-identifier store (`analysis/outputs/`), substrate-calibration records, and reports. See `ONBOARDING.md` for what lives here vs. elsewhere.
 
 ## Quick start
 
@@ -22,7 +22,7 @@ The repo is **not** a Tool Universe fork, **not** a code repository for biologic
 5. Set up your free API keys (NCBI, NVIDIA, FDA) — `mcp-config/README.md` lists URLs and rate-limit benefits.
 6. Open `ONBOARDING.md` for the full collaborator walkthrough.
 
-A validation script that exercises one tool from each curated skill will live in `scripts/validate_setup.py` once Phase I scripts begin (typically month 3+); for now, manual verification is described in `mcp-config/README.md`.
+For MCP setup verification, see `mcp-config/README.md` (per-OS paths and a manual smoke test). Phase I analysis scripts live under `analysis/scripts/` (e.g., `01_schoels_analysis.py`), and the source-of-truth resolver + anti-fabrication gate live under `analysis/scripts/lib/` (`resolve_id.py`, `verify_output.py`).
 
 ## Repository map
 
@@ -36,15 +36,27 @@ witt-organogenesis/
 ├── docs/
 │   ├── stress-test-completo.md/.pdf   ← evidence base for v2.2 architectural decisions
 │   ├── v2.2-changelog.md              ← what changed v2.1 → v2.2 and why
-│   └── decisions/                     ← Architecture Decision Records (ADRs); empty at setup
+│   ├── decisions/                     ← Architecture Decision Records (ADRs); 8 records as of 2026-06 (0001–0008+)
+│   ├── findings/                      ← negative findings / corrections (substrate iteration evidence)
+│   └── autoresearch-handoff/          ← imported autoresearch discipline (STRATEGY_FINAL, INTEGRATION_PROPOSAL, guide) + proposals/ + prerequisites/
 ├── skills/
-│   ├── custom/organogenesis-agent-architect/   ← the project's own skill v2.2 + 7 reference files
+│   ├── custom/organogenesis-agent-architect/   ← the project's own skill v2.2 + reference files
 │   └── external/
 │       ├── CURATED.md                 ← Tool Universe skills mapped to the six niches
 │       ├── README.md                  ← Tool Universe layer documentation (Skill / MCP / SDK)
 │       └── ToolUniverse/              ← gitignored; collaborators clone locally
+├── analysis/
+│   ├── data/                          ← raw datasets (gitignored)
+│   ├── scripts/                       ← Phase I analysis (01_schoels_analysis.py, …) + lib/ (resolve_id, verify_output)
+│   └── outputs/                       ← verified, derived artifacts: ensembl_symbol_map.json, verified_identifiers.json (DATA INAMOVIBLE v1), marker tables
+├── substrate_calibration/            ← Test 4 claim records + tools/compute_ece.py + reports/
+├── reports/                          ← self-contained HTML reports (TYPE A–D, html-report-contract)
+├── SIMULATION_OUTPUTS_DB/            ← simulator artifacts (kept separate from DATA INAMOVIBLE)
+├── evaluation/                       ← held-out evaluation set for Test 3 (months 0/4/8)
+├── mcp_cache/                         ← gitignored; raw external responses (§6/§7.9 cache discipline)
+├── checkpoints/                       ← gitignored; multi-phase workflow checkpoints
 ├── mcp-config/                ← MCP server templates for Claude Desktop, Claude Code, Cursor
-└── scripts/                   ← reserved for future Python SDK scripts (Phase I+)
+└── scripts/                   ← repo-level scripts (e.g., lbpp_verify.py — verify+cache pattern)
 ```
 
 ## For deeper reading

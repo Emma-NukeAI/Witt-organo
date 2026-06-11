@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fit-test — javierdiegof/zebrafish vs witt-organogenesis (v1)</title>
+<style>
+:root{
+  --bg-deep:#0f172a; --bg-mid:#1e293b; --bg-card:#25314a; --border:#334155;
+  --text-main:#e2e8f0; --text-dim:#94a3b8; --text-faint:#64748b; --text-bright:#f1f5f9;
+  --accent:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626; --paradigm:#a855f7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-deep);color:var(--text-main);
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55;font-size:15px}
+code,.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:.9em}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+.layout{display:flex;min-height:100vh}
+nav{width:280px;flex:0 0 280px;background:var(--bg-mid);border-right:1px solid var(--border);
+  padding:24px 18px;position:sticky;top:0;height:100vh;overflow-y:auto}
+nav h2{font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--text-faint);margin:18px 0 8px}
+nav a{display:block;color:var(--text-dim);padding:5px 8px;border-radius:6px;font-size:.86rem}
+nav a:hover{background:var(--bg-card);color:var(--text-bright);text-decoration:none}
+main{flex:1;max-width:1100px;margin:0 auto;padding:34px 44px 90px}
+h1{font-size:1.7rem;color:var(--text-bright);margin:0 0 6px;line-height:1.2}
+h2{font-size:1.25rem;color:var(--text-bright);margin:38px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:1.02rem;color:var(--accent);margin:22px 0 8px}
+.sub{color:var(--text-dim);font-size:.9rem;margin-bottom:18px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.chip{background:var(--bg-card);border:1px solid var(--border);border-radius:20px;padding:4px 13px;font-size:.78rem;color:var(--text-dim)}
+.chip b{color:var(--text-bright)}
+.pill{display:inline-block;border-radius:6px;padding:2px 9px;font-size:.74rem;font-weight:700;letter-spacing:.02em}
+.pill.good{background:rgba(22,163,74,.18);color:#4ade80;border:1px solid var(--good)}
+.pill.warn{background:rgba(245,158,11,.16);color:#fbbf24;border:1px solid var(--warn)}
+.pill.bad{background:rgba(220,38,38,.16);color:#f87171;border:1px solid var(--bad)}
+.pill.para{background:rgba(168,85,247,.16);color:#c084fc;border:1px solid var(--paradigm)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.stat{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.stat .n{font-size:1.5rem;font-weight:700;color:var(--text-bright);font-family:'Cascadia Code',monospace}
+.stat .l{font-size:.74rem;color:var(--text-dim);margin-top:3px}
+.callout{border-radius:10px;padding:14px 16px;margin:14px 0;border-left:4px solid}
+.callout.good{background:rgba(22,163,74,.08);border-color:var(--good)}
+.callout.warn{background:rgba(245,158,11,.08);border-color:var(--warn)}
+.callout.bad{background:rgba(220,38,38,.08);border-color:var(--bad)}
+.callout.para{background:rgba(168,85,247,.08);border-color:var(--paradigm)}
+.callout .t{font-weight:700;color:var(--text-bright);margin-bottom:5px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.86rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--text-faint);text-transform:uppercase;font-size:.68rem;letter-spacing:.08em}
+td.mono{color:var(--text-dim)}
+.tldr{background:linear-gradient(180deg,var(--bg-card),var(--bg-mid));border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;margin:18px 0}
+.tldr .t{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);margin-bottom:8px}
+ul{margin:8px 0;padding-left:20px}li{margin:5px 0}
+.box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin:14px 0}
+.step{display:flex;gap:12px;margin:10px 0}
+.step .num{flex:0 0 30px;height:30px;border-radius:50%;background:var(--bg-mid);border:1px solid var(--accent);
+  color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--border);color:var(--text-faint);font-size:.8rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){nav{display:none}.grid2{grid-template-columns:1fr}main{padding:24px}}
+.tag{font-size:.7rem;color:var(--text-faint);font-family:'Cascadia Code',monospace}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav>
+  <div style="font-weight:700;color:var(--text-bright)">Fit-test · v1</div>
+  <div class="tag">javierdiegof/zebrafish</div>
+  <h2>Secciones</h2>
+  <a href="#resumen">1 · Resumen ejecutivo</a>
+  <a href="#metodo">2 · Metodología</a>
+  <a href="#que-es">3 · ¿Qué es el repo?</a>
+  <a href="#evidencia">4 · Evidencia (for/against)</a>
+  <a href="#test">5 · El test decisivo (LBPP)</a>
+  <a href="#alternativas">6 · Tests alternativos</a>
+  <a href="#sintesis">7 · Síntesis + confianza</a>
+  <a href="#limites">8 · Límites (gap flags)</a>
+  <a href="#roadmap">9 · Árbol de decisión</a>
+  <a href="#footer">Footer / refs</a>
+</nav>
+<main>
+  <h1>Fit-test exigente: <code>javierdiegof/zebrafish</code> como herramienta / fuente de lógicas</h1>
+  <div class="sub">Reporte TYPE A (comprehensive analytical) · Sesión 2026-05-31 · witt-organogenesis</div>
+  <div class="chips">
+    <span class="chip">framework_applied: <b>Chain-of-Verification (CoVe)</b> · catalog §8</span>
+    <span class="chip">veredicto data layer: <span class="pill warn">FIT pendiente verificación</span></span>
+    <span class="chip">veredicto analysis layer: <span class="pill bad">UNFIT</span></span>
+    <span class="chip">estado: <b>diseño de test</b> — verdict adopt/reject NO ejecutado</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n">116</div><div class="l">edges STRING reales (network.tsv)</div></div>
+    <div class="stat"><div class="n">0.0135</div><div class="l">err. reconstrucción noisy-OR → datos genuinos</div></div>
+    <div class="stat"><div class="n">15/24</div><div class="l">genes hardcodeados a kidney_score=0.125</div></div>
+    <div class="stat"><div class="n">48 ≠ 90</div><div class="l">edges reales vs. conclusión escrita (nb03)</div></div>
+    <div class="stat"><div class="n">0.85→0.95</div><div class="l">"confianza" ascendente = orden de notebook</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">commits en el repo (side-project)</div></div>
+  </div>
+
+  <h2 id="resumen">1 · Resumen ejecutivo</h2>
+  <div class="tldr">
+    <div class="t">direct_answer</div>
+    El repo es un <b>activo partido (split asset)</b>, no un "adoptar todo" ni un "rechazar todo".
+    <b>Capa de datos</b> — el <code>network.tsv</code> es un export real de STRING (la reconstrucción noisy-OR de los subcanales da error 0.0135; números fabricados no reproducen la corrección de prior de STRING) y aporta exactamente la <b>capa de datos cruda que nuestro repo deliberadamente NO almacena</b>: posible <span class="pill warn">FIT</span>, pendiente de una verificación de identificadores.
+    <b>Capa de análisis</b> — los notebooks, la conclusión de nb03, el umbral mágico 0.12, los "spatial scores" (que son un conteo de substrings de GO disfrazado de dato) y la escalera de confianza 0.85→0.95 son fabricación + teatro de calibración: <span class="pill bad">UNFIT</span> — inyectarían justo los anti-patrones §5/§6/§7 que CLAUDE.md existe para filtrar.
+    <br><br>
+    <b>El test que pides</b> = <b>Load-Bearing Provenance Probe (LBPP)</b>: verificar SOLO los identificadores + la única constante (0.125) que sostienen la conclusión titular, contra Ensembl/UniProt gratis y con caché de respuesta cruda. Un solo hecho de filo (¿los 15 genes "relleno" verifican?) decide adoptar-datos vs. rechazar-todo. ~30–45 min, <b>$0</b>.
+  </div>
+
+  <h2 id="metodo">2 · Metodología</h2>
+  <p><b>framework_applied:</b> Chain-of-Verification (CoVe) — per <code>reasoning-frameworks-catalog.md §8</code>: <i>"favored by 2025 literature for high-stakes outputs"</i> (y tabla §líneas-finales: <i>auditors / critics → CoVe</i>, Tier 2). Re-electo desde un Self-Discover inicial (§3) en cuanto el trabajo pasó de descomposición abierta a <i>verificación-contra-múltiples-flujos-de-evidencia</i>: re-ejecuté el código de los notebooks, crucé los IDs contra nuestro mapa ya verificado, y reconstruí la matemática noisy-OR de STRING. <span class="tag">Nota §5: framework_applied es self-report, no introspección fiel.</span></p>
+  <div class="box">
+    <b>agents_invoked</b>
+    <table>
+      <tr><th>Agente</th><th>Status</th><th>Evidencia / razón</th></tr>
+      <tr><td>workflow recon×4 + design×1</td><td><span class="pill good">invoked</span></td><td>test_1 (orquestación) + test_2 (workflow agéntico). Lectura de notebooks, auditoría de datos, mapeo de nuestro repo, estándares de gobernanza, diseño adversarial.</td></tr>
+      <tr><td><code>composite-auditor</code></td><td><span class="pill warn">skipped-ad-hoc</span></td><td>Este turno es <i>diseño de test</i>, no un verdict de evidencia-substrato. El verdict adopt/reject del LBPP, cuando se corra, DEBE pasar por composite-auditor Mode 1 (CLAUDE.md §7 prohibición de self-audit). Skip justificado, trackeado.</td></tr>
+      <tr><td><code>causal-pruner</code></td><td><span class="pill">not-applicable</span></td><td>No se generan candidatos biológicos rankeados ni minimal-sets; se diseña un test de evaluación.</td></tr>
+    </table>
+  </div>
+
+  <h2 id="que-es">3 · ¿Qué es realmente este repo?</h2>
+  <div class="callout para">
+    <div class="t">Veredicto de relación: intento paralelo DERIVADO, no upstream ni fork limpio</div>
+    El repo contiene <code>witt_thesis.docx</code> y <code>witt_validation_tests.docx</code> (documentos confidenciales de <i>nuestro</i> proyecto, footer "Confidential — Witt Substrate POC Year — Mexico, April 2026") → el autor tenía nuestro framing en mano. El README <b>NO es idéntico al nuestro</b> (8836 B vs 4817 B, SHA256 distinto): es una variante más larga y embellecida que <i>añade</i> claims que nuestro README nunca hizo ("queries the Tool Universe STRING/PubMed/UniProt/Reactome", "literature-validated … ZFIN and Zebrahub"). El <code>git log</code> muestra 2 commits: un side-project exploratorio, no una base de datos mantenida.
+  </div>
+  <p><b>El gap que llenaría:</b> nuestro repo es la capa de gobernanza/substrato (CLAUDE.md, skills, ADRs, calibration records, evaluation, Morpheus outputs) y <b>deliberadamente NO es un almacén de datos</b>. El repo del colaborador aporta la capa de datos cruda + notebooks que el nuestro no tiene: <code>network.tsv</code>, <code>spatial_data.json</code>, <code>mapped_ids.tsv</code>. La pregunta de fit es por tanto sobre <b>la capa de datos</b>, no sobre el repo entero.</p>
+
+  <h2 id="evidencia">4 · Evidencia — el caso a favor y en contra</h2>
+  <div class="grid2">
+    <div>
+      <h3>A favor (lo genuino)</h3>
+      <ul>
+        <li><b>network.tsv es STRING real:</b> 116 edges ≥0.401 (piso medium-confidence), combinado nunca &lt; max subcanal, reconstrucción noisy-OR err medio 0.0135 / max 0.048 — el residual exacto de la corrección de prior de STRING.</li>
+        <li><b>6/9 genes documentados</b> (gata3, lhx1a, pax2a, pax8, wt1a, wt1b) aparecen en NUESTRO <code>analysis/outputs/ensembl_symbol_map.json</code> ya verificado → tenemos ground truth gratis para cruzar.</li>
+        <li><b>nb01 (topología) es honesto:</b> su barrido de umbral reproduce exacto (T=0.40→densidad 0.4203; T=0.70→0.1762). Una lógica reusable.</li>
+        <li><b>El scaffold de calibración</b> (engineer rating / ground-truth / comments) es estructuralmente compatible con <code>substrate_calibration/records/</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>En contra (lo que inyectaría anti-patrones)</h3>
+      <ul>
+        <li><b>La conclusión titular la sostiene una constante FABRICADA:</b> los 15 genes vecinos están hardcodeados a 0.125, justo en el umbral 0.12 → pasan el filtro "kidney-specific" por fiat. De los 9 genes reales, 6 (incl. pax2a, pax8, fgf8a) FALLAN el filtro. El pipeline poda sus propios genes de interés y sobrevive con rellenos inventados.</li>
+        <li><b>Umbral 0.12 es un filo de cuchillo:</b> T=0.10→99 edges, 0.12→48, 0.13→COLAPSA a 2. El README lo llama "robusto": es lo contrario.</li>
+        <li><b>nb03 se contradice a sí mismo:</b> la conclusión dice 90 edges/26 podados/22 nodos; re-ejecutar el código da 48/68/17. Los 90/26/22 no aparecen en ningún run real.</li>
+        <li><b>Teatro de calibración (§5):</b> 0.85→0.90→0.92→0.95 sigue el <i>orden de notebook</i>, y el 0.95 está en nb04 (el más fabricado). Todo "POSITIVE" asertado, todo Engineer Rating "[Pending]". Sin ECE, sin isotonic, sin observed_outcome.</li>
+        <li><b>Procedencia inauditable:</b> el <code>fetch_kidney_spatial_data.py</code> que supuestamente generó <code>spatial_data.json</code> NO existe; la matriz temporal de nb04 se atribuye a "ZFIN/Zebrahub" sin query/archivo/cita; PubMed y Reactome nunca se tocan. <code>spatial_data.json</code> tiene CERO scores numéricos: los "spatial scores" son un conteo de substrings de GO ("renal" matchea "adrenal gland").</li>
+        <li><b>15 genes single-sourced:</b> sus ENSDARP existen solo en network.tsv, sin mapped_ids ni UniProt — justo la clase de identificador no-verificado que dio 45% de error (5/11 ENSDARG) en la sesión May 8-9.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 id="test">5 · El test decisivo — Load-Bearing Provenance Probe (LBPP)</h2>
+  <div class="callout good">
+    <div class="t">Por qué ÉSTE es el test (y no una auditoría grande)</div>
+    Un solo probe de ≤26 lookups colapsa en un verdict binario los TRES modos de fallo que CLAUDE.md filtra: (a) integridad de identificadores — el riesgo 45% — verificando los IDs con caché cruda; (b) fabricación de procedencia — el script ausente, la mis-atribución ZFIN — checando si el dato atado a esos IDs existe en la fuente; (c) validez del resultado — porque la red sobrevive ENTERAMENTE gracias a los 15 genes a 0.125, que son exactamente los que NO tienen procedencia. Targetea el dato que sostiene la conclusión, no audita todo (<i>prueba pequeño antes de armar bien</i>).
+  </div>
+  <h3>Procedimiento (gratis: Ensembl REST + UniProt, con caché crudo)</h3>
+  <div class="box">
+    <div class="step"><div class="num">0</div><div><b>Ancla in-repo (sin red):</b> de nuestro <code>ensembl_symbol_map.json</code> verificado, tomar los ENSDARG de los 6 genes solapados (gata3, lhx1a, pax2a, pax8, wt1a, wt1b) como anclas de confianza.</div></div>
+    <div class="step"><div class="num">1</div><div><b>Los 9 IDs documentados:</b> <code>GET rest.ensembl.org/lookup/id/&lt;ENSDARP&gt;</code> (gratis). Guardar JSON CRUDO en <code>mcp_cache/raw_ensembl_lookup_&lt;ID&gt;_20260531.json</code> ANTES de procesar (§6). Confirmar species=danio_rerio; saltar al gen padre para el símbolo.</div></div>
+    <div class="step"><div class="num">2</div><div><b>Los 15 decisivos (los 0.125):</b> resolver los ENSDARP de gbx2, tlx3b, dlx3b, en1a, six1b, cdh17, six1a, sox3, lmx1bb, wnt4, cited1, atoh1a, eya1, foxi1, evx1. Para cada uno: ¿existe en Ensembl Danio rerio? ¿el símbolo resuelto == el que afirma network.tsv?</div></div>
+    <div class="step"><div class="num">3</div><div><b>Procedencia UniProt (spot-check):</b> 2 accesiones (lhx1a=Q90476, fgf8a=O57341) vía <code>rest.uniprot.org</code>. Caché crudo. Confirmar existencia + organismo 7955 + gen.</div></div>
+    <div class="step"><div class="num">4</div><div><b>Recomputar lo load-bearing:</b> re-correr el filtro de nb03 a umbrales {0.10, 0.12, 0.13}; confirmar el colapso (0.12→48 edges/17 nodos vs 0.13→~2). Cuantifica cuánto de la conclusión descansa en la constante 0.125.</div></div>
+    <div class="step"><div class="num">5</div><div><b>Verdict + claim record:</b> registrar como <code>claim_*.json</code> en <code>substrate_calibration/records/</code> (stated_confidence, claim_category="extraction", observed_outcome de los lookups en vivo, seed=42) → el propio probe es Test-4-calibratable. Verdict final por <code>composite-auditor</code> Mode 1.</div></div>
+  </div>
+  <div class="grid2">
+    <div class="callout good"><div class="t">PASS (→ adoptar SOLO los datos)</div>
+      <ul>
+        <li>9/9 ENSDARP documentados resuelven a Danio rerio + al símbolo afirmado, con JSON crudo cacheado.</li>
+        <li>≥13/15 ENSDARP relleno resuelven a Danio rerio + símbolo correcto.</li>
+        <li>6/6 anclas coinciden con nuestro mapa verificado.</li>
+        <li>Ambas accesiones UniProt existen, son 7955, y matchean el gen.</li>
+        <li><b>Verdict:</b> adoptar <code>network.tsv</code> + los identificadores como activo crudo verificado, BAJO la condición escrita de que TODAS las conclusiones, el umbral 0.12, los spatial scores y la escalera de confianza quedan RECHAZADOS y se recomputan bajo nuestra gobernanza. <i>(El colapso del paso 4 descalifica las conclusiones aunque los IDs verifiquen.)</i></li>
+      </ul>
+    </div>
+    <div class="callout bad"><div class="t">FAIL (→ rechazar como fundación)</div>
+      <ul>
+        <li>CUALQUIER ID de los 9 no resuelve, o resuelve a OTRO gen (el modo de fallo de May 8-9). Incluso 1/9 mal → FAIL.</li>
+        <li>≥3 de los 15 rellenos no resuelven o resuelven a gen distinto/no-Danio → la red descansa en nodos no-reales.</li>
+        <li>Desacuerdo de ancla contra nuestro mapa verificado.</li>
+        <li>Una accesión UniProt no existe / organismo equivocado.</li>
+        <li><b>Verdict:</b> NO adoptar nada al por mayor. A lo sumo re-derivar un pull fresco STRING+UniProt bajo nuestro propio §6 para los genes que realmente necesitemos. Tratar el repo como una <i>pista no confiable</i>, no una fuente.</li>
+      </ul>
+    </div>
+  </div>
+  <p class="tag">Costo: ≤26 lookups Ensembl REST gratis + 2 UniProt gratis + recomputación de 20 líneas stdlib ya validada. $0, sin APIs pagas, sin MCP, sin gasto (respeta directiva no-spend 2026-05-14).</p>
+
+  <h2 id="alternativas">6 · Tests alternativos (por si prefieres otro eje)</h2>
+  <table>
+    <tr><th>Test</th><th>Qué prueba</th><th>Decisividad</th></tr>
+    <tr><td><b>A. Conclusion-Reproducibility Diff</b></td><td>Ejecutar nb03 verbatim y diffear su resultado contra el texto de conclusión (código→48/68/17 vs conclusión→90/26/22 vs README→17/48).</td><td>MUY ALTA para exponer fabricación, casi $0 — pero responde "¿son honestos los notebooks?" (no), no "¿es adoptable el dato?". Buen pre-screen rápido.</td></tr>
+    <tr><td><b>B. STRING Re-Fetch edge-for-edge</b></td><td>Re-consultar STRING (especie 7955) y comparar los 116 scores arista por arista.</td><td>ALTA para la pregunta-dato, pero más estrecha: re-confirma justo la parte menos en duda (la reconstrucción noisy-OR ya da fuerte evidencia de que es genuino).</td></tr>
+    <tr><td><b>C. Calibration-Theater Teardown</b></td><td>Tomar un "Initial AI Confidence" (nb04=0.95), coercerlo a <code>claim_*.json</code> y correr <code>compute_ece.py</code>.</td><td>MEDIA. Demuestra vívidamente el anti-patrón §5, pero el resultado es conocido de antemano (fallará: cero observed outcomes). Mejor como exhibit narrativo DESPUÉS del LBPP.</td></tr>
+  </table>
+
+  <h2 id="sintesis">7 · Síntesis + confianza por sub-claim</h2>
+  <div class="callout warn">
+    <div class="t">alternatives_considered (encuadres rechazados)</div>
+    <b>"Adoptar el repo entero"</b> — rechazado: la capa de análisis es el anti-patrón.
+    <b>"Rechazar el repo entero"</b> — rechazado: descarta un export STRING genuino que es justo la capa de datos que nos falta.
+    <b>"Adoptar sus lógicas para hacernos más robustos"</b> — rechazado explícitamente: su lógica ES la falla; nuestra gobernanza (§5/§6/§7/§10) ya codifica la robustez que a él le falta. El valor está en el DATO, no en el método.
+  </div>
+  <table>
+    <tr><th>Sub-claim</th><th>Confianza</th><th>Base</th></tr>
+    <tr><td>network.tsv es STRING genuino, no fabricado</td><td><span class="pill good">0.85</span></td><td>Reconstrucción noisy-OR (err 0.0135), piso de score, estructura de canales. No re-fetcheado externamente aún.</td></tr>
+    <tr><td>La capa de análisis es fabricación / teatro de calibración</td><td><span class="pill bad">0.93</span></td><td>Re-ejecución diverge de la conclusión escrita; spatial_data.json sin scores; colapso a 0.13; confianza hand-asserted.</td></tr>
+    <tr><td>Los 24 identificadores verificarán contra Ensembl/UniProt</td><td><span class="pill warn">0.50</span></td><td>Genuinamente desconocido — es lo que el LBPP mide. 9 documentados lucen reales; 15 rellenos single-sourced; flag por el 45% previo.</td></tr>
+    <tr><td>Postura "verificar-y-cosechar la capa de datos" es la correcta</td><td><span class="pill good">0.80</span></td><td>Resuelve a la vez fitness-del-dato y validez-de-conclusión con un solo probe.</td></tr>
+  </table>
+  <p class="tag">confidence_by_subclaim usado (no agregado) porque el direct_answer compone claims de fuerza-de-evidencia asimétrica (§5).</p>
+
+  <h2 id="limites">8 · Límites (gap_flags)</h2>
+  <ul>
+    <li>Los 24 identificadores externos NO están aún verificados contra Ensembl/UniProt (no existe caché crudo). Per §7 no pueden confiarse hasta raw-cachearlos — el LBPP es precisamente este gap.</li>
+    <li>Los pesos de arista de network.tsv no fueron re-fetcheados de STRING (solo consistencia interna).</li>
+    <li>No abrimos <code>witt_thesis.docx</code> / <code>witt_validation_tests.docx</code> del repo colaborador para confirmar que son NUESTROS docs confidenciales — se infiere del string del footer. <b>Posible implicación de confidencialidad/IP que conviene revisar.</b></li>
+    <li>Versión de STRING / release de UniProt / fecha de retrieval del dato colaborador: desconocidas.</li>
+    <li>El VERDICT adopt/reject NO está alcanzado: este turno es diseño. El verdict requiere correr el LBPP + gate de composite-auditor. Lenguaje ADR-0005: a lo sumo "case capture" tras correr, nunca "Test satisfied".</li>
+  </ul>
+
+  <h2 id="roadmap">9 · Árbol de decisión / próximos pasos</h2>
+  <div class="box">
+    <ol>
+      <li><b>Si</b> los 9 IDs O ≥3 de los 15 rellenos fallan en resolver al gen Danio rerio afirmado → <span class="pill bad">REJECT</span> al por mayor; la fundación está sobre identificadores no-verificados/mal-etiquetados.</li>
+      <li><b>Si</b> todos los identificadores verifican limpio → <span class="pill warn">ADOPTAR SOLO EL DATO CRUDO</span> (network.tsv + IDs raw-cacheados), bajo caveat escrito que RECHAZA toda conclusión, el umbral 0.12, los spatial scores y la escalera de confianza (el colapso del paso 4 los descalifica de forma independiente).</li>
+      <li><b>NO</b> adoptar la lógica del colaborador "para robustez": su lógica es el anti-patrón.</li>
+      <li>Loggear el verdict como <code>claim_*.json</code> seed-bearing y rutearlo por <code>composite-auditor</code> Mode 1 (no self-cert, §7).</li>
+    </ol>
+  </div>
+
+  <div class="footer" id="footer">
+    <p><b>evidence_cited:</b> <code>../../zebrafish/network.tsv</code>, <code>mapped_ids.tsv</code>, <code>spatial_data.json</code>, <code>notebooks/01–04</code>, <code>README.md</code> (8836 B), git log (2 commits, origin github.com/javierdiegof/zebrafish) · <code>CLAUDE.md</code> §5/§6/§7/§10 · <code>PROJECT_SCOPE.md</code> §5 (Test 4) · <code>analysis/outputs/ensembl_symbol_map.json</code> (anclas) · <code>reasoning-frameworks-catalog.md</code> §8 (CoVe) · <code>html-report-contract.md</code> §3 (TYPE A).</p>
+    <p><b>Verificación externa (raw cache):</b> ninguna aún — pendiente del LBPP. <b>Reportes predecesores (ADR-0002):</b> ninguno (primer fit-test de repo colaborador).</p>
+    <p><b>Estado:</b> diseño de test + caracterización de recon. Verdict adopt/reject pendiente de ejecución del LBPP. · Generado 2026-05-31 · framework CoVe §8 · TYPE A.</p>
+  </div>
+</main>
+</div>
+</body>
+</html>

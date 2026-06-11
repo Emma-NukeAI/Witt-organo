@@ -19,7 +19,26 @@ from collections import defaultdict
 from datetime import datetime
 
 import numpy as np
-from sklearn.isotonic import IsotonicRegression
+
+# Outcome-vocabulary reconciliation (GWT v1.1 §5.3 / ADR-0014). Records historically used
+# "h1"/"h0"; the first resolved record (2026-05-31) uses "positive". The prior code scored
+# anything != "h1" as 0.0 — so the one resolved record would have been scored WRONG (a latent
+# bug). Map both vocabularies; EXCLUDE unfalsifiable/unknown outcomes from ECE rather than
+# silently scoring them 0.0.
+_POSITIVE = {"h1", "positive", "true", "correct", "yes"}
+_NEGATIVE = {"h0", "negative", "false", "incorrect", "no"}
+
+
+def outcome_to_label(observed_outcome):
+    """Map a heterogeneous observed_outcome to 1.0 / 0.0, or None to EXCLUDE from ECE."""
+    if observed_outcome is None:
+        return None
+    v = str(observed_outcome).strip().lower()
+    if v in _POSITIVE:
+        return 1.0
+    if v in _NEGATIVE:
+        return 0.0
+    return None  # e.g. "unfalsifiable_in_phase_I" / unknown -> excluded, not scored 0.0
 
 
 def load_records(records_dir):
@@ -59,7 +78,12 @@ def compute_ece(confidences, outcomes, n_bins=10):
 
 
 def apply_isotonic_calibration(confidences, outcomes):
-    """Return calibrated confidences via isotonic regression."""
+    """Return calibrated confidences via isotonic regression.
+
+    sklearn is imported lazily so the n<10 path (the current state: only "case capture")
+    runs with numpy alone, without requiring sklearn to be installed.
+    """
+    from sklearn.isotonic import IsotonicRegression
     iso = IsotonicRegression(out_of_bounds="clip")
     iso.fit(confidences, outcomes)
     return iso.transform(confidences)
@@ -72,21 +96,44 @@ def main():
     args = parser.parse_args()
 
     records = load_records(args.records_dir)
-    observable = filter_observable(records)
+    observable = filter_observable(records)  # observed_outcome is not None
+
+    # Score only records whose outcome maps to a label; exclude unfalsifiable/unknown.
+    scored = [(r, outcome_to_label(r.get("observed_outcome"))) for r in observable]
+    excluded = [r for r, lab in scored if lab is None]
+    scored = [(r, lab) for r, lab in scored if lab is not None]
 
     by_category = defaultdict(list)
     by_skill = defaultdict(list)
-    for r in observable:
-        by_category[r.get("claim_category", "unknown")].append(r)
-        by_skill[r.get("skill_origin", "unknown")].append(r)
+    for r, lab in scored:
+        by_category[r.get("claim_category", "unknown")].append((r, lab))
+        by_skill[r.get("skill_origin", "unknown")].append((r, lab))
 
-    confidences_all = [r["stated_confidence"] for r in observable]
-    outcomes_all = [1.0 if r["observed_outcome"] == "h1" else 0.0 for r in observable]
+    confidences_all = [r["stated_confidence"] for r, _ in scored]
+    outcomes_all = [lab for _, lab in scored]
+    n_scored = len(scored)
+
+    # ADR-0005 test-claim language: "satisfied" only when measured+aggregated (n>=10 + ECE);
+    # "case capture" at 1<=n<10; "infrastructure populated" at n==0.
+    if n_scored >= 10:
+        test_4_status = "satisfied"
+    elif n_scored >= 1:
+        test_4_status = "case capture"
+    else:
+        test_4_status = "infrastructure populated"
 
     report = {
         "generated": datetime.utcnow().isoformat() + "Z",
         "n_total_records": len(records),
         "n_observable": len(observable),
+        "n_scored": n_scored,
+        "n_excluded_unfalsifiable": len(excluded),
+        "tests_status": {"test_4": test_4_status},
+        "reporting_note": (
+            "Per ADR-0005, 'Test 4 satisfied' requires n_scored>=10 with a computed aggregate ECE. "
+            f"Current state: n_scored={n_scored} -> '{test_4_status}'. ece_raw at n<10 is descriptive "
+            "only, not a calibration verdict; post-hoc isotonic is not applied until n_scored>=10."
+        ),
         "aggregate": {
             "ece_raw": compute_ece(confidences_all, outcomes_all),
             "defensive_threshold": 0.20,
@@ -96,29 +143,23 @@ def main():
         "per_skill": {},
     }
 
-    if len(observable) >= 10:
+    if n_scored >= 10:
         calibrated = apply_isotonic_calibration(confidences_all, outcomes_all)
         report["aggregate"]["ece_after_isotonic"] = compute_ece(calibrated.tolist(), outcomes_all)
 
-    for category, recs in by_category.items():
-        confs = [r["stated_confidence"] for r in recs]
-        outs = [1.0 if r["observed_outcome"] == "h1" else 0.0 for r in recs]
-        report["per_category"][category] = {
-            "n": len(recs),
-            "ece_raw": compute_ece(confs, outs),
-        }
+    for category, pairs in by_category.items():
+        confs = [r["stated_confidence"] for r, _ in pairs]
+        outs = [lab for _, lab in pairs]
+        report["per_category"][category] = {"n": len(pairs), "ece_raw": compute_ece(confs, outs)}
 
-    for skill, recs in by_skill.items():
-        confs = [r["stated_confidence"] for r in recs]
-        outs = [1.0 if r["observed_outcome"] == "h1" else 0.0 for r in recs]
-        report["per_skill"][skill] = {
-            "n": len(recs),
-            "ece_raw": compute_ece(confs, outs),
-        }
+    for skill, pairs in by_skill.items():
+        confs = [r["stated_confidence"] for r, _ in pairs]
+        outs = [lab for _, lab in pairs]
+        report["per_skill"][skill] = {"n": len(pairs), "ece_raw": compute_ece(confs, outs)}
 
     with open(args.output, "w") as f:
         json.dump(report, f, indent=2)
-    print(f"Wrote report to {args.output}")
+    print(f"Wrote report to {args.output} (n_scored={n_scored}, test_4='{test_4_status}')")
 
 
 if __name__ == "__main__":

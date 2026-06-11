@@ -21,39 +21,37 @@ import numpy as np
 import scanpy as sc
 import anndata as ad
 
+# Resolve marker IDs at runtime from the verified-identifier store (DATA INAMOVIBLE v1),
+# never hardcoded from memory (CLAUDE.md §7, GWT v1.1 §6.3). require() raises ResolveError if a
+# symbol does not resolve, so a wrong/stale ID can no longer silently enter this script.
+# This replaces a block of 16 hardcoded IDs of which 15 were WRONG vs the verified map
+# (only pax2a matched) under a misleading "# Ensembl release 111" comment — they produced
+# 9 false-negative markers + one false-positive wt1a expression row. See
+# docs/findings/2026-06-10-schoels-phase1-id-corruption.md.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.resolve_id import require  # noqa: E402
+
 DATA_DIR = Path("analysis/data/schoels")
 OUT_DIR = Path("analysis/outputs")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Canonical pronephros markers (zebrafish) — Identity gate
-# Ensembl IDs from Ensembl release 111 (Danio rerio GRCz11)
-# If an ID drifts, we also do symbol fallback via gene_name lookup later.
-CANONICAL_MARKERS = {
-    "wt1a":   "ENSDARG00000054611",  # podocyte / mesonephros precursor
-    "pax2a":  "ENSDARG00000028148",  # intermediate mesoderm / early specification
-    "pax8":   "ENSDARG00000007570",  # early kidney
-    "hnf1ba": "ENSDARG00000016281",  # ducto distal
-    "hnf1bb": "ENSDARG00000040149",  # ducto distal (paralog)
-}
+# Canonical pronephros markers (zebrafish) — Identity gate proxies.
+# verified: 2026-06-10 source: ensembl (analysis/outputs/verified_identifiers.json via resolve_id.py)
+CANONICAL_SYMBOLS = ["wt1a", "pax2a", "pax8", "hnf1ba", "hnf1bb"]
 
-SEGMENT_MARKERS = {
-    # Podocyte
-    "podxl":    "ENSDARG00000044454",
-    "nphs1":    "ENSDARG00000023174",
-    "nphs2":    "ENSDARG00000089786",
-    # Proximal tubule (PT)
-    "slc20a1a": "ENSDARG00000005003",
-    "slc4a4a":  "ENSDARG00000004665",
-    "trpm7":    "ENSDARG00000058814",
-    # Distal early (DE)
-    "slc12a1":  "ENSDARG00000003581",
-    "kcnj1a.1": "ENSDARG00000098953",
-    # Distal late (DL)
-    "slc12a3":  "ENSDARG00000043794",
-    # Pronephric duct general
-    "gata3":    "ENSDARG00000008796",
-    "cdh17":    "ENSDARG00000020995",
-}
+# Segment-specific markers (zebrafish) — Specificity gate proxies.
+# verified: 2026-06-10 source: ensembl (analysis/outputs/verified_identifiers.json via resolve_id.py)
+SEGMENT_SYMBOLS = [
+    "podxl", "nphs1", "nphs2",        # podocyte
+    "slc20a1a", "slc4a4a", "trpm7",   # proximal tubule (PT)
+    "slc12a1", "kcnj1a.1",            # distal early (DE)
+    "slc12a3",                        # distal late (DL)
+    "gata3", "cdh17",                 # pronephric duct general
+]
+
+# {symbol: ENSDARG} resolved from the store; require() guarantees each ID is verified.
+CANONICAL_MARKERS = {s: require(s).ensdarg for s in CANONICAL_SYMBOLS}
+SEGMENT_MARKERS = {s: require(s).ensdarg for s in SEGMENT_SYMBOLS}
 
 def log(msg):
     print(f"[schoels] {msg}", flush=True)
@@ -76,10 +74,13 @@ def load_day(day_label):
 def report_marker(adata, name, ens_id):
     """Return per-marker stats: presence, n cells expressing, % expressing, mean."""
     if ens_id not in adata.var_names:
+        # Record WHY a marker is absent so a future wrong/stale ID is visible, not silent.
+        # (The prior version returned found=False with no reason, which let 15 wrong IDs pass.)
         return {
             "marker": name, "ens_id": ens_id, "found": False,
             "n_cells_expressing": 0, "pct_expressing": 0.0,
             "mean_expr": 0.0, "max_expr": 0.0,
+            "reason": "id_not_in_var_names",
         }
     X = adata[:, ens_id].X
     expr = X.toarray().flatten() if hasattr(X, "toarray") else np.asarray(X).flatten()
@@ -92,6 +93,7 @@ def report_marker(adata, name, ens_id):
         "pct_expressing": float(n_pos / len(expr) * 100),
         "mean_expr": float(expr.mean()),
         "max_expr": float(expr.max()),
+        "reason": "",
     }
 
 def report_marker_per_day(adata, name, ens_id):
