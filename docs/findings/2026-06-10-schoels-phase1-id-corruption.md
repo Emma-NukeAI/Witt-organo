@@ -58,9 +58,28 @@ symbol-lookup with the verified map — independent and sound).
 ## Version preservation (ADR-0002)
 
 The corrupted 2026-05-08 CSVs were **not overwritten**. They were moved to
-`analysis/outputs/_superseded/schoels_markers_{canonical,segment}.20260508.csv`. Re-running the
-fixed `01_schoels_analysis.py` (requires the scanpy environment + the GSE162031 data under
-`analysis/data/schoels/`) will write fresh, correct CSVs to `analysis/outputs/`; diffing the new
-canonical CSV against the superseded one confirms the recovered markers. That re-run + diff is
-the remaining verification step (it needs the data files, which are gitignored), and is logged
-here as Test-3 iteration evidence: a real, audited correction.
+`analysis/outputs/_superseded/schoels_markers_{canonical,segment}.20260508.csv`.
+
+## Recovery — RESOLVED (2026-06-11)
+
+The recovery ran via `analysis/scripts/01b_schoels_remarker.py`, which re-reports the markers from
+the **unaffected** `schoels_qc.h5ad` (QC/normalize never depended on the marker IDs) using the
+correct IDs from the verified store. Faithful to a fresh run's marker step, without re-running the
+full scanpy pipeline. Result (full per-marker diff in `analysis/outputs/schoels_remarker_diff_20260611.json`):
+
+- **now found: 15/16** (was a mix of false-positives + false-negatives).
+- **10 false-negatives recovered** — real pronephros markers wrongly absent are now detected with
+  substantial expression: `cdh17` 0→35.1%, `hnf1ba` 0→25.3%, `slc20a1a` 0→12.9%, `podxl` 0→12.5%,
+  `pax8` 0→11.3%, `trpm7` 0→10.6%, `slc12a3` 0→9.9%, `gata3` 0→5.9%, `nphs2` 0→4.7%, `kcnj1a.1` 0→4.1%.
+- **4 false-positives corrected** (expression was attributed to an unrelated gene the wrong ID hit):
+  `slc4a4a` 45.5%→22.3% (a dramatic spurious value), `wt1a` 0.44%→5.23%, `nphs1` 2.28%→3.78%,
+  `hnf1bb` 1.50%→0.97%.
+- **1 genuinely absent**: `slc12a1` (correct ID `ENSDARG00000098096`) is not in `var_names` — now
+  reported as absent **with `reason: id_not_in_var_names`** (a true technical/biological absence in
+  this dataset, no longer masked by a colliding wrong ID).
+
+The fixed `01_schoels_analysis.py` (full scanpy pipeline) regenerates the same marker CSVs on a
+fresh run; `01b_schoels_remarker.py` is the lightweight recovery that produced the live corrected
+CSVs now in `analysis/outputs/`. Logged as Test-3 iteration evidence: a real, audited correction
+that recovered 10 markers and removed 4 spurious expression values from the Identity/Specificity
+gate proxies.

@@ -1,0 +1,185 @@
+{
+  "h5ad": "analysis\\outputs\\schoels_qc.h5ad",
+  "n_markers": 16,
+  "n_now_found": 15,
+  "n_recovered_false_negatives": 10,
+  "n_corrected_false_positives": 4,
+  "per_marker": [
+    {
+      "marker": "wt1a",
+      "old_ens": "ENSDARG00000054611",
+      "new_ens": "ENSDARG00000031420",
+      "id_was_wrong": true,
+      "old_found": true,
+      "new_found": true,
+      "old_pct": 0.436,
+      "new_pct": 5.23,
+      "status": "corrected_false_positive_reattributed"
+    },
+    {
+      "marker": "pax2a",
+      "old_ens": "ENSDARG00000028148",
+      "new_ens": "ENSDARG00000028148",
+      "id_was_wrong": false,
+      "old_found": true,
+      "new_found": true,
+      "old_pct": 22.034,
+      "new_pct": 22.034,
+      "status": "unchanged_correct"
+    },
+    {
+      "marker": "pax8",
+      "old_ens": "ENSDARG00000007570",
+      "new_ens": "ENSDARG00000015879",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 11.283,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "hnf1ba",
+      "old_ens": "ENSDARG00000016281",
+      "new_ens": "ENSDARG00000006615",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 25.327,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "hnf1bb",
+      "old_ens": "ENSDARG00000040149",
+      "new_ens": "ENSDARG00000022295",
+      "id_was_wrong": true,
+      "old_found": true,
+      "new_found": true,
+      "old_pct": 1.501,
+      "new_pct": 0.969,
+      "status": "corrected_false_positive_reattributed"
+    },
+    {
+      "marker": "podxl",
+      "old_ens": "ENSDARG00000044454",
+      "new_ens": "ENSDARG00000031228",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 12.494,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "nphs1",
+      "old_ens": "ENSDARG00000023174",
+      "new_ens": "ENSDARG00000060758",
+      "id_was_wrong": true,
+      "old_found": true,
+      "new_found": true,
+      "old_pct": 2.276,
+      "new_pct": 3.777,
+      "status": "corrected_false_positive_reattributed"
+    },
+    {
+      "marker": "nphs2",
+      "old_ens": "ENSDARG00000089786",
+      "new_ens": "ENSDARG00000042850",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 4.746,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "slc20a1a",
+      "old_ens": "ENSDARG00000005003",
+      "new_ens": "ENSDARG00000020114",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 12.93,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "slc4a4a",
+      "old_ens": "ENSDARG00000004665",
+      "new_ens": "ENSDARG00000013730",
+      "id_was_wrong": true,
+      "old_found": true,
+      "new_found": true,
+      "old_pct": 45.472,
+      "new_pct": 22.324,
+      "status": "corrected_false_positive_reattributed"
+    },
+    {
+      "marker": "trpm7",
+      "old_ens": "ENSDARG00000058814",
+      "new_ens": "ENSDARG00000036232",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 10.605,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "slc12a1",
+      "old_ens": "ENSDARG00000003581",
+      "new_ens": "ENSDARG00000098096",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": false,
+      "old_pct": 0.0,
+      "new_pct": 0.0,
+      "status": "still_absent_check"
+    },
+    {
+      "marker": "kcnj1a.1",
+      "old_ens": "ENSDARG00000098953",
+      "new_ens": "ENSDARG00000091232",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 4.068,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "slc12a3",
+      "old_ens": "ENSDARG00000043794",
+      "new_ens": "ENSDARG00000013855",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 9.879,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "gata3",
+      "old_ens": "ENSDARG00000008796",
+      "new_ens": "ENSDARG00000016526",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 5.908,
+      "status": "recovered_false_negative"
+    },
+    {
+      "marker": "cdh17",
+      "old_ens": "ENSDARG00000020995",
+      "new_ens": "ENSDARG00000005112",
+      "id_was_wrong": true,
+      "old_found": false,
+      "new_found": true,
+      "old_pct": 0.0,
+      "new_pct": 35.109,
+      "status": "recovered_false_negative"
+    }
+  ]
+}
