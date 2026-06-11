@@ -96,6 +96,20 @@ class SourceOfTruth:
             if rec.uniprot_acc:
                 self._by_uniprot[rec.uniprot_acc] = rec
 
+        # RefSeq <-> Ensembl cross-map (optional): lets resolve() bind RefSeq-keyed datasets
+        # (e.g., GSE218068 uses NM_*) to the store. Built from analysis/outputs/refseq_ensembl_xref.json.
+        self._by_refseq = {}
+        xref_path = self.store_path.parent / "refseq_ensembl_xref.json"
+        if xref_path.exists():
+            try:
+                xr = json.loads(xref_path.read_text(encoding="utf-8")).get("xref", {})
+                for nm, info in xr.items():
+                    ens = info.get("ensdarg")
+                    if ens in self._by_ensdarg:
+                        self._by_refseq[nm] = self._by_ensdarg[ens]
+            except Exception:
+                pass
+
     def store_version(self) -> Optional[str]:
         return self._version
 
@@ -111,6 +125,8 @@ class SourceOfTruth:
             return self._by_ensdarg[k]
         if k in self._by_uniprot:
             return self._by_uniprot[k]
+        if k in self._by_refseq:  # RefSeq NM_* (cross-map)
+            return self._by_refseq[k]
         return NOT_FOUND
 
     def require(self, key: str) -> VerifiedRecord:

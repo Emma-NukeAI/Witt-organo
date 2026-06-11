@@ -30,6 +30,7 @@ import json
 ANALYSIS = Path(__file__).resolve().parents[2]          # .../analysis
 MAP_PATH = ANALYSIS / "outputs" / "ensembl_symbol_map.json"
 OUT_PATH = ANALYSIS / "outputs" / "verified_identifiers.json"
+OCULAR_CURATED = ANALYSIS / "outputs" / "ocular_markers_curated.json"
 
 # The 7 anchors the LBPP (2026-05-31) cross-checked against this map AND for which a raw
 # Ensembl 3-hop response was cached per CLAUDE.md §6/§7.9.
@@ -37,7 +38,7 @@ RAW_ANCHORS = {"cdh17", "gata3", "lhx1a", "pax2a", "pax8", "wt1a", "wt1b"}
 RAW_CACHE = "mcp_cache/raw_ensembl_lookup_genes_20260531.json"
 
 SCHEMA_VERSION = "1.0"
-STORE_VERSION = "2026-06-10.1"
+STORE_VERSION = "2026-06-11.1"
 
 
 def build():
@@ -82,13 +83,33 @@ def build():
             "confidence": 1.0 if ensdarg is not None else 0.0,
             "notes": notes,
         })
+    # Merge curated ocular/corneal markers (curate_markers.py) as RAW rows — raw Ensembl REST lookup
+    # cached per §7.9. Resolved markers only; NOT_FOUND ones stay in the curation file (needs_alias).
+    existing = {r["symbol"] for r in records}
+    if OCULAR_CURATED.exists():
+        curated = json.loads(OCULAR_CURATED.read_text(encoding="utf-8"))
+        for sym, c in sorted(curated.items()):
+            if sym in existing or not c.get("ensdarg"):
+                continue
+            records.append({
+                "symbol": sym, "ensdarg": c["ensdarg"], "ensdarp": None, "ensdart": None,
+                "uniprot_acc": None, "taxon": 7955, "assembly": "GRCz11", "ensembl_release": 111,
+                "source_db": "ensembl", "resolver": "ensembl-symbol-lookup",
+                "raw_cache_ref": f"RAW:{c.get('raw_cache_ref')}", "anchor_match": None,
+                "verified_on": c.get("verified_on"), "provenance": "ours", "confidence": 1.0,
+                "refseq": c.get("refseq", []), "zfin": c.get("zfin"),
+                "notes": "Ocular/corneal marker curated via Ensembl REST (raw lookup cached); for N5 / Test-5 work.",
+            })
+
     envelope = {
         "schema_version": SCHEMA_VERSION,
         "store_version": STORE_VERSION,
         "generated_by": "analysis/scripts/lib/build_verified_store.py",
         "source_artifacts": [
             "analysis/outputs/ensembl_symbol_map.json",
+            "analysis/outputs/ocular_markers_curated.json",
             "mcp_cache/raw_ensembl_lookup_genes_20260531.json",
+            "mcp_cache/raw_ensembl_ocular_lookup_*_20260611.json",
         ],
         "read_only": True,
         "human_gate_required_to_modify": True,

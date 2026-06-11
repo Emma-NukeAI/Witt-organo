@@ -33,6 +33,19 @@ The 2026-05-21 cornea/N5 session handoff named its **primary blocker** as "acqui
 - **Done:** categorized both datasets via `corpus_classifier`; downloaded + cached GSE218068 features (153 KB, `mcp_cache/raw_geo_GSE218068_features_20260611.tsv.gz`, §7.9); ran the entity gate on real features; cataloged 2 corpus records (`rag_index/corpus_manifest.json`, `pending_review`); added CNGB STOmics to the DB registry + crosswalk; enriched the classifier keywords (stereo-seq / spatial-transcriptomics / CNGB).
 - **Gated (next steps, need approval):** download the ZESTA 4.8 GB `.h5ad` (bandwidth/compute) + read with scanpy/anndata; build the RefSeq↔Ensembl cross-map; curate ocular markers into the verified store; decide the RAG backend (still OPEN) before vectorizing.
 
+## Follow-through (2026-06-11): options 1 + 2 + 3 executed (Emmanuel approved)
+
+**Opt-1 — corpus records APPROVED.** CORPUS-2026-0001 (ZESTA) + CORPUS-2026-0002 (GSE218068) → `approved` (Emmanuel) in `corpus_manifest.json`.
+
+**Opt-3 — ocular markers curated + RefSeq cross-map (NO-SPEND, Ensembl REST).**
+- `curate_markers.py` (curl + retries) resolved **10/14** ocular/corneal markers → ENSDARG, raw-cached (§7.9): foxc1b, pitx2, prox1a, pax6a, pax6b, tp63, aldh3a1, aldh1a3, col1a1a, kera. NOT_FOUND (need alias/ortholog work): foxc2, krt12, col1a1b, lum (`ocular_markers_curated.json`).
+- The verified store grew **32 → 42 records (17 RAW)** — `foxc1b` (the prueba's quarantined gene) is now RAW-verified. The entity gate now PASSES it (curation loop closed).
+- **RefSeq↔Ensembl cross-map** `analysis/outputs/refseq_ensembl_xref.json` (39 NM_*→{symbol,ENSDARG} from GSE218068 features ∩ store). `resolve_id` now resolves RefSeq: `resolve("NM_131729") → foxc1b`.
+
+**Opt-2 — ZESTA representative file downloaded + read.** `zf5_stereoseq.h5ad` (37.6 MB, verified HDF5) read with anndata: **6,064 spots × 16,153 genes**, spatial obs (spatial_x/y, layer_annotation, time_point). Markers pitx2/cdh17/gata3 present + resolve RAW; pax2a/wt1a absent at 5 hpf (biologically consistent). Full 4.8 GB set on-demand (gated).
+
+**Third namespace finding:** the three sources use three ID systems — store = **ENSDARG**, GSE218068 = **RefSeq (NM_*)**, ZESTA = **gene symbols + Ensembl clone-names**. `resolve_id` now binds all three (symbol / ENSDARG / RefSeq / UniProt), so heterogeneous datasets converge on one verified identity.
+
 ## Substrate evidence
 
 Test 1 (multi-source reasoning + entity gate on real data), Test 3 (first real corpus population; the test surfaced 3 improvements), Test 5 (the ocular dataset supports cross-field). Claim record:

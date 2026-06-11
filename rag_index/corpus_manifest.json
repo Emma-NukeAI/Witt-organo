@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "manifest_version": "2026-06-11.1",
-  "status": "seed (empty) — awaiting the first sample/test documents from Emmanuel. Schema enriched 2026-06-11 by the corpus-classifier proposal + composite-auditor (Mode 1, 3 lenses).",
+  "status": "2 records APPROVED by Emmanuel 2026-06-11 (ZESTA + GSE218068). Schema enriched 2026-06-11 (corpus-classifier + composite-auditor Mode 1).",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -33,8 +33,9 @@
       "corpus_record_id": "CORPUS-2026-0001",
       "version": "v1.0",
       "created_at": "2026-06-11T00:00:00Z",
-      "source_document": {"name": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas", "doi": "10.1016/j.devcel.2022.04.009", "pmid": "35617956", "source_db": "CNGB_STOmics", "accession": "CNP0002220 / STDS0000057", "files": "12 x .h5ad (~4.8 GB): zf{3,5,10,12,18,24}_scRNA.h5ad + zf{3,5,10,12,18,24}_stereoseq.h5ad + spatial_sixtime_slice_stereoseq.h5ad", "raw_cache_path": "NOT DOWNLOADED (4.8 GB — gated; metadata-only categorization)", "parse_method": "descriptor-only (corpus_classifier propose_categorization)"},
-      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9", "RN8"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.7, "RN8": 0.4}, "note": "Stereo-seq is transcriptomics (RN1) WITH spatial morphology (RN9); scRNA trajectories touch RN8."},
+      "source_document": {"name": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas", "doi": "10.1016/j.devcel.2022.04.009", "pmid": "35617956", "source_db": "CNGB_STOmics", "accession": "CNP0002220 / STDS0000057", "files": "12 x .h5ad (~4.8 GB): zf{3,5,10,12,18,24}_scRNA.h5ad + zf{3,5,10,12,18,24}_stereoseq.h5ad + spatial_sixtime_slice_stereoseq.h5ad", "raw_cache_path": "mcp_cache/zf5_stereoseq.h5ad (representative 37.6 MB Stereo-seq slice DOWNLOADED + read; full 4.8 GB set on-demand)", "parse_method": "zf5_stereoseq.h5ad read with anndata 0.12 (verified HDF5)"},
+      "read_summary": {"file": "zf5_stereoseq.h5ad (5 hpf slice)", "n_spots": 6064, "n_genes": 16153, "obs": ["spatial_x", "spatial_y", "seurat_clusters", "time_point", "bin_annotation", "layer_annotation"], "id_namespace": "gene SYMBOLS + Ensembl clone-names (NOT ENSDARG, NOT RefSeq) -> binds to the store via the resolver's symbol index", "markers_present_and_resolved": ["pitx2", "cdh17", "gata3 (all RAW)"], "markers_absent_at_5hpf": ["pax2a", "wt1a (biologically consistent — pronephric onset is later)"]},
+      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9", "RN8"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.7, "RN8": 0.4}, "note": "Stereo-seq is transcriptomics (RN1) WITH spatial morphology (RN9, confirmed: spatial_x/y + layer_annotation obs); scRNA trajectories touch RN8."},
       "axis_scientific_domain": {"primary": "N3", "secondary": ["N1"]},
       "axis_source_db": [{"db": "CNGB_STOmics", "provenance": "computed", "role": "primary_source"}, {"db": "GEO_NCBI", "provenance": "computed", "role": "corroborating?"}],
       "axis_file_type": {"ext": ".h5ad", "valid_for_niche": true, "modality": "spatial+scRNA (Stereo-seq)"},
@@ -44,7 +45,7 @@
       "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Whole-embryo spatiotemporal expression atlas, 3-24 hpf — the early-developmental window for pronephros + early-eye; primary payload is lineage/expression (RN1), with spatial morphology (RN9)."},
       "feeds_databases": ["CNGB_STOmics"],
       "fit_note": "Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the prior schoels/Wagner analyses. Strong fit for N3/N1; spatial dimension is new to the project (no prior spatial data).",
-      "approval_chain": [{"gate": "categorization", "status": "pending_review", "approved_by": null, "approved_at": null}],
+      "approval_chain": [{"gate": "categorization", "status": "approved", "approved_by": "Emmanuel", "approved_at": "2026-06-11T13:00:00Z"}],
       "gap_flags": ["4.8 GB not downloaded (gated on backend + bandwidth/compute approval); reading .h5ad needs scanpy/anndata", "spatial modality is new — RN9 spatial-transcriptomics ingestion path not built", "entities not yet extracted (needs download)"],
       "substrate_evidence": ["test_1", "test_3"]
     },
@@ -70,7 +71,7 @@
       "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Late-stage (48-144 hpf) ocular anterior-segment scRNA — the cornea/N5 domain."},
       "feeds_databases": ["GEO_NCBI"],
       "fit_note": "CLOSES Nat Witt GAP-5 (the cornea handoff's primary blocker: a 72-120 hpf zebrafish cornea/anterior-segment dataset). foxc1b:GFP matches the biomedic's exact line. Directly supports Test-5 ocular cross-field work.",
-      "approval_chain": [{"gate": "categorization", "status": "pending_review", "approved_by": null, "approved_at": null}],
+      "approval_chain": [{"gate": "categorization", "status": "approved", "approved_by": "Emmanuel", "approved_at": "2026-06-11T13:00:00Z"}],
       "gap_flags": ["RefSeq<->Ensembl cross-map needed to bind dataset IDs to the verified store", "foxc1b/pitx2/prox1a UNVERIFIED — ocular markers absent from the pronephros-centric store; curate via Ensembl lookup + human gate", "EXPLORATORY-NOT-TEST-5 (N5 is exploratory in Phase I)"],
       "substrate_evidence": ["test_1", "test_3", "test_5"]
     }

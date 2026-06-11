@@ -1,0 +1,165 @@
+{
+  "schema_version": "1.0",
+  "built": "2026-06-11",
+  "source": "GSE218068 features.tsv (RefSeq NM_*) \u2229 verified_identifiers.json (symbol->ENSDARG)",
+  "note": "RefSeq<->Ensembl cross-map for the genes in GSE218068 that resolve in the verified store. Lets resolve_id bind RefSeq-keyed datasets to the store.",
+  "n": 39,
+  "xref": {
+    "NM_131687": {
+      "symbol": "atp1a1a.2",
+      "ensdarg": "ENSDARG00000007739"
+    },
+    "NM_131671": {
+      "symbol": "atp1b1b",
+      "ensdarg": "ENSDARG00000076833"
+    },
+    "NM_131728": {
+      "symbol": "foxc1a",
+      "ensdarg": "ENSDARG00000091481"
+    },
+    "NM_199214": {
+      "symbol": "col1a1a",
+      "ensdarg": "ENSDARG00000012405"
+    },
+    "NM_001045016": {
+      "symbol": "podxl",
+      "ensdarg": "ENSDARG00000031228"
+    },
+    "NM_001025548": {
+      "symbol": "kera",
+      "ensdarg": "ENSDARG00000056938"
+    },
+    "NM_131211": {
+      "symbol": "gata3",
+      "ensdarg": "ENSDARG00000016526"
+    },
+    "NM_001034984": {
+      "symbol": "slc4a4a",
+      "ensdarg": "ENSDARG00000013730"
+    },
+    "NM_152986": {
+      "symbol": "tp63",
+      "ensdarg": "ENSDARG00000044356"
+    },
+    "NM_152248": {
+      "symbol": "tp63",
+      "ensdarg": "ENSDARG00000044356"
+    },
+    "NM_152987": {
+      "symbol": "tp63",
+      "ensdarg": "ENSDARG00000044356"
+    },
+    "NM_001044745": {
+      "symbol": "aldh1a3",
+      "ensdarg": "ENSDARG00000076933"
+    },
+    "NM_131641": {
+      "symbol": "pax6b",
+      "ensdarg": "ENSDARG00000045936"
+    },
+    "NM_213179": {
+      "symbol": "slc20a1a",
+      "ensdarg": "ENSDARG00000020114"
+    },
+    "NM_212902": {
+      "symbol": "slc13a3",
+      "ensdarg": "ENSDARG00000069478"
+    },
+    "NM_001312687": {
+      "symbol": "pou3f3a",
+      "ensdarg": "ENSDARG00000042032"
+    },
+    "NM_131150": {
+      "symbol": "pou3f3a",
+      "ensdarg": "ENSDARG00000042032"
+    },
+    "NM_198144": {
+      "symbol": "emx1",
+      "ensdarg": "ENSDARG00000039569"
+    },
+    "NM_131184": {
+      "symbol": "pax2a",
+      "ensdarg": "ENSDARG00000028148"
+    },
+    "NM_130975": {
+      "symbol": "pitx2",
+      "ensdarg": "ENSDARG00000036194"
+    },
+    "NM_001040687": {
+      "symbol": "nphs1",
+      "ensdarg": "ENSDARG00000060758"
+    },
+    "NM_131880": {
+      "symbol": "hnf1ba",
+      "ensdarg": "ENSDARG00000006615"
+    },
+    "NM_131051": {
+      "symbol": "tbx2b",
+      "ensdarg": "ENSDARG00000006120"
+    },
+    "NM_131216": {
+      "symbol": "lhx1a",
+      "ensdarg": "ENSDARG00000014018"
+    },
+    "NM_178222": {
+      "symbol": "sim1a",
+      "ensdarg": "ENSDARG00000023316"
+    },
+    "NM_194422": {
+      "symbol": "cdh17",
+      "ensdarg": "ENSDARG00000005112"
+    },
+    "NM_131405": {
+      "symbol": "prox1a",
+      "ensdarg": "ENSDARG00000055158"
+    },
+    "NM_001030061": {
+      "symbol": "trpm7",
+      "ensdarg": "ENSDARG00000036232"
+    },
+    "NM_001039634": {
+      "symbol": "wt1b",
+      "ensdarg": "ENSDARG00000007990"
+    },
+    "NM_001045080": {
+      "symbol": "slc12a3",
+      "ensdarg": "ENSDARG00000013855"
+    },
+    "NM_201035": {
+      "symbol": "kcnj1a.1",
+      "ensdarg": "ENSDARG00000091232"
+    },
+    "NM_131729": {
+      "symbol": "foxc1b",
+      "ensdarg": "ENSDARG00000055398"
+    },
+    "NM_194372": {
+      "symbol": "hnf1bb",
+      "ensdarg": "ENSDARG00000022295"
+    },
+    "NM_001018145": {
+      "symbol": "nphs2",
+      "ensdarg": "ENSDARG00000042850"
+    },
+    "NM_131015": {
+      "symbol": "mafba",
+      "ensdarg": "ENSDARG00000017121"
+    },
+    "NM_131046": {
+      "symbol": "wt1a",
+      "ensdarg": "ENSDARG00000031420"
+    },
+    "NM_131304": {
+      "symbol": "pax6a",
+      "ensdarg": "ENSDARG00000103379"
+    },
+    "NM_213100": {
+      "symbol": "irx3b",
+      "ensdarg": "ENSDARG00000031138"
+    },
+    "NM_199281": {
+      "symbol": "slc13a1",
+      "ensdarg": "ENSDARG00000045638"
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "foxc1b": {
+    "ensdarg": "ENSDARG00000055398",
+    "refseq": [],
+    "zfin": "ZDB-GENE-010302-2",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_foxc1b_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "foxc2": {
+    "ensdarg": null,
+    "refseq": [],
+    "zfin": null,
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_foxc2_20260611.json",
+    "verified_on": "2026-06-11",
+    "needs_alias_resolution": true
+  },
+  "pitx2": {
+    "ensdarg": "ENSDARG00000036194",
+    "refseq": [],
+    "zfin": "ZDB-GENE-990714-27",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_pitx2_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "prox1a": {
+    "ensdarg": "ENSDARG00000055158",
+    "refseq": [],
+    "zfin": "ZDB-GENE-980526-397",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_prox1a_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "pax6a": {
+    "ensdarg": "ENSDARG00000103379",
+    "refseq": [],
+    "zfin": "ZDB-GENE-990415-200",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_pax6a_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "pax6b": {
+    "ensdarg": "ENSDARG00000045936",
+    "refseq": [],
+    "zfin": "ZDB-GENE-001031-1",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_pax6b_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "tp63": {
+    "ensdarg": "ENSDARG00000044356",
+    "refseq": [],
+    "zfin": "ZDB-GENE-030819-1",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_tp63_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "krt12": {
+    "ensdarg": null,
+    "refseq": [],
+    "zfin": null,
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_krt12_20260611.json",
+    "verified_on": "2026-06-11",
+    "needs_alias_resolution": true
+  },
+  "aldh3a1": {
+    "ensdarg": "ENSDARG00000074791",
+    "refseq": [],
+    "zfin": "ZDB-GENE-120823-1",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_aldh3a1_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "aldh1a3": {
+    "ensdarg": "ENSDARG00000076933",
+    "refseq": [],
+    "zfin": "ZDB-GENE-061128-2",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_aldh1a3_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "col1a1a": {
+    "ensdarg": "ENSDARG00000012405",
+    "refseq": [],
+    "zfin": "ZDB-GENE-030131-9102",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_col1a1a_20260611.json",
+    "verified_on": "2026-06-11"
+  },
+  "col1a1b": {
+    "ensdarg": null,
+    "refseq": [],
+    "zfin": null,
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_col1a1b_20260611.json",
+    "verified_on": "2026-06-11",
+    "needs_alias_resolution": true
+  },
+  "lum": {
+    "ensdarg": null,
+    "refseq": [],
+    "zfin": null,
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_lum_20260611.json",
+    "verified_on": "2026-06-11",
+    "needs_alias_resolution": true
+  },
+  "kera": {
+    "ensdarg": "ENSDARG00000056938",
+    "refseq": [],
+    "zfin": "ZDB-GENE-041210-165",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_ocular_lookup_kera_20260611.json",
+    "verified_on": "2026-06-11"
+  }
+}
