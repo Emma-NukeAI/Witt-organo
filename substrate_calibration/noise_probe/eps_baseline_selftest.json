@@ -1,0 +1,27 @@
+{
+  "month_tag": "selftest-synthetic",
+  "config_hash": "scaffold",
+  "n_pairs": 3,
+  "axes": {
+    "retrieval_jaccard": {
+      "median": 0.75,
+      "sigma": 0.16499158227686112,
+      "eps_delta": 0.32998316455372223,
+      "eps_pass": 0.675
+    },
+    "citation_overlap": {
+      "median": 1.0,
+      "sigma": 0.23570226039551584,
+      "eps_delta": 0.4714045207910317,
+      "eps_pass": 0.75
+    },
+    "hypothesis_cosine": {
+      "status": "pending (needs local embedding model + RAG backend; plan \u00a7A OPEN)",
+      "median": null,
+      "sigma": null,
+      "eps_delta": null,
+      "eps_pass": null
+    }
+  },
+  "note": "EPS is MEASURED here, not assumed. Axes a/b run now on set-overlap; axis c activates with the RAG backend. No delta is counted as improvement below eps_delta (RIL_PROGRAM \u00a78)."
+}

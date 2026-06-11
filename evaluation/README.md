@@ -10,9 +10,21 @@ This directory holds the frozen 60-80 question set for Test 3 (iteration loop) p
 - `reports/` — quarterly aggregation per Test 4 three-tier reporting
 
 ## Status
-Month 0 baseline: [TBD: pending user-specified questions]
-Month 4 target: [planned]
+**Month 0 baseline: `held_out_set_v1.json` (GWT v1.1 Cycle 2, 2026-06-11).** A frozen v1 of **30
+questions** spanning **broad zebrafish biomedicine** — NOT pronephros-only — across the 13 niches
+(Indices_nichos) and the 9 authoritative databases (Bases de datos), modeled on real team-biomedic
+interactions (the Nat Witt cornea/N5 sessions: regulator-vs-bystander, Morpheus model assembly,
+specificity ratio, ortholog mapping, simulation debug). Cross-field (N5-ophthalmology) items carry
+`EXPLORATORY-NOT-TEST-5`. This v1 (30) is below the 60-80 target — it is the "prueba pequeño" seed;
+expansion to 60-80 is the next increment (bump `set_version`).
+Month 4 target: [planned — run with perturbations + noise-probe once a retrieval backend exists]
 Month 8 target: [planned]
+
+## Noise-probe / EPS (RIL_PROGRAM.md §3)
+`substrate_calibration/tools/noise_probe.py` measures the run-to-run noise floor on three axes
+(Retrieval Jaccard, Citation overlap, Hypothesis cosine) so improvements are distinguished from drift
+(`EPS_delta=2σ`, `EPS_pass=p25`). Axes a/b run on set-overlap now; axis c (cosine) and the real probe
+await the RAG/retrieval backend (plan §A OPEN). The scaffold's self-test proves the EPS math NO-SPEND.
 
 ## Question categories required (per agent-catalog.md `evaluation-runner` v2.2)
 - Binary classification questions
