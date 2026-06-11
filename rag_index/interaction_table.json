@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "index_version": "2026-06-11.0",
+  "status": "seed (empty) — RN10 master interaction table promoted to a first-class queryable object (corpus-classifier proposal, 2026-06-11). Populated human-gated as chaperone-tissue evidence arrives (held_out Q16 builds this).",
+  "purpose": "The chaperone-tissue backbone: Source -> Target -> Signal -> Temporal window. Queryable by source/target/signal/window. Join target for RN3 kinetic params + RN12 perturbation designs; consumed by RN13 Morpheus models as boundary conditions. Every row carries corpus provenance, verified entities, and gap_flags for unknown rates (a missing rate is VISIBLE, not silently zero).",
+  "human_gate_required_to_commit": true,
+  "row_schema": {
+    "row_id": "IT-NNNN",
+    "source_tissue": "ZFA-normalized tissue",
+    "target_tissue": "ZFA-normalized tissue",
+    "signal": {"molecule": "...", "pathway_id": "R-DRE-...", "direction": "induces|represses|maintains"},
+    "temporal_window_hpf": [0, 0],
+    "evidence": {"corpus_refs": ["CORPUS-..."], "db": ["..."], "provenance": "physical|genetic|curated|predicted|computed", "pmids": ["..."]},
+    "entities": [{"symbol": "...", "verified_store_ref": "verified_identifiers.json#...", "tier": "RAW|DERIVED|NOT_FOUND"}],
+    "confidence": 0.0,
+    "gap_flags": [],
+    "approval": {"status": "pending_review", "approved_by": null, "approved_at": null}
+  },
+  "rows": []
+}

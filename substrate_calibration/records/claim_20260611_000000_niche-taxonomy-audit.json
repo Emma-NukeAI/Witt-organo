@@ -1,0 +1,58 @@
+{
+  "claim_id": "claim_20260611_000000_niche-taxonomy-audit",
+  "claim_timestamp": "2026-06-11T00:00:00Z",
+  "prediction_preregistered_at": "2026-06-11T00:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (GWT v1.1 — RAG categorization + niche-taxonomy audit)",
+  "skill_origin": "corpus-classifier (domain-knowledge-curator mode) + composite-auditor Mode 1 (3 adversarial lenses) + reasoning-exposer",
+  "skill_version": "rag-index-2026-06-11 / corpus_classifier-1.0",
+  "claim_text": "The team-biomedic critique (Q30) that ocular biology (N5) should merge into biophysics/biomechanics is REJECTED by a unanimous composite-audit (3/3 lenses, keep-as-is): the project already separates an orthogonal physics-law/data axis (13 RAG data-niches RN1-RN13) from a scientific-domain axis (6 niches N1-N6); the biomedic conflates them, and merging ocular would collapse Test 5 (cross-field operation needs a structurally distinct field). Two amendments accepted: a metabolic-role discriminator (signaling-scaffold vs metabolic-general-function, applied additively to the corpus_manifest schema) and the recognition that ocular morphology already routes to RN9. The taxonomy decision is queued for a human gate; additive enrichments (label-collision fix, crosswalk, interaction_table, schema) were applied without reorganizing the taxonomy.",
+  "claim_category": "binary",
+  "sub_domain": "single-cell",
+  "requires_human_gate": true,
+  "human_gate_rationale": "The taxonomy decision touches the scientific-domain niche set + Test 5 instrumentation; per ADR-0013 process/taxonomy changes are human-gated (governance-proposal gp-2026-06-11-niche-taxonomy-q30, self_applied:false). The audit verdict is a recommendation, not a self-applied decision.",
+  "agent_invocation_status": "composite-auditor invoked (Mode 1 split-and-vote, 3 adversarial lenses: modeling-coherence, data-engineering, substrate-evidence). Verdict NOT self-certified.",
+  "prior": 0.70,
+  "stated_confidence": 0.83,
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: 'favored by 2025 literature for high-stakes outputs'. The audit verified the taxonomy claim against multiple project-internal evidence streams (niches.json, ADR-0015/0017, corpus_classifier.py, held_out Q30, PROJECT_SCOPE §5/§11) rather than open decomposition. Per CLAUDE.md §5, framework_applied is self-report.",
+  "confidence_by_subclaim": {
+    "project_already_separates_data-niche_axis_from_scientific-domain_axis": 0.95,
+    "merging_ocular_into_biophysics_would_collapse_Test_5": 0.88,
+    "metabolic_discriminator_is_a_real_gap_addressable_by_schema_field": 0.76,
+    "keep-as-is_is_the_correct_taxonomy_decision (pending human ratification)": 0.80
+  },
+  "alternatives_considered": [
+    "should-reorganize / merge N5 ocular into N2 biophysics (the biomedic's proposal) — REJECTED: collapses the domain axis to collinearity, deletes Test 5's measurement substrate, backwards-incompatible without ADR.",
+    "create a 14th metabolic niche — REJECTED: violates cap/prueba-pequeño; metabolism already lives in RN4; a schema discriminator captures the gap.",
+    "adopt 'morphology/physiology independent of tissue' as the N5 reframe — REJECTED: neuters the CLAUDE.md §3 scope filter; the need is already met by RN9 on the data axis.",
+    "do nothing (pure keep-as-is) — REJECTED: leaves the metabolic gap + the communication gap + the label collision unaddressed."
+  ],
+  "contradictory_evidence_cited": [
+    "The biomedic's shared-physics-law argument is scientifically valid and persuasive (modeling IS law-governed) — the dissent is real; the resolution is that the shared laws live on the RN axis, not that the biomedic is simply wrong.",
+    "No corpus exists yet (corpus_manifest records: []) and no retrieval benchmark — the 'data-niche primary' recommendation is reasoned-from-principles, not empirically validated.",
+    "The N5 partner-field decision (cardiology vs ophthalmology) is still open (PROJECT_SCOPE §11); if cardiology wins, the N5 keep-vs-merge could be revisited later."
+  ],
+  "gap_flags": [
+    "Taxonomy decision pending human ratification (governance gate); this record is the audit, not the decision.",
+    "No corpus / no retrieval benchmark yet — modality-primary-vs-domain-primary unvalidated empirically.",
+    "v1 keyword classifier is shallow on the RN5/6/7/9 imaging cluster (multi-label disambiguation needed when the semantic backend lands).",
+    "one auditor flagged its own §8 citation as best-effort (read-only pass) — verified here against the catalog (§8 = Chain-of-Verification)."
+  ],
+  "rater_id": "composite-auditor Mode 1 (3 independent lenses) — generator(corpus-classifier) != rater",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "Human ratifies keep-as-is on both niche axes; the two-axis design is surfaced to the biomedic; metabolic discriminator + additive enrichments stand.",
+  "expected_outcome_if_h0": "Human decides to reorganize the taxonomy (merge ocular / restructure), requiring an ADR + eval-set re-tag + Test-5 re-design.",
+  "observable_at": "human review of gp-2026-06-11-niche-taxonomy-q30",
+  "observed_outcome": null,
+  "observed_at": null,
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_4", "test_5"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {"agent": "composite-auditor", "status": "invoked", "invocation_id": "mode1-3-lens (modeling-coherence, data-engineering, substrate-evidence)", "evidence_generated": ["test_1", "test_4"]},
+    {"agent": "domain-knowledge-curator", "status": "invoked", "invocation_id": "corpus-classifier mode (proposer)", "evidence_generated": ["test_1", "test_3"]},
+    {"agent": "causal-pruner", "status": "not-applicable", "reason": "No ranked candidate / minimal-set generation; this is a taxonomy audit, not perturbation candidate generation."}
+  ],
+  "notes": "3rd substrate claim record; observed_outcome pending the human gate on the taxonomy decision. Cites §8 (CoVe). The audit PROTECTS Test 5 (rejecting a merge that would have collapsed it) — a substrate-evidence-positive outcome of using the project's own agents to audit a taxonomy change."
+}

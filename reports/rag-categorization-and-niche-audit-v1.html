@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG categorization + niche-taxonomy audit — GWT v1.1 (TYPE A)</title>
+<style>
+  :root{--bg:#0f172a;--bg2:#1e293b;--card:#172033;--ink:#e2e8f0;--mut:#94a3b8;--acc:#38bdf8;
+        --good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--line:#334155;}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:28px;}
+  h1{font-size:24px;margin:0 0 4px} h2{font-size:18px;margin:28px 0 10px;color:var(--acc);border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:15px;margin:16px 0 6px;color:#cbd5e1}
+  .sub{color:var(--mut);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:10px 0}
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:600;margin:2px 4px 2px 0}
+  .b-good{background:rgba(22,163,74,.15);color:#4ade80;border:1px solid #166534}
+  .b-warn{background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid #92400e}
+  .b-bad{background:rgba(220,38,38,.15);color:#f87171;border:1px solid #991b1b}
+  .b-acc{background:rgba(56,189,248,.13);color:#7dd3fc;border:1px solid #0e7490}
+  table{border-collapse:collapse;width:100%;margin:8px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  th{background:var(--bg2);color:#cbd5e1}
+  code{background:#0b1220;padding:1px 5px;border-radius:4px;color:#7dd3fc;font-size:12.5px}
+  ul{margin:6px 0 6px 18px;padding:0} li{margin:3px 0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+  .kpi{font-size:13px;color:var(--mut)} .kpi b{display:block;font-size:20px;color:var(--ink)}
+  .conf{display:flex;align-items:center;gap:8px;margin:3px 0} .bar{height:8px;border-radius:4px;background:var(--acc)}
+  .foot{color:var(--mut);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<h1>RAG categorization scheme + niche-taxonomy audit</h1>
+<p class="sub">GWT v1.1 · Cycle 4 · TYPE A (comprehensive analytical) · 2026-06-11 · Method 2 (human-driven; agents instrument) · <b>PROPOSAL — taxonomy decision human-gated</b></p>
+
+<div class="card">
+  <span class="badge b-acc">corpus-classifier</span><span class="badge b-acc">composite-auditor ×3</span>
+  <span class="badge b-acc">domain-knowledge-curator</span><span class="badge b-acc">reasoning-exposer</span>
+  <span class="badge b-good">audit: UNANIMOUS keep-as-is</span><span class="badge b-bad">merge REJECTED</span>
+  <span class="badge b-warn">decision queued (human gate)</span>
+</div>
+
+<div class="grid">
+  <div class="card kpi"><b>2</b> orthogonal axes (13 RAG data-niches × 6 scientific domains)</div>
+  <div class="card kpi"><b>9 × 13</b> DB→niche crosswalk (provenance-tagged)</div>
+  <div class="card kpi"><b>3/3</b> auditor lenses agree: keep-as-is</div>
+  <div class="card kpi"><b>Test 5</b> protected (merge would have collapsed it)</div>
+</div>
+
+<h2>§5 · Direct answer</h2>
+<div class="card">
+The RAG back-end is categorized on <b>two orthogonal axes</b> — the <b>13 RAG data-niches</b> (RN1–RN13, artifact/data-type, from <i>Indices_nichos</i>) and the <b>6 scientific-domain niches</b> (N1–N6, PROJECT_SCOPE) — fed by the <b>9 authoritative databases</b> (<i>Bases de datos</i>) via a provenance-tagged crosswalk. The enriched scheme adds a 5-axis tag model, an entity layer bound to the verified-identifier store, section-first chunking, a first-class RN10 interaction table, and a deterministic-then-semantic retrieval router. The team-biomedic's proposal to <b>merge ocular into biophysics is rejected</b> (unanimous composite-audit): the biomedic conflates the shared-physics-law axis (already the RN axis) with the scientific-domain axis; merging would collapse Test 5. Two amendments accepted (metabolic discriminator; ocular morphology already = RN9). The taxonomy decision is <b>queued for a human gate</b>; additive enrichments were applied without reorganizing the taxonomy.
+</div>
+
+<h2>The enriched categorization scheme (the "idea")</h2>
+<div class="card">
+<h3>5-axis tag model (per corpus item)</h3>
+<ul>
+<li><b>AXIS-1 data_niche</b> [RN1–RN13] — primary + secondary (multi-label, cross-referenced, not duplicated)</li>
+<li><b>AXIS-2 scientific_domain</b> [N1–N6] — orthogonal subject filter (keeps N5 ocular distinct → Test 5)</li>
+<li><b>AXIS-3 source_db + provenance</b> [physical &gt; genetic &gt; curated &gt; computed &gt; predicted] — STRING(predicted) never stands alone</li>
+<li><b>AXIS-4 file_type → modality</b> — extension narrows, keyword ranks (a <code>.csv</code> maps to 9 niches → modality+role, not extension, is the key)</li>
+<li><b>AXIS-5 bio_context</b> — stage_hpf, tissue, segment, species/taxon</li>
+</ul>
+<h3>Entity layer (bound to the DATA INAMOVIBLE — never mint IDs)</h3>
+<p>Every gene symbol resolves via <code>resolve()</code>: <b>hit</b> → ENSDARG + tier · <b>positive NOT_FOUND</b> → kept, conf 0 · <b>absent</b> → QUARANTINE (UNVERIFIED) until Ensembl lookup + raw-cache + human gate. Ontology xrefs: ZFIN, GO, Reactome, PSI-MI, MeSH, ZFA.</p>
+<h3>RN10 promoted to a first-class interaction table</h3>
+<p><code>rag_index/interaction_table.json</code> — Source → Target → Signal → Temporal-window, queryable on 4 keys; the chaperone-tissue backbone; consumed by RN13 Morpheus models as boundary conditions; unknown rates surface as <code>gap_flags</code> (visible, not silently zero).</p>
+</div>
+
+<h2>Composite-audit verdict (Mode 1 split-and-vote, 3 lenses)</h2>
+<table>
+<tr><th>Lens</th><th>Verdict</th><th>Conf.</th><th>Decisive reason</th></tr>
+<tr><td>modeling-coherence</td><td><span class="badge b-good">keep-as-is</span></td><td>0.82</td><td>Shared laws ≠ same niche; a model is its instantiation (params/geometry/BCs), not its operator set. The shared-law continuum already IS RN3/RN6/RN7.</td></tr>
+<tr><td>data-engineering / retrieval</td><td><span class="badge b-good">keep-as-is</span></td><td>0.82</td><td>Empirically <code>.json</code>→12/13 niches, <code>.csv</code>→9 → extension isn't a key; modality+role is. Merge = facet loss + category error.</td></tr>
+<tr><td>substrate-evidence / scope-fit</td><td><span class="badge b-good">keep-as-is</span></td><td>0.83</td><td><b>Merging ocular collapses Test 5</b> — cross-field operation needs a structurally distinct field to bridge to.</td></tr>
+</table>
+<p class="kpi">Root cause: the biomedic conflates the <b>physics-law/data axis</b> (RN1–RN13) with the <b>scientific-domain axis</b> (N1–N6). Partly a communication failure — they were shown N1–N6 without the RN axis surfaced.</p>
+
+<h3>Amendments accepted (real catches)</h3>
+<ul>
+<li><span class="badge b-good">applied</span> <b>Metabolic discriminator</b> — <code>metabolic_role: signaling-scaffold | metabolic-general-function</code> added to the manifest schema (a field, not a 14th niche).</li>
+<li><span class="badge b-good">already-available</span> <b>Morphology reframe</b> — "morphology/physiology independent of tissue" = RN9 on the data axis. (Reframing N5 itself rejected — would neuter the §3 scope filter.)</li>
+<li><span class="badge b-good">applied</span> <b>Label-collision fix</b> — held-out niche tags <code>N1…N13</code> → <code>RN1…RN13</code> (a Cycle-2 bug).</li>
+</ul>
+
+<h2>§5 · Confidence by subclaim</h2>
+<div class="card">
+  <div class="conf"><span style="width:340px">project already separates the two axes</span><div class="bar" style="width:190px"></div><b>0.95</b></div>
+  <div class="conf"><span style="width:340px">merging ocular would collapse Test 5</span><div class="bar" style="width:176px"></div><b>0.88</b></div>
+  <div class="conf"><span style="width:340px">keep-as-is is the correct decision (pending ratification)</span><div class="bar" style="width:160px"></div><b>0.80</b></div>
+  <div class="conf"><span style="width:340px">metabolic discriminator is a real, schema-patchable gap</span><div class="bar" style="width:152px"></div><b>0.76</b></div>
+</div>
+
+<h2>§5 · Evidence cited</h2>
+<div class="card"><ul>
+<li><code>rag_index/niches.json</code> (13 RN, dual-axis declaration), <code>databases.json</code> (9 DBs), <code>niche_database_crosswalk.json</code>, <code>interaction_table.json</code>, <code>corpus_manifest.json</code> (enriched schema)</li>
+<li><code>analysis/scripts/lib/corpus_classifier.py</code> (extension+keyword routing; <code>.json</code>→12/13 collision computed)</li>
+<li><code>evaluation/held_out_set_v1.json</code> (Q30 critique origin; Q23 cross-field)</li>
+<li><code>PROJECT_SCOPE.md</code> §5 (Test 5 definition), §11 (N5 partner-field pending) · <code>CLAUDE.md</code> §3 (scope filter), §7 (human-gated)</li>
+<li>ADR-0015 (RAG structure / backend open), ADR-0017 (corpus-classifier), ADR-0013 (governance meta-loop)</li>
+</ul></div>
+
+<h2>§5 · Alternatives considered</h2>
+<div class="card"><ul>
+<li><b>Merge N5 ocular into biophysics</b> (biomedic) — REJECTED: collapses Test 5, facet/collinearity loss, backwards-incompatible without ADR.</li>
+<li><b>Create a 14th metabolic niche</b> — REJECTED: violates cap/prueba-pequeño; a schema discriminator captures the gap.</li>
+<li><b>Adopt "morphology/physiology independent of tissue"</b> — REJECTED: neuters the §3 scope filter; need met by RN9.</li>
+<li><b>Pure keep-as-is (do nothing)</b> — REJECTED: leaves the metabolic gap + communication gap + label collision unaddressed.</li>
+</ul></div>
+
+<h2>§5 · Gap flags</h2>
+<div class="card">
+<span class="badge b-warn">taxonomy decision pending human gate (gp-2026-06-11-niche-taxonomy-q30)</span>
+<span class="badge b-warn">no corpus / no retrieval benchmark yet — modality-primary unvalidated</span>
+<span class="badge b-warn">v1 keyword classifier shallow on RN5/6/7/9 imaging cluster (multi-label disambiguation needed)</span>
+<span class="badge b-warn">N5 partner-field (cardiology vs ophthalmology) still open — not pre-empted</span>
+</div>
+
+<h2>§5 · Framework &amp; agents</h2>
+<div class="card">
+<p><b>framework_applied:</b> Chain-of-Verification (CoVe) — per <code>reasoning-frameworks-catalog.md §8</code> (verification against multiple project-internal evidence streams). Self-report, not faithful introspection (CLAUDE.md §5).</p>
+<table>
+<tr><th>Agent</th><th>Status</th><th>Evidence</th></tr>
+<tr><td>composite-auditor (Mode 1, 3 lenses)</td><td><span class="badge b-good">invoked</span></td><td>Test 1, Test 4</td></tr>
+<tr><td>domain-knowledge-curator (corpus-classifier mode)</td><td><span class="badge b-good">invoked</span></td><td>Test 1, Test 3</td></tr>
+<tr><td>causal-pruner</td><td><span class="badge b-acc">not-applicable</span></td><td>no ranked-candidate generation</td></tr>
+</table>
+</div>
+
+<p class="foot">Substrate evidence: Test 1 / Test 4 / Test 5 (protected). Claim record:
+<code>substrate_calibration/records/claim_20260611_000000_niche-taxonomy-audit.json</code> ·
+Finding: <code>docs/findings/2026-06-11-q30-niche-taxonomy-resolution.md</code> ·
+Governance: <code>gp-2026-06-11-niche-taxonomy-q30</code> (queued, self_applied:false). The taxonomy is
+<code>revisable: true</code> = human-gated mutable, not agent-mutable. GWT v1.1.</p>
+</body>
+</html>

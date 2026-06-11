@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "index_version": "2026-06-11.2",
+  "source": "corpus-classifier proposal (2026-06-11) synthesizing rag_index/databases.json (declared) + proposed enrichments",
+  "purpose": "Machine-readable crosswalk: which of the 9 databases feeds which of the 13 RAG data-niches, with provenance. 'declared' rows come from databases.json feeds_niches (authoritative). 'proposed' rows are corpus-classifier enrichments PENDING a human gate (do not treat as authoritative until approved). Provenance enum makes the LBPP discipline queryable: prefer physical (IntAct) > genetic (BioGRID) > predicted (STRING).",
+  "provenance_ranking": ["physical", "genetic", "curated", "computed", "predicted"],
+  "crosswalk": {
+    "ZFIN":               {"provenance": "curated",   "declared": ["RN1","RN2","RN10","RN11"], "proposed": ["RN3","RN9","RN12"]},
+    "DanioCODE":          {"provenance": "curated",   "declared": ["RN1","RN3"],               "proposed": ["RN4","RN11","RN12"]},
+    "Reactome":           {"provenance": "curated",   "declared": ["RN3","RN4"],               "proposed": ["RN10","RN11","RN12","RN13"]},
+    "GEO_NCBI":           {"provenance": "computed",  "declared": ["RN1","RN8","RN9"],         "proposed": ["RN4","RN5"]},
+    "UCSC_Cell_Browser":  {"provenance": "curated",   "declared": ["RN1","RN8"],               "proposed": ["RN9"]},
+    "STRING_DB":          {"provenance": "predicted", "declared": ["RN2","RN3"],               "proposed": ["RN10","RN12"]},
+    "IntAct":             {"provenance": "physical",  "declared": ["RN2","RN3"],               "proposed": ["RN10","RN12"]},
+    "BioGRID":            {"provenance": "genetic",   "declared": ["RN3","RN12"],              "proposed": ["RN10"]},
+    "Ensembl_DanioRerio": {"provenance": "curated",   "declared": ["RN1","RN2","RN11"],        "proposed": ["RN12"]}
+  },
+  "edge_provenance_rule": "For any interaction/edge claim, rank IntAct(physical) > BioGRID(genetic) > STRING(predicted). A STRING-only edge is tagged provenance:predicted and the record carries gap_flag 'physical corroboration absent'.",
+  "human_gate": "The 'proposed' feeds are corpus-classifier enrichments — confirm via the corpus-classifier audit path + a human gate before treating as declared (ADR-0017)."
+}
