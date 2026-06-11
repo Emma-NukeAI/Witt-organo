@@ -17,8 +17,24 @@ ADR-0015). What is built now is the **index structure + the classifier contract*
   scientific-domain niches. A corpus item is tagged on BOTH axes.
 - `databases.json` — the **9 authoritative sources** (from `Bases de datos.pdf`: ZFIN, DanioCODE,
   Reactome, GEO, UCSC Cell Browser, STRING, IntAct, BioGRID, Ensembl), each mapped to the niches it feeds.
-- `corpus_manifest.json` — the (currently empty) catalog of corpus records + the cataloged-record
-  schema. The `corpus-classifier` proposes entries; a **human gate** approves before commit.
+- `corpus_manifest.json` — the catalog of corpus records + the cataloged-record schema (2 approved:
+  ZESTA + GSE218068). The `corpus-classifier` proposes entries; a **human gate** approves before commit.
+- `niche_database_crosswalk.json` — 10 DBs × 13 niches feed map (declared + proposed, provenance-tagged).
+- `interaction_table.json` — RN10 master interaction table (Source→Target→Signal→Window), first-class.
+- `index/` — the **RAG retrieval index** (`documents.jsonl` + `manifest.json`), built by
+  `analysis/scripts/lib/rag_backend.py` (ADR-0019).
+
+## The retrieval backend (ADR-0019)
+
+The source-of-truth interface has two halves:
+- **Deterministic** — `analysis/scripts/lib/resolve_id.py` `resolve(symbol|ENSDARG|RefSeq|UniProt)` →
+  exact verified identifier. IDs never pass through a fuzzy/vector path.
+- **Semantic** — `analysis/scripts/lib/rag_backend.py` `query(text, k)` → ranked corpus documents
+  (v1 = flat, versioned, human-gated **sparse** TF-IDF/BM25, sklearn, NO-SPEND; the permanent sparse
+  half of the recommended hybrid). A **dense** backend (Chroma/LanceDB + local embeddings) plugs in
+  behind the same `Retriever` interface — gated on a bottleneck + an install decision (ADR-0015 open).
+
+Build/query:  `python analysis/scripts/lib/rag_backend.py build` · `… query "<text>"`.
 
 ## How the three stores relate (kept separate — the user's requirement)
 

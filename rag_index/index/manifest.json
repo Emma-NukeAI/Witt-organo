@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "index_version": "2026-06-11.1",
+  "backend": "sparse TF-IDF (sklearn), in-memory at query time; dense/hybrid upgrade gated (ADR-0019/0015)",
+  "generated_by": "analysis/scripts/lib/rag_backend.py build",
+  "sources": [
+    "rag_index/niches.json",
+    "rag_index/databases.json",
+    "rag_index/corpus_manifest.json"
+  ],
+  "read_only": true,
+  "human_gate_required_to_modify": true,
+  "n_documents": 25,
+  "by_type": {
+    "niche": 13,
+    "database": 10,
+    "dataset": 2
+  }
+}
