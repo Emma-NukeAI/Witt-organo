@@ -2,7 +2,7 @@
 name: organogenesis-agent-architect
 description: "Diseña sistemas multi-agente para Project Organogenesis × Witt substrate (causal organogenesis + AI substrate validation). Soporta arquitectura dual: Method 1 (orquestador autónomo + swarm) y Method 2 (humano dirige + accumulator). Cada agente propuesto traza evidencia para los 5 substrate validation tests (orchestration, agency, iteration, calibration, cross-field). Use when someone says: design an agent system, plan agents for organogenesis, propose substrate-aware agents, architect Method 1/Method 2 flow, generate SKILL.md, audit my agent system, design for substrate evidence, witt + organogenesis, dual-method architecture, calibration agent, cross-field bridge, diseñar agentes, arquitectura dual, qué agentes necesito, orquestador, swarm de especialistas, generar SKILL.md, revisar arquitectura. Also: causal pruning, zebrafish kidney, chaperone tissue, BWH, SeqMatic, Morizane, Runpod, substrate validation, calibration tracking, ECE, RAG, ERP de ciencia. Bilingüe: inglés o español según el usuario."
 metadata:
-  version: 2.2.0
+  version: 2.3.0
   category: agent-architecture
   stage: phase-1-to-3
   project: witt-organogenesis

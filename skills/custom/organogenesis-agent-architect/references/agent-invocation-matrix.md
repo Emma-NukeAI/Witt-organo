@@ -6,7 +6,7 @@
 >
 > **Authority:** per ADR-0006 (2026-05-14). Updated as new agents enter the catalog or new work-types emerge.
 >
-> **Last updated:** 2026-05-14 · v1.1 — added html-report-emitter Hard Rule row per ADR-0007.
+> **Last updated:** 2026-06-11 · v1.2 (GWT v1.1) — added the anti-fabrication verification-gate Hard Rule row + `hypothesis-generator` routing (ADR-0008); `investor-relations-drafter` suspended Phase I; `retrospector` slot reserved (ADR-0009). · v1.1 (2026-05-14) — added html-report-emitter Hard Rule row per ADR-0007.
 
 ---
 
@@ -38,6 +38,7 @@ The matrix is consulted in CLAUDE.md §11 agent-invocation preflight. The output
 | Any claim or output that affects compliance / budget / partner relationships | **`regulatory-ethics-advisor`** + HUMAN GATE | Direct human gate, no automatic filtering (per §7) | Mission-critical safety |
 | **Conclusion / checkpoint of substrate-evidence-producing work** (per §5 contract; user signals end-of-inquiry; phase completion; substantive answer with confidence ≥ 0.5) | **`html-report-emitter`** (skill or ad-hoc) per `html-report-contract.md` | Emit HTML report in `reports/` with visible §5 contract UI; offer additional visuals (visual-offer reflex per §11 closing sub-step). **If conclusion is simulation-backed:** ALSO emit/cross-link TYPE C viz (Three.js). | Test 1 (orchestration / reasoning), Test 2 (workflow output materialized) |
 | **Conclusion backed by simulation output** (`morpheus-4d-viz`, `causal-ablation-cascade-sim`, `squidiff-in-silico-gate`, BioDynaMo, `sim-orchestrator`, future simulators) | **TYPE C viz emitter** (the simulator's own HTML output OR `morpheus-4d-viz` skill) | Per simulator's SKILL.md spec; static screenshot NOT sufficient; must be interactively explorable | Test 1, Test 2 |
+| **Any output containing an external identifier** (ENSDARG/ENSDARP, UniProt, PMID, GEO/SRA/PXD, DOI) (GWT v1.1) | **source-of-truth `resolve_id` + `verify_output` gate** (Logic-LM-class, NOT an LLM) | Each ID resolves through `verified_identifiers.json` or is flagged in `gap_flags`; unresolved ENSDARG = gate FAILURE. Owner: `domain-knowledge-curator` (PR-09, deferred) | Test 1, Test 4 |
 
 ## §2 · Required (must invoke or skip-with-justification)
 
@@ -49,6 +50,7 @@ The matrix is consulted in CLAUDE.md §11 agent-invocation preflight. The output
 | scRNA-seq pipeline / spatial / histology / imaging analysis | corresponding analyst agent (`scrna-seq-analyst`, `spatial-omics-analyst`, `histology-reviewer`, `imaging-analyst`) | Output may chain to `cross-modality-integrator` | Test 1, Test 4 |
 | Integration of multiple readout modalities into success-gate evidence | **`cross-modality-integrator`** | Highest-leverage agent per catalog; synthesizes scRNA + spatial + histology + sim | Test 1, Test 4 |
 | Marker scoring against canonical kidney markers | **`marker-validator`** | May chain to `cross-modality-integrator` | Test 1, Test 4 |
+| Generating a research hypothesis grounded in priors/literature (GWT v1.1) | **`hypothesis-generator`** (Method 2 default; Method 1 only on wet-lab escalation w/ 100% HUMAN GATE) | Consults source-of-truth → complements via MCP/ToolUniverse → `reasoning-exposer` → ethics deny-list; obligatory non-empty contradictory_evidence | Test 3, Test 4 (direct) |
 
 ## §3 · Recommended (skip-with-justification has lower bar)
 
@@ -59,8 +61,8 @@ The matrix is consulted in CLAUDE.md §11 agent-invocation preflight. The output
 | Engineer-feedback case capture | `case-capture-elicitor` | Critical for Test 3 input but not synchronous |
 | Method 2 aggregation of specialist outputs into thesis | `accumulator` | Method 2 only |
 | Phase I timeline / budget tracking | `program-manager`, `budget-tracker` | Operational |
-| Risk tracking / escalation | `risk-register-agent` | Operational |
-| Investor updates / milestone packaging | `investor-relations-drafter` | Reports from `cross-modality-integrator` output |
+| Risk tracking / escalation | `risk-register-agent` | Operational; slot reserved for `retrospector` in Cycle 3 (ADR-0009) — register folds into `program-manager` then |
+| Investor updates / milestone packaging | `investor-relations-drafter` | **SUSPENDED in Phase I (ADR-0008)** — manual until the Phase-II financing gate |
 | Simulation orchestration (Runpod batches) | `sim-orchestrator` | Method 1 task |
 | Benchmark task design | `benchmark-designer` | Test 4 ground-truth source |
 | Domain-knowledge curation | `domain-knowledge-curator` | Test 3 substrate maintenance |
