@@ -87,6 +87,7 @@ or external references that informed the decision.
 | [0017](0017-corpus-classifier-agent.md) | 2026-06-11 | Corpus-classifier as an operational mode of domain-knowledge-curator (categorize + audit, human-gated) | Accepted |
 | [0018](0018-niche-taxonomy-keep-as-is-recommend-always.md) | 2026-06-11 | DATA INAMOVIBLE niche taxonomy keep-as-is + always-recommend-changes + metabolic discriminator | Accepted |
 | [0019](0019-rag-backend-v1-sparse-flat-versioned.md) | 2026-06-11 | RAG backend v1: flat versioned human-gated sparse retriever (dense/hybrid gated) | Accepted |
+| [0020](0020-hosted-graphrag-architecture.md) | 2026-06-11 | Hosted GraphRAG (self-host Neo4j + graphify, SPECTER2+general embeddings, MCP access; RAG_Techniques-informed pipeline) | Accepted (deploy next) |
 
 ---
 

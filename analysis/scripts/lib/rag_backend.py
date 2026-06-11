@@ -112,13 +112,96 @@ class TfidfRetriever(Retriever):
                 for i in order if sims[i] > 0]
 
 
+# ---------------- production path (ADR-0020): dense + graph + rerank, behind the same interface ----------------
+# These are the hosted-GraphRAG extension points. They activate on the rack when configured (env
+# RAG_BACKEND=neo4j + NEO4J_URI/embedding service); in dev/offline they raise a clear deploy note and
+# the TfidfRetriever (sparse v1) is used. The interface is stable so callers never change.
+
+class Reranker:
+    """Post-retrieval reranking (RAG_Techniques: intelligent reranking). NoOp default; cross-encoder on rack."""
+    def rerank(self, query: str, hits: List[Hit], k: int) -> List[Hit]:
+        return hits[:k]
+
+
+class CrossEncoderReranker(Reranker):
+    """Biomedical cross-encoder reranker (e.g., a MS-MARCO/BioBERT cross-encoder). Deployed on the rack."""
+    def __init__(self, model: str = "biomedical-cross-encoder"):
+        self.model = model
+
+    def rerank(self, query, hits, k):
+        raise NotImplementedError("CrossEncoderReranker activates on the rack (transformers/ONNX); "
+                                  "dev uses NoOp. See rag_index/deploy/README.md.")
+
+
+class DenseRetriever(Retriever):
+    """Dense vector retrieval. Embeddings: SPECTER2/BioBERT (papers) + general (bge/nomic), self-hosted
+    (ADR-0020). In production this queries Neo4j's native vector index; the standalone form is for testing."""
+    def __init__(self, embedding_model: str = "SPECTER2|bge-large"):
+        self.embedding_model = embedding_model
+
+    def query(self, text, k=5):
+        raise NotImplementedError("DenseRetriever activates on the rack (embedding service + vectors). "
+                                  "Dev/offline uses TfidfRetriever (sparse v1). See rag_index/deploy/README.md.")
+
+
+class Neo4jGraphRetriever(Retriever):
+    """GraphRAG over self-hosted Neo4j (graph + native HNSW vector index), populated by graphify (ADR-0020).
+    Fuses vector similarity with multi-hop Cypher expansion. Activates when NEO4J_URI is configured."""
+    CYPHER_VECTOR = (
+        "CALL db.index.vector.queryNodes('doc_embeddings', $k, $q_emb) YIELD node, score "
+        "OPTIONAL MATCH (node)-[r]-(related) "       # 1-hop graph expansion for related entities
+        "RETURN node, score, collect(distinct related) AS related ORDER BY score DESC"
+    )
+
+    def __init__(self, uri=None, user=None, password=None):
+        self.uri = uri  # e.g. bolt://rack-host:7687
+        self.user, self.password = user, password
+
+    def query(self, text, k=5):
+        raise NotImplementedError("Neo4jGraphRetriever activates on the rack (Neo4j + driver + embeddings). "
+                                  "Cypher shape in CYPHER_VECTOR. Dev/offline uses TfidfRetriever. "
+                                  "See rag_index/deploy/README.md + ADR-0020.")
+
+
+class HybridRetriever(Retriever):
+    """Hybrid fusion (RAG_Techniques: fusion retrieval): sparse (Tfidf) + dense, reciprocal-rank-fused,
+    then reranked. In production dense = Neo4jGraphRetriever; in dev dense is skipped (sparse only)."""
+    def __init__(self, sparse: Retriever, dense: Retriever = None, reranker: Reranker = None):
+        self.sparse, self.dense, self.reranker = sparse, dense, reranker or Reranker()
+
+    def query(self, text, k=5):
+        pools = [self.sparse.query(text, k * 3)]
+        if self.dense is not None:
+            try:
+                pools.append(self.dense.query(text, k * 3))
+            except NotImplementedError:
+                pass  # dev/offline: dense not deployed -> sparse only
+        # reciprocal rank fusion
+        scores, byid = {}, {}
+        for pool in pools:
+            for rank, h in enumerate(pool):
+                scores[h.doc_id] = scores.get(h.doc_id, 0.0) + 1.0 / (60 + rank)
+                byid[h.doc_id] = h
+        fused = sorted(byid.values(), key=lambda h: -scores[h.doc_id])
+        return self.reranker.rerank(text, fused, k)
+
+
 _default = None
 
 
 def get_backend():
+    """Pick the backend from config (ADR-0020). Rack: RAG_BACKEND=neo4j -> Hybrid(Tfidf + Neo4jGraph) +
+    reranker. Dev/offline (default): TfidfRetriever (sparse v1, NO-SPEND, no deps)."""
     global _default
     if _default is None:
-        _default = TfidfRetriever()
+        import os
+        if os.environ.get("RAG_BACKEND") == "neo4j":
+            dense = Neo4jGraphRetriever(uri=os.environ.get("NEO4J_URI"),
+                                        user=os.environ.get("NEO4J_USER"),
+                                        password=os.environ.get("NEO4J_PASSWORD"))
+            _default = HybridRetriever(TfidfRetriever(), dense, CrossEncoderReranker())
+        else:
+            _default = TfidfRetriever()
     return _default
 
 

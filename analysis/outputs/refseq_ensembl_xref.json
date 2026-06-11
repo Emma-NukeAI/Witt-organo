@@ -1,9 +1,8 @@
 {
   "schema_version": "1.0",
   "built": "2026-06-11",
-  "source": "GSE218068 features.tsv (RefSeq NM_*) \u2229 verified_identifiers.json (symbol->ENSDARG)",
-  "note": "RefSeq<->Ensembl cross-map for the genes in GSE218068 that resolve in the verified store. Lets resolve_id bind RefSeq-keyed datasets to the store.",
-  "n": 39,
+  "source": "GSE218068 features \u2229 verified store",
+  "n": 43,
   "xref": {
     "NM_131687": {
       "symbol": "atp1a1a.2",
@@ -29,6 +28,10 @@
       "symbol": "kera",
       "ensdarg": "ENSDARG00000056938"
     },
+    "NM_001002059": {
+      "symbol": "lum",
+      "ensdarg": "ENSDARG00000045580"
+    },
     "NM_131211": {
       "symbol": "gata3",
       "ensdarg": "ENSDARG00000016526"
@@ -48,6 +51,10 @@
     "NM_152987": {
       "symbol": "tp63",
       "ensdarg": "ENSDARG00000044356"
+    },
+    "NM_131509": {
+      "symbol": "krt4",
+      "ensdarg": "ENSDARG00000017624"
     },
     "NM_001044745": {
       "symbol": "aldh1a3",
@@ -72,6 +79,10 @@
     "NM_131150": {
       "symbol": "pou3f3a",
       "ensdarg": "ENSDARG00000042032"
+    },
+    "NM_201478": {
+      "symbol": "col1a1b",
+      "ensdarg": "ENSDARG00000035809"
     },
     "NM_198144": {
       "symbol": "emx1",
@@ -128,6 +139,10 @@
     "NM_201035": {
       "symbol": "kcnj1a.1",
       "ensdarg": "ENSDARG00000091232"
+    },
+    "NM_182968": {
+      "symbol": "col1a2",
+      "ensdarg": "ENSDARG00000020007"
     },
     "NM_131729": {
       "symbol": "foxc1b",

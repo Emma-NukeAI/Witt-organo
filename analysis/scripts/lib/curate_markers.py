@@ -82,7 +82,13 @@ def curate(symbols):
     for sym, rec in curated.items():
         if rec["ensdarg"] is None:
             rec["needs_alias_resolution"] = True  # exact-symbol lookup failed; not asserted absent
-    (OUT / "ocular_markers_curated.json").write_text(json.dumps(curated, indent=2) + "\n", encoding="utf-8")
+    # MERGE into any existing curation file (incremental curation; never lose prior resolved markers).
+    out_path = OUT / "ocular_markers_curated.json"
+    merged = {}
+    if out_path.exists():
+        merged = json.loads(out_path.read_text(encoding="utf-8"))
+    merged.update(curated)
+    out_path.write_text(json.dumps(dict(sorted(merged.items())), indent=2) + "\n", encoding="utf-8")
     if xref:
         (OUT / "refseq_ensembl_xref.json").write_text(json.dumps(xref, indent=2) + "\n", encoding="utf-8")
     # NOTE: this script does NOT mutate ensembl_symbol_map.json. The curation file is the ocular-marker

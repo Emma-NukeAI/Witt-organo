@@ -176,6 +176,7 @@ Operational rules when MCP is invoked from a multi-phase workflow:
 | How do I configure MCP for my client? | `mcp-config/README.md` (per-OS paths, API keys, MSIX caveat) |
 | Why was decision X made post-setup? | `docs/decisions/` (ADR series) |
 | How do I resolve / verify an external identifier (gene ID, accession)? | `analysis/scripts/lib/resolve_id.py` + `analysis/outputs/verified_identifiers.json` (DATA INAMOVIBLE v1); gate: `lib/verify_output.py` |
+| How do I query the shared DATA INAMOVIBLE corpus (semantic GraphRAG)? | via the **`data-inamovible` MCP server** (`rag_index/mcp_server/`): tools `query_data_inamovible` (semantic) + `resolve_identifier` (deterministic). Hosted GraphRAG on the rack (Neo4j+graphify, ADR-0020); dev = local sparse `rag_backend.py`. Deploy: `rag_index/deploy/README.md` |
 | Where is the autoresearch discipline + the 11 PRs / 20-gap triage? | `docs/autoresearch-handoff/` (STRATEGY_FINAL, INTEGRATION_PROPOSAL, program.v3, PRE-1, gap-triage, proposals/) |
 | Where is the reasoning-improvement-loop ledger (calibration, governance queue)? | `substrate_calibration/retrospectives/` (seeds; full RIL is Cycle 3, ADR-0009) |
 | Did I consult the repo before generating my output? | This file §10 |
