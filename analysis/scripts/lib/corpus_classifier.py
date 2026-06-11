@@ -23,7 +23,7 @@ DB_PATH = _RAG / "databases.json"
 
 # Keyword hints per data-niche (deterministic v1; extend as the corpus grows).
 NICHE_KEYWORDS = {
-    "RN1": ["transcriptom", "lineage", "scrna", "expression", "cluster", "hpf", "atlas"],
+    "RN1": ["transcriptom", "lineage", "scrna", "expression", "cluster", "hpf", "atlas", "stereo-seq", "stereoseq", "spatial transcriptom"],
     "RN2": ["structure", "alphafold", "pdb", "complex", "docking", "receptor", "domain"],
     "RN3": ["signaling", "pathway", "kinetic", "bngl", "bionetgen", "reaction", "cascade", "rule-based"],
     "RN4": ["metabolom", "lipidom", "mass spec", "gradient", "ph", "o2", "ion flux", "kegg"],
@@ -31,7 +31,7 @@ NICHE_KEYWORDS = {
     "RN6": ["biomechanic", "ecm", "stiffness", "afm", "collagen", "fibronectin", "scaffold", "young"],
     "RN7": ["fluid", "flow", "velocity", "shear", "cfd", "traction", "pressure"],
     "RN8": ["migration", "trajectory", "apoptosis", "tracking", "collective", "delamination"],
-    "RN9": ["morpholog", "topology", "confocal", "mesh", "segmentation", "morphometr", "voxel"],
+    "RN9": ["morpholog", "topology", "confocal", "mesh", "segmentation", "morphometr", "voxel", "spatial", "stereo-seq", "stereoseq"],
     "RN10": ["chaperone", "boundary condition", "neighbor tissue", "interaction table", "source", "target"],
     "RN11": ["literature", "claim", "citation", "review", "reference", "doi", "pmid"],
     "RN12": ["perturbation", "knockout", "ko", "intervention", "causal", "morpholino", "crispr"],
@@ -47,6 +47,7 @@ DB_KEYWORDS = {
     "IntAct": ["intact", "physical interaction"],
     "BioGRID": ["biogrid", "genetic interaction", "double"],
     "Ensembl_DanioRerio": ["ensembl", "ensdarg", "ortholog", "promoter", "annotation"],
+    "CNGB_STOmics": ["cngb", "stomics", "stereo-seq", "stereoseq", "zesta", "spatial transcriptom", "mosta"],
 }
 
 

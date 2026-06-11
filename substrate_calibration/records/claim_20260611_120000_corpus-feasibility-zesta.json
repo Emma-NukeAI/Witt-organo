@@ -1,0 +1,60 @@
+{
+  "claim_id": "claim_20260611_120000_corpus-feasibility-zesta",
+  "claim_timestamp": "2026-06-11T12:00:00Z",
+  "prediction_preregistered_at": "2026-06-11T12:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (GWT v1.1 — corpus feasibility test)",
+  "skill_origin": "corpus-classifier (domain-knowledge-curator mode) + resolve_id/verify_output entity gate + WebFetch investigation",
+  "skill_version": "corpus_classifier-1.0 / resolve_id-1.0",
+  "claim_text": "ZESTA (CNGB STOmics; Stereo-seq spatial + scRNA zebrafish embryo, 3-24 hpf; Liu et al. Dev Cell 2022) and GSE218068 (GEO; scRNA zebrafish anterior-segment ocular, foxc1b:GFP, 48-144 hpf; PMID 37024546) are open, complementary, and a good fit for the RAG corpus test. The categorization pipeline works end-to-end on real data: corpus_classifier proposed RN1(+RN9/RN8) for ZESTA and RN1(N5 ocular) for GSE218068; the resolve_id entity gate, run on GSE218068's 15404 real gene features, correctly flagged foxc1b/pitx2/prox1a as NOT_FOUND/UNVERIFIED (quarantine, not minted) while pax2a/wt1a/cdh17/gata3 hit the verified store. The test surfaced 3 real findings: (1) the entity gate works on real data; (2) GSE218068 uses RefSeq (NM_*) not Ensembl -> needs a RefSeq<->Ensembl cross-map; (3) the store needs ocular markers. GSE218068 also CLOSES Nat Witt GAP-5 (the 72-120 hpf cornea-dataset blocker). Two corpus records cataloged (pending_review).",
+  "claim_category": "binary",
+  "sub_domain": "single-cell",
+  "requires_human_gate": true,
+  "human_gate_rationale": "The 2 corpus records are pending_review (human gate before commit to the manifest per ADR-0017). Downloading ZESTA (4.8 GB) + curating ocular markers into the verified store are gated next steps.",
+  "agent_invocation_status": "corpus-classifier (proposer) + deterministic resolve_id/verify_output (Logic-LM-class entity gate). Not an audit gate.",
+  "prior": 0.75,
+  "stated_confidence": 0.92,
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: the feasibility claim was verified against multiple real evidence streams (GEO + CNGB pages, the downloaded features.tsv with 15404 genes, the resolve_id round-trip) rather than asserted. Per CLAUDE.md §5, framework_applied is self-report.",
+  "confidence_by_subclaim": {
+    "datasets_are_open_complementary_and_a_good_corpus_fit": 0.92,
+    "categorization_pipeline_works_end-to-end_on_real_data": 0.95,
+    "entity_gate_correctly_quarantined_foxc1b_pitx2_prox1a (demonstrated)": 0.97,
+    "GSE218068_uses_RefSeq_not_Ensembl -> cross-map_needed": 0.95,
+    "GSE218068_closes_Nat_Witt_GAP-5 (late ocular dataset)": 0.85
+  },
+  "alternatives_considered": [
+    "Download the 4.8 GB ZESTA now and vectorize — REJECTED this cycle: bandwidth/compute gated + the RAG backend is still OPEN (nothing to vectorize into yet); metadata-level categorization is the prueba-pequeño test.",
+    "Mint ENSDARG for foxc1b from memory to make it 'resolve' — REJECTED (the whole point): the entity gate quarantines it for a real Ensembl lookup + human gate.",
+    "Treat the RefSeq vs Ensembl DIFF as an error — REJECTED: it is a namespace difference, not a wrong ID; symbols match."
+  ],
+  "contradictory_evidence_cited": [
+    "No actual expression data was read (only the features list + descriptors) — the categorization is metadata-level; data-level QC/analysis is a gated next step.",
+    "The classifier's v1 keyword routing was shallow on 'stereo-seq/spatial transcriptomics' (it under-weighted RN1 for the spatial files) — fixed additively this cycle, but the deterministic router remains shallow until a semantic backend lands.",
+    "ZESTA spatial modality is new to the project — no prior spatial ingestion path; RN9 spatial handling is unbuilt."
+  ],
+  "gap_flags": [
+    "ZESTA 4.8 GB not downloaded (gated); reading .h5ad needs scanpy/anndata.",
+    "RefSeq<->Ensembl cross-map needed to bind GSE218068 IDs to the verified store.",
+    "Ocular markers (foxc1b, pitx2, prox1a, krt12, col1a1a/b, aldh3a1) absent from the store — curate via Ensembl lookup + human gate.",
+    "RAG backend still OPEN — no vector store to ingest into yet.",
+    "2 corpus records are pending_review (human gate)."
+  ],
+  "rater_id": "self (deterministic entity gate on real features) — symbolic + reproducible, not an LLM judgment",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "Datasets open + categorizable + entity gate behaves correctly on real features (quarantines unverified, hits verified).",
+  "expected_outcome_if_h0": "Datasets inaccessible / wrong organism / entity gate mis-handles real IDs.",
+  "observable_at": "2026-06-11 (resolved same-session: features downloaded, 15404 genes parsed, entity gate run)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-11T12:10:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE: both datasets open + zebrafish + categorized; features.tsv (15404 genes) downloaded+cached; entity gate quarantined foxc1b/pitx2/prox1a and hit pax2a/wt1a/cdh17/gata3/foxc1a/tbx2b. 4th resolved claim record.",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_3", "test_5"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {"agent": "domain-knowledge-curator", "status": "invoked", "invocation_id": "corpus-classifier mode (feasibility test)", "evidence_generated": ["test_1", "test_3"]},
+    {"agent": "causal-pruner", "status": "not-applicable", "reason": "No ranked-candidate generation; dataset categorization + feasibility assessment."},
+    {"agent": "composite-auditor", "status": "skipped-ad-hoc", "reason": "Feasibility test routed to a human gate (corpus records pending_review), not claimed as an audit gate. A composite-audit is recommended before the records are committed + before any wet-lab use of GSE218068."}
+  ],
+  "notes": "4th resolved claim record. The test is a positive demonstration of the GWT v1.1 source-of-truth + RAG-categorization pipeline on REAL external data, and it surfaced 3 concrete improvements (the recommend-where-to-change loop working). GSE218068 closes Nat Witt GAP-5."
+}

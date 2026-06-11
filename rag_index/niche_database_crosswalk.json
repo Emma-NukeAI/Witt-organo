@@ -13,7 +13,8 @@
     "STRING_DB":          {"provenance": "predicted", "declared": ["RN2","RN3"],               "proposed": ["RN10","RN12"]},
     "IntAct":             {"provenance": "physical",  "declared": ["RN2","RN3"],               "proposed": ["RN10","RN12"]},
     "BioGRID":            {"provenance": "genetic",   "declared": ["RN3","RN12"],              "proposed": ["RN10"]},
-    "Ensembl_DanioRerio": {"provenance": "curated",   "declared": ["RN1","RN2","RN11"],        "proposed": ["RN12"]}
+    "Ensembl_DanioRerio": {"provenance": "curated",   "declared": ["RN1","RN2","RN11"],        "proposed": ["RN12"]},
+    "CNGB_STOmics":       {"provenance": "computed",  "declared": ["RN1","RN8","RN9"],         "proposed": ["RN4"]}
   },
   "edge_provenance_rule": "For any interaction/edge claim, rank IntAct(physical) > BioGRID(genetic) > STRING(predicted). A STRING-only edge is tagged provenance:predicted and the record carries gap_flag 'physical corroboration absent'.",
   "human_gate": "The 'proposed' feeds are corpus-classifier enrichments — confirm via the corpus-classifier audit path + a human gate before treating as declared (ADR-0017)."

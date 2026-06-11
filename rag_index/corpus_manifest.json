@@ -28,5 +28,51 @@
   },
   "multi_niche_rule": "Stored ONCE under primary niche (highest relevance_by_niche); secondary niches hold a cross-reference pointer (corpus_record_id), NOT a copy. Ambiguous (top-3 disagree, confidence<0.8) -> human gate, never silent placement.",
   "entity_rule": "Every gene_symbol binds to analysis/outputs/verified_identifiers.json via resolve(). hit -> use ENSDARG + tier; positive NOT_FOUND -> keep with confidence 0 + gap_flag; absent from store -> QUARANTINE (UNVERIFIED) until Ensembl lookup + raw-cache (§7.9) + human-gated store update. NEVER mint an ID from memory.",
-  "records": []
+  "records": [
+    {
+      "corpus_record_id": "CORPUS-2026-0001",
+      "version": "v1.0",
+      "created_at": "2026-06-11T00:00:00Z",
+      "source_document": {"name": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas", "doi": "10.1016/j.devcel.2022.04.009", "pmid": "35617956", "source_db": "CNGB_STOmics", "accession": "CNP0002220 / STDS0000057", "files": "12 x .h5ad (~4.8 GB): zf{3,5,10,12,18,24}_scRNA.h5ad + zf{3,5,10,12,18,24}_stereoseq.h5ad + spatial_sixtime_slice_stereoseq.h5ad", "raw_cache_path": "NOT DOWNLOADED (4.8 GB — gated; metadata-only categorization)", "parse_method": "descriptor-only (corpus_classifier propose_categorization)"},
+      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9", "RN8"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.7, "RN8": 0.4}, "note": "Stereo-seq is transcriptomics (RN1) WITH spatial morphology (RN9); scRNA trajectories touch RN8."},
+      "axis_scientific_domain": {"primary": "N3", "secondary": ["N1"]},
+      "axis_source_db": [{"db": "CNGB_STOmics", "provenance": "computed", "role": "primary_source"}, {"db": "GEO_NCBI", "provenance": "computed", "role": "corroborating?"}],
+      "axis_file_type": {"ext": ".h5ad", "valid_for_niche": true, "modality": "spatial+scRNA (Stereo-seq)"},
+      "axis_bio_context": {"stage_hpf": [3, 24], "tissue": ["whole_embryo"], "species": "Danio rerio", "taxon": 7955, "n_sections": 91, "n_spots": 152977, "resolution_um": "10x10x15"},
+      "metabolic_role": null,
+      "entities_extracted": [],
+      "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Whole-embryo spatiotemporal expression atlas, 3-24 hpf — the early-developmental window for pronephros + early-eye; primary payload is lineage/expression (RN1), with spatial morphology (RN9)."},
+      "feeds_databases": ["CNGB_STOmics"],
+      "fit_note": "Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the prior schoels/Wagner analyses. Strong fit for N3/N1; spatial dimension is new to the project (no prior spatial data).",
+      "approval_chain": [{"gate": "categorization", "status": "pending_review", "approved_by": null, "approved_at": null}],
+      "gap_flags": ["4.8 GB not downloaded (gated on backend + bandwidth/compute approval); reading .h5ad needs scanpy/anndata", "spatial modality is new — RN9 spatial-transcriptomics ingestion path not built", "entities not yet extracted (needs download)"],
+      "substrate_evidence": ["test_1", "test_3"]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0002",
+      "version": "v1.0",
+      "created_at": "2026-06-11T00:00:00Z",
+      "source_document": {"name": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament)", "doi": null, "pmid": "37024546", "source_db": "GEO_NCBI", "accession": "GSE218068", "files": "10x outs (barcodes/features/matrix.mtx ~40 MB) + GSE218068_RAW.tar (44 MB)", "raw_cache_path": "mcp_cache/raw_geo_GSE218068_features_20260611.tsv.gz (features list, 153 KB, downloaded + cached per §7.9)", "parse_method": "features.tsv parsed (15404 genes); corpus_classifier + resolve_id entity gate"},
+      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.3}},
+      "axis_scientific_domain": {"primary": "N5", "secondary": ["N3"], "note": "OCULAR — anterior segment. N5 is Test-5 cross-field exploratory; carries EXPLORATORY-NOT-TEST-5."},
+      "axis_source_db": [{"db": "GEO_NCBI", "provenance": "computed", "role": "primary_source"}],
+      "axis_file_type": {"ext": ".mtx/.tsv (10x)", "valid_for_niche": true, "modality": "scRNA (foxc1b:GFP sorted)"},
+      "axis_bio_context": {"stage_hpf": [48, 144], "tissue": ["anterior_segment", "trabecular_meshwork", "annular_ligament", "cornea-adjacent"], "species": "Danio rerio", "taxon": 7955, "timepoints_hpf": [48, 72, 96, 120, 144]},
+      "metabolic_role": null,
+      "id_namespace": "RefSeq (NM_*) — NOT Ensembl. Requires a RefSeq<->Ensembl cross-map to bind to the verified store (Ensembl xref lookup, gated).",
+      "entities_extracted": [
+        {"entity": "foxc1a", "type": "gene_symbol", "in_dataset_id": "NM_131728", "verified_store_ref": "verified_identifiers.json#foxc1a", "store_ensdarg": "ENSDARG00000091481", "verification_tier": "DERIVED", "namespace_match": "symbol matches; ID namespace differs (RefSeq vs Ensembl)"},
+        {"entity": "foxc1b", "type": "gene_symbol", "in_dataset_id": "NM_131729", "verification_tier": "UNVERIFIED", "note": "QUARANTINE — the dataset's defining gene is NOT in the verified store; needs Ensembl lookup + raw-cache + human-gated store update. NOT minted from memory (entity gate working)."},
+        {"entity": "pitx2", "type": "gene_symbol", "in_dataset_id": "NM_130975", "verification_tier": "UNVERIFIED", "note": "ocular marker; quarantine"},
+        {"entity": "prox1a", "type": "gene_symbol", "in_dataset_id": "NM_131405", "verification_tier": "UNVERIFIED", "note": "lens marker; quarantine"},
+        {"entity": "pax2a", "type": "gene_symbol", "in_dataset_id": "NM_131184", "verified_store_ref": "verified_identifiers.json#pax2a", "store_ensdarg": "ENSDARG00000028148", "verification_tier": "RAW", "namespace_match": "symbol matches; RefSeq vs Ensembl"}
+      ],
+      "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Late-stage (48-144 hpf) ocular anterior-segment scRNA — the cornea/N5 domain."},
+      "feeds_databases": ["GEO_NCBI"],
+      "fit_note": "CLOSES Nat Witt GAP-5 (the cornea handoff's primary blocker: a 72-120 hpf zebrafish cornea/anterior-segment dataset). foxc1b:GFP matches the biomedic's exact line. Directly supports Test-5 ocular cross-field work.",
+      "approval_chain": [{"gate": "categorization", "status": "pending_review", "approved_by": null, "approved_at": null}],
+      "gap_flags": ["RefSeq<->Ensembl cross-map needed to bind dataset IDs to the verified store", "foxc1b/pitx2/prox1a UNVERIFIED — ocular markers absent from the pronephros-centric store; curate via Ensembl lookup + human gate", "EXPLORATORY-NOT-TEST-5 (N5 is exploratory in Phase I)"],
+      "substrate_evidence": ["test_1", "test_3", "test_5"]
+    }
+  ]
 }
