@@ -1,8 +1,8 @@
 # 0009 — `retrospector` agent + Reasoning-Improvement Loop (RIL) as a subsystem
 
 - **Date:** 2026-06-10
-- **Status:** proposed
-- **Decided by:** Emmanuel (direction set; full design lands in Cycle 3)
+- **Status:** accepted (2026-06-11 — Cycle 3 built: retrospector catalog block + RIL_PROGRAM.md + tooling)
+- **Decided by:** Emmanuel
 - **Affects:** Phase I catalog (cap ≤16), substrate-instrumentation category, Test 1/3/4 instrumentation
 
 ## Context

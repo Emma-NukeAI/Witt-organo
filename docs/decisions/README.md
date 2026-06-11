@@ -76,8 +76,11 @@ or external references that informed the decision.
 | [0006](0006-catalog-agent-invocation-discipline.md) | 2026-05-14 | Catalog agent invocation discipline + decision matrix + §11 preflight | Proposed |
 | [0007](0007-html-report-mandatory-at-conclusion.md) | 2026-05-14 | HTML report mandatory at conclusion + 4 TYPES + simulation-backed-viz hard rule + visual-offer reflex | Accepted |
 | [0008](0008-ceded-slot-hypothesis-generator.md) | 2026-06-10 | Ceded Phase-I slot: +hypothesis-generator, −investor-relations-drafter; keep ip-patent-watcher | Accepted |
-| [0009](0009-retrospector-and-ril-subsystem.md) | 2026-06-10 | retrospector agent + Reasoning-Improvement Loop as a subsystem (full design Cycle 3; reserves 2nd slot) | Proposed |
+| [0009](0009-retrospector-and-ril-subsystem.md) | 2026-06-10 | retrospector agent + Reasoning-Improvement Loop as a subsystem (cedes risk-register-agent) | Accepted |
 | [0010](0010-rename-bundle-to-gwt-v1.1.md) | 2026-06-10 | Rename the umbrella bundle v2.5 → GWT v1.1 (label reset; v2.x history preserved) | Accepted |
+| [0012](0012-reactive-calibration-rolling-k6.md) | 2026-06-11 | Reactive calibration (rolling K=6 + auto-cap) supersedes quarterly-only | Accepted |
+| [0014](0014-outcome-vocab-and-per-stream-auto-cap.md) | 2026-06-11 | Outcome vocabulary (positive/negative/unfalsifiable) + per-stream auto-cap regime | Accepted |
+| [0016](0016-ril-program-charter.md) | 2026-06-11 | RIL_PROGRAM.md as the canonical Reasoning-Improvement-Loop charter | Accepted |
 
 ---
 

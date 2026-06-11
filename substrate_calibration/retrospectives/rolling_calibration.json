@@ -1,17 +1,52 @@
 {
   "k": 6,
-  "window_note": "Reactive K=6 tally (autoresearch §13 port). The window holds the last K=6 RESOLVED Proxy-2 predictions; auto-cap activates when high-confidence hit-rate drops below threshold. DORMANT now: only 2 resolved predictions exist (< K), so no cap is computed yet.",
-  "window": [
-    {"claim_id": "claim_20260531_190000_collaborator-zebrafish-lbpp", "stated_confidence": 0.50, "observed_correct": true, "resolved_at": "2026-05-31T19:05:00Z", "sub_domain": "extraction", "high_confidence": false},
-    {"claim_id": "claim_20260610_120000_verified-identifier-store-v1", "stated_confidence": 0.95, "observed_correct": true, "resolved_at": "2026-06-10T12:05:00Z", "sub_domain": "single-cell", "high_confidence": true}
-  ],
-  "n_resolved": 2,
-  "high_conf_threshold": 0.70,
-  "hit_rate_high_conf": 1.0,
-  "hit_rate_high_conf_basis": "1 of 1 high-confidence (>=0.70) predictions correct; descriptive only at n<K",
-  "auto_cap_threshold": 0.34,
-  "cap_value": 0.30,
-  "confidence_cap_active": false,
-  "cap_status": "dormant (window not full: 2 < 6); reactive auto-cap activates in Cycle 3 with the retrospector",
-  "last_updated": "2026-06-10T12:05:00Z"
+  "high_conf_threshold": 0.7,
+  "regime_doc": "substrate_calibration/RIL_PROGRAM.md \u00a74 (ADR-0014)",
+  "n_resolved_total": 2,
+  "per_stream": {
+    "extraction_toy": {
+      "n_resolved": 2,
+      "window_size": 2,
+      "n_high_conf_in_window": 1,
+      "hit_rate_high_conf": 1.0,
+      "trigger": 0.34,
+      "cap_mode": "clamp_to",
+      "cap_value": 0.3,
+      "confidence_cap_active": false,
+      "status": "dormant (window not full or no high-conf predictions; descriptive only)",
+      "window": [
+        {
+          "claim_id": "claim_20260531_190000_collaborator-zebrafish-lbpp",
+          "stated_confidence": 0.5,
+          "observed_correct": true,
+          "resolved_at": "2026-05-31T19:05:00Z",
+          "sub_domain": null,
+          "claim_category": "extraction",
+          "stream": "extraction_toy"
+        },
+        {
+          "claim_id": "claim_20260610_120000_verified-identifier-store-v1",
+          "stated_confidence": 0.95,
+          "observed_correct": true,
+          "resolved_at": "2026-06-10T12:05:00Z",
+          "sub_domain": "single-cell",
+          "claim_category": "extraction",
+          "stream": "extraction_toy"
+        }
+      ]
+    },
+    "biomedical_hypothesis": {
+      "n_resolved": 0,
+      "window_size": 0,
+      "n_high_conf_in_window": 0,
+      "hit_rate_high_conf": null,
+      "trigger": 0.6,
+      "cap_mode": "max_declared",
+      "cap_value": 0.6,
+      "confidence_cap_active": false,
+      "status": "dormant (window not full or no high-conf predictions; descriptive only)",
+      "window": []
+    }
+  },
+  "note": "Reactive auto-cap is DORMANT until a stream has >= K=6 resolved high-confidence predictions. Currently sparse (n=2 resolved). Full reactive behavior accrues with use."
 }

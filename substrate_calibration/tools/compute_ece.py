@@ -105,9 +105,11 @@ def main():
 
     by_category = defaultdict(list)
     by_skill = defaultdict(list)
+    by_sub_domain = defaultdict(list)
     for r, lab in scored:
         by_category[r.get("claim_category", "unknown")].append((r, lab))
         by_skill[r.get("skill_origin", "unknown")].append((r, lab))
+        by_sub_domain[r.get("sub_domain", "unspecified")].append((r, lab))
 
     confidences_all = [r["stated_confidence"] for r, _ in scored]
     outcomes_all = [lab for _, lab in scored]
@@ -141,6 +143,7 @@ def main():
         },
         "per_category": {},
         "per_skill": {},
+        "per_sub_domain": {},
     }
 
     if n_scored >= 10:
@@ -156,6 +159,18 @@ def main():
         confs = [r["stated_confidence"] for r, _ in pairs]
         outs = [lab for _, lab in pairs]
         report["per_skill"][skill] = {"n": len(pairs), "ece_raw": compute_ece(confs, outs)}
+
+    # Per-sub-domain decomposition (Vega et al. / INTEGRATION §5.4): structure exists from day 1;
+    # a per-sub-domain isotonic fit activates once a sub-domain reaches n>=10.
+    for sub, pairs in by_sub_domain.items():
+        confs = [r["stated_confidence"] for r, _ in pairs]
+        outs = [lab for _, lab in pairs]
+        entry = {"n": len(pairs), "ece_raw": compute_ece(confs, outs), "isotonic_fit": "pending (n<10)"}
+        if len(pairs) >= 10:
+            cal = apply_isotonic_calibration(confs, outs)
+            entry["ece_after_isotonic"] = compute_ece(cal.tolist(), outs)
+            entry["isotonic_fit"] = "applied"
+        report["per_sub_domain"][sub] = entry
 
     with open(args.output, "w") as f:
         json.dump(report, f, indent=2)

@@ -32,7 +32,7 @@ For common requests, here are the default subsets and patterns. Use these as sta
 
 **Stage caps to respect:** Phase I ≤16 agents (was 14, now 16 to accommodate substrate-instrumentation), Phase II ≤22, Phase III no hard cap. The 4-person virtual biotech that's running Phase I cannot babysit 22 agents.
 
-> **GWT v1.1 Cycle-1 swap (ADR-0008):** `+hypothesis-generator` (Category 4), `−investor-relations-drafter` (suspended in Phase I; recover at the Phase-II financing gate). Net Phase-I active count stays **16**; `ip-patent-watcher` retained (IP moat → C.8). A second slot for the `retrospector` agent is **reserved** (ADR-0009, built Cycle 3, cedes `risk-register-agent` then) — not yet active.
+> **GWT v1.1 agent swaps:** Cycle 1 (ADR-0008): `+hypothesis-generator` (Cat 4), `−investor-relations-drafter` (suspended Phase I). Cycle 3 (ADR-0009): `+retrospector` (Cat 6, RIL owner), `−risk-register-agent` (register folds into `program-manager`). Net Phase-I active count stays **16**; `ip-patent-watcher` retained (IP moat → C.8). Two "Limited substrate-evidence" ops agents ceded for two high-substrate-evidence agents.
 
 ---
 
@@ -425,6 +425,11 @@ shape + §4 quality rubric), `docs/autoresearch-handoff/proposals/PR-01-hypothes
 
 ### risk-register-agent
 
+> **SLOT CEDED in Phase I (GWT v1.1, ADR-0009).** The dedicated agent slot is ceded to `retrospector`
+> (RIL owner). The risk register itself is **folded into `program-manager`** for Phase I (it is a
+> document `program-manager` maintains), so risk tracking continues without a standalone agent.
+> Substrate evidence is Limited — hence the low-cost cede. Reinstate as standalone if Phase II load warrants.
+
 **Purpose:** Maintain and surface the project's risk register (sim-to-bio transfer, malformed tissue, academic-core access slowdowns, ethics drift, frontier-idea distortion). Asks the team for status per risk on a cadence and escalates when mitigations slip.
 
 **Owns:** Risk register, mitigation status, escalation triggers.
@@ -604,6 +609,37 @@ The original single-LLM auditor reduces to a residual case: only operates on out
 > Implementation note: Self-Consistency mode is multiple parallel calls to the same model — no new infrastructure. Logic-LM mode requires a Python solver dependency (recommend Z3). Human gate mode just signals existing human-review queues.
 
 > Important: this agent represents a **structural shift** in how Method 1 operates. With composite-auditor in place, Method 1 becomes safer to deploy in Phase I — but the recommendation per stress-test Ajuste 6 still holds: Method 1 remains a minority case in Phase I, reserved for low-risk tasks.
+
+---
+
+### retrospector (NEW v1.1, ADR-0009 — owns the Reasoning-Improvement Loop)
+
+**Purpose:** Own the offline cadence of the Reasoning-Improvement Loop (RIL) governed by
+`substrate_calibration/RIL_PROGRAM.md`. After a run, read the case ledger + calibration stream + EPS,
+score the reasoning trace against the `research-hypothesis-generation-guide` §4 rubric, write a
+self-critique record, regenerate `next_session_prepend.md`, and raise governance-proposals. It is
+**checkpoint-triggered batch, NOT a 24/7 server** (`tools/retrospect.py` / `/retrospect`).
+
+**Owns:** The RIL ledger (`substrate_calibration/retrospectives/`), the post-run rubric scoring, the
+`next_session_prepend.md`, and authoring (never applying) governance-proposals.
+
+**Does NOT own:** Audit gates — the retrospector's self-critique is **reflection, NOT an audit gate**
+(CLAUDE.md §7). Any claim used as audit evidence still passes `composite-auditor`. It does not apply
+governance-proposals (human gate) and does not write to the source-of-truth.
+
+**Inputs:** `substrate_calibration/records/`, `retrospectives/failure_log.jsonl`,
+`rolling_calibration.json`, `noise_probe/`, prior `next_session_prepend.md`.
+
+**Outputs:** `retrospectives/sessions/retro_*.json`, regenerated `next_session_prepend.md`, new
+`governance_queue.jsonl` entries (status `queued`, `self_applied: false`).
+
+**Framework:** Self-Consistency / deterministic rubric heuristics; `framework_applied` is self-report.
+
+**Substrate evidence:** Test 3 (recurring-mistake count falling across sessions IS compound-through-use),
+Test 1 (rubric scores), Test 4 (calibration_snapshot feeds the rolling tally).
+
+**Cap note:** Reserved slot ceded from `risk-register-agent` (ADR-0009) — its register folds into
+`program-manager` in Phase I. Net Phase-I active count stays 16.
 
 ---
 
