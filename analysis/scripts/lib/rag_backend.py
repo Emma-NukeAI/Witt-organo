@@ -154,13 +154,38 @@ class Neo4jGraphRetriever(Retriever):
     )
 
     def __init__(self, uri=None, user=None, password=None):
-        self.uri = uri  # e.g. bolt://rack-host:7687
+        self.uri = uri  # e.g. bolt://<host>:7687
         self.user, self.password = user, password
+        self._driver = None
+        self._embed = None
+
+    def _connect(self):
+        if self._driver is None:
+            from neo4j import GraphDatabase  # lazy: only on the server where the driver is installed
+            self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+        if self._embed is None:
+            import sys as _sys
+            _sys.path.insert(0, str(RAG / "graphrag"))
+            from embeddings import get_embedder
+            self._embed = get_embedder()
 
     def query(self, text, k=5):
-        raise NotImplementedError("Neo4jGraphRetriever activates on the rack (Neo4j + driver + embeddings). "
-                                  "Cypher shape in CYPHER_VECTOR. Dev/offline uses TfidfRetriever. "
-                                  "See rag_index/deploy/README.md + ADR-0020.")
+        # Real GraphRAG retrieval: embed the query, run the native vector index + 1-hop graph
+        # expansion. Raises (ImportError / connection error) in dev with no Neo4j -> HybridRetriever
+        # falls back to sparse. See rag_index/deploy/README.md + ADR-0020.
+        self._connect()
+        q_emb = self._embed([text])[0]
+        with self._driver.session() as s:
+            rows = s.run(self.CYPHER_VECTOR, k=k, q_emb=q_emb).data()
+        hits = []
+        for r in rows:
+            node = r.get("node", {}) or {}
+            related = r.get("related", []) or []
+            rel_names = [(x.get("symbol") or x.get("id") or x.get("name")) for x in related if isinstance(x, dict)]
+            hits.append(Hit(node.get("doc_id", "?"), float(r.get("score", 0.0)),
+                            node.get("type", "document"), node.get("text", ""),
+                            {"meta": node.get("meta"), "related": [n for n in rel_names if n]}))
+        return hits
 
 
 class HybridRetriever(Retriever):
@@ -174,8 +199,8 @@ class HybridRetriever(Retriever):
         if self.dense is not None:
             try:
                 pools.append(self.dense.query(text, k * 3))
-            except NotImplementedError:
-                pass  # dev/offline: dense not deployed -> sparse only
+            except Exception:
+                pass  # dev/offline (no Neo4j driver / no connection) -> sparse only; production has both
         # reciprocal rank fusion
         scores, byid = {}, {}
         for pool in pools:
