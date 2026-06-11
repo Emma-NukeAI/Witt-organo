@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "manifest_version": "2026-06-11.0",
+  "status": "seed (empty) — awaiting the first sample/test documents from Emmanuel",
+  "human_gate_required_to_commit": true,
+  "cataloged_corpus_record_schema": {
+    "corpus_record_id": "CORPUS-YYYY-NNNN",
+    "version": "v1.0",
+    "created_at": "ISO",
+    "source_document": {"filename": "...", "doi": "?", "pmid": "?", "source_db": "ZFIN|GEO|...|local", "raw_cache_path": "mcp_cache/raw_corpus_<id>_<date>.<ext>", "parse_method": "..."},
+    "data_niche": ["RN1..RN13 (niches.json)"],
+    "scientific_domain_niche": ["N1..N6 (PROJECT_SCOPE) — the orthogonal axis"],
+    "entities_extracted": [{"entity": "pax2a", "type": "gene_symbol", "external_ids_verified": {"ENSDARG": "...", "ZFIN": "..."}, "confidence": 0.0}],
+    "proposed_placement": {"data_niche": "RNx", "relevance": 0.0, "reasoning": "..."},
+    "feeds_databases": ["which DBs corroborate (databases.json)"],
+    "approval_chain": [{"gate": "categorization", "status": "pending_review|approved|rejected", "approved_by": null, "approved_at": null}],
+    "audit": {"prior_categorization": null, "proposed_recategorization": null, "reason": null},
+    "provenance": "STRING predictive vs IntAct/BioGRID physical — tagged",
+    "substrate_evidence": ["test_1", "test_3"]
+  },
+  "records": []
+}

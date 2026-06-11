@@ -354,6 +354,15 @@ For common requests, here are the default subsets and patterns. Use these as sta
 
 **Outputs:** Versioned KB, lookup answers, "what we know vs. what we assume" disambiguation.
 
+**Operational mode — corpus-classifier (NEW v1.1, ADR-0017 / PR-09):** ingests a scientific document
+and PROPOSES its categorization into the 13 RAG data-niches (`rag_index/niches.json`) + source database
+(`rag_index/databases.json`) + verified entities, and can AUDIT an existing categorization and propose
+a re-categorization (the taxonomy is revisable — a biomedic argued ocular ⊄ biophysics; see
+held_out Q30). It NEVER writes to `rag_index/corpus_manifest.json` — proposals route to a HUMAN GATE.
+Scaffold: `analysis/scripts/lib/corpus_classifier.py` (NO-SPEND, deterministic v1; semantic layer with
+the RAG backend). Owns the RAG index structure; the backend is OPEN (ADR-0015). NOT exempt from
+MCP/Tool Universe verification + completeness (GWT v1.1 §3.3). Substrate evidence: Test 1, Test 3.
+
 ---
 
 ### hypothesis-generator (NEW v1.1, PR-01)
@@ -406,6 +415,12 @@ shape + §4 quality rubric), `docs/autoresearch-handoff/proposals/PR-01-hypothes
 **Inputs:** Status from all workstream agents, calendar, milestone definitions.
 
 **Outputs:** Weekly status report, milestone slip alerts, handoff readiness checks.
+
+**RIL governance (NEW v1.1, PR-08):** owns **PIVOT_AFTER** (after 3 consecutive discards → raise a
+governance-proposal to switch from knob-sweeping to a structural move, RIL_PROGRAM §7) and **clears the
+governance queue** (`retrospectives/governance_queue.jsonl`): nothing `queued` alters behavior until a
+human sets `approved`; `self_applied: true` is rejected + logged; design-changing approvals require an
+ADR. Also folds the ceded `risk-register-agent` register in Phase I (ADR-0009).
 
 ---
 
@@ -605,6 +620,12 @@ The original single-LLM auditor reduces to a residual case: only operates on out
 
 **Inputs:** Outputs from specialist agents in Method 1 pipelines.
 **Outputs:** Routing decisions (which mode is used), filtered outputs (when filtering is applied), escalation packets (when human gate is invoked).
+
+**Empirical thresholds (NEW v1.1, PR-05):** the Self-Consistency agreement pass threshold is the
+**empirical p25 (`EPS_pass`)** of the measured agreement distribution, NOT an arbitrary "70%" — tied to
+the measured noise floor (RIL_PROGRAM §3, ADR-0011). Multi-family (N=3-5 generators from different model
+families, INTEGRATION §5.3) is **NO-SPEND-gated**: Phase I uses single-family with the limitation logged
++ lowered default confidence; multi-family activates only on explicit budget approval.
 
 > Implementation note: Self-Consistency mode is multiple parallel calls to the same model — no new infrastructure. Logic-LM mode requires a Python solver dependency (recommend Z3). Human gate mode just signals existing human-review queues.
 

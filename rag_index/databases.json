@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "index_version": "2026-06-11.1",
+  "source": "docs/autoresearch-handoff/ (Bases de datos.pdf, provided by Emmanuel 2026-06-11)",
+  "purpose": "Authoritative external-source registry for the zebrafish-biomedicine RAG. Each source maps to the RAG data-niches (niches.json) it feeds. External identifiers retrieved from these sources are still verified + raw-cached per CLAUDE.md §6/§7.9 before use; agents are NOT exempt from these even when the internal DATA INAMOVIBLE already has data (GWT v1.1 §3.3).",
+  "databases": [
+    {"id": "ZFIN", "name": "ZFIN", "utility": "Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers.", "data_type": "TFs, gene expression, clones, mutants, markers", "link": "https://zfin.org", "feeds_niches": ["RN1", "RN2", "RN10", "RN11"]},
+    {"id": "DanioCODE", "name": "DanioCODE", "utility": "Identify which regulatory elements respond to which signals and when.", "data_type": "Functional genome (open-source) of zebrafish", "link": "https://danio-code-dcc.genereg.net", "feeds_niches": ["RN1", "RN3"]},
+    {"id": "Reactome", "name": "Reactome", "utility": "Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference).", "data_type": "Pathways, gene interaction, cross-species stimulation", "link": "https://reactome.org", "feeds_niches": ["RN3", "RN4"]},
+    {"id": "GEO_NCBI", "name": "GEO NCBI", "utility": "Gene-expression analysis and interactions.", "data_type": "Gene count/expression data from published papers", "link": "https://www.ncbi.nlm.nih.gov/geo/", "feeds_niches": ["RN1", "RN8", "RN9"]},
+    {"id": "UCSC_Cell_Browser", "name": "UCSC Cell Browser", "utility": "Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets.", "data_type": "Cell lineages across body regions / species", "link": "https://cells.ucsc.edu/?org=Zebrafish+(D.+rerio)", "feeds_niches": ["RN1", "RN8"]},
+    {"id": "STRING_DB", "name": "STRING DB", "utility": "Which proteins work with which genes and which signaling is activated (PREDICTIVE).", "data_type": "Protein interaction data (predicted)", "link": "https://string-db.org", "feeds_niches": ["RN2", "RN3"]},
+    {"id": "IntAct", "name": "IntAct", "utility": "Complement to BioGRID and STRING — PHYSICAL, verified interactions.", "data_type": "Molecular interactions from published papers", "link": "https://www.ebi.ac.uk/intact/home", "feeds_niches": ["RN2", "RN3"]},
+    {"id": "BioGRID", "name": "BioGRID", "utility": "How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at once).", "data_type": "Gene-gene / gene-protein interaction repository", "link": "https://thebiogrid.org", "feeds_niches": ["RN3", "RN12"]},
+    {"id": "Ensembl_DanioRerio", "name": "Ensembl Zebrafish (Danio rerio)", "utility": "Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIBLE.", "data_type": "Promoter sequences, gene annotation/comparison, variants, human orthologs", "link": "https://www.ensembl.org/Danio_rerio/Info/Index", "feeds_niches": ["RN1", "RN2", "RN11"]}
+  ],
+  "provenance_note": "STRING is predictive; IntAct/BioGRID are physical/genetic (verified). When an interaction claim is made, prefer physical (IntAct) over predictive (STRING), and tag the provenance — mirrors the LBPP discipline."
+}
