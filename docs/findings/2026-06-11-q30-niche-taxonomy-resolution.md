@@ -1,7 +1,7 @@
 # Finding — Q30 niche-taxonomy critique: composite-audit resolution
 
 - **Date:** 2026-06-11
-- **Status:** Audit complete (UNANIMOUS keep-as-is + 2 amendments); taxonomy decision **queued for human gate** (gp-2026-06-11-niche-taxonomy-q30). NOT self-applied.
+- **Status:** **RATIFIED 2026-06-11 by Emmanuel (ADR-0018).** Audit UNANIMOUS keep-as-is + 2 amendments; the human gate (gp-2026-06-11-niche-taxonomy-q30) was approved. Keep-as-is for the DATA INAMOVIBLE taxonomy + metabolic discriminator accepted + the **always-recommend-changes** affordance made explicit (the classifier may recommend where to change at any time, human-gated).
 - **Origin:** team-biomedic critique (Nat Witt interaction P2; logged as held-out `Q30`).
 - **Method:** `corpus-classifier` proposal + `composite-auditor` Mode 1 split-and-vote (3 independent adversarial lenses). CLAUDE.md §7 (audits use composite-auditor, not a single-LLM pass).
 

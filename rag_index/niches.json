@@ -4,7 +4,8 @@
   "source": "docs/autoresearch-handoff/ (Indices_nichos.pdf, provided by Emmanuel 2026-06-11)",
   "axis": "RAG data/artifact niches — the kind of DATA or MODELING ARTIFACT. DISTINCT from PROJECT_SCOPE's 6 SCIENTIFIC-DOMAIN niches (N1 systems modeling, N2 tissue biophysics, N3 embryology/genomics, N4 signaling, N5 ocular, N6 tissue engineering). A corpus item is tagged on BOTH axes: which scientific domain it serves AND which data-niche it is.",
   "revisable": true,
-  "revisable_note": "This taxonomy is human-gated mutable and explicitly expected to change (a team biomedic argued ocular should not be separate from biophysics/biomechanics since systems modeling is governed by those laws; see evaluation/held_out_set_v1.json Q30). The corpus-classifier may PROPOSE a re-categorization or audit an existing one; a human approves. Changes are versioned (bump index_version) + may trigger a governance-proposal.",
+  "ratification": "KEEP-AS-IS ratified by Emmanuel 2026-06-11 (ADR-0018, governance gp-2026-06-11-niche-taxonomy-q30) after a unanimous composite-audit rejected the ocular->biophysics merge (it would collapse Test 5). Keeping the taxonomy fixed does NOT freeze it: the corpus-classifier MUST always be able to recommend where to change (audit_categorization), human-gated. Metabolic discriminator accepted (metabolic_role in corpus_manifest schema).",
+  "revisable_note": "Human-gated mutable: recommend changes freely (corpus-classifier audit / governance-proposal), apply only via a human gate. The 2026-06-11 ratification is keep-as-is on the two-axis design; the recommendation path stays open. See docs/findings/2026-06-11-q30-niche-taxonomy-resolution.md + held_out Q30.",
   "read_only_by_default": true,
   "niches": [
     {"id": "RN1", "name": "Transcriptómica y dinámica de linajes", "file_types": [".json", ".csv", ".tsv", ".md", ".txt"],

@@ -85,6 +85,7 @@ or external references that informed the decision.
 | [0015](0015-rag-index-structure-backend-open.md) | 2026-06-11 | RAG index structure-first (13 niches + 9 DBs); backend OPEN (FAISS/Neo4j/graphify/hybrid via spike) | Accepted (structure) |
 | [0016](0016-ril-program-charter.md) | 2026-06-11 | RIL_PROGRAM.md as the canonical Reasoning-Improvement-Loop charter | Accepted |
 | [0017](0017-corpus-classifier-agent.md) | 2026-06-11 | Corpus-classifier as an operational mode of domain-knowledge-curator (categorize + audit, human-gated) | Accepted |
+| [0018](0018-niche-taxonomy-keep-as-is-recommend-always.md) | 2026-06-11 | DATA INAMOVIBLE niche taxonomy keep-as-is + always-recommend-changes + metabolic discriminator | Accepted |
 
 ---
 
