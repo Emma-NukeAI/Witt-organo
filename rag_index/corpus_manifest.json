@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "manifest_version": "2026-06-12.3",
-  "status": "ZESTA full atlas processed (13/13 files, 226376 spots+cells, 44 verified entities). GSE218068 carries real expression. Human-gated.",
+  "manifest_version": "2026-06-12.4",
+  "status": "Provenance-to-raw added (raw_ref, hybrid source-pointer for public ZESTA+GSE218068). Graph is the guide; fetch_raw drills to the raw. Human-gated.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -634,7 +634,12 @@
             "layer_colors",
             "time"
           ],
-          "size_mb": 233.6
+          "size_mb": 233.6,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/spatial_sixtime_slice_stereoseq.h5ad",
+            "sha256": "ca3ba6e74f18f123aad33cb7218dc8604869aa95b402227019a7b7af895926c8"
+          }
         },
         {
           "file": "zf10_scRNA.h5ad",
@@ -653,7 +658,12 @@
             "celltype_new",
             "clusters"
           ],
-          "size_mb": 568.1
+          "size_mb": 568.1,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf10_scRNA.h5ad",
+            "sha256": "d6576e2112b45e7282736495b0072cf2272910253aa870698ca76ae160cf15c0"
+          }
         },
         {
           "file": "zf10_stereoseq.h5ad",
@@ -678,7 +688,12 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 112.3
+          "size_mb": 112.3,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf10_stereoseq.h5ad",
+            "sha256": "d5d42fd062d4e3fc2e9b810666b63f939092efc581caebfde667994d1e6232cf"
+          }
         },
         {
           "file": "zf12_scRNA.h5ad",
@@ -697,7 +712,12 @@
             "celltype_new",
             "clusters"
           ],
-          "size_mb": 707.9
+          "size_mb": 707.9,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf12_scRNA.h5ad",
+            "sha256": "344095d175b0232ca98c327ef680a3b3287af4bcc6db1ef8bfd4e6bef3a1d4c2"
+          }
         },
         {
           "file": "zf12_stereoseq.h5ad",
@@ -722,7 +742,12 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 108.3
+          "size_mb": 108.3,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf12_stereoseq.h5ad",
+            "sha256": "710e939176da8014ca03c8fb15397289ee0c029579c69a27880202d0ecc0cb0b"
+          }
         },
         {
           "file": "zf18_scRNA.h5ad",
@@ -741,7 +766,12 @@
             "celltype_new",
             "clusters"
           ],
-          "size_mb": 574.8
+          "size_mb": 574.8,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf18_scRNA.h5ad",
+            "sha256": "9f0ba56f12e25708b704728d8ede3b63f439e47a7928924281832289f6e25c05"
+          }
         },
         {
           "file": "zf18_stereoseq.h5ad",
@@ -766,7 +796,12 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 371.7
+          "size_mb": 371.7,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf18_stereoseq.h5ad",
+            "sha256": "819f67ac77d56cb54378fc1067a00ff672f5c9530a5cd3c4db1a47dfce06f417"
+          }
         },
         {
           "file": "zf24_scRNA.h5ad",
@@ -786,7 +821,12 @@
             "umap1",
             "umap2"
           ],
-          "size_mb": 532.7
+          "size_mb": 532.7,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf24_scRNA.h5ad",
+            "sha256": "d2daea5cfefce0e4d8368775178f09b8afd1b9782e081df46496466312b644ee"
+          }
         },
         {
           "file": "zf24_stereoseq.h5ad",
@@ -811,7 +851,12 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 1091.8
+          "size_mb": 1091.8,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf24_stereoseq.h5ad",
+            "sha256": "4ca615e6434cd00393085cebadd1e60fef476fc8dbd739302146dab349c45e97"
+          }
         },
         {
           "file": "zf3_scRNA.h5ad",
@@ -830,7 +875,12 @@
             "celltype_new",
             "clusters"
           ],
-          "size_mb": 632.6
+          "size_mb": 632.6,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf3_scRNA.h5ad",
+            "sha256": "2675167c203882d2992396ae5f40343d5acd0eb0cca3e549e32c72d9c602282a"
+          }
         },
         {
           "file": "zf3_stereoseq.h5ad",
@@ -855,7 +905,12 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 76.8
+          "size_mb": 76.8,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf3_stereoseq.h5ad",
+            "sha256": "364d6d9fd7d351be1523cdc647d8b599c4388e4b3fddcbacd2f10da0f9b09f5f"
+          }
         },
         {
           "file": "zf5_scRNA.h5ad",
@@ -874,7 +929,12 @@
             "celltype_new",
             "clusters"
           ],
-          "size_mb": 470.2
+          "size_mb": 470.2,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf5_scRNA.h5ad",
+            "sha256": "ed17aa9ca5ed3f2380e64caa649cd774ff0d745a1c469e6a7a1c95450719e41a"
+          }
         },
         {
           "file": "zf5_stereoseq.h5ad",
@@ -899,9 +959,152 @@
             "layer_annotation",
             "layer_colors"
           ],
-          "size_mb": 35.8
+          "size_mb": 35.8,
+          "raw_ref": {
+            "mode": "source-pointer",
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf5_stereoseq.h5ad",
+            "sha256": "8105edc00a8d3db4903a02c15c51e6e00805c438624ffb95242721430f9cf8f8"
+          }
         }
-      ]
+      ],
+      "raw_provenance": {
+        "policy": "hybrid: public source-pointer (not mirrored)",
+        "store_for_private": "minio (data-inamovible-raw) when private/derived",
+        "n_files": 13,
+        "files": [
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/spatial_sixtime_slice_stereoseq.h5ad",
+            "sha256": "ca3ba6e74f18f123aad33cb7218dc8604869aa95b402227019a7b7af895926c8",
+            "bytes": 244954044,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "spatial_sixtime_slice_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf10_scRNA.h5ad",
+            "sha256": "d6576e2112b45e7282736495b0072cf2272910253aa870698ca76ae160cf15c0",
+            "bytes": 595659137,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf10_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf10_stereoseq.h5ad",
+            "sha256": "d5d42fd062d4e3fc2e9b810666b63f939092efc581caebfde667994d1e6232cf",
+            "bytes": 117725468,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf10_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf12_scRNA.h5ad",
+            "sha256": "344095d175b0232ca98c327ef680a3b3287af4bcc6db1ef8bfd4e6bef3a1d4c2",
+            "bytes": 742244487,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf12_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf12_stereoseq.h5ad",
+            "sha256": "710e939176da8014ca03c8fb15397289ee0c029579c69a27880202d0ecc0cb0b",
+            "bytes": 113542902,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf12_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf18_scRNA.h5ad",
+            "sha256": "9f0ba56f12e25708b704728d8ede3b63f439e47a7928924281832289f6e25c05",
+            "bytes": 602746453,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf18_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf18_stereoseq.h5ad",
+            "sha256": "819f67ac77d56cb54378fc1067a00ff672f5c9530a5cd3c4db1a47dfce06f417",
+            "bytes": 389716120,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf18_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf24_scRNA.h5ad",
+            "sha256": "d2daea5cfefce0e4d8368775178f09b8afd1b9782e081df46496466312b644ee",
+            "bytes": 558580916,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf24_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf24_stereoseq.h5ad",
+            "sha256": "4ca615e6434cd00393085cebadd1e60fef476fc8dbd739302146dab349c45e97",
+            "bytes": 1144886562,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf24_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf3_scRNA.h5ad",
+            "sha256": "2675167c203882d2992396ae5f40343d5acd0eb0cca3e549e32c72d9c602282a",
+            "bytes": 663294016,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf3_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf3_stereoseq.h5ad",
+            "sha256": "364d6d9fd7d351be1523cdc647d8b599c4388e4b3fddcbacd2f10da0f9b09f5f",
+            "bytes": 80571266,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf3_stereoseq.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/scrna/zf5_scRNA.h5ad",
+            "sha256": "ed17aa9ca5ed3f2380e64caa649cd774ff0d745a1c469e6a7a1c95450719e41a",
+            "bytes": 493046160,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf5_scRNA.h5ad"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.cngb.org/pub/SciRAID/stomics/STDS0000057/stomics/zf5_stereoseq.h5ad",
+            "sha256": "8105edc00a8d3db4903a02c15c51e6e00805c438624ffb95242721430f9cf8f8",
+            "bytes": 37584280,
+            "content_type": "application/x-hdf5",
+            "recorded_on": "2026-06-12",
+            "filename": "zf5_stereoseq.h5ad"
+          }
+        ],
+        "note": "fetch_raw resolves these to the CNGB source_url + sha256 for on-demand re-download"
+      }
     },
     {
       "corpus_record_id": "CORPUS-2026-0002",
@@ -1571,6 +1774,43 @@
         "verified_entities": 40,
         "verified_entities_expressed": 39,
         "note": "Expression computed from the real aggregated count matrix (scipy.io.mmread), not the feature list."
+      },
+      "raw_provenance": {
+        "policy": "hybrid: public source-pointer (not mirrored)",
+        "n_files": 3,
+        "files": [
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE218nnn/GSE218068/suppl/GSE218068_Foxc1b_aggregation_outs_matrix.mtx.gz",
+            "sha256": "815e8cf62cb0aa0ea71d1a068ac20e2aecccc50896e91171dd8c129e539d031b",
+            "bytes": 41882167,
+            "content_type": "application/gzip",
+            "recorded_on": "2026-06-12",
+            "filename": "GSE218068_Foxc1b_aggregation_outs_matrix.mtx.gz"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE218nnn/GSE218068/suppl/GSE218068_Foxc1b_aggregation_outs_barcodes.tsv.gz",
+            "sha256": "78a4aa970cb44e06b36e6cb5cf69518b310315911ed663d519dfb7f7e29b1dc9",
+            "bytes": 70291,
+            "content_type": "application/gzip",
+            "recorded_on": "2026-06-12",
+            "filename": "GSE218068_Foxc1b_aggregation_outs_barcodes.tsv.gz"
+          },
+          {
+            "mode": "source-pointer",
+            "store": null,
+            "source_url": "https://ftp.ncbi.nlm.nih.gov/geo/series/GSE218nnn/GSE218068/suppl/GSE218068_Foxc1b_aggregation_outs_features.tsv.gz",
+            "sha256": "0021abe16d547c545ab19f8708dbd95d850f718c8e1d10299e5176dd0a07292f",
+            "bytes": 156829,
+            "content_type": "application/gzip",
+            "recorded_on": "2026-06-12",
+            "filename": "GSE218068_Foxc1b_aggregation_outs_features.tsv.gz"
+          }
+        ],
+        "note": "10x aggregated outs at GEO; fetch_raw -> source_url + sha256"
       }
     }
   ]

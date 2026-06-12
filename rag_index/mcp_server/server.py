@@ -41,7 +41,10 @@ def _load_local_secrets():
 
 
 _load_local_secrets()
-from lib import rag_backend, resolve_id  # noqa: E402
+import json  # noqa: E402
+from lib import rag_backend, resolve_id, raw_store  # noqa: E402
+
+MANIFEST = ROOT / "rag_index" / "corpus_manifest.json"
 
 try:
     from mcp.server.fastmcp import FastMCP
@@ -66,6 +69,35 @@ def _resolve(key: str):
             "verified_on": r.verified_on}
 
 
+def _fetch_raw(key: str, filename: str = None, expires_seconds: int = 3600):
+    """Resolve a corpus record / accession to its RAW data location(s) — the drill-down path for when a
+    chunk/embedding is NOT enough and the agent needs the raw data that composes the truth. Returns
+    retrievable URLs: a presigned MinIO URL (mirrored private/derived) or the canonical source_url +
+    sha256 (public source-pointer, hybrid policy)."""
+    man = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    k = str(key).strip().lower()
+
+    def _match(r):
+        if r.get("corpus_record_id", "").lower() == k:
+            return True
+        acc = str(r.get("source_document", {}).get("accession", "")).lower()
+        return bool(acc) and k in acc
+
+    rec = next((r for r in man.get("records", []) if _match(r)), None)
+    if rec is None:
+        return {"found": False, "key": key,
+                "note": "no corpus record matches; pass a corpus_record_id (CORPUS-YYYY-NNNN) or an "
+                        "accession (GSE.../STDS.../CNP...)"}
+    prov = rec.get("raw_provenance", {})
+    files = prov.get("files", [])
+    if filename:
+        files = [f for f in files if f.get("filename") == filename]
+    out = [{"filename": f.get("filename"), **raw_store.fetch_url(f, expires_seconds)} for f in files]
+    return {"found": True, "corpus_record_id": rec["corpus_record_id"],
+            "accession": rec.get("source_document", {}).get("accession"),
+            "policy": prov.get("policy"), "n_files": len(out), "files": out}
+
+
 if FastMCP is not None:
     mcp = FastMCP("data-inamovible")
 
@@ -81,6 +113,14 @@ if FastMCP is not None:
         (DATA INAMOVIBLE). Deterministic; never invents IDs."""
         return _resolve(key)
 
+    @mcp.tool()
+    def fetch_raw(key: str, filename: str = None):
+        """Drill from the graph (the guide) to the RAW data that composes the truth, when a chunk or
+        embedding is not enough. Pass a corpus_record_id (CORPUS-YYYY-NNNN) or an accession
+        (GSE218068 / STDS0000057 / CNP0002220); optionally a filename. Returns retrievable URLs +
+        sha256 (presigned MinIO for mirrored data; canonical source_url for public source-pointers)."""
+        return _fetch_raw(key, filename)
+
 
 if __name__ == "__main__":
     if FastMCP is None:
@@ -90,5 +130,6 @@ if __name__ == "__main__":
         print(json.dumps(_query("ocular cornea markers", 2), ensure_ascii=False)[:400])
         print(json.dumps(_resolve("foxc1b")))
         print(json.dumps(_resolve("NM_131729")))
+        print(json.dumps(_fetch_raw("GSE218068"), ensure_ascii=False)[:500])
     else:
         mcp.run()

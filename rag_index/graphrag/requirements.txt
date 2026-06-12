@@ -7,3 +7,4 @@ fastembed>=0.3           # EMBED_MODEL=bge (dev/offline fallback): BAAI/bge-base
 # sentence-transformers>=3.0
 numpy
 scikit-learn            # sparse half of the hybrid retriever (TfidfRetriever); used by the MCP query path
+minio>=7.2              # raw store mirror path (ADR-0021): MinIO S3 client; source-pointer mode needs none
