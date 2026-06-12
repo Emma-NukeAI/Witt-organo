@@ -1,0 +1,12 @@
+# Hosted ingestion service deps (ADR-0017/0021). Install in the service container.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9     # file uploads (UploadFile)
+# --- reused DATA INAMOVIBLE libs (same as rag_index/graphrag/requirements.txt) ---
+neo4j>=5.20
+openai>=1.40
+minio>=7.2
+scikit-learn
+numpy
+# anndata (entity extraction from uploaded .h5ad) is OPTIONAL + heavy; the service try/excepts without it.
+# anndata>=0.10
