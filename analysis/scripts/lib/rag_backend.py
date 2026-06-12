@@ -195,12 +195,17 @@ class HybridRetriever(Retriever):
         self.sparse, self.dense, self.reranker = sparse, dense, reranker or Reranker()
 
     def query(self, text, k=5):
-        pools = [self.sparse.query(text, k * 3)]
-        if self.dense is not None:
+        # Both halves are optional and isolated: a missing sparse half (no sklearn / no documents.jsonl)
+        # or a missing dense half (no Neo4j driver / no connection) must NOT crash retrieval. Whichever
+        # half is available contributes; if both are present we fuse them.
+        pools = []
+        for r in (self.sparse, self.dense):
+            if r is None:
+                continue
             try:
-                pools.append(self.dense.query(text, k * 3))
+                pools.append(r.query(text, k * 3))
             except Exception:
-                pass  # dev/offline (no Neo4j driver / no connection) -> sparse only; production has both
+                pass
         # reciprocal rank fusion
         scores, byid = {}, {}
         for pool in pools:
@@ -215,8 +220,10 @@ _default = None
 
 
 def get_backend():
-    """Pick the backend from config (ADR-0020). Rack: RAG_BACKEND=neo4j -> Hybrid(Tfidf + Neo4jGraph) +
-    reranker. Dev/offline (default): TfidfRetriever (sparse v1, NO-SPEND, no deps)."""
+    """Pick the backend from config (ADR-0020). Rack: RAG_BACKEND=neo4j -> Hybrid(Tfidf + Neo4jGraph),
+    NoOp reranker by default (fusion order). The cross-encoder reranker is opt-in (RAG_RERANKER=cross-encoder)
+    and bottleneck-gated — it needs a local model, so it is NOT the default. Dev/offline (default):
+    TfidfRetriever (sparse v1, NO-SPEND, no deps)."""
     global _default
     if _default is None:
         import os
@@ -224,7 +231,12 @@ def get_backend():
             dense = Neo4jGraphRetriever(uri=os.environ.get("NEO4J_URI"),
                                         user=os.environ.get("NEO4J_USER"),
                                         password=os.environ.get("NEO4J_PASSWORD"))
-            _default = HybridRetriever(TfidfRetriever(), dense, CrossEncoderReranker())
+            try:
+                sparse = TfidfRetriever()   # sparse half (sklearn + documents.jsonl); optional
+            except Exception:
+                sparse = None               # dense-only if sklearn/index unavailable
+            reranker = CrossEncoderReranker() if os.environ.get("RAG_RERANKER") == "cross-encoder" else Reranker()
+            _default = HybridRetriever(sparse, dense, reranker)
         else:
             _default = TfidfRetriever()
     return _default

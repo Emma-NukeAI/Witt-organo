@@ -6,3 +6,4 @@ fastembed>=0.3           # EMBED_MODEL=bge (dev/offline fallback): BAAI/bge-base
 # Biomedical embeddings (papers), optional — heavier (torch). Enable with EMBED_MODEL=biobert|specter2:
 # sentence-transformers>=3.0
 numpy
+scikit-learn            # sparse half of the hybrid retriever (TfidfRetriever); used by the MCP query path
