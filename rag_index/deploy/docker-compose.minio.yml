@@ -8,8 +8,8 @@ services:
     command: server /data --console-address ":9001"
     restart: unless-stopped
     ports:
-      - "9000:9000"                     # S3 API (the agents/scripts use this)
-      - "9001:9001"                     # web console (browser admin)
+      - "9100:9000"                     # S3 API (the agents/scripts use this) -> host 9100 (9000 was free, 9001 wasn't; remapped both)
+      - "9101:9001"                     # web console (browser admin) -> host 9101
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}

@@ -150,13 +150,14 @@ source-pointers (URL + sha256, NOT stored here); only **private/derived** bytes 
    `rag_index/deploy/docker-compose.minio.yml`.
 2. **Environment** tab (secrets, never commit): `MINIO_ROOT_USER=<user>` + `MINIO_ROOT_PASSWORD=<strong>`.
 3. **Volume:** map `minio_data` to a **dedicated disk/volume** — this is where the raw GBs live.
-4. **Ports:** `9000` (S3 API, used by scripts/agents) + `9001` (web console). Keep them on the internal
-   network or behind Traefik+auth+TLS — **do not** expose S3 publicly without auth.
-5. **Deploy.** Verify: open the console at `:9001`, log in; the S3 API answers at
-   `http://<host>:9000/minio/health/live`.
+4. **Ports:** the container listens on `9000` (S3 API) + `9001` (console). Map host ports to free ones —
+   on this server `9001` was taken, so we use **`9100:9000`** (API) + **`9101:9001`** (console). Keep them
+   internal or behind Traefik+auth+TLS — **do not** expose S3 publicly without auth.
+5. **Deploy.** Verify: open the console at `:9101`, log in; the S3 API answers at
+   `http://<host>:9100/minio/health/live`.
 6. On the workstation that ingests, add to `.secrets/deploy.env`:
    ```
-   MINIO_ENDPOINT=<host>:9000
+   MINIO_ENDPOINT=<host>:9100
    MINIO_ACCESS_KEY=<MINIO_ROOT_USER>
    MINIO_SECRET_KEY=<MINIO_ROOT_PASSWORD>
    MINIO_SECURE=false        # true once behind TLS
