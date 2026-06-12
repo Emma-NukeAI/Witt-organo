@@ -10,11 +10,12 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from embeddings import DIM  # noqa: E402
+from embeddings import get_dim  # noqa: E402
 
 
 def run():
     from neo4j import GraphDatabase
+    DIM = get_dim()
     uri = os.environ["NEO4J_URI"]
     drv = GraphDatabase.driver(uri, auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))
     stmts = [

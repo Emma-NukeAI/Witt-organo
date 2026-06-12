@@ -26,18 +26,8 @@ services:
       timeout: 10s
       retries: 5
 
-  # Optional: a self-hosted embedding service (Ollama) for general embeddings (bge/nomic).
-  # SPECTER2/BioBERT (papers) run via a small transformers/ONNX service or a batch job at ingestion.
-  ollama:
-    image: ollama/ollama:latest
-    container_name: data-inamovible-ollama
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_models:/root/.ollama
-
+# Embeddings: OpenAI API (EMBED_MODEL=openai, OPENAI_API_KEY) per the 2026-06-11 decision — no Ollama,
+# no self-hosted embedding service. Neo4j is the only thing this stack runs.
 volumes:
   neo4j_data:
   neo4j_logs:
-  ollama_models:

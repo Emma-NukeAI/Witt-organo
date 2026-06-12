@@ -1,7 +1,8 @@
 # DATA INAMOVIBLE GraphRAG — server-side deps (ADR-0020). NO paid services.
 # Install on the server (in a venv) where Neo4j + the embedding service run.
 neo4j>=5.20              # official Bolt driver (graph + vector-index queries)
-fastembed>=0.3           # default embeddings: BAAI/bge-base-en-v1.5 (768-dim, ONNX, NO torch) — light
+openai>=1.40             # EMBED_MODEL=openai (RECOMMENDED): text-embedding-3-small (1536). Needs OPENAI_API_KEY.
+fastembed>=0.3           # EMBED_MODEL=bge (dev/offline fallback): BAAI/bge-base-en-v1.5 (768, ONNX, no torch)
 # Biomedical embeddings (papers), optional — heavier (torch). Enable with EMBED_MODEL=biobert|specter2:
 # sentence-transformers>=3.0
 numpy

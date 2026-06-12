@@ -55,8 +55,7 @@ API (MCP) · **E** point the agents. Do them in order; verify each before the ne
    - Open `https://<your-domain-or-host>:7474`, log in with `neo4j` / your password.
    - **Report back:** the Neo4j logs tail + that the Browser login works.
 
-(The compose also starts an optional **Ollama** service on `11434` for general embeddings — fine to leave;
-the default embedder is `fastembed` which needs no Ollama.)
+(The stack runs **only Neo4j** — no Ollama. Embeddings use the **OpenAI API** at load/query time, see Stage C.)
 
 ---
 
@@ -75,9 +74,11 @@ pip install -r rag_index/graphrag/requirements.txt
 export NEO4J_URI=bolt://<neo4j-host>:7687
 export NEO4J_USER=neo4j
 export NEO4J_PASSWORD='<the password from Stage B>'
-export EMBED_MODEL=bge            # light, no GPU/torch; good default
+export EMBED_MODEL=openai                       # OpenAI embeddings (no Ollama); 1536-dim
+export OPENAI_API_KEY='<your OpenAI key>'        # secret — env only, never commit
+# export OPENAI_EMBED_MODEL=text-embedding-3-large   # optional: 3072-dim, higher quality
 
-python rag_index/graphrag/bootstrap.py     # creates constraints + the vector index (run once)
+python rag_index/graphrag/bootstrap.py     # creates constraints + the vector index (dim auto-matches the model)
 python rag_index/graphrag/ingest.py        # loads the corpus (Documents+embeddings, Niches, Databases, Entities)
 ```
 
