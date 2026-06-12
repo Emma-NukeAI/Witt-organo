@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "manifest_version": "2026-06-12.1",
-  "status": "Entities re-bound to verified store 2026-06-11.1 via resolve_id (GSE218068 5->40, ZESTA 0->22). Human-gated; review before commit. Prior: 2 records APPROVED 2026-06-11.",
+  "manifest_version": "2026-06-12.2",
+  "status": "GSE218068 enriched with REAL expression (matrix.mtx: 12234 cells); 39/40 verified markers expressed. ZESTA full download in progress. Human-gated.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -507,7 +507,12 @@
           "store_ensdarg": "ENSDARG00000076933",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_001044745",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.65,
+            "mean_counts": 0.0074,
+            "n_cells_expressing": 79
+          }
         },
         {
           "entity": "atp1a1a.2",
@@ -516,7 +521,12 @@
           "store_ensdarg": "ENSDARG00000007739",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131687",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.29,
+            "mean_counts": 0.0417,
+            "n_cells_expressing": 36
+          }
         },
         {
           "entity": "atp1b1b",
@@ -525,7 +535,12 @@
           "store_ensdarg": "ENSDARG00000076833",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131671",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.74,
+            "mean_counts": 0.0918,
+            "n_cells_expressing": 91
+          }
         },
         {
           "entity": "cdh17",
@@ -534,7 +549,12 @@
           "store_ensdarg": "ENSDARG00000005112",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_194422",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.13,
+            "mean_counts": 0.0097,
+            "n_cells_expressing": 16
+          }
         },
         {
           "entity": "col1a1a",
@@ -543,7 +563,12 @@
           "store_ensdarg": "ENSDARG00000012405",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_199214",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 28.84,
+            "mean_counts": 7.0334,
+            "n_cells_expressing": 3528
+          }
         },
         {
           "entity": "col1a1b",
@@ -552,7 +577,12 @@
           "store_ensdarg": "ENSDARG00000035809",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_201478",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 26.43,
+            "mean_counts": 8.4854,
+            "n_cells_expressing": 3233
+          }
         },
         {
           "entity": "col1a2",
@@ -561,7 +591,12 @@
           "store_ensdarg": "ENSDARG00000020007",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_182968",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 35.29,
+            "mean_counts": 10.3973,
+            "n_cells_expressing": 4317
+          }
         },
         {
           "entity": "emx1",
@@ -570,7 +605,12 @@
           "store_ensdarg": "ENSDARG00000039569",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_198144",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.06,
+            "mean_counts": 0.0009,
+            "n_cells_expressing": 7
+          }
         },
         {
           "entity": "foxc1a",
@@ -579,7 +619,12 @@
           "store_ensdarg": "ENSDARG00000091481",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131728",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 9.75,
+            "mean_counts": 0.1806,
+            "n_cells_expressing": 1193
+          }
         },
         {
           "entity": "foxc1b",
@@ -588,7 +633,12 @@
           "store_ensdarg": "ENSDARG00000055398",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131729",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 9.07,
+            "mean_counts": 0.1546,
+            "n_cells_expressing": 1110
+          }
         },
         {
           "entity": "gata3",
@@ -597,7 +647,12 @@
           "store_ensdarg": "ENSDARG00000016526",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131211",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 3.66,
+            "mean_counts": 0.0571,
+            "n_cells_expressing": 448
+          }
         },
         {
           "entity": "hnf1ba",
@@ -606,7 +661,12 @@
           "store_ensdarg": "ENSDARG00000006615",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131880",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0004,
+            "n_cells_expressing": 3
+          }
         },
         {
           "entity": "hnf1bb",
@@ -615,7 +675,12 @@
           "store_ensdarg": "ENSDARG00000022295",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_194372",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0002,
+            "n_cells_expressing": 3
+          }
         },
         {
           "entity": "irx3b",
@@ -624,7 +689,12 @@
           "store_ensdarg": "ENSDARG00000031138",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_213100",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.38,
+            "mean_counts": 0.004,
+            "n_cells_expressing": 46
+          }
         },
         {
           "entity": "kcnj1a.1",
@@ -633,7 +703,12 @@
           "store_ensdarg": "ENSDARG00000091232",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_201035",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.12,
+            "mean_counts": 0.002,
+            "n_cells_expressing": 15
+          }
         },
         {
           "entity": "kera",
@@ -642,7 +717,12 @@
           "store_ensdarg": "ENSDARG00000056938",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_001025548",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 5.84,
+            "mean_counts": 0.1528,
+            "n_cells_expressing": 715
+          }
         },
         {
           "entity": "krt4",
@@ -651,7 +731,12 @@
           "store_ensdarg": "ENSDARG00000017624",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131509",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 37.94,
+            "mean_counts": 31.3707,
+            "n_cells_expressing": 4641
+          }
         },
         {
           "entity": "lhx1a",
@@ -660,7 +745,12 @@
           "store_ensdarg": "ENSDARG00000014018",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131216",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.33,
+            "mean_counts": 0.0058,
+            "n_cells_expressing": 40
+          }
         },
         {
           "entity": "lum",
@@ -669,7 +759,12 @@
           "store_ensdarg": "ENSDARG00000045580",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_001002059",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 11.46,
+            "mean_counts": 0.3384,
+            "n_cells_expressing": 1402
+          }
         },
         {
           "entity": "mafba",
@@ -678,7 +773,12 @@
           "store_ensdarg": "ENSDARG00000017121",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131015",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 7.05,
+            "mean_counts": 0.1014,
+            "n_cells_expressing": 863
+          }
         },
         {
           "entity": "nphs1",
@@ -687,7 +787,12 @@
           "store_ensdarg": "ENSDARG00000060758",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001040687",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0003,
+            "n_cells_expressing": 3
+          }
         },
         {
           "entity": "nphs2",
@@ -696,7 +801,12 @@
           "store_ensdarg": "ENSDARG00000042850",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001018145",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0002,
+            "n_cells_expressing": 3
+          }
         },
         {
           "entity": "pax2a",
@@ -705,7 +815,12 @@
           "store_ensdarg": "ENSDARG00000028148",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131184",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.92,
+            "mean_counts": 0.0198,
+            "n_cells_expressing": 112
+          }
         },
         {
           "entity": "pax6a",
@@ -714,7 +829,12 @@
           "store_ensdarg": "ENSDARG00000103379",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131304",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 27.13,
+            "mean_counts": 0.76,
+            "n_cells_expressing": 3319
+          }
         },
         {
           "entity": "pax6b",
@@ -723,7 +843,12 @@
           "store_ensdarg": "ENSDARG00000045936",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131641",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 15.21,
+            "mean_counts": 0.2804,
+            "n_cells_expressing": 1861
+          }
         },
         {
           "entity": "pitx2",
@@ -732,7 +857,12 @@
           "store_ensdarg": "ENSDARG00000036194",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_130975",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 11.86,
+            "mean_counts": 0.2859,
+            "n_cells_expressing": 1451
+          }
         },
         {
           "entity": "podxl",
@@ -741,7 +871,12 @@
           "store_ensdarg": "ENSDARG00000031228",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001045016",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 1.65,
+            "mean_counts": 0.0247,
+            "n_cells_expressing": 202
+          }
         },
         {
           "entity": "pou3f3a",
@@ -750,7 +885,12 @@
           "store_ensdarg": "ENSDARG00000042032",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001312687",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0002,
+            "n_cells_expressing": 2
+          }
         },
         {
           "entity": "prox1a",
@@ -759,7 +899,12 @@
           "store_ensdarg": "ENSDARG00000055158",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131405",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 4.79,
+            "mean_counts": 0.0781,
+            "n_cells_expressing": 586
+          }
         },
         {
           "entity": "sim1a",
@@ -768,7 +913,12 @@
           "store_ensdarg": "ENSDARG00000023316",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_178222",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.02,
+            "mean_counts": 0.0002,
+            "n_cells_expressing": 2
+          }
         },
         {
           "entity": "slc12a3",
@@ -777,7 +927,12 @@
           "store_ensdarg": "ENSDARG00000013855",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001045080",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.03,
+            "mean_counts": 0.0003,
+            "n_cells_expressing": 4
+          }
         },
         {
           "entity": "slc13a1",
@@ -786,7 +941,12 @@
           "store_ensdarg": "ENSDARG00000045638",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_199281",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.06,
+            "mean_counts": 0.0015,
+            "n_cells_expressing": 7
+          }
         },
         {
           "entity": "slc13a3",
@@ -795,7 +955,12 @@
           "store_ensdarg": "ENSDARG00000069478",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_212902",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.34,
+            "mean_counts": 0.0038,
+            "n_cells_expressing": 41
+          }
         },
         {
           "entity": "slc20a1a",
@@ -804,7 +969,12 @@
           "store_ensdarg": "ENSDARG00000020114",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_213179",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.25,
+            "mean_counts": 0.0067,
+            "n_cells_expressing": 31
+          }
         },
         {
           "entity": "slc4a4a",
@@ -813,7 +983,12 @@
           "store_ensdarg": "ENSDARG00000013730",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001034984",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 3.9,
+            "mean_counts": 0.0919,
+            "n_cells_expressing": 477
+          }
         },
         {
           "entity": "tbx2b",
@@ -822,7 +997,12 @@
           "store_ensdarg": "ENSDARG00000006120",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_131051",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 15.79,
+            "mean_counts": 0.2375,
+            "n_cells_expressing": 1932
+          }
         },
         {
           "entity": "tp63",
@@ -831,7 +1011,12 @@
           "store_ensdarg": "ENSDARG00000044356",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_152986",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.06,
+            "mean_counts": 0.0006,
+            "n_cells_expressing": 7
+          }
         },
         {
           "entity": "trpm7",
@@ -840,7 +1025,12 @@
           "store_ensdarg": "ENSDARG00000036232",
           "verification_tier": "DERIVED",
           "in_dataset_id": "NM_001030061",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 2.48,
+            "mean_counts": 0.0271,
+            "n_cells_expressing": 304
+          }
         },
         {
           "entity": "wt1a",
@@ -849,7 +1039,12 @@
           "store_ensdarg": "ENSDARG00000031420",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_131046",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.0,
+            "mean_counts": 0.0,
+            "n_cells_expressing": 0
+          }
         },
         {
           "entity": "wt1b",
@@ -858,7 +1053,12 @@
           "store_ensdarg": "ENSDARG00000007990",
           "verification_tier": "RAW",
           "in_dataset_id": "NM_001039634",
-          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl",
+          "expression_in_dataset": {
+            "pct_cells_expressing": 0.11,
+            "mean_counts": 0.0012,
+            "n_cells_expressing": 14
+          }
         }
       ],
       "proposed_placement": {
@@ -893,6 +1093,14 @@
         "reason": "store enriched (ocular markers curated, human-gated 2026-06-11); re-bound via resolve_id",
         "by": "rebind_corpus_entities.py + resolve_id (deterministic gate)",
         "at": "2026-06-12"
+      },
+      "read_summary": {
+        "source": "GSE218068_Foxc1b_aggregation_outs (10x aggregated, all 5 timepoints)",
+        "n_cells": 12234,
+        "n_genes": 16283,
+        "verified_entities": 40,
+        "verified_entities_expressed": 39,
+        "note": "Expression computed from the real aggregated count matrix (scipy.io.mmread), not the feature list."
       }
     }
   ]
