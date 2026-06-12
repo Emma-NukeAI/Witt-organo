@@ -1,30 +1,134 @@
 {
   "schema_version": "1.1",
-  "manifest_version": "2026-06-11.1",
-  "status": "2 records APPROVED by Emmanuel 2026-06-11 (ZESTA + GSE218068). Schema enriched 2026-06-11 (corpus-classifier + composite-auditor Mode 1).",
+  "manifest_version": "2026-06-12.1",
+  "status": "Entities re-bound to verified store 2026-06-11.1 via resolve_id (GSE218068 5->40, ZESTA 0->22). Human-gated; review before commit. Prior: 2 records APPROVED 2026-06-11.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
     "version": "v1.0",
     "created_at": "ISO",
-    "source_document": {"filename": "...", "doi": "?", "pmid": "?", "source_db": "ZFIN|GEO_NCBI|...|local", "raw_cache_path": "mcp_cache/raw_corpus_<id>_<date>.<ext>", "parse_method": "..."},
+    "source_document": {
+      "filename": "...",
+      "doi": "?",
+      "pmid": "?",
+      "source_db": "ZFIN|GEO_NCBI|...|local",
+      "raw_cache_path": "mcp_cache/raw_corpus_<id>_<date>.<ext>",
+      "parse_method": "..."
+    },
     "_axes_note": "5 orthogonal axes (corpus-classifier proposal). data_niche (RN) and scientific_domain (N) are DISTINCT; an item is tagged on both.",
-    "axis_data_niche": {"primary": "RN1..RN13", "secondary": ["..."], "relevance_by_niche": {"RN1": 0.0}},
-    "axis_scientific_domain": {"primary": "N1..N6 (PROJECT_SCOPE)", "secondary": ["..."]},
-    "axis_source_db": [{"db": "GEO_NCBI", "provenance": "physical|genetic|curated|predicted|computed", "role": "primary_source|corroborating"}],
-    "axis_file_type": {"ext": ".csv", "valid_for_niche": true, "modality": "scRNA|bulk|MS|imaging|AFM|voltage|sim|literature"},
-    "axis_bio_context": {"stage_hpf": [0, 0], "tissue": ["pronephros|cornea|optic_cup|lens|periocular_NC|intermediate_mesoderm|whole_embryo"], "segment": ["PT|DE|DL|duct|null"], "species": "Danio rerio", "taxon": 7955, "assembly": "GRCz11"},
+    "axis_data_niche": {
+      "primary": "RN1..RN13",
+      "secondary": [
+        "..."
+      ],
+      "relevance_by_niche": {
+        "RN1": 0.0
+      }
+    },
+    "axis_scientific_domain": {
+      "primary": "N1..N6 (PROJECT_SCOPE)",
+      "secondary": [
+        "..."
+      ]
+    },
+    "axis_source_db": [
+      {
+        "db": "GEO_NCBI",
+        "provenance": "physical|genetic|curated|predicted|computed",
+        "role": "primary_source|corroborating"
+      }
+    ],
+    "axis_file_type": {
+      "ext": ".csv",
+      "valid_for_niche": true,
+      "modality": "scRNA|bulk|MS|imaging|AFM|voltage|sim|literature"
+    },
+    "axis_bio_context": {
+      "stage_hpf": [
+        0,
+        0
+      ],
+      "tissue": [
+        "pronephros|cornea|optic_cup|lens|periocular_NC|intermediate_mesoderm|whole_embryo"
+      ],
+      "segment": [
+        "PT|DE|DL|duct|null"
+      ],
+      "species": "Danio rerio",
+      "taxon": 7955,
+      "assembly": "GRCz11"
+    },
     "metabolic_role": "signaling-scaffold | metabolic-general-function | null  (RN3/RN4 discriminator — composite-auditor amendment B; flags when a signaling model omits its metabolic preconditions)",
-    "entities_extracted": [{"entity": "pax2a", "type": "gene_symbol", "external_ids_verified": {"ENSDARG": "...", "ZFIN": "..."}, "verified_store_ref": "verified_identifiers.json#pax2a", "verification_tier": "RAW|DERIVED|NOT_FOUND|UNVERIFIED", "ontology_xrefs": {"GO": [], "Reactome": [], "MeSH": [], "ZFA": []}, "confidence": 0.0}],
-    "chunks": [{"chunk_id": "CORPUS-...#cNN", "section": "Title|Abstract|Introduction|Methods|Results|Discussion|Figure|Table|SI", "inherits": "doc-level axes+entities", "chunk_local": {}}],
-    "doc_metadata": {"title": "...", "authors": [], "year": 0, "doi": "...", "section_map": [], "topic": [], "species": "Danio rerio", "taxon": 7955, "method": [], "sample_size": {}, "stage_hpf": [0, 0]},
+    "entities_extracted": [
+      {
+        "entity": "pax2a",
+        "type": "gene_symbol",
+        "external_ids_verified": {
+          "ENSDARG": "...",
+          "ZFIN": "..."
+        },
+        "verified_store_ref": "verified_identifiers.json#pax2a",
+        "verification_tier": "RAW|DERIVED|NOT_FOUND|UNVERIFIED",
+        "ontology_xrefs": {
+          "GO": [],
+          "Reactome": [],
+          "MeSH": [],
+          "ZFA": []
+        },
+        "confidence": 0.0
+      }
+    ],
+    "chunks": [
+      {
+        "chunk_id": "CORPUS-...#cNN",
+        "section": "Title|Abstract|Introduction|Methods|Results|Discussion|Figure|Table|SI",
+        "inherits": "doc-level axes+entities",
+        "chunk_local": {}
+      }
+    ],
+    "doc_metadata": {
+      "title": "...",
+      "authors": [],
+      "year": 0,
+      "doi": "...",
+      "section_map": [],
+      "topic": [],
+      "species": "Danio rerio",
+      "taxon": 7955,
+      "method": [],
+      "sample_size": {},
+      "stage_hpf": [
+        0,
+        0
+      ]
+    },
     "interaction_rows": "for RN10 items: pointers into rag_index/interaction_table.json (IT-NNNN)",
-    "proposed_placement": {"data_niche": "RNx", "relevance": 0.0, "reasoning": "..."},
-    "feeds_databases": ["which DBs corroborate (niche_database_crosswalk.json)"],
-    "approval_chain": [{"gate": "categorization", "status": "pending_review|approved|rejected", "approved_by": null, "approved_at": null}],
-    "audit": {"prior_categorization": null, "proposed_recategorization": null, "reason": null},
+    "proposed_placement": {
+      "data_niche": "RNx",
+      "relevance": 0.0,
+      "reasoning": "..."
+    },
+    "feeds_databases": [
+      "which DBs corroborate (niche_database_crosswalk.json)"
+    ],
+    "approval_chain": [
+      {
+        "gate": "categorization",
+        "status": "pending_review|approved|rejected",
+        "approved_by": null,
+        "approved_at": null
+      }
+    ],
+    "audit": {
+      "prior_categorization": null,
+      "proposed_recategorization": null,
+      "reason": null
+    },
     "provenance": "STRING predictive vs IntAct/BioGRID physical — tagged per axis_source_db",
-    "substrate_evidence": ["test_1", "test_3"]
+    "substrate_evidence": [
+      "test_1",
+      "test_3"
+    ]
   },
   "multi_niche_rule": "Stored ONCE under primary niche (highest relevance_by_niche); secondary niches hold a cross-reference pointer (corpus_record_id), NOT a copy. Ambiguous (top-3 disagree, confidence<0.8) -> human gate, never silent placement.",
   "entity_rule": "Every gene_symbol binds to analysis/outputs/verified_identifiers.json via resolve(). hit -> use ENSDARG + tier; positive NOT_FOUND -> keep with confidence 0 + gap_flag; absent from store -> QUARANTINE (UNVERIFIED) until Ensembl lookup + raw-cache (§7.9) + human-gated store update. NEVER mint an ID from memory.",
@@ -33,47 +137,763 @@
       "corpus_record_id": "CORPUS-2026-0001",
       "version": "v1.0",
       "created_at": "2026-06-11T00:00:00Z",
-      "source_document": {"name": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas", "doi": "10.1016/j.devcel.2022.04.009", "pmid": "35617956", "source_db": "CNGB_STOmics", "accession": "CNP0002220 / STDS0000057", "files": "12 x .h5ad (~4.8 GB): zf{3,5,10,12,18,24}_scRNA.h5ad + zf{3,5,10,12,18,24}_stereoseq.h5ad + spatial_sixtime_slice_stereoseq.h5ad", "raw_cache_path": "mcp_cache/zf5_stereoseq.h5ad (representative 37.6 MB Stereo-seq slice DOWNLOADED + read; full 4.8 GB set on-demand)", "parse_method": "zf5_stereoseq.h5ad read with anndata 0.12 (verified HDF5)"},
-      "read_summary": {"file": "zf5_stereoseq.h5ad (5 hpf slice)", "n_spots": 6064, "n_genes": 16153, "obs": ["spatial_x", "spatial_y", "seurat_clusters", "time_point", "bin_annotation", "layer_annotation"], "id_namespace": "gene SYMBOLS + Ensembl clone-names (NOT ENSDARG, NOT RefSeq) -> binds to the store via the resolver's symbol index", "markers_present_and_resolved": ["pitx2", "cdh17", "gata3 (all RAW)"], "markers_absent_at_5hpf": ["pax2a", "wt1a (biologically consistent — pronephric onset is later)"]},
-      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9", "RN8"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.7, "RN8": 0.4}, "note": "Stereo-seq is transcriptomics (RN1) WITH spatial morphology (RN9, confirmed: spatial_x/y + layer_annotation obs); scRNA trajectories touch RN8."},
-      "axis_scientific_domain": {"primary": "N3", "secondary": ["N1"]},
-      "axis_source_db": [{"db": "CNGB_STOmics", "provenance": "computed", "role": "primary_source"}, {"db": "GEO_NCBI", "provenance": "computed", "role": "corroborating?"}],
-      "axis_file_type": {"ext": ".h5ad", "valid_for_niche": true, "modality": "spatial+scRNA (Stereo-seq)"},
-      "axis_bio_context": {"stage_hpf": [3, 24], "tissue": ["whole_embryo"], "species": "Danio rerio", "taxon": 7955, "n_sections": 91, "n_spots": 152977, "resolution_um": "10x10x15"},
+      "source_document": {
+        "name": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas",
+        "doi": "10.1016/j.devcel.2022.04.009",
+        "pmid": "35617956",
+        "source_db": "CNGB_STOmics",
+        "accession": "CNP0002220 / STDS0000057",
+        "files": "12 x .h5ad (~4.8 GB): zf{3,5,10,12,18,24}_scRNA.h5ad + zf{3,5,10,12,18,24}_stereoseq.h5ad + spatial_sixtime_slice_stereoseq.h5ad",
+        "raw_cache_path": "mcp_cache/zf5_stereoseq.h5ad (representative 37.6 MB Stereo-seq slice DOWNLOADED + read; full 4.8 GB set on-demand)",
+        "parse_method": "zf5_stereoseq.h5ad read with anndata 0.12 (verified HDF5)"
+      },
+      "read_summary": {
+        "file": "zf5_stereoseq.h5ad (5 hpf slice)",
+        "n_spots": 6064,
+        "n_genes": 16153,
+        "obs": [
+          "spatial_x",
+          "spatial_y",
+          "seurat_clusters",
+          "time_point",
+          "bin_annotation",
+          "layer_annotation"
+        ],
+        "id_namespace": "gene SYMBOLS + Ensembl clone-names (NOT ENSDARG, NOT RefSeq) -> binds to the store via the resolver's symbol index",
+        "markers_present_and_resolved": [
+          "pitx2",
+          "cdh17",
+          "gata3 (all RAW)"
+        ],
+        "markers_absent_at_5hpf": [
+          "pax2a",
+          "wt1a (biologically consistent — pronephric onset is later)"
+        ]
+      },
+      "axis_data_niche": {
+        "primary": "RN1",
+        "secondary": [
+          "RN9",
+          "RN8"
+        ],
+        "relevance_by_niche": {
+          "RN1": 0.9,
+          "RN9": 0.7,
+          "RN8": 0.4
+        },
+        "note": "Stereo-seq is transcriptomics (RN1) WITH spatial morphology (RN9, confirmed: spatial_x/y + layer_annotation obs); scRNA trajectories touch RN8."
+      },
+      "axis_scientific_domain": {
+        "primary": "N3",
+        "secondary": [
+          "N1"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "CNGB_STOmics",
+          "provenance": "computed",
+          "role": "primary_source"
+        },
+        {
+          "db": "GEO_NCBI",
+          "provenance": "computed",
+          "role": "corroborating?"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".h5ad",
+        "valid_for_niche": true,
+        "modality": "spatial+scRNA (Stereo-seq)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          3,
+          24
+        ],
+        "tissue": [
+          "whole_embryo"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "n_sections": 91,
+        "n_spots": 152977,
+        "resolution_um": "10x10x15"
+      },
       "metabolic_role": null,
-      "entities_extracted": [],
-      "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Whole-embryo spatiotemporal expression atlas, 3-24 hpf — the early-developmental window for pronephros + early-eye; primary payload is lineage/expression (RN1), with spatial morphology (RN9)."},
-      "feeds_databases": ["CNGB_STOmics"],
+      "entities_extracted": [
+        {
+          "entity": "aldh1a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh1a3",
+          "store_ensdarg": "ENSDARG00000076933",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "aldh3a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh3a1",
+          "store_ensdarg": "ENSDARG00000074791",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "cdh17",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cdh17",
+          "store_ensdarg": "ENSDARG00000005112",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "col1a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1a",
+          "store_ensdarg": "ENSDARG00000012405",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "col1a2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a2",
+          "store_ensdarg": "ENSDARG00000020007",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "emx1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#emx1",
+          "store_ensdarg": "ENSDARG00000039569",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "foxc1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1a",
+          "store_ensdarg": "ENSDARG00000091481",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "gata3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#gata3",
+          "store_ensdarg": "ENSDARG00000016526",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "hnf1ba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1ba",
+          "store_ensdarg": "ENSDARG00000006615",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "kcnj1a.1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#kcnj1a.1",
+          "store_ensdarg": "ENSDARG00000091232",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "kera",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#kera",
+          "store_ensdarg": "ENSDARG00000056938",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "krt4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#krt4",
+          "store_ensdarg": "ENSDARG00000017624",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "lhx1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lhx1a",
+          "store_ensdarg": "ENSDARG00000014018",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "lum",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lum",
+          "store_ensdarg": "ENSDARG00000045580",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "nphs1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nphs1",
+          "store_ensdarg": "ENSDARG00000060758",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "pax6b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6b",
+          "store_ensdarg": "ENSDARG00000045936",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "pitx2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pitx2",
+          "store_ensdarg": "ENSDARG00000036194",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "slc20a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc20a1a",
+          "store_ensdarg": "ENSDARG00000020114",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "slc4a4a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc4a4a",
+          "store_ensdarg": "ENSDARG00000013730",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "tbx2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tbx2b",
+          "store_ensdarg": "ENSDARG00000006120",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "tp63",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tp63",
+          "store_ensdarg": "ENSDARG00000044356",
+          "verification_tier": "RAW",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        },
+        {
+          "entity": "trpm7",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#trpm7",
+          "store_ensdarg": "ENSDARG00000036232",
+          "verification_tier": "DERIVED",
+          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+        }
+      ],
+      "proposed_placement": {
+        "data_niche": "RN1",
+        "relevance": 0.9,
+        "reasoning": "Whole-embryo spatiotemporal expression atlas, 3-24 hpf — the early-developmental window for pronephros + early-eye; primary payload is lineage/expression (RN1), with spatial morphology (RN9)."
+      },
+      "feeds_databases": [
+        "CNGB_STOmics"
+      ],
       "fit_note": "Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the prior schoels/Wagner analyses. Strong fit for N3/N1; spatial dimension is new to the project (no prior spatial data).",
-      "approval_chain": [{"gate": "categorization", "status": "approved", "approved_by": "Emmanuel", "approved_at": "2026-06-11T13:00:00Z"}],
-      "gap_flags": ["4.8 GB not downloaded (gated on backend + bandwidth/compute approval); reading .h5ad needs scanpy/anndata", "spatial modality is new — RN9 spatial-transcriptomics ingestion path not built", "entities not yet extracted (needs download)"],
-      "substrate_evidence": ["test_1", "test_3"]
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-06-11T13:00:00Z"
+        }
+      ],
+      "gap_flags": [
+        "4.8 GB full atlas NOT downloaded (gated on backend + bandwidth/compute approval).",
+        "spatial modality is new — RN9 spatial-transcriptomics ingestion path not built.",
+        "22 entities extracted from the cached 5 hpf representative slice; full-atlas extraction needs the gated 4.8 GB download."
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3"
+      ],
+      "audit": {
+        "prior_categorization": "0 entities (not extracted)",
+        "proposed_recategorization": "22 verified entities from zf5 slice",
+        "reason": "entities extracted from the cached representative slice + bound via resolve_id",
+        "by": "rebind_corpus_entities.py + anndata + resolve_id",
+        "at": "2026-06-12"
+      }
     },
     {
       "corpus_record_id": "CORPUS-2026-0002",
       "version": "v1.0",
       "created_at": "2026-06-11T00:00:00Z",
-      "source_document": {"name": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament)", "doi": null, "pmid": "37024546", "source_db": "GEO_NCBI", "accession": "GSE218068", "files": "10x outs (barcodes/features/matrix.mtx ~40 MB) + GSE218068_RAW.tar (44 MB)", "raw_cache_path": "mcp_cache/raw_geo_GSE218068_features_20260611.tsv.gz (features list, 153 KB, downloaded + cached per §7.9)", "parse_method": "features.tsv parsed (15404 genes); corpus_classifier + resolve_id entity gate"},
-      "axis_data_niche": {"primary": "RN1", "secondary": ["RN9"], "relevance_by_niche": {"RN1": 0.9, "RN9": 0.3}},
-      "axis_scientific_domain": {"primary": "N5", "secondary": ["N3"], "note": "OCULAR — anterior segment. N5 is Test-5 cross-field exploratory; carries EXPLORATORY-NOT-TEST-5."},
-      "axis_source_db": [{"db": "GEO_NCBI", "provenance": "computed", "role": "primary_source"}],
-      "axis_file_type": {"ext": ".mtx/.tsv (10x)", "valid_for_niche": true, "modality": "scRNA (foxc1b:GFP sorted)"},
-      "axis_bio_context": {"stage_hpf": [48, 144], "tissue": ["anterior_segment", "trabecular_meshwork", "annular_ligament", "cornea-adjacent"], "species": "Danio rerio", "taxon": 7955, "timepoints_hpf": [48, 72, 96, 120, 144]},
+      "source_document": {
+        "name": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament)",
+        "doi": null,
+        "pmid": "37024546",
+        "source_db": "GEO_NCBI",
+        "accession": "GSE218068",
+        "files": "10x outs (barcodes/features/matrix.mtx ~40 MB) + GSE218068_RAW.tar (44 MB)",
+        "raw_cache_path": "mcp_cache/raw_geo_GSE218068_features_20260611.tsv.gz (features list, 153 KB, downloaded + cached per §7.9)",
+        "parse_method": "features.tsv parsed (15404 genes); corpus_classifier + resolve_id entity gate"
+      },
+      "axis_data_niche": {
+        "primary": "RN1",
+        "secondary": [
+          "RN9"
+        ],
+        "relevance_by_niche": {
+          "RN1": 0.9,
+          "RN9": 0.3
+        }
+      },
+      "axis_scientific_domain": {
+        "primary": "N5",
+        "secondary": [
+          "N3"
+        ],
+        "note": "OCULAR — anterior segment. N5 is Test-5 cross-field exploratory; carries EXPLORATORY-NOT-TEST-5."
+      },
+      "axis_source_db": [
+        {
+          "db": "GEO_NCBI",
+          "provenance": "computed",
+          "role": "primary_source"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".mtx/.tsv (10x)",
+        "valid_for_niche": true,
+        "modality": "scRNA (foxc1b:GFP sorted)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          48,
+          144
+        ],
+        "tissue": [
+          "anterior_segment",
+          "trabecular_meshwork",
+          "annular_ligament",
+          "cornea-adjacent"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "timepoints_hpf": [
+          48,
+          72,
+          96,
+          120,
+          144
+        ]
+      },
       "metabolic_role": null,
       "id_namespace": "RefSeq (NM_*) — NOT Ensembl. Requires a RefSeq<->Ensembl cross-map to bind to the verified store (Ensembl xref lookup, gated).",
       "entities_extracted": [
-        {"entity": "foxc1a", "type": "gene_symbol", "in_dataset_id": "NM_131728", "verified_store_ref": "verified_identifiers.json#foxc1a", "store_ensdarg": "ENSDARG00000091481", "verification_tier": "DERIVED", "namespace_match": "symbol matches; ID namespace differs (RefSeq vs Ensembl)"},
-        {"entity": "foxc1b", "type": "gene_symbol", "in_dataset_id": "NM_131729", "verification_tier": "UNVERIFIED", "note": "QUARANTINE — the dataset's defining gene is NOT in the verified store; needs Ensembl lookup + raw-cache + human-gated store update. NOT minted from memory (entity gate working)."},
-        {"entity": "pitx2", "type": "gene_symbol", "in_dataset_id": "NM_130975", "verification_tier": "UNVERIFIED", "note": "ocular marker; quarantine"},
-        {"entity": "prox1a", "type": "gene_symbol", "in_dataset_id": "NM_131405", "verification_tier": "UNVERIFIED", "note": "lens marker; quarantine"},
-        {"entity": "pax2a", "type": "gene_symbol", "in_dataset_id": "NM_131184", "verified_store_ref": "verified_identifiers.json#pax2a", "store_ensdarg": "ENSDARG00000028148", "verification_tier": "RAW", "namespace_match": "symbol matches; RefSeq vs Ensembl"}
+        {
+          "entity": "aldh1a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh1a3",
+          "store_ensdarg": "ENSDARG00000076933",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_001044745",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "atp1a1a.2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#atp1a1a.2",
+          "store_ensdarg": "ENSDARG00000007739",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131687",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "atp1b1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#atp1b1b",
+          "store_ensdarg": "ENSDARG00000076833",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131671",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "cdh17",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cdh17",
+          "store_ensdarg": "ENSDARG00000005112",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_194422",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "col1a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1a",
+          "store_ensdarg": "ENSDARG00000012405",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_199214",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "col1a1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1b",
+          "store_ensdarg": "ENSDARG00000035809",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_201478",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "col1a2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a2",
+          "store_ensdarg": "ENSDARG00000020007",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_182968",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "emx1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#emx1",
+          "store_ensdarg": "ENSDARG00000039569",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_198144",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "foxc1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1a",
+          "store_ensdarg": "ENSDARG00000091481",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131728",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "foxc1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1b",
+          "store_ensdarg": "ENSDARG00000055398",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131729",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "gata3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#gata3",
+          "store_ensdarg": "ENSDARG00000016526",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131211",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "hnf1ba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1ba",
+          "store_ensdarg": "ENSDARG00000006615",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131880",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "hnf1bb",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1bb",
+          "store_ensdarg": "ENSDARG00000022295",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_194372",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "irx3b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#irx3b",
+          "store_ensdarg": "ENSDARG00000031138",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_213100",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "kcnj1a.1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#kcnj1a.1",
+          "store_ensdarg": "ENSDARG00000091232",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_201035",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "kera",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#kera",
+          "store_ensdarg": "ENSDARG00000056938",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_001025548",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "krt4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#krt4",
+          "store_ensdarg": "ENSDARG00000017624",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131509",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "lhx1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lhx1a",
+          "store_ensdarg": "ENSDARG00000014018",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131216",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "lum",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lum",
+          "store_ensdarg": "ENSDARG00000045580",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_001002059",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "mafba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mafba",
+          "store_ensdarg": "ENSDARG00000017121",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131015",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "nphs1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nphs1",
+          "store_ensdarg": "ENSDARG00000060758",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001040687",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "nphs2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nphs2",
+          "store_ensdarg": "ENSDARG00000042850",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001018145",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "pax2a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax2a",
+          "store_ensdarg": "ENSDARG00000028148",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131184",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "pax6a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6a",
+          "store_ensdarg": "ENSDARG00000103379",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131304",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "pax6b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6b",
+          "store_ensdarg": "ENSDARG00000045936",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131641",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "pitx2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pitx2",
+          "store_ensdarg": "ENSDARG00000036194",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_130975",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "podxl",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#podxl",
+          "store_ensdarg": "ENSDARG00000031228",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001045016",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "pou3f3a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pou3f3a",
+          "store_ensdarg": "ENSDARG00000042032",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001312687",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "prox1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#prox1a",
+          "store_ensdarg": "ENSDARG00000055158",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131405",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "sim1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#sim1a",
+          "store_ensdarg": "ENSDARG00000023316",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_178222",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "slc12a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc12a3",
+          "store_ensdarg": "ENSDARG00000013855",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001045080",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "slc13a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc13a1",
+          "store_ensdarg": "ENSDARG00000045638",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_199281",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "slc13a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc13a3",
+          "store_ensdarg": "ENSDARG00000069478",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_212902",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "slc20a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc20a1a",
+          "store_ensdarg": "ENSDARG00000020114",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_213179",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "slc4a4a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc4a4a",
+          "store_ensdarg": "ENSDARG00000013730",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001034984",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "tbx2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tbx2b",
+          "store_ensdarg": "ENSDARG00000006120",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_131051",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "tp63",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tp63",
+          "store_ensdarg": "ENSDARG00000044356",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_152986",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "trpm7",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#trpm7",
+          "store_ensdarg": "ENSDARG00000036232",
+          "verification_tier": "DERIVED",
+          "in_dataset_id": "NM_001030061",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "wt1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1a",
+          "store_ensdarg": "ENSDARG00000031420",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_131046",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        },
+        {
+          "entity": "wt1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1b",
+          "store_ensdarg": "ENSDARG00000007990",
+          "verification_tier": "RAW",
+          "in_dataset_id": "NM_001039634",
+          "namespace_match": "symbol matches; dataset ID is RefSeq (NM_*), store is Ensembl"
+        }
       ],
-      "proposed_placement": {"data_niche": "RN1", "relevance": 0.9, "reasoning": "Late-stage (48-144 hpf) ocular anterior-segment scRNA — the cornea/N5 domain."},
-      "feeds_databases": ["GEO_NCBI"],
+      "proposed_placement": {
+        "data_niche": "RN1",
+        "relevance": 0.9,
+        "reasoning": "Late-stage (48-144 hpf) ocular anterior-segment scRNA — the cornea/N5 domain."
+      },
+      "feeds_databases": [
+        "GEO_NCBI"
+      ],
       "fit_note": "CLOSES Nat Witt GAP-5 (the cornea handoff's primary blocker: a 72-120 hpf zebrafish cornea/anterior-segment dataset). foxc1b:GFP matches the biomedic's exact line. Directly supports Test-5 ocular cross-field work.",
-      "approval_chain": [{"gate": "categorization", "status": "approved", "approved_by": "Emmanuel", "approved_at": "2026-06-11T13:00:00Z"}],
-      "gap_flags": ["RefSeq<->Ensembl cross-map needed to bind dataset IDs to the verified store", "foxc1b/pitx2/prox1a UNVERIFIED — ocular markers absent from the pronephros-centric store; curate via Ensembl lookup + human gate", "EXPLORATORY-NOT-TEST-5 (N5 is exploratory in Phase I)"],
-      "substrate_evidence": ["test_1", "test_3", "test_5"]
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-06-11T13:00:00Z"
+        }
+      ],
+      "gap_flags": [
+        "RefSeq<->Ensembl handled: 40/15413 features bind to the verified store (symbol index + refseq_ensembl_xref.json); the rest are not in the store (not minted).",
+        "EXPLORATORY-NOT-TEST-5 (N5 is exploratory in Phase I)"
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3",
+        "test_5"
+      ],
+      "audit": {
+        "prior_categorization": "5 entities (foxc1b/pitx2/prox1a UNVERIFIED/quarantined)",
+        "proposed_recategorization": "40 verified entities; foxc1b/pitx2/prox1a now RAW",
+        "reason": "store enriched (ocular markers curated, human-gated 2026-06-11); re-bound via resolve_id",
+        "by": "rebind_corpus_entities.py + resolve_id (deterministic gate)",
+        "at": "2026-06-12"
+      }
     }
   ]
 }
