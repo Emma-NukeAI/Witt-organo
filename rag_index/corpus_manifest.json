@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "manifest_version": "2026-06-12.2",
-  "status": "GSE218068 enriched with REAL expression (matrix.mtx: 12234 cells); 39/40 verified markers expressed. ZESTA full download in progress. Human-gated.",
+  "manifest_version": "2026-06-12.3",
+  "status": "ZESTA full atlas processed (13/13 files, 226376 spots+cells, 44 verified entities). GSE218068 carries real expression. Human-gated.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -148,27 +148,25 @@
         "parse_method": "zf5_stereoseq.h5ad read with anndata 0.12 (verified HDF5)"
       },
       "read_summary": {
-        "file": "zf5_stereoseq.h5ad (5 hpf slice)",
-        "n_spots": 6064,
-        "n_genes": 16153,
-        "obs": [
-          "spatial_x",
-          "spatial_y",
-          "seurat_clusters",
-          "time_point",
-          "bin_annotation",
-          "layer_annotation"
+        "source": "ZESTA full atlas (CNGB STDS0000057): 13 .h5ad, 4.84 GB, mcp_cache/zesta/ (gitignored)",
+        "files_read": 13,
+        "files_skipped": 0,
+        "total_obs_spots_plus_cells": 226376,
+        "timepoints_hpf": [
+          3,
+          5,
+          10,
+          12,
+          18,
+          24
         ],
-        "id_namespace": "gene SYMBOLS + Ensembl clone-names (NOT ENSDARG, NOT RefSeq) -> binds to the store via the resolver's symbol index",
-        "markers_present_and_resolved": [
-          "pitx2",
-          "cdh17",
-          "gata3 (all RAW)"
+        "modalities": [
+          "stereoseq (spatial)",
+          "scRNA"
         ],
-        "markers_absent_at_5hpf": [
-          "pax2a",
-          "wt1a (biologically consistent — pronephric onset is later)"
-        ]
+        "verified_entities": 44,
+        "verified_RAW": 21,
+        "note": "var_names + symbol columns run through resolve_id (the gate); union across all timepoints."
       },
       "axis_data_niche": {
         "primary": "RN1",
@@ -228,7 +226,7 @@
           "verified_store_ref": "verified_identifiers.json#aldh1a3",
           "store_ensdarg": "ENSDARG00000076933",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "aldh3a1",
@@ -236,7 +234,23 @@
           "verified_store_ref": "verified_identifiers.json#aldh3a1",
           "store_ensdarg": "ENSDARG00000074791",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "atp1a1a.2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#atp1a1a.2",
+          "store_ensdarg": "ENSDARG00000007739",
+          "verification_tier": "DERIVED",
+          "n_files_present": 8
+        },
+        {
+          "entity": "atp1b1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#atp1b1b",
+          "store_ensdarg": "ENSDARG00000076833",
+          "verification_tier": "DERIVED",
+          "n_files_present": 9
         },
         {
           "entity": "cdh17",
@@ -244,7 +258,7 @@
           "verified_store_ref": "verified_identifiers.json#cdh17",
           "store_ensdarg": "ENSDARG00000005112",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "col1a1a",
@@ -252,7 +266,15 @@
           "verified_store_ref": "verified_identifiers.json#col1a1a",
           "store_ensdarg": "ENSDARG00000012405",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 12
+        },
+        {
+          "entity": "col1a1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1b",
+          "store_ensdarg": "ENSDARG00000035809",
+          "verification_tier": "RAW",
+          "n_files_present": 10
         },
         {
           "entity": "col1a2",
@@ -260,7 +282,7 @@
           "verified_store_ref": "verified_identifiers.json#col1a2",
           "store_ensdarg": "ENSDARG00000020007",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "emx1",
@@ -268,7 +290,7 @@
           "verified_store_ref": "verified_identifiers.json#emx1",
           "store_ensdarg": "ENSDARG00000039569",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 10
         },
         {
           "entity": "foxc1a",
@@ -276,7 +298,15 @@
           "verified_store_ref": "verified_identifiers.json#foxc1a",
           "store_ensdarg": "ENSDARG00000091481",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 12
+        },
+        {
+          "entity": "foxc1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1b",
+          "store_ensdarg": "ENSDARG00000055398",
+          "verification_tier": "RAW",
+          "n_files_present": 11
         },
         {
           "entity": "gata3",
@@ -284,7 +314,7 @@
           "verified_store_ref": "verified_identifiers.json#gata3",
           "store_ensdarg": "ENSDARG00000016526",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "hnf1ba",
@@ -292,7 +322,23 @@
           "verified_store_ref": "verified_identifiers.json#hnf1ba",
           "store_ensdarg": "ENSDARG00000006615",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "hnf1bb",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1bb",
+          "store_ensdarg": "ENSDARG00000022295",
+          "verification_tier": "DERIVED",
+          "n_files_present": 12
+        },
+        {
+          "entity": "irx3b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#irx3b",
+          "store_ensdarg": "ENSDARG00000031138",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
         },
         {
           "entity": "kcnj1a.1",
@@ -300,7 +346,7 @@
           "verified_store_ref": "verified_identifiers.json#kcnj1a.1",
           "store_ensdarg": "ENSDARG00000091232",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "kera",
@@ -308,7 +354,7 @@
           "verified_store_ref": "verified_identifiers.json#kera",
           "store_ensdarg": "ENSDARG00000056938",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 11
         },
         {
           "entity": "krt4",
@@ -316,7 +362,7 @@
           "verified_store_ref": "verified_identifiers.json#krt4",
           "store_ensdarg": "ENSDARG00000017624",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "lhx1a",
@@ -324,7 +370,7 @@
           "verified_store_ref": "verified_identifiers.json#lhx1a",
           "store_ensdarg": "ENSDARG00000014018",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "lum",
@@ -332,7 +378,23 @@
           "verified_store_ref": "verified_identifiers.json#lum",
           "store_ensdarg": "ENSDARG00000045580",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 12
+        },
+        {
+          "entity": "mafba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mafba",
+          "store_ensdarg": "ENSDARG00000017121",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "mecom",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mecom",
+          "store_ensdarg": "ENSDARG00000060808",
+          "verification_tier": "DERIVED",
+          "n_files_present": 9
         },
         {
           "entity": "nphs1",
@@ -340,7 +402,31 @@
           "verified_store_ref": "verified_identifiers.json#nphs1",
           "store_ensdarg": "ENSDARG00000060758",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "nphs2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nphs2",
+          "store_ensdarg": "ENSDARG00000042850",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "pax2a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax2a",
+          "store_ensdarg": "ENSDARG00000028148",
+          "verification_tier": "RAW",
+          "n_files_present": 12
+        },
+        {
+          "entity": "pax6a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6a",
+          "store_ensdarg": "ENSDARG00000103379",
+          "verification_tier": "RAW",
+          "n_files_present": 11
         },
         {
           "entity": "pax6b",
@@ -348,7 +434,15 @@
           "verified_store_ref": "verified_identifiers.json#pax6b",
           "store_ensdarg": "ENSDARG00000045936",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "pax8",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax8",
+          "store_ensdarg": "ENSDARG00000015879",
+          "verification_tier": "RAW",
+          "n_files_present": 9
         },
         {
           "entity": "pitx2",
@@ -356,7 +450,71 @@
           "verified_store_ref": "verified_identifiers.json#pitx2",
           "store_ensdarg": "ENSDARG00000036194",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "podxl",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#podxl",
+          "store_ensdarg": "ENSDARG00000031228",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "pou3f3a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pou3f3a",
+          "store_ensdarg": "ENSDARG00000042032",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "prox1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#prox1a",
+          "store_ensdarg": "ENSDARG00000055158",
+          "verification_tier": "RAW",
+          "n_files_present": 12
+        },
+        {
+          "entity": "sim1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#sim1a",
+          "store_ensdarg": "ENSDARG00000023316",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "slc12a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc12a1",
+          "store_ensdarg": "ENSDARG00000098096",
+          "verification_tier": "DERIVED",
+          "n_files_present": 7
+        },
+        {
+          "entity": "slc12a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc12a3",
+          "store_ensdarg": "ENSDARG00000013855",
+          "verification_tier": "DERIVED",
+          "n_files_present": 11
+        },
+        {
+          "entity": "slc13a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc13a1",
+          "store_ensdarg": "ENSDARG00000045638",
+          "verification_tier": "DERIVED",
+          "n_files_present": 7
+        },
+        {
+          "entity": "slc13a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#slc13a3",
+          "store_ensdarg": "ENSDARG00000069478",
+          "verification_tier": "DERIVED",
+          "n_files_present": 10
         },
         {
           "entity": "slc20a1a",
@@ -364,7 +522,7 @@
           "verified_store_ref": "verified_identifiers.json#slc20a1a",
           "store_ensdarg": "ENSDARG00000020114",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 12
         },
         {
           "entity": "slc4a4a",
@@ -372,7 +530,7 @@
           "verified_store_ref": "verified_identifiers.json#slc4a4a",
           "store_ensdarg": "ENSDARG00000013730",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "tbx2b",
@@ -380,7 +538,7 @@
           "verified_store_ref": "verified_identifiers.json#tbx2b",
           "store_ensdarg": "ENSDARG00000006120",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "tp63",
@@ -388,7 +546,7 @@
           "verified_store_ref": "verified_identifiers.json#tp63",
           "store_ensdarg": "ENSDARG00000044356",
           "verification_tier": "RAW",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
         },
         {
           "entity": "trpm7",
@@ -396,7 +554,23 @@
           "verified_store_ref": "verified_identifiers.json#trpm7",
           "store_ensdarg": "ENSDARG00000036232",
           "verification_tier": "DERIVED",
-          "source_slice": "zf5_stereoseq.h5ad (5 hpf representative slice; full 12-file 4.8 GB atlas not downloaded)"
+          "n_files_present": 13
+        },
+        {
+          "entity": "wt1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1a",
+          "store_ensdarg": "ENSDARG00000031420",
+          "verification_tier": "RAW",
+          "n_files_present": 10
+        },
+        {
+          "entity": "wt1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1b",
+          "store_ensdarg": "ENSDARG00000007990",
+          "verification_tier": "RAW",
+          "n_files_present": 6
         }
       ],
       "proposed_placement": {
@@ -417,21 +591,317 @@
         }
       ],
       "gap_flags": [
-        "4.8 GB full atlas NOT downloaded (gated on backend + bandwidth/compute approval).",
-        "spatial modality is new — RN9 spatial-transcriptomics ingestion path not built.",
-        "22 entities extracted from the cached 5 hpf representative slice; full-atlas extraction needs the gated 4.8 GB download."
+        "spatial modality (Stereo-seq) is now downloaded; RN9 spatial-transcriptomics analysis path not yet built",
+        "44 verified entities (union across timepoints); the dataset's full gene namespace (~16-26k) far exceeds the store — only store-verified genes become entities (none minted)"
       ],
       "substrate_evidence": [
         "test_1",
         "test_3"
       ],
       "audit": {
-        "prior_categorization": "0 entities (not extracted)",
-        "proposed_recategorization": "22 verified entities from zf5 slice",
-        "reason": "entities extracted from the cached representative slice + bound via resolve_id",
-        "by": "rebind_corpus_entities.py + anndata + resolve_id",
+        "prior_categorization": "22 entities (from the 5 hpf representative slice only)",
+        "proposed_recategorization": "44 verified entities across the full 13-file atlas (13 files read, 0 skipped)",
+        "reason": "full 4.84 GB atlas downloaded (Emmanuel approved); var_names re-bound via resolve_id",
+        "by": "process_zesta.py + anndata (backed) + resolve_id",
         "at": "2026-06-12"
-      }
+      },
+      "files_processed": [
+        {
+          "file": "spatial_sixtime_slice_stereoseq.h5ad",
+          "timepoint_hpf": [
+            3,
+            5,
+            10,
+            12,
+            18,
+            24
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 13166,
+          "n_vars": 26628,
+          "verified_entities": 44,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors",
+            "time"
+          ],
+          "size_mb": 233.6
+        },
+        {
+          "file": "zf10_scRNA.h5ad",
+          "timepoint_hpf": [
+            10
+          ],
+          "modality": "scRNA",
+          "n_obs": 8755,
+          "n_vars": 22316,
+          "verified_entities": 43,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "clusters"
+          ],
+          "size_mb": 568.1
+        },
+        {
+          "file": "zf10_stereoseq.h5ad",
+          "timepoint_hpf": [
+            10
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 19102,
+          "n_vars": 18698,
+          "verified_entities": 34,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 112.3
+        },
+        {
+          "file": "zf12_scRNA.h5ad",
+          "timepoint_hpf": [
+            12
+          ],
+          "modality": "scRNA",
+          "n_obs": 12133,
+          "n_vars": 23016,
+          "verified_entities": 43,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "clusters"
+          ],
+          "size_mb": 707.9
+        },
+        {
+          "file": "zf12_stereoseq.h5ad",
+          "timepoint_hpf": [
+            12
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 16733,
+          "n_vars": 18948,
+          "verified_entities": 35,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 108.3
+        },
+        {
+          "file": "zf18_scRNA.h5ad",
+          "timepoint_hpf": [
+            18
+          ],
+          "modality": "scRNA",
+          "n_obs": 9903,
+          "n_vars": 23986,
+          "verified_entities": 44,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "clusters"
+          ],
+          "size_mb": 574.8
+        },
+        {
+          "file": "zf18_stereoseq.h5ad",
+          "timepoint_hpf": [
+            18
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 30848,
+          "n_vars": 23110,
+          "verified_entities": 44,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 371.7
+        },
+        {
+          "file": "zf24_scRNA.h5ad",
+          "timepoint_hpf": [
+            24
+          ],
+          "modality": "scRNA",
+          "n_obs": 14882,
+          "n_vars": 24197,
+          "verified_entities": 44,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "umap1",
+            "umap2"
+          ],
+          "size_mb": 532.7
+        },
+        {
+          "file": "zf24_stereoseq.h5ad",
+          "timepoint_hpf": [
+            24
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 72175,
+          "n_vars": 26365,
+          "verified_entities": 44,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 1091.8
+        },
+        {
+          "file": "zf3_scRNA.h5ad",
+          "timepoint_hpf": [
+            3
+          ],
+          "modality": "scRNA",
+          "n_obs": 7424,
+          "n_vars": 22364,
+          "verified_entities": 38,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "clusters"
+          ],
+          "size_mb": 632.6
+        },
+        {
+          "file": "zf3_stereoseq.h5ad",
+          "timepoint_hpf": [
+            3
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 8055,
+          "n_vars": 17706,
+          "verified_entities": 24,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 76.8
+        },
+        {
+          "file": "zf5_scRNA.h5ad",
+          "timepoint_hpf": [
+            5
+          ],
+          "modality": "scRNA",
+          "n_obs": 7136,
+          "n_vars": 22089,
+          "verified_entities": 38,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "percent.mt",
+            "celltype_new",
+            "clusters"
+          ],
+          "size_mb": 470.2
+        },
+        {
+          "file": "zf5_stereoseq.h5ad",
+          "timepoint_hpf": [
+            5
+          ],
+          "modality": "stereoseq (spatial)",
+          "n_obs": 6064,
+          "n_vars": 16153,
+          "verified_entities": 22,
+          "obs_columns": [
+            "orig.ident",
+            "nCount_RNA",
+            "nFeature_RNA",
+            "seurat_clusters",
+            "spatial_x",
+            "spatial_y",
+            "slice",
+            "time_point",
+            "bin_annotation",
+            "colors",
+            "layer_annotation",
+            "layer_colors"
+          ],
+          "size_mb": 35.8
+        }
+      ]
     },
     {
       "corpus_record_id": "CORPUS-2026-0002",
