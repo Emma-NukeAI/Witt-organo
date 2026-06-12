@@ -8,6 +8,14 @@ Self-hosted, no paid services. Engine decision: Neo4j runs as a **Docker-Compose
 There are 5 stages: **A** code → Dokploy · **B** deploy Neo4j · **C** init + load data · **D** the query
 API (MCP) · **E** point the agents. Do them in order; verify each before the next.
 
+> **Already deployed once (2026-06-12) — the recipe that actually worked.** Neo4j was stood up in
+> Dokploy as a **Raw Compose** service (paste the YAML below; no git needed for the DB itself), with
+> `NEO4J_AUTH` set in the Dokploy **Environment** tab. Stages C–E (bootstrap, ingest, MCP) were run from
+> a workstation that has the repo + can reach Bolt `7687`, using a **gitignored `.secrets/deploy.env`**
+> (so no secret ever lands in git or in the MCP client config). Embeddings = **OpenAI** (`text-embedding-3-small`,
+> 1536-dim). If you are re-deploying or moving this to a hosted MCP, follow the stages; if you just need to
+> re-load the corpus, jump to Stage C.
+
 ---
 
 ## Prerequisites
@@ -48,8 +56,9 @@ API (MCP) · **E** point the agents. Do them in order; verify each before the ne
      it as a **TCP port** (Dokploy port mapping / Traefik TCP router), or keep it on the internal Docker
      network and run the loader (Stage C) + the MCP server (Stage D) **inside that same network**
      (recommended — see Security).
-3. **Volumes:** the compose declares `neo4j_data` (persistent graph + vector index), `neo4j_logs`,
-   `ollama_models`. Dokploy persists named volumes across redeploys — confirm they're retained.
+3. **Volumes:** the compose declares `neo4j_data` (persistent graph + vector index) and `neo4j_logs`
+   (no Ollama volume — embeddings are the OpenAI API, not a self-hosted model). Dokploy persists named
+   volumes across redeploys — confirm they're retained so the graph survives a redeploy.
 4. **Deploy.** Then verify:
    - Dokploy logs for the `neo4j` service show `Started.` / `Remote interface available at http://...:7474`.
    - Open `https://<your-domain-or-host>:7474`, log in with `neo4j` / your password.
@@ -113,10 +122,21 @@ SDK: `python rag_index/mcp_server/server.py` runs a smoke test and prints query/
 
 ## Stage E — Point the project's agents at it
 
-In each project instance's MCP client config, register the server (see
-`rag_index/mcp_server/README.md` for the JSON). The repo's `CLAUDE.md §8` already instructs agents to
-consult the DATA INAMOVIBLE via the `data-inamovible` MCP tools. Once registered, agents call
-`query_data_inamovible` (semantic) + `resolve_identifier` (deterministic) — shared by everyone with the project.
+In each project instance's MCP client config, register the server. For **Claude Code**, the one-liner
+(the server auto-loads `.secrets/deploy.env`, so the config carries NO secrets):
+
+```bash
+claude mcp add data-inamovible --scope local -- \
+  "<repo>/.venv/Scripts/python.exe" "<repo>/rag_index/mcp_server/server.py"     # Windows
+# (Linux/macOS: use <repo>/.venv/bin/python). Verify: `claude mcp get data-inamovible` -> Status: Connected.
+# Restart the client once so it spawns the server process and the tools appear.
+```
+
+The repo's `CLAUDE.md §8` already instructs agents to consult the DATA INAMOVIBLE via the
+`data-inamovible` MCP tools. Once registered, agents call `query_data_inamovible` (semantic) +
+`resolve_identifier` (deterministic). For **shared/hosted** access by everyone (not just this
+workstation), run the same server as an HTTP/SSE service behind Dokploy/Traefik with auth + TLS — a
+follow-up; the local stdio registration above is per-workstation.
 
 ---
 

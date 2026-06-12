@@ -19,7 +19,8 @@ services:
     volumes:
       - neo4j_data:/data                   # persistent graph + vector index (the DATA INAMOVIBLE store)
       - neo4j_logs:/logs
-      - ./import:/import                   # drop graphify-produced Cypher/CSV here for ingestion
+    # No ./import bind: ingestion writes via the Bolt driver (ingest.py from a workstation), not files.
+    # This keeps the file paste-able into Dokploy's Raw Compose editor (no build context needed).
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:7474"]
       interval: 30s

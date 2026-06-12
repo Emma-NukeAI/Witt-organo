@@ -14,10 +14,33 @@ Deploy: run this on the rack alongside Neo4j + the embedding service; point Clau
 
 Run:  python rag_index/mcp_server/server.py
 """
+import os
 import sys
 import pathlib
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2] / "analysis" / "scripts"))
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
+
+
+def _load_local_secrets():
+    """Single-host convenience: if NEO4J_URI is not already in the environment, load the deploy vars
+    from the gitignored .secrets/deploy.env so the MCP client config carries NO secrets. A hosted /
+    production deploy sets real env vars (NEO4J_URI, OPENAI_API_KEY, ...) and this becomes a no-op."""
+    if os.environ.get("NEO4J_URI"):
+        return
+    env_path = ROOT / ".secrets" / "deploy.env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip())
+    os.environ.setdefault("RAG_BACKEND", "neo4j")   # secrets file present -> point at the hosted Neo4j
+
+
+_load_local_secrets()
 from lib import rag_backend, resolve_id  # noqa: E402
 
 try:
