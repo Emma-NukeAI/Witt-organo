@@ -140,6 +140,32 @@ follow-up; the local stdio registration above is per-workstation.
 
 ---
 
+## Stage F — Raw store (MinIO) — the drill-down backing for the graph (ADR-0021)
+
+The graph holds chunks + embeddings as a **guide**; MinIO holds the **raw data** an agent drills into when
+a chunk isn't enough (via the `fetch_raw` MCP tool). **Hybrid policy:** public datasets (ZESTA, GEO) are
+source-pointers (URL + sha256, NOT stored here); only **private/derived** bytes are mirrored into MinIO.
+
+1. In Dokploy → **Create → Compose** (a 2nd service, like Neo4j). Provider **Raw**, paste
+   `rag_index/deploy/docker-compose.minio.yml`.
+2. **Environment** tab (secrets, never commit): `MINIO_ROOT_USER=<user>` + `MINIO_ROOT_PASSWORD=<strong>`.
+3. **Volume:** map `minio_data` to a **dedicated disk/volume** — this is where the raw GBs live.
+4. **Ports:** `9000` (S3 API, used by scripts/agents) + `9001` (web console). Keep them on the internal
+   network or behind Traefik+auth+TLS — **do not** expose S3 publicly without auth.
+5. **Deploy.** Verify: open the console at `:9001`, log in; the S3 API answers at
+   `http://<host>:9000/minio/health/live`.
+6. On the workstation that ingests, add to `.secrets/deploy.env`:
+   ```
+   MINIO_ENDPOINT=<host>:9000
+   MINIO_ACCESS_KEY=<MINIO_ROOT_USER>
+   MINIO_SECRET_KEY=<MINIO_ROOT_PASSWORD>
+   MINIO_SECURE=false        # true once behind TLS
+   ```
+   The bucket `data-inamovible-raw` is created automatically on first mirror write. Public datasets need
+   none of this (source-pointer mode). **Report back:** console login OK + `/minio/health/live` 200.
+
+---
+
 ## Security (please don't skip)
 
 - **`NEO4J_AUTH` / `NEO4J_PASSWORD` are secrets** — set them only as Dokploy env vars; never commit.

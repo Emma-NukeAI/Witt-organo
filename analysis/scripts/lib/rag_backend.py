@@ -56,6 +56,12 @@ def gather_documents():
                      "metadata": {"accession": sd.get("accession"), "source_db": sd.get("source_db"),
                                   "data_niche": r.get("axis_data_niche", {}).get("primary"),
                                   "scientific_domain": r.get("axis_scientific_domain", {}).get("primary")}})
+        # chunk-level docs (papers/PDFs via chunk_document.py): retrievable + carry raw_ref to the source
+        for ch in r.get("chunks", []):
+            docs.append({"doc_id": ch["chunk_id"], "type": "chunk",
+                         "text": (ch.get("text") or "")[:2000],
+                         "metadata": {"section": ch.get("section"), "parent": r["corpus_record_id"],
+                                      "raw_ref": ch.get("raw_ref")}})
     return docs
 
 

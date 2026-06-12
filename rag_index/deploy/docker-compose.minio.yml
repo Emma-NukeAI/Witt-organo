@@ -1,0 +1,20 @@
+# DATA INAMOVIBLE — raw store: self-hosted MinIO (S3-compatible) on Dokploy (ADR-0021).
+# Mirrors PRIVATE/derived raw bytes; public datasets are source-pointers (URL+sha256), not stored here.
+# NO paid services. Paste into Dokploy's Raw Compose editor (like the Neo4j stack).
+# Set MINIO_ROOT_USER / MINIO_ROOT_PASSWORD in the Dokploy Environment tab (NEVER commit secrets — §7).
+services:
+  minio:
+    image: minio/minio:latest          # pin to the tag your dev confirms (e.g. RELEASE.2025-...); latest = first-deploy convenience
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    ports:
+      - "9000:9000"                     # S3 API (the agents/scripts use this)
+      - "9001:9001"                     # web console (browser admin)
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data                # the raw bytes — map this to a DEDICATED disk/volume in Dokploy for the GBs
+# Health: GET http://<host>:9000/minio/health/live  (the image is minimal; check from outside, not via healthcheck)
+volumes:
+  minio_data:
