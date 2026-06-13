@@ -34,6 +34,8 @@ def run():
     drv = GraphDatabase.driver(os.environ["NEO4J_URI"],
                                auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))
     docs = rag_backend.gather_documents()
+    rag_backend.build_index()  # keep the sparse half (documents.jsonl) in sync with the graph; else
+    #                            newly-ingested chunks are under-ranked by hybrid RRF fusion (fix 2026-06-13)
     embed = get_embedder()
     vectors = embed([d["text"] for d in docs])
 
