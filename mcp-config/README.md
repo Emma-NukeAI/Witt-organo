@@ -2,6 +2,17 @@
 
 MCP (Model Context Protocol) server configuration templates for the three clients the project supports: **Claude Desktop**, **Claude Code**, and **Cursor**.
 
+## Recommended for teammates: project-scoped `.mcp.json` (Claude Code)
+
+The repo ships a committed **`.mcp.json` at the root**, so Tool Universe is available to **everyone who clones the project** — no manual config. Tool Universe is the Path-B external-search source (CLAUDE.md §6, ADR-0022); without it, answering outside the DATA INAMOVIBLE carries more risk, so it's treated as core. When you open the project in **Claude Code**, it detects `.mcp.json` and asks once to approve the `tooluniverse` server; after that it's active every session. Confirm with `/mcp` (should show `tooluniverse` connected).
+
+- **Prereq:** `uv`/`uvx` installed (see Prerequisites below). Nothing else.
+- **API keys (optional):** set them as **shell environment variables** (`NCBI_API_KEY`, `NVIDIA_API_KEY`, `FDA_API_KEY`) — `.mcp.json` reads them via `${VAR:-}`, so they're **never committed**. Tool Universe runs without them (rate-limited).
+- **First-run cold start:** `uvx` resolves + caches the pinned package (~30-60s). If the server times out at startup, launch Claude Code with a longer MCP timeout: `MCP_TIMEOUT=120000 claude` — `MCP_TIMEOUT` (in ms) is the real startup-timeout lever; a per-server `startupTimeout` field in `.mcp.json` is **ignored** by Claude Code.
+- **Version:** pinned (`tooluniverse@1.2.6`) for reproducibility across the team — bump it in `.mcp.json` deliberately to update. (Upstream's own MCP config uses `uvx --refresh tooluniverse` for always-latest; we pin for robust, identical-across-team startup, avoiding a per-launch PyPI dependency.)
+
+The per-client templates below are for **Claude Desktop** and **Cursor** (which do **not** read Claude Code's `.mcp.json`), or for a manual Claude Code setup.
+
 ## What's here
 
 | File | Target client | Purpose |
@@ -101,16 +112,16 @@ If you prefer to keep keys out of JSON entirely, set them as environment variabl
 
 ## Verifying the setup
 
-After editing your client's config and restarting it, run:
+Outside any client — confirm the server resolves and runs (first run caches the package, ~30–60s):
 
 ```bash
-# Outside any client — just to confirm the MCP server starts cleanly:
-PYTHONIOENCODING=utf-8 uvx tooluniverse status
-
-# Should print: 2,200+ tools, 500+ categories, version 1.x
+PYTHONIOENCODING=utf-8 uvx tooluniverse@1.2.6 --help              # prints the launcher usage -> package resolves
+PYTHONIOENCODING=utf-8 uvx tooluniverse@1.2.6 --list-categories   # lists the tool categories it will serve
 ```
 
-Inside the client (Claude Desktop / Code / Cursor), open a new conversation and try a small Tool Universe call. If you get a timeout or "MCP server not found" error, see the resilience protocol in `CLAUDE.md` (Gate 4 deliverable) for triage steps.
+> **Note:** there is **no `tooluniverse status` subcommand** (an earlier version of this doc was wrong). Use `--help` / `--list-categories` / `--list-tools` to inspect the CLI. Verified against the upstream repo (mims-harvard/ToolUniverse, v1.2.6, 2026-06).
+
+Inside **Claude Code**, run `/mcp` — `tooluniverse` should show **connected**. (Claude Desktop / Cursor: open a conversation and try a small Tool Universe call.) If you get a startup timeout, relaunch with `MCP_TIMEOUT=120000 claude` (uvx cold start). For other failures, see the MCP-resilience rules in `CLAUDE.md` §6.
 
 ---
 

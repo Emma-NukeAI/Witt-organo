@@ -1,0 +1,16 @@
+{
+  "_comment": "Project-scoped MCP servers — committed so EVERY teammate who clones the repo gets Tool Universe automatically (Claude Code auto-detects this file and asks once to approve). Tool Universe is the Path-B external-search source (CLAUDE.md §6, ADR-0022) — without it, answering questions outside the DATA INAMOVIBLE carries more risk, so it is treated as core. NO SECRETS HERE: the 3 API keys are OPTIONAL and read from your shell env via ${VAR:-} (Tool Universe runs without them, just rate-limited). Prereq: uv/uvx installed (see mcp-config/README.md). FIRST run of uvx resolves+caches the pinned package (~30-60s) — if it times out at startup, launch with: MCP_TIMEOUT=120000 claude  (MCP_TIMEOUT is the real startup-timeout lever; a per-server startupTimeout field is ignored). Version is PINNED for team reproducibility — bump deliberately (upstream's own config uses 'uvx --refresh tooluniverse' for always-latest; we pin for robust, identical-across-team startup).",
+  "mcpServers": {
+    "tooluniverse": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["tooluniverse@1.2.6"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8",
+        "NCBI_API_KEY": "${NCBI_API_KEY:-}",
+        "NVIDIA_API_KEY": "${NVIDIA_API_KEY:-}",
+        "FDA_API_KEY": "${FDA_API_KEY:-}"
+      }
+    }
+  }
+}
