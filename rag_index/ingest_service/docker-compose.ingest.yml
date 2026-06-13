@@ -13,13 +13,13 @@ services:
     environment:
       - INGEST_SUBMIT_TOKEN=${INGEST_SUBMIT_TOKEN}    # teammates (submit)
       - INGEST_ADMIN_TOKEN=${INGEST_ADMIN_TOKEN}      # the approver (human gate)
-      - NEO4J_URI=${NEO4J_URI}                        # e.g. bolt://neo4j:7687 on the internal network
-      - NEO4J_USER=${NEO4J_USER}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - NEO4J_URI=${NEO4J_URI}                        # Neo4j + MinIO are SEPARATE Dokploy stacks -> reach
+      - NEO4J_USER=${NEO4J_USER}                      # them via the host IP + published ports, e.g.
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}              # NEO4J_URI=bolt://<host-ip>:7687 (not a service name)
       - RAG_BACKEND=neo4j
       - EMBED_MODEL=openai
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - MINIO_ENDPOINT=${MINIO_ENDPOINT}              # e.g. minio:9000 on the internal network
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}              # e.g. <host-ip>:9100 (the published MinIO API port)
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_SECURE=false
