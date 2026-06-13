@@ -27,6 +27,9 @@ services:
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
       - MINIO_SECURE=false
+      - GITHUB_TOKEN=${GITHUB_TOKEN}                  # push-back: commit the approved manifest to git (Contents API)
+      - GITHUB_REPO=Emma-NukeAI/Witt-organo           # leave GITHUB_TOKEN empty to disable push-back (maintainer syncs)
+      - GITHUB_BRANCH=master
     volumes:
       - ingest_queue:/data/queue                      # pending submissions survive restarts
 networks:

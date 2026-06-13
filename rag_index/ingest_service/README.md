@@ -37,10 +37,21 @@ curl -H "Authorization: Bearer $ADMIN" https://ingest.example.com/pending
 curl -X POST -H "Authorization: Bearer $ADMIN" "https://ingest.example.com/approve/<id>?by=Emmanuel"
 ```
 
+## Git push-back (manifest stays canonical in git)
+
+`/approve` keeps git canonical: it reads the current `corpus_manifest.json` **from GitHub** (Contents API),
+appends the approved record, ingests into Neo4j, then **commits the updated manifest back to GitHub** — no
+git binary or clone in the container, just `GITHUB_TOKEN`. Set in the Environment tab:
+```
+GITHUB_TOKEN=<fine-grained PAT with Contents read/write on the repo>
+GITHUB_REPO=Emma-NukeAI/Witt-organo
+GITHUB_BRANCH=master
+```
+Pull locally (`git pull`) to get service-approved records. If `GITHUB_TOKEN` is empty, push-back is
+disabled (the record still enters Neo4j; a maintainer syncs the manifest — the fallback).
+
 ## Scaffold boundary (be honest about it)
 
-- `/approve` writes the manifest **on the service's repo copy** and ingests into Neo4j. To keep git as the
-  canonical record, a maintainer pulls/commits that manifest change (or we add a git push-back step later).
 - Entity extraction from uploaded `.h5ad` needs `anndata` in the image (optional, commented in
   requirements). Without it, uploads still queue + mirror; entities are extracted from public feature
   lists or left empty + flagged.

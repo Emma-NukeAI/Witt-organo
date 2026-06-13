@@ -25,7 +25,9 @@ from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # for git_sync (sibling module)
 from lib import resolve_id, raw_store, corpus_classifier, add_dataset  # noqa: E402
+import git_sync  # noqa: E402
 
 QUEUE = Path(os.environ.get("INGEST_QUEUE_DIR", str(Path(__file__).parent / "queue")))
 QUEUE.mkdir(parents=True, exist_ok=True)
@@ -119,15 +121,34 @@ def approve(sid: str, by: str, authorization: str = Header(None)):
     proposal = json.loads(qf.read_text(encoding="utf-8"))
     proposal.pop("submission_id", None)
     proposal["approval_chain"] = [{"gate": "categorization", "status": "approved", "approved_by": by}]
-    man = json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+    # canonical manifest: GitHub if push-back is configured (avoids clobbering concurrent edits), else local.
+    git_on, sha = git_sync.enabled(), None
+    if git_on:
+        man, sha = git_sync.get_manifest()
+    else:
+        man = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    cid = add_dataset._next_id(man)                       # recompute against canonical state (no ID collision)
+    proposal["corpus_record_id"] = cid
     man["records"].append(proposal)
-    man["status"] = f"{proposal['corpus_record_id']} approved by {by} via ingest_service."
-    MANIFEST.write_text(json.dumps(man, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    man["status"] = f"{cid} approved by {by} via ingest_service."
+    MANIFEST.write_text(json.dumps(man, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")  # local, for ingest
+
     r = subprocess.run([sys.executable, str(INGEST)], capture_output=True, text=True)
+
+    git_status = "disabled (a maintainer syncs the manifest)"
+    if git_on and r.returncode == 0:
+        try:
+            commit = git_sync.put_manifest(man, sha, f"corpus: approve {cid} via ingest service (by {by})")
+            git_status = f"committed to git ({commit[:9]})"
+        except Exception as e:
+            git_status = f"git push FAILED: {type(e).__name__}: {str(e)[:120]}"
+    elif git_on:
+        git_status = "skipped (ingest failed; not committed to git)"
     qf.unlink()
-    return {"approved": True, "corpus_record_id": proposal["corpus_record_id"], "by": by,
-            "ingest_exit": r.returncode, "ingest_tail": (r.stdout or r.stderr)[-300:],
-            "note": "manifest updated on the service's repo copy — a maintainer commits it back to git (see README)."}
+    return {"approved": True, "corpus_record_id": cid, "by": by,
+            "ingest_exit": r.returncode, "ingest_tail": (r.stdout or r.stderr)[-200:],
+            "git_sync": git_status}
 
 
 @app.post("/reject/{sid}")
