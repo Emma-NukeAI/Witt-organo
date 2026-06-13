@@ -1,0 +1,29 @@
+{
+  "analysis": "POC Phase 2 — cross-field bridge (Test 5): pronephros (N3) <-> ocular (N5)",
+  "date": "2026-06-13",
+  "method": "Method 2 (instrumented; cross-field-bridge-agent role, Phase I — hypothesis, not decision)",
+  "persisted_because": "composite-auditor closing gate (auditor 3) flagged the only-ocular=0 finding as run-live-but-not-persisted; this file is the durable, auditable artifact.",
+  "graph_query": "MATCH (:Document {doc_id:'CORPUS-2026-0001'})-[:MENTIONS]->(e:Entity)<-[:MENTIONS]-(:Document {doc_id:'CORPUS-2026-0002'}) RETURN e.symbol",
+  "datasets": {
+    "pronephros": "CORPUS-2026-0001 (ZESTA atlas, N3)",
+    "ocular": "CORPUS-2026-0002 (GSE218068 Foxc1b anterior-segment, N5)"
+  },
+  "shared_entities_n": 40,
+  "shared_entities": ["aldh1a3", "atp1a1a.2", "atp1b1b", "cdh17", "col1a1a", "col1a1b", "col1a2", "emx1",
+    "foxc1a", "foxc1b", "gata3", "hnf1ba", "hnf1bb", "irx3b", "kcnj1a.1", "kera", "krt4", "lhx1a", "lum",
+    "mafba", "nphs1", "nphs2", "pax2a", "pax6a", "pax6b", "pitx2", "podxl", "pou3f3a", "prox1a", "sim1a",
+    "slc12a3", "slc13a1", "slc13a3", "slc20a1a", "slc4a4a", "tbx2b", "tp63", "trpm7", "wt1a", "wt1b"],
+  "only_pronephros": ["aldh3a1", "mecom", "pax8", "slc12a1"],
+  "only_ocular": [],
+  "artifact_verdict": "The 40-entity MENTIONS overlap is an ANNOTATION ARTIFACT, NOT co-regulation evidence. Both datasets' entities_extracted were populated from the SAME curated marker panel (the 46-entity verified store mixes pronephros + ocular markers), so the overlap reflects shared annotation, not shared expression. only_ocular=0 is the tell: biologically the ocular dataset must have ocular-specific genes absent from pronephros; finding none means the panel, not the biology, drove the overlap. The graph cannot adjudicate a genuine cross-field bridge from MENTIONS alone — that requires expression data (fetch_raw -> count matrices, co-expression) or literature (the answer-pipeline Path B).",
+  "bridge_hypothesis": {
+    "tier": "HYPOTHESIS — causal-pruner-class, requires_human_gate; NOT a finding",
+    "claim": "foxc1a (pronephros / intermediate mesoderm) <-> foxc1b (ocular anterior segment) + pitx2 — a conserved foxc1 regulator family operating across both structurally-distinct fields (foxc1/pitx2 is the canonical anterior-segment-dysgenesis module).",
+    "confidence": 0.30,
+    "basis": "foxc1 paralog biology + the foxc1b ocular dataset (GSE218068 is literally a Foxc1b dataset) — NOT derived from the artifactual dataset overlap above.",
+    "to_confirm": "fetch_raw expression co-analysis across the two datasets, OR a Path-B literature pass on foxc1a/foxc1b cross-tissue regulation.",
+    "resolve": {"foxc1a": "ENSDARG00000091481 (DERIVED)", "foxc1b": "ENSDARG00000055398 (RAW)", "pitx2": "ENSDARG00000036194 (RAW)"}
+  },
+  "test_5_framing": "Exploratory in Phase I (PROJECT_SCOPE §5): modest/preliminary evidence is the realistic positive outcome; absence-of-evidence is data. Ocular (N5) is the structurally-distinct bridge target per ADR-0018.",
+  "audited_by": "composite-auditor closing gate, 3/3, 2026-06-13: artifact framing APPROVED; bridge relabeled HYPOTHESIS (not finding) per auditor 3; this artifact persisted to make the computation auditable."
+}

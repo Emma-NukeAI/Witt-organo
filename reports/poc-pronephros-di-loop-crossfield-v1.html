@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POC — DATA INAMOVIBLE viva: pronefro + loop auto-reforzante + cross-field (Test 5) · v1</title>
+<style>
+  :root{--ink:#1a2230;--mut:#5c6b80;--line:#e3e8ef;--bg:#f5f7fa;--card:#fff;--good:#1f7a4d;--warn:#b06a00;--bad:#b3261e;--accent:#2c5fa8;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:23px;margin:0 0 4px} h2{font-size:18px;margin:30px 0 10px;padding-top:14px;border-top:1px solid var(--line)}
+  h3{font-size:15px;margin:16px 0 6px}
+  .sub{color:var(--mut);font-size:13px;margin:0 0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 2px rgba(20,30,50,.04)}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600;border:1px solid}
+  .b-good{background:#eaf6ef;color:var(--good);border-color:#bfe3cf}
+  .b-warn{background:#fdf3e3;color:var(--warn);border-color:#f0d9ad}
+  .b-bad{background:#fdecea;color:var(--bad);border-color:#f3c9c4}
+  .b-info{background:#eaf1fb;color:var(--accent);border-color:#c4d8f2}
+  .conf{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center;margin:6px 0}
+  .bar{height:9px;border-radius:6px;background:#edf1f6;overflow:hidden;grid-column:1/-1}
+  .bar>i{display:block;height:100%;border-radius:6px}
+  .kv{color:var(--mut);font-size:13px}
+  .callout{border-left:4px solid;padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:14px}
+  .c-warn{border-color:var(--warn);background:#fdf8ef} .c-bad{border-color:var(--bad);background:#fdf1ef} .c-good{border-color:var(--good);background:#f0f8f3} .c-info{border-color:var(--accent);background:#f0f5fc}
+  ul{margin:6px 0 6px 2px;padding-left:18px} li{margin:3px 0}
+  code{background:#eef2f7;border-radius:4px;padding:1px 5px;font-size:12.5px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin:8px 0}
+  th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top} th{background:#f0f3f8}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+  .tag{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+  footer{color:var(--mut);font-size:12.5px;margin-top:30px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="tag">Witt × Organogenesis · POC substrate-instrumented · TYPE A</p>
+  <h1>DATA INAMOVIBLE viva: conjunto-mínimo de pronefro, loop auto-reforzante y puente cross-field (Test 5)</h1>
+  <p class="sub">Versión <b>v1</b> · 2026-06-13 · rama <span class="mono">feat/gwt-v1.1-cycle1</span> · ADR-0020/0021/0022</p>
+
+  <div class="badges">
+    <span class="badge b-bad">composite-auditor cierre: 3/3 REVISE → correcciones aplicadas</span>
+    <span class="badge b-info">framework: Chain-of-Verification §8</span>
+    <span class="badge b-warn">requires_human_gate: true</span>
+    <span class="badge b-info">Method 2 (instrumentado)</span>
+  </div>
+
+  <!-- ===================== §5 CONTRACT (visible UI) ===================== -->
+  <div class="card">
+    <p class="tag">Contrato §5 — salida substrate-instrumentada</p>
+    <h3 style="margin-top:4px">direct_answer</h3>
+    <p>La DATA INAMOVIBLE desplegada se ejercitó <b>de punta a punta</b>. <b>(a)</b> Infra viva + gate anti-fabricación
+    <b>funcional</b> — <code>resolve_id</code> marcó 3/9 genes del conjunto-mínimo (osr1/prkci/myh9a) <b>ausentes</b> del store verificado.
+    <b>(b)</b> El answer-pipeline recuperó + auditó + (con gate humano) ingirió evidencia externa de prkci:
+    <i>prkcι/ζ son requeridos para el <b>mantenimiento</b> de identidad epitelial del túbulo pronéfrico</i>
+    (Gerlach &amp; Wingert 2014, PMID 25446529 — <b>NO-OA, solo abstract</b>; morfolino, una sola fuente, sin búsqueda de contra-evidencia en literatura).
+    El <b>corpus GraphRAG</b> ganó 1 chunk (el abstract → la búsqueda semántica ya lo recupera); el <b>store de identificadores
+    (human-gated) NO se mutó</b> — prkci sigue <code>NOT_FOUND</code>. Ingerir al corpus ≠ verificar un identificador.
+    <b>(c)</b> Test 5: el overlap de 40 entidades entre el dataset de pronefro y el ocular es <b>artefacto de anotación</b> (only-ocular=0),
+    no co-regulación; el puente foxc1a↔foxc1b+pitx2 es <b>hipótesis</b> (no finding), a confirmar con expresión/literatura.
+    La pregunta biológica de fondo — <b>suficiencia</b> del conjunto-mínimo — <b>sigue sin responder</b> (sin reconstitución):
+    el POC validó el <b>sistema</b> end-to-end, no la biología.</p>
+
+    <h3>confidence_by_subclaim <span class="kv">(corregido tras auditoría)</span></h3>
+    <div class="conf"><span>(a) Infra viva + gate anti-fabricación funcional</span><b>0.95</b><div class="bar"><i style="width:95%;background:#1f7a4d"></i></div></div>
+    <div class="conf"><span>(b) prkci requerido para <i>identidad</i> del túbulo (externo, verificado, auditado) <span class="kv">— bajado de 0.85</span></span><b>0.70</b><div class="bar"><i style="width:70%;background:#b06a00"></i></div></div>
+    <div class="conf"><span>(c) puente foxc1 cross-field es genuino (no artefacto) <span class="kv">— hipótesis-tier</span></span><b>0.30</b><div class="bar"><i style="width:30%;background:#b06a00"></i></div></div>
+    <div class="conf"><span>(set) el conjunto de 9 genes es usable/suficiente <i>como está</i></span><b>0.15</b><div class="bar"><i style="width:15%;background:#b3261e"></i></div></div>
+
+    <h3>gap_flags</h3>
+    <ul>
+      <li>osr1 / myh9a siguen <b>sin verificar</b> (NOT_FOUND en el store).</li>
+      <li><b>Sin reconstitución</b> → la suficiencia del conjunto-mínimo es una hipótesis <i>no falsada</i> en Phase I, no evidencia positiva débil.</li>
+      <li>prkci: <b>una sola fuente</b>, abstract-only, <b>NO-OA</b>, morfolino (2014), fenotipo en parte confundido por defectos cardíacos/flujo; <b>no se hizo búsqueda de contra-evidencia en literatura</b> (no hay capa lit todavía).</li>
+      <li>Dos stores: el corpus GraphRAG ganó 1 chunk; el store de identificadores <b>no cambió</b> (prkci NOT_FOUND, correctamente human-gated).</li>
+      <li>Cross-field: overlap = artefacto de anotación; puente foxc1 = hipótesis (requiere <code>fetch_raw</code> de expresión o un pase Path-B).</li>
+      <li>Los <code>answer_bundle</code> viven en <code>mcp_cache/</code> (gitignored, cache de trabajo). El <b>registro durable + auditable</b> = este HTML + <code>analysis/outputs/poc_crossfield_test5_20260613.json</code> + el código commiteado.</li>
+    </ul>
+
+    <h3>agents_invoked</h3>
+    <table>
+      <tr><th>Agente</th><th>Estado</th><th>Evidencia</th></tr>
+      <tr><td>composite-auditor</td><td><b>invoked</b> — gate de cierre 3/3 REVISE (correcciones aplicadas) + retrieval-audit del loop 3/3 REJECT</td><td>test_1, test_2, test_4</td></tr>
+      <tr><td>cross-field-bridge-agent</td><td>invoked — Method 2 (Phase 2, puente instrumentado como hipótesis)</td><td>test_5</td></tr>
+      <tr><td>causal-pruner</td><td>skipped-ad-hoc — re-anclaje de hipótesis existente + el puente foxc1 marcado como causal-pruner-class; <b>human gate mantenido</b></td><td>—</td></tr>
+      <tr><td>reasoning-exposer</td><td>invoked — esta salida</td><td>test_1</td></tr>
+    </table>
+  </div>
+
+  <!-- ===================== AUDIT TRANSPARENCY ===================== -->
+  <h2>El gate de cierre funcionó — 3/3 REVISE</h2>
+  <div class="callout c-bad"><b>El composite-auditor (3 auditores adversariales: fidelidad · calibración · escéptico) votó unánime REVISE sobre mi conclusión inicial.</b> No la defendí — la corregí. Esto <i>es</i> la disciplina substrate (Test 4 = calibración en acción).</div>
+  <table>
+    <tr><th>Overclaim cazado</th><th>Corrección aplicada</th></tr>
+    <tr><td>(b) etiquetado "OA"</td><td>Es <b>NO-OA</b> (abstract-only, source-pointer) — corregido aquí y en el manifest.</td></tr>
+    <tr><td>(b) confidence 0.85 muy alta</td><td>Bajada a <b>0.70</b> (single source, morfolino 2014, mecanismo hedged, identidad-maintenance).</td></tr>
+    <tr><td>(b) "store se reforzó / responde internamente" conflaba 2 stores</td><td>Desambiguado: corpus GraphRAG +1 chunk; <b>store de identificadores intacto</b> (prkci NOT_FOUND).</td></tr>
+    <tr><td>(b) "specification" en el record</td><td>Cambiado a <b>identidad MAINTENANCE</b> en <code>corpus_manifest.json</code> (el paper apoya mantenimiento, no especificación inicial).</td></tr>
+    <tr><td>(c) cómputo cross-field corrido en vivo, no persistido</td><td>Persistido en <code>analysis/outputs/poc_crossfield_test5_20260613.json</code> (auditable).</td></tr>
+    <tr><td>(c) puente foxc1 presentado como finding</td><td>Re-etiquetado <b>hipótesis</b> (causal-pruner-class, human gate); conf 0.30 hipótesis-tier.</td></tr>
+  </table>
+
+  <!-- ===================== POC ARC ===================== -->
+  <h2>El recorrido del POC</h2>
+  <div class="card">
+    <h3>Fase 0 — Liveness (NO-SPEND)</h3>
+    <p>Neo4j vivo (92→94 nodos; índice vectorial <code>doc_embeddings</code> ONLINE), <code>resolve_id</code> resuelve IDs conocidos con procedencia y devuelve <code>NOT_FOUND</code> ruidoso para inventados (anti-fabricación), <code>fetch_raw</code> drillea a source-pointers con sha256. <span class="kv">Infra verificada sin gastar.</span></p>
+    <h3>Fase 1 — Re-anclaje del conjunto-mínimo</h3>
+    <p>El gate atrapó <b>3/9</b> genes del set 2026-05-14 ausentes del store (osr1/prkci/myh9a). La confianza del set "como está" <b>bajó</b> 0.30→0.15. Hallazgo motivante: <b>sin capa de literatura</b>, la suficiencia no es adjudicable desde el catálogo.</p>
+    <h3>El loop auto-reforzante (ADR-0022)</h3>
+    <p>"No está en la DI" dejó de ser stopper: <b>Path A (DI) → insuficiente → Path B (EuropePMC) → composite-audit ≥3 → propose → gate humano</b>. En la pregunta de prkci el auditor <b>rechazó 2 papers off-target y descubrió la fuente real en una cita</b> (Gerlach &amp; Wingert 2014, verificada). Tras el gate, el corpus la indexó. <span class="kv">Garantías: never-stopper, auditor ≥3, anti-fabricación (resolve_id), gate humano para toda mutación.</span></p>
+    <h3>Fase 2 — Puente cross-field (Test 5)</h3>
+    <p>Ver el callout: el overlap de 40 entidades es <b>artefacto de anotación</b>; el candidato real y modesto es el par <b>foxc1a↔foxc1b + pitx2</b> (módulo conservado), como <b>hipótesis</b> exploratoria. Method 2; evidencia modesta = éxito.</p>
+    <div class="callout c-warn"><b>Test 5 honesto:</b> el grafo no adjudica un puente real desde MENTIONS (only-ocular=0 delata la anotación compartida). El puente foxc1 se sostiene en biología de paralogos + el dataset Foxc1b ocular, no en co-expresión. A confirmar con <code>fetch_raw</code> o Path-B.</div>
+  </div>
+
+  <!-- ===================== GATES + TESTS ===================== -->
+  <h2>Mapeo a los 4 gates biológicos y los 5 tests substrate</h2>
+  <table>
+    <tr><th>Eje</th><th>Estado en este POC</th></tr>
+    <tr><td><b>Gate Induction / Identity</b></td><td>prkci ligado a <i>mantenimiento</i> de identidad de túbulo (modesto, externo). Induction/sufficiency: no demostrado (sin reconstitución).</td></tr>
+    <tr><td><b>Gate Specificity</b></td><td>El gate anti-fabricación + el tiering RAW/DERIVED instrumentan especificidad de identificadores; especificidad biológica no testeada.</td></tr>
+    <tr><td><b>Gate Parsimony</b></td><td>Conjunto-mínimo re-anclado; usable-como-está 0.15 (3/9 sin verificar + suficiencia no adjudicable).</td></tr>
+    <tr><td>Test 1 (orquestación) · Test 2 (agencia)</td><td>Loop multi-paso + composite-auditor ≥3 (retrieval-audit + cierre).</td></tr>
+    <tr><td>Test 3 (iteración)</td><td>Re-anclaje que mejora sobre el loop previo + el loop creció el corpus (1 chunk).</td></tr>
+    <tr><td>Test 4 (calibración)</td><td><b>El auditor de cierre bajó (b) 0.85→0.70 y desinfló overclaims</b> — calibración demostrada.</td></tr>
+    <tr><td>Test 5 (cross-field)</td><td>Puente pronefro↔ocular instrumentado; hipótesis modesta (0.30), exploratoria — éxito por la regla Phase I.</td></tr>
+  </table>
+
+  <footer>
+    <b>Version preservation:</b> v1 — no modificar; futuras corridas bumpean versión. ·
+    <b>Provenance:</b> sesión 2026-06-13; conclusión corregida tras composite-auditor de cierre 3/3 REVISE. ·
+    <b>Artefactos durables:</b> este HTML · <code>analysis/outputs/poc_crossfield_test5_20260613.json</code> · <code>analysis/scripts/lib/{fetch_paper,answer_pipeline,propose_from_external,propose_prune}.py</code> · ADR-0022. ·
+    Los <code>answer_bundle</code>/papers crudos están en <code>mcp_cache/</code> (gitignored, cache local).
+  </footer>
+
+</div>
+</body>
+</html>

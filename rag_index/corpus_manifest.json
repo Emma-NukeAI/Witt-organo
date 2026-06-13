@@ -1907,9 +1907,10 @@
       ],
       "provenance": {
         "via": "answer-pipeline loop (ADR-0022)",
-        "answers_question": "Is prkci required for zebrafish pronephros tubule specification and epithelial identity?",
+        "answers_question": "Is prkci required for zebrafish pronephros tubule epithelial identity MAINTENANCE? ('specification' struck per composite-audit 2026-06-13 — Gerlach & Wingert 2014 supports identity maintenance, not initial specification)",
         "retrieval": "Path B (Europe PMC) after DI insufficiency",
-        "audit": "composite-auditor Mode 1 (3 adversarial auditors) — see session 2026-06-13",
+        "audit": "composite-auditor Mode 1 (3 adversarial auditors), retrieval-audit 3/3 REJECT of off-target papers + surfaced this source; see session 2026-06-13",
+        "source_access": "NON Open Access (Elsevier) — abstract-only source-pointer cached; full text paywalled (corrected from an earlier 'OA' mislabel per composite-audit)",
         "verified_via": "Europe PMC",
         "verified_on": "2026-06-13"
       },
