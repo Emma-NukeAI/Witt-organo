@@ -8,6 +8,11 @@ services:
       context: ../..                                  # repo root (Dockerfile copies analysis/ + rag_index/)
       dockerfile: rag_index/ingest_service/Dockerfile
     restart: unless-stopped
+    # Neo4j + MinIO run as SEPARATE Dokploy stacks; reach their host-published ports from inside this
+    # container via host.docker.internal (host-gateway) — the host's PUBLIC IP fails to hairpin.
+    # Env: NEO4J_URI=bolt://host.docker.internal:7687 , MINIO_ENDPOINT=host.docker.internal:9100
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8077:8077"
     environment:
