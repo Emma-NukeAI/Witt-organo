@@ -49,6 +49,30 @@ def extract_entities(text):
     return out
 
 
+_STOP = {"the", "and", "for", "that", "with", "this", "from", "were", "was", "are", "not", "but", "all",
+         "can", "has", "have", "when", "how", "which", "into", "than", "then", "them", "they", "been",
+         "also", "our", "one", "two", "may", "via", "per", "use", "used", "both", "each", "more", "most",
+         "such", "data", "fig", "figs", "table", "using", "these", "those", "there", "here", "while", "cell",
+         "cells", "gene", "genes", "type", "types", "show", "shown", "high", "low", "left", "right"}
+
+
+def candidate_store_additions(text, top=8):
+    """Gene-like tokens that RECUR but do NOT resolve in the verified store — surfaced as SUGGESTIONS for
+    human-gated store growth (NOT minted; adding a verified identifier is itself human-gated, §7). Lets the
+    loop propose verified-STORE growth, not just corpus growth — the same genes the anti-fabrication gate flags."""
+    import collections
+    cnt = collections.Counter()
+    for tok in GENE_RE.findall(text.lower()):
+        if len(tok) < 3 or tok in _STOP:
+            continue
+        if resolve_id.resolve(tok) is resolve_id.NOT_FOUND:
+            cnt[tok] += 1
+    # require a digit: zebrafish gene symbols almost always carry one (fn1, hand2, osr1, six2, slc12a1),
+    # which filters out common bio words (kidney/tissue/renal/...) that have no digit. A discovery aid only.
+    return [{"symbol": t, "mentions": c} for t, c in cnt.most_common(60)
+            if c >= 3 and any(ch.isdigit() for ch in t)][:top]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pmid", required=True)
@@ -70,7 +94,9 @@ def main():
     meta, raw_ref = got["record"], got["raw_ref"]
     cid_tag = (meta.get("pmcid") or meta.get("pmid"))
     chunks = chunk_document.chunk(CACHE / f"raw_paper_{cid_tag}_{DATE}.txt")
-    entities = extract_entities(" ".join(c["text"] for c in chunks))
+    full_text = " ".join(c["text"] for c in chunks)
+    entities = extract_entities(full_text)
+    cand_store = candidate_store_additions(full_text)
 
     gaps = []
     for g in [s.strip() for s in a.subject_genes.split(",") if s.strip()]:
@@ -101,14 +127,17 @@ def main():
                        "retrieval": "Path B (Europe PMC) after DI insufficiency",
                        "audit": a.audit, "verified_via": "Europe PMC", "verified_on": "2026-06-13"},
         "gap_flags": gaps,
+        "candidate_store_additions": cand_store,  # genes worth verifying + adding to the store (human gate, §7)
         "substrate_evidence": ["test_1", "test_3"],
     }
     print(f"[propose_from_external] {cid}: {len(chunks)} chunk(s), {len(entities)} verified entities "
-          f"{[e['entity'] for e in entities]}, {len(gaps)} gap_flag(s)")
+          f"{[e['entity'] for e in entities]}, {len(gaps)} gap_flag(s), "
+          f"{len(cand_store)} candidate store-addition(s)")
     print(json.dumps({"corpus_record_id": cid, "title": record["source_document"]["name"],
                       "accession": record["source_document"]["accession"],
                       "entities_extracted": [e["entity"] for e in entities],
                       "n_chunks": len(chunks), "gap_flags": gaps,
+                      "candidate_store_additions": cand_store,
                       "approval_chain": record["approval_chain"]}, ensure_ascii=False, indent=2))
     if a.dry_run:
         print("\n--dry-run: NOT written to the manifest.")

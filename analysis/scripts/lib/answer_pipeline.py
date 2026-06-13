@@ -81,16 +81,30 @@ def assess_sufficiency(a, ent):
     return {"sufficient": not reasons, "reasons": reasons, "missing_entities": missing}
 
 
-def path_b(question, n=2, full_text=True):
-    """External fallback: Europe PMC search -> fetch_paper full text for the top hits."""
+def _search_tooluniverse(question, n):
+    """Tool Universe literature breadth (PubMed + many DBs) — the ADDITIONAL Path-B source beyond
+    Europe PMC. Activates when the `tooluniverse` MCP is connected (agent context) or its SDK is installed.
+    Not reachable from this standalone script today (SDK absent in .venv; MCP is per-session), so it returns
+    [] and Europe PMC stays the dependency-free default. In an agent/MCP run, the orchestrator calls Tool
+    Universe's lit tools (e.g. PubMed_search_articles) and merges their hits here (ADR-0022)."""
+    return []
+
+
+def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse")):
+    """External fallback — MULTI-SOURCE, never a stopper. Europe PMC is the built-in dependency-free
+    source; Tool Universe (PubMed + more DBs) layers in when reachable. Each paper records its `source`."""
     papers = []
-    for rec in fetch_paper.search_europepmc(question, n=n):
-        ident = f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi"))
-        got = fetch_paper.fetch_external(ident, want_full_text=full_text) if ident else {"found": False}
-        papers.append({
-            "search_rec": {k: rec.get(k) for k in ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")},
-            "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached", "raw_ref")},
-        })
+    if "europepmc" in sources:
+        for rec in fetch_paper.search_europepmc(question, n=n):
+            ident = f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi"))
+            got = fetch_paper.fetch_external(ident, want_full_text=full_text) if ident else {"found": False}
+            papers.append({
+                "source": "europepmc",
+                "search_rec": {k: rec.get(k) for k in ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")},
+                "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached", "raw_ref")},
+            })
+    if "tooluniverse" in sources:
+        papers += _search_tooluniverse(question, n)  # documented breadth hook (live when MCP/SDK present)
     return papers
 
 
