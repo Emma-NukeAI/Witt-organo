@@ -15,6 +15,16 @@ sufficient on its own — the store reinforces itself.
 Spend: Path A embeds the query (OpenAI, authorized 2026-06-13); Path B (Europe PMC) is free.
 Bundle cached to mcp_cache/answer_bundle_<slug>_<YYYYMMDD>.json.
 
+Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent):
+  RETRIEVE -> Path A (DI)
+     |- sufficient ----------------------> [DI_SUFFICIENT]   may_answer=Y           -> ANSWER (from DI)
+     |- insufficient -> Path B (external) -> [FALLBACK_FETCHED] may_answer=N -> AUDIT (composite >=3, REQUIRED)
+                                                |- record_audit, approved -> [AUDIT_APPROVED] Y -> ANSWER + PROPOSE(gate)
+                                                |- record_audit, none     -> [AUDIT_REJECTED]   -> ANSWER(gap) / REFINE
+  The bundle's `decision_state` carries may_answer_now + required_next_action, so a consumer (agent,
+  human, orchestrator) CANNOT answer external evidence without an audit verdict (record_audit()).
+  Audit + propose are wired transitions, not steps an agent is trusted to remember (CLAUDE.md §7).
+
 CLI:
   python analysis/scripts/lib/answer_pipeline.py "Is osr1 required for zebrafish pronephros?" --entities osr1,prkci,pax2a
 """
@@ -84,19 +94,51 @@ def path_b(question, n=2, full_text=True):
     return papers
 
 
+def _state(name, may_answer, may_propose, required_next):
+    """A node in the explicit decision-state machine (see module docstring)."""
+    return {"state": name, "may_answer_now": may_answer, "may_propose_now": may_propose,
+            "required_next_action": required_next}
+
+
 def retrieve(question, entities=None, n_papers=2):
-    """The orchestrator: Path A, then Path B iff A is insufficient. Never a stopper."""
+    """The orchestrator: Path A, then Path B iff A is insufficient. Never a stopper. The returned bundle
+    carries an explicit `decision_state` that GATES what may happen next — answering external evidence is
+    blocked until an audit verdict is recorded (record_audit())."""
     a = path_a(question)
     ent = check_entities(entities)
     suf = assess_sufficiency(a, ent)
-    bundle = {"question": question, "stamp": DATE, "entities_checked": ent,
-              "path_a": a, "sufficiency": suf}
+    bundle = {"question": question, "stamp": DATE, "entities_checked": ent, "path_a": a, "sufficiency": suf}
     if suf["sufficient"]:
         bundle["path_b"] = {"triggered": False, "reason": "DI sufficient (literature present + entities resolved)"}
+        bundle["decision_state"] = _state(
+            "DI_SUFFICIENT", may_answer=True, may_propose=False,
+            required_next="ANSWER — synthesize from the DI Path-A hits. No external evidence involved.")
     else:
         bundle["path_b"] = {"triggered": True, "triggered_by": suf["reasons"],
                             "papers": path_b(question, n=n_papers)}
-    bundle["next"] = "slice 1c: composite-auditor retrieval-audit (absence re-check + external veracity)"
+        bundle["decision_state"] = _state(
+            "FALLBACK_FETCHED", may_answer=False, may_propose=False,
+            required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict each Path-B paper "
+                          "(DI absence re-check + external veracity) BEFORE any answer. Do NOT synthesize from "
+                          "unaudited external evidence (CLAUDE.md §7). Feed verdicts to record_audit().")
+    return bundle
+
+
+def record_audit(bundle, approved, rejected, note=""):
+    """Transition the pathway AFTER the composite-auditor returns. `approved`/`rejected` = lists of paper
+    ids. Structural enforcement: answering / proposing external evidence is only unlocked once a verdict is
+    recorded here — the path is marked, not left to the agent's memory of the contract."""
+    bundle["audit"] = {"approved": list(approved), "rejected": list(rejected), "note": note}
+    if approved:
+        bundle["decision_state"] = _state(
+            "AUDIT_APPROVED", may_answer=True, may_propose=True,
+            required_next=f"ANSWER from approved evidence {list(approved)} + PROPOSE to the DI via "
+                          "propose_from_external.py (human gate). Rejected/absent items -> gap_flags.")
+    else:
+        bundle["decision_state"] = _state(
+            "AUDIT_REJECTED", may_answer=True, may_propose=False,
+            required_next="ANSWER with the gap EXPLICIT (no on-target evidence passed audit) + record a gap_flag; "
+                          "optionally REFINE (e.g. follow an auditor-surfaced lead) and re-run retrieve().")
     return bundle
 
 

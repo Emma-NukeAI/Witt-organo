@@ -36,3 +36,17 @@ A four-component answer pipeline, built mostly by **wiring existing pieces** (`c
 ## First slice (prueba pequeño — build + validate this before the rest)
 
 The exact question that just failed in Phase 1: **essentiality/sufficiency of `osr1` / `prkci` (NOT_FOUND in DI v1) for pronephros**. End-to-end: Path A (DI miss, already shown) → Path B (Tool Universe PubMed) → `fetch_paper` (full text + raw cache) → `composite-auditor` (absence re-check + veracity) → `propose_from_external` (pending_review record) → **STOP at human gate**. Proves all 4 components on a real question and closes the Phase-1 literature gap. No auto-ingest; Emmanuel runs `approve_dataset` if the proposal is sound.
+
+## Hardening applied (2026-06-13)
+
+Built + validated end-to-end (CORPUS-2026-0003 ingested; the prkci question now answers from the DI internally), then hardened on the founder's two requirements — (i) ingest keeps the index fresh and agents always see the latest, and (ii) the decision pathway is structurally marked, not contract-dependent. All under one principle:
+
+> **DATA INAMOVIBLE mutations are human-gated, always, with explicit specification** — add/edit/delete, across the embedding, the index (Neo4j graph + vector + sparse), AND the raw layer. No agent mutates it unilaterally. Reads/refreshes are free; mutations are not (CLAUDE.md §7).
+
+- **A1/A2** — `ingest.py` ensures the schema + vector index (idempotent) and **aborts on a dim mismatch** (index dim ≠ embedder dim).
+- **A3** — an embedding-model change **halts** pending explicit `--confirm-embed-model-change` (it re-embeds all + invalidates the vector space = a human-gated mutation).
+- **A5** — `rag_backend.get_backend()` **auto-refreshes** when `documents.jsonl` changes (mtime), so the MCP server / long-lived agents always reflect the latest gated ingest without a restart. Reads refresh freely.
+- **A6** — `ingest` stamps a `(:Meta {key:'data_inamovible'})` freshness node (embed_model, dim, doc_count, refreshed_at) — introspectable.
+- **A4** — pruning dead/orphan nodes is **never automatic**: `propose_prune.py` detects orphans → writes a `pending_review` proposal specifying exactly what would be deleted → `approve_prune.py --by <human>` executes that exact list. Mirror of `add_dataset`/`approve_dataset` for the delete path.
+- **B1** — the pathway is an **explicit decision-state machine** in `answer_pipeline.py`: the bundle carries `decision_state` with `may_answer_now` + `required_next_action`. When Path B fetched external evidence, `may_answer_now=False` and the required next action is AUDIT — a consumer cannot answer/propose external evidence until `record_audit()` records a composite-auditor verdict. The audit + propose are wired transitions, not steps an agent is trusted to remember.
+- Also: `ingest.py` rebuilds the sparse index in the same run (the fix that closed the loop — new chunks were under-ranked by hybrid RRF when only Neo4j was updated).

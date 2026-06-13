@@ -223,28 +223,41 @@ class HybridRetriever(Retriever):
 
 
 _default = None
+_default_sig = None  # signature of the sparse index on disk; a change forces a rebuild (auto-refresh)
+
+
+def _index_signature():
+    try:
+        return DOCS.stat().st_mtime_ns
+    except OSError:
+        return None
 
 
 def get_backend():
     """Pick the backend from config (ADR-0020). Rack: RAG_BACKEND=neo4j -> Hybrid(Tfidf + Neo4jGraph),
-    NoOp reranker by default (fusion order). The cross-encoder reranker is opt-in (RAG_RERANKER=cross-encoder)
-    and bottleneck-gated — it needs a local model, so it is NOT the default. Dev/offline (default):
-    TfidfRetriever (sparse v1, NO-SPEND, no deps)."""
-    global _default
-    if _default is None:
-        import os
-        if os.environ.get("RAG_BACKEND") == "neo4j":
-            dense = Neo4jGraphRetriever(uri=os.environ.get("NEO4J_URI"),
-                                        user=os.environ.get("NEO4J_USER"),
-                                        password=os.environ.get("NEO4J_PASSWORD"))
-            try:
-                sparse = TfidfRetriever()   # sparse half (sklearn + documents.jsonl); optional
-            except Exception:
-                sparse = None               # dense-only if sklearn/index unavailable
-            reranker = CrossEncoderReranker() if os.environ.get("RAG_RERANKER") == "cross-encoder" else Reranker()
-            _default = HybridRetriever(sparse, dense, reranker)
-        else:
-            _default = TfidfRetriever()
+    NoOp reranker by default (fusion order). Dev/offline (default): TfidfRetriever (sparse v1, NO-SPEND).
+
+    AUTO-REFRESH (ADR-0022 hardening, 2026-06-13): rebuilds whenever documents.jsonl changes on disk, so a
+    long-lived reader (the MCP server, a persistent agent) always reflects the latest human-gated ingest
+    without a restart. Reads/refreshes are free; only the human-gated ingest writes the index (CLAUDE.md §7)."""
+    global _default, _default_sig
+    import os
+    sig = _index_signature()
+    if _default is not None and sig == _default_sig:
+        return _default
+    if os.environ.get("RAG_BACKEND") == "neo4j":
+        dense = Neo4jGraphRetriever(uri=os.environ.get("NEO4J_URI"),
+                                    user=os.environ.get("NEO4J_USER"),
+                                    password=os.environ.get("NEO4J_PASSWORD"))
+        try:
+            sparse = TfidfRetriever()   # sparse half (sklearn + documents.jsonl); optional
+        except Exception:
+            sparse = None               # dense-only if sklearn/index unavailable
+        reranker = CrossEncoderReranker() if os.environ.get("RAG_RERANKER") == "cross-encoder" else Reranker()
+        _default = HybridRetriever(sparse, dense, reranker)
+    else:
+        _default = TfidfRetriever()
+    _default_sig = sig
     return _default
 
 
