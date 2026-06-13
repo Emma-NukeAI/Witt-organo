@@ -8,11 +8,10 @@ services:
       context: ../..                                  # repo root (Dockerfile copies analysis/ + rag_index/)
       dockerfile: rag_index/ingest_service/Dockerfile
     restart: unless-stopped
-    # Neo4j + MinIO run as SEPARATE Dokploy stacks; reach their host-published ports from inside this
-    # container via host.docker.internal (host-gateway) — the host's PUBLIC IP fails to hairpin.
-    # Env: NEO4J_URI=bolt://host.docker.internal:7687 , MINIO_ENDPOINT=host.docker.internal:9100
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # Neo4j + MinIO run as SEPARATE Dokploy stacks. Join their docker networks (external) and reach them
+    # by SERVICE NAME on the INTERNAL ports — bypasses host hairpin/firewall entirely.
+    # Env: NEO4J_URI=bolt://neo4j:7687 , MINIO_ENDPOINT=minio:9000
+    networks: [default, neo4j_net, minio_net]
     ports:
       - "8077:8077"
     environment:
@@ -30,5 +29,13 @@ services:
       - MINIO_SECURE=false
     volumes:
       - ingest_queue:/data/queue                      # pending submissions survive restarts
+networks:
+  default: {}
+  neo4j_net:
+    external: true
+    name: rag-emma-mequsz_default                     # the Neo4j stack's docker network (from its deploy)
+  minio_net:
+    external: true
+    name: rag-datainamovibleminio-grjoil_default      # the MinIO stack's docker network (from its deploy)
 volumes:
   ingest_queue:
