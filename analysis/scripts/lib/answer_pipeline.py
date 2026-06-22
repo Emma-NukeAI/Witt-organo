@@ -85,9 +85,29 @@ def _search_tooluniverse(question, n):
     """Tool Universe literature breadth (PubMed + many DBs) — the ADDITIONAL Path-B source beyond
     Europe PMC. Activates when the `tooluniverse` MCP is connected (agent context) or its SDK is installed.
     Not reachable from this standalone script today (SDK absent in .venv; MCP is per-session), so it returns
-    [] and Europe PMC stays the dependency-free default. In an agent/MCP run, the orchestrator calls Tool
-    Universe's lit tools (e.g. PubMed_search_articles) and merges their hits here (ADR-0022)."""
+    [] and Europe PMC stays the dependency-free default. The explicit MCP query an agent should run is
+    surfaced by tool_universe_directive() and threaded into the bundle (path_b.tool_universe_directive),
+    so Tool Universe is NAMED + actionable by the agent rather than silently dropped (ADR-0022 / ADR-0026)."""
     return []
+
+
+def tool_universe_directive(question, n=2):
+    """The explicit Tool Universe query an agent should run via the connected `tooluniverse` MCP when Path B
+    triggers (R4 / ADR-0026). The standalone pipeline cannot reach the MCP (per-session; SDK absent in
+    .venv), so instead of silently dropping Tool Universe this NAMES the exact call — the orchestrating
+    agent executes it and merges hits (source='tooluniverse') through the SAME composite-auditor gate
+    (ADR-0022) before any answer/propose. Live execution requires the MCP connected (reopen Claude Code +
+    approve .mcp.json); it is NOT verifiable from this standalone script."""
+    return {
+        "requires_mcp": "tooluniverse (uvx tooluniverse; project-scoped .mcp.json)",
+        "tools": ["PubMed_search_articles", "EuropePMC_search", "tooluniverse-literature-deep-research"],
+        "query": question,
+        "n": n,
+        "merge_back": ("add hits as path_b papers with source='tooluniverse', then route through the SAME "
+                       "composite-auditor Mode 1 (>=3) audit gate (ADR-0022) before any answer/propose"),
+        "live": False,
+        "note": "Not executed by this standalone script (MCP is per-session). Surfaced for the agent to run.",
+    }
 
 
 def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse")):
@@ -129,12 +149,15 @@ def retrieve(question, entities=None, n_papers=2):
             required_next="ANSWER — synthesize from the DI Path-A hits. No external evidence involved.")
     else:
         bundle["path_b"] = {"triggered": True, "triggered_by": suf["reasons"],
-                            "papers": path_b(question, n=n_papers)}
+                            "papers": path_b(question, n=n_papers),
+                            "tool_universe_directive": tool_universe_directive(question, n_papers)}
         bundle["decision_state"] = _state(
             "FALLBACK_FETCHED", may_answer=False, may_propose=False,
             required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict each Path-B paper "
                           "(DI absence re-check + external veracity) BEFORE any answer. Do NOT synthesize from "
-                          "unaudited external evidence (CLAUDE.md §7). Feed verdicts to record_audit().")
+                          "unaudited external evidence (CLAUDE.md §7). For full breadth ALSO run "
+                          "path_b.tool_universe_directive via the connected tooluniverse MCP and audit those "
+                          "hits the SAME way. Feed all verdicts to record_audit().")
     return bundle
 
 

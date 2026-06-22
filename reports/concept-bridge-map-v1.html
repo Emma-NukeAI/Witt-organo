@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa 2-ejes — rendición-de-cuentas ↔ motor-de-generación · Witt×Organogénesis</title>
+<style>
+  :root{ --bg:#0c0e13; --panel:#141821; --panel2:#1b212d; --ink:#e7ecf3; --mut:#9aa6b8; --dim:#6b7689;
+    --line:#27303f; --acc:#6ea8fe; --tiene:#3ecf8e; --parcial:#f5b945; --gap:#ff6b6b; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 20px 70px;}
+  h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em;} .sub{color:var(--mut);font-size:13.5px;margin:0 0 14px;}
+  code{background:#0a0c11;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#cdd7e6;}
+  .layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+  @media(max-width:900px){.layout{grid-template-columns:1fr}}
+  .plot{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;}
+  svg{width:100%;height:auto;display:block;border-radius:8px;}
+  .side{position:sticky;top:16px;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 17px;}
+  .panel h3{margin:0 0 4px;font-size:16px;}
+  .badge{display:inline-block;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;}
+  .b-tiene{background:rgba(62,207,142,.14);color:var(--tiene);border:1px solid rgba(62,207,142,.4);}
+  .b-parcial{background:rgba(245,185,69,.13);color:var(--parcial);border:1px solid rgba(245,185,69,.4);}
+  .b-gap{background:rgba(255,107,107,.13);color:var(--gap);border:1px solid rgba(255,107,107,.4);}
+  .risk{font-size:10.5px;font-weight:700;border-radius:5px;padding:1px 6px;margin-left:4px;}
+  .r-bajo{background:rgba(62,207,142,.13);color:var(--tiene);} .r-medio{background:rgba(245,185,69,.12);color:var(--parcial);} .r-alto{background:rgba(255,107,107,.13);color:var(--gap);}
+  .panel .row{margin:9px 0;font-size:13px;} .panel .k{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:12px 2px 0;font-size:12.5px;color:var(--mut);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block;}
+  .hint{color:var(--dim);font-size:12px;margin-top:10px;}
+  .node{cursor:pointer;transition:opacity .15s;} .node:hover{opacity:1!important;}
+  .node text{font-size:11px;fill:var(--ink);pointer-events:none;font-weight:600;}
+  .axis{stroke:var(--line);stroke-width:1;} .axislab{fill:var(--mut);font-size:12px;font-weight:600;}
+  .axisend{fill:var(--dim);font-size:11px;}
+  .quad{font-size:11.5px;font-weight:700;opacity:.5;}
+  .foot{color:var(--dim);font-size:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mapa 2-ejes — el cluster conceptual sobre el proyecto Witt × Organogénesis</h1>
+  <p class="sub">X: <b>rendición-de-cuentas ↔ motor-de-generación</b> (la costura meta) &nbsp;·&nbsp; Y: <b>madurez en el proyecto</b> (GAP → PARCIAL → TIENE). &nbsp; Tamaño = confianza · anillo = riesgo de sobre-ingeniería. &nbsp; <b>Pasa el cursor / haz clic</b> en un nodo.</p>
+
+  <div class="layout">
+    <div class="plot">
+      <svg id="map" viewBox="0 0 900 600" role="img" aria-label="Mapa de conceptos">
+        <!-- quadrant tints -->
+        <rect x="80" y="60" width="380" height="235" fill="#3ecf8e" opacity="0.05"/>
+        <rect x="460" y="305" width="380" height="235" fill="#ff6b6b" opacity="0.05"/>
+        <!-- grid -->
+        <line class="axis" x1="80" y1="60" x2="80" y2="540"/>
+        <line class="axis" x1="80" y1="540" x2="840" y2="540"/>
+        <line class="axis" x1="460" y1="60" x2="460" y2="540" stroke-dasharray="4 5" opacity="0.6"/>
+        <!-- y status bands -->
+        <line class="axis" x1="80" y1="300" x2="840" y2="300" stroke-dasharray="2 6" opacity="0.35"/>
+        <line class="axis" x1="80" y1="180" x2="840" y2="180" stroke-dasharray="2 6" opacity="0.35"/>
+        <line class="axis" x1="80" y1="420" x2="840" y2="420" stroke-dasharray="2 6" opacity="0.35"/>
+        <!-- y labels -->
+        <text class="axisend" x="74" y="120" text-anchor="end">TIENE</text>
+        <text class="axisend" x="74" y="300" text-anchor="end">PARCIAL</text>
+        <text class="axisend" x="74" y="490" text-anchor="end">GAP</text>
+        <text class="axislab" x="26" y="300" text-anchor="middle" transform="rotate(-90 26 300)">madurez en el proyecto →</text>
+        <!-- x labels -->
+        <text class="axislab" x="460" y="572" text-anchor="middle">eje de la «máquina epistémica recursiva»</text>
+        <text class="axisend" x="84" y="558" text-anchor="start">← rendición de cuentas</text>
+        <text class="axisend" x="836" y="558" text-anchor="end">motor de generación →</text>
+        <!-- quadrant captions -->
+        <text class="quad" x="100" y="80" fill="#3ecf8e">la mitad DIFÍCIL que el proyecto YA construyó</text>
+        <text class="quad" x="820" y="528" fill="#ff6b6b" text-anchor="end">las GAPs reales = campo LeCun/Silver</text>
+        <g id="nodes"></g>
+      </svg>
+      <div class="legend">
+        <span><span class="dot" style="background:#3ecf8e"></span>TIENE</span>
+        <span><span class="dot" style="background:#f5b945"></span>PARCIAL</span>
+        <span><span class="dot" style="background:#ff6b6b"></span>GAP</span>
+        <span>· anillo grueso = riesgo alto de sobre-ingeniería</span>
+        <span>· ⌀ ∝ confianza</span>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="panel" id="panel">
+        <h3 id="p-title">Selecciona un concepto</h3>
+        <div id="p-body">
+          <p class="hint">El plano cuenta la lectura meta: el cúmulo <b style="color:#3ecf8e">arriba-izquierda</b> es la maquinaria de rendición de cuentas que el proyecto <b>ya tiene</b> (y como gates deterministas forzados); el cúmulo <b style="color:#ff6b6b">abajo-derecha</b> son las GAPs reales — la mitad «motor» que los textos dicen que <b>no</b> es la frontera de Witt. Haz clic en un nodo para el detalle.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Witt × Organogénesis · GWT v1.1 · mapa conceptual v1 · 2026-06-18 · complemento visual de <code>reports/concept-bridge-analysis-v1.html</code> · auto-contenido (sin CDN). Posiciones X/Y = juicio analítico del eje rendición-↔-motor y del estado verificado TIENE/PARCIAL/GAP; no son medidas.</div>
+</div>
+
+<script>
+// x: -1 (rendición de cuentas) .. +1 (motor de generación) ; y: 0 (GAP) .. 1 (TIENE)
+const DATA = [
+ {id:"hard-soft", t:"Hard/soft rules (Euclid/Witt/Popper)", s:"PARCIAL", x:-0.86, y:0.62, conf:0.80, risk:"bajo",
+  live:"Retículo mayormente FORZADO: H(c) determinista (verify_output.py ok=False), Logic-LM Tier-1, scoring blando solo sobre admisibles, ECE/auto-cap.",
+  comp:"Hacer explícito el teorema: g(Q(c)) no voltea H de 0→1 (ningún score rescata un claim inadmisible) + dimensión EVPI (hoy ausente).", tg:"Induction · Specificity · T4"},
+ {id:"self-mod", t:"Recursive Self-Mod Gate (Russell)", s:"PARCIAL", x:-0.60, y:0.60, conf:0.84, risk:"medio",
+  live:"Device ESTÁTICO = TIENE: self_applied:false (ADR-0013), human-gate DATA INAMOVIBLE, verify_output como oráculo fuera-de-nivel.",
+  comp:"Falta el device DINÁMICO: no-regresión por-caso S(Π',H) domina S(Π,H)−ε sobre el held-out congelado (Tarski/Gödel: no auto-certificación). Complementa, no reemplaza, el human-gate.", tg:"T4 · T3 · Parsimony"},
+ {id:"sakana", t:"Sakana-governance (gen≠verif)", s:"PARCIAL", x:-0.50, y:0.58, conf:0.82, risk:"medio",
+  live:"TIENE-en-espíritu: answer_pipeline (GENERATE≠ACCEPT), verify_output/resolve_id (f→0), composite-auditor ≥3, no-self-approval/no-paper-as-truth.",
+  comp:"Falta como ARTEFACTO único: el invariante de pureza s·p/(s·p+f(1−p)) — contrae a 1 solo si f→0, diverge si f>0. Justifica por qué causal-pruner queda human-gated permanente.", tg:"T4 · T1 · T3"},
+ {id:"exp-buffer", t:"Experience Buffer (Silver)", s:"PARCIAL", x:-0.22, y:0.55, conf:0.84, risk:"medio",
+  live:"Persistencia + replay-como-RECALIBRACIÓN vivas (compute_ece/rolling_calibration re-leen el buffer entero).",
+  comp:"Falta replay-como-REGRESIÓN: Δv=v'(e|Σ')−v(e)<0 vuelve medible 'mejoró o solo derivó'. La costura: recalibración (rendición) = TIENE; regresión/aprendizaje (motor) = GAP.", tg:"T3 · T4"},
+ {id:"wst", t:"World-State Transition (LeCun/Pearl)", s:"PARCIAL", x:0.02, y:0.50, conf:0.80, risk:"medio",
+  live:"Las 5 piezas existen DISPERSAS (cascade-sim, squidiff, claim-record h1/h0/observable_at, ADR-0003, answer_pipeline).",
+  comp:"Unificar la tupla ⟨S,do(a),Δŝ,W,F⟩ + tipar la intervención como do(·): P(S'|do(a))≠P(S'|a) excluye confundidos de un claim de Induction/Specificity.", tg:"Specificity · Induction · T3/T4"},
+ {id:"chollet", t:"Program search (Chollet)", s:"PARCIAL", x:0.46, y:0.48, conf:0.81, risk:"alto",
+  live:"Espíritu sí: 'simulate→prune→induce' + loop FunSearch-shaped corriendo (program.v3.md, hill-climbing de incumbente único).",
+  comp:"Falta la maquinaria POBLACIONAL diversidad-preservante. El conjunto-mínimo como argmax sobre espacio-de-programas; el artefacto = programa inspeccionable = reasoning-exposure > escalar.", tg:"Parsimony · T1 · T4"},
+ {id:"energy", t:"Energy Layer (LeCun/EBM)", s:"GAP", x:0.34, y:0.18, conf:0.86, risk:"alto",
+  live:"Solo scores DESAGREGADOS (rúbrica 7-dim, ECE, specificity-tiers, votos auditor). Cero E=ΣE_k / argmin / Gibbs.",
+  comp:"Margen E(Ȳ)−E(Y)≥m vuelve Parsimony un teorema; vía Gibbs P=exp(−βE)/Z, ECE pasa a ser el término de calibración del proper-scoring.", tg:"Parsimony · T4 · T1"},
+ {id:"epi-rl", t:"Epistemic RL Policy (Silver)", s:"GAP", x:0.70, y:0.15, conf:0.86, risk:"alto",
+  live:"Todo 'qué sigue' es FIJO/hard-coded (state-machine answer_pipeline, auto-cap reactivo, PIVOT_AFTER). Sin valor-de-información.",
+  comp:"Con r=−ΔECE, V^π(s) = mejora-de-calibración esperada → argmax_a Q*(s,a) = acción que más reduce mis-calibración (criterio FORWARD que el auto-cap no tiene). r=EIG−λ·cost = 'prueba pequeño'.", tg:"T4 · T3 · Parsimony"},
+ {id:"jax-dsl", t:"Motor JAX-DSL diferenciable-evolutivo", s:"GAP", x:0.90, y:0.15, conf:0.87, risk:"alto",
+  live:"Simuladores FIJOS (Morpheus/Squidiff/cascade hand-spec). Sin autodiff / fit-interno / búsqueda evolutiva de estructura.",
+  comp:"Ajuste interno diferenciable φ*(ρ)=argmin_φ‖u_ρ−ŷ‖² + búsqueda externa F(ρ)=−L−γ·complexity. El Hessian = confianza calibrada + guarda de identificabilidad (hoy ausente). Caveat: mal-puesto sin parsimonia.", tg:"Parsimony · Specificity · Induction · T4"},
+];
+const COL={TIENE:"#3ecf8e",PARCIAL:"#f5b945",GAP:"#ff6b6b"};
+const RISKW={bajo:1.5,medio:3,alto:5};
+const PX=(x)=>80+((x+1)/2)*(840-80);
+const PY=(y)=>540-(y)*(540-60);
+const g=document.getElementById("nodes");
+const SVGNS="http://www.w3.org/2000/svg";
+function el(n,a){const e=document.createElementNS(SVGNS,n);for(const k in a)e.setAttribute(k,a[k]);return e;}
+DATA.forEach(d=>{
+  const cx=PX(d.x), cy=PY(d.y), r=12+(d.conf-0.78)*46; // ~12-16
+  const grp=el("g",{class:"node",opacity:d.s==="GAP"?0.92:0.96}); grp.dataset.id=d.id;
+  grp.appendChild(el("circle",{cx,cy,r:r+2,fill:"none",stroke:COL[d.s],"stroke-opacity":0.5,"stroke-width":RISKW[d.risk]}));
+  grp.appendChild(el("circle",{cx,cy,r,fill:COL[d.s],"fill-opacity":0.85,stroke:"#0c0e13","stroke-width":1.5}));
+  // short label
+  const short=d.t.split(" (")[0];
+  const tx=el("text",{x:cx,y:cy+r+13,"text-anchor":"middle"}); tx.textContent=short.length>26?short.slice(0,24)+"…":short;
+  grp.appendChild(tx);
+  grp.addEventListener("click",()=>show(d));
+  grp.addEventListener("mouseenter",()=>show(d));
+  g.appendChild(grp);
+});
+function show(d){
+  document.getElementById("p-title").innerHTML=
+    `${d.t.split(" (")[0]} <span class="badge b-${d.s.toLowerCase()}">${d.s}</span><span class="risk r-${d.risk}">riesgo ${d.risk}</span>`;
+  document.getElementById("p-body").innerHTML=
+    `<div class="row"><span class="k">Autor / lente</span>${d.t.match(/\(([^)]+)\)/)?d.t.match(/\(([^)]+)\)/)[1]:"—"}</div>`+
+    `<div class="row"><span class="k">Lo que el proyecto YA tiene</span>${d.live}</div>`+
+    `<div class="row"><span class="k">Mecanismo de complemento (formal, sin el «cómo»)</span>${d.comp}</div>`+
+    `<div class="row"><span class="k">Test / Gate que movería</span>${d.tg}</div>`+
+    `<div class="row"><span class="k">Confianza</span><b style="color:#6ea8fe">${d.conf}</b></div>`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "claim_id": "claim_20260618_180000_r4-wsts-tooluniverse",
+  "claim_timestamp": "2026-06-18T18:00:00Z",
+  "prediction_preregistered_at": "2026-06-18T18:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (R4 — esquema WSTS unificado + Tool Universe Path-B directive)",
+  "skill_origin": "manual (R4 reinforcement per the approved plan; substrate_calibration/tools/world_state.py + analysis/scripts/lib/answer_pipeline.py)",
+  "skill_version": "world_state-1.0 / answer_pipeline-tooluniverse-directive-1.0",
+  "claim_text": "R4 makes the §3.1 #2 World-State-Transition complement explicit, reuse-first, read-and-report (zero DI mutation). PART A — world_state.py: a unified claim contract <S, do(a), delta-s-hat, W, F>. validate_wsts() checks well-formedness AND Pearl-types the intervention — causal_admissible is True only when the intervention is do-typed; an observe-typed tuple is valid as description but flagged NOT causal-admissible (P(S'|do(a)) != P(S'|a); conditioning != causation) — the formal device that stops an association from satisfying an Induction/Specificity causal claim. wsts_from_claim() projects an existing claim record's dispersed fields (expected_outcome_if_h1/h0, observable_at, observed_outcome) into the WSTS view without mutation (inferred fields tagged), unifying what cascade-sim / squidiff / the claim-record schema already carry scattered. calibration_datum() emits the NATIVE Test-4 datum (stated_confidence, observed_label) via compute_ece.outcome_to_label. PART B — answer_pipeline.tool_universe_directive(): when Path B triggers, the bundle now carries an explicit Tool Universe directive (PubMed_search_articles / EuropePMC_search / tooluniverse-literature-deep-research + merge-back through the SAME composite-auditor gate, ADR-0022) and required_next instructs the agent to run it — Tool Universe is NAMED + actionable, not a silent stub. Verified offline NO-SPEND: do-typed validates + causal-admissible; observe-typed valid-but-not-causal; malformed fails; the real 143000 minimal-set claim projects to a do-WSTS; a resolved record emits (0.95, 1.0); directive emits the MCP query; both files compile under -W error::DeprecationWarning.",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner impact and no DATA INAMOVIBLE mutation: world_state functions are pure (read/validate/project/derive); the answer_pipeline change adds a directive object + threads it into the bundle (no execution, no store/ledger write). Verdicts are deterministically re-derivable (the world_state self-test).",
+  "agent_invocation_status": "composite-auditor INVOKED as the closing audit gate (Mode 1, >=3 adversarial). Self-audit by the producer is prohibited (§7).",
+  "prior": 0.85,
+  "stated_confidence": 0.94,
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (Tier 1; the WSTS validator + do-typing is a deterministic predicate and the self-test is a re-runnable proof). Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "validate_wsts_do-typing_makes_causal-admissibility_explicit (verified: do True, observe False, malformed fail)": 0.97,
+    "wsts_from_claim_unifies_the_dispersed_fields_and_a_real_minimal-set_claim_projects_to_a_do-WSTS": 0.92,
+    "calibration_datum_emits_the_native_Test-4_pair (verified (0.95,1.0))": 0.96,
+    "tool_universe_directive_names_the_Path-B_MCP_query_and_threads_into_the_bundle": 0.95,
+    "this_materially_improves_Specificity/Induction_and_T4_at_scale (structural; do-typing of cascade/squidiff outputs is a forward emit step; not measured)": 0.55
+  },
+  "alternatives_considered": [
+    "Mutate claim records to carry the WSTS block — rejected: records are immutable (ADR-0002); project non-destructively via wsts_from_claim. New records may carry an explicit world_state_transition block going forward.",
+    "Make _search_tooluniverse call the Tool Universe Python SDK — rejected: the SDK is absent in .venv and the project reaches Tool Universe via the MCP (per-session), not the SDK; the honest wiring is the agent-run directive, not a fake SDK branch.",
+    "A heavy world-model / learned encoder for S — out of scope (that is MITAD_B / generation). R4 is the typed contract + the do-operator discipline."
+  ],
+  "contradictory_evidence_cited": [
+    "wsts_from_claim infers the do/observe typing HEURISTICALLY from claim_text markers (tagged inferred). The RISKIER direction is the FALSE POSITIVE: observational text containing a do-marker keyword (e.g. 'dose'/'mutant') is mis-typed 'do' -> spuriously causal_admissible. So the projection is a unification DEMO, never an authoritative re-typing; the function now PREFERS an explicit world_state_transition block when a record carries one (R4 audit fix), and new records should supply it rather than rely on inference.",
+    "The Tool Universe directive is NOT live-verified this session — the tooluniverse MCP is not connected (the known open POC item, docs/HANDOFF.md); the directive's content is asserted, its live execution is not observed.",
+    "cascade-sim / squidiff do not YET emit the world_state_transition block natively; the projector maps their existing outputs but native emission is a forward doc/skill step."
+  ],
+  "gap_flags": [
+    "do/observe typing in wsts_from_claim is heuristic (keyword-based); an explicit per-claim intervention declaration would remove the inference.",
+    "Tool Universe Path-B directive live-execution requires the MCP connected (reopen Claude Code + approve .mcp.json) — not verifiable from this standalone session.",
+    "Native emission of the WSTS block by causal-ablation-cascade-sim / squidiff-in-silico-gate is a forward step (SKILL.md update), not done in R4.",
+    "calibration_datum feeds Test 4 only once compute_ece consumes WSTS-projected data + the R2 tier-weighting is wired (both deferred)."
+  ],
+  "rater_id": "self (deterministic re-derivation via the world_state self-test + the directive output) — generator==rater acceptable ONLY because the checks are symbolic and reproducible; the closing audit is composite-auditor, not self.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "world_state --selftest: do-typed valid+causal-admissible; observe-typed valid+NOT-causal-admissible; malformed invalid; the 143000 minimal-set claim projects to a do-WSTS (causal-admissible); a resolved record -> (stated_confidence, observed_label) datum. answer_pipeline.tool_universe_directive() returns the explicit MCP query; both files compile under -W error::DeprecationWarning; no store/ledger write.",
+  "expected_outcome_if_h0": "validate_wsts mis-types do vs observe, the projection fails on a real record, calibration_datum is wrong, the directive is empty/malformed, a compile error, or a tool mutates the store/ledger.",
+  "observable_at": "2026-06-18 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-18T18:20:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE. world_state --selftest PASS: do-typed valid=True causal_admissible=True; observe valid=True causal_admissible=False; malformed valid=False; projection of claim_20260514_143000 -> do-typed=True causal_admissible=True; calibration_datum(verified-store record) = {stated_confidence:0.95, observed_label:1.0, abs_error:0.05}. tool_universe_directive() emits {tools:[PubMed_search_articles, EuropePMC_search, tooluniverse-literature-deep-research], merge_back: same composite-auditor gate, live:false}. answer_pipeline.py + world_state.py compile under -W error::DeprecationWarning. No store/ledger mutation.",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_4", "test_1", "test_2"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "reason": "Closing audit gate for the R4 substrate-evidence output (Mode 1, >=3 adversarial lenses). Self-audit by the producer is prohibited (§7)."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation in this output; world_state PROJECTS existing claims (incl. a minimal-set one) but generates none."
+    }
+  ],
+  "notes": "R4 of the approved plan (reforzar MITAD_A · §3.1 #2 WSTS + Pillar 4 Tool Universe). ADR-0026. ~8th resolved record toward the n>=10 ECE gate; per ADR-0005 'case capture', NOT 'Test 4 satisfied'. No `replay` block: R4's correctness is verified by its self-test (script-level), not an identifier_resolution replay — replay_and_regress reports this record as 'manual'. Carries the §5 contract + honesty-clause fields. Closing composite-auditor: REVISE (major) -> addressed + re-verified. Two real defects (masked by my utf-8-env runs) fixed: (1) validate_wsts crashed on a non-dict intervention -> now guarded (reject, not crash; new edge-case test) + wsts_from_claim prefers an explicit WSTS block over inference; (2) UnicodeEncodeError under cp1252 -> sys.stdout.reconfigure(utf-8) added to world_state.py AND the other 4 R-tools (replay_and_regress/governance_prefilter/build_regression_cases/accountability_checks — the cp1252 gap was systemic), matching answer_pipeline.py:194. Re-verified under forced PYTHONIOENCODING=cp1252: all 5 self-tests exit 0; non-dict edge case valid=False/causal_admissible=False, no crash. With R4, all 4 MITAD_A workstreams (R1-R4) are built + closed; MITAD_B (the isolated conciencia-universal generation engine) remains as the separate bootstrap."
+}

@@ -1,0 +1,26 @@
+{
+  "claim_id": "regcase_wt1a_id_guard",
+  "kind": "regression_guard",
+  "derived_from_failure": {
+    "event_timestamp": "2026-06-10T12:02:00Z",
+    "failure_type": "fabrication_caught",
+    "related_claim_id": "claim_20260610_120000_verified-identifier-store-v1"
+  },
+  "built_at": "2026-06-22T01:51:53.919356Z",
+  "seed": 42,
+  "observed_outcome": "positive",
+  "observable_at": "deterministic, NO-SPEND (resolver round-trip + verify_output gate)",
+  "replay": {
+    "type": "identifier_resolution",
+    "assertions": [
+      {
+        "symbol": "wt1a",
+        "expected_ensdarg": "ENSDARG00000031420"
+      }
+    ],
+    "must_fail": [
+      "wt1a is ENSDARG00000054611 (the fabricated value caught in the failure log)"
+    ]
+  },
+  "note": "Auto-built from failure_log by build_regression_cases.py (R1c). Guards against reintroduction of the wt1a->ENSDARG00000054611 fabrication. Replayed by replay_and_regress / governance_prefilter; surfaces \u0394v<0 if a future \u03a3' reintroduces it."
+}

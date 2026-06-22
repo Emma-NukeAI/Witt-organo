@@ -1,0 +1,78 @@
+{
+  "claim_id": "claim_20260618_140000_r2-admissibility-purity",
+  "claim_timestamp": "2026-06-18T14:00:00Z",
+  "prediction_preregistered_at": "2026-06-18T14:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (R2 — pureza del ledger + admisibilidad)",
+  "skill_origin": "manual (R2 reinforcement per the approved plan; analysis/scripts/lib/verify_output.py + rag_index/graphrag/ingest.py)",
+  "skill_version": "verify_output-1.1 (admissible + tier_weight + info_priority_order) / ingest-tier-weight-1.0",
+  "claim_text": "R2 makes two §3.1 (formally-closed) accountability complements explicit, reuse-first, code-only (zero DATA INAMOVIBLE mutation; re-ingest stays human-gated). (1) ADMISSIBILITY PREDICATE: verify_output.admissible() returns H(c) in {0,1} as an EXTENSIBLE conjunction of hard invariants (v1 base: every external ENSDARG resolves). It makes the theorem explicit in code — admissibility is computed from hard predicates ONLY, never from a confidence/quality value — so no soft score can rescue an inadmissible claim (g(Q(c)) cannot flip H 0->1); soft scoring is defined only on H^{-1}(1). A VerificationReport.admissible property exposes the identifier component. (2) BAYES-PURITY verified_tier_weight: tier_weight() maps RAW=1.0 / DERIVED=0.7 / NOT_FOUND|unknown=0.0, DERIVED from the existing verification_tier (no manifest-schema change); ingest.py stamps it on the :Entity node and the :Document-[:MENTIONS]->:Entity edge at the human-gated ingest. Ledger purity = s*p/(s*p+f*(1-p)) contracts to 1 only on the deterministic subclass where f->0 (RAW). (3) info_priority_order is an HONEST EVPI PLACEHOLDER (NOT_FOUND->high info before verified; tagged placeholder:True); a calibrated EVPI needs a decision-utility model and is deferred. Verified offline NO-SPEND: the wt1a fabrication -> admissible=False; the correct ID -> admissible=True; tier weights 1.0/0.7/0.0; info_priority puts NOT_FOUND(clcnkb) before verified(wt1a); both files compile under -W error::DeprecationWarning; ingest.py NOT run (human-gated DI mutation).",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner impact and no DATA INAMOVIBLE mutation: verify_output additions are pure functions (read-only resolver lookups); the ingest.py change is CODE only and takes effect on the next human-gated ingest (approve_dataset -> ingest), which a human runs. The verdicts are deterministically re-derivable (the verify_output smoke test).",
+  "agent_invocation_status": "composite-auditor INVOKED as the closing audit gate (Mode 1, >=3 adversarial). Self-audit by the producer is prohibited (§7); the deterministic smoke test is evidence, not the audit gate.",
+  "prior": 0.88,
+  "stated_confidence": 0.95,
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (Tier 1; 'produces results perfectly calibrated by construction'). The admissibility predicate is a deterministic symbolic check and the smoke test is a re-runnable proof, so Logic-LM is the apt citation. Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "admissible()_is_an_extensible_hard_conjunction_and_a_soft_score_cannot_flip_H (verified: fabrication False, correct True)": 0.97,
+    "tier_weight_RAW_DERIVED_NOTFOUND_mapping_and_ingest_stamping_compiles": 0.96,
+    "the_Bayes-purity_invariant_is_correctly_realized_at_the_graph_layer (MENTIONS edge weight; takes effect next human-gated ingest)": 0.85,
+    "info_priority_order_is_an_honest_placeholder_not_a_calibrated_EVPI": 0.95,
+    "this_materially_improves_Test_4_calibration_at_scale (structural, NOT measured: compute_ece tier-weighting DEFERRED; n~5 case-capture)": 0.5
+  },
+  "alternatives_considered": [
+    "Add verified_tier_weight to the corpus_manifest.json schema — rejected: derive it from the existing verification_tier at ingest (less mutation, same result).",
+    "Wire compute_ece to down-weight non-RAW records now — DEFERRED: with n~5 resolved records, down-weighting the non-RAW ones leaves the calibration signal nearly empty; the infrastructure is ready for compute_ece to consume when RAW-tier resolved records accumulate.",
+    "Implement a real EVPI now — rejected (prueba pequeño): no decision-utility model exists; a fake EVPI would over-claim. Shipped as a clearly-labeled placeholder."
+  ],
+  "contradictory_evidence_cited": [
+    "The Bayes-purity invariant is enforced at the GRAPH layer (MENTIONS weight) but NOT yet at the calibration layer (compute_ece still weights all scored records equally) — so the T4 benefit is structural/latent until compute_ece consumes tier_weight.",
+    "ingest.py stamping is verified only by compile + reading the Cypher; it is NOT exercised against a live Neo4j this session (re-ingest is a human-gated DI mutation), so the edge-weight write is asserted-by-code, not observed-on-graph.",
+    "info_priority_order is a transparent heuristic, not a value-of-information; treating it as EVPI would be the over-claim the analysis warned about."
+  ],
+  "gap_flags": [
+    "compute_ece per-record tier-weighting is DEFERRED (would zero the n~5 nascent calibration signal); revisit when RAW-tier resolved records accumulate.",
+    "admissible() v1 hard-conjunction has a single base predicate (ENSDARG resolution); additional hard invariants (e.g. controlled-comparison precondition for an Induction/Specificity claim) are extensible hooks not yet populated.",
+    "The MENTIONS verified_tier_weight is written only at the next human-gated ingest; the current live graph does not yet carry it.",
+    "A full EVPI (decision-utility model) is deferred; info_priority_order is a placeholder.",
+    "DERIVED=0.7 is a PROVISIONAL placeholder (only RAW=1.0 / NOT_FOUND=0.0 are rigorously derived endpoints); it must be calibrated from an estimated DERIVED-tier false-accept rate before compute_ece down-weights records by it (closing-audit finding)."
+  ],
+  "rater_id": "self (deterministic re-derivation via the verify_output smoke test) — generator==rater acceptable ONLY because the checks are symbolic and reproducible; the closing audit is composite-auditor, not self.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "verify_output smoke: admissible('...ENSDARG00000054611...')=False with a reason; admissible('...ENSDARG00000031420...')=True; tier_weight RAW/DERIVED/NOT_FOUND = 1.0/0.7/0.0; info_priority_order puts clcnkb (NOT_FOUND) before wt1a (verified); verify_output.py + ingest.py compile under -W error::DeprecationWarning; no DI/store/ledger write occurs.",
+  "expected_outcome_if_h0": "admissible mis-classifies, tier weights wrong, info_priority mis-orders, a compile/deprecation error, or a tool mutates the store/ledger.",
+  "observable_at": "2026-06-18 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-18T14:20:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE. verify_output smoke: BAD ok=False admissible=False ['unresolved external identifiers (hard fail): [ENSDARG00000054611]']; GOOD ok=True admissible=True; tier_weight 1.0/0.7/0.0; info_priority_order = [(clcnkb, NOT_FOUND->high info), (wt1a, already verified->low info)]. ingest.py + verify_output.py compile OK under -W error::DeprecationWarning. ingest.py NOT run (human-gated). No store/ledger mutation (additions are pure functions + a Cypher SET that runs only at the next gated ingest).",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_4", "test_1"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay": {
+    "type": "identifier_resolution",
+    "assertions": [{"symbol": "wt1a", "expected_ensdarg": "ENSDARG00000031420"}],
+    "must_fail": ["wt1a is ENSDARG00000054611 (admissible() must return False on this fabrication)"],
+    "note": "admissible() wraps verify_identifiers(), so the identifier_resolution replay transitively guards the admissibility predicate: if the resolver/gate breaks, admissible() would stop rejecting the fabrication and this record regresses (Δv<0)."
+  },
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "reason": "Closing audit gate for the R2 substrate-evidence output (Mode 1, >=3 adversarial lenses). Self-audit by the producer is prohibited (§7)."
+    },
+    {
+      "agent": "domain-knowledge-curator",
+      "status": "not-applicable",
+      "reason": "No corpus/store mutation in R2; the tier-weight stamping runs inside the existing human-gated ingest path the curator (PR-09) will eventually own."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation (substrate tooling, not biology)."
+    }
+  ],
+  "notes": "R2 of the approved plan (reforzar MITAD_A · §3.1 #1 admissibility + #5 Bayes-purity). ADR-0024. ~6th resolved record toward the n>=10 ECE gate; per ADR-0005 this is 'case capture', NOT 'Test 4 satisfied'. Carries the §5 contract fields + the honesty-clause fields + the `replay` block (auto-replayable, R1). Key honest scope: the Bayes-purity invariant is realized at the graph layer; wiring compute_ece per-record tier-weighting is the deferred next increment. Closing composite-auditor: 3/3 APPROVE (minor); 7 minor fixes applied (extra_predicates hard-invariant contract note; property renamed identifier_admissible; DERIVED=0.7 documented provisional + gap-flagged; dropped dead None key + added UNVERIFIED to TIER_WEIGHT; tier_weight_for_record delegates to tier_weight; info_priority_order clamps prior; compute_ece datetime cleanup noted as incidental). No-mutation confirmed by the auditor (store + manifest zero git changes; ingest.py not run)."
+}

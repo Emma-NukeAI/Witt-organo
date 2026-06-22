@@ -16,7 +16,7 @@ import argparse
 import json
 import os
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 
@@ -125,7 +125,7 @@ def main():
         test_4_status = "infrastructure populated"
 
     report = {
-        "generated": datetime.utcnow().isoformat() + "Z",
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "n_total_records": len(records),
         "n_observable": len(observable),
         "n_scored": n_scored,

@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 from embeddings import get_embedder, get_dim  # noqa: E402
-from lib import rag_backend  # noqa: E402  (gather_documents)
+from lib import rag_backend, verify_output  # noqa: E402  (gather_documents; tier_weight for Bayes-purity)
 
 
 def _load(p):
@@ -107,11 +107,17 @@ def run(confirm_embed_model_change=False):
                 sym = e.get("entity")
                 if not sym:
                     continue
-                s.run("MERGE (x:Entity {symbol:$s}) SET x.ensdarg=$g, x.tier=$t",
+                # R2 / ADR-0024 (Bayes-purity): stamp a verified_tier_weight on the Entity AND the MENTIONS
+                # edge (RAW=1.0 confirmed / DERIVED=0.7 / NOT_FOUND|unknown=0.0). Only RAW-confirmed mentions
+                # may later carry full calibration label-weight; the deterministic verifier keeps f -> 0.
+                tier = e.get("verification_tier")
+                tw = verify_output.tier_weight(tier)
+                s.run("MERGE (x:Entity {symbol:$s}) SET x.ensdarg=$g, x.tier=$t, x.verified_tier_weight=$w",
                       s=sym, g=(e.get("store_ensdarg") or e.get("external_ids_verified", {}).get("ENSDARG")),
-                      t=e.get("verification_tier"))
-                s.run("MATCH (doc:Document {doc_id:$id}),(en:Entity {symbol:$s}) MERGE (doc)-[:MENTIONS]->(en)",
-                      id=r["corpus_record_id"], s=sym)
+                      t=tier, w=tw)
+                s.run("MATCH (doc:Document {doc_id:$id}),(en:Entity {symbol:$s}) "
+                      "MERGE (doc)-[m:MENTIONS]->(en) SET m.verified_tier_weight=$w",
+                      id=r["corpus_record_id"], s=sym, w=tw)
         counts = {k: s.run(f"MATCH (n:{k}) RETURN count(n) AS c").single()["c"]
                   for k in ("Document", "Niche", "Database", "Entity")}
         # A6: stamp freshness — embed model/dim, refresh time, doc count (introspectable by agents/health checks)

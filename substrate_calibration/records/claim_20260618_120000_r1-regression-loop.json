@@ -1,0 +1,79 @@
+{
+  "claim_id": "claim_20260618_120000_r1-regression-loop",
+  "claim_timestamp": "2026-06-18T12:00:00Z",
+  "prediction_preregistered_at": "2026-06-18T12:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (R1 — cierre del loop de aprendizaje)",
+  "skill_origin": "manual (R1 reinforcement per the approved plan; tools in substrate_calibration/tools/{replay_and_regress,governance_prefilter,build_regression_cases}.py)",
+  "skill_version": "replay_and_regress-1.0 / governance_prefilter-1.0 / build_regression_cases-1.0",
+  "claim_text": "R1 closes the learn-from-errors half of MITAD_A's accountability loop with three reuse-first, read-and-report tools (zero DATA INAMOVIBLE / ledger mutation; reads are free per CLAUDE.md §7). (1) replay_and_regress.py re-executes the deterministic check embedded in a stored case against a changed system Sigma' and reports per-case Delta-v (regression = baseline POSITIVE -> current NEGATIVE). (2) governance_prefilter.py is an advisory, non-blocking pre-filter inserted BEFORE the human gate: it replays records + a regression-case corpus under a proposed Sigma' and reports per-case dominance (Tarski/Goedel: the frozen held-out H is the strictly-higher level; the policy cannot certify itself). It never approves/applies (ADR-0013 self_applied:false intact). (3) build_regression_cases.py turns failure_log.jsonl entries into permanent, self-validated, replay-bearing guards in substrate_calibration/regression_cases/ (additive: each logged error -> one more guard). Verified end-to-end NO-SPEND: the canonical 2026-06 marker-ID corruption (wt1a -> ENSDARG00000054611) is caught as Delta-v=-1.0 via a REAL guard auto-built from the failure log; a regressive store/rule proposal is FAILed pre-gate; a clean one PASSes. Reuses compute_ece.load_records/outcome_to_label, resolve_id, verify_output, the record seed, and held_out_set_v1.json (run-snapshot slot ready).",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner impact and no DATA INAMOVIBLE mutation: the tools are read-and-report (they emit report JSON + generated guards, never write the store/ledger). The verdicts are deterministically re-derivable (the 3 self-tests + the e2e chain). The governance_prefilter is explicitly advisory — it does not approve/apply anything, so the §7/ADR-0013 human gate is preserved unchanged.",
+  "agent_invocation_status": "composite-auditor INVOKED as the closing audit gate (Mode 1, >=3 adversarial) — see agents_invoked. Self-audit by the producer is prohibited (§7); the deterministic self-tests are evidence, not the audit gate.",
+  "prior": 0.85,
+  "stated_confidence": 0.95,
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (Tier 1; 'produces results perfectly calibrated by construction'). R1's correctness claim is a deterministic, re-runnable proof (the 3 self-tests exit 0 + the e2e chain shows NO_REGRESSION/REGRESSION/FAIL exactly where predicted), so Logic-LM is the apt citation. Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "the_3_tools_pass_their_deterministic_self_tests_and_the_e2e_chain": 0.98,
+    "replay_and_regress_catches_the_2026-06_marker-id_corruption_as_delta_v_minus_1": 0.98,
+    "build_regression_cases_grows_the_guard_corpus_additively_from_failure_log (1 guard built + self-validated)": 0.95,
+    "governance_prefilter_improves_rule-addition_safety_as_an_advisory_pre-gate (mechanism sound; advisory; human gate final)": 0.75,
+    "this_materially_strengthens_Test_3_at_scale (structural, NOT measured: n~2 calibration; depends on records carrying replay blocks + held-out month-N runs existing)": 0.55
+  },
+  "alternatives_considered": [
+    "Make the governance pre-filter BLOCKING (auto-reject regressive proposals) — rejected: violates §7 / ADR-0013 (human gate final; agents propose, humans apply). Advisory + surfaced is the correct form.",
+    "Store the generated guards inside records/ — rejected: records are immutable claims (ADR-0002); a separate regression_cases/ dir keeps provenance clean and is loaded via --cases-dir.",
+    "Build a full held-out re-run harness now (run the 30 H questions under Pi vs Pi') — deferred: needs evaluation/runs/month_N (the planned slot) + an answering harness; v1 uses deterministic identifier guards (testable today) and leaves the per-question run-snapshot path wired (--baseline-run/--proposed-run).",
+    "Add a learned drift model / new dependency — rejected (prueba pequeño): a discrete Delta-v label-flip + the existing EPS_delta=2sigma (RIL_PROGRAM §3/§8) suffice; no new deps."
+  ],
+  "contradictory_evidence_cited": [
+    "Auto-replay coverage is currently thin: only 1 guard exists and the 8 legacy claim records carry no `replay` block, so replay_and_regress over the real corpus is mostly 'manual' today — the strengthening is real but small until the corpus accrues replay-bearing cases.",
+    "The held-out per-question regression path is INERT until evaluation/runs/month_N exist (the planned slot); today only the identifier-resolution guards are auto-checkable.",
+    "Prioritized-replay introduces sampling bias into an aggregate ECE; an unbiased estimate would need an importance-sampling correction (open formal caveat, not resolved in v1)."
+  ],
+  "gap_flags": [
+    "Records need a `replay` block to be auto-replayable; the immutable 2026-05-14 records will never carry one (ADR-0002) — only forward records + generated guards are covered.",
+    "build_regression_cases only guards identifier-resolution failures (fabrication_caught / identifier_unverified); contract_field_missing / framework_miscited are covered by R3's checkers, not here.",
+    "datetime is now timezone-aware (datetime.now(timezone.utc)) across the 3 tools + compute_ece.py — the DeprecationWarning was fixed per the closing composite-audit.",
+    "must_fail is a CORROBORATING check, not independent of `assertions` for the corrupt-Σ' class: under a Σ' that legitimizes the bad ID, `assertions` is what flips; `must_fail` fires under a CLEAN store on output-text reintroduction (the self-test exercises both regimes).",
+    "held_out_set 'runs present' status is detected from the dir existing; the per-question Δ comparison is TODO until month-N runs are produced."
+  ],
+  "rater_id": "self (deterministic re-derivation via the 3 self-tests + e2e chain) — generator==rater acceptable ONLY because the checks are symbolic and reproducible; the closing audit is composite-auditor, not self.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "All 3 self-tests exit 0; the chain shows live=NO_REGRESSION, corrupt Σ'=REGRESSION (via the auto-built wt1a guard, Δv=-1.0), governance_prefilter=FAIL on the corrupt Σ'; no file under the DATA INAMOVIBLE or substrate_calibration/records/ is mutated by the tools.",
+  "expected_outcome_if_h0": "Any self-test fails, the corruption is NOT caught (Δv>=0 under corrupt Σ'), the prefilter PASSes a regressive change, or a tool writes to the store/ledger.",
+  "observable_at": "2026-06-18 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-18T12:30:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE. replay_and_regress --selftest: Σ Δv=0 / Σ' Δv=-1.0 regression=True. governance_prefilter --selftest: clean PASS / corrupt FAIL (regressions=['selftest_marker_id_guard']). build_regression_cases: built regcase_wt1a_id_guard (self-validated), skipped the 15-of-16 entry honestly. e2e chain: live NO_REGRESSION (n_auto=1) / corrupt REGRESSION (regressed=['regcase_wt1a_id_guard']) / prefilter FAIL on a real queued proposal. No DI/ledger writes (tools only wrote report JSON + the regression_cases guard).",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_3", "test_4", "test_1"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay": {
+    "type": "identifier_resolution",
+    "assertions": [{"symbol": "wt1a", "expected_ensdarg": "ENSDARG00000031420"}],
+    "must_fail": ["wt1a is ENSDARG00000054611 (the 2026-06 fabrication R1 guards against)"],
+    "note": "Dogfoods the new `replay` field: replaying THIS record re-checks the canonical guard R1 protects. Full R1 verification is the 3 self-tests + the e2e chain (script-level, see observed_outcome_detail)."
+  },
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "reason": "Closing audit gate for the R1 substrate-evidence output (Mode 1, >=3 adversarial lenses: correctness+no-mutation safety / §5-contract+scope / prueba-pequeño+additive+ADR soundness). Self-audit by the producer is prohibited (§7); this record is the producer's claim, the composite-auditor is the gate."
+    },
+    {
+      "agent": "retrospector",
+      "status": "not-applicable",
+      "reason": "The Cycle-3 retrospector agent is not yet built; its inputs (the new Δv reports + guards + this record) are RIL telemetry it will read when online. retrospect.py will fold this record into next_session_prepend on the next run."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation in this output (substrate tooling, not biology)."
+    }
+  ],
+  "notes": "R1 of the approved plan (reforzar MITAD_A · §3.1 #3+#4). ADR-0023. ~5th resolved record toward the n>=10 ECE gate; per ADR-0005 this is 'case capture', NOT 'Test 4 satisfied'. Carries the §5 contract fields (alternatives_considered + contradictory_evidence_cited + gap_flags) and the GWT v1.1 honesty-clause fields (prediction_preregistered_at, sub_domain, proxy_level, rater_id). Introduces the optional `replay` block (auto-replayable records). Closing composite-auditor: 3/3 APPROVE (minor); 5 minor fixes applied (datetime timezone-aware x4 files; must_fail clarified as corroborating + self-test exercises both regimes; inconclusive_auto bucket; held-out real-run detection; removed an unused import). No-mutation confirmed by the auditor (store + ledger byte-identical before/after)."
+}

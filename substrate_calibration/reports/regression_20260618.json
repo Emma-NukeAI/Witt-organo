@@ -1,0 +1,83 @@
+{
+  "generated": "2026-06-22T01:09:21.925360Z",
+  "store_version": "2026-06-11.1",
+  "store_path": "C:\\Users\\Emmanuel\\dev\\witt-organogenesis\\analysis\\outputs\\verified_identifiers.json",
+  "n_records": 8,
+  "n_auto_replayable": 0,
+  "n_manual": 8,
+  "n_regressions": 0,
+  "regressed_claim_ids": [],
+  "verdict": "NO_REGRESSION",
+  "held_out": {
+    "set": "held_out_v1_2026-06-11",
+    "status": "runs present \u2014 per-question \u0394 comparison TODO when month-N runs exist",
+    "n_questions": 30
+  },
+  "per_record": [
+    {
+      "claim_id": "claim_20260514_143000_pronephros-minimal-set",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": null,
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260514_150000_proteomic-repositories-located",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": null,
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260514_160000_prkci-vangl2-detected-PXD036678",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": null,
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260514_163000_peptide-level-confirmation-PXD036678",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": null,
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260531_190000_collaborator-zebrafish-lbpp",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": "positive",
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260610_120000_verified-identifier-store-v1",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": "positive",
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260611_000000_niche-taxonomy-audit",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": "positive",
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    },
+    {
+      "claim_id": "claim_20260611_120000_corpus-feasibility-zesta",
+      "seed": 42,
+      "kind": "manual",
+      "baseline_outcome": "positive",
+      "current_status": null,
+      "note": "no machine-replayable `replay` block; needs human/agent re-eval"
+    }
+  ],
+  "note": "Read-and-report only; no DI/ledger mutation. A regression (\u0394v<0) does NOT auto-act \u2014 it is surfaced for the human gate / composite-auditor. `manual` records await a `replay` block."
+}

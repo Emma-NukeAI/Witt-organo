@@ -1,0 +1,69 @@
+{
+  "claim_id": "claim_20260618_160000_r3-accountability-gates",
+  "claim_timestamp": "2026-06-18T16:00:00Z",
+  "prediction_preregistered_at": "2026-06-18T16:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (R3 — de reflejo a gate verificable)",
+  "skill_origin": "manual (R3 reinforcement per the approved plan; substrate_calibration/tools/accountability_checks.py)",
+  "skill_version": "accountability_checks-1.0",
+  "claim_text": "R3 turns §4 (framework election) and §11 (agent invocation) from hand-consulted REFLEXES into deterministic, read-and-report GATES (zero mutation). accountability_checks.py: (1) check_framework_citation enforces §4 — framework_applied must cite a SPECIFIC catalog §section (regex §\\d), must NOT be a bare 'Tier N' header (the documented anti-pattern, failure_log framework_miscited), and should quote a criterion. (2) check_agents_invoked enforces §11 — the agents_invoked field present + well-formed (valid status enum; skipped-ad-hoc carries a substantive non-boilerplate reason) + hard-rule coverage via a table MIRRORING agent-invocation-matrix.md §1/§2 (additive: a new matrix row = one rule here). These are CHECKS, not learned selectors (a learned policy is MITAD_B). Validated against the LIVE ledger: over the 10 claim records -> 5 PASS / 1 WARN / 4 FAIL; the 4 FAIL are exactly the 2026-05-14 records citing '§Tier 2' — the forward-enforcement of the framework_miscited failure the failure_log had only marked 'resolved: forward-enforced'. Legacy records immutable (ADR-0002) -> surfaced, NOT modified. Self-test: a compliant record PASSes; a bare-tier citation + a ranked-candidates claim missing causal-pruner is caught FAIL with specific reasons.",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner impact and no DATA INAMOVIBLE mutation: accountability_checks reads records + the matrix-mirroring rule table and emits a report; it modifies nothing. Verdicts are deterministically re-derivable (the self-test + the 10-record run).",
+  "agent_invocation_status": "composite-auditor INVOKED as the closing audit gate (Mode 1, >=3 adversarial). Self-audit by the producer is prohibited (§7).",
+  "prior": 0.85,
+  "stated_confidence": 0.95,
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (Tier 1; the §4/§11 checks are deterministic predicates over the record, re-runnable proofs). Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "check_framework_citation_deterministically_flags_bare-tier_and_missing-section (verified on self-test + 4 real §Tier-2 records)": 0.97,
+    "check_agents_invoked_validates_the_§11_contract_structure_and_skip-reason_substance": 0.95,
+    "the_coverage_table_mirrors_the_matrix_and_is_additive (new matrix row = one rule)": 0.9,
+    "this_meaningfully_reduces_§4/§11_drift_at_scale (structural; coverage rules are a v1 subset; work-type inference is heuristic)": 0.6
+  },
+  "alternatives_considered": [
+    "Parse the matrix markdown directly — rejected: the work-type signals are prose; parsing is fragile. The checker mirrors §1/§2 as a small additive rule table (matrix MD stays the human authority; the checker is its executable projection + drift-catcher).",
+    "Hard-FAIL when reasoning-exposer is absent from every §5 record — softened to WARN: the matrix legitimizes Phase-I Method-2 skip-with-justification when a human is in the loop; a blanket FAIL would flag every record.",
+    "A learned framework/agent selector — deferred: that is MITAD_B (generation). R3 is a deterministic check."
+  ],
+  "contradictory_evidence_cited": [
+    "The §11 coverage is a SUBSET of the matrix (v1: ranked_candidates->causal-pruner, substrate_audit->composite-auditor, inferred heuristically); it does not yet enforce every matrix row.",
+    "Work-type inference is heuristic (keyword/claim_category based); an output may declare its work_types explicitly for a stricter, less-fuzzy check — not yet wired.",
+    "reasoning-exposer coverage is WARN, not FAIL — so a §5 record omitting it is surfaced softly, not blocked."
+  ],
+  "gap_flags": [
+    "Coverage rules cover 2 of the matrix's ~12 work-types; the remaining hard/required rows are extensible hooks not yet populated.",
+    "No explicit per-output work_type declaration yet; inference is heuristic.",
+    "The 4 legacy §Tier-2 FAILs are immutable (ADR-0002); R3 enforces forward only — it cannot fix the historical records, only surface them."
+  ],
+  "rater_id": "self (deterministic re-derivation via the self-test + the 10-record run) — generator==rater acceptable ONLY because the checks are symbolic and reproducible; the closing audit is composite-auditor, not self.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "Self-test: GOOD record PASS, BAD record (bare 'Tier 2' + ranked-candidates missing causal-pruner) FAIL with the specific reasons. Over substrate_calibration/records/: the 2026-05-14 '§Tier 2' records FAIL on §4; the §5-compliant records (2026-06-10 onward) PASS; no record is modified.",
+  "expected_outcome_if_h0": "A compliant record FAILs, a §Tier-2 record PASSes, the checker mutates a record, or it errors.",
+  "observable_at": "2026-06-18 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-18T16:20:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE. Self-test: GOOD verdict=PASS; BAD verdict=FAIL (framework: bare-tier + no-section + no-quote; agents: short skip reason + ranked_candidates missing causal-pruner). Records run: snapshot at claim-time = 10 -> {PASS:5, WARN:1, FAIL:4}; once this R3 record lands the ledger is 11 -> {PASS:6, WARN:1, FAIL:4} (this record PASSes). The INVARIANT is the 4 FAIL = claim_20260514_{143000,150000,160000,163000} (all cite '§Tier 2'); the 2026-06-10/11/18 §5 records PASS (corpus-feasibility WARN: no quoted criterion). No record modified (read-and-report).",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_2"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "reason": "Closing audit gate for the R3 substrate-evidence output (Mode 1, >=3 adversarial lenses). Self-audit by the producer is prohibited (§7)."
+    },
+    {
+      "agent": "reasoning-exposer",
+      "status": "skipped-ad-hoc",
+      "reason": "R3 IS the executable form of part of the reasoning-exposer role (it checks the §4/§5/§11 contract on outputs); the human (Method 2) performed the exposing function in authoring this record. The check itself is the artifact."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation (substrate tooling, not biology)."
+    }
+  ],
+  "notes": "R3 of the approved plan (reforzar MITAD_A · Pillars 2+3 · de reflejo a gate verificable). ADR-0025. ~7th resolved record toward the n>=10 ECE gate; per ADR-0005 'case capture', NOT 'Test 4 satisfied'. No `replay` block: R3's correctness is verified by its self-test + the 10-record run (script-level), not an identifier_resolution replay — so replay_and_regress honestly reports this record as 'manual'. Carries the §5 contract + honesty-clause fields. Closing composite-auditor: 3/3 APPROVE (minor); fixes applied — broadened the §11 ranked_candidates detector to catch the legacy 'is sufficient to induce'/*pruner*-category phrasing (now fires on claim_20260514_143000, causal-pruner present -> coverage PASS, verdict still FAIL via §4); documented framework_applied-only (no _corrected retrofit) + quote-presence-only; count-snapshot clarified (10 at claim-time -> 11 after self-inclusion; the 4-FAIL §Tier-2 set is the invariant). No-mutation confirmed by the auditor (sha256 + git diff clean over the legacy records)."
+}

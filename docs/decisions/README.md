@@ -88,6 +88,12 @@ or external references that informed the decision.
 | [0018](0018-niche-taxonomy-keep-as-is-recommend-always.md) | 2026-06-11 | DATA INAMOVIBLE niche taxonomy keep-as-is + always-recommend-changes + metabolic discriminator | Accepted |
 | [0019](0019-rag-backend-v1-sparse-flat-versioned.md) | 2026-06-11 | RAG backend v1: flat versioned human-gated sparse retriever (dense/hybrid gated) | Accepted |
 | [0020](0020-hosted-graphrag-architecture.md) | 2026-06-11 | Hosted GraphRAG (self-host Neo4j + graphify, SPECTER2+general embeddings, MCP access; RAG_Techniques-informed pipeline) | Accepted (deploy next) |
+| [0021](0021-raw-store-provenance-to-raw-minio-hybrid.md) | 2026-06-12 | Raw store + provenance-to-raw (MinIO, hybrid: public source-pointer / private mirror; `fetch_raw`) | Accepted |
+| [0022](0022-answer-pipeline-di-first-mcp-fallback-audit-reingest.md) | 2026-06-13 | Answer pipeline: DI-first retrieval, Tool-Universe fallback, composite-audit gate, human-gated re-ingest | Proposed |
+| [0023](0023-replay-as-regression-and-no-regression-prefilter.md) | 2026-06-18 | Replay-as-regression + no-regression governance pre-filter + failure-derived regression-case corpus (R1) | Accepted |
+| [0024](0024-admissibility-predicate-and-bayes-purity-tier-weight.md) | 2026-06-18 | Explicit admissibility predicate H(c) + Bayes-purity verified_tier_weight + EVPI placeholder (R2) | Accepted |
+| [0025](0025-accountability-checks-framework-and-agents-invoked-gates.md) | 2026-06-18 | Accountability checks: §4 framework-citation gate + §11 agents_invoked gate (R3) | Accepted |
+| [0026](0026-unified-world-state-transition-and-tooluniverse-directive.md) | 2026-06-18 | Unified World-State-Transition claim contract (do-typed) + explicit Tool Universe Path-B directive (R4) | Accepted |
 
 ---
 

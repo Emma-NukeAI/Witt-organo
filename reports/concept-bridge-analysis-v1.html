@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análisis conceptual — cluster epistémico recursivo + motor JAX-DSL + bridge Sakana vs Witt×Organogénesis</title>
+<style>
+  :root{
+    --bg:#0c0e13; --panel:#141821; --panel2:#1b212d; --ink:#e7ecf3; --mut:#9aa6b8; --dim:#6b7689;
+    --line:#27303f; --acc:#6ea8fe; --acc2:#b08cff;
+    --tiene:#3ecf8e; --parcial:#f5b945; --gap:#ff6b6b;
+    --bajo:#3ecf8e; --medio:#f5b945; --alto:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:34px 22px 80px;}
+  h1{font-size:25px;line-height:1.25;margin:0 0 6px;letter-spacing:-.01em;}
+  h2{font-size:19px;margin:38px 0 12px;padding-top:16px;border-top:1px solid var(--line);letter-spacing:-.01em;}
+  h3{font-size:15.5px;margin:22px 0 8px;color:var(--acc);}
+  p{margin:9px 0;} small{color:var(--mut);} code{background:#0a0c11;border:1px solid var(--line);border-radius:4px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;color:#cdd7e6;}
+  .sub{color:var(--mut);font-size:13.5px;margin-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0;}
+  .chip{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--mut);}
+  .chip b{color:var(--ink);font-weight:600;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0;}
+  .tldr{background:linear-gradient(180deg,#161b27,#12161f);border:1px solid #2b3445;}
+  .tldr h2{border:0;margin-top:0;padding-top:0;color:var(--acc2);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .qbox{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:13px 15px;}
+  .qbox h4{margin:0 0 6px;font-size:13px;color:var(--acc);text-transform:uppercase;letter-spacing:.04em;}
+  .badge{display:inline-block;border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:700;letter-spacing:.02em;}
+  .b-tiene{background:rgba(62,207,142,.14);color:var(--tiene);border:1px solid rgba(62,207,142,.4);}
+  .b-parcial{background:rgba(245,185,69,.13);color:var(--parcial);border:1px solid rgba(245,185,69,.4);}
+  .b-gap{background:rgba(255,107,107,.13);color:var(--gap);border:1px solid rgba(255,107,107,.4);}
+  .risk{font-size:11px;font-weight:700;border-radius:5px;padding:1px 7px;}
+  .r-bajo{background:rgba(62,207,142,.13);color:var(--bajo);} .r-medio{background:rgba(245,185,69,.12);color:var(--medio);} .r-alto{background:rgba(255,107,107,.13);color:var(--alto);}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12.8px;}
+  th,td{border:1px solid var(--line);padding:8px 9px;text-align:left;vertical-align:top;}
+  th{background:var(--panel2);color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;}
+  td b{color:var(--ink);}
+  .callout{border-radius:8px;padding:12px 15px;margin:12px 0;font-size:13.5px;}
+  .c-gap{background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.28);}
+  .c-alt{background:rgba(176,140,255,.07);border:1px solid rgba(176,140,255,.28);}
+  .c-audit{background:rgba(62,207,142,.06);border:1px solid rgba(62,207,142,.28);}
+  .c-note{background:rgba(110,168,254,.06);border:1px solid rgba(110,168,254,.25);}
+  ul{margin:8px 0 8px 2px;padding-left:20px;} li{margin:5px 0;}
+  .conf{font-variant-numeric:tabular-nums;color:var(--acc);font-weight:600;}
+  details{margin:8px 0;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:0 14px;}
+  summary{cursor:pointer;padding:11px 0;color:var(--acc);font-weight:600;font-size:13.5px;}
+  details[open]{padding-bottom:12px;}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;color:#cdd7e6;}
+  .seam{display:flex;gap:0;margin:14px 0;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .seam>div{flex:1;padding:13px 15px;}
+  .seam .acct{background:rgba(62,207,142,.06);} .seam .eng{background:rgba(255,107,107,.06);border-left:1px solid var(--line);}
+  .seam h4{margin:0 0 6px;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;}
+  .foot{color:var(--dim);font-size:12px;margin-top:34px;border-top:1px solid var(--line);padding-top:14px;}
+  .kept{color:var(--tiene);} .miss{color:var(--gap);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Análisis conceptual — el cluster <em>«máquina epistémica recursiva + motor JAX-DSL + bridge Sakana»</em> frente al proyecto Witt × Organogénesis</h1>
+  <div class="sub">¿Con qué SÍ cuenta el proyecto · y con qué podría complementarse — a nivel matemático / teórico / lógico, <b>sin el «cómo implementarlo»</b> (restricción del usuario).</div>
+
+  <div class="chips">
+    <span class="chip">📅 <b>2026-06-18</b></span>
+    <span class="chip">modo <b>Método 2</b> (humano conduce; Workflow como instrumento)</span>
+    <span class="chip">framework <b>Self-Consistency</b> ·§4 + <b>CoVe</b> ·§8</span>
+    <span class="chip">gate de cierre <b>composite-auditor 3/3 APPROVE</b></span>
+    <span class="chip">TYPE <b>A + B</b></span>
+    <span class="chip">9 conceptos · 45+3 agentes · ~2.85M tok</span>
+  </div>
+
+  <!-- ===================== TL;DR ===================== -->
+  <div class="card tldr">
+    <h2>TL;DR</h2>
+    <p>El cluster de ideas se parte limpiamente en <b>dos mitades de una misma «máquina epistémica recursiva»</b>:
+    (A) la <b>maquinaria de rendición de cuentas</b> (tipado objeto/meta, reglas duras/blandas como <em>gates</em>, separación generador≠verificador, memoria de experiencia, gate de auto-modificación), y
+    (B) el <b>motor de generación / optimización / inteligencia</b> (energía unificada, política RL epistémica aprendida, motor JAX-DSL diferenciable-evolutivo, program search).</p>
+    <div class="grid2">
+      <div class="qbox">
+        <h4>1 · ¿Con qué SÍ cuenta?</h4>
+        <p>La <b>mitad (A) casi completa — 6 de 9</b> — y, lo no-trivial, como <b>maquinaria determinista forzada</b> (no prosa): <code>verify_output.py</code> con <code>ok=False</code>, <code>self_applied:false</code>, <code>composite-auditor ≥3</code>. Es la pieza <em>difícil</em>, y la que los textos identifican como la <b>frontera de Witt</b>.</p>
+      </div>
+      <div class="qbox">
+        <h4>2 · ¿Con qué podría complementarse?</h4>
+        <p>Dos clases. <b>Bajo riesgo (hacer explícito / unificar lo ya disperso):</b> 5 movimientos baratos y formalmente sólidos. <b>Alto riesgo (la mitad-motor, choca con <em>«prueba pequeño»</em>):</b> 4 motores potentes — justamente el campo LeCun/Silver que los textos dicen que <b>no</b> es la frontera de Witt.</p>
+      </div>
+    </div>
+    <p style="margin-bottom:0"><b>Lectura meta:</b> lo que el proyecto ya tiene es la mitad-rendición-de-cuentas; las GAPs reales son la mitad-motor. Los complementos de mejor valor/riesgo <b>no son los motores</b>, sino los 5 movimientos que <em>explicitan y unifican</em> maquinaria de rendición de cuentas que el proyecto ya posee en piezas. El bridge Sakana es la <em>disciplina de gobernanza para SI alguna vez se acopla uno de esos motores</em>.</p>
+  </div>
+
+  <!-- ===================== §5 CONTRACT (visible UI) ===================== -->
+  <h2>Contrato §5 — evidencia de substrate (UI visible)</h2>
+
+  <h3>confidence_by_subclaim <small>— sin agregado único (regla §5: no colapsar sub-claims asimétricos)</small></h3>
+  <table>
+    <tr><th>Sub-claim</th><th>Estado</th><th>Confianza</th></tr>
+    <tr><td>Energy Layer unificada (LeCun/EBM)</td><td><span class="badge b-gap">GAP</span></td><td class="conf">0.86</td></tr>
+    <tr><td>World-State Transition Schema (LeCun/Pearl)</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.80</td></tr>
+    <tr><td>Experience Buffer (Silver)</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.84</td></tr>
+    <tr><td>Epistemic RL Policy (Silver)</td><td><span class="badge b-gap">GAP</span></td><td class="conf">0.86</td></tr>
+    <tr><td>Recursive Self-Mod Gate (Russell) — estático TIENE / dinámico GAP</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.84</td></tr>
+    <tr><td>Hard/soft rules (Euclid/Wittgenstein/Popper)</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.80</td></tr>
+    <tr><td>Program search (Chollet) — espíritu sí / población-DSL no</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.81</td></tr>
+    <tr><td>Motor JAX-DSL diferenciable-evolutivo</td><td><span class="badge b-gap">GAP</span></td><td class="conf">0.87</td></tr>
+    <tr><td>Sakana-governance — en espíritu sí / artefacto único no</td><td><span class="badge b-parcial">PARCIAL</span></td><td class="conf">0.82</td></tr>
+    <tr><td>Lectura meta (proyecto = mitad-rendición / GAPs = mitad-motor)</td><td>—</td><td class="conf">0.78</td></tr>
+  </table>
+
+  <h3>framework_applied <small>— re-elegido a mitad de tarea (§4); tag = self-report, no introspección fiel (§5)</small></h3>
+  <ul>
+    <li><b>Self-Consistency</b> (Tier 1) — per <code>reasoning-frameworks-catalog.md §4</code>, criterio citado verbatim: <em>«Sample multiple reasoning paths to the same question with temperature &gt; 0, then take the majority answer»</em> y, separadamente, <em>«the agreement rate across samples is itself a confidence signal»</em>. → 3 lentes adversariales independientes por concepto; la tasa de acuerdo es la confianza.</li>
+    <li><b>Chain-of-Verification (CoVe)</b> — per <code>reasoning-frameworks-catalog.md §8</code>, verbatim: <em>«Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results.»</em> → mapeo = borrador; las 3 lentes = preguntas de verificación independientes; esta síntesis = revisión.</li>
+  </ul>
+
+  <h3>alternatives_considered</h3>
+  <div class="callout c-alt">
+    <ul style="margin:0">
+      <li><b>Energy-Layer GAP→PARCIAL</b> vía specificity-tiers / rúbrica de 7 dims → <b>rechazado</b>: son scores <em>desagregados</em> (la desagregación es <em>requisito</em> §5), nunca una energía aditiva <code>E=Σ E_k</code> con inferencia <code>argmin</code>. (lente equivalencia, conf 0.9)</li>
+      <li><b>Chollet GAP vs PARCIAL</b> → <b>PARCIAL</b>: existe un loop FunSearch-shaped corriendo (<code>program.v3.md</code>), aunque sea hill-climbing de incumbente único.</li>
+      <li><b>Sakana = «ya lo tenemos» (TIENE)</b> → <b>rechazado</b>: TIENE-en-espíritu pero PARCIAL-como-artefacto (no hay interfaz única nombrada; el generador Sakana no está vendido/vivo).</li>
+      <li><b>«Adoptar el bridge Sakana» como respuesta global</b> → <b>rechazado</b>: es 1 de 9; los complementos baratos son independientes de él.</li>
+      <li><b>«El proyecto ya ES la máquina recursiva completa»</b> (sobre-claim) → <b>rechazado</b>: la mitad-motor (B) es GAP genuino.</li>
+    </ul>
+  </div>
+
+  <h3>gap_flags</h3>
+  <div class="callout c-gap">
+    <ol style="margin:0">
+      <li><b>Choque de numeración «ADR-0010».</b> El bundle externo trae su propio <code>0010-sakana-bridge-a1-default-autonomy.md</code> (status <em>proposed</em>). En el repo vivo <b>ADR-0010 = GWT-rename</b>; la lección Sakana vive en <b>ADR-0013</b>. El bridge <b>no está vendido al repo</b> ni ratificado. <small>(verificado por el auditor contra docs/decisions/)</small></li>
+      <li><b>Mala atribución corregida.</b> Un dossier ancló «identifiability-before-accuracy» a <b>ADR-0009</b> — falso (ADR-0009 = retrospector/RIL). <code>grep identifiability|sloppy|profile-likelihood</code> en el repo = 0 matches. Retirada de las citas.</li>
+      <li><b>Verificación de fuentes asimétrica.</b> Anclas con crudo arXiv cacheado (Chollet, I-JEPA, ASAL, AlphaEvolve, Sakana v1/v2/eval). <em>The Era of Experience</em> (Silver&amp;Sutton) y <em>FunSearch</em> (Nature) <b>no son arXiv-residentes</b> → verificadas vía web, no crudo-cacheadas: tier menor.</li>
+      <li><b>Calibración n≈2.</b> El ledger RIL tiene ~2 claims resueltos → <b>ninguna</b> afirmación dice «Test N satisfied»; los veredictos sobre T3/T4 son <b>estructurales</b>, no medidos.</li>
+      <li><b>Residuo de scope-leak.</b> Las lentes marcaron deriva-hacia-implementación en 4 complementos; reformulados como propiedades formales con el «cómo» diferido. Riesgo residual de que alguno aún se lea como cercano a build.</li>
+      <li><b>framework_applied es self-report</b> (caveat §5), no introspección verificada.</li>
+    </ol>
+  </div>
+
+  <h3>agents_invoked</h3>
+  <table>
+    <tr><th>Agente</th><th>Status</th><th>Justificación</th></tr>
+    <tr><td>Workflow <code>research→map→verify</code> (45 agentes)</td><td>invoked</td><td>dossiers estilo <code>reasoning-exposer</code> + verificación Self-Consistency 3-lentes/concepto (composite-auditor-class per-mapping)</td></tr>
+    <tr><td><code>composite-auditor</code> (cierre, Mode 1 ≥3)</td><td>invoked</td><td>gate de auditoría; auto-auditoría del productor prohibida (§7). Veredicto 3/3 APPROVE-minor</td></tr>
+    <tr><td><code>causal-pruner</code></td><td>not-applicable</td><td>no se producen candidatos biológicos rankeados / conjuntos-mínimos; análisis de encaje conceptual. Los toques de «conjunto mínimo» se enuncian como <em>propiedad formal</em>, no ranking; uso operativo requeriría invocación + gate humano</td></tr>
+    <tr><td><code>hypothesis-generator</code></td><td>skipped-ad-hoc</td><td>los complementos son hipótesis de arquitectura conceptual, no biológicas; la contradicción adversarial ya la dieron las 3 lentes</td></tr>
+    <tr><td><code>cross-field-bridge-agent</code></td><td>not-applicable</td><td>es cross-<em>disciplina</em> (teoría-AI ↔ proyecto), no cross-<em>campo-biológico</em> (Test 5)</td></tr>
+  </table>
+
+  <details>
+    <summary>evidence_cited — fuentes externas verificadas + loci internos del repo</summary>
+    <p class="mono"><b>Externas (crudo cacheado en mcp_cache/):</b> EBM — LeCun, Chopra, Hadsell, Ranzato &amp; Huang, <em>A Tutorial on Energy-Based Learning</em> (2006); Gneiting &amp; Raftery, <em>Strictly Proper Scoring Rules</em> (JASA 2007). World-model — LeCun, <em>A Path Towards Autonomous Machine Intelligence</em> (2022); I-JEPA arXiv:2301.08243 ✓. Replay — Lin (1992); DQN (Mnih 2015 / arXiv:1312.5602); PER (Schaul 2016); Silver&amp;Sutton, <em>The Era of Experience</em> (2025, no-arXiv). VoI/BED — Howard (1966); Foster et al., <em>Deep Adaptive Design</em> arXiv:2103.02438. Tipos/auto-ref — Russell (1908); Tarski; Gödel (2º teorema). Program search — Chollet arXiv:1911.01547 ✓; FunSearch (Nature 2023, DOI 10.1038/s41586-023-06924-6); AlphaEvolve arXiv:2506.13131 ✓; ASAL arXiv:2412.17799 ✓; diffrax. Sakana — AI-Scientist v1 arXiv:2408.06292 / v2 arXiv:2504.08066 ✓; eval Beel/Kan/Baumgart arXiv:2502.14297.</p>
+    <p class="mono"><b>Internas (repo):</b> <code>analysis/scripts/lib/{answer_pipeline,verify_output,resolve_id}.py</code>; <code>substrate_calibration/RIL_PROGRAM.md</code> (§3 def. EPS, §6 honestidad-confianza, §7 self_applied:false, §8 mejora-vs-ruido); <code>substrate_calibration/retrospectives/{failure_log.jsonl,governance_queue.jsonl,rolling_calibration.json,next_session_prepend.md}</code>; <code>substrate_calibration/records/*.json</code>; <code>substrate_calibration/tools/{compute_ece,rolling_calibration,retrospect,noise_probe}.py</code>; <code>skills/custom/{causal-ablation-cascade-sim,squidiff-in-silico-gate}/SKILL.md</code>; <code>reasoning-frameworks-catalog.md §4/§5/§8/§candidate-ranking</code>; <code>docs/decisions/{0003,0009,0010,0013,0016}</code>; <code>evaluation/held_out_set_v1.json</code>; <code>docs/autoresearch-handoff/program.v3.md</code>; el bundle externo <code>sakana-bridge-audit-bundle-20260611</code>.</p>
+  </details>
+
+  <!-- ===================== METHOD ===================== -->
+  <h2>Cómo se llegó (método)</h2>
+  <p>Preflight §10 (4 docs núcleo + ADRs/skills/código vivo + grep dirigido) → cacheo de crudo de anclas arXiv → <b>Workflow 1</b>: 9 unidades por pipeline <code>research</code> (verificación de fuentes en vivo) → <code>map</code> (clasificación leyendo archivos reales del repo) → <code>verify</code> (3 lentes adversariales/concepto). <b>Los 9 estados sobrevivieron la refutación</b> — los 27 veredictos de lente (9×3) llevan <code>agree_with_status:true / suggested_status:keep</code>. → síntesis → <b>Workflow 2</b> composite-auditor de cierre (3/3 APPROVE-minor; 7 revisiones aplicadas).</p>
+
+  <!-- ===================== ANSWER 1 ===================== -->
+  <h2>Respuesta 1 — ¿Con qué SÍ cuenta el proyecto?</h2>
+
+  <h3>TIENE (vivo y forzado)</h3>
+  <ul>
+    <li><b>Tipado objeto/meta + gate de auto-modificación <em>estático</em></b> (Russell). <code>self_applied:false</code> (ADR-0013: el agente <em>propone</em>, el humano <em>aplica</em>), la cláusula reflexiva de <code>RIL_PROGRAM.md §7</code>, el human-gate de la DATA INAMOVIBLE (§7), y <code>verify_output.py</code> como <b>oráculo determinista fuera-de-nivel</b> (Logic-LM-class, <em>no</em> un LLM: <code>ok=False</code> ante ID no resuelto). Es la estratificación de tipos ramificados que disuelve la auto-referencia + la lección anti-Sakana internalizada. <b>Lo más fuerte que tiene el proyecto.</b></li>
+    <li><b>El retículo de reglas duras/blandas como gates <em>forzados</em></b> (Euclid · Wittgenstein · Popper · proper-scoring). Predicado de admisibilidad duro <code>H(c)∈{0,1}</code> determinista; Logic-LM como Tier-1 (construcción axiomática «solo admite lo derivable»); el scoring blando <code>Q</code> operando solo sobre admisibles; calibración por proper-scoring (ECE, auto-cap K=6). El nombre <em>Witt</em> = el límite-del-lenguaje de Wittgenstein operacionalizado.</li>
+    <li><b>Separación generador≠verificador</b> (Sakana-governance, <em>en espíritu</em>). <code>answer_pipeline.py</code> realiza <code>GENERATE≠ACCEPT</code> (<code>may_answer_now=False</code> hasta auditar); <code>verify_output</code>/<code>resolve_id</code> = verificador determinista de baja varianza; <code>composite-auditor ≥3</code> = verificador-ensemble; no-self-approval / no-paper-as-truth / no-ID-from-memory / no-confidence-before-outcome forzadas (§7).</li>
+    <li><b>Persistencia + replay-como-recalibración</b> del ledger de experiencia (Silver). <code>records/</code> = store append-only de tuplas <code>e=(q,(f,a),v,q')</code> con honestidad confianza-pre-registrada (RIL_PROGRAM §6); <code>compute_ece.py</code>/<code>rolling_calibration.py</code>/<code>retrospect.py</code> <b>re-leen el buffer entero</b> y recomputan ECE + auto-cap + digest tras cualquier cambio.</li>
+  </ul>
+
+  <h3>Espíritu / parcial fuerte</h3>
+  <ul>
+    <li><b>El <em>espíritu</em> de program search</b> (Chollet). «simulate→prune→induce» <em>es</em> búsqueda en espacio-de-programas con sesgo Occam; un <b>loop FunSearch-shaped corre</b> en <code>program.v3.md</code> (proponer diff mínimo → evaluador determinista → keep/discard + desempate por parsimonia + confianza pre-registrada).</li>
+    <li><b>Las 5 piezas del World-State Transition, dispersas.</b> Intervención/Δ-predicho/ventana/predicado-de-fallo por-escenario en <code>causal-ablation-cascade-sim</code> + squidiff Mode 3; el par Popperiano predecir-vs-observar + ventana + outcome en el claim-record (<code>expected_outcome_if_h1/h0</code>, <code>observable_at</code>); ADR-0003 reconoce <code>F</code> como predicado booleano; <code>answer_pipeline.py</code> ya construye state-machines <code>(estado)→transición</code>.</li>
+  </ul>
+
+  <!-- ===================== ANSWER 2 ===================== -->
+  <h2>Respuesta 2 — ¿Con qué podría complementarse? <small>(nivel formal, sin el «cómo»)</small></h2>
+
+  <h3>Clase de bajo riesgo — «hacer explícito / unificar lo ya disperso» <span class="risk r-bajo">la más alineada con «prueba pequeño»</span></h3>
+  <div class="c-note callout"><b>Discriminador formal:</b> #1 (teorema de admisibilidad) y #5 (invariante de pureza) están <b>formalmente cerrados</b> — demostrables hoy. #3 (replay-regresión) tiene un caveat <b>formalmente abierto</b> (el re-muestreo prioritizado sesga el ECE agregado → necesitaría corrección estilo importance-sampling). #2 y #4 son sólidos pero requieren tipado/oráculo nuevos.</div>
+  <ol>
+    <li><b>Teorema de admisibilidad duro/blando + dimensión EVPI</b> (de hard/soft-rules; riesgo <span class="risk r-bajo">bajo</span>). Hacer explícito que <code>H(c)</code> es predicado de admisibilidad y <code>Q</code> un mapa graduado solo sobre <code>H⁻¹(1)</code> da el teorema que falta: <b>ningún score blando rescata un claim inadmisible</b> (<code>g(Q(c))</code> no voltea <code>H</code> de 0 a 1). Refuerza <b>Induction</b> (exige que el conjunto de mundos que el claim prohíbe sea no-vacío: «marcador DEBE aparecer bajo señal y NO bajo washout») y <b>Specificity</b> (<code>τ=E[Y|do(signal)]−E[Y|do(control)]</code> como precondición de identificabilidad). EVPI ordena dentro de <code>H⁻¹(1)</code> «qué conjunto-mínimo maximiza información por factor» → <b>Parsimony</b> + <b>T4</b>. <em>(Hoy: grep EVPI/value-of-information = 0.)</em></li>
+    <li><b>Unificar la tupla WSTS + tipar la intervención como <code>do(·)</code></b> (de world-state-transition; riesgo <span class="risk r-medio">medio</span>). Forzar que el slot de intervención sea <code>do(a)</code> (Pearl), no condicionamiento, porque <code>P(S'|do(a))≠P(S'|a)</code> → un claim de <b>Induction/Specificity</b> tipado así <b>no puede</b> satisfacerse por co-ocurrencia/confundido. La tupla <code>⟨S,do(a),Δŝ,W,F⟩</code> es un loop cerrado predecir→observar→refutar → cada claim emite <b>nativamente</b> un dato de calibración (<b>T4</b>) y el bucle de <b>T3</b>.</li>
+    <li><b>Replay-como-regresión sobre el held-out</b> (de experience-buffer; riesgo <span class="risk r-medio">medio</span>). Hoy hay replay-recalibración pero <b>no</b> replay-regresión. Como propiedad formal, vuelve medible «¿mejoró o solo derivó?» (<code>Δv = v'(e|Σ')−v(e) &lt; 0</code> en caso que antes pasaba), emparejándose con la regla <code>EPS_delta=2σ</code> (RIL_PROGRAM §3 def. / §8 uso) → <b>T3</b>; prioridad PER <code>|conf−outcome|</code> → <b>T4</b>. <em>(Caveat abierto: el re-muestreo prioritizado sesga el ECE agregado.)</em></li>
+    <li><b>Criterio de no-regresión por-caso para el gate de auto-modificación</b> (de recursive-self-mod; riesgo <span class="risk r-medio">medio</span>). El device estático ya existe; falta el dinámico. Tarski+Gödel: <b>una función de scoring no puede certificar su propia mejora desde su propio nivel</b>; el held-out congelado <code>H</code> es ese nivel superior. Propiedad formal: aceptar un cambio meta <code>Π'</code> solo si <code>S(Π',H)</code> <em>domina por-caso</em> a <code>S(Π,H)−ε</code> → da a <b>T3</b> una garantía de monotonicidad y protege <b>T4</b>. <em>Complementa, no reemplaza, el human-gate.</em></li>
+    <li><b>Invariante de pureza-de-Bayes del ledger</b> (de sakana-governance; riesgo <span class="risk r-medio">medio</span>, <b>formalmente cerrado</b>). Pureza del set aceptado <code>= s·p/(s·p+f·(1−p))</code>. Como T4 consume solo records con <code>observed_outcome</code>, prueba por qué un artefacto coherente-pero-incorrecto en bin de alta-confianza es singularmente destructivo (<code>ΔECE ∝ (1/n_bin)·error</code>) y que el bucle generar→recalibrar <b>contrae a pureza=1 solo si <code>f→0</code></b> (subclase determinista) y <b>diverge si <code>f&gt;0</code></b>. Es la justificación formal de por qué <code>causal-pruner</code>/<code>hypothesis-generator</code> quedan <b>permanentemente</b> human-gated.</li>
+  </ol>
+
+  <h3>Clase de alto apalancamiento — la mitad «motor de generación» <span class="risk r-alto">alto riesgo de sobre-ingeniería</span></h3>
+  <div class="callout c-gap"><b>Aviso transversal:</b> estos 4 son el campo «construir un motor más fuerte» que los textos atribuyen a <b>LeCun/Silver</b> y dicen <b>no</b> es la frontera de Witt. Cada uno viola <em>«prueba pequeño antes de armar bien»</em> si se construye <b>antes</b> de medir el cuello de botella. Listados por mérito formal, con el riesgo marcado.</div>
+  <ol start="6">
+    <li><b>Witt Energy Layer — energía aditiva unificada</b> (LeCun/EBM; <span class="risk r-alto">alto</span>). Puntuar un claim con escalar <code>E(Y,X)</code> no-normalizado, inferencia <code>Y*=argmin_Y E(Y,X)</code>, <b>sin función de partición</b> (se suman desiderata heterogéneos <code>E=Σ_k E_k</code> sin normalizar porque <code>argmin</code> es invariante a <code>Z</code>). (i) La condición de <b>margen</b> <code>E(Ȳ)−E(Y)≥m</code> vuelve la <b>Parsimony</b> un teorema («lowest-energy at fewest factors»); la brecha de energía al claim incorrecto más cercano da a <b>Specificity/Identity</b> «específico vs meramente plausible». (ii) Vía Gibbs <code>P=exp(−βE)/Z</code>, el log-loss <em>es</em> la NLL y <b>ECE pasa a ser el término empírico de calibración</b> (Gneiting-Raftery) → unifica <b>T4</b> con el isotónico post-hoc ya mandatado.</li>
+    <li><b>Política RL epistémica aprendida (VoI/EIG)</b> (Silver; <span class="risk r-alto">alto</span>). Hoy todo «qué sigue» es fijo/hard-coded (sin función de valor de información). Encaje más ajustado <b>T4</b>: con <code>r_t=−ΔECE_t</code>, <code>V^π(s)=E_π[Σγ^k r_{t+k}]</code> <em>es</em> la mejora-de-calibración esperada → <code>argmax_a Q*(s,a)</code> = la próxima acción que más reduce mis-calibración (criterio <b>forward</b> que el auto-cap reactivo no tiene). <code>r=EIG(a)−λ·cost(a)</code> <em>es</em> la formalización de <em>«prueba pequeño»</em> (read&lt;simulate&lt;benchmark&lt;ask_human) → <b>Parsimony</b>; Howard VoI≥0 separa <code>kill_claim</code>/<code>ask_human</code> (terminal) de exploración pura.</li>
+    <li><b>Motor JAX-DSL diferenciable + evolutivo LLM-in-the-loop</b> (<span class="risk r-alto">alto</span> — el mayor «armar bien»). Simulador interno diferenciable: PDE reacción-difusión <code>∂u/∂t = D∇²u + R(u;φ)</code>, gates por Hill <code>θⁿ/(Kⁿ+θⁿ)</code>, patrón de Turing por inestabilidad difusiva (<code>d=D_inh/D_act &gt; d_c</code>). Ajuste interno por gradiente <code>φ*(ρ)=argmin_φ‖u_ρ(t;φ)−ŷ(t)‖²+λΩ(φ)</code> <em>diferenciando a través del solver (sensibilidad adjunta en modo reverso, p.ej. diffrax)</em>. Búsqueda externa evolutiva <code>max_ρ F(ρ)=−L(φ*(ρ))−γ·complexity(ρ)</code> con LLM como operador de mutación (patrón FunSearch/AlphaEvolve/ASAL). Encajes: <b>Parsimony</b> (rule-set más pequeño que ajusta held-out, criterio continuo vs pruning discreto); <b>Specificity</b> (<code>D∇²u</code> selecciona longitud-de-onda del pre-patrón); <b>Induction</b> (Hill = respuesta-umbral); <b>T4 (gancho más fuerte)</b>: la curvatura de la verosimilitud (Hessian/Fisher) <em>es</em> confianza calibrada — convierte la confianza auto-reportada del simulador en una <b>derivada-del-modelo y falsable</b>, e <b>importa la guarda de identificabilidad que falta</b> (Hessian casi-singular = «buen ajuste pero mecanismo no-identificable»). <em>Caveat dominante: el problema inverso es genéricamente mal-puesto (sloppiness) — sin penalización de parsimonia + profile-likelihood, es matemáticamente insano como herramienta de descubrimiento.</em></li>
+    <li><b>Program search poblacional / DSL</b> (Chollet; <span class="risk r-alto">alto</span>). El loop actual es hill-climbing de incumbente único; falta la maquinaria poblacional que preserva diversidad (<em>una búsqueda poblacional quality-diversity, p.ej. esquemas island / MAP-Elites con el LLM como operador de crossover</em>). Encajes: <b>Parsimony</b>+<b>T1</b> (conjunto-mínimo como <code>argmax</code> sobre espacio-de-programas con sesgo de baja-complejidad; el artefacto-solución pasa a ser un <b>programa inspeccionable</b> = reasoning-exposure más fuerte que un escalar → evidencia <b>T1</b> directa); <b>T4</b> (la dificultad-de-generalización <code>GD</code> de Chollet, normalizada por priors+experiencia, es el ground-truth que el held-out estima). <em>Caveat: la complejidad de Kolmogorov es incomputable; el sesgo es un proxy (longitud de programa).</em></li>
+  </ol>
+
+  <!-- ===================== MATRIX (TYPE B) ===================== -->
+  <h2>Matriz concepto × proyecto <small>(TYPE B)</small></h2>
+  <table>
+    <tr><th>#</th><th>Concepto (autor/lente)</th><th>Estado</th><th>Dónde vive / por qué falta</th><th>Mecanismo de complemento (formal)</th><th>Test / Gate</th><th>Riesgo</th><th>Conf.</th></tr>
+    <tr><td>1</td><td><b>Energy Layer</b> (LeCun/EBM)</td><td><span class="badge b-gap">GAP</span></td><td>solo scores desagregados; cero <code>E=ΣE_k</code>/<code>argmin</code>/Gibbs</td><td>margen→Parsimony-como-teorema; Gibbs→ECE</td><td>Parsimony · T4 · T1</td><td><span class="risk r-alto">alto</span></td><td class="conf">0.86</td></tr>
+    <tr><td>2</td><td><b>World-State Transition</b> (LeCun/Pearl)</td><td><span class="badge b-parcial">PARCIAL</span></td><td>5 campos dispersos; sin tupla única ni <code>do</code>-tipado</td><td><code>do(a)≠cond</code> excluye confundidos; loop predecir→observar nativo</td><td>Specificity · Induction · T3/T4</td><td><span class="risk r-medio">medio</span></td><td class="conf">0.80</td></tr>
+    <tr><td>3</td><td><b>Experience Buffer</b> (Silver)</td><td><span class="badge b-parcial">PARCIAL</span></td><td>persistencia+recalibración vivas; sin replay-regresión</td><td><code>Δv&lt;0</code> vuelve medible mejora-vs-deriva; PER-prioridad</td><td>T3 · T4</td><td><span class="risk r-medio">medio</span></td><td class="conf">0.84</td></tr>
+    <tr><td>4</td><td><b>Epistemic RL Policy</b> (Silver)</td><td><span class="badge b-gap">GAP</span></td><td>todo «qué sigue» es fijo/hard-coded; sin VoI</td><td><code>r=−ΔECE</code>→<code>V^π</code>=mejora-calibración esperada (forward)</td><td>T4 · T3 · Parsimony</td><td><span class="risk r-alto">alto</span></td><td class="conf">0.86</td></tr>
+    <tr><td>5</td><td><b>Recursive Self-Mod Gate</b> (Russell)</td><td><span class="badge b-parcial">PARCIAL</span></td><td>estático TIENE (<code>self_applied:false</code>); dinámico GAP</td><td>no-regresión por-caso sobre <code>H</code> (Tarski/Gödel)</td><td>T4 · T3 · Parsimony</td><td><span class="risk r-medio">medio</span></td><td class="conf">0.84</td></tr>
+    <tr><td>6</td><td><b>Hard/soft rules</b> (Euclid/Witt/Popper)</td><td><span class="badge b-parcial">PARCIAL</span></td><td>retículo mayormente forzado; falta teorema + EVPI</td><td><code>H</code> predicado / <code>Q</code> solo sobre admisibles; <code>τ</code> precondición</td><td>Induction · Specificity · T4</td><td><span class="risk r-bajo">bajo</span></td><td class="conf">0.80</td></tr>
+    <tr><td>7</td><td><b>Program search</b> (Chollet)</td><td><span class="badge b-parcial">PARCIAL</span></td><td>espíritu + loop hill-climbing; sin población/DSL</td><td>conjunto-mínimo=<code>argmax</code> sobre programas; programa=traza inspeccionable</td><td>Parsimony · T1 · T4</td><td><span class="risk r-alto">alto</span></td><td class="conf">0.81</td></tr>
+    <tr><td>8</td><td><b>JAX-DSL evolutivo</b></td><td><span class="badge b-gap">GAP</span></td><td>simuladores fijos; sin autodiff/fit/evolución</td><td><code>F(ρ)</code> continuo; Hessian=confianza+identificabilidad</td><td>Parsimony · Specificity · Induction · T4</td><td><span class="risk r-alto">alto</span></td><td class="conf">0.87</td></tr>
+    <tr><td>9</td><td><b>Sakana-governance</b></td><td><span class="badge b-parcial">PARCIAL</span></td><td>en espíritu vivo; sin interfaz única ni generador vivo</td><td>pureza <code>=s·p/(s·p+f(1−p))</code>; contrae a 1 solo si <code>f→0</code></td><td>T4 · T1 · T3</td><td><span class="risk r-medio">medio</span></td><td class="conf">0.82</td></tr>
+  </table>
+  <p><small><b>Leyenda:</b> <span class="badge b-tiene">TIENE</span> ya existe vivo · <span class="badge b-parcial">PARCIAL</span> presente pero incompleto · <span class="badge b-gap">GAP</span> ausente. (No hay fila <span class="badge b-tiene">TIENE</span> pura porque cada concepto «poseído» lo está parcialmente o disperso; los TIENE fuertes viven dentro de las filas PARCIAL 5/6/9 y se detallan en la Respuesta 1.)</small></p>
+
+  <!-- ===================== META ===================== -->
+  <h2>Síntesis transversal — la lectura meta</h2>
+  <p>Los textos del usuario aportan su propia tesis (reflejada aquí sobre el proyecto, no citada de una fuente externa): <em>LeCun y Silver siguen tratando de construir motores de inteligencia más fuertes; la frontera de Witt es distinta — la maquinaria recursiva que convierte inteligencia en conocimiento rendible.</em> El análisis <b>confirma esa tesis empíricamente</b> sobre el proyecto vivo, como inferencia del reparto 6-vs-3:</p>
+  <div class="seam">
+    <div class="acct"><h4 class="kept">Lo que el proyecto YA TIENE → mitad rendición-de-cuentas</h4>
+      Tipado objeto/meta · gates duros/blandos · separación generador≠verificador · ledger de experiencia · esquema de transición de estado. Y como <b>maquinaria forzada y determinista</b> (no prosa). Es la mitad <em>difícil</em> — y la que los textos dicen que <b>es</b> la frontera de Witt.</div>
+    <div class="eng"><h4 class="miss">Las GAPs reales → mitad motor-de-generación</h4>
+      Energy Layer · Epistemic RL aprendida · JAX-DSL diferenciable-evolutivo · program search poblacional. Es exactamente el campo LeCun/Silver que los textos dicen que <b>no</b> es la frontera de Witt.</div>
+  </div>
+  <p><b>La costura se mantiene incluso en el caso más adverso:</b> el <em>Experience Buffer</em> de Silver es el ítem más «engine-side» del cluster (la «Era of Experience» es una tesis de <em>crecimiento</em> de inteligencia). Pero se parte exactamente por la misma costura: <span class="kept">replay-como-recalibración (uso de rendición-de-cuentas) = TIENE</span>, <span class="miss">replay-como-regresión/aprendizaje (uso de motor) = GAP</span> (§3.1 #3). Incluso el autor más adyacente al motor cae por la misma línea que el meta-marco predice.</p>
+  <p><b>Implicación estratégica (respetando «prueba pequeño»):</b> los complementos de mayor valor-por-riesgo <b>no son los motores</b>, sino los 5 movimientos de <b>§3.1</b> que <em>hacen explícito y unifican</em> maquinaria de rendición-de-cuentas que el proyecto ya posee en piezas. Los 4 motores de §3.2 son potentes pero son precisamente lo que <b>no</b> hay que «armar bien» antes de medir el cuello de botella — y el <b>bridge Sakana es la disciplina de gobernanza para SI alguna vez se acopla uno de esos motores</b>. El cluster es coherente porque la mitad-motor (lo que falta) sería gobernada por la mitad-rendición-de-cuentas (lo que ya hay); el bridge es el contrato entre ambas.</p>
+
+  <!-- ===================== AUDIT ===================== -->
+  <h2>Auditoría de cierre — composite-auditor (Mode 1, ≥3)</h2>
+  <div class="callout c-audit">
+    <p style="margin-top:0"><b>Veredicto: 3/3 APPROVE (severidad: minor).</b> 3 lentes adversariales independientes (auto-auditoría del productor prohibida, §7), cada una con spot-checks en vivo del repo:</p>
+    <ul>
+      <li><b>Lens A — Fidelidad &amp; status</b> (conf 0.88): los 9 estados coinciden <em>exactamente</em> con los hallazgos verificados; los 27 veredictos de lente confirman <code>keep</code>; ambas correcciones (ADR-0010 = GWT-rename; ADR-0009 = retrospector/RIL) verificadas; <code>verify_output.py</code> líneas 63-65 y <code>self_applied:false</code> confirmados en vivo. <b>Sin loci inventados.</b></li>
+      <li><b>Lens B — Scope &amp; contrato §5</b> (conf 0.84): <b>sin scope-leak</b>; contrato completo y honesto; <code>confidence_by_subclaim</code> no-agregado; gap_flags «inusualmente fuertes»; framework citado por §sección específica (no por tier).</li>
+      <li><b>Lens C — «prueba pequeño» &amp; framing</b> (conf 0.85): riesgo de sobre-ingeniería correctamente asignado (los 4 motores = alto); el meta-marco <b>sobrevive la refutación</b> (ningún TIENE es engine-side; ningún GAP es accountability-side), apropiadamente hedgeado a la confianza más baja (0.78).</li>
+    </ul>
+    <p style="margin-bottom:0"><b>7 revisiones menores aplicadas en este reporte:</b> (A1) <code>RIL_PROGRAM.md</code> citado en su ruta real (no bajo <code>retrospectives/</code>); (A2) <code>EPS_delta=2σ</code> citado §3 def / §8 uso; (B1) comillas de <code>framework_applied</code> ahora verbatim-honestas (spans contiguos del catálogo); (B2) «diffrax adjoints» / «MAP-Elites» demotados a ejemplos parentéticos de la propiedad formal; (C1) comillas del meta-marco LeCun/Silver retiradas y reencuadradas como tesis del usuario reflejada; (C2) añadida la cláusula de la costura del Experience Buffer; (C3) añadido el discriminador cerrado(#1,#5)/abierto(#3) en §3.1.</p>
+  </div>
+
+  <!-- ===================== LIMITS ===================== -->
+  <h2>Límites — qué NO prueba este análisis</h2>
+  <ul>
+    <li>No es recomendación de adopción ni diseño: <b>no dice cómo construir nada</b> (por instrucción). «Podría complementar» = encaje formal + mecanismo, no plan.</li>
+    <li>Los encajes Test/gate son <b>correspondencias formales argumentadas</b>, no integraciones medidas en el repo.</li>
+    <li>Confianza <b>estructural</b>, no calibrada por outcomes (ledger n≈2) → ningún «Test satisfecho».</li>
+    <li>Anclas no-arXiv (Era of Experience, FunSearch) con tier de verificación menor (gap_flag 3).</li>
+    <li>El mapeo autor→propiedad (Euclid/Wittgenstein/Russell → invariantes del substrate) es <b>síntesis analítica</b>: las anclas están verificadas, el puente está argumentado.</li>
+  </ul>
+
+  <div class="foot">
+    Witt × Organogénesis · GWT v1.1 · análisis conceptual v1 · 2026-06-18 · Método 2 · TYPE A+B ·
+    framework Self-Consistency (§4) + CoVe (§8) · gate composite-auditor 3/3 APPROVE-minor ·
+    fuentes externas verificadas + crudo en <code>mcp_cache/raw_arxiv_*</code> · hallazgos en <code>research→map→verify</code> (45 agentes) ·
+    restricción dura respetada: nivel matemático/teórico/lógico, sin el «cómo implementar».
+  </div>
+
+</div>
+</body>
+</html>
