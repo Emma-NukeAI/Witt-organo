@@ -1,12 +1,13 @@
 # Project Organogenesis × Witt — Master Scope Document
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Date:** May 04, 2026  
 **Status:** Working document — update as the project evolves  
 **Owner:** Emmanuel  
 **Purpose:** Single source of truth for the integrated Witt substrate × Organogenesis POC project. Use this doc as the persistent reference for analysis, planning, and skill iteration.
 
 **Changelog:**
+- **v1.3 (Jun 18, 2026)** — Architecture NOTE added to §6: the **MITAD_A** (accountability — this repo) / **MITAD_B** (generation engine — separate, isolated sibling repo `conciencia-universal`) split, from the 2026-06 concept-bridge analysis. ADR-0023–0026 reinforce MITAD_A; MITAD_B is bootstrapped A1-only (no engine built). **No change to the five tests, six niches, gates, or phases** — an architectural lens + an isolation decision (*prueba pequeño*).
 - **v1.2 (May 04, 2026)** — Recalibration of Tests 3, 4, 5 thresholds derived from April 30 stress-test of architecture against 2025+ LLM evidence. Three-tier threshold reporting introduced (defensive / ambitious / per-category). Test 5 explicitly framed as exploratory in Phase I. Reference to companion stress-test brief added. No structural changes to the five tests themselves.
 - **v1.1 (Apr 30, 2026)** — Test 5 partner field changed from TDA (topological data analysis) to TBD adjacent biological domain (cardiology or ophthalmology, decision pending). Added operating principle from Martín's April 29 conversation. Reasoning frameworks integrated as transversal evidence stream within substrate (not a separate hierarchy). Cross-field-bridge-agent updated to be partner-field-agnostic. Glossary updated.
 - **v1.0 (Apr 30, 2026)** — Initial release.
@@ -392,6 +393,15 @@ The orchestrator does not choose between methods. **The human user does.** Metho
 The empty placeholder at the top of the architecture sketch labeled "erp ciencia" — this is the long-term integration target. An **ERP for science**: not just an agent system but the cognitive infrastructure that integrates data, agents, simulation outputs, calibration tracking, expert participation logs, and decision history into a coherent operational layer for a research organization.
 
 This is the substrate at maturity. The dual-method architecture above is the seed; the ERP de Ciencia is what it becomes when it accumulates 5–10 years of deployment history across multiple domains.
+
+### The two halves — accountability vs generation (architecture note · 2026-06 · early)
+
+A 2026-06 conceptual analysis (composite-audited 3/3; `reports/concept-bridge-analysis-v1.html`) reframes the system as a **recursive epistemic machine of two halves**, a lens **orthogonal** to the Method-1/2 axis above:
+
+- **MITAD_A — accountability** (this repo): the machinery that turns generated content into *accountable* knowledge — typed object/meta governance, hard/soft admissibility gates, the generator≠verifier split, the experience/calibration ledger, the World-State-Transition claim contract. **Reinforced 2026-06 (R1–R4, ADR-0023–0026):** replay-as-regression + an advisory no-regression governance pre-filter, an explicit admissibility predicate `H(c)` + Bayes-purity weighting, executable §4/§11 accountability checkers, and a do-typed `⟨S, do(a), Δŝ, W, F⟩` claim contract. All reuse-first, read-and-report (zero DATA INAMOVIBLE mutation).
+- **MITAD_B — generation** (a **separate, isolated sibling repo** `conciencia-universal`, NOT this repo): the intelligence/optimization engine — energy-based claim scoring, a learned epistemic-RL policy, a JAX-DSL differentiable-evolutionary simulator, population program search. Kept in its own `.git` because it can risk A's structure; it reads the DATA INAMOVIBLE **read-only** via the MCP, **never mutates A**, and runs at default autonomy **A1 (proposal-only)** under a Sakana-style governance ladder (A0–A6). Bootstrapped 2026-06 (scaffold + A↔B contract + first target = the Energy Layer); **the engine itself is not built**.
+
+This split changes **no test, niche, gate, or phase** — it is an architectural lens + an isolation decision. Rationale (*prueba pequeño*): A's frontier is the **accountability machinery** (the project's differentiator — the recursive layer that makes intelligence accountable, distinct from the LeCun/Silver "stronger engine" battlefield); B is explored separately so it cannot destabilize A.
 
 ---
 
