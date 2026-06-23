@@ -23,9 +23,20 @@ from typing import List
 
 from . import resolve_id
 
-ENSDARG_RE = re.compile(r"ENSDARG\d{11}")
+# N2 (ADR-0027 close): the extractor is TOLERANT — case-insensitive, optional separator, optional version
+# suffix — so a reformatted id ('Ensdarg00000054611', 'ENSDARG_00000054611', 'ENSDARG00000054611.1') is
+# still extracted, then CANONICALIZED to 'ENSDARG<11 digits>' before resolving. Without this, a fabricated
+# id evaded the gate simply by lowercasing it or inserting a separator.
+ENSDARG_RE = re.compile(r"ENSDARG[\s_\-]?\d{11}(?:\.\d+)?", re.I)          # tolerant matcher (binding fullmatch)
+_ENSDARG_EXTRACT = re.compile(r"ENSDARG[\s_\-]?(\d{11})(?:\.\d+)?", re.I)  # captures the 11 digits
 PMID_RE = re.compile(r"\bPMID:?\s?(\d{4,9})\b")
 GEO_RE = re.compile(r"\b(?:GSE|GSM|SRR|SRP|SRX|PRJNA|PXD|MSV)\d+\b")
+
+
+def _canonical_ensdarg(s):
+    """Canonical 'ENSDARG<11 digits>' for any case/separator/version variant, else None (not an ENSDARG)."""
+    m = _ENSDARG_EXTRACT.fullmatch(str(s).strip())
+    return ("ENSDARG" + m.group(1)) if m else None
 
 
 @dataclass
@@ -36,6 +47,7 @@ class VerificationReport:
     not_found_positive: List[str] = field(default_factory=list)  # store says "looked, absent"
     unresolved: List[str] = field(default_factory=list)          # in output, not in store => FAILURE
     flagged_external: List[str] = field(default_factory=list)    # PMID/GEO — can't verify offline (gap_flag)
+    misbound: List[str] = field(default_factory=list)            # symbol<->ENSDARG pair that contradicts the store (N1)
 
     def as_dict(self):
         return {
@@ -46,6 +58,7 @@ class VerificationReport:
             "not_found_positive": sorted(self.not_found_positive),
             "unresolved": sorted(self.unresolved),
             "flagged_external": sorted(self.flagged_external),
+            "misbound": sorted(self.misbound),
         }
 
     @property
@@ -57,17 +70,68 @@ class VerificationReport:
         return self.ok
 
 
+# N1 (ADR-0027): keys under which an output may carry an EXPLICIT symbol<->ENSDARG pairing.
+# The binding check is HARD only on STRUCTURED pairs (a dict carrying both a symbol-key and an
+# ensdarg-key). Free-text "<symbol> is <ENSDARG>" pairing is NOT inferred (it would over-fire on
+# any text that mentions a gene and, separately, an accession) — that remains an honest gap_flag.
+# Symbol/ENSDARG pairing keys. Includes `marker`/`ens_id` — the ACTUAL field names emitted by
+# 01_schoels_analysis.py (the script N1 cites as the corruption it fixes); the closing composite-audit
+# (ADR-0027) found the original allowlist MISSED that real output shape. The allowlist is inherently a
+# subset (gap_flag); the reverse-binding check below is key-agnostic in spirit (any recognized pair whose
+# ENSDARG belongs to a different stored symbol is caught even when the paired symbol is NOT_FOUND).
+_SYMBOL_KEYS = ("symbol", "gene", "gene_symbol", "marker")
+_ENSDARG_KEYS = ("ensdarg", "ensembl_gene_id", "gene_id", "ens_id")
+
+
+def _walk_bindings(obj):
+    """Yield (symbol, ensdarg) from any nested dict that carries BOTH a symbol-key and an ensdarg-key.
+    Only well-formed ENSDARG values are yielded (so a gene_id holding a non-ENSDARG is ignored)."""
+    if isinstance(obj, dict):
+        sym = next((obj[k] for k in _SYMBOL_KEYS if isinstance(obj.get(k), str)), None)
+        ens_raw = next((obj[k] for k in _ENSDARG_KEYS if isinstance(obj.get(k), str)), None)
+        ens = _canonical_ensdarg(ens_raw) if ens_raw else None    # N2: normalize case/separator/version
+        if sym and ens:
+            yield str(sym).strip(), ens
+        for v in obj.values():
+            yield from _walk_bindings(v)
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            yield from _walk_bindings(v)
+
+
+def verify_bindings(obj, store=None) -> List[str]:
+    """N1: validate EXPLICIT symbol<->ENSDARG pairs against the store. Returns a list of mis-binding
+    descriptions (empty = all consistent). A pair is MIS-BOUND when EITHER direction contradicts the store:
+      - FORWARD: the store resolves the symbol to a DIFFERENT ENSDARG than the one paired with it.
+      - REVERSE: the paired ENSDARG belongs in the store to a DIFFERENT symbol (catches the case where the
+        paired symbol is NOT_FOUND but the ENSDARG is a real id of an unrelated gene — the 'collided with an
+        unrelated gene' corruption, failure_log line 1, which a forward-only check misses).
+    """
+    sot = store or resolve_id._get_default()
+    out = []
+    for sym, ens in _walk_bindings(obj):
+        rec = sot.resolve(sym)
+        if rec is not resolve_id.NOT_FOUND and rec.ensdarg and rec.ensdarg != ens:
+            out.append(f"{sym} paired with {ens} but store binds {sym}->{rec.ensdarg}")
+        rec_e = sot.resolve(ens)
+        if rec_e is not resolve_id.NOT_FOUND and rec_e.symbol and rec_e.symbol.lower() != sym.lower():
+            out.append(f"{ens} paired with '{sym}' but store binds that id to '{rec_e.symbol}'")
+    return sorted(set(out))
+
+
 def verify_identifiers(text_or_obj, store=None) -> VerificationReport:
     """Extract external identifiers from a string or JSON-serializable object and gate them.
 
-    GATE FAILURE (report.ok == False) iff any ENSDARG in the output does not resolve in the store.
+    GATE FAILURE (report.ok == False) iff any ENSDARG in the output does not resolve in the store,
+    OR any EXPLICIT structured symbol<->ENSDARG pair contradicts the store binding (N1 / ADR-0027).
     PMIDs/GEO accessions are flagged (honest gap), not failures, in v1.
     """
     sot = store or resolve_id._get_default()
     text = text_or_obj if isinstance(text_or_obj, str) else json.dumps(text_or_obj)
     report = VerificationReport()
 
-    for ens in sorted(set(ENSDARG_RE.findall(text))):
+    for digits in sorted(set(_ENSDARG_EXTRACT.findall(text))):
+        ens = "ENSDARG" + digits   # N2: canonical form (case/separator/version normalized) before resolving
         rec = sot.resolve(ens)
         if rec is resolve_id.NOT_FOUND:
             report.unresolved.append(ens)
@@ -76,6 +140,12 @@ def verify_identifiers(text_or_obj, store=None) -> VerificationReport:
             report.verified_raw.append(ens)
         else:
             report.verified_derived.append(ens)
+
+    # N1: hard binding check over EXPLICIT structured pairs (never inferred from free text).
+    if not isinstance(text_or_obj, str):
+        report.misbound = verify_bindings(text_or_obj, store=sot)
+        if report.misbound:
+            report.ok = False
 
     for pmid in sorted(set(PMID_RE.findall(text))):
         report.flagged_external.append(f"PMID:{pmid}")
@@ -131,8 +201,10 @@ def admissible(text_or_obj, store=None, extra_predicates=None):
     """
     report = verify_identifiers(text_or_obj, store=store)
     reasons = []
-    if not report.ok:
+    if report.unresolved:
         reasons.append(f"unresolved external identifiers (hard fail): {sorted(report.unresolved)}")
+    if report.misbound:
+        reasons.append(f"mis-bound symbol<->ENSDARG pairs (hard fail, N1): {sorted(report.misbound)}")
     for pred in (extra_predicates or []):
         name, ok = pred(text_or_obj, report)
         if not ok:
@@ -175,6 +247,25 @@ if __name__ == "__main__":
         rep = verify_identifiers(txt)
         adm, reasons = admissible(txt)
         print(label, "ok=", rep.ok, "admissible=", adm, reasons or "")
+    # N1 (ADR-0027): a STRUCTURED mis-binding (pax2a paired with wt1a's verified ENSDARG) must FAIL,
+    # while the correct structured pair passes. Free-text pairing is intentionally NOT inferred.
+    misbound = {"identifier_bindings": [{"symbol": "pax2a", "ensdarg": "ENSDARG00000031420"}]}  # wt1a's id
+    correct = {"identifier_bindings": [{"symbol": "wt1a", "ensdarg": "ENSDARG00000031420"}]}
+    # ADR-0027 close: the REAL 01_schoels output shape uses {marker, ens_id}; and a NOT_FOUND symbol
+    # bound to a real-but-other-gene id must be caught by the REVERSE check.
+    real_shape = {"canonical_rows": [{"marker": "pax2a", "ens_id": "ENSDARG00000031420"}]}  # wt1a's id
+    notfound_sym = {"markers": [{"symbol": "osr1", "ensdarg": "ENSDARG00000031420"}]}        # osr1 NOT_FOUND
+    for label, obj in (("N1 MISBOUND {symbol,ensdarg}", misbound), ("N1 OK", correct),
+                       ("N1 MISBOUND {marker,ens_id} (real 01_schoels shape)", real_shape),
+                       ("N1 REVERSE (NOT_FOUND symbol -> other gene id)", notfound_sym)):
+        adm, reasons = admissible(obj)
+        print(label, "admissible=", adm, reasons or "")
+    # N2 (ADR-0027 close): a reformatted fabricated id (lowercase / separator / version) must NOT evade.
+    for label, txt in (("N2 lowercase", "wt1a is Ensdarg00000054611"),
+                       ("N2 separator", "wt1a is ENSDARG_00000054611"),
+                       ("N2 versioned", "wt1a is ENSDARG00000054611.1")):
+        adm, reasons = admissible(txt)
+        print(label, "admissible=", adm, "(expect False — caught after canonicalization)")
     # R2 (ADR-0024): tier weights (Bayes-purity) — only RAW carries full calibration label-weight.
     print("tier_weight RAW/DERIVED/NOT_FOUND =", tier_weight("RAW"), tier_weight("DERIVED"), tier_weight("NOT_FOUND"))
     # info_priority_order PLACEHOLDER: a NOT_FOUND (clcnkb) outranks a verified symbol (wt1a) for resolution.

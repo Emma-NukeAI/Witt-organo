@@ -1,0 +1,408 @@
+<title>MITAD_A — Validación adversarial (2026-06-22)</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --paper:#fffefb; --ink:#1f2328; --dim:#5b6470; --faint:#8b93a0;
+    --line:#e4e1d9; --line2:#d8d4c8; --accent:#9a3b1f; --accent2:#1f5e7a;
+    --good:#1f7a3d; --warn:#9a6a12; --bad:#a82c2c; --tiene:#1f7a3d; --parcial:#9a6a12; --gap:#a82c2c;
+    --codebg:#f0ede5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
+    line-height:1.6;font-size:17px;-webkit-font-smoothing:antialiased}
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,254,251,.94);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line2);padding:10px 22px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+    font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+  nav b{color:var(--accent);margin-right:10px;font-size:14px}
+  nav a{color:var(--dim);text-decoration:none;padding:3px 9px;border-radius:5px}
+  nav a:hover{background:var(--codebg);color:var(--ink)}
+  main{max-width:1100px;margin:0 auto;padding:34px 26px 90px}
+  h1{font-size:33px;line-height:1.18;margin:.2em 0 .1em;letter-spacing:-.01em}
+  h2{font-size:24px;margin:1.7em 0 .5em;padding-bottom:.2em;border-bottom:2px solid var(--line2)}
+  h3{font-size:19px;margin:1.3em 0 .35em;color:var(--accent2)}
+  .sub{color:var(--dim);font-size:15px;font-family:'Segoe UI',system-ui,sans-serif}
+  code,.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:.86em;background:var(--codebg);
+    padding:1px 5px;border-radius:4px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:14px 16px}
+  .stat .n{font-size:30px;font-weight:700;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.05}
+  .stat .l{font-size:12.5px;color:var(--dim);font-family:'Segoe UI',system-ui,sans-serif;margin-top:3px}
+  .badge{display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;
+    padding:2px 9px;border-radius:20px;border:1px solid;vertical-align:middle}
+  .b-pass,.b-tiene{color:var(--good);border-color:var(--good);background:#eaf5ee}
+  .b-warn,.b-parcial{color:var(--warn);border-color:var(--warn);background:#faf3e2}
+  .b-fail,.b-gap{color:var(--bad);border-color:var(--bad);background:#f8eaea}
+  .b-flag{color:var(--accent2);border-color:var(--accent2);background:#e8f1f5}
+  .callout{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:8px;padding:15px 18px;margin:16px 0}
+  .callout.good{border-left-color:var(--good)} .callout.warn{border-left-color:var(--warn)}
+  .callout.bad{border-left-color:var(--bad)}
+  .callout h3{margin-top:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;
+    font-family:'Segoe UI',system-ui,sans-serif;background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{background:var(--codebg);font-size:12.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  tr:last-child td{border-bottom:none}
+  td.mono,th.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:12.5px}
+  .scroll{overflow-x:auto}
+  ul.tight{margin:.4em 0;padding-left:1.3em} ul.tight li{margin:.25em 0}
+  .contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .cfield{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:13px 15px}
+  .cfield .k{font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;text-transform:uppercase;
+    letter-spacing:.04em;color:var(--faint);margin-bottom:5px}
+  .bar{height:9px;border-radius:6px;background:var(--codebg);overflow:hidden;margin:5px 0 2px}
+  .bar > i{display:block;height:100%}
+  .foot{margin-top:50px;padding-top:18px;border-top:1px solid var(--line2);color:var(--faint);
+    font-family:'Segoe UI',system-ui,sans-serif;font-size:12.5px}
+  .ph{color:var(--faint);font-style:italic}
+  .w{font-family:'Segoe UI',system-ui,sans-serif;font-size:13.5px;background:var(--paper);border:1px solid var(--line);
+    border-radius:7px;padding:11px 14px;margin:9px 0;border-left:3px solid var(--warn)}
+  .w b{color:var(--accent)}
+</style>
+
+<nav>
+  <b>MITAD_A · validación</b>
+  <a href="#tldr">TL;DR</a>
+  <a href="#contract">§5</a>
+  <a href="#inventory">Inventario</a>
+  <a href="#gates">Gates reales</a>
+  <a href="#redteam">Red-team</a>
+  <a href="#invariants">Invariantes</a>
+  <a href="#pillars">5 pilares</a>
+  <a href="#audit">Composite-audit</a>
+  <a href="#verdict">Veredicto</a>
+</nav>
+
+<main>
+  <p class="sub">Validación adversarial · Witt × Organogenésis · GWT v1.1 · 2026-06-22</p>
+  <h1>¿La mitad de rendición de cuentas se defiende sola?</h1>
+  <p class="sub">Sesión Método&nbsp;2 · read-and-report (cero mutación de la DATA INAMOVIBLE) · NO-SPEND ·
+  HEAD <code>abb1360</code> · 5 tools en <code>substrate_calibration/tools/</code> + <code>verify_output.py</code></p>
+
+  <section id="tldr">
+    <h2>TL;DR</h2>
+    <div class="callout">
+      <h3>Veredicto resumido <span class="badge b-tiene">SEGURIDAD: se defiende sola</span> <span class="badge b-parcial">DETECCIÓN: parcial</span></h3>
+      <p><b>Dos capas, dos respuestas.</b> La <b>capa de seguridad</b> (read-and-report · no-mutación · advisory ·
+      human-gate) <b>se defiende sola y es irrefutable</b>: los 3 auditores intentaron romperla y no pudieron —
+      cero camino de escritura al store/records/queue, SHA256 idéntico tras una corrida REAL, <code>self_applied:false</code>
+      intacto, ningún auto-apply. La <b>capa de detección/enforcement</b> es el <b>borde blando</b>: atrapa sus
+      objetivos <i>canónicos</i> (ID ausente del store, corrupción del store <code>Δv=−1.0</code>, citación <code>§Tier N</code>)
+      pero su cobertura es más estrecha de lo que afirma. Los 5 pilares salieron <b>PARCIAL</b>; los 3 auditores
+      <b>QUALIFIED_YES</b>. <b>Gate más débil: cobertura §11 de <code>accountability_checks</code></b> (cero FAIL
+      sobre los 12 records reales; solo 2/7 filas de la matriz tienen enforcer; bypass por <code>claim_category</code>
+      auto-declarado). <b>Co-débil en el eje de identidad: N1</b> — <code>verify_output</code> verifica que un ENSDARG
+      <i>exista</i> pero nunca que esté <i>ligado</i> al símbolo emparejado, así que la corrupción exacta "ID que
+      colisionó con un gen no relacionado" (failure_log línea 1) queda sin proteger en general.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" style="color:var(--good)">5/5</div><div class="l">selftests PASS</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn)">5×</div><div class="l">pilares PARCIAL</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">3×</div><div class="l">auditores QUALIFIED_YES</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">0</div><div class="l">mutaciones (DI+records); SHA estable</div></div>
+      <div class="stat"><div class="n" style="color:var(--bad)">4</div><div class="l">bypasses nuevos verificados (N1,N3,N6,W2)</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn)">2/7</div><div class="l">filas matriz §11 con enforcer</div></div>
+    </div>
+  </section>
+
+  <section id="contract">
+    <h2>Contrato §5 (substrate-instrumented)</h2>
+    <div class="contract">
+      <div class="cfield">
+        <div class="k">direct_answer</div>
+        Sí, la mitad de rendición de cuentas se defiende sola en sus 4 modos de fallo canónicos y es
+        estructuralmente read-and-report/advisory. El gate más débil es la cobertura §11 de
+        <code>accountability_checks</code> (W1 + W2).
+      </div>
+      <div class="cfield">
+        <div class="k">confidence_by_subclaim</div>
+        <div style="font-family:'Segoe UI',sans-serif;font-size:13px">
+          <div>seguridad: read-and-report / advisory / no-mutación — <b>0.97</b></div><div class="bar"><i style="width:97%;background:var(--good)"></i></div>
+          <div>gates atrapan su target CANÓNICO — <b>0.88</b></div><div class="bar"><i style="width:88%;background:var(--good)"></i></div>
+          <div>gates cubren toda la superficie que CLAIMAN — <b>0.42</b></div><div class="bar"><i style="width:42%;background:var(--bad)"></i></div>
+          <div>cobertura §11 (enforcement real) — <b>0.38</b></div><div class="bar"><i style="width:38%;background:var(--bad)"></i></div>
+          <div>loop automejora cierra para error arbitrario — <b>0.52</b></div><div class="bar"><i style="width:52%;background:var(--warn)"></i></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--faint);margin-top:5px">Bajado vs. borrador: el panel halló la superficie de detección más estrecha de lo afirmado (N1, N3, N6 confirmados por el productor).</div>
+      </div>
+      <div class="cfield">
+        <div class="k">framework_applied</div>
+        <b>Chain-of-Verification</b> — per <code>reasoning-frameworks-catalog.md §8</code>:
+        <i>"verification questions are drafted and answered independently of the initial response, so the
+        check is not contaminated by the reasoning that produced the claim"</i>. Re-electo desde
+        Self-Discover: el trabajo pasó de descomponer la misión a <b>verificar afirmaciones contra flujos
+        de evidencia independientes</b> (selftests, gates reales, red-team, invariantes, panel adversarial).
+      </div>
+      <div class="cfield">
+        <div class="k">agents_invoked</div>
+        <ul class="tight" style="font-family:'Segoe UI',sans-serif;font-size:13px">
+          <li><code>composite-auditor</code> — invoked (Mode 1, 3 auditores adversariales; workflow <code>wf_19ba302e</code>)</li>
+          <li>5× validador independiente de pilar — invoked (workflow, fase Pillars)</li>
+          <li><code>causal-pruner</code> — not-applicable (no se generan candidatos biológicos; validación de tooling)</li>
+        </ul>
+      </div>
+      <div class="cfield">
+        <div class="k">alternatives_considered</div>
+        <ul class="tight" style="font-family:'Segoe UI',sans-serif;font-size:13px">
+          <li>Confiar en <code>docs/HANDOFF.md</code> — rechazado (misión: verificar contra código, no docs).</li>
+          <li>Correr gates solo sobre records reales sin red-team — rechazado (no probaría que atrapan lo malo).</li>
+          <li>Auto-auditoría del productor — <b>prohibida</b> por §7; se usó composite-auditor separado.</li>
+        </ul>
+      </div>
+      <div class="cfield">
+        <div class="k">gap_flags</div>
+        <ul class="tight" style="font-family:'Segoe UI',sans-serif;font-size:13px">
+          <li><span class="badge b-flag">conocido</span> held-out per-question <code>evaluation/runs/</code> vacío</li>
+          <li><span class="badge b-flag">conocido</span> Tool Universe Path-B requiere MCP conectado</li>
+          <li><span class="badge b-flag">conocido</span> <code>compute_ece</code> por-tier + emisión nativa WSTS diferidos</li>
+          <li><span class="badge b-gap">N1</span> <code>verify_output</code> no valida binding símbolo↔ENSDARG (verif. productor)</li>
+          <li><span class="badge b-gap">N3</span> detección causal-pruner por keyword/substring incompleta (verif.)</li>
+          <li><span class="badge b-gap">N6</span> §4 no valida el quote contra el texto del catálogo (verif.)</li>
+          <li><span class="badge b-gap">W2</span> evasión vía <code>claim_category:methodological</code> (verif.)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="inventory">
+    <h2>1 · Inventario + selftests <span class="badge b-pass">5/5 PASS</span></h2>
+    <div class="scroll"><table>
+      <tr><th>Tool</th><th>Self-check</th><th>Qué demuestra</th><th>Resultado</th></tr>
+      <tr><td class="mono">accountability_checks.py</td><td class="mono">--selftest</td>
+        <td>GOOD record PASS; BAD (bare-tier §4 + falta causal-pruner §11) FAIL</td><td><span class="badge b-pass">PASS</span></td></tr>
+      <tr><td class="mono">replay_and_regress.py</td><td class="mono">--selftest</td>
+        <td>store vivo Δv=0; Σ' corrupto (wt1a→054611) Δv=−1.0 REGRESSION</td><td><span class="badge b-pass">PASS</span></td></tr>
+      <tr><td class="mono">governance_prefilter.py</td><td class="mono">--selftest</td>
+        <td>Σ' limpio PASS; Σ' corrupto FAIL pre-gate; advisory</td><td><span class="badge b-pass">PASS</span></td></tr>
+      <tr><td class="mono">world_state.py</td><td class="mono">--selftest</td>
+        <td>do→causal_admissible; observe→no; malformed/non-dict→inválido sin crash</td><td><span class="badge b-pass">PASS</span></td></tr>
+      <tr><td class="mono">build_regression_cases.py</td><td class="mono">--dry-run</td>
+        <td><b>no tiene <code>--selftest</code></b>; construye <code>regcase_wt1a_id_guard</code> del failure_log, salta "15/16 IDs"</td><td><span class="badge b-pass">PASS</span></td></tr>
+    </table></div>
+    <div class="w"><b>Hallazgo menor:</b> 4/5 tools exponen <code>--selftest</code>; <code>build_regression_cases.py</code>
+    usa <code>--dry-run</code> como su self-check NO-SPEND. Inconsistencia de interfaz, no de función.</div>
+  </section>
+
+  <section id="gates">
+    <h2>2 · Gates sobre records REALES <span class="sub">(substrate_calibration/records/, n=12)</span></h2>
+    <h3><code>accountability_checks</code> — 7 PASS / 1 WARN / 4 FAIL</h3>
+    <p>Los <b>4 FAIL son los records legacy 2026-05-14</b> que citan <code>§Tier 2</code> — el anti-patrón §4
+    documentado (<code>failure_log: framework_miscited</code>). Inmutables por ADR-0002 → <b>FAIL por diseño</b>
+    = señal de forward-enforcement, no ruido. El WARN es <code>corpus-feasibility-zesta</code> (tiene §section
+    pero sin criterio citado). Los <b>4 records R1–R4 PASS</b>.</p>
+    <h3><code>replay_and_regress</code> (+ regression_cases, store vivo) — <span class="badge b-pass">NO_REGRESSION</span></h3>
+    <p>3 auto-replayables (<code>r1</code>, <code>r2</code>, <code>regcase_wt1a_id_guard</code>), 10 manual,
+    0 regresiones. <code>held_out_v1_2026-06-11</code> (30 q) existe pero <code>evaluation/runs/</code> son dirs
+    placeholder — <span class="badge b-flag">flag conocido</span>.</p>
+    <h3><code>world_state --project-records</code> — 12/12 válidos</h3>
+    <p>3 do-typed &amp; <code>causal_admissible</code> (minimal-set 143000, r2, r4); el resto observe-typed por
+    inferencia de keywords. <code>compute_ece</code>: n_scored=8 → <code>test_4='case capture'</code>
+    (ADR-0005, n&lt;10); ece_raw=0.126 (descriptivo, <b>no</b> veredicto de calibración).</p>
+  </section>
+
+  <section id="redteam">
+    <h2>3 · Red-team <span class="sub">(outputs malos en scratchpad, NUNCA en records/)</span></h2>
+    <div class="scroll"><table>
+      <tr><th>Caso</th><th>Output malo</th><th>Gate</th><th>Esperado</th><th>Observado</th></tr>
+      <tr><td>(a)</td><td class="mono">ENSDARG09999999999 fabricado</td><td class="mono">verify_output.admissible()</td>
+        <td>False</td><td><span class="badge b-pass">False ✓</span></td></tr>
+      <tr><td>(a)</td><td class="mono">wt1a → ENSDARG00000054611</td><td class="mono">admissible()</td>
+        <td>False</td><td><span class="badge b-pass">False ✓</span></td></tr>
+      <tr><td>(b1)</td><td>§Tier 2 + "is sufficient to induce" + pruner not-applicable</td><td class="mono">accountability_checks</td>
+        <td>FAIL (§4 y §11)</td><td><span class="badge b-warn">FAIL vía §4; §11=WARN</span></td></tr>
+      <tr><td>(b2)</td><td>causal-pruner AUSENTE, framework limpio</td><td class="mono">accountability_checks §11</td>
+        <td>FAIL</td><td><span class="badge b-pass">§11 FAIL ✓</span></td></tr>
+      <tr><td>(b3)</td><td>"is sufficient to induce" + <code>category:methodological</code></td><td class="mono">accountability_checks</td>
+        <td>(debería atrapar)</td><td><span class="badge b-fail">PASS — EVASIÓN</span></td></tr>
+      <tr><td>(c)</td><td>Σ' corrupto wt1a→054611</td><td class="mono">replay_and_regress --store</td>
+        <td>Δv=−1.0 REGRESSION</td><td><span class="badge b-pass">3× Δv=−1.0 ✓</span></td></tr>
+      <tr><td>(c)</td><td>Σ' corrupto + propuesta real</td><td class="mono">governance_prefilter --store</td>
+        <td>FAIL pre-gate</td><td><span class="badge b-pass">FAIL + advisory ✓</span></td></tr>
+      <tr><td>(c)</td><td>control: Σ' = store vivo</td><td class="mono">governance_prefilter --store</td>
+        <td>PASS</td><td><span class="badge b-pass">PASS, 0 reg ✓</span></td></tr>
+    </table></div>
+    <div class="callout bad">
+      <h3>Hallazgos del red-team (b)</h3>
+      <p><b>b1 — el spec literal no se cumple en §11:</b> el record FALLA en conjunto, pero el FAIL lo conduce
+      §4 (framework). El componente §11 devuelve <b>WARN</b>, no FAIL, ante un agente requerido marcado
+      <code>not-applicable</code> (el FAIL de §11 solo dispara con "not in agents_invoked"/"absent"/"empty",
+      <code>accountability_checks.py:140-141</code>).</p>
+      <p><b>b3 — evasión real:</b> el mismo claim biológico de generación, etiquetado
+      <code>claim_category:methodological</code>, <b>PASA</b> — la ruta de keywords se suprime para records
+      methodological (<code>accountability_checks.py:57-63</code>). La supresión fue un fix deliberado de
+      falsos-positivos (los propios R-records mencionan "is sufficient to induce" al describir el WSTS), pero
+      el efecto colateral es que el gate confía en una etiqueta auto-declarada.</p>
+    </div>
+  </section>
+
+  <section id="invariants">
+    <h2>4 · Invariantes <span class="badge b-pass">read-and-report confirmado</span></h2>
+    <div class="scroll"><table>
+      <tr><th>Invariante</th><th>Antes</th><th>Después</th><th></th></tr>
+      <tr><td>SHA256 <code>verified_identifiers.json</code></td><td class="mono">f070b40c…707</td><td class="mono">f070b40c…707</td><td><span class="badge b-pass">idéntico</span></td></tr>
+      <tr><td><code>git diff substrate_calibration/records/</code></td><td>—</td><td>vacío</td><td><span class="badge b-pass">sin cambio</span></td></tr>
+      <tr><td><code>git status --porcelain</code></td><td>limpio</td><td>pristine</td><td><span class="badge b-pass">artefactos en scratchpad</span></td></tr>
+      <tr><td><code>governance_queue</code> <code>self_applied</code></td><td>False ×2</td><td>False ×2</td><td><span class="badge b-pass">intacto</span></td></tr>
+      <tr><td>prefilter emite aprobación?</td><td>—</td><td>solo verdict + human_gate_note</td><td><span class="badge b-pass">advisory</span></td></tr>
+    </table></div>
+  </section>
+
+  <section id="pillars">
+    <h2>5 · Los 5 pilares <span class="sub">— veredicto independiente (workflow, 5 validadores Opus, evidencia a archivo real)</span></h2>
+    <p class="sub">Resultado unánime: <b>5× PARCIAL</b> — ninguno TIENE, ninguno GAP. Cada validador leyó el código y
+    confirmó/refutó el digest del productor por su cuenta.</p>
+    <div class="scroll"><table>
+      <tr><th>Pilar</th><th>Veredicto</th><th>Por qué (verificado)</th><th>Punto débil / over-fire</th></tr>
+      <tr>
+        <td><b>P1</b><br>composición / mejora DI</td>
+        <td><span class="badge b-parcial">PARCIAL</span></td>
+        <td>Invariante advisory/human-gate <b>sólida</b>. "Mejora" <b>sí es medible</b> como Δv&lt;0 por-caso
+          (<code>replay_and_regress.py:107-118</code>) — pero solo para la clase <code>identifier_resolution</code>
+          (1 sola entrada en <code>_REPLAY_TYPES</code>, línea 92). El loop error→guard es real.</td>
+        <td>Superficie medible estrecha (1 tipo auto-replay; held-out estructural). W2 = bypass de hard-rule, no solo weak spot.</td>
+      </tr>
+      <tr>
+        <td><b>P2</b><br>invocación de agentes (§11)</td>
+        <td><span class="badge b-parcial">PARCIAL</span></td>
+        <td>Well-formedness y ruta de categoría (<code>rank/prun*</code>) funcionan. Pero el componente §11
+          produce <b>CERO FAIL sobre los 12 records reales</b> — todos los FAIL son §4. Solo <b>2/7</b> filas de
+          <code>agent-invocation-matrix.md</code> §1 tienen enforcer en <code>_COVERAGE</code> (líneas 46-74).</td>
+        <td><b>El más débil.</b> b3 evasión reproducida; <b>over-fire</b> en 2 records de extracción (160000, 163000) enmascarado solo por W1.</td>
+      </tr>
+      <tr>
+        <td><b>P3</b><br>elección substrate / framework (§4)</td>
+        <td><span class="badge b-parcial">PARCIAL</span></td>
+        <td>Núcleo "cita §sección, nunca Tier N" <b>se hace cumplir bien</b>: regex anclado a dígito (atrapa
+          incluso <code>§Tier 2</code>); <code>framework_applied_corrected</code> no se honra; legacy FAIL por diseño;
+          <b>cero over-fire</b> en citas mixtas legítimas (<code>§5 … (Tier 1)</code>).</td>
+        <td><b>N6</b>: el quote es presence-only, nunca validado contra el texto del catálogo → <code>§5 "texto inventado"</code> PASA.</td>
+      </tr>
+      <tr>
+        <td><b>P4</b><br>fetch DI / Tool Universe</td>
+        <td><span class="badge b-parcial">PARCIAL</span></td>
+        <td>Spine identidad <b>es TIENE</b>: <code>admissible()</code> es un H(c)∈{0,1} genuino — derrotó
+          <code>confidence=0.99</code> + <code>extra_predicate</code> always-True y siguió False.
+          <code>NOT_FOUND</code> sentinel real. Lo arrastran a PARCIAL la categoría auto-declarada (W2) y W5.</td>
+        <td><b>N1</b> binding símbolo↔ID sin chequear; <b>W5</b> <code>world_state</code> over-fire en "induces".</td>
+      </tr>
+      <tr>
+        <td><b>P5</b><br>loop de automejora (RIL)</td>
+        <td><span class="badge b-parcial">PARCIAL</span></td>
+        <td>Loop real (guard wt1a funciona, atrapa Δv=−1.0). Pero "un error logueado se vuelve guard permanente"
+          es <b>falso como se enuncia</b>: solo failures con triple <code>&lt;symbol&gt; resolves to &lt;ENSDARG&gt;</code>
+          (<code>build_regression_cases.py:40</code>). El fallo masivo 15/16 → <b>0 guards</b>.</td>
+        <td><b>W3</b> + riesgo compuesto W2+W3 (mismo blind class: campos free-text auto-declarados). Over-fire legacy 33% rojo permanente.</td>
+      </tr>
+    </table></div>
+  </section>
+
+  <section id="audit">
+    <h2>6 · Composite-auditor de cierre <span class="sub">— Mode 1, 3 adversariales (§7: NO el productor)</span></h2>
+    <p class="sub">Tres lentes independientes intentaron refutar el veredicto del productor. Consenso:
+    <b>QUALIFIED_YES ×3</b> — la mitad se defiende, con la propiedad de seguridad irrefutable y la capa de detección
+    más estrecha de lo afirmado.</p>
+    <div class="scroll"><table>
+      <tr><th>Auditor (lente)</th><th>Veredicto</th><th>Gate más débil</th><th>Qué refutó / aportó</th></tr>
+      <tr>
+        <td><b>1 · falso-negativo</b><br>(¿se cuela lo malo?)</td>
+        <td><span class="badge b-parcial">QUALIFIED_YES</span></td>
+        <td>§11 + <code>verify_identifiers</code> (co-débil)</td>
+        <td>Confirmó la propiedad de seguridad. <b>Sobre-crédito del productor</b> a los gates de ID y §4: halló
+          6 falsos-negativos nuevos (N1–N6). "Defiende contra lo que fue construido para PREVENIR, no contra toda
+          la superficie que AFIRMA gatear".</td>
+      </tr>
+      <tr>
+        <td><b>2 · falso-positivo</b><br>(¿falla lo legítimo?)</td>
+        <td><span class="badge b-parcial">QUALIFIED_YES</span></td>
+        <td><code>world_state</code> do-typing</td>
+        <td>Legacy §4 FAILs = <b>señal, no over-fire</b> (confirmado leyendo el <code>framework_applied</code> crudo).
+          §4/§11 over-fire en <b>cero</b> records legítimos. <b>Hallazgo</b>: 2 de 3 do-typings positivos en el
+          corpus real (r2 vía "rescue", r4 vía "do(") son los <b>propios R-records del productor</b> mal-tipados — 66% FP en el subconjunto do-typed.</td>
+      </tr>
+      <tr>
+        <td><b>3 · integridad</b><br>(¿de verdad no muta?)</td>
+        <td><span class="badge b-parcial">QUALIFIED_YES</span></td>
+        <td>§11 W2 (bypass producer-controlado)</td>
+        <td><b>No pudo refutar</b> read-and-report: cero camino de escritura a store/records/queue, SHA estable tras
+          build REAL (no dry-run), <code>self_applied:false</code> intacto, ningún auto-apply. La escritura de
+          <code>build_regression_cases</code> a <code>regression_cases/</code> <b>no es violación</b> (fuera del scope protegido, self-validating, idempotente).</td>
+      </tr>
+    </table></div>
+    <div class="callout bad">
+      <h3>Hallazgos NUEVOS del panel — más allá de W1–W6 <span class="sub">(verificados por el productor en main session)</span></h3>
+      <p class="sub" style="margin-top:0">Visualizados como matriz interactiva gate × ataque:
+      <a href="2026-06-22_mitad-a-gate-coverage-matrix.html">2026-06-22_mitad-a-gate-coverage-matrix.html</a></p>
+      <div class="scroll"><table>
+        <tr><th>#</th><th>Hallazgo</th><th>Archivo</th><th>Estado de verificación</th></tr>
+        <tr><td><b>N1</b></td><td><b>Mis-binding símbolo↔ENSDARG evade.</b> <code>"pax2a is ENSDARG00000031420"</code> (el id verificado de wt1a) → <code>admissible=True</code>. El gate verifica que el ID exista, nunca que matchee el símbolo emparejado — la corrupción exacta que lo motivó.</td><td class="mono">verify_output.py:70-78</td><td><span class="badge b-fail">CONFIRMADO ✓</span> (lo corrí)</td></tr>
+        <tr><td><b>N2</b></td><td><b>Regex ENSDARG frágil.</b> <code>Ensdarg…</code> (minúscula) y <code>ENSDARG_…</code> (separador) no se extraen → evaden. <b>Pero versionado <code>…054611.1</code> SÍ se atrapa</b> (el regex agarra los 11 dígitos) — el auditor sobre-afirmó aquí.</td><td class="mono">verify_output.py:26</td><td><span class="badge b-warn">PARCIAL</span> (2/3; corregí al auditor)</td></tr>
+        <tr><td><b>N3</b></td><td><b>Gap de keyword en causal-pruner, SIN mislabel.</b> categoría <code>tf-set-proposal</code> + "specifies/establishes renal identity" → PASS, coverage vacío. Más amplio que W2: no requiere etiquetar <code>methodological</code>.</td><td class="mono">accountability_checks.py:57-63</td><td><span class="badge b-fail">CONFIRMADO ✓</span> (lo corrí)</td></tr>
+        <tr><td><b>N4</b></td><td><b>Falso-negativo simétrico a W5.</b> <code>_DO_MARKERS</code> omite "specifies/drives/establishes/confers/determines" → una afirmación de suficiencia real se infiere observe-typed → escapa el escrutinio de do-claim.</td><td class="mono">world_state.py:33-35</td><td><span class="badge b-flag">del panel</span> (plausible por código)</td></tr>
+        <tr><td><b>N5</b></td><td><b>admissible() es identifier-only por defecto.</b> solo ANDea <code>extra_predicates</code> que el caller recuerde pasar; no hay registry. H(c) se reduce al invariante de ID en cualquier call-site que los omita.</td><td class="mono">verify_output.py:136</td><td><span class="badge b-flag">del panel</span> (correcto por código)</td></tr>
+        <tr><td><b>N6</b></td><td><b>§4 valida sintaxis, no verdad.</b> quote fabricado bajo §sección válida → PASS. <code>§3 "criterio que no existe en el catálogo"</code> pasa limpio. La mitad semántica de §4 no se hace cumplir.</td><td class="mono">accountability_checks.py:95-102</td><td><span class="badge b-fail">CONFIRMADO ✓</span> (lo corrí)</td></tr>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="verdict">
+    <h2>7 · Veredicto honesto</h2>
+    <div class="callout good">
+      <h3>¿La mitad de rendición de cuentas se defiende sola?</h3>
+      <p><b>Sí en su propiedad de seguridad — y eso es lo importante de un sistema de rendición de cuentas.</b>
+      La maquinaria es <b>provablemente read-and-report</b>: no existe camino de escritura a la DATA INAMOVIBLE,
+      a los records, ni a la cola de governance; el SHA256 del store quedó idéntico tras una corrida REAL (no
+      dry-run); governance es estrictamente advisory (emite <code>verdict</code> + <code>human_gate_note</code>,
+      nunca aprueba/aplica); no hay ningún auto-apply ni escritura correctiva disparada por un FAIL. Los 3 auditores
+      adversariales intentaron romper esto y <b>no pudieron</b>. La auto-mutación de la DI es estructuralmente
+      imposible — el gate humano sigue siendo final. <b>Esta es la parte más defendible de MITAD_A.</b></p>
+    </div>
+    <div class="callout warn">
+      <h3>Pero su capa de detección/enforcement es más estrecha de lo que afirma</h3>
+      <p>"Los 5 gates atrapan su modo de fallo" es verdad solo para los objetivos <b>canónicos</b> (ID ausente
+      del store, corrupción del store, citación <code>§Tier N</code>). El panel confirmó <b>4 bypasses reales</b>
+      (N1, N3, N6, W2) que yo verifiqué corriendo el código:</p>
+      <ul class="tight">
+        <li><b>N1 (identidad):</b> <code>verify_output</code> comprueba que un ENSDARG <i>exista</i>, no que esté
+        <i>ligado</i> al símbolo — la corrupción "ID que colisionó con un gen no relacionado" (failure_log línea 1)
+        queda sin proteger en general; solo el par literal <code>54611→wt1a</code> está guardado por la regcase.</li>
+        <li><b>§11 (invocación):</b> cero FAIL sobre los 12 records reales (todo FAIL es §4); solo 2/7 filas de la
+        matriz con enforcer; evadible auto-declarando <code>claim_category:methodological</code> (W2) o usando
+        verbos/categorías fuera de la lista de keywords (N3) — <b>sin mislabel</b>.</li>
+        <li><b>N6 (framework):</b> §4 hace cumplir la <i>sintaxis</i> de la cita (§sección + algún quote) pero no
+        su <i>verdad</i> — un criterio fabricado bajo una sección válida pasa limpio.</li>
+        <li><b>over-fire (world_state):</b> el do-typing por keyword certifica <code>causal_admissible=True</code>
+        a 2 de los 3 R-records del propio productor (r2 "rescue", r4 "do(") — ruido advisory, no bloqueo.</li>
+      </ul>
+    </div>
+    <h3>El gate más débil</h3>
+    <p>La <b>cobertura §11 de <code>accountability_checks</code></b>, sin discusión: es el único punto donde un
+    input controlado por el productor (<code>claim_category</code>) puede voltear el resultado de un Hard Rule §7,
+    no produce ningún FAIL de bloqueo sobre el corpus real, y solo implementa 2 de las 7 filas de la matriz que
+    afirma proyectar. <b>Co-débil en el eje de identidad: N1</b> (binding símbolo↔ID). Ambos viven en la capa de
+    detección, <b>no</b> en la de seguridad — ninguno permite mutar nada.</p>
+    <h3>Recomendaciones (human-gated — NO aplicadas)</h3>
+    <ul class="tight">
+      <li><b>N1:</b> en <code>verify_identifiers</code>, cuando el output empareje <code>símbolo + ENSDARG</code>,
+      resolver el símbolo y exigir que el ENSDARG <i>matchee</i> el del store (no solo que exista).</li>
+      <li><b>§11/W1:</b> hacer que "agente requerido marcado <code>not-applicable</code> sobre un work-type
+      detectado por la ruta de categoría" sea <b>FAIL</b>, no WARN.</li>
+      <li><b>§11/W2/N3:</b> detectar generación desde estructura verificable (lista rankeada / predicado de
+      suficiencia en el output) en vez de confiar en <code>claim_category</code>; ampliar el set de keywords/verbos.</li>
+      <li><b>N6:</b> validar el quote de <code>framework_applied</code> contra el texto real de la sección citada del catálogo.</li>
+      <li><b>world_state:</b> exigir bloque <code>world_state_transition</code> explícito para
+      <code>causal_admissible=True</code>; tratar la inferencia por keyword como "candidato, requiere confirmación".</li>
+      <li><b>P5/W3:</b> dar esquema al <code>failure_log</code> (campos <code>symbol/correct/wrong</code>) para que
+      cualquier fallo de ID — no solo los de forma triple — sintetice un guard.</li>
+    </ul>
+    <p class="sub" style="margin-top:14px">Veredicto en una línea: <b>la mitad de rendición de cuentas defiende su
+    promesa de seguridad de forma irrefutable, y cumple parcialmente su promesa de detección.</b> Es honesta sobre
+    casi todo (declaró W1–W6); el panel solo necesitó endurecer el énfasis (W2 = bypass de hard-rule, no "softening")
+    y añadir la superficie que el borrador sobre-acreditó (N1 binding, N6 criterion-truth, N3 keyword-gap).</p>
+  </section>
+
+  <div class="foot">
+    <p>Witt × Organogenésis · MITAD_A (rendición de cuentas) · GWT v1.1 · ADR-0023–0026.
+    Sesión read-and-report Método 2, NO-SPEND. Evidencia empírica en
+    <code>scratchpad/</code> (regression/accountability/wsts/ece/prefilter *.json). Reporte TYPE D.</p>
+  </div>
+</main>

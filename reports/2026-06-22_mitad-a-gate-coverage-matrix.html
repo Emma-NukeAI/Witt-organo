@@ -1,0 +1,190 @@
+<title>MITAD_A — Matriz de cobertura gate × ataque</title>
+<style>
+  :root{
+    --bg-deep:#0f172a; --bg-mid:#1e293b; --bg-card:#25314a; --border:#334155;
+    --text-main:#e2e8f0; --text-dim:#94a3b8; --text-faint:#64748b; --text-bright:#f1f5f9;
+    --accent:#38bdf8; --good:#16a34a; --warn:#f59e0b; --bad:#dc2626; --overfire:#a855f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg-deep);color:var(--text-main);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55;font-size:15px}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 80px}
+  h1{font-size:27px;margin:.1em 0 .15em;color:var(--text-bright);letter-spacing:-.01em}
+  .sub{color:var(--text-dim);font-size:14px}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.85em;background:#0b1220;
+    padding:1px 5px;border-radius:4px;color:#cbd5e1}
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:20px 0}
+  .s{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+  .s .n{font-size:26px;font-weight:700;line-height:1}
+  .s .l{font-size:12px;color:var(--text-dim);margin-top:3px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0 10px;font-size:13px;color:var(--text-dim)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .chip{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .c-good{background:var(--good)} .c-bad{background:var(--bad)} .c-warn{background:var(--warn)} .c-of{background:var(--overfire)}
+  .scroll{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+  table{border-collapse:collapse;width:100%;min-width:760px;background:var(--bg-mid)}
+  th,td{padding:9px 11px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-size:13px}
+  th{background:#0b1220;color:var(--text-dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0}
+  td.atk{text-align:left;color:var(--text-main);font-size:13px;min-width:300px;border-right:2px solid var(--border)}
+  td.atk b{color:var(--text-bright)}
+  td.cell{cursor:default;font-weight:700;font-size:12px}
+  .v-good{background:rgba(22,163,74,.20);color:#4ade80}
+  .v-bad{background:rgba(220,38,38,.22);color:#f87171;cursor:pointer}
+  .v-warn{background:rgba(245,158,11,.20);color:#fbbf24;cursor:pointer}
+  .v-of{background:rgba(168,85,247,.20);color:#c084fc;cursor:pointer}
+  .v-na{color:var(--text-faint)}
+  td.cell.sel{outline:2px solid var(--accent);outline-offset:-2px}
+  .ver{font-size:10px;color:var(--text-faint);display:block;margin-top:2px;font-weight:400}
+  #detail{background:var(--bg-card);border:1px solid var(--border);border-left:4px solid var(--accent);
+    border-radius:9px;padding:15px 18px;margin:18px 0;min-height:54px}
+  #detail .dt{color:var(--accent);font-weight:700;font-size:13px;margin-bottom:4px}
+  #detail .db{color:var(--text-main);font-size:14px}
+  .note{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:14px 17px;margin:16px 0;font-size:13.5px;color:var(--text-dim)}
+  .note b{color:var(--text-bright)}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  .foot{margin-top:34px;color:var(--text-faint);font-size:12px;border-top:1px solid var(--border);padding-top:14px}
+</style>
+
+<div class="wrap">
+  <h1>Matriz de cobertura · gate × ataque</h1>
+  <p class="sub">MITAD_A (rendición de cuentas) · validación adversarial 2026-06-22 · cada celda según lo que
+  <b>verifiqué corriendo el código</b> (no de los docs). Companion de
+  <a href="2026-06-22_mitad-a-adversarial-validation_retrospective.html">el reporte TYPE D</a>.</p>
+
+  <div class="strip">
+    <div class="s"><div class="n" style="color:var(--good)">5</div><div class="l">ataques ATRAPADOS</div></div>
+    <div class="s"><div class="n" style="color:var(--bad)">6</div><div class="l">ataques que EVADEN (detección)</div></div>
+    <div class="s"><div class="n" style="color:var(--warn)">1</div><div class="l">PARCIAL (W1: WARN, no FAIL)</div></div>
+    <div class="s"><div class="n" style="color:var(--overfire)">1</div><div class="l">OVER-FIRE (W5: falso causal)</div></div>
+    <div class="s"><div class="n" style="color:var(--good)">0</div><div class="l">huecos en la capa de SEGURIDAD</div></div>
+  </div>
+
+  <div class="legend">
+    <span><i class="chip c-good"></i> ATRAPADO</span>
+    <span><i class="chip c-bad"></i> EVADE (hueco de detección)</span>
+    <span><i class="chip c-warn"></i> PARCIAL (WARN, no bloquea)</span>
+    <span><i class="chip c-of"></i> OVER-FIRE (falla legítimo)</span>
+    <span style="color:var(--text-faint)">— = no es trabajo de ese gate</span>
+    <span style="color:var(--accent)">▸ clic en celda roja/ámbar/morada = detalle</span>
+  </div>
+
+  <div class="scroll">
+    <table id="matrix">
+      <tr>
+        <th class="atk" style="text-align:left">Vector de ataque ↓ &nbsp;/&nbsp; Gate →</th>
+        <th>admissible()<br><span style="font-weight:400;text-transform:none">verify_output</span></th>
+        <th>§4 framework<br><span style="font-weight:400;text-transform:none">accountability</span></th>
+        <th>§11 agentes<br><span style="font-weight:400;text-transform:none">accountability</span></th>
+        <th>store/regresión<br><span style="font-weight:400;text-transform:none">replay+prefilter</span></th>
+        <th>WSTS<br><span style="font-weight:400;text-transform:none">world_state</span></th>
+      </tr>
+      <!-- rows: data-d holds detail; cells colored only on the owning gate -->
+      <tr>
+        <td class="atk"><b>ID fabricado ausente del store</b><br>ENSDARG09999999999</td>
+        <td class="cell v-good">ATRAPA<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N1 · ID mis-bound a símbolo equivocado</b><br>"pax2a is &lt;id verificado de wt1a&gt;"</td>
+        <td class="cell v-bad" data-d="N1|verify_output.py:70-78|Resuelve el ENSDARG, lo rutea a verified_raw, ok=True → admissible=True. El gate verifica que el ID EXISTA, nunca que matchee el símbolo emparejado. Es la corrupción exacta del failure_log línea 1 ('ID que colisionó con un gen no relacionado'). Confirmado corriéndolo.">EVADE<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N2 · ID reformateado (minúscula / separador)</b><br>Ensdarg…054611 · ENSDARG_…054611</td>
+        <td class="cell v-bad" data-d="N2|verify_output.py:26|El regex ENSDARG\d{11} es case-sensitive y exige 11 dígitos pegados; 'Ensdarg…' y 'ENSDARG_…' no se extraen → nunca se gatean → admissible=True, incluso para el id histórico equivocado, solo reformateado.">EVADE<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N2b · ID versionado</b> &nbsp;ENSDARG…054611<b>.1</b><br><span style="color:var(--text-dim)">(el auditor sobre-afirmó: SÍ se atrapa)</span></td>
+        <td class="cell v-good" data-d="N2b|verify_output.py:26|El regex agarra los primeros 11 dígitos de '00000054611.1' → extrae ENSDARG00000054611 → unresolved → admissible=False. El auditor-1 afirmó que evadía; lo corrí y SÍ se atrapa. Reporté la corrección.">ATRAPA<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>Store Σ' corrupto</b><br>wt1a → ENSDARG00000054611</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-good">ATRAPA<span class="ver">corrido ✓ Δv=−1.0</span></td>
+        <td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>Agente requerido AUSENTE</b><br>causal-pruner no está en agents_invoked</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-good">ATRAPA<span class="ver">corrido ✓ FAIL</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>W1 · agente requerido marcado not-applicable</b><br>contradicción con el work-type detectado</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-warn" data-d="W1|accountability_checks.py:140-141|El FAIL solo dispara con 'not in agents_invoked'/'absent'/'empty'; el issue de contradicción no contiene esos substrings → WARN, no FAIL. Marcar el agente requerido como N/A es más suave que omitirlo. Confirmado corriéndolo.">PARCIAL<span class="ver">corrido · WARN</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>W2 · generación etiquetada methodological</b><br>"is sufficient to induce" + category=methodological</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-bad" data-d="W2 / b3|accountability_checks.py:57-63|La ruta de keyword se conjunta con claim_category != 'methodological'. Etiquetar methodological la suprime → coverage vacío → verdict PASS. El hard-rule §7 de causal-pruner se evade con el campo que el productor controla. Confirmado corriéndolo.">EVADE<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N3 · generación fuera de keywords (sin mislabel)</b><br>category=tf-set-proposal + "specifies/establishes"</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-bad" data-d="N3|accountability_checks.py:57-63|La categoría no contiene 'rank'/'prun' y el texto no usa las frases del set de keywords → ambas rutas de detección fallan → PASS, coverage vacío. Más amplio que W2: NO requiere etiquetar methodological. Confirmado corriéndolo.">EVADE<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>Citación bare-tier</b><br>framework_applied = "§Tier 2"</td>
+        <td class="cell v-na">—</td>
+        <td class="cell v-good">ATRAPA<span class="ver">corrido ✓ FAIL</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N6 · quote fabricado bajo §sección válida</b><br>§3 "criterio que no existe en el catálogo"</td>
+        <td class="cell v-na">—</td>
+        <td class="cell v-bad" data-d="N6|accountability_checks.py:95-102|has_quote = bool(_QUOTE_RE.search(fw)) acepta cualquier string entre comillas de 6+ chars y solo mueve WARN↔PASS; nunca valida el quote contra el texto real de la sección. '§3 \"texto inventado\"' → PASS. La mitad semántica de §4 no se hace cumplir. Confirmado corriéndolo.">EVADE<span class="ver">corrido ✓</span></td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+      </tr>
+      <tr>
+        <td class="atk"><b>N4 · claim causal con verbos fuera de _DO_MARKERS</b><br>"specifies/drives/establishes" renal fate</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-bad" data-d="N4|world_state.py:33-35|_DO_MARKERS omite specifies/drives/establishes/confers/determines → una afirmación de suficiencia real se infiere observe-typed → causal_admissible=False → degradada a 'descripción', escapa el escrutinio de do-claim. Del panel (plausible por código).">EVADE<span class="ver">del panel</span></td>
+      </tr>
+      <tr>
+        <td class="atk"><b>W5 · observacional con verbo causal</b><br>"wt1 induces nephron fate" (sin intervención)</td>
+        <td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td><td class="cell v-na">—</td>
+        <td class="cell v-of" data-d="W5 (over-fire)|world_state.py:33-35,91|'induc' es un _DO_MARKER → un claim observacional/correlacional que no nombra intervención obtiene causal_admissible=True. Sobre-dispara la admisibilidad causal. Es ruido advisory (no bloquea). 2 de 3 do-typings del corpus real (r2 'rescue', r4 'do(') son de esta clase.">OVER-FIRE<span class="ver">corrido ✓</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="detail"><div class="dt">▸ Detalle</div><div class="db">Clic en cualquier celda roja (EVADE), ámbar (PARCIAL) o morada (OVER-FIRE) para ver el archivo:línea y la causa verificada.</div></div>
+
+  <div class="note">
+    <b>Lectura de la matriz.</b> Los huecos rojos se concentran en dos columnas: <b>§11 agentes</b> (W2, N3) y
+    <b><code>admissible()</code></b> (N1, N2) — más §4 (N6) y WSTS (N4/W5). Todos son fallos de la <b>capa de
+    detección</b>, y la mayoría exige input controlado por el productor (etiqueta, formato, categoría) o frases
+    fuera de un set de keywords. <b>Ninguno toca la capa de seguridad</b>: ni un solo vector permite mutar la DATA
+    INAMOVIBLE, los records, ni auto-aplicar governance — esa fila estaría en verde sólido (0 huecos). La diferencia
+    es la tesis del reporte: <b>la promesa de seguridad se defiende sola; la de detección, parcialmente.</b>
+  </div>
+
+  <div class="foot">
+    Read-and-report · NO-SPEND · SHA256 del store estable f070b40c…707 · sin mutación de DI/records.
+    Celdas "corrido ✓" reproducidas en main session; "del panel" derivadas por lectura de código (auditor adversarial).
+  </div>
+</div>
+
+<script>
+  (function(){
+    var det = document.getElementById('detail');
+    var sel = null;
+    document.querySelectorAll('#matrix td.cell').forEach(function(td){
+      var d = td.getAttribute('data-d');
+      if(!d) return;
+      td.addEventListener('click', function(){
+        if(sel) sel.classList.remove('sel');
+        td.classList.add('sel'); sel = td;
+        var parts = d.split('|');
+        det.innerHTML = '<div class="dt">▸ ' + parts[0] + ' &nbsp;·&nbsp; <code>' + parts[1] + '</code></div>' +
+                        '<div class="db">' + parts[2] + '</div>';
+      });
+    });
+  })();
+</script>

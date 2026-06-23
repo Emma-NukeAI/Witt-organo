@@ -1,0 +1,177 @@
+<title>MITAD_A — Hardening ADR-0027 (2026-06-22)</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --paper:#fffefb; --ink:#1f2328; --dim:#5b6470; --faint:#8b93a0;
+    --line:#e4e1d9; --line2:#d8d4c8; --accent:#1f5e7a; --accent2:#9a3b1f;
+    --good:#1f7a3d; --warn:#9a6a12; --bad:#a82c2c; --codebg:#f0ede5;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;line-height:1.6;font-size:17px}
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,254,251,.94);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line2);padding:10px 22px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+    font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+  nav b{color:var(--accent);margin-right:10px;font-size:14px}
+  nav a{color:var(--dim);text-decoration:none;padding:3px 9px;border-radius:5px}
+  nav a:hover{background:var(--codebg);color:var(--ink)}
+  main{max-width:1100px;margin:0 auto;padding:34px 26px 90px}
+  h1{font-size:32px;line-height:1.18;margin:.2em 0 .1em;letter-spacing:-.01em}
+  h2{font-size:23px;margin:1.7em 0 .5em;padding-bottom:.2em;border-bottom:2px solid var(--line2)}
+  h3{font-size:18px;margin:1.2em 0 .35em;color:var(--accent)}
+  .sub{color:var(--dim);font-size:15px;font-family:'Segoe UI',system-ui,sans-serif}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.85em;background:var(--codebg);padding:1px 5px;border-radius:4px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:14px 16px}
+  .stat .n{font-size:30px;font-weight:700;font-family:'Segoe UI',system-ui,sans-serif;line-height:1.05}
+  .stat .l{font-size:12.5px;color:var(--dim);font-family:'Segoe UI',system-ui,sans-serif;margin-top:3px}
+  .badge{display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid}
+  .b-pass{color:var(--good);border-color:var(--good);background:#eaf5ee}
+  .b-warn{color:var(--warn);border-color:var(--warn);background:#faf3e2}
+  .b-fail{color:var(--bad);border-color:var(--bad);background:#f8eaea}
+  .b-flag{color:var(--accent);border-color:var(--accent);background:#e8f1f5}
+  .callout{background:var(--paper);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:15px 18px;margin:16px 0}
+  .callout.good{border-left-color:var(--good)} .callout.warn{border-left-color:var(--warn)}
+  .callout h3{margin-top:0}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px;font-family:'Segoe UI',system-ui,sans-serif;background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--codebg);font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  tr:last-child td{border-bottom:none}
+  td.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:12px}
+  .scroll{overflow-x:auto}
+  ul.tight{margin:.4em 0;padding-left:1.3em} ul.tight li{margin:.25em 0}
+  .contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .cfield{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:13px 15px}
+  .cfield .k{font-family:'Segoe UI',system-ui,sans-serif;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-bottom:5px}
+  .ph{color:var(--faint);font-style:italic}
+  .foot{margin-top:50px;padding-top:18px;border-top:1px solid var(--line2);color:var(--faint);font-family:'Segoe UI',system-ui,sans-serif;font-size:12.5px}
+</style>
+
+<nav>
+  <b>MITAD_A · hardening ADR-0027</b>
+  <a href="#tldr">TL;DR</a>
+  <a href="#contract">§5</a>
+  <a href="#fixes">6 fixes</a>
+  <a href="#smoke">Smoke 17/17</a>
+  <a href="#regression">No-regresión</a>
+  <a href="#audit">Composite-audit</a>
+  <a href="2026-06-22_mitad-a-adversarial-validation_retrospective.html">← validación</a>
+</nav>
+
+<main>
+  <p class="sub">Hardening de la capa de detección · ADR-0027 · Witt × Organogenésis · 2026-06-22</p>
+  <h1>Cerrar los bypasses que la validación encontró</h1>
+  <p class="sub">Las 6 remediaciones aplicadas + smoke test exigente · Método 2 · read-and-report (cero mutación de la DI) ·
+  NO-SPEND · companion de <a href="2026-06-22_mitad-a-adversarial-validation_retrospective.html">la validación adversarial</a></p>
+
+  <section id="tldr">
+    <h2>TL;DR</h2>
+    <div class="callout good">
+      <h3>Resultado <span class="badge b-pass">Smoke 17/17 · 6 fixes aplicados · 0 regresión</span></h3>
+      <p>El fundador autorizó aplicar <b>las 6 remediaciones</b>. Cada bypass que la validación del 2026-06-22 había
+      confirmado ahora <b>se atrapa</b>: el mis-binding símbolo↔ID (<b>N1</b>) → <code>admissible=False</code>; la
+      generación bajo etiqueta <code>methodological</code> con candidatos estructurados (<b>W2/N3</b>) → <code>§11 FAIL</code>;
+      el agente requerido marcado <code>not-applicable</code> (<b>W1</b>) → FAIL; el quote de framework fabricado
+      (<b>N6</b>) → <code>§4 FAIL</code>; el over-fire causal por keyword (<b>W5</b>) → eliminado; los fallos masivos
+      ahora sintetizan guards (<b>W3</b>). <b>Cero regresión</b>: R1–R4 siguen PASS, los 4 legacy siguen FAIL por diseño,
+      replay <code>NO_REGRESSION</code>, y el <b>SHA256 del store quedó intacto</b> (<code>f070b40c…707</code>). De paso se
+      corrigió un bug latente: <code>load_records</code> leía cp1252 (mojibake de §/comillas en Windows).</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" style="color:var(--good)">6/6</div><div class="l">remediaciones aplicadas</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">17/17</div><div class="l">smoke test exigente</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">5/5</div><div class="l">selftests PASS</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">0</div><div class="l">nuevos FAIL legítimos</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">0</div><div class="l">mutación de la DI (SHA estable)</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn)">2</div><div class="l">gaps residuales declarados (N2, free-text N1)</div></div>
+    </div>
+  </section>
+
+  <section id="contract">
+    <h2>Contrato §5</h2>
+    <div class="contract">
+      <div class="cfield"><div class="k">direct_answer</div>Las 6 remediaciones de la validación adversarial se aplicaron como hardenings deterministas read-and-report; el smoke test exigente (17/17) confirma evasión→atrapado + no-regresión + invariantes. La DI queda intacta.</div>
+      <div class="cfield"><div class="k">framework_applied</div><b>Chain-of-Verification</b> — per <code>reasoning-frameworks-catalog.md §8</code>: <i>"Generate a draft answer, then generate verification questions about that answer, answer those questions independently"</i>. Cada fix llevó su pregunta de verificación (¿el bypass ahora FALLA? ¿algo legítimo se rompe?) respondida por el smoke test antes de adoptarse.</div>
+      <div class="cfield"><div class="k">agents_invoked</div><ul class="tight" style="font-size:13px"><li><code>composite-auditor</code> — invoked (cierre, Mode 1 ≥3 adversarial; workflow <code>wf_15c04cc6</code>)</li><li><code>causal-pruner</code> — not-applicable (tooling, no genera biología)</li></ul></div>
+      <div class="cfield"><div class="k">gap_flags</div><ul class="tight" style="font-size:13px"><li><span class="badge b-flag">abierto</span> N2 regex (case/separador) diferido</li><li><span class="badge b-flag">abierto</span> N1 free-text pairing no chequeado (solo pares estructurados)</li><li><span class="badge b-flag">abierto</span> N3 text-only = WARN, no FAIL</li></ul></div>
+    </div>
+  </section>
+
+  <section id="fixes">
+    <h2>Las 6 remediaciones</h2>
+    <div class="scroll"><table>
+      <tr><th>#</th><th>Qué hace ahora</th><th>Archivo</th><th>Antes → Después</th></tr>
+      <tr><td><b>N1</b></td><td>Hard-check de pares estructurados <code>{symbol, ensdarg}</code>: si el ENSDARG contradice el binding del store → <code>admissible=False</code>. Free-text no se infiere (gap).</td><td class="mono">verify_output.py</td><td><span class="badge b-fail">evadía</span> → <span class="badge b-pass">atrapado</span></td></tr>
+      <tr><td><b>W1</b></td><td>Agente requerido marcado <code>not-applicable</code> sobre señal fuerte → <b>FAIL</b>.</td><td class="mono">accountability_checks.py</td><td><span class="badge b-warn">WARN</span> → <span class="badge b-fail">FAIL</span></td></tr>
+      <tr><td><b>W2/N3</b></td><td>Generación detectada por <b>estructura</b> (campo de candidatos) o categoría auto-identificada; <code>claim_category</code> ya no suprime. Mención textual → WARN advisory (PASS si el agente fue considerado).</td><td class="mono">accountability_checks.py</td><td><span class="badge b-fail">evadía (PASS)</span> → <span class="badge b-pass">FAIL si estructurado</span></td></tr>
+      <tr><td><b>N6</b></td><td>Quote validado vs texto del catálogo: en §N citada → PASS; en otra parte → WARN; <b>fuera del catálogo → FAIL</b> (fabricado).</td><td class="mono">accountability_checks.py</td><td><span class="badge b-fail">PASS (sintaxis)</span> → <span class="badge b-pass">FAIL si fabricado</span></td></tr>
+      <tr><td><b>W5</b></td><td><code>causal_admissible=True</code> solo con bloque WSTS explícito; keyword-inferido → <code>candidate</code>.</td><td class="mono">world_state.py</td><td><span class="badge b-fail">over-fire 66%</span> → <span class="badge b-pass">0 falsos</span></td></tr>
+      <tr><td><b>W3</b></td><td><code>id_corrections</code> estructurado: un fallo masivo sintetiza un guard self-validado por símbolo.</td><td class="mono">build_regression_cases.py</td><td><span class="badge b-warn">0 guards</span> → <span class="badge b-pass">por-símbolo</span></td></tr>
+    </table></div>
+    <p class="sub">Bug latente corregido: <code>compute_ece.load_records</code> abría los JSON sin <code>encoding="utf-8"</code> → cp1252 mojibake de §/em-dash/comillas en Windows, que rompía silenciosamente el match de N6. Es el loader compartido por los 4 R-tools.</p>
+  </section>
+
+  <section id="smoke">
+    <h2>Smoke test exigente <span class="badge b-pass">17/17 PASS</span></h2>
+    <div class="scroll"><table>
+      <tr><th>Eje</th><th>Qué prueba</th><th>Resultado</th></tr>
+      <tr><td><b>A · evasión→atrapado</b></td><td>N1 misbinding→False · ENSDARG fabricado→False · W1→FAIL · W2/N3 estructurado→FAIL · N3 text-only→no-silencioso · N6 fabricado→FAIL · store corrupto→Δv=−1.0×3</td><td><span class="badge b-pass">8/8</span></td></tr>
+      <tr><td><b>B · no-regresión</b></td><td>R1–R4 PASS · legacy FAIL · sin nuevo FAIL (4 total) · replay NO_REGRESSION · world_state 0 falsos causal_admissible</td><td><span class="badge b-pass">5/5</span></td></tr>
+      <tr><td><b>C · invariantes</b></td><td>SHA256 store estable · git diff vacío en <code>records/</code>, <code>regression_cases/</code>, <code>analysis/outputs/</code></td><td><span class="badge b-pass">4/4</span></td></tr>
+    </table></div>
+  </section>
+
+  <section id="regression">
+    <h2>No-regresión — cambios de comportamiento (seguros)</h2>
+    <ul class="tight">
+      <li><b>2 records PASS→WARN</b> bajo N6: <code>collaborator-lbpp</code> + <code>niche-taxonomy</code> citan §8 con texto del <i>resumen Tier-2</i> del catálogo, no del cuerpo §8 → <code>elsewhere</code> = WARN. Tightening defendible (señalado, no bloqueado).</li>
+      <li><b>world_state causal_admissible: 3 → 0</b> sobre el corpus real. 2 eran over-fires (r2 "rescue", r4 "do(") — eliminados; el do-claim biológico genuino (143000) ahora es <code>candidate</code> honesto, pendiente de bloque explícito.</li>
+      <li><b>Ningún record cae a FAIL nuevo.</b> Los 4 FAIL siguen siendo exactamente los legacy §Tier-2. Corpus: <code>{7,1,4}</code> → <code>{5 PASS, 3 WARN, 4 FAIL}</code> (12 records; 13 con el record nuevo de ADR-0027, que PASA).</li>
+    </ul>
+    <div class="callout">
+      <h3>Disciplina de mutación</h3>
+      <p>Los cambios son a <b>código de tooling</b> (los gates), más el ADR y <b>un</b> nuevo claim record §5 — el patrón
+      R1–R4. La <b>DATA INAMOVIBLE no se tocó</b>: <code>SHA256(verified_identifiers.json)=f070b40c…707</code> idéntico;
+      <code>git diff</code> vacío en <code>analysis/outputs/</code> y <code>regression_cases/</code>. Ningún camino de
+      escritura nuevo al store/records/cola de governance.</p>
+    </div>
+  </section>
+
+  <section id="audit">
+    <h2>Composite-auditor de cierre <span class="sub">— Mode 1, 3 adversariales (§7), workflow wf_15c04cc6</span></h2>
+    <div class="callout warn">
+      <h3>Veredicto <span class="badge b-pass">3/3 APPROVE_MINOR</span> — y el audit hizo su trabajo: encontró defectos REALES en mi hardening</h3>
+      <p>Los 3 auditores <b>construyeron y corrieron</b> bypasses/over-fires reales contra los fixes de la primera
+      ronda. Todos se corrigieron en la misma sesión — <b>el loop cerrándose sobre sí mismo</b>: el audit halló
+      huecos en el fix, el fix se arregló y se re-verificó. Confirmaron además que la propiedad de seguridad
+      (no-mutación, advisory) <b>se sostiene</b> (SHA del store intacto, sin camino de escritura nuevo).</p>
+    </div>
+    <h3>Defectos que el audit encontró → REVISE aplicado (misma sesión)</h3>
+    <div class="scroll"><table>
+      <tr><th>Fix</th><th>Defecto que el audit construyó+corrió</th><th>REVISE aplicado</th></tr>
+      <tr><td><b>N1</b></td><td><code>01_schoels_analysis.py</code> emite <code>{marker, ens_id}</code> — <b>no</b> estaba en mi allowlist → el mis-binding en la forma REAL evadía. Y <code>osr1→id-de-wt1a</code> (símbolo NOT_FOUND) pasaba.</td><td>Agregué <code>marker</code>/<code>ens_id</code> + un check <b>reverse-binding</b> key-agnóstico (el ENSDARG que pertenece a otro símbolo se atrapa aunque el símbolo emparejado sea NOT_FOUND).</td></tr>
+      <tr><td><b>N6</b></td><td><b>Over-fire que YO introduje:</b> <code>_QUOTE_CAP.search</code> leía solo el PRIMER quote → un aside antes del criterio §5 genuino → FALSE FAIL. Además quote trivial ("the answer") validaba; quotes de la tabla pre-§1 nunca validaban.</td><td>Escaneo de TODOS los quotes; longitud mínima ≥20; atribución de la tabla-resumen a su sección. <b>collaborator-lbpp + niche-taxonomy vuelven a PASS</b> → cero regresión PASS→WARN.</td></tr>
+      <tr><td><b>W2/N3</b></td><td>Over-fire: categorías <code>pruning-proposal</code> (gobernanza) / <code>report-generation</code> disparaban FAIL; <code>candidates=['PRIDE','MassIVE']</code> (repositorios) contaba como generación.</td><td>Regex de categoría restringido a generación biológica; los campos de candidatos exigen ≥2 ítems con forma de símbolo génico.</td></tr>
+      <tr><td colspan="3" style="color:var(--dim)"><b>Corrección de claim del productor (auditor-2):</b> <code>build_regression_cases.py</code> no tiene <code>--selftest</code> (usa <code>--dry-run</code>) — la validación es "4 selftests + 1 dry-run + smoke del módulo verify_output", no "5 selftests".</td></tr>
+    </table></div>
+    <h3>Re-verificación tras los REVISE</h3>
+    <ul class="tight">
+      <li>5 selftests PASS (el de accountability ahora también asierta multi-quote VALIDATE + no-over-fire gobernanza/repositorios).</li>
+      <li>Smoke exigente <b>17/17</b>; accountability sobre 13 records = <b>{8 PASS, 1 WARN, 4 FAIL}</b> (invariante §Tier-2 intacto; el único WARN es zesta no_quote pre-existente).</li>
+      <li>Replay <b>NO_REGRESSION</b>; <code>SHA256 f070b40c…707</code> intacto; <code>git diff</code> vacío en <code>outputs/</code>+<code>regression_cases/</code>.</li>
+      <li>El quote trivial "the answer" → WARN (no valida); el mis-binding <code>{marker,ens_id}</code> y el reverse <code>osr1</code> → <code>admissible=False</code>.</li>
+    </ul>
+    <div class="callout good">
+      <h3>Cierre honesto</h3>
+      <p>Las 6 remediaciones se aplicaron y se endurecieron <b>dos veces</b> (la validación adversarial las pidió;
+      el composite-audit de cierre encontró defectos en mi primera versión y los arreglé). <b>Gaps residuales
+      declarados</b> (no fallos): N1 forward es allowlist-keyed (el reverse-check es el backstop); N1 free-text no
+      se infiere; N3 paráfrasis text-only = WARN; N2 regex diferido; la tabla §11 sigue siendo un subconjunto
+      (ahora detectado por estructura, no por etiqueta). La capa de seguridad nunca se tocó.</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>ADR-0027 · claim record <code>claim_20260622_120000_adr0027-detection-hardening.json</code> · supersede la supresión
+    <code>methodological</code> de ADR-0025. Smoke test durable: <code>substrate_calibration/tools/smoke_adr0027_hardening.py</code> (23/23). Read-and-report, NO-SPEND. TYPE D.</p>
+  </div>
+</main>

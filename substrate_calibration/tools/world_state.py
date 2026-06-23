@@ -62,7 +62,17 @@ def validate_wsts(wsts):
             issues.append(f"intervention.type must be one of {sorted(_INTERVENTION_TYPES)} (do = intervention; observe = conditioning)")
         if not iv.get("target"):
             issues.append("intervention.target missing (what is intervened on)")
-    causal_admissible = is_interventional(wsts) and not issues
+    # W5 fix (ADR-0027): causal_admissible is granted ONLY for an EXPLICIT do-typed block, never for a
+    # do-type that was keyword-INFERRED from prose. Keyword inference over-fires (a causal verb in an
+    # OBSERVATIONAL sentence — e.g. "X induces Y", or a methodological record that merely DESCRIBES "do(a)"
+    # — was wrongly certified causal-admissible). An inferred do-type is a CANDIDATE only; it must be
+    # confirmed by an explicit world_state_transition block before it can support an Induction/Specificity claim.
+    source = wsts.get("_intervention_source", "explicit")
+    causal_admissible = is_interventional(wsts) and not issues and source != "inferred"
+    if is_interventional(wsts) and source == "inferred":
+        issues.append("NOTE: intervention.type was keyword-INFERRED from claim_text, not an explicit "
+                      "world_state_transition block -- causal_admissible WITHHELD (candidate only). Add an "
+                      "explicit do-typed block to assert a causal claim (W5 fix, ADR-0027).")
     if iv.get("type") == "observe":
         issues.append("NOTE: intervention is observe-typed (conditioning) -- valid as description, but "
                       "NOT causal-admissible: P(S'|do(a)) != P(S'|a), so this cannot support an "
@@ -82,7 +92,8 @@ def wsts_from_claim(record):
     # intervention.type beats keyword inference, removing the heuristic mis-typing risk (R4 audit).
     explicit = record.get("world_state_transition")
     if isinstance(explicit, dict) and isinstance(explicit.get("intervention"), dict):
-        return (dict(explicit, outcome=explicit.get("outcome", record.get("observed_outcome"))),
+        return (dict(explicit, outcome=explicit.get("outcome", record.get("observed_outcome")),
+                     _intervention_source="explicit"),
                 ["explicit world_state_transition block used (no keyword inference)"])
     text = str(record.get("claim_text", "")).lower()
     inferred = []
@@ -113,6 +124,7 @@ def wsts_from_claim(record):
         "observation_window": window,
         "failure_predicate": failure,
         "outcome": record.get("observed_outcome"),
+        "_intervention_source": "inferred",   # keyword-inferred -> causal_admissible withheld (W5 fix)
     }
     if not record.get("state"):
         inferred.append("state (no explicit state field; derived from sub_domain)")
@@ -170,9 +182,10 @@ def selftest():
         rec = json.loads(rec_path.read_text(encoding="utf-8"))
         wsts, inferred = wsts_from_claim(rec)
         okp, _, cap = validate_wsts(wsts)
-        print(f"  projection of 143000 minimal-set: do-typed={is_interventional(wsts)} causal_admissible={cap} "
-              f"(expect True — 'is sufficient to induce' is a do-claim)")
-        proj_ok = is_interventional(wsts) and cap
+        cand = is_interventional(wsts)
+        print(f"  projection of 143000 minimal-set (keyword-inferred): candidate={cand} causal_admissible={cap} "
+              f"(expect candidate=True, admissible=False — W5: inferred do is withheld pending an explicit block)")
+        proj_ok = cand and not cap
     # native calibration datum from a resolved record
     cd_path = _TOOLS_DIR.parents[1] / "substrate_calibration" / "records" / "claim_20260610_120000_verified-identifier-store-v1.json"
     cd_ok = True
@@ -207,7 +220,10 @@ def main():
             wsts, inferred = wsts_from_claim(r)
             ok, issues, ca = validate_wsts(wsts)
             out.append({"claim_id": r.get("claim_id"), "wsts": wsts, "inferred_fields": inferred,
-                        "valid": ok, "causal_admissible": ca, "calibration_datum": calibration_datum(r)})
+                        "valid": ok, "causal_admissible": ca,
+                        # do-typed regardless of source; True-but-not-admissible = keyword-inferred candidate (W5)
+                        "causal_admissible_candidate": is_interventional(wsts),
+                        "calibration_datum": calibration_datum(r)})
         rep = {"n_records": len(recs), "projections": out}
         if args.output:
             Path(args.output).write_text(json.dumps(rep, indent=2), encoding="utf-8")

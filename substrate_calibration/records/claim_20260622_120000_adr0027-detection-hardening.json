@@ -1,0 +1,84 @@
+{
+  "claim_id": "claim_20260622_120000_adr0027-detection-hardening",
+  "claim_timestamp": "2026-06-22T12:00:00Z",
+  "prediction_preregistered_at": "2026-06-22T12:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (ADR-0027 — detection-layer hardening from the 2026-06-22 adversarial validation)",
+  "skill_origin": "manual (founder authorized applying all six remediations + an exigent smoke test; substrate_calibration/tools/ + analysis/scripts/lib/verify_output.py)",
+  "skill_version": "accountability_checks-1.1 / verify_output-1.1 / world_state-1.1 / build_regression_cases-1.1",
+  "claim_text": "ADR-0027 hardens the DETECTION layer of MITAD_A against the six bypasses the 2026-06-22 adversarial validation confirmed, all read-and-report (zero DATA INAMOVIBLE mutation). (N1) verify_output now hard-checks EXPLICIT structured symbol<->ENSDARG pairs: a pair whose ENSDARG contradicts the store binding fails admissible() — closing the 'wrong ID that collided with an unrelated gene' class that the existence-only check missed; free-text pairing stays a gap_flag (not inferred). (W1) a required agent marked not-applicable on a STRONGLY-detected work-type is now FAIL, not WARN. (W2/N3) generation is detected from VERIFIABLE STRUCTURE (a candidate-set field) or a self-identifying category (rank/prun/generation), never from claim_category used as a SUPPRESSOR — closing the methodological-mislabel evasion AND removing the prior over-fire on tooling records that merely mention a minimal-set; a bare textual sufficiency phrase is advisory WARN. (N6) the framework quote is validated against the actual catalog text: validated (in cited section) -> PASS, elsewhere-in-catalog -> WARN, NOT-in-catalog -> FAIL (fabricated). (W5) world_state grants causal_admissible only for an explicit world_state_transition block; keyword-inferred do-type is a candidate, not admissible — killing the 66%-FP over-certification. (W3) build_regression_cases synthesizes guards from a structured id_corrections field, so a bulk failure yields one self-validated guard per symbol. A latent bug was fixed in passing: compute_ece.load_records read record JSON without encoding='utf-8', cp1252-mojibaking the catalog match on Windows. Verified by an exigent smoke test (17/17) and all 5 tool selftests; non-regression confirmed (R1-R4 PASS, the 4 legacy FAIL by design, replay NO_REGRESSION, store SHA unchanged).",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": false,
+  "human_gate_rationale": "No compliance/budget/partner impact and no DATA INAMOVIBLE mutation: the changes are to tooling CODE (gates), not to the store, records, or governance queue. The store SHA256 is unchanged (f070b40c...707) and git diff is empty over analysis/outputs/, substrate_calibration/records/, and regression_cases/. Verdicts are deterministically re-derivable (the 5 selftests + the 17/17 smoke test).",
+  "agent_invocation_status": "composite-auditor INVOKED as the closing audit gate (Mode 1, >=3 adversarial lenses). Self-audit by the producer is prohibited (§7).",
+  "prior": 0.8,
+  "stated_confidence": 0.9,
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: 'Generate a draft answer, then generate verification questions about that answer, answer those questions independently' (each of the six fixes carried a verification question — 'does the bypass now FAIL?' and 'does any legitimate record now break?' — answered independently by the exigent smoke test BEFORE adoption). Re-elected from Logic-LM: the dominant act was verification-against-evidence-streams, not symbolic proof of a single predicate. Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "N1_structured_misbinding_now_fails_admissible (verified: pax2a paired with wt1a's id -> False)": 0.96,
+    "W1_not-applicable_on_strong_signal_now_FAILs (verified on self-test + smoke)": 0.95,
+    "W2/N3_structural_generation_detection_closes_the_methodological_mislabel_without_category_trust": 0.85,
+    "N6_quote_validated_against_catalog_text (validated/elsewhere/not_in_catalog)": 0.9,
+    "W5_causal_admissible_requires_explicit_block (0 keyword-inferred false certifications on the real corpus)": 0.95,
+    "W3_bulk_failures_now_synthesize_per-symbol_self-validated_guards": 0.9,
+    "non-regression_holds (R1-R4 PASS, only 2 PASS->WARN via N6, no new FAIL, store untouched)": 0.92,
+    "the_hardening_meaningfully_raises_the_detection_floor_at_scale (still a v1 subset; N2 + free-text N1 deferred)": 0.6
+  },
+  "alternatives_considered": [
+    "Free-text proximity heuristic for N1 (resolve '<symbol> ... <ENSDARG>' within N chars) — rejected: over-fires on any prose naming a gene and an unrelated accession. Structured-pair = hard; free-text = gap_flag.",
+    "Hard-FAIL any framework quote not verbatim in the cited §N (N6) — rejected: a real catalog criterion cited from the Tier-overview (niche-taxonomy's §8 quote, catalog line 58) would false-FAIL. elsewhere->WARN, not-in-catalog->FAIL separates paraphrase from fabrication; paraphrase-vs-correct is left to composite-auditor.",
+    "Keep keyword-only generation detection, just add verbs — rejected: still gameable by category, still over-fires on mentions. Structural detection (a candidate-set field) is non-gameable (a real generation output names its candidates).",
+    "Apply the smaller cluster first (founder principle 'prueba pequeno') — overridden: the founder explicitly chose all six this round; mitigated by per-fix non-regression checks + the exigent smoke test."
+  ],
+  "contradictory_evidence_cited": [
+    "N2 (ENSDARG regex case/separator brittleness) is NOT fixed this round and remains an open gap_flag; the versioned '...054611.1' form IS caught (the auditor over-claimed it evaded — corrected by the producer).",
+    "N1 binding is allowlist-keyed: the closing audit found the original allowlist MISSED the real {marker, ens_id} 01_schoels shape (now added) — but a structured pair under a wholly unanticipated key still evades the FORWARD check; the REVERSE check (the paired ENSDARG belongs to another stored symbol) is the key-agnostic backstop.",
+    "N1 free-text pairing is still NOT checked (only explicit structured pairs are hard-gated) — an inference gap by design.",
+    "N3 text-only generation (no structure, non-generation category) is WARN, not FAIL — a bare textual sufficiency claim is ambiguous by construction; only structure/category make it a hard FAIL.",
+    "Two legitimate records (collaborator-lbpp, niche-taxonomy) moved PASS->WARN under N6 — a deliberate tightening (their §8 quotes are catalog text from the Tier-overview, not the §8 body), surfaced not blocked.",
+    "The §11 coverage table is still a subset of agent-invocation-matrix.md §1 (now structurally-detected, not category-trusting, but not all rows enforced)."
+  ],
+  "gap_flags": [
+    "N2 regex robustness CLOSED in a same-session follow-up: ENSDARG extraction is now case/separator/version tolerant + canonicalized before resolving, so 'Ensdarg...'/'ENSDARG_...'/'...054611.1' no longer evade (re-verified: smoke 17/17, store SHA unchanged).",
+    "N1 free-text symbol<->ENSDARG pairing remains an inference gap (only structured pairs hard-checked).",
+    "N6 cannot distinguish a paraphrase from a correct-but-non-verbatim citation (elsewhere->WARN); that judgment is composite-auditor's, not the deterministic gate's.",
+    "compute_ece per-tier weighting + native WSTS emission by cascade-sim/squidiff remain deferred (pre-existing)."
+  ],
+  "rater_id": "self (deterministic re-derivation via the 5 selftests + the 17/17 exigent smoke test) — generator==rater acceptable ONLY because the checks are symbolic and reproducible; the closing audit is composite-auditor, not self.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "Exigent smoke test 17/17 PASS: every confirmed bypass (N1 misbinding, W1, W2/N3, N6) is now CAUGHT; non-regression holds (R1-R4 PASS, no new FAIL, replay NO_REGRESSION, world_state 0 false causal_admissible); invariants hold (store SHA unchanged, records/regression_cases/outputs git-clean). All 5 tool selftests PASS.",
+  "expected_outcome_if_h0": "A hardened gate fails to catch its bypass, OR a legitimate record newly FAILs (over-fire), OR the store/records are mutated, OR a selftest breaks.",
+  "observable_at": "2026-06-22 (resolved same-session, deterministic, NO-SPEND)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-22T12:30:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE (with closing-audit REVISE applied). Exigent smoke test = 17/17 PASS (A evasion->caught 8/8, B non-regression 5/5, C invariants 4/4). Selftests: 4 --selftest tools PASS + build_regression_cases --dry-run (it has no --selftest flag — auditor-2 correction) + verify_output module smoke. Accountability over the 13 records = {8 PASS, 1 WARN, 4 FAIL}; the only WARN is corpus-feasibility-zesta (pre-existing no_quote). NO PASS->WARN regression: the closing-audit round restored collaborator-lbpp + niche-taxonomy to PASS via intro-table attribution (their §8 quotes are the catalog's own CoVe summary line, now attributed to §8). world_state causal_admissible count = 0 (was 3; r2/r4 were over-fires). No record moved to FAIL beyond the 4 legacy §Tier-2. Store SHA256 f070b40c...707 unchanged; git diff empty over analysis/outputs/ + regression_cases/; records/ shows only THIS new record. CLOSING COMPOSITE-AUDITOR (Mode 1, 3 adversarial lenses): 3/3 APPROVE_MINOR. It CONSTRUCTED+RAN real defects in the first-round fixes — all fixed this same session: (N1) the {marker, ens_id} 01_schoels output shape + NOT_FOUND-symbol reverse mis-binding now caught (key allowlist widened + reverse-binding check added); (N6) first-quote-only false-FAIL (now scans ALL quoted spans) + trivial-short-quote PASS (now requires a >=20-char meaningful span) + intro-table blind spot (summary lines now attributed to their framework section); (W2/N3) over-fire on governance 'pruning-proposal'/'report-generation' + repository-name candidate lists (category regex tightened to biological-generation phrasings; candidate fields now require gene-symbol-shaped items).",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_2", "test_3"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay": {
+    "type": "identifier_resolution",
+    "assertions": [{"symbol": "wt1a", "expected_ensdarg": "ENSDARG00000031420"}, {"symbol": "pax2a", "expected_ensdarg": "ENSDARG00000028148"}],
+    "must_fail": ["wt1a is ENSDARG00000054611 (the 2026-06 fabrication); ADR-0027 N1 also guards the pax2a<->wt1a-id mis-binding"],
+    "note": "Auto-replayable identifier guard. The N1 binding fix and the §4/§11/world_state/build_regression_cases hardenings are verified at script level by the exigent smoke test (17/17) — see observed_outcome_detail; this replay block keeps the record in the auto-regression corpus."
+  },
+  "agents_invoked": [
+    {
+      "agent": "composite-auditor",
+      "status": "invoked",
+      "reason": "Closing audit gate for the ADR-0027 hardening (Mode 1, >=3 adversarial lenses: did a fix fail to close its hole? did a fix introduce a new over-fire? is non-regression honest?). Self-audit by the producer is prohibited (§7)."
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate / minimal-set generation — this output hardens the substrate tooling, it does not generate biology."
+    },
+    {
+      "agent": "reasoning-exposer",
+      "status": "skipped-ad-hoc",
+      "reason": "The six fixes ARE the executable form of accountability reasoning; the human (Method 2) performed the exposing function in authoring this record and the ADR. The hardened checks + the smoke test are the artifacts."
+    }
+  ],
+  "notes": "ADR-0027. Supersedes the claim_category=='methodological' suppression introduced in ADR-0025's 2026-06-18 update with structural generation detection (non-gameable). Derived from the 2026-06-22 adversarial validation (reports/2026-06-22_mitad-a-adversarial-validation_*.html). The CLOSING composite-auditor (workflow wf_15c04cc6, 3 adversarial lenses) returned 3/3 APPROVE_MINOR and CONSTRUCTED+RAN real defects in the first-round fixes (N1 missed the {marker,ens_id} shape; N6 first-quote-only false-FAIL + trivial-quote PASS + intro-table blind spot; W2/N3 over-fire on governance/report categories + repository candidate lists) — all REVISE items applied + re-verified this same session (loop closed: the audit found holes in the fix, the fix was fixed). ~8th resolved record toward the n>=10 ECE gate; per ADR-0005 'case capture', NOT 'Test 4 satisfied'. Carries the §5 contract + honesty-clause fields."
+}

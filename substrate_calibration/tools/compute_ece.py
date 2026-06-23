@@ -46,7 +46,10 @@ def load_records(records_dir):
     for fname in sorted(os.listdir(records_dir)):
         if not fname.endswith(".json"):
             continue
-        with open(os.path.join(records_dir, fname)) as f:
+        # encoding="utf-8" is REQUIRED: records are UTF-8 (em-dash, §, curly quotes); the prior
+        # encoding-less open() decoded as cp1252 on Windows, mojibake-ing §/quotes — which silently
+        # broke N6 quote-vs-catalog validation (ADR-0027) and any text check over framework_applied.
+        with open(os.path.join(records_dir, fname), encoding="utf-8") as f:
             records.append(json.load(f))
     return records
 
