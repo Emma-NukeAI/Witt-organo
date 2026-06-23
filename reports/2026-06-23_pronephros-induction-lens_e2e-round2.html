@@ -1,0 +1,107 @@
+<title>Pronefros · inducción (lentes round 2) — 2026-06-23</title>
+<style>
+  :root{--bg:#0f172a;--mid:#1e293b;--card:#25314a;--bd:#334155;--tx:#e2e8f0;--dim:#94a3b8;--faint:#64748b;--br:#f1f5f9;
+    --acc:#38bdf8;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--ra:#f43f5e;--wnt:#3b82f6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;font-size:15.5px}
+  .wrap{max-width:1060px;margin:0 auto;padding:30px 22px 80px}
+  h1{font-size:28px;color:var(--br);margin:.1em 0 .15em;line-height:1.18}
+  h2{font-size:21px;color:var(--br);margin:1.6em 0 .5em;border-bottom:1px solid var(--bd);padding-bottom:.2em}
+  h3{font-size:16.5px;color:var(--acc);margin:1.1em 0 .3em}
+  .sub{color:var(--dim);font-size:14px}
+  code{font-family:'Cascadia Code',Consolas,monospace;font-size:.85em;background:#0b1220;color:#cbd5e1;padding:1px 5px;border-radius:4px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin:18px 0}
+  .stat{background:var(--card);border:1px solid var(--bd);border-radius:9px;padding:12px 14px}
+  .stat .n{font-size:22px;font-weight:700;line-height:1.1}.stat .l{font-size:12px;color:var(--dim);margin-top:3px}
+  .badge{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid}
+  .b-good{color:#4ade80;border-color:var(--good);background:rgba(22,163,74,.15)}
+  .b-warn{color:#fbbf24;border-color:var(--warn);background:rgba(245,158,11,.15)}
+  .b-bad{color:#f87171;border-color:var(--bad);background:rgba(220,38,38,.15)}
+  .b-acc{color:#7dd3fc;border-color:var(--acc);background:rgba(56,189,248,.12)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--mid);border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--bd);vertical-align:top}
+  th{background:#0b1220;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  tr:last-child td{border-bottom:none}
+  .scroll{overflow-x:auto}.callout{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--acc);border-radius:8px;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-left-color:var(--warn)}.callout.bad{border-left-color:var(--bad)}.callout.good{border-left-color:var(--good)}
+  .callout h3{margin-top:0}ul.tight{margin:.4em 0;padding-left:1.25em}ul.tight li{margin:.25em 0}
+  .contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:11px}
+  .cf{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px 14px}
+  .cf .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-bottom:5px}
+  .foot{margin-top:42px;border-top:1px solid var(--bd);padding-top:14px;color:var(--faint);font-size:12px}
+  nav{position:sticky;top:0;z-index:9;background:rgba(15,23,42,.93);backdrop-filter:blur(6px);border-bottom:1px solid var(--bd);padding:9px 18px;display:flex;gap:5px;flex-wrap:wrap;font-size:12.5px}
+  nav b{color:var(--acc);margin-right:8px}nav a{color:var(--dim);text-decoration:none;padding:3px 8px;border-radius:5px}nav a:hover{background:var(--card);color:var(--tx)}
+</style>
+<nav><b>Pronefros · inducción · round 2</b><a href="#tldr">TL;DR</a><a href="#contract">§5</a><a href="#kit">Kit</a><a href="#evid">Evidencia</a><a href="#verdict">Veredicto</a><a href="#audit">Auditoría</a></nav>
+<div class="wrap">
+  <p class="sub">Lentes nuevas (literatura + perturbación nativa) + re-ataque a la inducción · Método 2 · 2026-06-23 · companion de <a href="2026-06-22_pronephros-upstream-signal_e2e.html">round 1</a></p>
+  <h1>Inducción del set de TFs del pronefros: anclada e hipotetizada — <span style="color:var(--warn)">NO resuelta</span></h1>
+
+  <section id="tldr"><h2>TL;DR</h2>
+  <div class="callout warn">
+    <h3>Honesto tras 3/3 REVISE del composite-auditor</h3>
+    <p>Se añadieron 2 lentes (literatura EuropePMC ✓ funciona; perturbación nativa vía la tool ZFIN, ahora con
+    <b>crudo cacheado §7.9</b>). La expresión baseline quedó como <b>gap documentado</b> (4 APIs probadas, ninguna
+    JSON limpia). El re-ataque a la inducción <b>sharpeó el cuadro pero NO lo resolvió</b>: <b>ninguna señal
+    extrínseca tiene evidencia nativa de rol-inducción</b>. El auditor atrapó mi over-claim inicial ("resuelto",
+    "FGF prescindible", "Wnt inductor nativo") + una <b>violación de caché §7.9</b> (había cacheado un resumen, no
+    el crudo). Corregido todo.</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n b-good" style="font-size:18px">+1 lente</div><div class="l">literatura (EuropePMC), funciona</div></div>
+    <div class="stat"><div class="n b-acc" style="font-size:18px">§7.9 ✓</div><div class="l">crudo ZFIN+EuropePMC cacheado</div></div>
+    <div class="stat"><div class="n b-warn" style="font-size:18px">3/3 REVISE</div><div class="l">audit corrigió el over-claim</div></div>
+    <div class="stat"><div class="n b-warn" style="font-size:18px">NO resuelta</div><div class="l">inducción por señal extrínseca</div></div>
+    <div class="stat"><div class="n b-bad" style="font-size:18px">corregido</div><div class="l">"FGF prescindible" (era inversión)</div></div>
+  </div></section>
+
+  <section id="contract"><h2>Contrato §5</h2>
+  <div class="contract">
+    <div class="cf"><div class="k">direct_answer</div>Role-split, hipótesis causal-pruner (human-gated). <b>Inducción por señal extrínseca: NO resuelta por datos nativos</b> (mejor candidato Wnt posteriorizante, tier ortólogo+literatura; GOF sin probar). Nativo SÍ mostró: osr1 = nodo TF más upstream <i>dentro</i> del programa; wnt8a = <i>necesario para el campo</i> mesodérmico (necesidad≠inducción); RA = patterning. FGF = no resuelto (redundancia).</div>
+    <div class="cf"><div class="k">framework_applied</div><b>Chain-of-Verification</b> — per <code>reasoning-frameworks-catalog.md §8</code>: cada sub-claim se verificó contra lentes independientes (nativo/ortólogo/literatura) y contra el composite-auditor antes de afirmar. Re-electo desde Self-Consistency (round 1).</div>
+    <div class="cf"><div class="k">confidence_by_subclaim</div><ul class="tight" style="font-size:12.5px"><li>osr1 = nodo TF proximal (nativo) — <b>0.85</b></li><li>RA = patterning proximodistal (nativo+lit) — <b>0.85</b></li><li>Wnt = necesario para el campo (nativo) — <b>0.75</b></li><li>Wnt <i>induce</i> el set de TFs — <b>0.35</b> (ortólogo only)</li><li>inducción <i>resuelta</i> por nativo — <b>0.12</b></li><li>FGF prescindible — <b>0.15</b> (refutado)</li></ul></div>
+    <div class="cf"><div class="k">agents_invoked</div><ul class="tight" style="font-size:12.5px"><li><code>causal-pruner</code> — invoked (candidatos upstream → HUMAN GATE §7.1)</li><li><code>hypothesis-generator</code> — invoked (lentes)</li><li><code>composite-auditor</code> — invoked (3 adversarial → 3/3 REVISE, aplicado)</li></ul></div>
+    <div class="cf"><div class="k">evidence_cited</div><ul class="tight" style="font-size:12.5px"><li>RAW ZFIN: <code>mcp_cache/raw_zfin_{osr1,wnt8a,fgf8a}_phenotypes_20260623.json</code></li><li>RAW EuropePMC: <code>mcp_cache/raw_europepmc_induction_20260623.json</code></li><li>PMID:36359386, 24722440 (osr1→pax2a/lhx1a); 17953490 (RA); 12925590, 24008197 (FGF redundancia/promueve)</li></ul></div>
+    <div class="cf"><div class="k">gap_flags</div><ul class="tight" style="font-size:12.5px"><li>GOF/suficiencia sin probar (solo LOF)</li><li>lente de expresión baseline zebrafish = gap (4 APIs sin JSON limpio)</li><li>FGF redundancia (fgf8b/fgf24) sin testear</li><li>guard silencioso cuando NADIE tiene evidencia nativa de rol (debilidad uniforme) — futura mejora</li><li>1 alelo por gen; sin held-out</li></ul></div>
+    <div class="cf"><div class="k">alternatives_considered</div><ul class="tight" style="font-size:12.5px"><li>"inducción resuelta / Wnt inductor nativo" — rechazado (audit: necesidad≠inducción)</li><li>"FGF prescindible" — rechazado (redundancia; FGF promueve fate)</li><li>osr1 como "señal" — rechazado (es TF intra-programa)</li></ul></div>
+  </div></section>
+
+  <section id="kit"><h2>Kit: 2 lentes nuevas</h2>
+  <div class="scroll"><table>
+    <tr><th>Lente</th><th>Estado</th><th>Detalle</th></tr>
+    <tr><td><b>Literatura (EuropePMC)</b></td><td><span class="badge b-good">añadida ✓</span></td><td><code>.tooluniverse/tools/europepmc_literature.py</code> — PubMed+PMC+preprints, sin key, ranked por citas. Crudo cacheado.</td></tr>
+    <tr><td><b>Perturbación nativa (ZFIN LOF)</b></td><td><span class="badge b-good">operativa ✓</span></td><td>Es la tool ZFIN ya existente, corrida sobre wnt8a/fgf8a/osr1. Crudo §7.9 cacheado este round (fix del audit).</td></tr>
+    <tr><td><b>Expresión baseline zebrafish</b></td><td><span class="badge b-warn">gap documentado</span></td><td>4 APIs probadas (Expression Atlas 404, Bgee 400/key, ZFIN HTML, Alliance 404) — ninguna JSON limpia. Mismo patrón "tooling zebrafish delgado". No bloqueó la inducción (la perturbación es la lente decisiva). Futuro: ZFIN XHR o Bgee con key.</td></tr>
+  </table></div></section>
+
+  <section id="evid"><h2>Evidencia nativa (role-matched, raw-cached §7.9)</h2>
+  <div class="scroll"><table>
+    <tr><th>Gen / señal</th><th>LOF nativo (ZFIN)</th><th>Rol (honesto)</th></tr>
+    <tr><td><b>osr1</b></td><td>IM pax2a expression ↓; IM lhx1a absent (PMID:36359386, 24722440)</td><td>Nodo TF más upstream <b>dentro</b> del programa. NO es señal extrínseca; él mismo va downstream de RA / upstream de wnt2b.</td></tr>
+    <tr><td><b>wnt8a</b> (Wnt post.)</td><td>mesoderm formation disrupted; mesoderm dorsalized; post-vent ↓ (PMID:16216234, 11703928)</td><td><b>Necesario para el campo</b> mesodérmico posterior (permisivo). Necesidad ≠ inducción específica del programa pronefros.</td></tr>
+    <tr><td><b>fgf8a</b></td><td>IM differentiated <b>NORMAL</b> (PMID:9609821); ALPM gata4/hand2/nkx2.5 ↓</td><td><b>No "prescindible".</b> Alelo simple leve por redundancia (fgf8+fgf24 → pierde mesodermo post., PMID:12925590); FGF <b>promueve</b> fate pronefros (PMID:24008197). Requisito FGF <b>no resuelto</b>.</td></tr>
+    <tr><td><b>RA</b></td><td>aldh1a2/cyp26a1 LOF → patrón de segmentos alterado</td><td>Patterning proximodistal (nativo + literatura PMID:17953490). Confirmado.</td></tr>
+  </table></div></section>
+
+  <section id="verdict"><h2>Veredicto honesto</h2>
+  <div class="callout">
+    <p><b>La inducción del set de TFs por una señal extrínseca sigue SIN resolverse.</b> Ninguna señal tiene evidencia
+    nativa de rol-inducción; el mejor candidato (Wnt posteriorizante) descansa en ortólogo (WNT1→PAX2) + el consenso
+    de literatura, y la <b>suficiencia (GOF) no se probó</b>. Lo que el round SÍ logró: ancló osr1 como el nodo TF
+    proximal (nativo), confirmó RA=patterning (nativo+lit), estableció Wnt como necesario-para-el-campo (nativo,
+    distinto rol), y <b>corrigió la inversión "FGF prescindible"</b>. Es coherente con el claim record de ADR-0029
+    ("induction remains unresolved"). Siguiente experimento real: <b>GOF (Wnt/FGF ectópico → pax2a/osr1 ectópico?)</b>
+    + compound-LOF de FGF (fgf8+fgf24).</p>
+  </div></section>
+
+  <section id="audit"><h2>Composite-auditor — 3/3 REVISE (aplicado)</h2>
+  <div class="scroll"><table>
+    <tr><th>Auditor</th><th>Atrapó</th><th>REVISE aplicado</th></tr>
+    <tr><td>over-claim</td><td>"FGF prescindible" <b>invierte</b> la literatura (redundancia; FGF promueve fate). osr1 es intra-programa.</td><td>Corregido a "no implicado por ese alelo; FGF no resuelto"; osr1 remarcado como nodo intra-programa.</td></tr>
+    <tr><td>validez de evidencia</td><td><b>Derroté mi propio guard</b> con un tag role-blind: wnt8a nativo es campo-general, no inducción. necesidad≠suficiencia. GOF ausente.</td><td>Re-rank role-scoped: inducción NO tiene soporte nativo; reportado como role-split, no "resuelto".</td></tr>
+    <tr><td>framing / §7.9</td><td>"Resuelto" contradice el claim record propio; <b>el crudo nativo NO estaba cacheado</b> (era resumen AI) → §7.9.</td><td>Crudo verbatim ZFIN+EuropePMC cacheado; "resuelto"→"anclado+hipótesis"; este reporte §5 + claim record emitidos.</td></tr>
+  </table></div>
+  <div class="callout good"><h3>Lo que demuestra del proyecto</h3><p>El composite-auditor atrapó <b>mis</b> over-claims y una violación de proceso (§7.9) — y los corregí en sesión. El sistema prefirió un "no resuelto" honesto sobre un "resuelto" plausible-pero-falso. El guard <code>evidence_weighting</code> también mostró su límite (silencioso ante debilidad uniforme), registrado como mejora futura.</p></div></section>
+
+  <div class="foot">Round 2 del test E2E. Método 2; única mutación = lectura+caché (la DI no se tocó este round). causal-pruner = HIPÓTESIS, human gate (§7.1). Crudo en <code>mcp_cache/</code>. TYPE A.</div>
+</div>

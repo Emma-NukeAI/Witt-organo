@@ -1,0 +1,64 @@
+{
+  "claim_id": "claim_20260623_160000_pronephros-induction-lens-round2",
+  "claim_timestamp": "2026-06-23T16:00:00Z",
+  "prediction_preregistered_at": "2026-06-23T16:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (E2E round 2 — induction lens + literature/perturbation lenses)",
+  "skill_origin": "manual (Method 2; lenses: europepmc_literature tool + zfin_zebrafish tool; guard: evidence_weighting)",
+  "skill_version": "europepmc_literature-1.0 / zfin_zebrafish-1.0 / evidence_weighting-1.0",
+  "claim_text": "Re-attack of the pronephros TF-set INDUCTION question with two added lenses (literature = EuropePMC; native perturbation = ZFIN loss-of-function, raw cached per §7.9). HONEST RESULT (causal-pruner HYPOTHESIS, human-gated): induction by an EXTRINSIC SIGNAL is NOT resolved by native data -- no extrinsic signal carries native induction-role evidence; the best candidate is posteriorizing Wnt at ortholog (WNT1->PAX2/PAX8) + literature tier, and sufficiency (GOF) was not tested. What native LOF DID establish (role-matched): osr1 is the most-upstream TF WITHIN the program (osr1 LOF -> intermediate-mesoderm pax2a decreased + lhx1a absent, PMID:36359386/24722440), itself downstream of RA and upstream of wnt2b -- a node, not an extrinsic signal; wnt8a is NECESSARY for the posterior mesodermal FIELD (LOF -> broad mesoderm disruption/dorsalization, PMID:16216234/11703928) -- permissive, necessity != induction; RA patterns the proximodistal axis (aldh1a2/cyp26a1 LOF + PMID:17953490). FGF is NOT 'dispensable' (an earlier over-claim I retract): fgf8a single-allele IM is near-normal due to redundancy (fgf8+fgf24 double -> posterior mesoderm lost, PMID:12925590; FGF promotes pronephric fate, PMID:24008197) -- FGF-pathway requirement UNRESOLVED. A baseline zebrafish-expression lens was attempted but DEFERRED (no friction-free JSON API across Expression Atlas/Bgee/ZFIN/Alliance).",
+  "claim_category": "pronephros-upstream-signal-hypothesis",
+  "sub_domain": "embryology-signaling",
+  "requires_human_gate": true,
+  "human_gate_rationale": "causal-pruner-class ranked upstream/sufficiency hypothesis (CLAUDE.md §7.1) -> human gate + wet-lab before any downstream use; never a decision. No DATA INAMOVIBLE mutation this round (read + cache only).",
+  "agent_invocation_status": "causal-pruner (ranked upstream candidates) INVOKED -> human gate; composite-auditor INVOKED (3 adversarial, returned 3/3 REVISE, applied).",
+  "prior": 0.5,
+  "stated_confidence": 0.6,
+  "framework_applied": "Chain-of-Verification (CoVe) - per reasoning-frameworks-catalog.md §8: 'Generate a draft answer, then generate verification questions about that answer, answer those questions independently' (each sub-claim verified against native/ortholog/literature lenses + the composite-auditor before assertion). Re-elected from Self-Consistency (round 1). Per CLAUDE.md §5, framework_applied is self-report.",
+  "confidence_by_subclaim": {
+    "osr1_is_the_most-upstream_TF_node_within_the_program (native LOF, raw-cached)": 0.85,
+    "RA_patterns_the_proximodistal_axis (native + literature)": 0.85,
+    "wnt8a_is_necessary_for_the_posterior_mesoderm_field (native LOF; permissive role)": 0.75,
+    "Wnt_INDUCES_the_TF_set (ortholog WNT1->PAX2 + literature only; NOT native induction-role)": 0.35,
+    "induction_by_an_extrinsic_signal_is_RESOLVED_by_native_data": 0.12,
+    "FGF_is_dispensable_for_IM (RETRACTED over-claim; redundancy untested)": 0.15
+  },
+  "alternatives_considered": [
+    "'Induction resolved / Wnt is the native inducer' — REJECTED by the composite-auditor: wnt8a native LOF is field-scale necessity, not induction-role; necessity != sufficiency != specific induction.",
+    "'FGF8a dispensable for IM' — REJECTED: single zygotic allele masked by redundancy (fgf8+fgf24, PMID:12925590); FGF promotes pronephric fate (PMID:24008197). My initial reading inverted the literature.",
+    "osr1 as the answer to 'which SIGNAL induces' — REJECTED: osr1 is a TF inside the program (a node), not an extrinsic signal; it sits downstream of RA / upstream of wnt2b."
+  ],
+  "contradictory_evidence_cited": [
+    "The decisive sufficiency test (GOF: ectopic Wnt/FGF -> ectopic pax2a/osr1?) was NOT run -- LOF-only evidence cannot upgrade 'necessary/permissive' to 'inducer'.",
+    "evidence_weighting guard returned overclaim_flag=False on the induction-role re-rank NOT because induction is resolved, but because NO candidate has native induction-role support (uniform weakness, no native-vs-ortholog conflict) -- a documented guard limitation, not a resolution.",
+    "Only one allele per gene (wnt8a, fgf8a); maternal contribution + paralog redundancy unaddressed.",
+    "EuropePMC items for Wnt/FGF induction are reviews/correlative -- zero causal weight for the induction claim.",
+    "signaling_markers_curated.json still labels fgf8a/wnt8a 'inducer candidate' (hypothesis-language, pre-this-round); a future human-gated edit could refine fgf8a's note."
+  ],
+  "gap_flags": [
+    "GOF/sufficiency lens absent (LOF-only).",
+    "Baseline zebrafish-expression lens deferred (no clean public JSON API: Atlas/Bgee/ZFIN/Alliance).",
+    "FGF paralog redundancy (fgf8b/fgf24/fgf10) not tested.",
+    "evidence_weighting is silent when NO candidate has native role-matched evidence (uniform weakness) -- add a low-best-tier warning (future ADR-0028 refinement).",
+    "Single allele per gene; no held-out."
+  ],
+  "rater_id": "self (deterministic: tool round-trips + raw caches on disk) + composite-auditor (3 adversarial, NOT the producer) -- the audit is the gate, self-reflection is not.",
+  "outcome_horizon": "phase_II_wetlab",
+  "proxy_level": 2,
+  "expected_outcome_if_h1": "GOF: ectopic posteriorizing-Wnt (or FGF) expands/induces ectopic osr1/pax2a in competent mesoderm; compound FGF LOF (fgf8+fgf24) abolishes IM. Would upgrade Wnt/FGF from permissive/necessary to inducer.",
+  "expected_outcome_if_h0": "Ectopic Wnt/FGF does NOT induce ectopic osr1/pax2a -> induction is intrinsic/other-signal; the permissive-field role stands but induction stays unattributed.",
+  "observable_at": "Phase II wet-lab (GOF + compound-LOF); unfalsifiable in-silico this phase.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": null,
+  "observed_outcome_detail": "In-silico round produced a HYPOTHESIS, not a wet-lab outcome. The deterministic parts that ARE observed: osr1/wnt8a/fgf8a resolve in the store (RAW); raw ZFIN+EuropePMC responses cached (§7.9); evidence_weighting role-scoped re-rank run; composite-auditor 3/3 REVISE applied (FGF retraction, role-split, raw-cache fix, 'resolved'->'anchored+hypothesis').",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_5"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay_note": "No machine-replayable `replay` block: observed_outcome is unfalsifiable_in_phase_I (the biology is a Phase-II GOF/compound-LOF hypothesis, not an in-silico deterministic check). The gene anchors (osr1/wnt8a/fgf8a) are already guarded by the ADR-0029 record's replay block — not duplicated here. So replay_and_regress honestly reports this record as 'manual'.",
+  "agents_invoked": [
+    {"agent": "causal-pruner", "status": "invoked", "reason": "Ranked the upstream-signal candidates (Wnt/FGF/RA/Notch/TGF-beta) for the pronephros TF set -> output is a HYPOTHESIS requiring the §7.1 human gate, never a decision."},
+    {"agent": "composite-auditor", "status": "invoked", "reason": "3 adversarial auditors (over-claim / evidence-validity / framing) returned 3/3 REVISE; all REVISE items applied this session. Self-audit prohibited (§7)."},
+    {"agent": "hypothesis-generator", "status": "invoked", "reason": "Generated the upstream-signal hypothesis grounded in the source-of-truth + the literature/perturbation lenses; obligatory non-empty contradictory_evidence."}
+  ],
+  "notes": "E2E round 2. The composite-auditor caught producer over-claims ('induction resolved', 'FGF dispensable', native-tag laundering) + a §7.9 cache violation (summary cached instead of raw); all corrected in-session. HTML report: reports/2026-06-23_pronephros-induction-lens_e2e-round2.html. Per ADR-0005 this is a Phase-I 'case capture' for Test 5 (cross-niche-ish: signaling) + Test 1. No DI mutation this round."
+}
