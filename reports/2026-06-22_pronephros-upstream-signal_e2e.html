@@ -1,0 +1,212 @@
+<title>Pronefros · señal upstream — test E2E (2026-06-22)</title>
+<style>
+  :root{
+    --bg-deep:#0f172a;--bg-mid:#1e293b;--bg-card:#25314a;--border:#334155;
+    --text:#e2e8f0;--dim:#94a3b8;--faint:#64748b;--bright:#f1f5f9;
+    --accent:#38bdf8;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--paradigm:#a855f7;
+    --ra:#f43f5e;--wnt:#3b82f6;--notch:#10b981;--tgf:#f59e0b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg-deep);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6;font-size:15.5px}
+  .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 90px}
+  h1{font-size:30px;color:var(--bright);margin:.1em 0 .15em;letter-spacing:-.01em;line-height:1.15}
+  h2{font-size:22px;color:var(--bright);margin:1.7em 0 .5em;border-bottom:1px solid var(--border);padding-bottom:.25em}
+  h3{font-size:17px;color:var(--accent);margin:1.2em 0 .35em}
+  .sub{color:var(--dim);font-size:14px}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.86em;background:#0b1220;color:#cbd5e1;padding:1px 5px;border-radius:4px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin:20px 0}
+  .stat{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:13px 15px}
+  .stat .n{font-size:25px;font-weight:700;line-height:1.05}
+  .stat .l{font-size:12px;color:var(--dim);margin-top:3px}
+  .badge{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid;vertical-align:middle}
+  .b-good{color:#4ade80;border-color:var(--good);background:rgba(22,163,74,.15)}
+  .b-warn{color:#fbbf24;border-color:var(--warn);background:rgba(245,158,11,.15)}
+  .b-bad{color:#f87171;border-color:var(--bad);background:rgba(220,38,38,.15)}
+  .b-acc{color:#7dd3fc;border-color:var(--accent);background:rgba(56,189,248,.12)}
+  .b-par{color:#c084fc;border-color:var(--paradigm);background:rgba(168,85,247,.14)}
+  table{width:100%;border-collapse:collapse;margin:13px 0;font-size:13.5px;background:var(--bg-mid);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:#0b1220;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  tr:last-child td{border-bottom:none}
+  td.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:12px}
+  .scroll{overflow-x:auto}
+  .callout{background:var(--bg-card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:8px;padding:14px 17px;margin:15px 0}
+  .callout.good{border-left-color:var(--good)} .callout.warn{border-left-color:var(--warn)} .callout.ra{border-left-color:var(--ra)}
+  .callout h3{margin-top:0}
+  ul.tight{margin:.4em 0;padding-left:1.25em} ul.tight li{margin:.25em 0}
+  .contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:11px}
+  .cf{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+  .cf .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-bottom:5px}
+  .ph{color:var(--faint);font-style:italic}
+  .foot{margin-top:46px;border-top:1px solid var(--border);padding-top:15px;color:var(--faint);font-size:12px}
+  nav{position:sticky;top:0;z-index:9;background:rgba(15,23,42,.93);backdrop-filter:blur(6px);border-bottom:1px solid var(--border);padding:9px 20px;display:flex;gap:5px;flex-wrap:wrap;font-size:12.5px}
+  nav b{color:var(--accent);margin-right:8px}
+  nav a{color:var(--dim);text-decoration:none;padding:3px 8px;border-radius:5px}
+  nav a:hover{background:var(--bg-card);color:var(--text)}
+</style>
+
+<nav>
+  <b>Pronefros · señal upstream · E2E</b>
+  <a href="#tldr">TL;DR</a><a href="#contract">§5</a><a href="#pipeline">Pipeline</a><a href="#di">DATA INAMOVIBLE</a>
+  <a href="#tu">Tool Universe</a><a href="#zfin">Tool ZFIN</a><a href="#verdict">Veredicto</a><a href="#audit">Auditoría</a>
+</nav>
+
+<div class="wrap">
+  <p class="sub">Test end-to-end de la pipeline completa · Método 2 · Witt × Organogenésis · 2026-06-22</p>
+  <h1>¿Qué señal upstream regula el set mínimo de TFs del pronefros?</h1>
+  <p class="sub">Pregunta within-niche (N3 embriología/genómica + N4 señalización). Recorrido completo:
+  DATA INAMOVIBLE → Tool Universe → gate de adición de tool → Self-Consistency → causal-pruner (matriz de dominios) → composite-auditor.</p>
+
+  <section id="tldr">
+    <h2>TL;DR</h2>
+    <div class="callout ra" id="tldr-callout">
+      <h3>Respuesta corta <span class="badge b-warn">role-split · human-gated</span></h3>
+      <p>No hay un ganador único — son <b>dos roles</b>. <b>Patterning proximodistal: el gradiente de ácido retinoico (RA)</b>
+      — la mejor evidencia causal del set, zebrafish-nativa (pérdida de aldh1a2 [síntesis] <i>y</i> cyp26a1
+      [degradación] altera el patrón de segmentos; PMIDs). <b>Inducción del set mínimo de TFs: NO resuelta</b> por estas
+      lentes — mejor candidato Wnt (WNT1→PAX2/PAX8; +FGF probable), pero solo ortólogo humano, sin confirmación
+      zebrafish; osr1 (el paso más temprano) ni siquiera está anclado. El panel votó 5/5 "Wnt inducer" y
+      <b>la auditoría adversarial lo corrigió</b> a este role-split. Hipótesis causal-pruner: requiere HUMAN GATE + wet-lab.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" style="color:var(--good)">6/6</div><div class="l">pasos de la pipeline ejercitados</div></div>
+      <div class="stat"><div class="n" style="color:var(--good)">3</div><div class="l">lentes de evidencia (real)</div></div>
+      <div class="stat"><div class="n" style="color:var(--accent)">+1</div><div class="l">tool nueva en Tool Universe (ZFIN)</div></div>
+      <div class="stat"><div class="n">5</div><div class="l">rankers Self-Consistency</div></div>
+      <div class="stat"><div class="n" style="color:var(--ra);font-size:19px">RA / Wnt</div><div class="l">role-split (patterning / inducción)</div></div>
+      <div class="stat"><div class="n" style="color:var(--warn);font-size:19px">2 REVISE</div><div class="l">audit corrigió el over-claim</div></div>
+    </div>
+  </section>
+
+  <section id="contract">
+    <h2>Contrato §5</h2>
+    <div class="contract">
+      <div class="cf"><div class="k">framework_applied</div><b>Self-Consistency</b> — per <code>reasoning-frameworks-catalog.md §4</code> (Tier 1): voto-mayoría sobre 5 corridas independientes de ranking. Width = panel de 5 rankers. Cierre verificado por composite-auditor.</div>
+      <div class="cf"><div class="k">agents_invoked</div><ul class="tight" style="font-size:12.5px"><li><code>causal-pruner</code> — invoked (ranked upstream candidates → <b>HUMAN GATE</b>, §7.1: hipótesis, no decisión)</li><li><code>hypothesis-generator</code> — invoked (source-of-truth → Tool Universe → evidencia)</li><li><code>composite-auditor</code> — invoked (3 adversarial, cierre)</li><li><code>reasoning-exposer</code> — invoked (este contrato)</li></ul></div>
+      <div class="cf"><div class="k">direct_answer</div>Role-split (no ganador único): <b>RA (gradiente) patterniza el eje proximodistal</b> del pronefros (zebrafish-nativo, fuerte); la <b>inducción</b> del set mínimo de TFs queda <b>no resuelta</b> por estas lentes — mejor candidato Wnt (+FGF), solo ortólogo. Hipótesis causal-pruner, human-gated.</div>
+      <div class="cf"><div class="k">confidence_by_subclaim</div><ul class="tight" style="font-size:12.5px"><li>RA patterniza proximodistal — <b>0.80</b></li><li>Wnt = mejor candidato a inductor (ortólogo) — <b>0.42</b></li><li>inducción <i>resuelta</i> por estas lentes — <b>0.15</b></li><li>Notch/TGFβ = co-reg, no inductores — <b>0.60</b></li></ul></div>
+      <div class="cf"><div class="k">alternatives_considered</div><ul class="tight" style="font-size:12.5px"><li>RA como inductor — rechazado (evidencia es patterning LOF, no inducción)</li><li>ganador único "Wnt inducer" — rechazado por la auditoría (role-split)</li><li>colapsar a empate RA≈Wnt — rechazado (roles distintos, no empate)</li></ul></div>
+      <div class="cf"><div class="k">evidence_cited</div><ul class="tight" style="font-size:12.5px"><li>Reactome enrichment (ortólogos), <code>mcp_cache/raw_tooluniverse_…json</code></li><li>OmniPath signaling (ortólogos), mismo cache</li><li>ZFIN zebrafish (tool nueva), <code>mcp_cache/raw_zfin_…json</code> — PMIDs 9007239, 17651719, 17953490, 21761484, 27406002</li><li>DATA INAMOVIBLE: foxc1a/pax2a/wt1a/… verified_identifiers.json</li></ul></div>
+      <div class="cf"><div class="k">gap_flags</div><ul class="tight" style="font-size:12.5px"><li>Tool Universe es human-céntrico; RA invisible a PPI (cerrado parcialmente con la tool ZFIN)</li><li>Evidencia RA = patterning (fenotipos LOF), no prueba inducción directa</li><li>Wnt/Notch/TGFβ = ortólogo humano, no confirmado en zebrafish</li><li>Sin held-out per-question aún</li></ul></div>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <h2>El recorrido completo (los 6 pasos que pediste)</h2>
+    <div class="scroll"><table>
+      <tr><th>#</th><th>Paso</th><th>Qué pasó (real)</th><th></th></tr>
+      <tr><td>1</td><td>Consultar DATA INAMOVIBLE</td><td><code>resolve_id</code>: pax2a/wt1a/lhx1a/hnf1ba… resueltos del store verificado; preflight §10 halló el set + datos previos (sin análisis upstream → gap real)</td><td><span class="badge b-good">✓</span></td></tr>
+      <tr><td>2</td><td>Tool Universe (Path-B)</td><td>MCP conectado; Reactome enrichment + OmniPath signaling sobre ortólogos humanos</td><td><span class="badge b-good">✓</span></td></tr>
+      <tr><td>3</td><td>Detección de hueco + <b>gate de adición</b></td><td>TU es human-céntrico y pierde RA (receptor nuclear) → te pregunté → elegiste <b>añadir tool ZFIN</b></td><td><span class="badge b-good">✓ gate</span></td></tr>
+      <tr><td>4</td><td>Crear + testear tool ZFIN</td><td>tool workspace ToolUniverse (<code>.tooluniverse/tools/zfin_zebrafish.py</code>), testeada contra la API real → evidencia RA→pronefros</td><td><span class="badge b-acc">+1 tool</span></td></tr>
+      <tr><td>5</td><td>Elegir substrate/width</td><td><b>Self-Consistency (§4 Tier 1)</b>, width = 5 rankers independientes (voto-mayoría)</td><td><span class="badge b-good">✓</span></td></tr>
+      <tr><td>6</td><td>Elegir agente (matriz de dominios §11)</td><td><b><code>causal-pruner</code></b> (pruning over signaling networks → Logic-LM → HUMAN GATE) + <code>hypothesis-generator</code>; cierre <code>composite-auditor</code></td><td><span class="badge b-good">✓</span></td></tr>
+    </table></div>
+  </section>
+
+  <section id="di">
+    <h2>1 · DATA INAMOVIBLE</h2>
+    <p>El store (<code>verified_identifiers.json</code>, v2026-06-11.1) tiene el set de TFs del pronefros con IDs verificados:
+    pax2a <code>ENSDARG00000028148</code> (RAW), wt1a <code>…31420</code> (RAW), lhx1a <code>…14018</code> (RAW),
+    hnf1ba <code>…06615</code> (DERIVED), gata3/pax8/mafba/… Preflight §10: el repo tenía el <i>set</i> + expresión
+    (schoels DE, proteómica) pero <b>ningún análisis causal de la vía upstream</b> → la pregunta es un gap genuino.</p>
+  </section>
+
+  <section id="tu">
+    <h2>2 · Tool Universe (ortólogos humanos)</h2>
+    <h3>Lente A — Reactome enrichment <span class="badge b-good">identidad confirmada</span></h3>
+    <p>{PAX2,PAX8,LHX1,WT1,HNF1B,OSR1} → <b>"Formation of intermediate mesoderm"</b> (8/13, FDR 8.9e-16),
+    "nephric duct", "kidney/nephron development". La proyección ortóloga funciona; da <b>membresía</b>, no el inductor.</p>
+    <h3>Lente B — OmniPath signaling (upstream de los TFs)</h3>
+    <div class="scroll"><table>
+      <tr><th>Señal</th><th>Interacción</th><th>Efecto</th></tr>
+      <tr><td><span class="badge b-acc">Wnt</span></td><td class="mono">WNT1→PAX2, WNT1→PAX8, GSK3B⊣WT1</td><td>estímulo / (GSK3B inhibe)</td></tr>
+      <tr><td><span class="badge b-good">Notch</span></td><td class="mono">NOTCH1→PAX8</td><td>estímulo</td></tr>
+      <tr><td><span class="badge b-warn">TGFβ/BMP</span></td><td class="mono">SMAD3⊣PAX8, TGFB1⊣PAX8</td><td>inhibición</td></tr>
+      <tr><td><span class="badge b-bad">RA</span></td><td colspan="2">AUSENTE — RA actúa vía receptor nuclear (RAR/RXR→DNA), invisible a una base PPI. <b>No es evidencia contra RA; es un hueco de cobertura.</b></td></tr>
+    </table></div>
+  </section>
+
+  <section id="zfin">
+    <h2>3 · Tool ZFIN nueva <span class="badge b-acc">añadida a Tool Universe</span></h2>
+    <p><code>.tooluniverse/tools/zfin_zebrafish.py</code> — resuelve símbolo zebrafish → curie ZFIN (live, sin memoria §7) →
+    fenotipos (filtro de anatomía) + PMIDs, vía Alliance of Genome Resources (datos ZFIN, taxon 7955, sin API key).
+    Testeada contra la API real:</p>
+    <div class="callout ra">
+      <h3>La evidencia que el TU humano no podía dar: el gradiente de RA patterniza el pronefros</h3>
+      <ul class="tight">
+        <li><b>aldh1a2</b> (síntesis de RA) LOF → "pronephric distal late tubule increased length", "duct development delayed", cambios de longitud proximal/distal (PMID:17953490, 21761484)</li>
+        <li><b>cyp26a1</b> (degradación de RA) LOF → "<b>anterior/posterior pattern specification involved in pronephros development disrupted</b>" + mislocalización de marcadores de segmento <code>slc12a1/slc12a3/slc4a4a</code> (en el store) (PMID:27406002)</li>
+        <li><b>pax2a</b> → "pronephric duct absent" (PMID:9007239); <b>wt1a</b> → "pronephric glomerulus aplastic/cystic"</li>
+      </ul>
+      <p>Síntesis y degradación de RA, ambas, alteran el patrón de segmentos → <b>es el gradiente de RA</b> el que organiza el eje proximodistal (resultado canónico Wingert et al.).</p>
+    </div>
+  </section>
+
+  <section id="verdict">
+    <h2>4 · Veredicto (Self-Consistency → composite-auditor REVISE → causal-pruner, HUMAN-GATED)</h2>
+    <div class="callout warn">
+      <h3>El panel votó 5/5 "Wnt (inducer)" — la auditoría lo CORRIGIÓ a un role-split <span class="badge b-warn">REVISE aplicado</span></h3>
+      <p>Self-Consistency convergió unánime en Wnt como inductor (confianza modesta 0.42–0.50). Pero los 3 auditores
+      adversariales coincidieron (<code>induction_vs_patterning_correct = False</code>): el label "inducer" es un
+      <b>over-claim de rol</b> — descansa <i>enteramente</i> en PPI ortólogo humano (Lens B), sin un solo edge
+      zebrafish; y los 0 votos a RA fueron un <b>artefacto</b> (RA es invisible a PPI). La respuesta honesta no es un
+      ganador único, es un <b>role-split</b>.</p>
+    </div>
+    <h3>Respuesta corregida (role-split)</h3>
+    <div class="scroll"><table>
+      <tr><th>Rol</th><th>Señal</th><th>Soporte</th><th>Confianza</th></tr>
+      <tr>
+        <td><b>Patterning proximodistal</b> del eje del pronefros</td>
+        <td><span class="badge b-bad">Ácido retinoico (gradiente)</span></td>
+        <td><b>La mejor evidencia causal del set, zebrafish-nativa.</b> aldh1a2 (síntesis) <i>y</i> cyp26a1 (degradación) LOF → patrón de segmentos alterado + mislocalización de slc12a1/slc12a3/slc4a4a (Lens C, PMID:17953490/21761484/27406002). Canónico (Wingert).</td>
+        <td><b>~0.80</b></td>
+      </tr>
+      <tr>
+        <td><b>Inducción</b> del set mínimo de TFs (osr1→pax2a/lhx1a/wt1a)</td>
+        <td><span class="badge b-acc">Wnt</span> (+ probablemente FGF)</td>
+        <td><b>NO RESUELTO por estas 3 lentes.</b> Mejor candidato = Wnt (WNT1→PAX2/PAX8 estímulo, GSK3B⊣WT1, Lens B) — pero <b>solo ortólogo humano</b>, sin confirmación zebrafish. FGF infra-muestreado (ningún edge en las lentes). osr1 (el paso de inducción más temprano) <b>no está anclado</b> en el store ni en la evidencia.</td>
+        <td><b>~0.42</b> (candidato) / inducción <i>resuelta</i>: ~0.15</td>
+      </tr>
+      <tr>
+        <td>Co-regulación / modulación</td>
+        <td><span class="badge b-good">Notch</span> · <span class="badge b-warn">TGFβ/BMP</span></td>
+        <td>Notch: 1 edge (NOTCH1→PAX8), rol conocido = fate intra-segmento, no inducción. TGFβ: edges <b>inhibitorios</b> (SMAD3/TGFB1⊣PAX8) → modulación, dirección opuesta a inductor.</td>
+        <td>~0.07 / ~0.05</td>
+      </tr>
+    </table></div>
+    <div class="callout ra">
+      <h3>El hallazgo central (no colapsar a un ganador)</h3>
+      <p><b>RA y Wnt tienen masa de probabilidad casi igual pero para roles DISTINTOS</b>, y la asimetría cross-species
+      es el confound dominante: la evidencia de <i>inducción</i> (Wnt) es ortólogo-humano-PPI; la evidencia
+      zebrafish-nativa más fuerte (RA) es para el <i>otro</i> rol (patterning). <b>Hipótesis causal-pruner — requiere
+      HUMAN GATE</b> (§7.1) + confirmación wet-lab. La prueba nativa directa de inducción (¿LOF de Wnt/FGF abole
+      osr1/IM en pez cebra?) <b>no se corrió</b> esta sesión — es el siguiente experimento.</p>
+    </div>
+  </section>
+
+  <section id="audit">
+    <h2>5 · Composite-auditor (3 adversarial, §7) <span class="badge b-warn">2 REVISE · 1 APPROVE_MINOR</span></h2>
+    <p class="sub">Los 3 coinciden: <code>induction_vs_patterning_correct = False</code> · <code>human_gate_respected = True</code>. Atraparon el over-claim del panel.</p>
+    <div class="scroll"><table>
+      <tr><th>Lente</th><th>Veredicto</th><th>Qué atrapó</th></tr>
+      <tr><td><b>over-claim</b></td><td><span class="badge b-warn">REVISE</span></td><td>El label "inducer" species-salta (ortólogo→zebrafish); los 0 votos a RA = absence-of-evidence mal leída (RA invisible a PPI). RA es la única señal zebrafish-nativa con PMIDs.</td></tr>
+      <tr><td><b>validez de evidencia</b></td><td><span class="badge b-warn">REVISE</span></td><td>Inversión de jerarquía de lentes: el voto 5/5 privilegió Lens B (PPI ortólogo) sobre Lens C (zebrafish-nativo in-vivo). Ortholog≠identidad (duplicación teleóstea: PAX2 humano ≠ pax2a). Reactome = membresía, no causación.</td></tr>
+      <tr><td><b>framing / human-gate</b></td><td><span class="badge b-good">APPROVE_MINOR</span></td><td>Confianzas 0.42–0.50 honestas; human-gate respetado. <b>osr1 NOT_FOUND en el store</b> — el paso de inducción más temprano no está anclado. Exigió reframe a role-split (aplicado arriba).</td></tr>
+    </table></div>
+    <div class="callout good">
+      <h3>Lo que este test demuestra del proyecto</h3>
+      <p>La pipeline pasó por <b>los 6 pasos</b> con datos reales, <b>añadió una tool</b> a Tool Universe que desbloqueó
+      evidencia que el TU humano no podía dar, y — lo más importante — <b>el auditor adversarial atrapó el over-claim
+      de su propio panel</b> (5/5 "Wnt inducer" → role-split honesto). El sistema no entregó una respuesta
+      plausible-pero-mal-rolada; se autocorrigió y dejó explícito qué está resuelto (patterning=RA) y qué no
+      (inducción), bajo human gate.</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>Test E2E de la pipeline GWT v1.1 (post-hardening ADR-0027). Método 2, read-and-report salvo la adición
+    autorizada de la tool ZFIN. Evidencia cruda en <code>mcp_cache/</code>. causal-pruner = HIPÓTESIS, requiere human gate
+    (§7.1) — no es decisión. Test framing exploratorio. TYPE A.</p>
+  </div>
+</div>

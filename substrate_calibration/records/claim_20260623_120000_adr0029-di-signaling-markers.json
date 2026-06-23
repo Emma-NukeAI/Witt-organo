@@ -1,0 +1,69 @@
+{
+  "claim_id": "claim_20260623_120000_adr0029-di-signaling-markers",
+  "claim_timestamp": "2026-06-23T12:00:00Z",
+  "prediction_preregistered_at": "2026-06-23T12:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (post-E2E adjustment #2 — human-gated DI ADD)",
+  "skill_origin": "manual (human gate authorized 2026-06-23; single writer build_verified_store.py)",
+  "skill_version": "build_verified_store STORE_VERSION 2026-06-23.1",
+  "claim_text": "Five pronephros upstream-signaling / induction markers were ADDED to the DATA INAMOVIBLE under an explicit human gate (ADR-0029), all RAW tier with ENSDARG resolved LIVE from Ensembl REST (xrefs/symbol + lookup, danio_rerio GRCz11, 2026-06-23) and the raw response cached (§7.9): osr1=ENSDARG00000014091, wnt8a=ENSDARG00000052910, fgf8a=ENSDARG00000003399, aldh1a2=ENSDARG00000053493, cyp26a1=ENSDARG00000033999. Mechanism: new curated source signaling_markers_curated.json + merge block in the single writer build_verified_store.py + STORE_VERSION bump 2026-06-11.1->2026-06-23.1 + prior-store snapshot verified_identifiers.v2026-06-11.1.json (ADR-0002). Result: store 46->51 records (26 RAW/23 DERIVED/2 NOT_FOUND); SHA256 changed intentionally f070b40c...707 -> 5f4d0bf9...d580. ADD-only: no existing record edited/deleted; wt1a/pax2a still resolve; replay over records+regression_cases NO_REGRESSION; all 5 tool selftests PASS; ADR-0027 smoke 22/22 (store invariant refactored to dynamic capture-compare).",
+  "claim_category": "methodological",
+  "sub_domain": "substrate-tooling",
+  "requires_human_gate": true,
+  "human_gate_rationale": "This IS a DATA INAMOVIBLE mutation — the hardest gate (CLAUDE.md §7 / founder directive 2026-06-13). The exact spec (5 symbols, verified ENSDARG, RAW tier, builder edit, version bump, snapshot, 46->51, SHA before->after) was STATED before any write; Emmanuel authorized 'los 5 tal cual' on 2026-06-23. IDs resolved live (never memory); reversible via the snapshot.",
+  "agent_invocation_status": "domain-knowledge-curator role under the human gate. causal-pruner not-applicable (deterministic verified curation, not candidate generation). The motivating audit is the 2026-06-22 E2E composite-auditor (ADR-0028).",
+  "prior": 0.9,
+  "stated_confidence": 0.97,
+  "framework_applied": "Logic-LM (Symbolic Verification) - per reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (live Ensembl resolution + deterministic store round-trip make each added binding provably correct). Per CLAUDE.md §5, framework_applied is self-report, not faithful introspection.",
+  "confidence_by_subclaim": {
+    "the_5_ENSDARG_are_correct (resolved live from Ensembl REST, GRCz11, raw cached)": 0.98,
+    "the_add_is_ADD-only_no_existing_record_changed (wt1a/pax2a still resolve; diff is +5)": 0.99,
+    "the_mutation_was_human-gated_with_exact_prior_spec (founder directive honored)": 1.0,
+    "no_regression_introduced (replay NO_REGRESSION; selftests + smoke green under new store)": 0.97
+  },
+  "alternatives_considered": [
+    "Add the 5 to ensembl_symbol_map.json (would tag them DERIVED) — rejected: the raw Ensembl response was cached, so RAW tier via a curated file is more honest (§7.9).",
+    "Skip the DI mutation and keep resolving these ad-hoc — rejected by the user (wanted them anchored where induction questions are weakest).",
+    "Add more genes (wnt11, raldh paralogs, her9) — deferred: kept to the 5 the E2E test specifically implicated ('prueba pequeno')."
+  ],
+  "contradictory_evidence_cited": [
+    "ensembl_release is recorded as null for these 5 (the live REST query was not pinned to release 111 like the legacy rows); assembly GRCz11 is confirmed and the ENSDARG IDs are assembly-stable.",
+    "Anchoring osr1/wnt8a/fgf8a does NOT resolve the E2E biology question (induction remains unresolved); it only removes the not-found gap so a FUTURE native-perturbation lens can be run.",
+    "RAW tier here means 'raw Ensembl xref/lookup retained', a lighter raw than the LBPP 3-hop anchors; still §7.9-compliant."
+  ],
+  "gap_flags": [
+    "ensembl_release not pinned for the 5 new records (null).",
+    "These anchor identifiers only; the induction-vs-patterning biology still needs a native LOF/GOF lens (ADR-0028 follow-on).",
+    "No UniProt/ensdarp/ensdart for the 5 yet (ensdarg only)."
+  ],
+  "rater_id": "self (deterministic re-derivation: resolve_id round-trip + builder n=51 + replay NO_REGRESSION) — acceptable because the checks are symbolic + reproducible and the mutation was human-gated.",
+  "outcome_horizon": "fast",
+  "proxy_level": 1,
+  "expected_outcome_if_h1": "After the gated build: store n=51, store_version 2026-06-23.1, the 5 new symbols resolve to their verified ENSDARG at RAW tier, existing records unchanged, replay NO_REGRESSION, SHA changed exactly by the +5 add.",
+  "expected_outcome_if_h0": "A new ID does not resolve / resolves wrong, an existing record changed, the builder errored, or replay regressed.",
+  "observable_at": "2026-06-23 (resolved same-session, deterministic, NO-SPEND build over live-verified+cached IDs)",
+  "observed_outcome": "positive",
+  "observed_at": "2026-06-23T12:20:00Z",
+  "observed_outcome_detail": "RESOLVED POSITIVE. Builder: 51 records (26 RAW/23 DERIVED/2 NOT_FOUND), store_version 2026-06-23.1. SHA f070b40c...707 -> 5f4d0bf9...d580 (intentional). resolve_id: osr1/wnt8a/fgf8a/aldh1a2/cyp26a1 all resolve, RAW; wt1a/pax2a intact. admissible(osr1 binding)=True; fabricated ENSDARG still rejected. replay_and_regress over records+regression_cases = NO_REGRESSION (n_auto=4). 5 tool selftests PASS; ADR-0027 smoke 22/22 after refactoring its store invariant to dynamic capture-compare. Snapshot verified_identifiers.v2026-06-11.1.json written (reversible).",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_3"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay": {
+    "type": "identifier_resolution",
+    "assertions": [
+      {"symbol": "osr1", "expected_ensdarg": "ENSDARG00000014091"},
+      {"symbol": "aldh1a2", "expected_ensdarg": "ENSDARG00000053493"},
+      {"symbol": "cyp26a1", "expected_ensdarg": "ENSDARG00000033999"},
+      {"symbol": "wnt8a", "expected_ensdarg": "ENSDARG00000052910"},
+      {"symbol": "fgf8a", "expected_ensdarg": "ENSDARG00000003399"}
+    ],
+    "must_fail": ["osr1 is ENSDARG09999999999 (a fabricated id the store must NOT resolve)"],
+    "note": "Auto-replayable guard for the ADR-0029 additions: if a future Sigma' drops or corrupts any of the 5 new bindings, this record regresses (Delta v<0)."
+  },
+  "agents_invoked": [
+    {"agent": "domain-knowledge-curator", "status": "invoked", "reason": "Curated the 5 signaling/induction markers into the DATA INAMOVIBLE under the human gate (single writer build_verified_store.py)."},
+    {"agent": "causal-pruner", "status": "not-applicable", "reason": "Deterministic verified curation of known genes, not ranked biological candidate generation."},
+    {"agent": "composite-auditor", "status": "not-applicable", "reason": "The motivating audit is the 2026-06-22 E2E closing composite-auditor (ADR-0028); this add is a deterministic, human-gated, replay-guarded curation."}
+  ],
+  "notes": "ADR-0029. Adjustment #2 from the post-E2E plan. Human-gated DI ADD. ~9th resolved record toward the n>=10 ECE gate; per ADR-0005 'case capture'. Reversible via verified_identifiers.v2026-06-11.1.json snapshot."
+}

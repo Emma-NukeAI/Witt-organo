@@ -1,0 +1,12 @@
+{
+  "_meta": {
+    "purpose": "Pronephros upstream-signaling / induction markers added to the DATA INAMOVIBLE (ADR-0029, 2026-06-23). Human-gated ADD authorized after the 2026-06-22 E2E test revealed these were unanchored exactly where induction questions are weakest. Consumed by build_verified_store.py (single writer).",
+    "verification": "ENSDARG resolved LIVE from Ensembl REST (xrefs/symbol + lookup, danio_rerio, GRCz11) on 2026-06-23; raw response cached at mcp_cache/raw_ensembl_signaling-genes_20260623.json (CLAUDE.md §7 / §7.9). Never from memory.",
+    "tier": "RAW (raw external response retained)"
+  },
+  "osr1":    {"ensdarg": "ENSDARG00000014091", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "earliest intermediate-mesoderm induction marker"},
+  "wnt8a":   {"ensdarg": "ENSDARG00000052910", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "Wnt inducer candidate (posteriorizing Wnt)"},
+  "fgf8a":   {"ensdarg": "ENSDARG00000003399", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "FGF inducer candidate"},
+  "aldh1a2": {"ensdarg": "ENSDARG00000053493", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "retinoic-acid synthesis (proximodistal patterning)"},
+  "cyp26a1": {"ensdarg": "ENSDARG00000033999", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "retinoic-acid degradation"}
+}

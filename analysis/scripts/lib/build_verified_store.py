@@ -31,6 +31,7 @@ ANALYSIS = Path(__file__).resolve().parents[2]          # .../analysis
 MAP_PATH = ANALYSIS / "outputs" / "ensembl_symbol_map.json"
 OUT_PATH = ANALYSIS / "outputs" / "verified_identifiers.json"
 OCULAR_CURATED = ANALYSIS / "outputs" / "ocular_markers_curated.json"
+SIGNALING_CURATED = ANALYSIS / "outputs" / "signaling_markers_curated.json"
 
 # The 7 anchors the LBPP (2026-05-31) cross-checked against this map AND for which a raw
 # Ensembl 3-hop response was cached per CLAUDE.md §6/§7.9.
@@ -38,7 +39,7 @@ RAW_ANCHORS = {"cdh17", "gata3", "lhx1a", "pax2a", "pax8", "wt1a", "wt1b"}
 RAW_CACHE = "mcp_cache/raw_ensembl_lookup_genes_20260531.json"
 
 SCHEMA_VERSION = "1.0"
-STORE_VERSION = "2026-06-11.1"
+STORE_VERSION = "2026-06-23.1"   # ADR-0029: +5 pronephros upstream-signaling/induction markers (human-gated ADD)
 
 
 def build():
@@ -101,6 +102,26 @@ def build():
                 "notes": "Ocular/corneal marker curated via Ensembl REST (raw lookup cached); for N5 / Test-5 work.",
             })
 
+    # Merge pronephros upstream-signaling / induction markers (ADR-0029) — RAW tier (raw Ensembl REST
+    # response cached per §7.9). Same single-writer + human-gate discipline as the ocular set; `existing`
+    # is recomputed so an already-present symbol is never duplicated.
+    existing = {r["symbol"] for r in records}
+    if SIGNALING_CURATED.exists():
+        curated = json.loads(SIGNALING_CURATED.read_text(encoding="utf-8"))
+        for sym, c in sorted(curated.items()):
+            if sym.startswith("_") or sym in existing or not isinstance(c, dict) or not c.get("ensdarg"):
+                continue
+            records.append({
+                "symbol": sym, "ensdarg": c["ensdarg"], "ensdarp": None, "ensdart": None,
+                "uniprot_acc": None, "taxon": 7955, "assembly": "GRCz11", "ensembl_release": None,
+                "source_db": "ensembl", "resolver": "ensembl-rest-xrefs",
+                "raw_cache_ref": f"RAW:{c.get('raw_cache_ref')}", "anchor_match": None,
+                "verified_on": c.get("verified_on"), "provenance": "ours", "confidence": 1.0,
+                "notes": ("Pronephros upstream-signaling / induction marker curated via Ensembl REST "
+                          "(raw lookup cached 2026-06-23); for N3/N4 upstream-signal work (ADR-0029)."
+                          + (f" Role: {c['role']}." if c.get("role") else "")),
+            })
+
     envelope = {
         "schema_version": SCHEMA_VERSION,
         "store_version": STORE_VERSION,
@@ -108,8 +129,10 @@ def build():
         "source_artifacts": [
             "analysis/outputs/ensembl_symbol_map.json",
             "analysis/outputs/ocular_markers_curated.json",
+            "analysis/outputs/signaling_markers_curated.json",
             "mcp_cache/raw_ensembl_lookup_genes_20260531.json",
             "mcp_cache/raw_ensembl_ocular_lookup_*_20260611.json",
+            "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
         ],
         "read_only": True,
         "human_gate_required_to_modify": True,

@@ -164,8 +164,9 @@ The detailed operational definitions for each of the eight frameworks follow. Th
 - Routine outputs where 5x compute cost isn't justified
 - Open-ended creative tasks where divergence is the point
 - Problems where the answer space is continuous and "majority" is meaningless
+- **Cross-lens validity asymmetry without diversification** — when the candidates differ in the VALIDITY of the evidence behind them (e.g., one supported by native-species loss-of-function, another only by cross-species ortholog PPI), an identical-prompt panel will amplify a SHARED bias and reach a confident-but-wrong consensus. Documented failure: the 2026-06-22 E2E test, where 5/5 rankers voted "Wnt (inducer)" on ortholog-PPI evidence while the strongest native evidence (RA) was for a different role (composite-auditor REVISE; ADR-0028).
 
-**How an agent applies it:** Generate N (typically 5–10) reasoning paths at temperature ~0.7. Take majority for discrete answers; take median or weighted average for numerical. Report the agreement rate as the confidence estimate.
+**How an agent applies it:** Generate N (typically 5–10) reasoning paths at temperature ~0.7. Take majority for discrete answers; take median or weighted average for numerical. Report the agreement rate as the confidence estimate. **(ADR-0028) When candidates rest on evidence of differing validity, (a) make the panel PERSPECTIVE-DIVERSE — assign each ranker a distinct lens/prior rather than an identical prompt — and (b) pass the result through `substrate_calibration/tools/evidence_weighting.py` (`rank_with_lens_validity`), which re-scores by lens-validity tier and raises `overclaim_flag` when the raw-top candidate is ortholog/membership-only while another carries native evidence. A flag routes to a role-split + human gate, never a single-winner claim.**
 
 **Substrate evidence generated:**
 - Test 4 directly (agreement rate is a natural confidence proxy and can be calibrated against actual accuracy)
