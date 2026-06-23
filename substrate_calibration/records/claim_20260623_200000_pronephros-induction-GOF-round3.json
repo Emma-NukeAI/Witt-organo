@@ -1,0 +1,64 @@
+{
+  "claim_id": "claim_20260623_200000_pronephros-induction-GOF-round3",
+  "claim_timestamp": "2026-06-23T20:00:00Z",
+  "prediction_preregistered_at": "2026-06-23T20:00:00Z",
+  "session_id": "feat/gwt-v1.1-cycle1 (E2E round 3 — GOF/sufficiency + compound-LOF lens for induction)",
+  "skill_origin": "manual (Method 2; lenses: europepmc_literature + zfin_zebrafish; guard: evidence_weighting)",
+  "skill_version": "europepmc_literature-1.0 / zfin_zebrafish-1.0 / evidence_weighting-1.0",
+  "claim_text": "GOF/sufficiency + compound-LOF re-attack on pronephros TF-set induction. HONEST RESULT (causal-pruner HYPOTHESIS, human-gated): induction is SUBSTANTIALLY CLARIFIED but NOT resolved. The program is induced WITHIN the competent posterior intermediate mesoderm via an RA->osr1->wnt2b/pax2a/lhx1a cascade (osr1 = proximate TF node, downstream of RA per PMID:22129829, upstream of wnt2b per PMID:36359386). FGF (fgf8/fgf24, redundant) is NECESSARY for the posterior-mesoderm FIELD (compound-LOF blocks most posterior mesoderm, PMID:12925590) AND PROMOTES pronephric over blood/endothelial fate dose-dependently WITHIN that field (fgf8a OE increases / Fgf-block decreases pronephric precursors; Tbx16 attenuates Fgf to balance the choice — PMID:24008197/PMC3919442; DIRECTION verified against primary text by the audit). This is instructive fate-allocation within the competent field, NOT de-novo/ectopic induction and NOT the proximate TF-program node. Wnt (wnt8a) stays permissive/posteriorizing (field necessity); wnt2b acts downstream of osr1. SUFFICIENCY (single-signal ectopic induction from non-IM tissue) is NOT TESTED -- no GOF datum exists in these lenses (the GOF/ectopic EuropePMC queries were citation-sorted top-5 over 266-2741 hits and returned reviews; ZFIN/Alliance carries LOF-only annotations, 0 overexpression/ectopic records). Absence here is a gap_flag, NOT a demonstrated negative -- the same absence-of-evidence pattern the round-2 audit corrected.",
+  "claim_category": "pronephros-induction-hypothesis",
+  "sub_domain": "embryology-signaling",
+  "requires_human_gate": true,
+  "human_gate_rationale": "causal-pruner-class ranked upstream/sufficiency hypothesis (§7.1) -> human gate + wet-lab before downstream use. No DATA INAMOVIBLE mutation this round (read + raw-cache only).",
+  "agent_invocation_status": "causal-pruner INVOKED (ranked upstream candidates) -> human gate; composite-auditor INVOKED (3 adversarial: FGF-direction APPROVE_MINOR + absence-of-evidence REVISE + framing REVISE; all applied).",
+  "prior": 0.5,
+  "stated_confidence": 0.55,
+  "framework_applied": "Chain-of-Verification (CoVe) - per reasoning-frameworks-catalog.md §8: 'Generate a draft answer, then generate verification questions about that answer, answer those questions independently' (FGF direction, sufficiency basis, and framing each verified against primary literature + 3 adversarial auditors before assertion). Per CLAUDE.md §5, framework_applied is self-report.",
+  "confidence_by_subclaim": {
+    "cascade_RA->osr1->wnt2b_within_the_competent_field (native + literature)": 0.72,
+    "FGF_PROMOTES_pronephric_fate_dose-dependently (direction; GOF OE + Fgf-block + Tbx16, primary-verified)": 0.85,
+    "FGF_is_the_TOP/necessary_inducer_of_the_TF_program (over-claim, right-sized)": 0.40,
+    "Wnt_is_permissive/posteriorizing (field necessity)": 0.70,
+    "single-signal_ECTOPIC_sufficiency_is_resolved_or_refuted": 0.12,
+    "induction_is_RESOLVED_by_this_round": 0.20
+  },
+  "alternatives_considered": [
+    "'Induction resolved / FGF = top inducer' -- REJECTED by the audit: PMID:24008197 shows fate-ALLOCATION within competent mesoderm, not ectopic induction; necessity is field-level (PMID:12925590), not pronephros-specific; osr1 is the proximate node.",
+    "'No single signal is sufficient' -- REJECTED (absence-of-evidence): the GOF search was citation-sorted top-5 and ZFIN is LOF-only; demoted to 'sufficiency UNTESTED'. This is the round-2 RA-absent-from-PPI fallacy recurring -- flagged.",
+    "'FGF dispensable' (round 2) -- ALSO REJECTED: FGF promotes pronephric fate (the round-2 retraction over-shot in the other direction). The honest landing is FGF = dose-dependent instructive fate-allocator within the field."
+  ],
+  "contradictory_evidence_cited": [
+    "No GOF/sufficiency experiment was actually retrieved or read (only titles of citation-ranked reviews + the Tbx16-Fgf LOF/attenuation paper) -> the sufficiency question is untested, not answered.",
+    "FGF necessity (compound-LOF) is for the posterior-mesoderm FIELD broadly, not pronephros-specific identity -- two different granularities.",
+    "ZFIN GOF-silence is a coverage artifact (LOF-only annotations), carries zero information about sufficiency.",
+    "The evidence_weighting overclaim_flag=False here means 'all candidates are native tier' for the field/promotion roles -- it does NOT validate the (untested) sufficiency claim; the guard is silent on uniform absence (documented limitation).",
+    "Across 3 rounds the composite-auditor caught an over-claim each time (round1 panel; round2 over-claim+§7.9; round3 whiplash+absence) -- the induction answer has been hard-won and remains a hypothesis."
+  ],
+  "gap_flags": [
+    "GOF/sufficiency NOT TESTED (no GOF data found; search citation-sorted top-5 + ZFIN LOF-only) -- not a demonstrated negative.",
+    "Recurrent absence-of-evidence pattern (same as round 2) -- a standing lesson for the loop.",
+    "FGF necessity is field-level, not pronephros-specific.",
+    "Single allele per gene; baseline zebrafish-expression lens still deferred; no held-out.",
+    "evidence_weighting is silent on uniform absence (no native-vs-ortholog conflict) -- future ADR-0028 refinement."
+  ],
+  "rater_id": "self (deterministic tool round-trips + raw caches on disk) + composite-auditor (3 adversarial, primary-literature-checked, NOT the producer) -- the audit is the gate.",
+  "outcome_horizon": "phase_II_wetlab",
+  "proxy_level": 2,
+  "expected_outcome_if_h1": "Wet-lab GOF: ectopic posteriorizing-Wnt or Fgf in NON-IM competent tissue induces ectopic osr1/pax2a -> upgrades to sufficient inducer. Or: graded Fgf manipulation shifts pronephros-vs-blood balance (confirming the dose-dependent fate-allocator role).",
+  "expected_outcome_if_h0": "Ectopic Wnt/Fgf does NOT induce ectopic pronephros -> induction is intrinsic to IM competence; Fgf/Wnt remain field/fate-allocation inputs, not sufficient inducers.",
+  "observable_at": "Phase II wet-lab (GOF in non-IM tissue; graded Fgf); unfalsifiable in-silico this phase.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": null,
+  "observed_outcome_detail": "In-silico round -> a sharpened HYPOTHESIS, not a wet-lab outcome. Deterministic parts observed: compound-LOF + FGF-promotes-fate direction verified against primary literature by the audit; RA->osr1->wnt2b cascade confirmed (PMID:22129829/36359386); raw EuropePMC + ZFIN responses cached §7.9 (verified on disk by auditor #3); composite-auditor 1 APPROVE_MINOR + 2 REVISE applied (de-ranked FGF from 'top inducer'; 'no sufficiency'->'sufficiency UNTESTED'; 'resolved'->'sharpened'). DI untouched this round.",
+  "post_hoc_calibration_applied": null,
+  "test_mapping": ["test_1", "test_5"],
+  "epoch": "2026-Q2",
+  "seed": 42,
+  "replay_note": "No machine-replayable block: observed_outcome unfalsifiable_in_phase_I (Phase-II GOF hypothesis). Gene anchors (osr1/wnt8a/fgf8a) already guarded by the ADR-0029 record; fgf24 resolved live this round (not yet anchored -> gap_flag for a future human-gated DI add).",
+  "agents_invoked": [
+    {"agent": "causal-pruner", "status": "invoked", "reason": "Ranked the upstream-signal candidates (FGF/RA/Wnt) and their roles for the pronephros TF set -> HYPOTHESIS requiring the §7.1 human gate."},
+    {"agent": "composite-auditor", "status": "invoked", "reason": "3 adversarial auditors (FGF-direction / absence-of-evidence / framing) verified against primary literature; 1 APPROVE_MINOR + 2 REVISE, all applied this session. Self-audit prohibited (§7)."},
+    {"agent": "hypothesis-generator", "status": "invoked", "reason": "Generated the combinatorial-induction hypothesis grounded in the GOF/compound-LOF/literature lenses; obligatory non-empty contradictory_evidence."}
+  ],
+  "notes": "E2E round 3 (GOF/sufficiency). Across 3 rounds the audit caught a producer/panel over-claim each time. Honest landing: induction sharpened (RA->osr1 cascade; FGF promotes-fate within the field; Wnt permissive), sufficiency UNTESTED. Report: reports/2026-06-23_pronephros-induction-GOF_e2e-round3.html. Per ADR-0005 Phase-I 'case capture' (Test 5 + Test 1). No DI mutation."
+}

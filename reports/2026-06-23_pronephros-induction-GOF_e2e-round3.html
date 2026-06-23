@@ -1,0 +1,76 @@
+<title>Pronefros · inducción GOF (round 3) — 2026-06-23</title>
+<style>
+  :root{--bg:#0f172a;--mid:#1e293b;--card:#25314a;--bd:#334155;--tx:#e2e8f0;--dim:#94a3b8;--faint:#64748b;--br:#f1f5f9;
+    --acc:#38bdf8;--good:#16a34a;--warn:#f59e0b;--bad:#dc2626;--ra:#f43f5e}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;font-size:15.5px}
+  .wrap{max-width:1060px;margin:0 auto;padding:30px 22px 80px}
+  h1{font-size:27px;color:var(--br);margin:.1em 0 .15em;line-height:1.18}h2{font-size:21px;color:var(--br);margin:1.6em 0 .5em;border-bottom:1px solid var(--bd);padding-bottom:.2em}h3{font-size:16.5px;color:var(--acc);margin:1.1em 0 .3em}
+  .sub{color:var(--dim);font-size:14px}code{font-family:'Cascadia Code',Consolas,monospace;font-size:.85em;background:#0b1220;color:#cbd5e1;padding:1px 5px;border-radius:4px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px;margin:18px 0}
+  .stat{background:var(--card);border:1px solid var(--bd);border-radius:9px;padding:12px 14px}.stat .n{font-size:18px;font-weight:700;line-height:1.1}.stat .l{font-size:12px;color:var(--dim);margin-top:3px}
+  .badge{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid}
+  .b-good{color:#4ade80;border-color:var(--good);background:rgba(22,163,74,.15)}.b-warn{color:#fbbf24;border-color:var(--warn);background:rgba(245,158,11,.15)}.b-bad{color:#f87171;border-color:var(--bad);background:rgba(220,38,38,.15)}.b-acc{color:#7dd3fc;border-color:var(--acc);background:rgba(56,189,248,.12)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px;background:var(--mid);border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--bd);vertical-align:top}th{background:#0b1220;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}tr:last-child td{border-bottom:none}
+  .scroll{overflow-x:auto}.callout{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--acc);border-radius:8px;padding:14px 16px;margin:14px 0}
+  .callout.warn{border-left-color:var(--warn)}.callout.bad{border-left-color:var(--bad)}.callout.good{border-left-color:var(--good)}.callout h3{margin-top:0}
+  ul.tight{margin:.4em 0;padding-left:1.25em}ul.tight li{margin:.25em 0}
+  .contract{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:11px}.cf{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px 14px}.cf .k{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin-bottom:5px}
+  .foot{margin-top:42px;border-top:1px solid var(--bd);padding-top:14px;color:var(--faint);font-size:12px}
+  nav{position:sticky;top:0;z-index:9;background:rgba(15,23,42,.93);backdrop-filter:blur(6px);border-bottom:1px solid var(--bd);padding:9px 18px;display:flex;gap:5px;flex-wrap:wrap;font-size:12.5px}nav b{color:var(--acc);margin-right:8px}nav a{color:var(--dim);text-decoration:none;padding:3px 8px;border-radius:5px}nav a:hover{background:var(--card);color:var(--tx)}
+</style>
+<nav><b>Pronefros · inducción · round 3 (GOF)</b><a href="#tldr">TL;DR</a><a href="#contract">§5</a><a href="#verdict">Veredicto</a><a href="#audit">Auditoría</a><a href="2026-06-23_pronephros-induction-lens_e2e-round2.html">← round 2</a></nav>
+<div class="wrap">
+  <p class="sub">Lente GOF/suficiencia + compound-LOF FGF · Método 2 · 2026-06-23 · companion de round 1/2</p>
+  <h1>Inducción del pronefros: hipótesis <span style="color:var(--good)">sustancialmente afinada</span> — <span style="color:var(--warn)">NO "resuelta"</span></h1>
+
+  <section id="tldr"><h2>TL;DR</h2>
+  <div class="callout warn"><h3>Honesto tras composite-auditor (1 APPROVE_MINOR + 2 REVISE, aplicados)</h3>
+  <p>La lente GOF buscaba mover Wnt/FGF de "permisivo" a "inductor" con evidencia nativa. Resultado real: <b>se afinó
+  mucho el cuadro, pero la suficiencia NO se testeó</b> (no existe dato GOF en estas lentes). El compound-LOF confirmó
+  que FGF (fgf8/fgf24, redundante) es necesario para el campo, y la literatura primaria verificó que <b>FGF promueve
+  fate pronéfrico</b> (dosis-dependiente, <i>dentro</i> del campo competente). El auditor atrapó: mi <b>"top inducer"</b>
+  (over-claim), mi <b>"ninguna señal es suficiente"</b> (absence-of-evidence — el MISMO fallo de round 2), y el
+  <b>whiplash de FGF</b> (round2 "prescindible" → round3 "top" sobre evidencia sin cambiar). Corregido.</p></div>
+  <div class="stats">
+    <div class="stat"><div class="n b-good">FGF promueve</div><div class="l">fate pronéfrico (dirección verificada en primarios)</div></div>
+    <div class="stat"><div class="n b-warn">suficiencia</div><div class="l">NO testeada (no hay GOF data)</div></div>
+    <div class="stat"><div class="n b-acc">RA→osr1→wnt2b</div><div class="l">cascada nativa (PMID:22129829)</div></div>
+    <div class="stat"><div class="n b-warn">1 APPROVE_MINOR<br>+ 2 REVISE</div><div class="l">composite-audit</div></div>
+    <div class="stat"><div class="n b-good">§7.9 ✓</div><div class="l">crudo en disco verificado</div></div>
+  </div></section>
+
+  <section id="contract"><h2>Contrato §5</h2>
+  <div class="contract">
+    <div class="cf"><div class="k">direct_answer</div>Inducción <b>sustancialmente afinada, NO resuelta</b> (hipótesis causal-pruner, human-gated): el programa de TFs se induce <b>dentro del IM competente</b> vía <b>RA→osr1→wnt2b/pax2a/lhx1a</b> (osr1 = nodo proximal). FGF (fgf8/fgf24) = necesario para el campo + <b>promueve</b> fate pronéfrico vs sangre/endotelio (dosis-dep., dentro del campo). Wnt = permisivo/posteriorizante. <b>Suficiencia (inducción ectópica por señal sola): NO testeada.</b></div>
+    <div class="cf"><div class="k">framework_applied</div><b>Chain-of-Verification</b> — per <code>reasoning-frameworks-catalog.md §8</code>: cada sub-claim verificado contra primarios + 3 auditores adversariales antes de afirmar.</div>
+    <div class="cf"><div class="k">confidence_by_subclaim</div><ul class="tight" style="font-size:12.5px"><li>cascada RA→osr1→wnt2b dentro del campo competente — <b>0.72</b></li><li>FGF <b>promueve</b> fate pronéfrico (dirección, GOF+LOF) — <b>0.85</b></li><li>FGF = "top inducer / necesario" del programa — <b>0.40</b></li><li>Wnt permisivo/posteriorizante — <b>0.70</b></li><li>inducción ectópica por señal sola resuelta/refutada — <b>0.12</b> (NO testeada)</li><li>inducción "resuelta" por este round — <b>0.20</b></li></ul></div>
+    <div class="cf"><div class="k">agents_invoked</div><ul class="tight" style="font-size:12.5px"><li><code>causal-pruner</code> — invoked (ranking upstream → HUMAN GATE §7.1)</li><li><code>composite-auditor</code> — invoked (3 adversarial → 1 APPROVE_MINOR + 2 REVISE, aplicado)</li><li><code>hypothesis-generator</code> — invoked</li></ul></div>
+    <div class="cf"><div class="k">evidence_cited</div><ul class="tight" style="font-size:12.5px"><li>compound-LOF: PMID:12925590 (fgf8+fgf24)</li><li>FGF promueve fate: PMID:24008197 / PMC3919442 (Tbx16-Fgf; OE↑/block↓)</li><li>RA→osr1→wnt2b: PMID:22129829, 36359386</li><li>RAW: <code>mcp_cache/raw_europepmc_GOF-*.json</code>, <code>raw_zfin_{wnt8a,fgf8a,fgf24,osr1}_phenotypes_20260623.json</code></li></ul></div>
+    <div class="cf"><div class="k">gap_flags</div><ul class="tight" style="font-size:12.5px"><li><b>GOF/suficiencia NO testeada</b> (no refutada): búsqueda citation-sorted top-5, hits 266–2741 = reviews; ZFIN solo-LOF (0 anotaciones GOF = artefacto)</li><li><b>Fallo recurrente</b>: absence-of-evidence (mismo patrón que round 2 RA-ausente-de-PPI) — registrado</li><li>FGF necesidad es a nivel de campo (compound-LOF), no pronefros-específica</li><li>1 alelo/gen; expresión baseline aún gap; sin GOF wet-lab</li></ul></div>
+    <div class="cf"><div class="k">alternatives_considered</div><ul class="tight" style="font-size:12.5px"><li>"inducción resuelta / FGF top inducer" — rechazado (auditores: fate-allocation ≠ inducción ectópica; whiplash)</li><li>"ninguna señal suficiente" — rechazado (absence-of-evidence) → "NO testeada"</li><li>"FGF prescindible" (round 2) — también rechazado (FGF sí promueve fate)</li></ul></div>
+  </div></section>
+
+  <section id="verdict"><h2>Veredicto honesto</h2>
+  <div class="callout">
+    <p>La pregunta "¿Wnt/FGF pasa de permisivo a inductor?" se responde, con matices y honestamente:</p>
+    <ul class="tight">
+      <li><b>FGF</b>: sube de "permisivo" a <b>asignador de fate instructivo DENTRO del campo competente</b> — promueve pronefros vs sangre/endotelio, dosis-dependiente (dirección verificada en primarios) + necesario para el campo (compound-LOF). Pero <b>NO</b> "inductor ectópico", <b>NO</b> el nodo proximal del programa (ese es osr1), y la <b>suficiencia no se testeó</b>.</li>
+      <li><b>Wnt (wnt8a)</b>: se queda <b>permisivo/posteriorizante</b>; wnt2b actúa downstream de osr1 (intra-programa).</li>
+      <li><b>RA</b>: upstream de osr1 (relevante a inducción) + patterning proximodistal.</li>
+      <li><b>Suficiencia (inducción ectópica por señal sola): NO TESTEADA</b> — necesita GOF wet-lab real (Wnt/FGF ectópico en tejido no-IM). Es un known-unknown, no un negativo demostrado.</li>
+    </ul>
+    <p>Corrige <b>ambos</b> errores previos: round 2 sub-retractó FGF ("prescindible"); round 3 lo sobre-corrigió ("top inducer"). La verdad está en medio: <b>FGF promueve fate pronéfrico dentro del campo, dosis-dependiente.</b></p>
+  </div></section>
+
+  <section id="audit"><h2>Composite-auditor — 1 APPROVE_MINOR + 2 REVISE (aplicado)</h2>
+  <div class="scroll"><table>
+    <tr><th>Auditor</th><th>Veredicto</th><th>Qué verificó/atrapó → corrección</th></tr>
+    <tr><td>dirección FGF</td><td><span class="badge b-good">APPROVE_MINOR</span></td><td>Verificó en primarios: FGF <b>promueve</b> fate pronéfrico (dosis-dep.); "atenuar" era rol de Tbx16. → mantuve la dirección, bajé "top inducer" a "fate-allocator dentro del campo".</td></tr>
+    <tr><td>absence-of-evidence</td><td><span class="badge b-warn">REVISE</span></td><td>"Ninguna señal suficiente" venía de búsqueda citation-sorted + ZFIN solo-LOF = <b>mismo fallo que round 2</b>. → "suficiencia NO testeada" (gap explícito).</td></tr>
+    <tr><td>framing / "resuelto"</td><td><span class="badge b-warn">REVISE</span></td><td>"Resuelto" + whiplash FGF sobre evidencia sin cambiar. §7.9 cache PASS (crudo en disco). → "sustancialmente afinada, hipótesis"; reporte+claim record emitidos; human-gate intacto.</td></tr>
+  </table></div>
+  <div class="callout good"><h3>El meta-resultado de 3 rounds</h3><p>El composite-auditor atrapó un over-claim en <b>cada</b> round (panel round1; mi over-claim+violación §7.9 round2; mi whiplash+absence-fallacy round3). <b>El proyecto es difícil de engañar — incluso por su propio operador, 3 veces seguidas.</b> La biología aterrizó honesta: cascada RA→osr1 dentro del campo; FGF promueve-fate; suficiencia es un known-unknown. Eso es exactamente lo que un sistema de rendición de cuentas debe hacer.</p></div></section>
+
+  <div class="foot">Round 3 del test E2E. Método 2; única mutación = lectura+caché (DI no tocada). causal-pruner = HIPÓTESIS, human gate §7.1. Crudo §7.9 en <code>mcp_cache/</code>. TYPE A.</div>
+</div>
