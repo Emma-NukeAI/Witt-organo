@@ -114,3 +114,6 @@ analysis/data/
 analysis/outputs/*.h5ad
 analysis/outputs/*.csv.gz
 analysis/outputs/cache/
+
+# ToolUniverse workspace secrets (API keys) — never commit (CLAUDE.md §7)
+.tooluniverse/.env
