@@ -27,7 +27,10 @@ human gate del ingest_service). Entregables: **sync de contratos** (CLAUDE/SCOPE
 MCP** (§6) + allowlist MCP + **ADR-0030** (`compute_ece` "satisfied"→"aggregate-captured", disciplina ADR-0005) +
 Test 5 cross-field round-2 (case-capture). Veredicto: **APPROVE_MINOR** sobre "la maquinaria funciona como se
 documenta"; **REVISE** sobre "totalidad" (cerrado en su mayoría; residuales abajo). El panel atrapó 2 over-claims
-del operador — corregidos. **Cero mutación de la DATA INAMOVIBLE** (todo read-and-report / sandbox).
+del operador — corregidos. **Cero mutación de la DATA INAMOVIBLE** (todo read-and-report / sandbox). Cierre:
+**auditor externo Fable 5** (sin flag) + sus 5 recomendaciones implementadas (**ADR-0031..0034**; 0033 seguridad
+**DIFERIDA** por decisión del founder) + panel **multi-familia** (Opus+Fable+Sonnet) + 2 herramientas de medición
+(`retrieval_eval.py` recall@k scaffold, `store_integrity_scan.py` 51 CLEAN).
 
 **Sesión previa (2026-06-22/23) — ver las 2 secciones más abajo:** MITAD_A **endurecida** tras validación
 adversarial (ADR-0027: binding símbolo↔ENSDARG, gates §4/§11 reforzados) + **guard de validez-de-lente**
@@ -50,6 +53,19 @@ Se auditó **toda** la funcionalidad contra lo que dicen CLAUDE / SCOPE / HANDOF
 **Residuales honestos (NO probados, por diseño):** MERGE real contra Neo4j vivo (sandbox por elección; el ingest_service se probó hasta el human gate submit→401, NO se corrió `/approve`) · `ingest_service` hosted no alcanzable desde local (sin tokens/URL en `.secrets/`) · squidiff **Mode 1** real (torch/pesos) · Test 4 longitudinal · Test 5 con lente ocular-específica (no hay API pública limpia zebrafish).
 
 **Lección (repetida): el composite-auditor atrapa un over-claim en cada round, incl. del operador.** No leer "ausente de una lente" como "evidencia en contra".
+
+### Auditor externo Fable 5 + respuesta a sus 5 recomendaciones (2026-07-05)
+
+Se armó un **brief neutral** (`docs/EXTERNAL_AUDIT_BRIEF.md`) — descripción del proyecto en lenguaje técnico-profesional para que un auditor externo lo revisara **sin flag**. Se corrió un agente **Fable 5** con solo ese brief (no el repo): **no se flageó** y dio una review candid (`docs/EXTERNAL_AUDIT_FABLE5_REVIEW.md`). Veredicto: diseño disciplinado, pero *"accountability layer alrededor de un resultado científico que aún no existe"* — el problema es **proporcionalidad** y **falta de medición** de que la maquinaria mejore respuestas.
+
+Sus 5 recomendaciones → implementadas (ADR-0031..0034):
+1. **Medir los controles** → `substrate_calibration/tools/retrieval_eval.py` (recall@k known-item; primera corrida recall@1=recall@5=MRR=1.0 en **solo 3 probes = SCAFFOLD**) + `store_integrity_scan.py` (**51 records CLEAN**). Calibración n=10 (chico). **ADR-0032.**
+2. **Independencia de revisores** → **ADR-0031**: paneles composite-auditor mezclan familias (Claude Opus/Sonnet/Haiku + **Fable**). Demostrado con panel Opus+Fable+Sonnet (unánime **APPROVE_MINOR** 0.78/0.72/0.68); desacuerdo logueado (`substrate_calibration/records/panel_multifamily_20260705.json`). **Sonnet capturó un concern que Opus+Fable no** → evidencia empírica de la diversidad de familias. **Límite honesto: solo 2 familias reales (no un 3er proveedor).**
+3. **Security hardening** → **ADR-0033 = Proposed, DEFERRED, SIN ACCIÓN** (dirección del founder 2026-07-05: "no le hagamos ningún cambio" a la DATA INAMOVIBLE). Hallazgo parqueado; nada tocado.
+4. **Freeze del substrate** → **ADR-0034** (Accepted): ningún subsistema nuevo hasta que cada control feature-weight demuestre haber atrapado un error real; safety spine exenta; esfuerzo → medir + biología.
+5. **Error-en-store** → `store_integrity_scan.py` (dup/colisión ENSDARG/malformado/provenance/staleness; read-and-report, propone, nunca auto-fix).
+
+**Segundo pase (panel multi-familia, con los números reales): unánime APPROVE_MINOR.** Concerns honestos vigentes: medición estadísticamente fina (por diseño, ADR-0034) y garantía "inamovible" condicional hasta el hardening (diferido, ADR-0033).
 
 ---
 
@@ -252,10 +268,11 @@ end-to-end; la suficiencia biológica del conjunto-mínimo sigue ABIERTA** (sin 
 - **MITAD_A** — `witt-organogenesis` → `origin` = `https://github.com/Emma-NukeAI/Witt-organo.git` (PRIVADO).
   **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`). Todo commiteado + pusheado (feat + master, FF),
   working tree limpio (salvo 2 `reports/presentacion-witt-*.html` pre-existentes, no de estas sesiones). **Nunca**
-  pushear a `polimat-old`. Cadena de la sesión **2026-07-04/05** (audit total): `66e6afc` (handoff previo) →
-  **`ef0fc43`** (sync contratos + doc-coherence gate + no-hang MCP + ADR-0030 compute_ece) → **`afa2a1a`**
-  (reporte TYPE D del audit + Test 5 round-2) → **este commit del HANDOFF**. Sesión previa 2026-06-22/23:
-  `8ba31a4`→`ad9e102`(ADR-0027)→`bb2671e`/`5782bad`(ADR-0028/0029)→`4c0ea08`→`ba9dddc`(E2E rounds).
+  pushear a `polimat-old`. Cadena de la sesión **2026-07-04/05** (audit total + review externa): `66e6afc`
+  (handoff previo) → **`ef0fc43`** (sync contratos + doc-coherence gate + no-hang MCP + ADR-0030) → **`afa2a1a`**
+  (reporte TYPE D + Test 5 round-2) → **`5b919a1`** (handoff) → **`1ffe513`** (tools medición + review Fable 5 +
+  panel multi-familia) → **`60e09b1`** (ADR-0031..0034 + sync docs) → **este commit del HANDOFF**. Sesión previa
+  2026-06-22/23: `8ba31a4`→`ad9e102`(ADR-0027)→`bb2671e`/`5782bad`(ADR-0028/0029)→`4c0ea08`→`ba9dddc`(E2E).
   *(`polimat-old` está caído — "Repository not found".)*
 - **MITAD_B** — `conciencia-universal` (repo HERMANO en `C:/Users/Emmanuel/dev/conciencia-universal`) → su propio
   remoto privado `https://github.com/Emma-NukeAI/conciencia-universal.git` (génesis `868404a`, `master`).
