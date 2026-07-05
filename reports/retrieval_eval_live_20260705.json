@@ -1,0 +1,51 @@
+{
+  "summary": {
+    "backend": "neo4j-hybrid",
+    "n_probes": 3,
+    "k": 5,
+    "recall_at_1": 1.0,
+    "recall_at_k": 1.0,
+    "mrr": 1.0
+  },
+  "probes": [
+    {
+      "label": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Tra",
+      "target": "CORPUS-2026-0001",
+      "rank": 1,
+      "reciprocal_rank": 1.0,
+      "top_k_ids": [
+        "CORPUS-2026-0001",
+        "CORPUS-2026-0002",
+        "db:CNGB_STOmics",
+        "niche:RN2",
+        "CORPUS-2026-0003"
+      ]
+    },
+    {
+      "label": "Temporal scRNA atlas of zebrafish anterior segment",
+      "target": "CORPUS-2026-0002",
+      "rank": 1,
+      "reciprocal_rank": 1.0,
+      "top_k_ids": [
+        "CORPUS-2026-0002",
+        "CORPUS-2026-0001",
+        "db:CNGB_STOmics",
+        "niche:RN2",
+        "db:DanioCODE"
+      ]
+    },
+    {
+      "label": "Zebrafish pronephros tubulogenesis and epithelial ",
+      "target": "CORPUS-2026-0003",
+      "rank": 1,
+      "reciprocal_rank": 1.0,
+      "top_k_ids": [
+        "CORPUS-2026-0003",
+        "CORPUS-2026-0003#c000",
+        "CORPUS-2026-0001",
+        "CORPUS-2026-0002",
+        "niche:RN2"
+      ]
+    }
+  ]
+}

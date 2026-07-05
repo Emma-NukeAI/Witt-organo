@@ -1,0 +1,27 @@
+{
+  "record_type": "composite-auditor multi-family panel (disagreement log)",
+  "date": "2026-07-05",
+  "adr": "ADR-0031",
+  "claim_judged": "The project adequately addressed the external auditor's 5 recommendations, and its self-assessment (machinery works as documented; biology unproven) is honest.",
+  "panel": [
+    {"reviewer": "A", "model": "claude-opus-4-8", "family": "Claude", "verdict": "APPROVE_MINOR", "confidence": 0.78,
+     "strongest_concern": "security-hardening (#3) and error-in-store-at-scale (#5) are infra-conditional / scaffold-stage; 'adequately addressed' is truer for design than proof.",
+     "overclaim_or_missing": "measurement layer (#1) statistically thin (recall@k on 3 probes, calibration n=10) — rides on the honesty of the caveat, not evidence."},
+    {"reviewer": "B", "model": "claude-fable-5", "family": "Fable", "verdict": "APPROVE_MINOR", "confidence": 0.72,
+     "strongest_concern": "measurement layer (#1) statistically empty; that half of the self-assessment is asserted more than demonstrated.",
+     "overclaim_or_missing": "'inamovible' guarantee still conditional — #3 security is only a checklist on un-executed infra."},
+    {"reviewer": "C", "model": "claude-sonnet-5", "family": "Claude", "verdict": "APPROVE_MINOR", "confidence": 0.68,
+     "strongest_concern": "#1 and #3 structurally addressed but empirically weak (n=3 probes, n=10 outcomes; security unexecuted -> guarantee conditional).",
+     "overclaim_or_missing": "#2 reviewer-independence is soft-overclaimed: only 2 of an intended 3+ families exist; this panel's composition is evidence of the limit, not its resolution."}
+  ],
+  "disagreement_measurement": {
+    "verdict_unanimous": true,
+    "verdicts": ["APPROVE_MINOR", "APPROVE_MINOR", "APPROVE_MINOR"],
+    "confidence_mean": 0.727,
+    "confidence_spread": 0.10,
+    "unique_concern_surfaced_by_a_single_reviewer": "reviewer C (Sonnet): rec-#2 self-overclaim (2 families != 3)",
+    "interpretation": "Unanimous verdict, but cross-family reviewer C surfaced a concern A+B missed -> family diversity added coverage a same-model panel would likely have shared as a blind spot. Empirical support for ADR-0031."
+  },
+  "families_available": ["Claude (opus/sonnet/haiku)", "Fable"],
+  "standing_limitation": "Only 2 genuine model families; full vendor-diversity (3rd provider) not yet available."
+}
