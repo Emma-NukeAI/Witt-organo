@@ -1,4 +1,4 @@
-# HANDOFF — GWT v1.1 (handoff único estable · al 2026-06-23)
+# HANDOFF — GWT v1.1 (handoff único estable · al 2026-07-05)
 
 > **Siguiente agente:** `CLAUDE.md` se auto-carga (contrato operativo — léelo primero). **Este** es el único
 > handoff vigente: estado del sistema, cómo operarlo, decisiones, y qué sigue. Es la fusión de los dos
@@ -16,14 +16,40 @@ usuario, y es un **sistema que responde preguntas y se refuerza solo**, todo hum
 - **Front door:** MCP `data-inamovible` (`query_data_inamovible` semántico · `resolve_identifier` determinista · `fetch_raw` drill-a-crudo).
 - **Loop auto-reforzante (ADR-0022):** `Path A (DI) → si insuficiente → Path B (EuropePMC / Tool Universe) → composite-auditor ≥3 → propose → GATE HUMANO → re-ingesta`. "No está en la DI" **no es stopper** — es disparador de aprendizaje. El store **crece con el uso**.
 
-**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**commit `ba9dddc`**).
+**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**sesión 2026-07-05, audit total**; ver §Estado git).
 **Nunca** pushear a `polimat-old` (repo viejo, además caído). Local se trabaja en `feat/gwt-v1.1-cycle1` (== master).
 
-**Última sesión (2026-06-22/23) — ver las 2 secciones nuevas abajo:** MITAD_A **endurecida** tras validación
-adversarial (ADR-0027: binding símbolo↔ENSDARG, gates §4/§11 reforzados, etc.) + **guard de validez-de-lente**
-(ADR-0028) + la **DATA INAMOVIBLE creció 46→51** human-gated (ADR-0029, +genes de señalización) + **test E2E de la
-pipeline completa** (3 rounds, pronefros). Hallazgo transversal: el composite-auditor atrapó un over-claim en cada
-round (incl. del operador) — **el sistema se defiende incluso de quien lo opera.**
+**Última sesión (2026-07-04/05) — ver la sección nueva abajo:** **auditoría de funcionalidad TOTAL** +
+composite-auditor (3 auditores adversariales Opus). Se probó la maquinaria offline + en vivo (Neo4j retrieval,
+ambas ramas del `answer_pipeline`, Path B Reactome, MinIO round-trip, sandbox DI mutation, squidiff Mode 0,
+human gate del ingest_service). Entregables: **sync de contratos** (CLAUDE/SCOPE/README a la realidad) +
+**gate anti-drift** `doc_coherence_check.py` + `smoke_contract.py` (30 offline / 34 live PASS) + **regla no-hang
+MCP** (§6) + allowlist MCP + **ADR-0030** (`compute_ece` "satisfied"→"aggregate-captured", disciplina ADR-0005) +
+Test 5 cross-field round-2 (case-capture). Veredicto: **APPROVE_MINOR** sobre "la maquinaria funciona como se
+documenta"; **REVISE** sobre "totalidad" (cerrado en su mayoría; residuales abajo). El panel atrapó 2 over-claims
+del operador — corregidos. **Cero mutación de la DATA INAMOVIBLE** (todo read-and-report / sandbox).
+
+**Sesión previa (2026-06-22/23) — ver las 2 secciones más abajo:** MITAD_A **endurecida** tras validación
+adversarial (ADR-0027: binding símbolo↔ENSDARG, gates §4/§11 reforzados) + **guard de validez-de-lente**
+(ADR-0028) + la **DATA INAMOVIBLE creció 46→51** human-gated (ADR-0029) + **test E2E** (3 rounds, pronefros).
+
+---
+
+## Auditoría de funcionalidad total + composite-auditor (sesión 2026-07-04/05)
+
+Se auditó **toda** la funcionalidad contra lo que dicen CLAUDE / SCOPE / HANDOFF. Resultados y artefactos:
+
+- **Sync de contratos (drift arreglado):** CLAUDE.md §12 (store 32→**51 records**, ADRs 0027–0030), PROJECT_SCOPE v1.3 (notas de estado §6/§7: los diagramas son intención de abril; el "Yes/No Auditor" está derogado por composite-auditor), README (versiones + 30 ADRs). Causa raíz: docs narrativos repiten datos que viven en fuentes de verdad y se pudren.
+- **Gate anti-drift NUEVO:** `substrate_calibration/tools/doc_coherence_check.py` (7 invariantes doc↔fuente-de-verdad: store count/version, ADR más alto, versiones de scope/skill) + hook opt-in `.githooks/pre-commit` (`git config core.hooksPath .githooks`). Convierte el drift de "se descubre en audit" a "falla el commit".
+- **Smoke de contrato NUEVO:** `substrate_calibration/tools/smoke_contract.py` — cada aserción cita el doc/§ que verifica; **30 PASS offline / 34 PASS live / 0 FAIL** (live: `SMOKE_CONTRACT_LIVE=1` + secrets). Cubre §7 gate, §4/§11 reflejos, write-spine (sandbox), squidiff Mode 0, MinIO, Neo4j, ambas ramas del pipeline, human gate del ingest_service.
+- **Regla no-hang MCP (§6) + allowlist:** el MCP es mejora, nunca bloqueante (timeout→offline, salud se re-chequea 1×, no en bucle). Allowlist de tools MCP read-only + `execute_tool` en `.claude/settings.json` (compartido) para que no pidan aprobación cada vez. *Nota: cambios de permisos se leen al **reiniciar** Claude Code.*
+- **ADR-0030** (`compute_ece`): un snapshot transversal ya **no** emite "satisfied" → `aggregate-captured`; reporta la sub-métrica ≥85% high-conf. "satisfied" requiere además el arco longitudinal (meses 0/4/8) — no establecible en un run. Vino de un catch del composite-auditor (lente overclaim).
+- **Composite-auditor (Mode 1, 3 Opus adversariales):** metodología APPROVE_MINOR 0.86 · overclaim APPROVE_MINOR 0.82 · cobertura **REVISE** 0.86. Todos los findings MINOR corregidos; el REVISE de cobertura se cerró con round-2 (sandbox mutation, squidiff, MinIO, Path B Reactome, ingest gate). El panel atrapó 2 over-claims del operador ("single skill" vs mosaico 10×n=1; verbo "satisfied") — corregidos. Reporte TYPE D: `reports/2026-07-05_full-functionality-audit_composite.html`.
+- **Test 5 cross-field round-2** (`analysis/outputs/poc_crossfield_test5_round2_20260705.json`): Path B Reactome sobre TFs compartidos riñón↔ojo → **todo renal, cero vías oculares** (PAX6/FOXC1/PITX2 incl.). Hallazgo honesto: la capacidad corre, pero **la lente Reactome está anotada asimétricamente** (kidney-biased) → convergencia no demostrable por esa ruta (consistente con Magraner 2025 + el artefacto-de-overlap previo). Case-capture, exploratorio.
+
+**Residuales honestos (NO probados, por diseño):** MERGE real contra Neo4j vivo (sandbox por elección; el ingest_service se probó hasta el human gate submit→401, NO se corrió `/approve`) · `ingest_service` hosted no alcanzable desde local (sin tokens/URL en `.secrets/`) · squidiff **Mode 1** real (torch/pesos) · Test 4 longitudinal · Test 5 con lente ocular-específica (no hay API pública limpia zebrafish).
+
+**Lección (repetida): el composite-auditor atrapa un over-claim en cada round, incl. del operador.** No leer "ausente de una lente" como "evidencia en contra".
 
 ---
 
@@ -224,10 +250,12 @@ end-to-end; la suficiencia biológica del conjunto-mínimo sigue ABIERTA** (sin 
 
 **Dos repos privados, aislados estructuralmente** (MITAD_A y MITAD_B no comparten `.git` ni código):
 - **MITAD_A** — `witt-organogenesis` → `origin` = `https://github.com/Emma-NukeAI/Witt-organo.git` (PRIVADO).
-  **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`, **commit `ba9dddc`**). Todo commiteado + pusheado
-  (feat + master, FF), working tree limpio. **Nunca** pushear a `polimat-old`. Cadena de esta sesión:
-  `8ba31a4` (R1–R4) → `abb1360` (docs) → **`ad9e102`** (ADR-0027 detection-hardening) → **`bb2671e`/`5782bad`**
-  (ADR-0028 guard + ADR-0029 DI-add + tool ZFIN) → **`4c0ea08`** (lentes E2E round 2) → **`ba9dddc`** (GOF round 3).
-  *(`master` se confirmó en `origin`/NukeAI por `git ls-remote`; `polimat-old` está caído — "Repository not found".)*
+  **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`). Todo commiteado + pusheado (feat + master, FF),
+  working tree limpio (salvo 2 `reports/presentacion-witt-*.html` pre-existentes, no de estas sesiones). **Nunca**
+  pushear a `polimat-old`. Cadena de la sesión **2026-07-04/05** (audit total): `66e6afc` (handoff previo) →
+  **`ef0fc43`** (sync contratos + doc-coherence gate + no-hang MCP + ADR-0030 compute_ece) → **`afa2a1a`**
+  (reporte TYPE D del audit + Test 5 round-2) → **este commit del HANDOFF**. Sesión previa 2026-06-22/23:
+  `8ba31a4`→`ad9e102`(ADR-0027)→`bb2671e`/`5782bad`(ADR-0028/0029)→`4c0ea08`→`ba9dddc`(E2E rounds).
+  *(`polimat-old` está caído — "Repository not found".)*
 - **MITAD_B** — `conciencia-universal` (repo HERMANO en `C:/Users/Emmanuel/dev/conciencia-universal`) → su propio
   remoto privado `https://github.com/Emma-NukeAI/conciencia-universal.git` (génesis `868404a`, `master`).
