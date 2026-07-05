@@ -1,0 +1,205 @@
+<title>Auditoría de funcionalidad total — Witt × Organogenesis (composite-audited)</title>
+<style>
+  :root{
+    --bg:#f7f6f3; --card:#ffffff; --ink:#1f2733; --dim:#5b6675; --faint:#8a94a3;
+    --line:#e3e0d8; --accent:#0f766e; --good:#15803d; --warn:#b45309; --bad:#b91c1c;
+    --skip:#6b7280; --info:#1d4ed8; --goodbg:#eafaf0; --warnbg:#fdf5e7; --badbg:#fdeceb;
+    --skipbg:#f1f2f4; --infobg:#eaf0fd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:'Iowan Old Style','Palatino Linotype',Georgia,serif;line-height:1.6;font-size:16px}
+  .nav{position:sticky;top:0;z-index:10;background:rgba(247,246,243,.94);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:16px;flex-wrap:wrap;
+    font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+  .nav a{color:var(--dim);text-decoration:none} .nav a:hover{color:var(--accent)}
+  .wrap{max-width:1080px;margin:0 auto;padding:26px 22px 90px}
+  h1{font-size:30px;margin:.2em 0 .1em;letter-spacing:-.01em}
+  h2{font-size:21px;margin:1.7em 0 .5em;border-bottom:2px solid var(--line);padding-bottom:.2em;
+     font-family:'Segoe UI',system-ui,sans-serif}
+  h3{font-size:16px;margin:1.2em 0 .3em;font-family:'Segoe UI',system-ui,sans-serif}
+  .sub{color:var(--dim);font-size:14.5px}
+  code{font-family:'Cascadia Code',Consolas,monospace;font-size:.82em;background:#eeece6;
+    padding:1px 5px;border-radius:4px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .chip{font-family:'Segoe UI',system-ui,sans-serif;font-size:12.5px;padding:4px 11px;border-radius:20px;
+    border:1px solid var(--line);background:var(--card)}
+  .badge{display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:12px;
+    padding:3px 10px;border-radius:6px}
+  .b-good{background:var(--goodbg);color:var(--good)} .b-warn{background:var(--warnbg);color:var(--warn)}
+  .b-bad{background:var(--badbg);color:var(--bad)} .b-skip{background:var(--skipbg);color:var(--skip)}
+  .b-info{background:var(--infobg);color:var(--info)}
+  .strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:20px 0}
+  .s{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .s .n{font-size:30px;font-weight:700;line-height:1;font-family:'Segoe UI',system-ui,sans-serif}
+  .s .l{font-size:12.5px;color:var(--dim);margin-top:5px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:16px 20px;margin:14px 0}
+  .callout{border-left:4px solid var(--accent);border-radius:8px;padding:12px 18px;margin:14px 0;background:var(--card)}
+  .callout.warn{border-left-color:var(--warn);background:var(--warnbg)}
+  .callout.good{border-left-color:var(--good);background:var(--goodbg)}
+  .callout.bad{border-left-color:var(--bad);background:var(--badbg)}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:12px 0}
+  table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card);font-size:14px;
+    font-family:'Segoe UI',system-ui,sans-serif}
+  th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{background:#efece5;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--dim)}
+  td.c,th.c{text-align:center}
+  ul{margin:.4em 0 .4em 0;padding-left:1.2em} li{margin:.25em 0}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .k{font-family:'Segoe UI',system-ui,sans-serif;font-size:12px;color:var(--faint);text-transform:uppercase;letter-spacing:.04em}
+  .foot{color:var(--faint);font-size:12.5px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
+  .bar{height:9px;border-radius:5px;background:#e6e3db;overflow:hidden;margin-top:4px}
+  .bar>span{display:block;height:100%;background:var(--accent)}
+</style>
+
+<div class="nav">
+  <b style="color:var(--accent)">Auditoría total · Witt×Organogenesis</b>
+  <a href="#verdict">Veredicto</a><a href="#contract">Contrato §5</a><a href="#matrix">Matriz de pruebas</a>
+  <a href="#panel">Composite-auditor</a><a href="#gaps">Residuales</a><a href="#decisions">Decisiones</a>
+</div>
+
+<div class="wrap">
+  <h1>Auditoría de funcionalidad total del proyecto</h1>
+  <div class="sub">Sesión 2026-07-04/05 · TYPE D (retrospectiva formal, composite-audited) · autor: Claude (Opus 4.8) · NO-SPEND offline + live autorizado</div>
+
+  <div class="chips">
+    <span class="chip">framework_applied: <b>Chain-of-Verification (§8)</b> → composite-auditor Mode 1 (§7)</span>
+    <span class="chip">método: <b>Method 2</b> (human-driven)</span>
+    <span class="chip">DATA INAMOVIBLE: <b>intacta</b> (SHA sin cambio)</span>
+  </div>
+
+  <div class="strip">
+    <div class="s"><div class="n" style="color:var(--good)">34</div><div class="l">PASS live (30 offline)</div></div>
+    <div class="s"><div class="n" style="color:var(--good)">0</div><div class="l">FAIL</div></div>
+    <div class="s"><div class="n" style="color:var(--warn)">2·1</div><div class="l">APPROVE_MINOR · REVISE (panel)</div></div>
+    <div class="s"><div class="n" style="color:var(--info)">5</div><div class="l">residuales honestos</div></div>
+  </div>
+
+  <h2 id="verdict">Veredicto</h2>
+  <div class="callout good">
+    <span class="k">direct_answer</span><br>
+    <b>La maquinaria del sustrato se comporta como la documentan CLAUDE.md / PROJECT_SCOPE.md / HANDOFF.md</b>
+    — verificado offline + en vivo, en los caminos de <b>lectura + escritura (sandbox) + evidencia externa</b>.
+    El panel adversarial vota <b>APPROVE_MINOR</b> sobre esa afirmación acotada (findings menores corregidos) y
+    <b>REVISE</b> sobre cualquier afirmación de <b>“totalidad/exhaustividad”</b>, que el round-2 cerró en su mayor
+    parte pero no del todo. <b>NO se afirma</b> el objetivo biológico ni que “los cinco tests de validación pasan”
+    (varios son <em>case-capture</em>/exploratorios por la disciplina del proyecto).
+  </div>
+
+  <h2 id="contract">Contrato §5 — campos visibles</h2>
+
+  <h3>confidence_by_subclaim</h3>
+  <div class="card">
+    <div style="margin-bottom:10px"><b>Maquinaria se comporta como se documenta (offline+live, read+write-sandbox+external)</b>
+      <div class="bar"><span style="width:90%"></span></div><span class="sub">0.90</span></div>
+    <div style="margin-bottom:10px"><b>Disciplina de honestidad respetada (no overclaim de biología / 5 tests)</b>
+      <div class="bar"><span style="width:92%"></span></div><span class="sub">0.92</span></div>
+    <div><b>Cobertura exhaustiva (“totalidad” real)</b>
+      <div class="bar"><span style="width:70%;background:var(--warn)"></span></div>
+      <span class="sub">0.70 — quedan residuales (ver §Residuales); por eso el auditor de cobertura votó REVISE</span></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <span class="k">framework_applied</span>
+      <p><b>Chain-of-Verification</b> — per <code>reasoning-frameworks-catalog.md §8</code>:
+      <em>“Generate a draft answer, then generate verification questions about that answer, answer those
+      questions independently, and revise the draft based on the verification results. Anti-hallucination by
+      construction.”</em> Escalado a <b>composite-auditor Mode 1</b> (split-and-vote ≥3 adversarial, CLAUDE.md §7).</p>
+    </div>
+    <div class="card">
+      <span class="k">agents_invoked</span>
+      <ul>
+        <li><code>composite-auditor</code> ×3 — <b>invoked</b> (Opus 4.8, paralelo); lentes: metodología · overclaim · cobertura.
+            <span class="sub">ids: a8b1…, ab04…, ac62…</span></li>
+        <li><code>causal-pruner</code> — <b>not-applicable</b> (auditoría de infraestructura; sin generación de candidatos biológicos).</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <span class="k">evidence_cited</span>
+    <ul>
+      <li><code>smoke_contract.py</code> — 30 PASS offline / <b>34 PASS live</b> / 0 FAIL</li>
+      <li><code>smoke_adr0027_hardening.py</code> — 22/22 · <code>doc_coherence_check.py</code> — 7/7 · selftest+import sweep — 17/17</li>
+      <li>Live: MCP <code>resolve_identifier</code>, retrieval Neo4j (3 hits), <code>answer_pipeline</code> (DI_SUFFICIENT + FALLBACK_FETCHED), Path B Reactome (IM/nephric-duct/kidney, p=1.1e-16), MinIO round-trip, squidiff Mode 0, sandbox DI mutation, governance_prefilter</li>
+      <li>ADR-0005, 0020, 0021, 0022, 0023, 0026, 0027, 0029</li>
+    </ul>
+  </div>
+
+  <div class="callout">
+    <span class="k">alternatives_considered</span>
+    <ul>
+      <li><b>Afirmar “totalidad” completa</b> — rechazado: el auditor de cobertura mostró ~58% de la superficie sin ejercer antes del round-2; incluso después quedan residuales.</li>
+      <li><b>Correr un MERGE real contra el Neo4j vivo</b> — rechazado: violaría el human-gate de la DATA INAMOVIBLE; se probó el writer en <b>sandbox</b> (DI real intacta).</li>
+      <li><b>Reportar “Test 4 satisfied”</b> — rechazado (ADR-0005): un snapshot transversal n=10 es <code>aggregate-captured</code>, no “satisfied” (falta el arco longitudinal + sub-métrica ≥85%).</li>
+    </ul>
+  </div>
+
+  <div class="callout warn">
+    <span class="k">gap_flags</span>
+    <ul>
+      <li><code>ingest_service</code> live <code>/submit→/approve→git push-back</code> — la puerta de contribución hosted, no ejercida.</li>
+      <li>MERGE real contra Neo4j vivo — verificado-por-construcción (0 DELETE), no corrido (sandbox por diseño).</li>
+      <li>squidiff <b>Mode 1</b> real (torch/pesos/GPU) — corrido solo Mode 0 proxy.</li>
+      <li>Test 5 cross-field (ocular) — cero ejercicio (Fase I exploratorio).</li>
+      <li>Test 4 longitudinal (“improve with use”, meses 0/4/8) — no establecible en un solo run.</li>
+    </ul>
+  </div>
+
+  <h2 id="matrix">Matriz de pruebas</h2>
+  <div class="scroll"><table>
+    <tr><th>Capa</th><th class="c">Resultado</th><th>Qué prueba (doc)</th></tr>
+    <tr><td>Contract smoke (offline)</td><td class="c"><span class="badge b-good">30 PASS / 0 FAIL</span></td><td>§5 contrato, §7 gates, §4/§11 reflejos, invariante DI</td></tr>
+    <tr><td>Contract smoke (live)</td><td class="c"><span class="badge b-good">34 PASS / 0 FAIL</span></td><td>+ MinIO, Neo4j, ambas ramas del pipeline</td></tr>
+    <tr><td>ADR-0027 hardening</td><td class="c"><span class="badge b-good">22/22</span></td><td>capa de detección (binding N1, W1/W2/N3/N6/W5)</td></tr>
+    <tr><td>doc↔repo coherence</td><td class="c"><span class="badge b-good">7/7</span></td><td>docs = fuentes de verdad (store/ADRs/versiones)</td></tr>
+    <tr><td>Selftest + import sweep</td><td class="c"><span class="badge b-good">17/17</span></td><td>carga + selftest de toda la máquinaria</td></tr>
+    <tr><td>MCP resolve_identifier (live)</td><td class="c"><span class="badge b-good">PASS</span></td><td>front door determinista (resolve + NOT_FOUND)</td></tr>
+    <tr><td>Neo4j retrieval (live)</td><td class="c"><span class="badge b-good">PASS</span></td><td>GraphRAG semántico (ADR-0020)</td></tr>
+    <tr><td>answer_pipeline (live)</td><td class="c"><span class="badge b-good">PASS×2</span></td><td>DI_SUFFICIENT + FALLBACK_FETCHED (ADR-0022)</td></tr>
+    <tr><td>Path B Reactome (live)</td><td class="c"><span class="badge b-good">PASS</span></td><td>evidencia Layer-2 (ADR-0026); biológicamente correcto</td></tr>
+    <tr><td>MinIO round-trip (live)</td><td class="c"><span class="badge b-good">PASS</span></td><td>raw backing híbrido (ADR-0021)</td></tr>
+    <tr><td>squidiff Mode 0</td><td class="c"><span class="badge b-good">PASS</span></td><td>simulador corre + determinista</td></tr>
+    <tr><td>sandbox DI mutation</td><td class="c"><span class="badge b-good">PASS</span></td><td>write spine + read-back; DI real intacta (§7)</td></tr>
+    <tr><td>governance_prefilter funcional</td><td class="c"><span class="badge b-good">PASS</span></td><td>pre-filtro no-regresión (ADR-0023)</td></tr>
+    <tr><td>Objetivo biológico</td><td class="c"><span class="badge b-skip">SKIP</span></td><td>suficiencia = wet-lab GOF, Fase II — ABIERTO</td></tr>
+    <tr><td>ingest_service / Neo4j-MERGE real / squidiff M1 / Test 5</td><td class="c"><span class="badge b-skip">SKIP</span></td><td>residuales (ver gap_flags)</td></tr>
+  </table></div>
+
+  <h2 id="panel">Composite-auditor — panel adversarial (Mode 1)</h2>
+  <div class="scroll"><table>
+    <tr><th>Auditor</th><th>Lente</th><th class="c">Verdicto</th><th class="c">Conf</th><th>Catch clave → resolución</th></tr>
+    <tr><td>1</td><td>Metodología</td><td class="c"><span class="badge b-good">APPROVE_MINOR</span></td><td class="c">0.86</td>
+        <td>Aserción “0 falsely causal_admissible” era corpus-clean, no detector-fires → <b>añadidas aserciones positivas</b> (keyword→no causal; do-WSTS→sí).</td></tr>
+    <tr><td>2</td><td>Overclaim</td><td class="c"><span class="badge b-good">APPROVE_MINOR</span></td><td class="c">0.82</td>
+        <td>(a) <code>compute_ece</code> emitía “satisfied” a n=10 (viola ADR-0005) → <b>degradado a</b> <code>aggregate-captured</code>. (b) caveat “single skill” erróneo → <b>corregido</b> a mosaico 10 skills × n=1.</td></tr>
+    <tr><td>3</td><td>Cobertura</td><td class="c"><span class="badge b-warn">REVISE</span></td><td class="c">0.86</td>
+        <td>Espina de escritura + simuladores + MinIO + Path B sin ejercer → <b>round-2 los cubrió</b> (sandbox mutation, squidiff, MinIO, Reactome); residuales nombrados.</td></tr>
+  </table></div>
+  <div class="callout good">El loop de auto-corrección funcionó: el panel atrapó <b>2 errores del operador</b> (caveat + verbo “satisfied”), ambos corregidos en sesión. El sistema se defiende incluso de quien lo opera — patrón consistente con cada round E2E previo.</div>
+
+  <h2 id="gaps">Residuales honestos (audit discipline)</h2>
+  <div class="card"><ul>
+    <li><b>ingest_service live</b> — la puerta de contribución hosted (submit→approve→git) no se golpeó en vivo.</li>
+    <li><b>MERGE real contra Neo4j</b> — deliberadamente en sandbox (respeto al human-gate); lógica verificada-por-construcción (0 DELETE/DETACH).</li>
+    <li><b>squidiff Mode 1</b> real (modelo de difusión) — solo proxy Mode 0.</li>
+    <li><b>Test 5 cross-field (ocular)</b> — Fase I exploratorio, sin ejercicio.</li>
+    <li><b>Test 4 longitudinal</b> — el arco “improve with use” no es establecible en un solo run.</li>
+  </ul></div>
+
+  <h2 id="decisions">Decisiones / cambios aplicados esta sesión</h2>
+  <div class="card"><ul>
+    <li><b>Sincronización de contratos</b> — CLAUDE.md §12 (store 32→51, ADR-0027–0029), PROJECT_SCOPE (v1.3, notas §6/§7), README (versiones, ADRs 8→29).</li>
+    <li><b>Gate anti-drift</b> — <code>doc_coherence_check.py</code> (7 invariantes) + hook <code>.githooks/pre-commit</code> opt-in.</li>
+    <li><b>Regla no-hang MCP</b> — CLAUDE.md §6 (MCP es mejora, nunca bloqueante; timeout→offline) + allowlist read-only en <code>.claude/settings.json</code>.</li>
+    <li><b>ADR-0005 alignment</b> — <code>compute_ece</code> ya no emite “satisfied” en snapshot transversal → <code>aggregate-captured</code> + sub-métrica ≥85% reportada.</li>
+    <li><b>Round-2 durable</b> — 8 checks nuevos en <code>smoke_contract.py</code> (offline + live-gated por <code>SMOKE_CONTRACT_LIVE=1</code>).</li>
+  </ul></div>
+
+  <div class="foot">
+    Generado por Claude (Opus 4.8) · Method 2 · read-and-report (cero mutación de la DATA INAMOVIBLE) ·
+    artefactos: <code>reports/smoke_contract_20260704.json</code>, <code>substrate_calibration/reports/_smoke_ece.json</code>,
+    <code>substrate_calibration/tools/{smoke_contract,doc_coherence_check}.py</code> · CLAUDE.md §5/§7 (HTML at conclusion) + §11 (visual-offer).
+  </div>
+</div>

@@ -1,0 +1,63 @@
+{
+  "analysis": "Test 5 cross-field (round 2) — pronephros (N3) <-> ocular (N5), independent Path-B lens",
+  "date": "2026-07-05",
+  "method": "Method 2 (human-driven; cross-field-bridge-agent role, Phase I — HYPOTHESIS, not decision; hard rule: Method 2 only in Phase I)",
+  "builds_on": "analysis/outputs/poc_crossfield_test5_20260613.json (prior: 40-entity graph overlap flagged ANNOTATION ARTIFACT, not co-regulation)",
+  "why_not_repeat": "Prior naive entity-overlap already composite-audited as artifact. This round uses an INDEPENDENT external lens (Reactome enrichment via Tool Universe Path B) on the developmentally-shared kidney<->eye TF subset.",
+  "input_genes_human_orthologs": [
+    "PAX2",
+    "PAX6",
+    "FOXC1",
+    "PITX2",
+    "LHX1",
+    "HNF1B"
+  ],
+  "lens": "tooluniverse-tool: ReactomeAnalysis_pathway_enrichment (Path B, live, projection=human)",
+  "raw_cache_ref": "RAW:mcp_cache/raw_reactome_crossfield-sharedTFs_20260705.json",
+  "result": {
+    "identifiers_not_found": 0,
+    "top_pathways_all_renal_or_mesoderm": true,
+    "ocular_pathways_in_top8": 0,
+    "interpretation": "The cross-field-bridge CAPABILITY runs and returns structured, well-powered evidence (0 IDs not found). But the external pathway lens (Reactome) enriches these shared TFs ONLY for kidney/mesoderm programs and surfaces NO eye-development pathway — even though PAX6 is the master eye regulator and FOXC1/PITX2 are anterior-segment genes. The cross-field SIGNAL is not demonstrable via this route: the KNOWLEDGE BASE is asymmetrically annotated (rich kidney, sparse eye), not the entity overlap alone."
+  },
+  "test_5_status": "case capture (exploratory, Phase I; absence-of-cross-field-signal-via-Reactome is DATA, per hard rule)",
+  "direct_answer": "Test 5 cross-field bridge MACHINERY is exercised and works; cross-field convergence pronephros<->ocular is NOT demonstrable via the Reactome lens because that lens is kidney-biased. Consistent with the prior artifact finding and with Magraner 2025 (SCOPE §5: cross-domain integration is structurally weak).",
+  "confidence": 0.35,
+  "confidence_rationale": "Low by design: exploratory Phase-I probe; single external lens; negative/asymmetric result. Machinery-works sub-claim is high (~0.9); biological-convergence sub-claim is untested (~0.2).",
+  "evidence_cited": [
+    "mcp_cache/raw_reactome_crossfield-sharedTFs_20260705.json",
+    "poc_crossfield_test5_20260613.json (prior)",
+    "PROJECT_SCOPE.md §5 Test 5 (Magraner 2025)"
+  ],
+  "alternatives_considered": [
+    "Repeat naive entity overlap — rejected (already flagged artifact).",
+    "Conclude 'no cross-field link exists' — rejected: absence via ONE kidney-biased lens is not absence of biology; it is a lens limitation.",
+    "Use an eye-specific lens (e.g. ocular expression atlas) — deferred: no clean public zebrafish ocular pathway API (known gap, HANDOFF)."
+  ],
+  "gap_flags": [
+    "Single external lens (Reactome); no eye-development-specific pathway DB queried.",
+    "Human ortholog projection (zebrafish paralogs pax6a/pax6b, foxc1a/foxc1b collapsed).",
+    "No wet-lab / no validated biological cross-field claim — machinery-focused residual closure only."
+  ],
+  "framework_applied": "Chain-of-Verification — per reasoning-frameworks-catalog.md §8: \"Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results. Anti-hallucination by construction.\"",
+  "agents_invoked": [
+    {
+      "agent": "cross-field-bridge-agent",
+      "status": "invoked",
+      "mode": "Method 2 (human-driven, Phase I)",
+      "evidence_generated": [
+        "test_5"
+      ]
+    },
+    {
+      "agent": "causal-pruner",
+      "status": "not-applicable",
+      "reason": "No ranked biological candidate set generated; this is a lens-convergence probe, not candidate generation."
+    },
+    {
+      "agent": "composite-auditor",
+      "status": "skipped-ad-hoc",
+      "reason": "Exploratory case-capture (confidence 0.35), not a decision or a confidence>=0.5 conclusion; the session-level audit already covered the machinery. A full Test-5 biological claim WOULD require composite-auditor."
+    }
+  ]
+}
