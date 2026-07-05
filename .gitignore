@@ -117,3 +117,8 @@ analysis/outputs/cache/
 
 # ToolUniverse workspace secrets (API keys) — never commit (CLAUDE.md §7)
 .tooluniverse/.env
+
+# Transient smoke/report byproducts (regenerated on demand; the durable record is the
+# committed HTML report + the tool code, not these outputs)
+substrate_calibration/reports/_smoke_ece.json
+reports/smoke_contract_*.json

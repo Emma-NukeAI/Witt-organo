@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Opt-in pre-commit hook — enable per clone with:  git config core.hooksPath .githooks
+# Runs the deterministic doc↔repo coherence gate (substrate_calibration/tools/doc_coherence_check.py).
+# Blocks the commit if a narrative doc (CLAUDE.md / PROJECT_SCOPE.md / README.md) drifts from a
+# source of truth (verified-identifier store, ADR directory, SKILL.md, eval set). Read-and-report;
+# mutates nothing. Bypass in a genuine emergency with `git commit --no-verify`.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+CHECK="$ROOT/substrate_calibration/tools/doc_coherence_check.py"
+
+# Prefer the project venv; fall back to python on PATH.
+if [ -x "$ROOT/.venv/Scripts/python.exe" ]; then PY="$ROOT/.venv/Scripts/python.exe"
+elif [ -x "$ROOT/.venv/bin/python" ]; then PY="$ROOT/.venv/bin/python"
+else PY="python"; fi
+
+if [ ! -f "$CHECK" ]; then exit 0; fi   # tool absent (old checkout) → don't block
+
+if ! "$PY" "$CHECK"; then
+  echo ""
+  echo "pre-commit: doc↔repo coherence FAILED (see above)."
+  echo "Fix the drifted doc, or bypass with 'git commit --no-verify' if this is intentional."
+  exit 1
+fi

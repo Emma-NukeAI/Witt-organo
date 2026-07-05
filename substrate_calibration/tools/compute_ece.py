@@ -118,14 +118,25 @@ def main():
     outcomes_all = [lab for _, lab in scored]
     n_scored = len(scored)
 
-    # ADR-0005 test-claim language: "satisfied" only when measured+aggregated (n>=10 + ECE);
-    # "case capture" at 1<=n<10; "infrastructure populated" at n==0.
-    if n_scored >= 10:
-        test_4_status = "satisfied"
-    elif n_scored >= 1:
+    # ADR-0005 + SCOPE §5 test-claim language (tightened 2026-07-04 per composite-audit finding F1).
+    # A single CROSS-SECTIONAL run CANNOT be "satisfied": SCOPE §5 Test 4 additionally requires the
+    # LONGITUDINAL "improve with use" arc (month 0/4/8) AND the >=85% high-confidence sub-threshold.
+    # So this single-snapshot tool tops out at "aggregate-captured" — it never emits "satisfied"
+    # (that verdict is a longitudinal judgment made across runs, not by this tool on one corpus).
+    #   n==0 -> "infrastructure populated" ; 1<=n<10 -> "case capture" ; n>=10 -> "aggregate-captured".
+    _HIGH_CONF = 0.80
+    _hc = [(c, o) for c, o in zip(confidences_all, outcomes_all) if c >= _HIGH_CONF]
+    hc_frac_correct = (float(sum(float(o) for _, o in _hc)) / len(_hc)) if _hc else None
+    ece_raw_val = float(compute_ece(confidences_all, outcomes_all))
+    defensive_ece_met = bool(n_scored >= 10 and ece_raw_val <= 0.20)
+    hc_subthreshold_met = bool(hc_frac_correct is not None and hc_frac_correct >= 0.85)
+
+    if n_scored == 0:
+        test_4_status = "infrastructure populated"
+    elif n_scored < 10:
         test_4_status = "case capture"
     else:
-        test_4_status = "infrastructure populated"
+        test_4_status = "aggregate-captured"
 
     report = {
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -135,14 +146,24 @@ def main():
         "n_excluded_unfalsifiable": len(excluded),
         "tests_status": {"test_4": test_4_status},
         "reporting_note": (
-            "Per ADR-0005, 'Test 4 satisfied' requires n_scored>=10 with a computed aggregate ECE. "
-            f"Current state: n_scored={n_scored} -> '{test_4_status}'. ece_raw at n<10 is descriptive "
-            "only, not a calibration verdict; post-hoc isotonic is not applied until n_scored>=10."
+            f"Per ADR-0005 + SCOPE §5: n_scored={n_scored} -> '{test_4_status}'. 'satisfied' is NOT "
+            "emitted by this single-snapshot tool — it additionally requires the longitudinal "
+            "'improve with use' arc (month 0/4/8) AND the >=85% high-confidence sub-threshold. "
+            "ece_raw at n<10 is descriptive only; post-hoc isotonic is not applied until n_scored>=10."
         ),
+        "satisfied_requires": {
+            "defensive_ece_met": defensive_ece_met,
+            "high_conf_subthreshold_met": hc_subthreshold_met,
+            "longitudinal_improve_with_use": "not-establishable-from-single-run",
+            "note": "'satisfied' needs all three; this tool can only attest the first two.",
+        },
         "aggregate": {
-            "ece_raw": compute_ece(confidences_all, outcomes_all),
+            "ece_raw": ece_raw_val,
             "defensive_threshold": 0.20,
             "ambitious_threshold": 0.10,
+            "high_conf_frac_correct": hc_frac_correct,
+            "high_conf_threshold": _HIGH_CONF,
+            "high_conf_subthreshold_met": hc_subthreshold_met,
         },
         "per_category": {},
         "per_skill": {},

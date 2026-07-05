@@ -1,0 +1,15 @@
+{
+  "$comment": "Shared project settings (tracked). Machine-specific rules live in settings.local.json (gitignored). MCP allowlist below: read-only DATA INAMOVIBLE front-door + Tool Universe (Path B) tools are pre-approved so multi-call MCP workflows do not stall on per-call permission prompts (CLAUDE.md §6 'no-hang' rule). These are read-only lookups; operational API spend is authorized (2026-06-13 directive).",
+  "permissions": {
+    "allow": [
+      "mcp__data-inamovible__resolve_identifier",
+      "mcp__data-inamovible__query_data_inamovible",
+      "mcp__data-inamovible__fetch_raw",
+      "mcp__tooluniverse__list_tools",
+      "mcp__tooluniverse__find_tools",
+      "mcp__tooluniverse__get_tool_info",
+      "mcp__tooluniverse__grep_tools",
+      "mcp__tooluniverse__execute_tool"
+    ]
+  }
+}

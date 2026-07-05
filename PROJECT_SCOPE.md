@@ -1,7 +1,7 @@
 # Project Organogenesis × Witt — Master Scope Document
 
 **Version:** 1.3  
-**Date:** May 04, 2026  
+**Date:** Jun 18, 2026 (v1.3; original release May 04, 2026 — see changelog)  
 **Status:** Working document — update as the project evolves  
 **Owner:** Emmanuel  
 **Purpose:** Single source of truth for the integrated Witt substrate × Organogenesis POC project. Use this doc as the persistent reference for analysis, planning, and skill iteration.
@@ -206,7 +206,7 @@ Each test runs **alongside** the biological POC. Together they evaluate whether 
 
 **Question:** Does the substrate measurably improve through engineer feedback over the POC year? This tests Witt's central defensibility claim.
 
-**Setup:** Held-out evaluation set of 60–80 questions/workflows. Performance measured at start, midpoint (month 4), end (month 8). Engineers use system normally between measurements; their corrections, ratings, case captures, and calibration flags accumulate into the substrate.
+**Setup:** Held-out evaluation set of 60–80 questions/workflows (target). *Current implementation (2026-06): `evaluation/held_out_set_v1.json` holds **30** questions (broad zebrafish biomedicine, ADR-0011) — the set is still growing toward the 60–80 target; the gap is tracked, not a scope change.* Performance measured at start, midpoint (month 4), end (month 8). Engineers use system normally between measurements; their corrections, ratings, case captures, and calibration flags accumulate into the substrate.
 
 **v1.2 update (from stress-test):** Per Mirzadeh October 2024 (not refuted by 2025 work) and Roh June 2025, LLM performance is brittle to perturbations. Single-pass evaluation will produce noisy and over-optimistic results. The `evaluation-runner` agent must run each batch with controlled perturbations (numerical, order, surface) and report mean ± standard deviation. See agent-catalog.md v2.2.
 
@@ -279,6 +279,8 @@ A few fail outright: informative, not catastrophic. The substrate framing is a l
 ## 6. Architecture — the dual-method system
 
 The architecture is structured around a shared inamovable data foundation that feeds **two parallel methods**. Method choice is a runtime decision, not a fixed pipeline.
+
+> **Implementation-status note (added 2026-06-23).** The diagrams and agent roster in §6–§7 are the *original architectural intent* (April 2026). The **executed** GWT v1.1 state has evolved; where they differ, the executed state (recorded in `docs/HANDOFF.md` + `docs/decisions/` ADRs) is authoritative. Key deltas: (a) the **`DATA GENERAL INAMOVIBLE`** is referred to as **`DATA INAMOVIBLE`** elsewhere in the repo and is now a *hosted Neo4j GraphRAG + hybrid raw store* (ADR-0020/0021), fronted by the `data-inamovible` MCP; (b) the generic **"Auditor Agent (Yes/No filter)"** shown below is **superseded** by `composite-auditor` (Mode 1 split-and-vote, ≥3 parallel auditors) — a single-LLM Yes/No pass is explicitly prohibited as an audit gate (CLAUDE.md §7, ADR-0006); (c) the loop is now DI-first → MCP-fallback → composite-auditor → human-gated re-ingest (ADR-0022). No test, niche, gate, or phase changed.
 
 ### The shared foundation
 
@@ -408,6 +410,8 @@ This split changes **no test, niche, gate, or phase** — it is an architectural
 ## 7. Agent catalog (substrate-aware)
 
 **Update from v1.1:** Every agent now has a "substrate evidence" line — what evidence it generates for the five validation tests. Generic-utility agents (e.g., literature monitor) without clear substrate evidence are deprioritized.
+
+> **Roster-status note (added 2026-06-23).** This catalog is the *conceptual* roster. The **current operational roster is `agent-catalog@2.3.0`** (in `skills/custom/organogenesis-agent-architect/references/agent-catalog.md`). Deltas already applied there: `investor-relations-drafter` is **deprioritized/removed for Phase I**; `risk-register-agent` is **ceded to `retrospector`** (ADR-0009); and agents not listed below but now in use include `composite-auditor` (audit gate, ADR-0006), `retrospector` (RIL, ADR-0009/0016), `hypothesis-generator` (ADR-0008), and `corpus-classifier` (ADR-0017). Treat `agent-catalog.md` as authoritative when it and this section disagree.
 
 ### Compute & Simulation
 
@@ -666,10 +670,10 @@ This doc is a **living scope document**. It should be updated when:
 - The architecture evolves (Section 6 — particularly if Methods 1 and 2 develop sub-patterns)
 - A validation test design changes (Section 5)
 
-**Versioning:** Bump the version line at top whenever a structural change is made. Maintain a changelog as Section 14 if iterations get dense.
+**Versioning:** Bump the version line at top whenever a structural change is made. The changelog lives at the **top of this document** (directly under the header block) — keep appending entries there, newest first.
 
 **Distribution:** This doc is internal-confidential. Vision-forward derivatives (investor decks, partner one-pagers) should be derived from this doc but never claim more than the doc supports. The audit discipline applies to derivatives.
 
 **Consistency check before sharing:** When in doubt, ask whether a claim in the document maps to an audit-disciplined characterization in the source thesis or validation tests. If not, temper the claim.
 
-— End of master scope document v1.0 —
+— End of master scope document v1.3 —

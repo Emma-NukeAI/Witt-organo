@@ -9,7 +9,7 @@ Two intertwined components:
 - **Witt** — a substrate-AI thesis: capture expert calibrated judgment, expose reasoning at every step, grow with use. Domain-agnostic in concept; instantiated here in biology.
 - **Project Organogenesis** — the first deployment domain. POC: zebrafish pronephros (early kidney) development, validated against four biological success gates (Induction, Specificity, Identity, Parsimony) and five substrate validation tests (orchestration, agency, iteration, calibration, cross-field).
 
-The repo is the version-controlled source of truth for: the custom agent skill (`organogenesis-agent-architect` v2.2), the master scope document (`PROJECT_SCOPE.md` v1.2), the stress-test brief that drives v2.2 architectural decisions, the curated subset of Tool Universe skills relevant to the project's six niches, MCP configuration for any client, and operating instructions (`CLAUDE.md`) so any AI agent invoked here is immediately project-aware.
+The repo is the version-controlled source of truth for: the custom agent skill (`organogenesis-agent-architect` v2.3.0), the master scope document (`PROJECT_SCOPE.md` v1.3), the stress-test brief that drives v2.2 architectural decisions, the curated subset of Tool Universe skills relevant to the project's six niches, MCP configuration for any client, and operating instructions (`CLAUDE.md`) so any AI agent invoked here is immediately project-aware.
 
 The repo is **not** a Tool Universe fork, **not** a code repository for biological simulation, and **not** a wet-lab protocol repository. Raw biological datasets are **not** stored here (they are gitignored under `analysis/data/`); what does live here is the **verified, derived** layer — analysis scripts, the verified-identifier store (`analysis/outputs/`), substrate-calibration records, and reports. See `ONBOARDING.md` for what lives here vs. elsewhere.
 
@@ -31,16 +31,19 @@ witt-organogenesis/
 ├── README.md                  ← you are here
 ├── CLAUDE.md                  ← operating contract for AI agents (auto-loaded by Claude Code)
 ├── ONBOARDING.md              ← human walkthrough for new collaborators (30–60 min)
-├── PROJECT_SCOPE.md           ← v1.2 master scope: niches, phases, tests, success gates
+├── PROJECT_SCOPE.md           ← v1.3 master scope: niches, phases, tests, success gates
+├── CONTRIBUTING.md            ← human-gated workflow to add data to the DATA INAMOVIBLE
 ├── LICENSE                    ← proprietary; joint copyright Nuke AI + Latido Médico Mexicano
 ├── docs/
+│   ├── HANDOFF.md                     ← the single live hand-off: current system state, how to operate, what's next
 │   ├── stress-test-completo.md/.pdf   ← evidence base for v2.2 architectural decisions
 │   ├── v2.2-changelog.md              ← what changed v2.1 → v2.2 and why
-│   ├── decisions/                     ← Architecture Decision Records (ADRs); 8 records as of 2026-06 (0001–0008+)
+│   ├── decisions/                     ← Architecture Decision Records (ADRs); 30 records as of 2026-07 (0001–0030)
 │   ├── findings/                      ← negative findings / corrections (substrate iteration evidence)
 │   └── autoresearch-handoff/          ← imported autoresearch discipline (STRATEGY_FINAL, INTEGRATION_PROPOSAL, guide) + proposals/ + prerequisites/
+├── rag_index/                        ← DATA INAMOVIBLE GraphRAG (Neo4j) + ingest service + deploy recipes (ADR-0020/0021)
 ├── skills/
-│   ├── custom/organogenesis-agent-architect/   ← the project's own skill v2.2 + reference files
+│   ├── custom/organogenesis-agent-architect/   ← the project's own skill v2.3.0 + reference files
 │   └── external/
 │       ├── CURATED.md                 ← Tool Universe skills mapped to the six niches
 │       ├── README.md                  ← Tool Universe layer documentation (Skill / MCP / SDK)
