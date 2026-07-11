@@ -1,0 +1,67 @@
+{
+  "generated": "2026-07-11T23:17:12Z",
+  "n_total_records": 6,
+  "n_observable": 6,
+  "n_scored": 6,
+  "n_excluded_unfalsifiable": 0,
+  "n_excluded_no_confidence": 0,
+  "tests_status": {
+    "test_4": "case capture"
+  },
+  "reporting_note": "Per ADR-0005 + SCOPE \u00a75: n_scored=6 -> 'case capture'. 'satisfied' is NOT emitted by this single-snapshot tool \u2014 it additionally requires the longitudinal 'improve with use' arc (month 0/4/8) AND the >=85% high-confidence sub-threshold. ece_raw at n<10 is descriptive only; post-hoc isotonic is not applied until n_scored>=10.",
+  "satisfied_requires": {
+    "defensive_ece_met": false,
+    "high_conf_subthreshold_met": false,
+    "longitudinal_improve_with_use": "not-establishable-from-single-run",
+    "note": "'satisfied' needs all three; this tool can only attest the first two."
+  },
+  "aggregate": {
+    "ece_raw": 0.3983333333333334,
+    "defensive_threshold": 0.2,
+    "ambitious_threshold": 0.1,
+    "high_conf_frac_correct": 0.6666666666666666,
+    "high_conf_threshold": 0.8,
+    "high_conf_subthreshold_met": false
+  },
+  "per_category": {
+    "pathway_assembly": {
+      "n": 2,
+      "ece_raw": 0.42500000000000004
+    },
+    "ortholog_mapping": {
+      "n": 2,
+      "ece_raw": 0.43
+    },
+    "perturbation_design": {
+      "n": 1,
+      "ece_raw": 0.5800000000000001
+    },
+    "marker_identification": {
+      "n": 1,
+      "ece_raw": 0.09999999999999998
+    }
+  },
+  "per_skill": {
+    "held-out-runner-L2": {
+      "n": 6,
+      "ece_raw": 0.3983333333333334
+    }
+  },
+  "per_sub_domain": {
+    "RN3": {
+      "n": 2,
+      "ece_raw": 0.635,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN10": {
+      "n": 1,
+      "ece_raw": 0.5800000000000001,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN1": {
+      "n": 3,
+      "ece_raw": 0.18000000000000005,
+      "isotonic_fit": "pending (n<10)"
+    }
+  }
+}

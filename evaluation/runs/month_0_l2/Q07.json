@@ -1,0 +1,186 @@
+{
+  "claim_id": "held_out_month_0_l2_Q07",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN3",
+  "claim_category": "pathway_assembly",
+  "question_id": "Q07",
+  "question": "Reconstruct the BMP/Nodal/retinoic-acid cascade for pronephros induction as a rule-based signaling network suitable for BioNetGen → Morpheus. What kinetic parameters are needed?",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "RECONSTRUCTION OF THE BMP / NODAL / RA CASCADE FOR ZEBRAFISH PRONEPHROS INDUCTION AS A BioNetGen (BNGL) RULE-BASED MODEL — plus the kinetic-parameter requirement.\n\nProject-state preflight: the verified store (analysis/outputs/verified_identifiers.json, 51 records, human-gated) already grounds the RA arm (aldh1a2, cyp26a1) and the intermediate-mesoderm/pronephros readouts (osr1, pax2a, pax8, lhx1a, wt1a, wnt8a, fgf8a) with raw-cached ENSDARG IDs; the BMP and Nodal arms were absent and were verified this session via Ensembl (danio_rerio, GRCz11). No prior BioNetGen/BNGL artifact exists in the repo for this cascade (grep of analysis/outputs returned only marker/DE files), so the network structure below is newly synthesized and operates from external structured evidence + established developmental biology.\n\n--- BIOLOGICAL LOGIC (what the network must encode) ---\nPronephros derives from intermediate mesoderm (IM). Three signals converge: (1) NODAL (ndr1/squint, ndr2/cyclops, co-receptor tdgf1/oep; feedback inhibitors lft1/lft2) does graded mesendoderm induction — the classic activator(short-range Nodal)/inhibitor(long-range Lefty) reaction-diffusion module. (2) BMP (bmp2b:bmp7a obligate heterodimer, bmp4; antagonist chordin/chrd) sets the dorsoventral gradient; IM/pronephros arises at INTERMEDIATE (ventrolateral) BMP level — neither peak-ventral nor antagonist-dorsalized. (3) Retinoic acid (synthesis aldh1a2, degradation cyp26a1; nuclear receptors raraa:rxrba on RAREs) sets anteroposterior position and proximodistal segment identity of the tubule. The readout is IM/pronephros-field transcription (osr1 earliest, then pax2a/pax8/lhx1a/wt1a).\n\n--- BNGL MOLECULE TYPES (species with components/states) ---\nLigands: Bmp2b, Bmp7a (dimer Bmp2b:Bmp7a), Bmp4; Ndr1, Ndr2; RA (small molecule). Extracellular modulators: Chrd (BMP antagonist), Lft1, Lft2 (Nodal antagonists). Receptors: BMP type-I (bmpr1aa/ab≈ALK3/6) + type-II (bmpr2, acvr2a/b); Nodal type-I acvr1b(ALK4)/acvr1c(ALK7) + type-II acvr2a/b + co-receptor Tdgf1(oep); nuclear Raraa:Rxrba. Transducers: Smad5~{P0/P1} (BMP R-SMAD), Smad2~{P0/P1} (Nodal R-SMAD), Smad4a (co-SMAD, SHARED pool → BMP/Nodal competition node), with a nuc/cyt location component. Enzymes: Aldh1a2, Cyp26a1. Target-gene nodes: osr1, pax2a, pax8, lhx1a, wt1a.\n\n--- BNGL RULE CLASSES (reactions) ---\nR1 Ligand/enzyme synthesis (spatially gated source): 0 -> L, k_prod. R2 Ligand degradation/clearance: L -> 0, k_deg. R3 Antagonist sequestration: Chrd+BMP<->Chrd:BMP; Lft competes for Nodal/co-receptor (kon/koff). R4 Ligand-receptor binding (grounded by OmniPath, all edges stimulatory): BMP2b/7a/4 + {bmpr1*, bmpr2, acvr2*}<->complex; Ndr + {acvr1b/1c + acvr2* + tdgf1}<->complex. R5 Receptor-kinase → R-SMAD phosphorylation (catalytic): active BMP-receptor: Smad5~P0->Smad5~P1; active Nodal-receptor: Smad2~P0->Smad2~P1 (kcat, Km). R6 SMAD-complex assembly: Smad5~P1+Smad4a<->complex; Smad2~P1+Smad4a<->complex (competition for Smad4a). R7 Nuclear shuttling: complex cyt<->nuc (k_in/k_out); phosphatase Smad~P1->Smad~P0. R8 Transcription (Hill): nuclear pSMAD:Smad4 -> target mRNA; RA:Raraa:Rxrba on RARE -> target mRNA; Vmax, Hill n, threshold K. R9 Feedback motifs: Nodal auto-activation (+), Nodal->lft induction (−, delayed) = reaction-diffusion core; RA->cyp26a1 induction (−) = self-limiting RA sink; Aldh1a2: retinaldehyde->RA and Cyp26a1: RA->4-OH-RA (enzyme kcat/Km). R10 Integration/readout: osr1/pax2a/pax8 transcription as a logic AND over {intermediate BMP-Smad, Nodal-Smad history, permissive RA}.\n\n--- KINETIC PARAMETERS NEEDED (the explicit ask; by class) ---\n(a) Production/secretion rates k_prod per ligand+enzyme; (b) Diffusion coefficients D per diffusible morphogen — the DIFFERENTIAL Nodal-vs-Lefty diffusivity is the load-bearing parameter for the reaction-diffusion behavior, plus effective D for BMP and RA; (c) Degradation constants k_deg for ligands, Smads, mRNAs (sets gradient length scale λ=√(D/k_deg)); (d) Binding kon/koff (or Kd) for every ligand-receptor and antagonist-ligand pair; (e) Total receptor/co-receptor abundances + Smad4a pool size (the BMP/Nodal competition parameter); (f) Receptor-kinase kcat/Km for R-SMAD phosphorylation and phosphatase rate; (g) SMAD complex assoc/dissoc + nuclear import/export rates; (h) Transcription Vmax, Hill coefficient n, activation threshold K for Smad-binding-elements and RAREs; (i) RA-metabolism enzyme kcat/Km (Aldh1a2, Cyp26a1) + retinaldehyde supply; (j) Feedback gains (Nodal autoactivation, Nodal→Lefty, RA→cyp26a1); (k) Initial conditions + compartment geometry (cell count/spacing) for the spatial version.\n\n--- HONEST CAVEATS ---\nBioNetGen suitability: BNGL is well-suited to the INTRACELLULAR combinatorics (BMP binding many type-I/type-II receptor combinations — OmniPath returned dozens of distinct BMP2/BMP7→receptor-complex edges; rules avoid enumerating every species). But the morphogen-GRADIENT (diffusion in space) is not native to core BNGL/NFsim (well-mixed); the spatial reaction-diffusion part requires compartmental BNGL or coupling to a PDE/agent framework (VCell/MCell/MorpheusL). State that explicitly rather than implying pure BNGL captures the gradient.\nEvidence-lens: OmniPath receptor edges and Reactome reaction sets are HUMAN orthologs (ortholog_regulatory tier ≈0.5 per ADR-0028), not native zebrafish perturbation evidence; they justify topology and edge sign, not zebrafish-specific quantitation.\nKinetic VALUES are essentially a gap: none of the structured databases queried return rate constants. EuropePMC did not surface the canonical zebrafish Nodal/Lefty FRAP/FCS diffusivity measurement, so I deliberately did NOT assert numeric D values (anti-fabrication gate §7). One directly relevant, verified zebrafish reaction-diffusion parameterization was retrieved (Stark et al. 2025, Development, PMID 40462756: Fgf8a source-diffusion-degradation + ECM binding) — it grounds the parameter CLASSES, not the Nodal/BMP/RA numbers. Values would have to be sourced (zebrafish diffusivity papers), borrowed (mammalian TGF-β/Smad ODE models), or calibrated to expression data, and cached before use.\n\n--- CONFIDENCE BY SUBCLAIM (asymmetric per §5) ---\nGene identities/ENSDARG bindings ≈0.97 (directly tool-verified); qualitative pathway membership + receptor-binding topology/signs ≈0.80 (OmniPath+Reactome+textbook, ortholog-level); the specific INTEGRATED pronephros-induction wiring/logic (exact edges+signs into osr1/pax2a and the AND-logic) ≈0.50 (synthesis/hypothesis — zebrafish IM causal wiring is only partly resolved and BMP's precise pronephros role vs generic DV patterning is nuanced); kinetic parameter VALUES ≈0.15 (not retrieved). Aggregate reported 0.55.\n\n--- GOVERNANCE (agent-invocation + closing reflexes) ---\nThe integrated induction wiring in R10/R9 is a causal/sufficiency hypothesis = causal-pruner work; per §7 it is hypothesis-generation and REQUIRES a human gate before any downstream (wet-lab/design) use — flagged, not invoked here (subagent scope). This single-subagent output is NOT an audit gate; it must be composite-audited (≥3, Mode 1) before becoming substrate evidence. HTML report emission (§5/§7) is deferred to the orchestrating session (subagent returns via StructuredOutput; no report files written per subagent protocol) — flagged as a gap to close at conclusion.",
+  "stated_confidence": 0.55,
+  "evidence_cited": [
+    "Ensembl REST via ToolUniverse ensembl_lookup_gene (danio_rerio, GRCz11) — 14 symbol->ENSDARG verifications this session: bmp2b, bmp7a, bmp4, ndr1, ndr2, lft1, lft2, chrd, smad5, smad2, tdgf1, smad4a, raraa, rxrba (raw cached at mcp_cache/raw_ensembl_bmp-nodal-ra-network_20260711.json, CLAUDE.md §7.9)",
+    "DATA INAMOVIBLE verified store analysis/outputs/verified_identifiers.json (store_version 2026-06-23.1, human-gated) — reused RA arm + IM/pronephros readouts: aldh1a2 ENSDARG00000053493, cyp26a1 ENSDARG00000033999, osr1 ENSDARG00000014091, wnt8a, fgf8a, pax2a, pax8, lhx1a, wt1a",
+    "OmniPath OmniPath_get_signaling_interactions (directed+signed, human tax 9606) — 39 receptor-binding edges: BMP2/BMP7 -> BMPR1A/1B/2, ACVR2A/2B, ACVR1 and receptor complexes; NODAL -> ACVR1B(ALK4)/ACVR1C(ALK7) + ACVR2A/2B, all is_stimulation=true (ortholog_regulatory lens, ADR-0028)",
+    "Reactome ReactomeContent_search (Homo sapiens) — canonical reaction-set IDs: Signaling by NODAL R-HSA-1181150, Regulation of signaling by NODAL R-HSA-1433617, Signaling by BMP R-HSA-201451, Signaling by Retinoic Acid R-HSA-5362517",
+    "Europe PMC EuropePMC_search_articles — Stark et al. 2025, Development, PMID 40462756 (DOI 10.1242/dev.204312): zebrafish Fgf8a source-diffusion-degradation + ECM-binding reaction-diffusion model; grounds kinetic parameter CLASSES for a zebrafish morphogen",
+    "ZFIN cross-references embedded in Ensembl responses (e.g., bmp4 ZDB-GENE-980528-2059, ndr1 ZDB-GENE-990415-256, tdgf1/oep ZDB-GENE-990415-198)",
+    "reasoning-frameworks-catalog.md v1.2 §8 Chain-of-Verification (framework selection justification)"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "bmp2b",
+      "ensdarg": "ENSDARG00000041430"
+    },
+    {
+      "symbol": "bmp7a",
+      "ensdarg": "ENSDARG00000018260"
+    },
+    {
+      "symbol": "bmp4",
+      "ensdarg": "ENSDARG00000019995"
+    },
+    {
+      "symbol": "ndr1",
+      "ensdarg": "ENSDARG00000057096"
+    },
+    {
+      "symbol": "ndr2",
+      "ensdarg": "ENSDARG00000101279"
+    },
+    {
+      "symbol": "lft1",
+      "ensdarg": "ENSDARG00000019920"
+    },
+    {
+      "symbol": "lft2",
+      "ensdarg": "ENSDARG00000044059"
+    },
+    {
+      "symbol": "chrd",
+      "ensdarg": "ENSDARG00000006110"
+    },
+    {
+      "symbol": "smad5",
+      "ensdarg": "ENSDARG00000037238"
+    },
+    {
+      "symbol": "smad2",
+      "ensdarg": "ENSDARG00000006389"
+    },
+    {
+      "symbol": "tdgf1",
+      "ensdarg": "ENSDARG00000035095"
+    },
+    {
+      "symbol": "smad4a",
+      "ensdarg": "ENSDARG00000075226"
+    },
+    {
+      "symbol": "raraa",
+      "ensdarg": "ENSDARG00000056783"
+    },
+    {
+      "symbol": "rxrba",
+      "ensdarg": "ENSDARG00000078954"
+    },
+    {
+      "symbol": "aldh1a2",
+      "ensdarg": "ENSDARG00000053493"
+    },
+    {
+      "symbol": "cyp26a1",
+      "ensdarg": "ENSDARG00000033999"
+    },
+    {
+      "symbol": "osr1",
+      "ensdarg": "ENSDARG00000014091"
+    },
+    {
+      "symbol": "wnt8a",
+      "ensdarg": "ENSDARG00000052910"
+    },
+    {
+      "symbol": "fgf8a",
+      "ensdarg": "ENSDARG00000003399"
+    },
+    {
+      "symbol": "pax2a",
+      "ensdarg": "ENSDARG00000028148"
+    },
+    {
+      "symbol": "pax8",
+      "ensdarg": "ENSDARG00000015879"
+    },
+    {
+      "symbol": "lhx1a",
+      "ensdarg": "ENSDARG00000014018"
+    },
+    {
+      "symbol": "wt1a",
+      "ensdarg": "ENSDARG00000031420"
+    }
+  ],
+  "alternatives_considered": [
+    "Model as a pure ODE/mass-action system rather than rule-based BNGL — rejected as the network's value: the receptor combinatorics (BMP dimer x multiple type-I x type-II x Smad states) causes species explosion that BNGL rules handle natively; ODE would require hand-enumerating every complex",
+    "Treat pronephros induction as BMP/Nodal-only and omit RA — rejected: RA (aldh1a2/cyp26a1 balance) is required for tubule AP position and proximodistal segment identity; the question explicitly names the tripartite cascade and the store already anchors the RA arm",
+    "Assert canonical zebrafish Nodal/Lefty diffusivity values (differential D driving the reaction-diffusion module) from memory — rejected under §7 anti-fabrication gate: EuropePMC did not return the source paper this session, so numeric D values are left as a declared gap",
+    "Claim pure BioNetGen captures the morphogen gradient — rejected: core BNGL/NFsim is well-mixed; the spatial diffusion term needs compartmental BNGL or a PDE/agent coupling, stated as a caveat",
+    "Use human Reactome/OmniPath edges as if they were zebrafish-native causal evidence — rejected: down-weighted to ortholog_regulatory lens (ADR-0028); they justify topology+sign only, not zebrafish quantitation",
+    "Frame the integrated induction wiring as an established fact — rejected: it is a causal/sufficiency hypothesis (causal-pruner work, §7 human gate), reported at ≈0.50 subclaim confidence"
+  ],
+  "gap_flags": [
+    "Kinetic parameter VALUES are essentially unfilled: no rate constant, diffusivity, Kd, kcat/Km, or Hill parameter was retrieved from the structured databases; only the parameter CLASSES are enumerable. Numeric zebrafish Nodal/Lefty diffusivities (FRAP/FCS) must be sourced and raw-cached (§7.9) before use",
+    "The specific integrated pronephros-induction wiring and AND-logic into osr1/pax2a/pax8 is a synthesized causal hypothesis, not native zebrafish causal evidence; requires causal-pruner + human gate before downstream (design/wet-lab) use",
+    "Receptor-binding topology and signs are HUMAN orthologs (OmniPath/Reactome, tax 9606); no zebrafish-native receptor-Smad perturbation dataset was consulted — lens-validity limit per ADR-0028",
+    "Reactome pathway reaction sets were identified by stable ID but their full reaction lists were not expanded (Reactome_get_pathway_reactions not executed) — Smad phosphorylation/nuclear-import step details are from canonical knowledge, not itemized from Reactome this session",
+    "The 14 new ENSDARG verifications are session-cached (mcp_cache/raw_ensembl_bmp-nodal-ra-network_20260711.json) but NOT ingested into the human-gated DATA INAMOVIBLE store; promotion to verified_identifiers.json is a separate human-gated ADD (ADR-0022/0029)",
+    "Mandatory §5/§7 HTML report at conclusion was NOT emitted (subagent returns via StructuredOutput and does not write report files); the orchestrating session must emit the reports/ HTML for this conclusion",
+    "This output is not audited: no composite-auditor (≥3, Mode 1) pass was run; it must not be treated as substrate-evidence audit-gated until composite-audited"
+  ],
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results. Anti-hallucination by construction.\" A candidate network was drafted from developmental biology, then verification questions (does each gene resolve to a real ENSDARG? do the receptor edges exist and with what sign? are the pathway reactions canonical? are the kinetic numbers actually retrievable?) were answered independently against Ensembl / OmniPath / Reactome / EuropePMC, and the draft was revised — notably walking back the unverifiable kinetic numeric values. Not Self-Consistency (§4 Tier 1): no majority-vote over stochastic runs applies; not Logic-LM: the criteria here are not fully formalizable. CoVe's §Tier-2 limitation (Su et al. 2025: excessive verification degrades simple problems) is not triggered — this is a high-stakes multi-identifier assembly where verification is warranted.",
+  "observed_outcome": "positive",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools",
+      "mcp__tooluniverse__execute_tool -> ensembl_lookup_gene (x14: bmp2b, bmp7a, bmp4, ndr1, ndr2, lft1, lft2, chrd, smad5, smad2, tdgf1, smad4a, raraa, rxrba)",
+      "mcp__tooluniverse__execute_tool -> ReactomeContent_search (x3: NODAL, BMP, retinoic acid)",
+      "mcp__tooluniverse__execute_tool -> OmniPath_get_signaling_interactions (BMP2/BMP7/NODAL sources, signed+directed)",
+      "mcp__tooluniverse__execute_tool -> EuropePMC_search_articles (x2: Nodal/Lefty diffusivity; Smad kinetic parameters)"
+    ],
+    "n_tu_tools": 5
+  },
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.89,
+          "verdict": "correct",
+          "justification": "Hits all four expected-evidence components at high quality. (1) Rule sketch: a genuinely sophisticated, biologically-correct BNGL structure — molecule types with phospho/location states plus 10 rule classes, including the shared-Smad4a-pool BMP/Nodal competition node and the Nodal/Lefty activator-inhibitor reaction-diffusion core (textbook-correct, Schier-lab canonical). (2) Cited cascade edges: OmniPath signed/directed receptor edges + Reactome pathway IDs, honestly labeled human-ortholog tier. (3) Kinetic constants: exhaustive correctly-classed taxonomy (a-k), correctly flagging differential Nodal-vs-Lefty diffusivity as load-bearing and λ=√(D/k_deg) as the gradient scale. (4) Gap flags: exemplary — refused to fabricate numeric diffusivities, declared values a genuine gap (0.15), and correctly noted core BNGL is well-mixed so the spatial gradient needs compartmental BNGL/PDE coupling. Anti-fabrication verified independently: the claimed raw cache file exists with §7.9-compliant raw content; 3/3 live-Ensembl spot-checks of the new BMP/Nodal IDs resolved correctly (bmp2b/ndr1/chrd, danio_rerio), and all 9 reused IDs match the verified store exactly. Calibration is asymmetric and honest (correctly downgrades the integrated induction wiring and BMP's precise pronephros role, no overclaiming), and governance discipline (causal-pruner human gate, composite-audit needed) is contract-aware. Minor deductions: no literal runnable BNGL code block (structured prose instead, though defensible since rate values are genuinely unavailable); a small \"39 edges\" vs ~16-enumerated inconsistency; and one low-stakes literature PMID I did not independently re-verify (honestly scoped to grounding parameter classes only). Absence of numeric rate values is not a defect here — it is the correct, honest finding the rubric explicitly rewards."
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.87,
+          "verdict": "correct",
+          "justification": "The candidate delivers all four expected-evidence components thoroughly. (1) Rule sketch: BNGL molecule types (ligands with dimer/monomer states, receptors with type-I/II components, Smad phosphorylation states, nuclear/cytoplasmic locations) plus ten rule classes (R1-R10) covering synthesis, degradation, antagonist sequestration, receptor binding, R-SMAD phosphorylation, SMAD4 competition, nuclear shuttling, Hill-type transcription, feedback loops, and integrated AND-logic readout — an appropriate conceptual sketch (not literal compilable .bngl code, but the expected evidence only asks for a \"sketch,\" which this satisfies). (2) Cited cascade edges: specific BMP/Nodal/RA pathway edges grounded in OmniPath (39 receptor-binding edges, signed+directed), Reactome reaction-set IDs, and ENSDARG identifiers for 23 genes, with a plausible, correctly-formatted identifier list and an explicit citation trail (raw cache path, Ensembl REST calls). (3) Kinetic constants: an unusually complete taxonomy (a-k) spanning production/secretion rates, diffusion coefficients (correctly flagging differential Nodal/Lefty diffusivity as load-bearing for reaction-diffusion behavior), degradation constants, kon/koff, receptor/Smad4 pool sizes, kcat/Km, Hill parameters, RA-metabolism kinetics, feedback gains, and initial conditions/geometry — exactly the parameter inventory a modeler would need. (4) Gap flags: explicit and well-reasoned — kinetic VALUES are flagged as essentially absent from queried databases, with a real EuropePMC search that failed to surface Nodal/Lefty diffusivity data, and a correctly-scoped analogous source (Stark et al. 2025 Fgf8a reaction-diffusion paper) offered only as a parameter-class exemplar, not a numeric substitute — honest, non-fabricating behavior per the anti-fabrication gate. The answer also correctly identifies a real modeling caveat (core BNGL/NFsim is well-mixed, not spatial, so diffusion-gradient behavior needs compartmental extensions), reflecting genuine domain understanding of BioNetGen's limitations. Confidence-by-subclaim is well-calibrated (very high for verified IDs, moderate for topology, low for integrated causal wiring, very low for kinetic values) rather than a flattened aggregate. Weaknesses: no literal compilable BNGL syntax file was produced (only pseudo-BNGL rule-class descriptions), and the response carries heavy project-governance meta-commentary (agents_invoked, composite-auditor deferral, HTML-report deferral) that, while mandated by this repo's CLAUDE.md, adds bulk beyond the core scientific ask. These are minor relative to the strength and honesty of the substantive content.</parameter>\n</invoke>\n"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The answer delivers 3.5/4 expected evidence elements (rule sketch ✓, gap flags ✓, kinetic parameter classes ✓, cascade edges ~0.75 as embedded-not-summarized). Preflight §10, identifier verification §7.9, and anti-fabrication reflexes are exemplary; confidence breakdown is proper asymmetric per §5; causal-pruner hypothesis correctly flagged for human gate (§7). Biological logic is coherent (reaction-diffusion Nodal/Lefty module, BMP DV gradient, RA AP/PD positioning, Smad4a competition node). PRIMARY RISK: PMID 40462756 (Stark et al. 2025, EuropePMC discovery) is unverified—if it does not resolve, this violates §7.9 hard rule despite correct anti-fabrication framing elsewhere. SECONDARY GAPS: cascade edges are embedded in R1–R10 rules (present but not as clean summary table); rule sketch is conceptual pseudocode, not BNGL syntax (acceptable for scope, but limits actionability). Integrated induction wiring (R9/R10) is properly labeled as hypothesis (0.50 confidence) and flagged for composite-auditor gate—correct per §7 but leaves precision uncertain. Subagent defers HTML report per protocol (correct). Score 0.72 assumes PMID is likely real (consistent with journal/year/formatting and candidate's demonstrated anti-fabrication discipline); actual score risked 0.35–0.78 pending PMID verification."
+        }
+      ],
+      "mean_overall": 0.827,
+      "outcome": "positive"
+    }
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "claim_id": "held_out_month_0_l2_Q08",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN3",
+  "claim_category": "ortholog_mapping",
+  "question_id": "Q08",
+  "question": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "ZEBRAFISH PRONEPHROS TF → HUMAN ORTHOLOG MAP (7 loci; Ensembl Compara, bidirectional + paralogue-verified). Project-state preflight: our verified store + schoels_markers_canonical.csv already carry ENSDARG for wt1a/pax2a/pax8/hnf1ba/hnf1bb; every ID below was RE-verified live via Ensembl this session (no memory IDs).\n\nMAPPING + KO-CONFOUND FLAGS:\n1) pax2a (ENSDARG00000028148) → human PAX2 (ENSG00000075891). Ensembl call ortholog_ONE2MANY, both directions. Co-ortholog pax2b (ENSDARG00000032578, symbol-verified via lookup). FLAG 1:MANY — single-gene KO of pax2a alone is confounded by pax2b; use double KO / MO or confirm pax2b is not co-expressed.\n2) pax8 (ENSDARG00000015879) → human PAX8 (ENSG00000125618). ortholog_ONE2ONE both directions. NO FLAG — clean single-gene KO target (no retained teleost duplicate).\n3) wt1a (ENSDARG00000031420) → human WT1 (ENSG00000184937). Ensembl ortholog endpoint calls this ONE2ONE and returns wt1b EMPTY — BUT the paralogue endpoint classifies wt1a↔wt1b (ENSDARG00000007990) as a within_species_paralog at the Euteleostomi node (~71% id). FLAG 1:MANY (HIDDEN) — the automated ortholog call UNDER-reports this; a researcher trusting one2one would miss that wt1b is the teleost ohnolog and a compensation candidate. This is the headline calibration lesson: ortholog_one2one ≠ 'no paralog compensation risk'.\n4) hnf1ba (ENSDARG00000006615) → human HNF1B (ENSG00000275410). ortholog_ONE2MANY both directions. Co-ortholog hnf1bb (ENSDARG00000022295; matches our own marker file). FLAG 1:MANY — hnf1bb is lowly but detectably expressed in our pronephros data, so compensation is plausible.\n5) sim1a (ENSDARG00000023316) → human SIM1 (ENSG00000112246). ortholog_ONE2MANY. A retained duplicate sim1b exists (ENSDARG00000013789, symbol-verified). FLAG 1:MANY (PROBABLE) — but note the SIM1 ortholog endpoint's second target was ENSDARG00000039935 (a divergent bHLH-PAS gene, ~35% id), NOT sim1b; the specific sim1a↔sim1b ohnolog pairing was not confirmed by a paralogue query this session. Moderate confidence.\n6) lhx1a (ENSDARG00000014018) → human LHX1 (ENSG00000273706): UNRESOLVED. Ensembl Compara returns empty homologies in BOTH directions (no gene tree on that gene id). Not asserting lhx1a→LHX1 from memory; cross-check ZFIN/Alliance or NCBI orthologs before use.\n\nCONFIDENCE BY SUBCLAIM (aggregated to 0.82 for the schema): verified ENSDARG bindings + Ensembl calls ~0.90; PAX2/HNF1B 1:many flags ~0.90; WT1 hidden-ohnolog flag ~0.85; SIM1 probable ohnolog ~0.60; the functional inference 'paralog COULD compensate in a KO' ~0.70 (teleost-redundancy prior, not measured for these pairs). LHX1 is reported as a gap, not a claim.\n\nBOTTOM LINE for wet-lab design: pax8 is the only clean single-gene KO target here. pax2a, hnf1ba, and wt1a all carry a retained zebrafish ohnolog (pax2b, hnf1bb, wt1b) that can mask loss-of-function; plan compound perturbation or paralog-expression controls. wt1a is the trap — it looks 1:1 in a naive ortholog lookup. sim1a probable-flag pending a paralogue confirmation; lhx1a mapping pending a second source.",
+  "stated_confidence": 0.82,
+  "evidence_cited": [
+    "Ensembl REST homology zf->human: rest.ensembl.org/homology/symbol/zebrafish/wt1a (ortholog_one2one WT1/ENSG00000184937)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/zebrafish/wt1a?type=paralogues (wt1a<->wt1b ENSDARG00000007990 within_species_paralog, Euteleostomi)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/human/WT1 (one2one, only wt1a returned; wt1b endpoint EMPTY)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/human/PAX2 (one2many -> ENSDARG00000028148 pax2a + ENSDARG00000032578 pax2b)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/zebrafish/pax8 (one2one PAX8/ENSG00000125618)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/human/HNF1B (one2many -> ENSDARG00000006615 hnf1ba + ENSDARG00000022295 hnf1bb)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/human/SIM1 (one2many -> ENSDARG00000023316 sim1a + ENSDARG00000039935)",
+    "Ensembl REST rest.ensembl.org/homology/symbol/zebrafish/lhx1a AND /human/LHX1 (both EMPTY; ENSG00000273706 no Compara tree)",
+    "Ensembl lookup pax2b=ENSDARG00000032578, sim1b=ENSDARG00000013789 (Ensembl_lookup_gene_by_symbol)",
+    "Internal consistency: analysis/outputs/schoels_markers_canonical.csv (wt1a/pax2a/pax8/hnf1ba/hnf1bb ENSDARG match live Ensembl)",
+    "Raw evidence cache: mcp_cache/raw_ensembl_pronephros_ortholog_map_20260711.json"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "pax2a",
+      "ensdarg": "ENSDARG00000028148"
+    },
+    {
+      "symbol": "pax2b",
+      "ensdarg": "ENSDARG00000032578"
+    },
+    {
+      "symbol": "pax8",
+      "ensdarg": "ENSDARG00000015879"
+    },
+    {
+      "symbol": "wt1a",
+      "ensdarg": "ENSDARG00000031420"
+    },
+    {
+      "symbol": "wt1b",
+      "ensdarg": "ENSDARG00000007990"
+    },
+    {
+      "symbol": "hnf1ba",
+      "ensdarg": "ENSDARG00000006615"
+    },
+    {
+      "symbol": "hnf1bb",
+      "ensdarg": "ENSDARG00000022295"
+    },
+    {
+      "symbol": "sim1a",
+      "ensdarg": "ENSDARG00000023316"
+    },
+    {
+      "symbol": "sim1b",
+      "ensdarg": "ENSDARG00000013789"
+    },
+    {
+      "symbol": "lhx1a",
+      "ensdarg": "ENSDARG00000014018"
+    }
+  ],
+  "alternatives_considered": [
+    "Trusting Ensembl Compara's ortholog one2one/one2many labels alone — REJECTED: the WT1 case proves it hides ohnologs (wt1b returned empty as an ortholog yet is a confirmed within_species_paralog). Had to cross-check the paralogue endpoint.",
+    "Naming ENSDARG00000039935 as sim1b (the SIM1 endpoint's 2nd target) — REJECTED: symbol lookup shows sim1b=ENSDARG00000013789; ENSDARG00000039935 is a divergent bHLH-PAS gene, so the true sim1b ohnolog is NOT what the ortholog endpoint returned.",
+    "Asserting lhx1a->LHX1 from literature/memory despite empty Ensembl result — REJECTED per §7 anti-fabrication; reported as gap instead.",
+    "Using ZFIN_get_gene_orthologs/Alliance as the primary source — DEFERRED: requires resolving ZFIN gene IDs first; Ensembl bidirectional + paralogue queries were sufficient and honored the no-hang rule. Recommended as the confirmatory second source for the LHX1 and SIM1 gaps.",
+    "Mapping the full ~40-gene schoels TF list — DEFERRED per 'prueba pequeno': mapped a focused 7-locus panel that exercises the ohnolog question; osr1/tfap2a/sall1a/gata3/mecom/irx3b not done this session."
+  ],
+  "gap_flags": [
+    "LHX1/lhx1a UNRESOLVED: Ensembl Compara returns empty homologies both directions (ENSG00000273706 has no gene tree). Mapping not asserted; needs ZFIN/Alliance or NCBI ortholog cross-check.",
+    "SIM1 ohnolog pairing (sim1a<->sim1b) NOT directly confirmed: sim1b gene exists (ENSDARG00000013789) but a paralogue query was not run; the SIM1 ortholog endpoint's second target (ENSDARG00000039935) is a divergent gene, identity unconfirmed.",
+    "Functional compensation is INFERRED, not measured: 'paralog could confound a KO' rests on teleost-ohnolog redundancy priors + (for hnf1bb) our own expression data, not on KO/rescue experiments for these specific pairs.",
+    "ENSDARG00000039935 (SIM1 endpoint 2nd target) identity not resolved to a symbol this session.",
+    "Panel is a focused 7-locus subset per 'prueba pequeno'; remaining pronephros TFs (osr1/osr2, tfap2a, sall1a, gata3, mecom, irx3b) not mapped.",
+    "HTML report (CLAUDE.md §5/§7 conclusion mandate) DEFERRED to the orchestrating session: as a spawned subagent returning the StructuredOutput contract, HTML emission is left to the parent per the subagent directive not to write report files. Flagged for audit honesty.",
+    "confidence_by_subclaim collapsed to a single confidence=0.82 because the StructuredOutput schema has no subclaim field; the per-subclaim breakdown is stated in direct_answer."
+  ],
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification (CoVe): \"High-stakes outputs that will be acted on (lab dispatch...)\" and \"Outputs that cite specific facts or numbers\" and \"Cases where confident hallucination is the worst failure mode\". Applied literally: drafted the naive mapping, generated skeptic questions (does WT1 one2one mean no ohnolog? is ENSDARG00000039935 really sim1b? is lhx1a->LHX1 real?), answered each independently with retrieval (bidirectional homology + paralogue endpoint + symbol lookup), and revised the draft (WT1 walked back from 'clean 1:1' to 'hidden ohnolog'; SIM1 second gene shown NOT to be sim1b; LHX1 downgraded to gap). Re-elected from an initial Self-Discover framing once the work became verification-against-external-evidence-streams, per §4 mid-session re-election.",
+  "observed_outcome": "negative",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools",
+      "ensembl_get_homology (zebrafish->human: wt1a, wt1b, pax2a, pax8, hnf1ba, lhx1a, sim1a)",
+      "ensembl_get_homology (human->zebrafish: WT1, PAX2, HNF1B, LHX1, SIM1)",
+      "ensembl_get_homology (paralogues: zebrafish wt1a)",
+      "Ensembl_lookup_gene_by_symbol (pax2b, sim1b)"
+    ],
+    "n_tu_tools": 5
+  },
+  "scoring": {
+    "method": "both",
+    "deterministic": {
+      "admissible": false,
+      "outcome": "negative",
+      "report": {
+        "ok": false,
+        "identifier_admissible": false,
+        "verified_raw": [
+          "ENSDARG00000007990",
+          "ENSDARG00000014018",
+          "ENSDARG00000015879",
+          "ENSDARG00000028148",
+          "ENSDARG00000031420"
+        ],
+        "verified_derived": [
+          "ENSDARG00000006615",
+          "ENSDARG00000022295",
+          "ENSDARG00000023316"
+        ],
+        "not_found_positive": [],
+        "unresolved": [
+          "ENSDARG00000013789",
+          "ENSDARG00000032578",
+          "ENSDARG00000039935"
+        ],
+        "flagged_external": [],
+        "misbound": []
+      },
+      "reasons": [
+        "unresolved external identifiers (hard fail): ['ENSDARG00000013789', 'ENSDARG00000032578', 'ENSDARG00000039935']"
+      ]
+    },
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.92,
+          "verdict": "correct",
+          "justification": "I independently verified the load-bearing claims against live Ensembl REST and every checkable identifier and homology type matched exactly: wt1a(ENSDARG00000031420)→WT1(ENSG00000184937) one2one with paralogue wt1b(ENSDARG00000007990) at Euteleostomi ~70.9% id; pax2a(ENSDARG00000028148)→PAX2(ENSG00000075891) one2many with reverse returning pax2b(ENSDARG00000032578); hnf1ba(ENSDARG00000006615)→HNF1B(ENSG00000275410) one2many; pax8(ENSDARG00000015879)→PAX8(ENSG00000125618) one2one; lhx1a(ENSDARG00000014018)→EMPTY; SIM1→zebrafish returning ENSDARG00000023316 + ENSDARG00000039935 (NOT sim1b). The answer delivers exactly what the expected evidence requires: a verified ENSDARG↔human ortholog table plus paralog/compensation flags including the named example hnf1ba/hnf1bb, and additionally pax2a/pax2b and wt1a/wt1b. Uncertainty handling is exemplary and honest — lhx1a reported as an unresolved gap rather than asserted from memory; the sim1a↔sim1b pairing correctly downgraded because the endpoint returned a divergent gene (a caveat the live data confirms); confidence_by_subclaim separating verified bindings (~0.90) from the functional compensation inference (~0.70 prior, explicitly not measured). The WT1 \"hidden ohnolog\" point — ortholog_one2one does not equal no-paralog-compensation-risk — is a genuinely correct and valuable calibration insight I confirmed. No fabricated identifiers or overclaiming detected. Deductions are minor: the second canonical example foxc1a/foxc1b was not included (acceptable since the question left the TF set open, and one named example is covered), and the hnf1bb \"lowly detectable in our pronephros data\" expression aside is unverifiable though appropriately hedged."
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "I spot-checked the candidate's claims directly against the live Ensembl REST API (homology + lookup endpoints) and against the two repo files it cited as internal-consistency evidence. Every checkable claim held up exactly:\n- pax2a ENSDARG00000028148 → PAX2 ENSG00000075891, ortholog_one2many — confirmed live.\n- wt1a ENSDARG00000031420 → WT1 ENSG00000184937, ortholog_one2one — confirmed live.\n- hnf1ba ENSDARG00000006615 → HNF1B ENSG00000275410, ortholog_one2many — confirmed live (this is literally the rubric's own worked example, hnf1ba/hnf1bb, correctly caught).\n- pax8 ENSDARG00000015879 → PAX8 ENSG00000125618, ortholog_one2one, correctly flagged as the one clean single-gene KO target.\n- lhx1a ENSDARG00000014018 → homologies:[] confirmed empty on live Ensembl; candidate correctly reported this as UNRESOLVED rather than fabricating a mapping — good epistemic honesty.\n- Paralog/co-ortholog symbol↔ID bindings all confirmed via live lookup: pax2b=ENSDARG00000032578, hnf1bb=ENSDARG00000022295, sim1b=ENSDARG00000013789.\n- The wt1a \"hidden ohnolog\" claim — that the plain ortholog endpoint says one2one but the paralogue endpoint shows wt1a↔wt1b (ENSDARG00000007990) as a within_species_paralog at Euteleostomi — is a genuinely sophisticated and *correct* observation; my own paralogue-endpoint fetch reproduced exactly this discrepancy. This exceeds the rubric's basic ask and demonstrates the exact calibration point (one2one ≠ no compensation risk) CLAUDE.md's own identifier-fabrication concerns are meant to guard against.\n- The SIM1 human→zebrafish query genuinely returns sim1a + ENSDARG00000039935 (not sim1b) as the one2many pair — I reproduced this — so the candidate's honest hedge (\"sim1a↔sim1b pairing not confirmed by a paralogue query this session, moderate confidence\") is calibrated rather than overclaimed.\n- Cited artifacts mcp_cache/raw_ensembl_pronephros_ortholog_map_20260711.json and analysis/outputs/schoels_markers_canonical.csv both exist in the repo and their contents match the claimed ENSDARG IDs for wt1a/pax2a/pax8/hnf1ba/hnf1bb exactly — not fabricated citations.\n\nThis satisfies the expected evidence directly: a verified ENSDARG↔human-ortholog table with explicit paralog/compensation flags, including the exact hnf1ba/hnf1bb example named in the rubric, plus an additional, more subtle wt1a/wt1b case. Confidence is appropriately decomposed by subclaim rather than flattened, and the one unresolved case (lhx1a) and one probable-but-unconfirmed case (sim1a/sim1b) are flagged as gaps rather than asserted.\n\nMinor deductions: foxc1a/foxc1b (the rubric's second example pair) is not covered — though this is only an \"e.g.\" in the rubric, not a requirement, and the candidate substitutes an arguably richer pax2a/pax2b + wt1a/wt1b case; the §5/§7 CLAUDE.md structured-output fields (framework_applied, agents_invoked, mandatory HTML report) are not fully surfaced in the shown text, which is a process/format gap against this repo's house contract rather than a correctness problem against the stated rubric. No fabricated identifiers or unverifiable specifics were found in the parts I could check.",
+          "overall_score": 0.95,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.93,
+          "verdict": "correct",
+          "justification": "The candidate answer delivers both expected evidence components with high fidelity: (1) a verified ENSDARG↔human-ortholog table with 10 IDs correctly bound and bidirectionally confirmed via Ensembl REST; (2) explicit 1:many paralog flags for pax2a/pax2b, hnf1ba/hnf1bb, and sim1a/sim1b, with appropriate confidence hedging. The answer exceeds expectations by surfacing the subtle wt1a↔wt1b hidden ohnolog—a genuine confound that naive Ensembl ortholog_one2one queries miss—demonstrating both methodological rigor (separate paralogue verification) and pedagogical value. All ENSDARG IDs are verified live, not recalled from memory. Gaps (lhx1a unresolved, sim1b unconfirmed) are honestly declared rather than fabricated. Confidence_by_subclaim is properly disaggregated (0.90 for ENSDARG+Ensembl, 0.85 for WT1 ohnolog, 0.60 for SIM1 probable). Wet-lab recommendations (pax8 as clean target, double KO strategy for others) are correct and actionable. Compliance with CLAUDE.md §7.9 (no internal-memory IDs), §10 (explicit preflight), and §11 (transparent methodology) is complete. Only minor gap: raw Ensembl JSON responses are referenced as cached but not shown inline—a forward reference appropriate to the session workflow. Verdict: high-confidence correct answer with zero fabricated claims."
+        }
+      ],
+      "mean_overall": 0.933,
+      "outcome": "positive"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "claim_id": "held_out_month_0_l2_Q26",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "marker_identification",
+  "question_id": "Q26",
+  "question": "Which segment-specific markers separate proximal tubule, distal early, distal late, and duct in the zebrafish pronephros, and what are their verified IDs?",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "PROJECT-STATE PREFLIGHT: the repo already holds verified artifacts on this topic. analysis/outputs/verified_identifiers.json (DATA INAMOVIBLE store, store_version 2026-06-23.1, 51 records) carries ENSDARG for all these markers, and analysis/outputs/schoels_markers_segment.csv + schoels_segment_annotation.json hold in-repo scRNA expression (anterior-segment atlas, CORPUS-2026-0002). BUT the store records for these markers are tier DERIVED (raw Ensembl response not retained), so per §7.9 I re-verified every ID live via Tool Universe ensembl_lookup_gene (Ensembl REST /lookup/symbol, species=danio_rerio, GRCz11) and cached raw responses at mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json. All 8 live IDs match the store exactly.\n\nANSWER — segment-specific discriminators along the zebrafish pronephros proximodistal axis (canonical Wingert et al. 2007 model; IDs verified this run):\n\nPROXIMAL TUBULE\n- PCT (proximal convoluted): slc20a1a = ENSDARG00000020114; slc4a4a = ENSDARG00000013730\n- PST (proximal straight): trpm7 = ENSDARG00000036232; slc13a1 = ENSDARG00000045638\n\nDISTAL EARLY (DE)\n- slc12a1 (NKCC2-type Na-K-2Cl cotransporter) = ENSDARG00000098096 — the DE-specific discriminator\n- kcnj1a.1 (romk) = ENSDARG00000091232 — expressed across DE and DL; supporting, not DE-exclusive\n\nDISTAL LATE (DL)\n- slc12a3 (NCC-type Na-Cl cotransporter) = ENSDARG00000013855 — the DL-specific discriminator\n\nPRONEPHRIC DUCT (PD)\n- gata3 = ENSDARG00000016526\n\nCleanest four-way separation: slc20a1a/trpm7 (proximal) | slc12a1 (DE) | slc12a3 (DL) | gata3 (duct). The slc12a1→slc12a3 switch is the textbook DE/DL boundary discriminator.\n\nCONFIDENCE BREAKDOWN (§5 — asymmetric subclaims; schema forces one scalar, so stated here): (a) verified IDs ~0.99 (every ENSDARG confirmed live vs Ensembl GRCz11, matches store, raw cached); (b) marker→segment biological mapping ~0.87 (canonical, well-established, but Wingert 2007 PMID not re-verified via a literature tool this run, and the in-repo atlas is anterior-biased — slc12a1 returned id_not_in_var_names, so distal assignments are not corroborated by in-repo expression). Aggregate reported below reflects the composite, weighted toward the ID subclaim the question centers on.",
+  "stated_confidence": 0.9,
+  "evidence_cited": [
+    "Ensembl REST /lookup/symbol/danio_rerio (GRCz11) via tooluniverse ensembl_lookup_gene — 8 genes resolved live; raw responses cached at mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json (slc20a1a=ENSDARG00000020114, slc4a4a=ENSDARG00000013730, trpm7=ENSDARG00000036232, slc13a1=ENSDARG00000045638, slc12a1=ENSDARG00000098096, kcnj1a.1=ENSDARG00000091232, slc12a3=ENSDARG00000013855, gata3=ENSDARG00000016526), each with a ZFIN xref accession",
+    "DATA INAMOVIBLE verified store analysis/outputs/verified_identifiers.json (store_version 2026-06-23.1) — all 8 ENSDARG match the live lookup; records tier DERIVED (raw_cache_ref DERIVED:ensembl_symbol_map.json)",
+    "In-repo scRNA expression: analysis/outputs/schoels_markers_segment.csv + schoels_segment_annotation.json (anterior-segment atlas; slc20a1a/slc4a4a/trpm7/slc12a3/gata3/kcnj1a.1 detected; slc12a1 returned id_not_in_var_names → distal under-sampled)",
+    "Canonical segmentation model: Wingert et al. 2007 PLoS Genetics, zebrafish pronephros cdx/retinoic-acid segmentation — literature basis for the marker→segment mapping (PMID NOT re-verified via literature tool this run → flagged)"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "slc20a1a",
+      "ensdarg": "ENSDARG00000020114"
+    },
+    {
+      "symbol": "slc4a4a",
+      "ensdarg": "ENSDARG00000013730"
+    },
+    {
+      "symbol": "trpm7",
+      "ensdarg": "ENSDARG00000036232"
+    },
+    {
+      "symbol": "slc13a1",
+      "ensdarg": "ENSDARG00000045638"
+    },
+    {
+      "symbol": "slc12a1",
+      "ensdarg": "ENSDARG00000098096"
+    },
+    {
+      "symbol": "kcnj1a.1",
+      "ensdarg": "ENSDARG00000091232"
+    },
+    {
+      "symbol": "slc12a3",
+      "ensdarg": "ENSDARG00000013855"
+    },
+    {
+      "symbol": "gata3",
+      "ensdarg": "ENSDARG00000016526"
+    }
+  ],
+  "alternatives_considered": [
+    "Assigning romk/kcnj1a.1 as the DE-specific discriminator — rejected: romk marks DE and DL broadly; slc12a1 (NKCC2) is the DE-specific transporter, kept as supporting only",
+    "Reporting a single aggregate confidence — flagged as a §5 audit risk (subclaims asymmetric: IDs ~0.99 vs mapping ~0.87); breakdown stated explicitly in direct_answer",
+    "Treating the anterior-atlas absence of slc12a1 as evidence against its DE identity — rejected per the repo cross-cutting lesson (never read 'absent from a lens' as 'evidence against'); the atlas is anterior-biased and simply under-samples distal segments",
+    "Chain-of-Verification (§8) as the sole framework — retained as SECONDARY for the biological marker→segment mapping, but not primary: the core deliverable is identifier resolution, which is symbolically verifiable, so Logic-LM (Tier 1) is preferred per §4",
+    "Including neck, podocyte/glomerulus and corpuscle-of-Stannius markers — omitted: the question scoped to proximal tubule / DE / DL / duct only",
+    "Using clcnkb as an alternate duct discriminator — rejected: it sits in the store with ensdarg=null (positive NOT_FOUND), so no verified ID is available"
+  ],
+  "gap_flags": [
+    "Marker→segment biological assignments rest on canonical literature (Wingert et al. 2007) NOT re-verified this run via a literature tool (EuropePMC); the PMID is unresolved — lower confidence on the mapping (~0.87) than on the IDs (~0.99)",
+    "In-repo scRNA atlas (CORPUS-2026-0002) is anterior-segment biased; slc12a1 (DE) returned id_not_in_var_names (0 cells) → distal segments are empirically under-sampled in-repo, so DE/DL/duct boundaries are not corroborated by in-repo expression data",
+    "Store records for these 8 markers are tier DERIVED (raw Ensembl response not retained per notes); this run re-verified live and cached raw, but the store itself still flags them as backlog-for-RAW-promotion — promotion is a human-gated DATA INAMOVIBLE mutation, not performed here",
+    "PCT-vs-PST sub-resolution is provided but the question grouped proximal tubule as one segment; sub-boundary within proximal not independently validated in-repo",
+    "clcnkb (alternate distal/duct chloride-channel marker) has ensdarg=null in the store (NOT_FOUND) — cannot serve as a verified-ID discriminator"
+  ],
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5: \"Problems where the answer must be provably correct, not just plausible\" — the identifier-resolution core is formalizable (each symbol either resolves to a verified ENSDARG or is flagged), enforced by the repo's Logic-LM-class resolve_id/verify_output gate. SECONDARY: Chain-of-Verification — per reasoning-frameworks-catalog.md §8: \"favored by 2025 literature for high-stakes outputs\" — applied to the marker→segment biological mapping, cross-verified against Ensembl live + DATA INAMOVIBLE store + in-repo scRNA atlas.",
+  "observed_outcome": "positive",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools",
+      "mcp__tooluniverse__execute_tool:ensembl_lookup_gene (x8: slc20a1a, trpm7, slc13a1, slc12a1, slc12a3, gata3, kcnj1a.1, slc4a4a)"
+    ],
+    "n_tu_tools": 2
+  },
+  "scoring": {
+    "method": "both",
+    "deterministic": {
+      "admissible": true,
+      "outcome": "positive",
+      "report": {
+        "ok": true,
+        "identifier_admissible": true,
+        "verified_raw": [
+          "ENSDARG00000016526"
+        ],
+        "verified_derived": [
+          "ENSDARG00000013730",
+          "ENSDARG00000013855",
+          "ENSDARG00000020114",
+          "ENSDARG00000036232",
+          "ENSDARG00000045638",
+          "ENSDARG00000091232",
+          "ENSDARG00000098096"
+        ],
+        "not_found_positive": [],
+        "unresolved": [],
+        "flagged_external": [],
+        "misbound": []
+      },
+      "reasons": []
+    },
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "justification": "Independently verified all 8 ENSDARG IDs against live Ensembl REST (danio_rerio, GRCz11): 8/8 exact matches, zero fabrications. Confirmed the candidate's store-match claim is true — all 8 markers exist in analysis/outputs/verified_identifiers.json (v2026-06-23.1) with matching IDs, and the claimed raw cache file mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json genuinely exists with correct IDs/ZFIN xrefs. The segment→marker map meets and refines the expected evidence: PT slc20a1a/slc4a4a (+ correct PST trpm7/slc13a1), DE slc12a1 (with accurate nuance that kcnj1a.1 is DE+DL, not DE-exclusive), DL slc12a3, duct gata3 — all canonical (Wingert 2007), with the slc12a1→slc12a3 DE/DL boundary discriminator correctly identified. Honest uncertainty flags (anterior-biased atlas, slc12a1 absent from in-repo expression, unverified PMID) are accurate and non-overclaiming; confidence breakdown (0.99 IDs / 0.87 mapping) is well-calibrated. Minor deductions: (1) omits cdh17, which the expected evidence lists for duct — defensible since cdh17 is a pan-tubule marker rather than duct-specific, but a complete answer would name and exclude it; (2) minor imprecision labeling all store records 'tier DERIVED' when gata3's record is RAW (immaterial, since all IDs were re-verified live). Overall an excellent, verifiable, honestly-hedged answer.",
+          "overall_score": 0.93,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "Verification performed: I independently queried the live Ensembl REST /lookup/symbol/danio_rerio endpoint (GRCz11) for all 8 gene symbols the candidate cited (slc20a1a, slc4a4a, trpm7, slc13a1, slc12a1, slc12a3, kcnj1a.1, gata3). Every single ENSDARG ID the candidate reported matched exactly (e.g., slc20a1a=ENSDARG00000020114, slc12a1=ENSDARG00000098096, slc12a3=ENSDARG00000013855, gata3=ENSDARG00000016526). I also confirmed the candidate's claimed local artifacts are real and consistent: mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json exists and its contents match both my live lookups and the pre-existing DATA INAMOVIBLE store (analysis/outputs/verified_identifiers.json). No fabricated identifiers — a strong result for a domain where this rubric explicitly penalizes fabrication.\n\nAgainst the expected evidence (slc20a1a/slc4a4a→PT; slc12a1/kcnj1a.1→DE; slc12a3→DL; cdh17/gata3→duct), the candidate matches 3 of 4 segments exactly, with correct verified IDs and an accurate, appropriately hedged biological caveat (noting kcnj1a.1 is DE/DL-shared, not DE-exclusive — consistent with the literature). It adds legitimate extra PT-subsegment markers (trpm7, slc13a1), also verified.\n\nThe one real gap: for the pronephric duct, the candidate reports only gata3 and omits cdh17 entirely, despite cdh17 being explicitly named in the expected evidence AND already present (tier RAW, LBPP-anchored) in the very verified_identifiers.json store the candidate claims to have consulted in its preflight. This is a genuine, checkable omission that undercuts the completeness of the \"project-state preflight\" claim. There is also a minor imprecision: the candidate states store records for \"these markers\" are blanket tier DERIVED, but gata3 (and the omitted cdh17) are actually tier RAW in the store — a small inaccuracy in the evidence_cited framing, though it doesn't affect the correctness of any reported ENSDARG.\n\nOverall: fully verified identifiers (spot-checked and confirmed independently), accurate and well-calibrated biology, honest uncertainty flagging (PMID not re-verified, in-repo atlas doesn't cover slc12a1), but incomplete duct-segment marker coverage relative to the expected evidence. This merits a high but not perfect score.",
+          "overall_score": 0.82,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.81,
+          "verdict": "partial",
+          "justification": "The candidate answer correctly identifies and verifies 7 of 8 expected markers with proper ENSDARG IDs and demonstrates exemplary verification practice (live re-verification, raw response caching per CLAUDE.md §7.9). However, it omits cdh17 (a duct-segment discriminator in the expected evidence) without explanation or gap flagging—this is a material incompleteness that prevents a \"correct\" verdict. Additionally, the answer violates the §5 output contract by not explicitly declaring a `framework_applied` field (Logic-LM for deterministic verification against authoritative Ensembl source would be appropriate). The biological content is sound, confidence is honestly decomposed (though not in formal JSON structure), and project-state preflight is properly executed. The omission of cdh17 without justification suggests either an oversight in the initial query or incomplete coverage of the verified identifier store—either way, it should have been flagged in gap_flags. Score reflects strong methodology (↑) undermined by incomplete expected-evidence coverage and a minor contract violation (↓)."
+        }
+      ],
+      "mean_overall": 0.853,
+      "outcome": "positive"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "justification": "Independently verified all 8 ENSDARG IDs against live Ensembl REST (danio_rerio, GRCz11): 8/8 exact matches, zero fabrications. Confirmed the candidate's store-match claim is true — all 8 markers exist in analysis/outputs/verified_identifiers.json (v2026-06-23.1) with matching IDs, and the claimed raw cache file mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json genuinely exists with correct IDs/ZFIN xrefs. The segment→marker map meets and refines the expected evidence: PT slc20a1a/slc4a4a (+ correct PST trpm7/slc13a1), DE slc12a1 (with accurate nuance that kcnj1a.1 is DE+DL, not DE-exclusive), DL slc12a3, duct gata3 — all canonical (Wingert 2007), with the slc12a1→slc12a3 DE/DL boundary discriminator correctly identified. Honest uncertainty flags (anterior-biased atlas, slc12a1 absent from in-repo expression, unverified PMID) are accurate and non-overclaiming; confidence breakdown (0.99 IDs / 0.87 mapping) is well-calibrated. Minor deductions: (1) omits cdh17, which the expected evidence lists for duct — defensible since cdh17 is a pan-tubule marker rather than duct-specific, but a complete answer would name and exclude it; (2) minor imprecision labeling all store records 'tier DERIVED' when gata3's record is RAW (immaterial, since all IDs were re-verified live). Overall an excellent, verifiable, honestly-hedged answer.",
+      "overall_score": 0.93,
+      "verdict": "correct"
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "Verification performed: I independently queried the live Ensembl REST /lookup/symbol/danio_rerio endpoint (GRCz11) for all 8 gene symbols the candidate cited (slc20a1a, slc4a4a, trpm7, slc13a1, slc12a1, slc12a3, kcnj1a.1, gata3). Every single ENSDARG ID the candidate reported matched exactly (e.g., slc20a1a=ENSDARG00000020114, slc12a1=ENSDARG00000098096, slc12a3=ENSDARG00000013855, gata3=ENSDARG00000016526). I also confirmed the candidate's claimed local artifacts are real and consistent: mcp_cache/raw_ensembl_pronephros_segment_markers_20260711.json exists and its contents match both my live lookups and the pre-existing DATA INAMOVIBLE store (analysis/outputs/verified_identifiers.json). No fabricated identifiers — a strong result for a domain where this rubric explicitly penalizes fabrication.\n\nAgainst the expected evidence (slc20a1a/slc4a4a→PT; slc12a1/kcnj1a.1→DE; slc12a3→DL; cdh17/gata3→duct), the candidate matches 3 of 4 segments exactly, with correct verified IDs and an accurate, appropriately hedged biological caveat (noting kcnj1a.1 is DE/DL-shared, not DE-exclusive — consistent with the literature). It adds legitimate extra PT-subsegment markers (trpm7, slc13a1), also verified.\n\nThe one real gap: for the pronephric duct, the candidate reports only gata3 and omits cdh17 entirely, despite cdh17 being explicitly named in the expected evidence AND already present (tier RAW, LBPP-anchored) in the very verified_identifiers.json store the candidate claims to have consulted in its preflight. This is a genuine, checkable omission that undercuts the completeness of the \"project-state preflight\" claim. There is also a minor imprecision: the candidate states store records for \"these markers\" are blanket tier DERIVED, but gata3 (and the omitted cdh17) are actually tier RAW in the store — a small inaccuracy in the evidence_cited framing, though it doesn't affect the correctness of any reported ENSDARG.\n\nOverall: fully verified identifiers (spot-checked and confirmed independently), accurate and well-calibrated biology, honest uncertainty flagging (PMID not re-verified, in-repo atlas doesn't cover slc12a1), but incomplete duct-segment marker coverage relative to the expected evidence. This merits a high but not perfect score.",
+      "overall_score": 0.82,
+      "verdict": "correct"
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.81,
+      "verdict": "partial",
+      "justification": "The candidate answer correctly identifies and verifies 7 of 8 expected markers with proper ENSDARG IDs and demonstrates exemplary verification practice (live re-verification, raw response caching per CLAUDE.md §7.9). However, it omits cdh17 (a duct-segment discriminator in the expected evidence) without explanation or gap flagging—this is a material incompleteness that prevents a \"correct\" verdict. Additionally, the answer violates the §5 output contract by not explicitly declaring a `framework_applied` field (Logic-LM for deterministic verification against authoritative Ensembl source would be appropriate). The biological content is sound, confidence is honestly decomposed (though not in formal JSON structure), and project-state preflight is properly executed. The omission of cdh17 without justification suggests either an oversight in the initial query or incomplete coverage of the verified identifier store—either way, it should have been flagged in gap_flags. Score reflects strong methodology (↑) undermined by incomplete expected-evidence coverage and a minor contract violation (↓)."
+    }
+  ],
+  "mean_overall": 0.853,
+  "outcome": "positive"
+}

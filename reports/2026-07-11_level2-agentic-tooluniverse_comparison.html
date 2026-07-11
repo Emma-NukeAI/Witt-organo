@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Level-2 agentic Tool Universe fallback — 3-way comparison (TYPE D)</title>
+<style>
+  :root{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;
+    --c-witt:#1d4e6e;--c-organo:#3a6a3f;--c-warn:#8a5a00;--c-critical:#8a2a2a;--c-good:#3a6a3f}
+  *{box-sizing:border-box} body{margin:0;background:var(--c-bg);color:var(--c-text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.9em}
+  nav{position:sticky;top:0;z-index:10;background:var(--c-surface);border-bottom:1px solid var(--c-border);
+    padding:.6rem 1.2rem;display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.85rem}
+  nav b{color:var(--c-witt)} nav a{color:var(--c-muted);text-decoration:none}
+  main{max-width:1080px;margin:0 auto;padding:1.5rem 1.3rem 4rem}
+  h1{font-size:1.55rem;margin:.2rem 0 .3rem;color:var(--c-witt)}
+  h2{font-size:1.2rem;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:2px solid var(--c-border);color:var(--c-witt)}
+  .sub{color:var(--c-muted);font-size:.9rem;margin-bottom:.8rem}
+  .chip{display:inline-block;border:1px solid #cfe0ea;border-radius:999px;padding:.2rem .7rem;font-size:.78rem;background:#eef3f7;color:var(--c-witt)}
+  .badge{display:inline-block;border-radius:6px;padding:.15rem .55rem;font-size:.78rem;font-weight:600}
+  .b-good{background:#e6efe7;color:var(--c-good)}.b-warn{background:#f6efe0;color:var(--c-warn)}
+  .b-bad{background:#f6e6e6;color:var(--c-critical)}.b-neu{background:#eceaf3;color:#5a4a8a}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.8rem;margin:1rem 0}
+  .stat{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.9rem 1rem}
+  .stat .n{font-size:1.55rem;font-weight:700;color:var(--c-witt)}.stat .l{font-size:.78rem;color:var(--c-muted)}
+  .callout{border-left:4px solid var(--c-border);border-radius:6px;padding:.7rem 1rem;margin:.8rem 0;background:var(--c-surface)}
+  .callout.good{border-color:var(--c-good);background:#f2f7f2}.callout.warn{border-color:var(--c-warn);background:#f9f4ea}
+  .callout.bad{border-color:var(--c-critical);background:#f9eeee}
+  table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.88rem;background:var(--c-surface)}
+  th,td{border:1px solid var(--c-border);padding:.45rem .55rem;text-align:left;vertical-align:top}
+  th{background:#f1efe9;color:var(--c-witt)} td.n{text-align:right;font-variant-numeric:tabular-nums}
+  .win{background:#e6efe7;font-weight:700} ul{margin:.4rem 0 .4rem 1.1rem}
+  .scroll{overflow-x:auto}
+  footer{max-width:1080px;margin:0 auto;padding:1.4rem 1.3rem;color:var(--c-muted);font-size:.82rem;border-top:1px solid var(--c-border)}
+  @media (prefers-color-scheme:dark){:root{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;
+    --c-muted:#a8a49b;--c-witt:#7fb4d4;--c-organo:#8fc294;--c-warn:#d8a24a;--c-critical:#d98a8a;--c-good:#8fc294}
+    th{background:#2a2c30}.chip{background:#22323d;border-color:#33505f;color:#9fcbe4}
+    .b-good{background:#22331f;color:#8fc294}.b-warn{background:#332b1a;color:#d8a24a}.b-bad{background:#331f1f;color:#d98a8a}.b-neu{background:#272536;color:#b0a4d8}
+    .win{background:#22331f}.callout.good{background:#1e2a1e}.callout.warn{background:#2a2519}.callout.bad{background:#2a1e1e}.stat .n{color:#7fb4d4}}
+  :root[data-theme="dark"]{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;--c-muted:#a8a49b;--c-witt:#7fb4d4}
+  :root[data-theme="light"]{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;--c-witt:#1d4e6e}
+</style>
+</head>
+<body>
+<nav><b>Level-2 agentic Tool Universe</b>
+  <a href="#resumen">Resumen</a><a href="#tabla">3-way</a><a href="#q08">Q08 insight</a>
+  <a href="#alt">Alternativas</a><a href="#lim">Límites</a><a href="#next">Siguientes</a></nav>
+<main>
+  <h1>Fallback Level-2: el modelo usa tools ESTRUCTURADOS de Tool Universe cuando la DI es insuficiente</h1>
+  <div class="sub">TYPE D · comparación de 3 niveles · 2026-07-11 · subconjunto de 6 preguntas · plan Track A · workflow multi-agente (24 agentes)</div>
+  <div><span class="chip">framework_applied: multi-agent orchestration (fan-out) + Chain-of-Verification en cada síntesis + panel juez multi-familia · agregación determinista</span></div>
+  <div style="margin:.5rem 0"><span class="badge b-good">confidence (mediciones): 0.9</span> <span class="badge b-warn">confidence (n=6, subconjunto): 0.6</span></div>
+
+  <h2 id="resumen">1 · Resumen ejecutivo</h2>
+  <div class="callout good">
+    <b>direct_answer.</b> Level-2 — dejar que el modelo <b>ejecute tools estructurados de Tool Universe</b>
+    (Ensembl homología/paralogía, Reactome, ZFIN, EuropePMC vía el MCP) y fundamente la respuesta en lo que
+    recupera — <b>transforma la respuesta</b>. En las mismas 6 preguntas de intención: la confianza sube de
+    <b>~0.14 (DI-only) → 0.24 (DI+TU-literatura) → 0.71 (Level-2)</b> y la calidad juzgada de <b>0.60 → 0.62 →
+    0.84</b> (14/18 veredictos "correct"). Los 6 agentes <b>ejecutaron 25 tools de TU</b> y afirmaron <b>68
+    bindings gen→ENSDARG verificados en vivo</b>. <b>Level-2 es el lever</b> — no la literatura sola (L1), que
+    apenas movía la aguja. Confirma la hipótesis del reporte previo.
+  </div>
+  <div class="grid">
+    <div class="stat"><div class="n">0.14→0.71</div><div class="l">confianza media (DI-only → L2)</div></div>
+    <div class="stat"><div class="n">0.60→0.84</div><div class="l">calidad juez (DI-only → L2)</div></div>
+    <div class="stat"><div class="n">25</div><div class="l">tools TU ejecutados (6 agentes)</div></div>
+    <div class="stat"><div class="n">68</div><div class="l">bindings gen→ENSDARG verificados</div></div>
+    <div class="stat"><div class="n">14/18</div><div class="l">veredictos "correct" (0 incorrect)</div></div>
+  </div>
+
+  <h2 id="tabla">2 · Comparación por pregunta (confianza / calidad-juez)</h2>
+  <div class="scroll"><table>
+    <tr><th>Q</th><th>tipo</th><th>DI-only</th><th>DI+TU-L1 (literatura)</th><th>Level-2 (TU agéntico)</th><th># tools TU</th></tr>
+    <tr><td>Q08</td><td>ortholog_mapping</td><td class="n">0.12 / 0.57</td><td class="n">0.12 / 0.58</td><td class="n win">0.82 / 0.93</td><td class="n">5</td></tr>
+    <tr><td>Q22</td><td>ortholog_mapping</td><td class="n">— / 0.60</td><td class="n">0.55 / 0.69</td><td class="n win">0.96 / 0.85</td><td class="n">5</td></tr>
+    <tr><td>Q26</td><td>marker_identification</td><td class="n">0.15 / 0.52</td><td class="n">0.20 / 0.52</td><td class="n win">0.90 / 0.85</td><td class="n">2</td></tr>
+    <tr><td>Q07</td><td>pathway_assembly</td><td class="n">0.12 / 0.55</td><td class="n">0.18 / 0.72</td><td class="n win">0.55 / 0.83</td><td class="n">5</td></tr>
+    <tr><td>Q24</td><td>pathway_assembly</td><td class="n">— / 0.63</td><td class="n">0.25 / 0.65</td><td class="n win">0.60 / 0.68</td><td class="n">3</td></tr>
+    <tr><td>Q16</td><td>perturbation_design</td><td class="n">0.15 / 0.73</td><td class="n">0.12 / 0.58</td><td class="n win">0.42 / 0.87</td><td class="n">5</td></tr>
+    <tr><td><b>media</b></td><td></td><td class="n">~0.14 / 0.60</td><td class="n">~0.24 / 0.62</td><td class="n win">0.71 / 0.84</td><td class="n">25 total</td></tr>
+  </table></div>
+  <div class="callout good">Level-2 gana en <b>las 6</b> preguntas, en confianza y en calidad. El salto es mayor en las de identificador/vía (Q08/Q22/Q26/Q07) donde los tools estructurados (Ensembl/Reactome/ZFIN) aportan grounding que la literatura no da.</div>
+
+  <h2 id="q08">3 · El caso Q08 — un insight de diseño (falso negativo del gate)</h2>
+  <div class="callout warn">
+    Q08 tiene confianza <b>0.82</b> y los 3 jueces la votaron <b>"correct"</b> (encontró el ohnólogo oculto
+    <code>wt1a↔wt1b</code> que un lookup naive de ortólogos se pierde) — pero su <code>observed_outcome</code>
+    determinista salió <b>negative</b>. Causa: el gate <code>verify_output.admissible</code> revisa contra
+    <b>nuestro store (51 records)</b>; el agente trajo ENSDARG <b>reales</b> de Ensembl para genes que aún
+    <b>no están en el store</b> (<code>sim1b=ENSDARG00000013789</code>, <code>pax2b=ENSDARG00000032578</code>) →
+    "unresolved" → <code>admissible=False</code>. 8 de 10 bindings sí resolvieron; 2 son reales-pero-no-en-store.
+    <br><br>
+    <b>Insight (importante):</b> cuando Level-2 trae IDs verificados en vivo que no están en la DI, eso NO es
+    fabricación — es <b>exactamente la señal del loop de re-ingesta (ADR-0022)</b>: proponer esos IDs al gate
+    humano para agregarlos al store. El gate debería distinguir "ID fabricado" (falla) de "ID verificado en vivo,
+    aún no en el store" (candidato a re-ingesta), no colapsar ambos a "negative".
+  </div>
+
+  <h2 id="alt">4 · Alternativas consideradas</h2>
+  <div class="callout"><ul>
+    <li><b>Level-1 (literatura sola) vs Level-2 (tools estructurados):</b> el reporte previo mostró que L1 apenas ayuda (+0.017 calidad, 0 confianza). Este confirma que L2 es el lever real (+0.24 calidad, +0.57 confianza).</li>
+    <li><b>Workflow multi-agente vs extender <code>run_held_out.py</code>:</b> se eligió workflow (fan-out paralelo, encaja el tool-use agéntico). Reproducible: el script se guardó en <code>evaluation/workflows/level2_tooluniverse_fallback.js</code>. Plegarlo al runner (o el SDK Layer 3) queda como follow-up.</li>
+    <li><b>Panel juez Opus+Sonnet+Haiku</b> (Fable-5 rechaza el tool-call forzado, ADR-0031). Al sintetizador NO se le pasó <code>expected_evidence</code> (evita leakage; es la llave del juez).</li>
+    <li><b>Subconjunto de 6 vs las 30</b> (prueba pequeño): 6 preguntas donde los tools estructurados deberían ayudar. El resultado es decisivo; escalar a 30 es confirmación opcional (~7M tokens).</li>
+  </ul></div>
+
+  <h2 id="lim">5 · Límites (gap_flags)</h2>
+  <div class="callout bad"><ul>
+    <li><b>Subconjunto de n=6</b> (case-capture), elegido a favor de tools estructurados. No es el agregado de las 30; escalar confirmaría la magnitud.</li>
+    <li><b>Calidad = LLM-as-judge</b> (panel multi-familia, independiente del sintetizador) — no verdad de tierra dura. El Q08 tiene además la señal determinista (store), con el caveat del falso negativo.</li>
+    <li><b>Gasto alto:</b> 6 preguntas ≈ 1.46M tokens / 262 tool-calls. Las 30 ≈ ~7M tokens. Autorizado, pero es el costo del tool-use agéntico.</li>
+    <li><b>El gate determinista</b> aún no distingue "ID verificado en vivo no-en-store" de "ID fabricado" (§3) — refinamiento pendiente + conecta con el loop de re-ingesta.</li>
+    <li><b>Level-2 vive hoy como workflow</b>, no en el runner reproducible; plegarlo (o vía SDK Layer 3) es el paso de ingeniería.</li>
+  </ul></div>
+
+  <h2 id="next">6 · Siguientes pasos</h2>
+  <div class="callout"><ul>
+    <li><b>Adoptar Level-2 como la arquitectura del fallback</b> (confidence-gated → tool-use estructurado de TU), no la literatura sola.</li>
+    <li><b>Cerrar el loop:</b> los IDs verificados en vivo que Level-2 trae (pax2b, wt1b, sim1b, hnf1bb…) → proponerlos al gate humano para re-ingesta a la DI (ADR-0022). Refinar el gate para tratarlos como candidatos, no fallas.</li>
+    <li><b>Escalar a las 30</b> para el agregado (opcional, ~7M tokens) — o plegar Level-2 al runner (SDK Layer 3) para reproducibilidad mensual.</li>
+    <li>Cerrar con <code>composite-auditor</code> sobre el claim "Level-2 es el lever del fallback".</li>
+  </ul></div>
+
+  <footer>
+    <b>evidence_cited:</b> <code>evaluation/runs/month_0_l2/</code> (6 records L2) · <code>reports/ece_month0_l2_20260711.json</code> ·
+    <code>evaluation/workflows/level2_tooluniverse_fallback.js</code> · baselines <code>evaluation/runs/month_0/</code> + <code>month_0_ditu/</code> ·
+    MCP <code>tooluniverse@1.2.6</code> (2223 tools; 25 ejecutados; Ensembl homology/paralogy, Reactome, ZFIN, EuropePMC).<br>
+    <b>agents_invoked:</b> 24 agentes de workflow (6 síntesis agéntica Opus con tool-use TU + 18 jueces Opus/Sonnet/Haiku) · <code>verify_output.admissible</code> (determinista, IDs) · <code>compute_ece</code>.<br>
+    <b>alternatives_considered / gap_flags:</b> §4 / §5. Predecesores (ADR-0002): <code>2026-07-11_a1-held-out-baseline_scorecard.html</code> · <code>2026-07-11_di-vs-tooluniverse-fallback_comparison.html</code>.
+    Cero mutación de la DATA INAMOVIBLE (read-only; los IDs nuevos son candidatos a re-ingesta human-gated, no aplicados).
+  </footer>
+</main>
+</body>
+</html>

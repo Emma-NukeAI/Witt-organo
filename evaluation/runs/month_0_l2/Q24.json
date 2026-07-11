@@ -1,0 +1,120 @@
+{
+  "claim_id": "held_out_month_0_l2_Q24",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "pathway_assembly",
+  "question_id": "Q24",
+  "question": "Which regulatory elements respond to RA signaling during pronephros patterning, and how would DanioCODE functional-genomics data confirm responsiveness?",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "RA-responsive regulatory elements in pronephros patterning are RAREs (retinoic-acid response elements — DR2/DR5 direct-repeat motifs) bound by RAR/RXR heterodimers. In the pronephros the operative logic is a proximodistal RA gradient: aldh1a2 (RALDH2) is the RA SOURCE in adjacent somitic/trunk mesoderm, and cyp26a1/cyp26b1 are the SINKS that degrade RA distally, so RAREs near proximodistal segment-identity genes switch state along that gradient. High RA promotes proximal segment fates (proximal tubule); RA clearance permits distal fates. The RAREs sit near RA-target loci — canonically the hox cluster genes (hoxb1b has a classic characterized RARE; hoxb8a is a bona-fide RA target) which set the anteroposterior register the pronephros segments read out. Receptors verified: raraa and rarga. All identifiers below verified LIVE via Ensembl REST (danio_rerio, GRCz11), not memory.\n\nHOW DanioCODE-style functional genomics confirms responsiveness (grounded in retrieved GEO datasets, the deposition path for DanioCODE): the confirmation is a gain/loss-of-signal design. GEO GSE233698 (\"Rewiring of the epigenome and chromatin architecture by exogenously induced retinoic acid signaling during zebrafish embryonic development\") is exactly this and provides four orthogonal readouts on RA-manipulated (exogenous-RA vs control) embryos: (1) ATAC-seq [GSE233691] — a candidate element is RA-responsive if chromatin accessibility opens/closes upon RA perturbation; (2) RAR ChIP-seq [GSE233695] — direct receptor occupancy at the element demonstrates it is a genuine RARE, not a bystander; (3) Hi-ChIP [GSE233697] / 4C-seq [GSE249369] — physical enhancer-promoter looping to the target gene links the element to its RA-target; (4) H3K27ac ChIP delta marks activation. Pronephros-cell-type specificity is then obtained by intersecting these bulk-embryo signals with single-cell chromatin accessibility of zebrafish embryogenesis (SPATAC-seq, GSE243256, 535 samples) to isolate the pronephric-lineage accessible peaks, and conserved cis-regulatory-module calls (GSE294761) add orthology support. An element passes as RA-responsive when accessibility change + RAR occupancy + differential H3K27ac + looping to a pronephros gene co-localize and reverse under RA loss (e.g., DEAB/aldh1a2 knockdown).\n\nCalibrated confidence_by_subclaim (the §5 schema here only exposes a single confidence, so breakdown is stated in prose): (A) verified gene identities/machinery ~0.92; (B) RAREs bound by RAR/RXR ARE the responsive elements ~0.85; (C) pronephros-specific proximodistal RA-gradient patterning model ~0.72 (partly domain knowledge; no pronephros-dissected primary source retrieved this run); (D) the DanioCODE/GEO confirmation design ~0.85 (directly grounded by GSE233698 series). Aggregate is tempered to ~0.6 because the question asks specifically WHICH elements in PRONEPHROS, and the pronephros-specific RARE coordinate catalog was not retrieved — the machinery, mechanism, and confirmation assay are grounded; the pronephros-element enumeration is a gap.",
+  "stated_confidence": 0.6,
+  "evidence_cited": [
+    "Ensembl REST lookup/symbol (danio_rerio, GRCz11) via ensembl_lookup_gene — aldh1a2 ENSDARG00000053493, cyp26a1 ENSDARG00000033999, cyp26b1 ENSDARG00000077121, raraa ENSDARG00000056783, rarga ENSDARG00000034117, hoxb1b ENSDARG00000054033, hoxb8a ENSDARG00000056027",
+    "GEO GSE233698 SuperSeries — 'Rewiring of the epigenome and chromatin architecture by exogenously induced retinoic acid signaling during zebrafish embryonic development' (Danio rerio, 62 samples), via GEO_search_atacseq_datasets",
+    "GEO subseries GSE233691 [ATAC-seq], GSE233695 [ChIP-seq], GSE233697 [Hi-ChIP], GSE249369 [4C-Seq] — RA-manipulation functional-genomics readouts",
+    "GEO GSE243256 — 'Mapping the chromatin accessibility landscape of zebrafish embryogenesis at single-cell resolution by SPATAC-seq' (535 samples)",
+    "GEO GSE294761 — zebrafish/human endoderm ATAC-seq, conserved cis-regulatory modules controlling vertebrate organogenesis",
+    "DI store analysis/outputs/signaling_markers_curated.json (ADR-0029, human-gated; aldh1a2/cyp26a1 previously verified, raw cached mcp_cache/raw_ensembl_signaling-genes_20260623.json)",
+    "Path A DI pointers: db:DanioCODE, CORPUS-2026-0003#c000 (pronephros), db:Ensembl_DanioRerio",
+    "reasoning-frameworks-catalog.md §8 Chain-of-Verification criterion"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "aldh1a2",
+      "ensdarg": "ENSDARG00000053493"
+    },
+    {
+      "symbol": "cyp26a1",
+      "ensdarg": "ENSDARG00000033999"
+    },
+    {
+      "symbol": "cyp26b1",
+      "ensdarg": "ENSDARG00000077121"
+    },
+    {
+      "symbol": "raraa",
+      "ensdarg": "ENSDARG00000056783"
+    },
+    {
+      "symbol": "rarga",
+      "ensdarg": "ENSDARG00000034117"
+    },
+    {
+      "symbol": "hoxb1b",
+      "ensdarg": "ENSDARG00000054033"
+    },
+    {
+      "symbol": "hoxb8a",
+      "ensdarg": "ENSDARG00000056027"
+    }
+  ],
+  "alternatives_considered": [
+    "RA acts on pronephros purely as a diffusible morphogen without dedicated cis-regulatory elements — rejected: RA signal is transduced through RAR/RXR bound to RAREs, which ARE the regulatory elements in question",
+    "Use ENCODE cCRE / chromatin-state tools as the confirmation route — rejected: ENCODE candidate cis-regulatory-element resources are human/mouse (GRCh38/mm10); zebrafish responsiveness must come from GEO/DanioCODE-deposited Danio rerio data",
+    "Attribute RA response solely to hox-cluster RAREs — broadened: pronephros proximodistal segment-identity loci are also RA-responsive targets, though their specific RARE coordinates were not retrieved",
+    "Answer from literature only (EuropePMC) — deprioritized per task directive to prefer STRUCTURED functional-genomics evidence; literature left as an unused complement",
+    "Treat aldh1a2/cyp26a1 IDs as settled from the DI store alone — instead re-verified live against Ensembl REST per anti-fabrication gate"
+  ],
+  "gap_flags": [
+    "No pronephros-specific RARE genomic coordinates retrieved — the actual cis-elements near pronephros segment-identity genes were not enumerated; machinery + general RARE mechanism are grounded, the pronephros-element catalog is not",
+    "GSE233698 is whole-embryo RA manipulation, not pronephros-dissected; pronephros specificity requires intersecting with single-cell ATAC (GSE243256), an analysis not performed in this run",
+    "DanioCODE DCC has no dedicated Tool Universe tool; zebrafish functional-genomics evidence grounded via NCBI GEO as the deposition-path proxy",
+    "Pronephros proximodistal RA-gradient patterning model (aldh1a2 source / cyp26 sink -> proximal vs distal fate) is stated partly from domain knowledge; no pronephros-specific primary source (ZFIN phenotype / dissected dataset) queried this run",
+    "hoxb1b/hoxb8a named as RA targets from domain knowledge of characterized RAREs; the RARE motif calls themselves were not retrieved from a functional-genomics track in this run",
+    "Per §5, confidence_by_subclaim is reported in prose because the StructuredOutput schema exposes only a single scalar confidence field",
+    "§5/§7 HTML report at conclusion NOT emitted by this subagent — deliverable is the StructuredOutput contract consumed by the orchestrator; HTML emission deferred to the parent session"
+  ],
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: \"Outputs that cite specific facts or numbers\" (draft answer generated, then every gene ID re-verified against Ensembl REST and every dataset claim verified against GEO before inclusion; confident hallucination of identifiers is the worst failure mode the §7 anti-fabrication gate targets)",
+  "observed_outcome": "positive",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools (query: chromatin accessibility / regulatory element / functional genomics)",
+      "mcp__tooluniverse__execute_tool -> ensembl_lookup_gene (danio_rerio): aldh1a2, cyp26a1, cyp26b1, raraa, rarga, hoxb1b, hoxb8a",
+      "mcp__tooluniverse__execute_tool -> GEO_search_atacseq_datasets (Danio rerio): 2 queries (pronephros-specific returned 0; broadened 'zebrafish embryo development' returned the GSE233698 RA-manipulation series + GSE243256 SPATAC-seq)"
+    ],
+    "n_tu_tools": 3
+  },
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.87,
+          "verdict": "correct",
+          "justification": "Adversarially verified; the answer holds up unusually well for its specificity. CORRECTNESS: The core biology is textbook-correct — RA-responsive elements are RAREs (DR2/DR5 direct repeats bound by RAR/RXR heterodimers); the proximodistal RA-gradient model of zebrafish pronephros patterning (aldh1a2 as source, cyp26a1/b1 as sinks, high-RA→proximal fates) is the established Wingert/Davidson-era view; hox loci as RARE-bearing RA targets is correct. IDENTIFIERS (the main fabrication-risk surface): I checked all 7 ENSDARG bindings. Two match the DI store exactly (aldh1a2, cyp26a1); the other five, claimed \"verified live this run,\" I resolved myself on Ensembl REST (danio_rerio) and every one is exact — raraa 00000056783, rarga 00000034117, hoxb1b 00000054033, hoxb8a 00000056027, cyp26b1 00000077121. Zero fabricated IDs. GEO/DanioCODE: I confirmed GSE233698 is real with the exact stated title, Danio rerio, 62 samples; its genuine subseries include GSE233691/233695/233697/249369; GSE233695 is verified as the ChIP-seq subseries whose own design reports RARaa binding at Hoxb1b — directly corroborating (not overclaiming) the candidate's RARE-at-hox mechanism. GSE243256 SPATAC-seq (535 samples, single-cell zebrafish embryogenesis) is exact. The confirmation LOGIC is precisely right: ATAC accessibility change + RAR ChIP occupancy + H3K27ac + Hi-ChIP/4C looping, under a gain/loss (RA-perturbation reversal) design, intersected with single-cell accessibility for pronephros-lineage specificity. UNCERTAINTY: exemplary — it explicitly flags that no pronephros-specific RARE coordinate catalog was retrieved, uses confidence_by_subclaim, and tempers the aggregate to 0.6 for exactly that reason; given everything checkable verified, 0.6 is well-calibrated to slightly conservative. DEDUCTIONS: (1) TIMING, an explicit expected-evidence element, is under-addressed — only implicit \"embryonic development\"/stage-spanning atlas, no pronephros-patterning window (somitogenesis/~24 hpf), and it is not itself gap-flagged; (2) minor framing looseness — it substitutes GEO RA-manipulation/SPATAC datasets for the actual DANIO-CODE DCC resource, though it honestly hedges as \"DanioCODE-style / the deposition path for DanioCODE\"; (3) GSE294761 (conserved CRMs) was the one supporting accession I did not independently confirm. These are modest; nothing material is wrong or fabricated. Verdict correct rather than partial because both halves of the question (which elements; how DanioCODE-style functional genomics confirms responsiveness) are substantively and accurately answered with verified grounding and honest gap-flagging."
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate correctly identifies the core RA-responsive regulatory-element biology: RAREs (DR2/DR5 direct repeats) bound by RAR/RXR heterodimers, with aldh1a2 (RALDH2) as the RA source and cyp26a1/cyp26b1 as sinks establishing the proximodistal gradient that patterns pronephros segment identity — this is accurate, well-established zebrafish developmental biology (matching the real Wingert-lab RA/cyp26 pronephros-segmentation literature, though the candidate never actually retrieves or cites that primary paper, instead treating the pronephros-specific mechanism as an under-evidenced 0.72-confidence claim — a missed opportunity given an EuropePMC lens tool is noted as available in this repo's own history). Gene/receptor identifiers (aldh1a2, cyp26a1/b1, raraa, rarga, hoxb1b, hoxb8a) are presented as Ensembl-REST-verified, consistent with the project's anti-fabrication discipline, and two of them plausibly match prior DI-store entries (ADR-0029 signaling markers).\n\nOn the DanioCODE question specifically, the answer substitutes GEO series (GSE233698 superseries: ATAC-seq, RAR ChIP-seq, Hi-ChIP, 4C-seq, H3K27ac) for DanioCODE data, describing them as \"the deposition path for DanioCODE\" — a reasonable proxy and honestly hedged, but it never confirms these datasets are actually catalogued in DanioCODE itself, which is a real conflation the answer only partially flags. The confirmatory logic (accessibility + receptor occupancy + looping + H3K27ac, reversible under RA-pathway perturbation) is mechanistically sound and directly answers \"how would functional-genomics data confirm responsiveness.\"\n\nThe expected-evidence item \"timing\" is essentially absent — no developmental stage/hpf window is given for when RA acts on pronephros progenitors or when the cited datasets were collected, despite this being a well-documented aspect of the biology (RA acts during early somitogenesis to set proximodistal register). Gap flags are present but embedded in prose (confidence_by_subclaim breakdown) rather than as an explicit gap_flags list, and they do capture the real gap (no pronephros-dissected primary source retrieved). Overall: strong on elements and DanioCODE-style confirmation design, honestly calibrated, but missing the timing component and slightly overstating the DanioCODE-vs-GEO equivalence.",
+          "overall_score": 0.62,
+          "verdict": "partial"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.56,
+          "verdict": "partial",
+          "justification": "The candidate provides sound biology (RA-responsive RAREs, proximodistal gradient with aldh1a2 source/cyp26 sinks, RAR/RXR binding) and a realistic, detailed DanioCODE confirmation design (ATAC-seq, ChIP-seq, Hi-ChIP/4C-seq, H3K27ac, SPATAC-seq). Honest uncertainty is demonstrated via confidence 0.6 and explicit gap-flagging (pronephros-specific RARE catalog not retrieved).\n\nHowever, critical gaps lower the score: (1) Expected evidence includes 'timing'—candidate provides NO developmental stages for pronephros patterning. (2) Core question asks WHICH specific regulatory elements; candidate provides mechanism and validation design but NOT the specific pronephros RAREs (incomplete answer to the core ask). (3) Project hard rule §7.9 requires external identifiers (GEO accessions, ENSDARG codes) verified with raw responses cached; candidate cites 5 GEO series (GSE233698, GSE233691–233697, GSE249369, GSE243256, GSE294761) without showing raw GEO responses. Ensembl verification cites cache from 2026-06-23 while claiming current-session verification in 2026-07-11 session—date compliance violation. (4) §11 compliance: agents_invoked field is missing; any substrate-instrumented output (confidence + framework_applied) must declare agent invocation status per project mandate.\n\nStrengths: biologially sound, DanioCODE design articulate and realistic, confidence_by_subclaim provided (asymmetric strength shown), gaps honestly admitted. Weaknesses: incomplete on core question, timing omitted, external identifiers unverified per project §7.9 standard, structural violations (§11, §7.9), confidence_by_subclaim in prose rather than JSON schema."
+        }
+      ],
+      "mean_overall": 0.683,
+      "outcome": "positive"
+    }
+  }
+}

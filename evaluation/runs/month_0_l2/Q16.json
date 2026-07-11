@@ -1,0 +1,155 @@
+{
+  "claim_id": "held_out_month_0_l2_Q16",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN10",
+  "claim_category": "perturbation_design",
+  "question_id": "Q16",
+  "question": "Build the master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for inducing pronephric program in adjacent competent tissue.",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "MASTER CHAPERONE-TISSUE INTERACTION TABLE — inducing the pronephric program in adjacent competent tissue (zebrafish, GRCz11). Target throughout = intermediate mesoderm (IM)/posterior lateral plate mesoderm, the competent field forming the bilateral pronephros. Rows [Source → Signal (verified gene) → Target → Window → role]: (1) Anterior paraxial mesoderm/somites → Retinoic acid synthesis, aldh1a2 (ENSDARG00000053493) → IM anterior/proximal → ~8-18 hpf → proximo-distal patterning, sets proximal segment identity — STRONGEST/best-validated input. (2) Posterior mesoderm/tailbud → RA degradation (counter-gradient), cyp26a1 (ENSDARG00000033999) + cyp26b1 (ENSDARG00000077121) → IM posterior/distal → ~8-18 hpf → clears RA posteriorly for distal identity. (3) Tailbud/posterior paraxial mesoderm → posteriorizing Wnt, wnt8a (ENSDARG00000052910) + wnt2ba (ENSDARG00000005050) → posterior LPM/IM → ~6-12 hpf → posteriorizes mesoderm, establishes posterior competence field. (4) Tailbud/posterior mesoderm → FGF, fgf8a (ENSDARG00000003399) + fgf24 (ENSDARG00000037677) → posterior LPM/IM → ~8-16 hpf → posterior mesoderm/IM specification. (5) Ventral/ventrolateral mesoderm → BMP, bmp2b (ENSDARG00000041430) → prospective IM → ~5-10 hpf → competence-establishing DV patterning (earliest). (6) Notochord/floor plate → Hedgehog, shha (ENSDARG00000068567) → medial IM → ~10-18 hpf → modest midline patterning input (exploratory, weakest). COMPANION READOUT MODULE (target-intrinsic response TFs = what 'competent' means, not source signals): osr1 (ENSDARG00000014091, earliest IM ~8-10 hpf), pax2a (ENSDARG00000028148, master specifier ~10-12 hpf), pax8 (ENSDARG00000015879), lhx1a (ENSDARG00000014018), wt1a/wt1b (ENSDARG00000031420/ENSDARG00000007990, podocyte ~14-24 hpf), hnf1ba (ENSDARG00000006615, tubule ~18-24 hpf). This is a DESIGN SCAFFOLD: all gene IDs are tool-verified, but the induction-SUFFICIENCY claim (that these signals reconstitute the program in competent tissue) is a causal-pruner-class hypothesis requiring a human gate + wet-lab GOF (Phase II) — not a validated protocol. HTML report: reports/2026-07-11_chaperone-tissue-interaction-table_v1.html.",
+  "stated_confidence": 0.42,
+  "evidence_cited": [
+    "Ensembl REST live 2026-07-11 (ensembl_lookup_gene, danio_rerio/GRCz11): bmp2b=ENSDARG00000041430, shha=ENSDARG00000068567, wnt2ba=ENSDARG00000005050, fgf24=ENSDARG00000037677, cyp26b1=ENSDARG00000077121, wt1a=ENSDARG00000031420 (confirms store) — raw cached mcp_cache/raw_ensembl_lookup_gene_chaperone-ligands_20260711.json",
+    "DATA INAMOVIBLE v2026-06-23.1 analysis/outputs/verified_identifiers.json (raw-cached, ADR-0029): osr1, wnt8a, fgf8a, aldh1a2, cyp26a1, pax2a, pax8, lhx1a, wt1b, hnf1ba",
+    "analysis/outputs/signaling_markers_curated.json (ADR-0029 induction-marker roles: osr1=earliest IM, aldh1a2=RA synthesis proximodistal, wnt8a=posteriorizing Wnt, fgf8a=FGF inducer, cyp26a1=RA degradation)",
+    "ZFIN/Alliance ZFIN_get_gene_phenotypes: pax2a (ZDB-GENE-990415-8) 189 phenotypes incl. renal system; aldh1a2 (ZDB-GENE-011010-3) 125 phenotypes incl. anterior-posterior axis defects — consistent with RA as A-P/patterning signal",
+    "reports/2026-07-11_chaperone-tissue-interaction-table_v1.html (self-contained §5 HTML report)"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "aldh1a2",
+      "ensdarg": "ENSDARG00000053493"
+    },
+    {
+      "symbol": "cyp26a1",
+      "ensdarg": "ENSDARG00000033999"
+    },
+    {
+      "symbol": "cyp26b1",
+      "ensdarg": "ENSDARG00000077121"
+    },
+    {
+      "symbol": "wnt8a",
+      "ensdarg": "ENSDARG00000052910"
+    },
+    {
+      "symbol": "wnt2ba",
+      "ensdarg": "ENSDARG00000005050"
+    },
+    {
+      "symbol": "fgf8a",
+      "ensdarg": "ENSDARG00000003399"
+    },
+    {
+      "symbol": "fgf24",
+      "ensdarg": "ENSDARG00000037677"
+    },
+    {
+      "symbol": "bmp2b",
+      "ensdarg": "ENSDARG00000041430"
+    },
+    {
+      "symbol": "shha",
+      "ensdarg": "ENSDARG00000068567"
+    },
+    {
+      "symbol": "osr1",
+      "ensdarg": "ENSDARG00000014091"
+    },
+    {
+      "symbol": "pax2a",
+      "ensdarg": "ENSDARG00000028148"
+    },
+    {
+      "symbol": "pax8",
+      "ensdarg": "ENSDARG00000015879"
+    },
+    {
+      "symbol": "lhx1a",
+      "ensdarg": "ENSDARG00000014018"
+    },
+    {
+      "symbol": "wt1a",
+      "ensdarg": "ENSDARG00000031420"
+    },
+    {
+      "symbol": "wt1b",
+      "ensdarg": "ENSDARG00000007990"
+    },
+    {
+      "symbol": "hnf1ba",
+      "ensdarg": "ENSDARG00000006615"
+    }
+  ],
+  "alternatives_considered": [
+    "Single-signal (RA-only) induction model — rejected as incomplete: RA patterns proximo-distal identity but does not establish the posterior competence field (Wnt/FGF) nor the DV origin (BMP)",
+    "Notch (jag2b/deltaC) as a source-inducing signal — rejected for this table: Notch acts WITHIN the pronephros for multiciliated-vs-epithelial cell-fate patterning, not as a source→competent-tissue inducer; belongs to a later cell-fate table",
+    "Treating pax2a/osr1/wt1/lhx1a as 'signals' — rejected: these are target-intrinsic response TFs (readout of competence), separated into the companion module",
+    "Rolling everything into one confidence number — rejected per §5: used confidence_by_subclaim because ID-binding (0.97) and induction-sufficiency (0.25) differ materially"
+  ],
+  "gap_flags": [
+    "No native perturbation-sufficiency evidence in the DI that any listed signal INDUCES pronephros in ectopic/adjacent competent tissue — the sufficiency column is a hypothesis (confidence ~0.25), human-gate + wet-lab GOF required (Phase II)",
+    "Temporal windows (hpf brackets) are literature/domain-derived, NOT retrieved from a structured tool this session; ZESTA spatiotemporal atlas (CORPUS-2026-0001) is source-pointer only and was not queried — windows are the weakest load-bearing column (~0.40)",
+    "ZFIN expression-ribbon endpoint returned HTTP 404 for osr1 and aldh1a2 (not retried per §6 no-hang rule); only the phenotype endpoint succeeded, so tissue-specific expression counts were not re-grounded live this session",
+    "Source-tissue → signal assignments are canonical-developmental-model attributions, not spatially resolved from the ZESTA atlas in this pass",
+    "Hedgehog (shha) role in the pronephros proper is weak/least-specific (~0.35) — included as exploratory only",
+    "Lens-validity (ADR-0028): evidence tier is identifier + expression/phenotype existence (≤ native_expression), NOT native_perturbation — no role-sufficiency overclaim",
+    "causal-pruner and composite-auditor were skipped-ad-hoc (single subagent turn cannot spawn sub-agents); the induction hypothesis is flagged for the required human gate rather than pruner-ranked, and this synthesis is not claimed as an audit gate"
+  ],
+  "framework_applied": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: \"High-stakes outputs that will be acted on (lab dispatch, vendor commitment, investor communication) ... Outputs that cite specific facts or numbers\". Applied as: draft interaction table → generate skeptic verification questions (does each symbol resolve to this ENSDARG? does the signal have a pronephros/A-P phenotype?) → answer independently via Ensembl + ZFIN retrieval → revise. Re-elected mid-task from Self-Discover (§3) once the dominant dynamic became verification-against-retrieved-evidence-streams rather than open decomposition (permitted per CLAUDE.md §4).",
+  "observed_outcome": "positive",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools",
+      "ensembl_lookup_gene (execute_tool; bmp2b, shha, wnt2ba, fgf24, cyp26b1, wt1a)",
+      "ZFIN_search (execute_tool; osr1, aldh1a2)",
+      "ZFIN_get_gene_phenotypes (execute_tool; pax2a, aldh1a2)",
+      "ZFIN_get_gene_expression (execute_tool; osr1, aldh1a2 — returned HTTP 404, not retried)"
+    ],
+    "n_tu_tools": 5
+  },
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "description": "Adversarial review score",
+          "overall_score": 0.86,
+          "verdict": "correct",
+          "justification": "Strong, well-disciplined answer. All 16 ENSDARG bindings verify against ground truth: the 11 store-attributed IDs match verified_identifiers.json / signaling_markers_curated.json exactly, and the 6 live-resolved IDs (bmp2b, shha, wnt2ba, fgf24, cyp26b1, wt1a) are correctly ABSENT from the store and backed by a genuine raw §7.9 cache (raw_ensembl_lookup_gene_chaperone-ligands_20260711.json) — zero fabrication, correct store-vs-live provenance split. Rubric coverage: indexed interaction rows (6 numbered Source→Signal→Target→Window→role rows, all four columns present, plus a correct readout-module separation) — full; temporal windows in hpf on every row, appropriately approximate — full; gap flags (sufficiency framed as causal-pruner hypothesis needing human gate + wet-lab GOF, confidence 0.42, design-scaffold framing, ZFIN 404 disclosed) — strong. Biology is accurate (RA proximodistal gradient + cyp26 degradation, Wnt posteriorization, FGF/BMP DV competence, Hh midline flagged weakest) with calibrated strongest/weakest ranking and no overclaiming. Main deduction: 'cited embryology' leans on internal curated-role JSON + ZFIN phenotype consistency rather than primary literature/PMIDs (honestly handled given no literature store), and temporal windows are broad/overlapping without per-window sourcing. Verdict correct."
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "Checked against expected evidence (indexed interaction rows; cited embryology; temporal windows in hpf; gap flags) and against the repo's own contract (CLAUDE.md §4/§5/§6/§7/§10/§11), with independent verification rather than trusting the claims at face value.\n\nIdentifier accuracy (highest-leverage check, given the project's anti-fabrication mandate): I independently queried Ensembl REST (rest.ensembl.org/xrefs/symbol/danio_rerio/<gene>) for aldh1a2, pax2a, bmp2b, shha, wnt8a, fgf8a, cyp26a1, cyp26b1, osr1, wt1a, wnt2ba, and fgf24, and cross-checked the remainder (pax8, lhx1a, wt1b, hnf1ba, wnt8a, fgf8a, aldh1a2, cyp26a1, osr1) against the actual repo file `analysis/outputs/verified_identifiers.json` (store_version 2026-06-23.1, n_records=51 — matches CLAUDE.md footer's ADR-0029 description exactly). All 16 of 16 ENSDARG IDs the candidate cited are correct, with zero discrepancies. This is a clean, verifiable record — not merely a plausible-sounding table.\n\nStructure: the answer delivers exactly the requested four columns (Source, Signal, Target, Window) plus a role annotation, as 6 indexed rows, each with an hpf window, satisfying \"indexed interaction rows\" and \"temporal windows in hpf\" directly. It also adds a companion readout-TF module that correctly separates source-signal causation from target-intrinsic response — a sound modeling choice for a \"chaperone→competent tissue\" table, not scope creep.\n\nI verified the claimed HTML report actually exists at `reports/2026-07-11_chaperone-tissue-interaction-table_v1.html` (confirmed via `ls`) and inspected its contents directly (not just trusting the candidate's description). It contains, as visible UI: a confidence_by_subclaim bar breakdown (signal assignments 0.55, temporal windows 0.40, Hedgehog role 0.35, induction-sufficiency 0.25 — explicitly NOT rolled up into one number, satisfying the §5 anti-aggregation rule the compressed \"confidence: 0.42\" summary given to me might otherwise look like it violated); 5 specific, non-boilerplate gap_flags (no native perturbation-sufficiency evidence, ZFIN expression 404 not retried per no-hang §6, lens-validity/ADR-0028 caveat, etc.); 3 alternatives_considered (RA-only rejected, Notch rejected as wrong table, TFs correctly excluded from the signal list); framework_applied citing the specific catalog section with a quote (Chain-of-Verification — reasoning-frameworks-catalog.md §8, with documented re-election from Self-Discover, matching the §4 anti-pattern fix); and an agents_invoked block correctly marking causal-pruner and composite-auditor as skipped-ad-hoc with real, work-specific justifications rather than boilerplate. A human-gate callout explicitly classifies the induction-sufficiency claim as causal-pruner-class hypothesis requiring Phase II wet-lab GOF — correctly avoiding the overclaim Hard Rule §7 exists to prevent.\n\nBiology is plausible and appropriately hedged: RA (aldh1a2/cyp26a1/cyp26b1) proximodistal patterning and BMP (bmp2b) early DV competence are well-established zebrafish pronephros biology; Hedgehog is honestly flagged as the weakest/most exploratory row rather than asserted with false confidence. No specific PMIDs are cited for the embryology narrative — a minor gap relative to \"cited embryology,\" but a defensible one given the project's PMID-fabrication history (CLAUDE.md explicitly warns against unverified PMIDs), and ZFIN phenotype data is used as a substitute corroboration.\n\nNet: essentially full satisfaction of the expected evidence, with unusually rigorous (and independently confirmed) identifier discipline and full §5/§7/§11 contract compliance in the actual artifact. Minor deductions only for the lack of explicit literature (PMID) citation for the embryological mechanism claims and for a couple of secondary gene-role assignments (e.g., wnt2ba's specific pronephros role) that are less ironclad than the headline RA/BMP claims, though these are appropriately hedged rather than overclaimed.",
+          "overall_score": 0.92,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.84,
+          "verdict": "correct",
+          "justification": "The candidate answer delivers a substantively correct and contractually compliant master chaperone-tissue interaction table. All four expected evidence rubric items are present: indexed interaction rows (6 source→signal→target + 6 readout TFs), cited embryology (temporal windows, tissue identities, ZFIN phenotypes), temporal windows in hpf (5-18 range), and gap flags (5 explicit gaps documented). Full GWT v1.1 output contract compliance confirmed: confidence (0.42) with detailed confidence_by_subclaim (7 sub-claims, 0.97→0.25), evidence_cited (Ensembl/DATA INAMOVIBLE/ZFIN dated), alternatives_considered (3 rejected), gap_flags (explicit list), framework_applied (Chain-of-Verification with §8 catalog citation), and agents_invoked (causal-pruner and composite-auditor skipped-ad-hoc with justifications). Identifier verification complete: 11 from DATA INAMOVIBLE v2026-06-23.1 + 5 from fresh raw_ensembl_lookup_gene_chaperone-ligands_20260711.json cache (all 16 verified against external sources per §7 hard rule). Biological accuracy strong across all 16 genes and 6 temporal windows (aldh1a2/cyp26a1 correct, Wnt/FGF roles reasonable, bmp2b/shha correct). Proper hypothesis gating: causal-pruner output flagged for human gate + wet-lab GOF (Phase II) per §7. §10 preflight documented (checked verified store, signaling markers, acknowledged DI gaps, fell back to Tool Universe). §6 no-hang protocol correctly applied (ZFIN 404 not retried, workflow continued). HTML report generated with visible §5 contract UI (badges, colored bars, sections). Single minor issue: badge states \"11/11\" but 16 genes verified (representation error only; underlying work correct). Score reflects 95% biological/verification accuracy + 98% contract compliance (badge issue) + 100% hypothesis gating."
+        }
+      ],
+      "mean_overall": 0.873,
+      "outcome": "positive"
+    }
+  }
+}

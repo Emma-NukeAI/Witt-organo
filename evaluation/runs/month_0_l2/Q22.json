@@ -1,0 +1,124 @@
+{
+  "claim_id": "held_out_month_0_l2_Q22",
+  "skill_origin": "held-out-runner-L2",
+  "skill_version": "run_held_out-L2-workflow-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "ortholog_mapping",
+  "question_id": "Q22",
+  "question": "Resolve a list of gene symbols to verified ENSDARG IDs and flag any that do not resolve (positive NOT_FOUND). Why must IDs never come from memory?",
+  "backend": "neo4j+tooluniverse-agentic",
+  "direct_answer": "ORTHOLOG MAPPING (symbol -> ENSDARG, Danio rerio / GRCz11), each ID taken ONLY from a live tool response, never from memory. No explicit input list was supplied, so I ran a small representative project-domain set (pronephros markers) plus a deliberate not-found probe.\n\nRESOLVED (3): pax2a -> ENSDARG00000028148; wt1a -> ENSDARG00000031420; osr1 -> ENSDARG00000014091. All three returned status=success from ensembl_lookup_gene (species=danio_rerio, assembly GRCz11) with matching ZFIN-sourced descriptions, and all three cross-check EXACTLY against the DATA INAMOVIBLE store (verified_identifiers.json, store_version 2026-06-23.1).\n\nFLAGGED NOT_FOUND (1, positive): clcnkb -> NOT_FOUND. Ensembl returned HTTP 400 \"No valid lookup found for symbol clcnkb\" for danio_rerio. This is a *positive* absence (looked, does not resolve) per resolve_id.py NOT_FOUND semantics, corroborated by the store record (ensdarg=null, confidence=0.0). Positive NOT_FOUND is a result, not a failure: it converts a would-be silent wrong-ID into a loud, explicit miss. Caveat: it means \"no danio_rerio gene carries the symbol clcnkb,\" not \"no zebrafish ortholog exists\" — a homolog may exist under a different official symbol.\n\nWHY IDs MUST NEVER COME FROM MEMORY: ENSDARG accessions are opaque, checksum-free 11-digit strings; a hallucinated one is syntactically valid and silently wrong, so the error is undetectable at the point of use and propagates into expression lookups, evidence_cited, and downstream analysis as retractable claims. This is not hypothetical in this project: the May 8-9 2026 session had 5/11 ENSDARG IDs (~45%) and 1 PMID wrong from memory; the 2026-06 corruption had 15/16 marker IDs in 01_schoels_analysis.py wrong plus a wt1a false-positive (docs/findings/2026-06-10-schoels-phase1-id-corruption.md). The structural fix (CLAUDE.md §7 anti-fabrication gate, §10 step 7): resolve() against the verified store first; on NOT_FOUND, verify against the authoritative source (Ensembl REST) and CACHE THE RAW RESPONSE (§7.9) before use — an AI-processed summary is not verification because the AI layer can hallucinate the very field being verified. IDs in scripts come from resolve_id.require() (raises on NOT_FOUND), never hardcoded from recall.",
+  "stated_confidence": 0.96,
+  "evidence_cited": [
+    "Live tool: tooluniverse ensembl_lookup_gene, species=danio_rerio -> pax2a=ENSDARG00000028148 (rest.ensembl.org/lookup/symbol/danio_rerio/pax2a), wt1a=ENSDARG00000031420, osr1=ENSDARG00000014091; clcnkb=HTTP 400 'No valid lookup found for symbol clcnkb'",
+    "Raw responses cached per CLAUDE.md §7.9: mcp_cache/raw_ensembl_lookup_orthomap_20260711.json",
+    "DATA INAMOVIBLE cross-check: analysis/outputs/verified_identifiers.json (store_version 2026-06-23.1, 51 records) — pax2a/wt1a/osr1 match; clcnkb ensdarg=null confidence=0.0 (positive NOT_FOUND); slc12a1a likewise null",
+    "NOT_FOUND semantics: analysis/scripts/lib/resolve_id.py (sentinel = 'looked, does not resolve'; require() raises ResolveError; IDs never used from memory)",
+    "Failure history motivating the rule: docs/findings/2026-06-10-schoels-phase1-id-corruption.md (15/16 wrong marker IDs, wt1a false-positive); May 8-9 2026 session ~45% ENSDARG error from memory",
+    "Contract: CLAUDE.md §7 anti-fabrication verification gate + §10 preflight step 7 (resolve() before use) + §7.9 raw-cache-is-verification rule"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "pax2a",
+      "ensdarg": "ENSDARG00000028148"
+    },
+    {
+      "symbol": "wt1a",
+      "ensdarg": "ENSDARG00000031420"
+    },
+    {
+      "symbol": "osr1",
+      "ensdarg": "ENSDARG00000014091"
+    },
+    {
+      "symbol": "clcnkb"
+    }
+  ],
+  "alternatives_considered": [
+    "Recall the ENSDARG IDs from internal memory (REJECTED — the exact anti-pattern the rule forbids; opaque IDs make hallucinations undetectable; ~45% historical error rate)",
+    "Treat clcnkb HTTP 400 as a transient/retriable error rather than a real absence (REJECTED — the 400 body 'No valid lookup found for symbol' is a deterministic namespace miss, independently corroborated by the store's ensdarg=null record)",
+    "Use ZFIN or NCBI Gene as the canonical namespace (REJECTED for the binding — Ensembl ENSDARG is the store's canonical gene-level namespace; ZFIN/NCBI are cross-references; ZFIN accession appears inside the Ensembl 'description' field as corroboration)",
+    "Use Ensembl_lookup_gene_by_symbol / ensembl_get_xrefs_by_name instead (VIABLE equivalents; ensembl_lookup_gene direct symbol lookup was sufficient and returns the canonical ENSDARG + assembly, so no extra call needed — 'prueba pequeno')",
+    "Report a single aggregated confidence hiding sub-claim asymmetry (considered confidence_by_subclaim; sub-claims are all high-evidence [live+store double-confirmed], so a single 0.96 is defensible; residual uncertainty is the NOT_FOUND-vs-no-ortholog nuance, flagged in gaps)"
+  ],
+  "gap_flags": [
+    "No explicit input gene list was provided in the task; I demonstrated the workflow on a representative pronephros-marker set + one NOT_FOUND probe. A caller-supplied list should be re-run the same way.",
+    "clcnkb NOT_FOUND is symbol-namespace-specific: 'no danio_rerio symbol clcnkb' != 'no zebrafish ortholog'. A homolog may exist under a different official symbol (e.g., clc-family paralogs) — resolving that requires an orthology query (ensembl_get_homology from human CLCNKB), not attempted here.",
+    "Only gene-level ENSDARG resolved; ensdarp/ensdart/uniprot_acc not requested and left null.",
+    "Store DERIVED-tier records (raw response not retained) are lower-assurance than RAW-tier; the 3 resolved here are now live-RAW-corroborated as of 2026-07-11 (cache written), a candidate promotion — but store mutation is HUMAN-GATED (CLAUDE.md §7 / ADR-0022), so no write was made.",
+    "§11 agent-invocation: work-type = deterministic identifier resolution/verification, which matches no catalog-agent role (not causal-pruner ranked-candidate generation; not composite-auditor substrate audit). No agent invoked; skip justified.",
+    "§5/§7 HTML-report-at-conclusion not emitted here — subagent scope is to return the structured contract to the orchestrator, which owns session-level report emission; flagged rather than writing a report file that would conflict with orchestration instructions."
+  ],
+  "framework_applied": "Logic-LM (Symbolic Verification) — per reasoning-frameworks-catalog.md §5 Logic-LM: \"for any task whose criteria are formalizable; produces results perfectly calibrated by construction.\" Symbol->ENSDARG resolution is a formalizable binary predicate (does symbol X resolve to a valid ENSDARG in the authoritative Ensembl danio_rerio namespace, yes/no); the deterministic resolve_id/verify_output gate is explicitly Logic-LM-class (not an LLM), so the verification step is symbolic, not neural.",
+  "observed_outcome": "positive",
+  "test_mapping": [
+    "test_1",
+    "test_2",
+    "test_3",
+    "test_4"
+  ],
+  "fallback": {
+    "level": 2,
+    "source": "tooluniverse-agentic",
+    "tu_tools_called": [
+      "mcp__tooluniverse__find_tools",
+      "mcp__tooluniverse__execute_tool:ensembl_lookup_gene(pax2a,danio_rerio)",
+      "mcp__tooluniverse__execute_tool:ensembl_lookup_gene(wt1a,danio_rerio)",
+      "mcp__tooluniverse__execute_tool:ensembl_lookup_gene(osr1,danio_rerio)",
+      "mcp__tooluniverse__execute_tool:ensembl_lookup_gene(clcnkb,danio_rerio)"
+    ],
+    "n_tu_tools": 5
+  },
+  "scoring": {
+    "method": "both",
+    "deterministic": {
+      "admissible": true,
+      "outcome": "positive",
+      "report": {
+        "ok": true,
+        "identifier_admissible": true,
+        "verified_raw": [
+          "ENSDARG00000014091",
+          "ENSDARG00000028148",
+          "ENSDARG00000031420"
+        ],
+        "verified_derived": [],
+        "not_found_positive": [],
+        "unresolved": [],
+        "flagged_external": [],
+        "misbound": []
+      },
+      "reasons": []
+    },
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "justification": "Factually airtight and independently verified: all three resolved ENSDARG IDs (pax2a→ENSDARG00000028148, wt1a→ENSDARG00000031420, osr1→ENSDARG00000014091) match both the DATA INAMOVIBLE store (v2026-06-23.1, conf 1.0) and the raw cached Ensembl responses; the clcnkb positive NOT_FOUND matches the store (ensdarg=null, conf 0.0) and a genuine HTTP 400. The claimed §7.9 raw-cache file (mcp_cache/raw_ensembl_lookup_orthomap_20260711.json) actually exists and holds raw responses, not an AI summary — so the verification claim is not overclaimed. The failure history (5/11 ~45%, 15/16 markers, wt1a false-positive, docs/findings path) is accurate, and resolve_id's resolve()/require()/NOT_FOUND API is described correctly. NOT_FOUND handling is exemplary (including the ortholog-vs-symbol caveat) and the why-never-from-memory rationale (opaque checksum-free IDs, silently wrong, undetectable propagation) is correct, citing §7/§7.9/§10. Deductions: the expected verify_output deterministic output gate is not mentioned (candidate covers only the front-door resolve/require, missing 1 of 4 expected-evidence items), and confidence 0.96 is slightly high given that omission. Both halves of the actual question are answered correctly with verified, non-fabricated identifiers and honest uncertainty.",
+          "overall_score": 0.9,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate answer covers three of the four expected-evidence elements solidly: (1) resolve_id round-trip — it explicitly walks through resolve_id.py semantics, require() raising on NOT_FOUND, and cross-checks against verified_identifiers.json; (2) NOT_FOUND handling — clcnkb is flagged as a genuine \"positive NOT_FOUND\" with the correct nuance (HTTP 400 from Ensembl ≠ \"no ortholog exists,\" just \"no symbol match\"), which is exactly the semantic distinction CLAUDE.md/resolve_id.py cares about; (3) CLAUDE.md §7/§7.9 rationale — the answer cites §7's anti-fabrication gate and §7.9's raw-cache-is-verification rule accurately, and grounds the \"why never from memory\" argument in real documented incidents (May 8-9 2026 session ~45% ENSDARG error, the 2026-06 wt1a false-positive/15-of-16 corruption) rather than generic hand-waving — this is genuine repo-specific grounding, not boilerplate.\n\nThe gap: the fourth expected element, the verify_output gate (analysis/scripts/lib/verify_output.py, the deterministic Logic-LM-class enforcer explicitly named in CLAUDE.md §7), is never cited by name. The candidate describes the conceptual gate (\"CLAUDE.md §7 anti-fabrication gate... resolve() against the verified store first...\") but conflates it with resolve_id.py and never names verify_output.py as the separate enforcement script — a real, specific citation miss against a rubric item that names that artifact explicitly.\n\nSecondary caveats: I cannot independently verify the three specific ENSDARG values against ground truth (no live tool access in this review context), so their correctness rests on trusting the candidate's self-reported tool-execution trace; however the choice of markers (pax2a, wt1a, osr1) is well-chosen — osr1 in particular ties directly to the real ADR-0029 addition documented in this repo's own CLAUDE.md footer, and re-verifying wt1a (the known past false-positive) shows good awareness of project history rather than arbitrary marker selection, which raises confidence this is genuine tool-grounded work rather than fabricated specifics. Confidence 0.96 is high but not unreasonable given the described process (live lookup + store cross-check + raw cache), though CLAUDE.md's own house style would prefer confidence_by_subclaim given the composed claims (ID resolution vs. rationale) — a minor procedural miss, not a substantive one. No overclaiming or fabricated-sounding padding observed; uncertainty (the clcnkb caveat) is stated honestly.\n\nNet: strong, well-grounded answer hitting 3/4 expected evidence items thoroughly and the 4th only implicitly/conceptually rather than by specific citation.",
+          "overall_score": 0.8,
+          "verdict": "correct"
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.84,
+          "verdict": "correct",
+          "justification": "The candidate provides a methodologically exemplary response demonstrating full compliance with CLAUDE.md §7.9/§10 hard rules. All four expected evidence items are satisfied: (1) resolve_id round-trip with live Tool Universe `ensembl_lookup_gene` calls across 5 symbols; (2) positive NOT_FOUND handling for clcnkb with correct semantics (looked, does not resolve) and ontological caveat (symbol-absent ≠ ortholog-absent); (3) complete §7/§7.9 rationale explaining opaque ENSDARG format, syntactically-valid hallucination risk, and raw-response-caching-not-AI-summary distinction as the structural fix; (4) verify_output gate mechanism named (resolve_id.require()) with historical failure modes cited (May 8-9 session ~45% ENSDARG error, 2026-06 schoels 15/16 wrong IDs, docs/findings/2026-06-10-…). Honest about assumption (no explicit input list) and caveats (clcnkb ortholog may exist under different official symbol). The specific ENSDARG outcomes are presented with traceable evidence trail (Tool Universe tool, cached raw response file reference, DATA INAMOVIBLE store v2026-06-23.1 cross-check) consistent with project state. Sole weakness: execution claim cannot be independently verified in this context, and the candidate's self-reported confidence (0.96) is slightly optimistic; a more calibrated 0.85–0.88 would acknowledge verification-gap. This does not change verdict—the question tests methodology, not outcome verification—but represents minor miscalibration. Score reflects exemplary procedure + full contract compliance − modest confidence overstating."
+        }
+      ],
+      "mean_overall": 0.847,
+      "outcome": "positive"
+    }
+  }
+}
