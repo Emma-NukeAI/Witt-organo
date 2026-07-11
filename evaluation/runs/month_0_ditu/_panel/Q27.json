@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "verdict": "correct",
+      "overall_score": 0.85,
+      "justification": "The candidate answer covers all key elements of the expected evidence with strong domain accuracy. It correctly identifies DEAB as an ALDH/Raldh inhibitor blocking RA synthesis, endogenous all-trans RA as the native RAR/RXR agonist, and adds a well-reasoned RAR antagonist as a receptor-level perturbagen. The small-molecule file formats (.sdf/.mol2/SMILES) are named as expected, and the receptor-structure need (PDB/mmCIF → PDBQT) is well articulated. Perturbation rationale is clearly structured with inhibitor/agonist classes, vehicle and inactive-analog controls. Uncertainty calibration is excellent: confidence 0.45, honest gap_flags distinguishing evidenced facts from standard-practice inference, and explicit flags for missing gene IDs, dose/timing, and CYP26 degradation. Minor shortfalls: no explicit safety/ethics check (RA is a teratogen — relevant for zebrafish work and expected by the rubric), and CYP26 inhibitors (a common RA-perturbation class) are omitted though flagged. Citations are plausible but the candidate itself notes the external PMIDs are only tangentially relevant. Overall a factually sound, well-hedged answer that misses only the safety/ethics dimension and some completeness.",
+      "rubric": {
+        "factuality": 0.95,
+        "completeness": 0.8,
+        "citation_correctness": 0.65,
+        "testability": 0.85,
+        "uncertainty_calibration": 0.95,
+        "safety_ethics": 0.5
+      },
+      "usage": {
+        "input_tokens": 2190,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 630,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "The answer correctly identifies DEAB (Aldh1a/Raldh inhibitor blocking RA synthesis) and endogenous all-trans RA as key perturbagens, plus RAR antagonists/agonists, matching the expected small-molecule perturbation rationale. It appropriately notes receptor structure need (RAR/RXR LBDs) and discusses file formats feeding docking: it flags PDB/mmCIF for receptor structures and mentions SDF/MOL2/SMILES for small molecules (converted to PDBQT), which aligns with the expected .mol2/.sdf mention, though it hedges that only PDB/mmCIF is explicitly evidenced and the rest is standard-practice inference — good calibration. However, the safety/ethics check called out in the expected evidence is missing entirely; there's no mention of ethical/biosafety considerations for handling live embryos, chemical exposure, or animal welfare protocols, which is a notable omission relative to the rubric. The candidate is otherwise well-organized, distinguishes agonist/antagonist perturbation logic, and transparently reports confidence and gaps, avoiding overclaiming (e.g., flagging that CYP26 degradation and gene IDs are not represented). Citation practice is reasonable given the niche/PMID framework, though the PMIDs cited are described as tangential and not RA-specific, which is honestly disclosed. Overall a solid partial-credit answer: strong on molecule identification, receptor rationale, and file-format reasoning with appropriate hedging, but incomplete on the safety/ethics dimension explicitly required by the rubric.",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "rubric": {
+        "factuality": 0.75,
+        "completeness": 0.55,
+        "citation_correctness": 0.55,
+        "testability": 0.7,
+        "uncertainty_calibration": 0.8,
+        "safety_ethics": 0.15
+      },
+      "usage": {
+        "input_tokens": 2254,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 715,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.62,
+      "justification": "The candidate answer demonstrates strong conceptual understanding of RA signaling perturbation strategies—correctly identifying DEAB as a synthesis-blocking antagonist and endogenous RA as an agonist, with appropriate rationale for each perturbagen class. The answer meaningfully addresses file formats, specifying that receptor structures come in PDB/mmCIF formats and ligands in SDF/MOL2/SMILES, which directly aligns with expected evidence. The proposed experimental design (antagonist/agonist/control sets) is scientifically sound and well-motivated. However, critical gaps significantly limit the answer's completeness: (1) no specific zebrafish RAR genes or ENSDARG IDs are provided, which is problematic for a zebrafish-biology question; (2) the receptor structure origin (RN2, a bundle reference) is mentioned but the actual structures are not specified; (3) the candidate explicitly acknowledges uncertainty by flagging that PDBQT/SDF/MOL2 specifics are \"standard-practice inference, not stated in the provided evidence\"—a honest but limiting admission for a docking study; (4) CYP26-mediated RA degradation is omitted despite being relevant to RA signaling perturbation; (5) cited external PMIDs (41594861 on VDAC, neonicotinoids, cardiac epigenetics) are confessed to be only tangentially related, not RA-specific. The 0.45 confidence self-rating appears appropriately calibrated to these limitations. On balance, the answer excels in conceptual soundness and partial coverage of expected evidence axes but falls short on specificity (no gene IDs), direct citation completeness (heavy reliance on standard inference), and breadth of RA biology mechanisms.",
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.55,
+        "completeness": 0.6,
+        "testability": 0.65,
+        "uncertainty_calibration": 0.8,
+        "safety_ethics": 0.65
+      },
+      "usage": {
+        "input_tokens": 1876,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 555,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.23,
+  "outcome": "positive",
+  "mean_overall": 0.697,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

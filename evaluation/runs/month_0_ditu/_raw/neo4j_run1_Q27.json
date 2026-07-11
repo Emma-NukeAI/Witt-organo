@@ -1,0 +1,256 @@
+{
+  "question_id": "Q27",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Which small molecules (e.g., DEAB, endogenous RA) would perturb RA signaling for a docking/perturbation study, and what file formats feed docking?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7993,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.7993,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.7448,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7344,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7287,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7201,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.674,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.42 < tau=0.5",
+      "query": "zebrafish small molecules endogenous perturb signaling docking",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "42233348",
+            "pmcid": "PMC13234627",
+            "doi": "10.1042/bst20250480",
+            "title": "A pore is a pore is a pore (or a hub?): VDAC oligomerization in mitochondrial connectivity and modulation.",
+            "year": "2026",
+            "journal": "Biochem Soc Trans",
+            "citations": 0
+          },
+          "abstract": "For decades, the voltage-dependent anion-selective channel (VDAC), formerly known as the mitochondrial porin, was considered a simple pore enabling nearly free permeability across the outer mitochondrial membrane. This simplified view has been progressively dismantled through the discovery of three mammalian isoforms (VDAC1, VDAC2, and VDAC3) with the gradual attribution, often serendipitous, of diverse cellular roles beyond passive metabolite exchange. Recent advances in cryo-electron microscopy have catalyzed a breakthrough in VDAC research. Three converging lines of evidence are reshaping our understanding: (a) high-resolution structures of VDAC within its native protein complexes; (b) discovery of unexpected functions, including phospholipid scrambling and regulation of outer membrane permeabilization through higher-order oligomeric assemblies; and (c) structural determination of VDAC interactions with macromolecules, as well as small-molecule modulators. Collectively, these insights have strengthened the consideration of VDAC as a multifunctional signaling hub and therapeutic target, with emerging small molecules and peptides designed to modulate gating, oligomerization, and i",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41594861",
+            "pmcid": "PMC12837828",
+            "doi": "10.3390/biology15020126",
+            "title": "Neonicotinoids and the Androgen Receptor: Structural Dynamics and Potential Signaling Disruption.",
+            "year": "2026",
+            "journal": "Biology (Basel)",
+            "citations": 0
+          },
+          "abstract": "Neonicotinoids are synthetic nicotine-like compounds extensively used globally as insecticides for agricultural and urban purposes. Neonicotinoid-contaminated produce is a major public health concern worldwide. Limited epidemiological studies have shown an association of neonicotinoid exposure with abnormal semen analysis. This study aimed to elucidate the potential disruption of the androgen receptor (AR) by eight common neonicotinoids, including imidacloprid (IMI), acetamiprid, clothianidin, thiamethoxam, dinotefuran, thiacloprid (THI), nitenpyram, and nithiazine using docking and molecular dynamics (MD) simulation. The results showed good binding strength of all compounds (except THI) with AR, as indicated by high binding energy, high binding affinity, and number of bonding interactions. The results of MD simulation supported the conformational stability and structural dynamic behavior of the AR-IMI (receptor-neonicotinoid) complex upon binding. This was indicated by root mean square deviation showing stability of the complex; the root mean square fluctuation showing minimized residual fluctuations upon binding; the radius of gyration showing greater compactness of the protein s",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41384295",
+            "pmcid": "PMC12728498",
+            "doi": "10.3892/mmr.2025.13776",
+            "title": "Deciphering epigenetic regulation in cardiac developmental toxicity: Mechanisms and implications (Review).",
+            "year": "2026",
+            "journal": "Mol Med Rep",
+            "citations": 0
+          },
+          "abstract": "As the first functional organ to form during vertebrate embryogenesis, the heart exhibits heightened susceptibility to developmental toxicity. Epigenetic regulatory mechanisms, including DNA methylation, histone modifications, non‑coding RNAs, N6‑methyladenosine methylation and chromatin accessibility alterations, mediate cardiac developmental toxicity induced by exogenous compounds including environmental chemicals and pharmaceuticals. The present review comprehensively summarizes the current understanding of the molecular mechanisms through which these compounds exert cardiac developmental toxicity through epigenetic regulation. An in‑depth analysis of research progress and technical challenges across diverse epigenetic pathways is provided. By summarizing recent evidence, the present review proposes candidate epigenetic biomarkers for cardiac developmental toxicity monitoring and explores potential intervention strategies targeting these pathways. Future research should prioritize multi‑omics integration technologies and clinical translation system development. These advances are anticipated to foster innovation in both mechanistic research and preventive strategy development fo",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "For a docking/perturbation study of retinoic acid (RA) signaling, candidate small molecules fall into two functional classes:\n\n1) Inhibitors / antagonists (reduce RA signaling):\n   - DEAB (4-diethylaminobenzaldehyde) — a classic inhibitor of aldehyde dehydrogenase (Aldh1a/Raldh), blocking RA synthesis from retinaldehyde. This is the canonical loss-of-RA perturbagen.\n   - A pan-RAR antagonist (e.g., a compound in the BMS/AGN antagonist class) would serve as a receptor-level negative perturbation, docked directly into the RAR ligand-binding pocket.\n\n2) Agonists / endogenous ligands (increase or mimic RA signaling):\n   - all-trans retinoic acid (endogenous RA) — the native RAR/RXR agonist and the natural docking ligand for the receptor LBD.\n   - Exogenous RA (bath application) as a gain-of-function control.\n\nSuggested design structure: perturbagen set = {DEAB (synthesis block), RAR antagonist (receptor block)}; positive/agonist set = {endogenous all-trans RA, exogenous RA}; with vehicle (DMSO) and an inactive-analog as controls. The docking target from RN2 would be the experimentally resolved RA receptor structure(s) (RAR/RXR ligand-binding domains).\n\nFile formats that feed docking: RN2 supplies 3D coordinates of experimentally resolved structures — i.e., receptor structures in PDB (.pdb) or mmCIF (.cif) format. For a typical docking pipeline these are converted to receptor input (e.g., PDBQT for AutoDock/Vina), and small-molecule ligands are supplied as SDF/MOL2/SMILES and likewise converted to PDBQT. NOTE: only PDB/mmCIF-style 3D coordinates are explicitly evidenced in the bundle (RN2); the PDBQT/SDF/MOL2/SMILES details are standard-practice inference, not stated in the provided evidence.",
+    "confidence": 0.45,
+    "evidence_cited": "niche:RN2, niche:RN12, PMID:41594861",
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Additional RA-synthesis inhibitors beyond DEAB (e.g., other Aldh1a inhibitors) — plausible but not evidenced in bundle",
+      "CYP26 inhibitors (e.g., talarozole/liarozole/R115866) to raise endogenous RA by blocking degradation — biologically valid perturbation but not present in evidence",
+      "Selective RAR-subtype agonists/antagonists (RARa/b/g-specific) rather than pan-RAR — no subtype structures specified in bundle",
+      "Using predicted (non-experimental) structures via STRING/Reactome — rejected because docking requires 3D coordinates, which RN2 provides"
+    ],
+    "gap_flags": [
+      "Bundle does not name specific RA receptor structures/ENSDARG IDs — no gene identifiers could be verified",
+      "File formats: only 'experimentally resolved 3D coordinates' (RN2) are evidenced; PDB/mmCIF/PDBQT/SDF/MOL2/SMILES specifics are standard-practice inference, not in bundle",
+      "No dose/timing, control, or confounder details available from RN12 in this bundle beyond its topic label",
+      "External PMIDs retrieved (VDAC, neonicotinoids/AR, cardiac epigenetics) are not RA-specific; only tangentially confirm docking+MD workflow conventions",
+      "CYP26-mediated RA degradation not represented in retrieved evidence"
+    ],
+    "framework_applied": "Perturbation-design decomposition: partition RA pathway into synthesis (Aldh/Raldh → DEAB), receptor engagement (RAR/RXR → RA agonist vs antagonist), plus controls; then map docking inputs to the structural data niche (RN2). Chosen because the question is a perturbation_design task spanning the structure niche (RN2) and intervention niche (RN12).",
+    "search_query": "zebrafish retinoic acid receptor RARa RXR ligand binding domain PDB structure DEAB aldh1a2 docking all-trans retinoic acid antagonist",
+    "_usage": {
+      "input_tokens": 3376,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1602,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "verdict": "correct",
+        "overall_score": 0.85,
+        "justification": "The candidate answer covers all key elements of the expected evidence with strong domain accuracy. It correctly identifies DEAB as an ALDH/Raldh inhibitor blocking RA synthesis, endogenous all-trans RA as the native RAR/RXR agonist, and adds a well-reasoned RAR antagonist as a receptor-level perturbagen. The small-molecule file formats (.sdf/.mol2/SMILES) are named as expected, and the receptor-structure need (PDB/mmCIF → PDBQT) is well articulated. Perturbation rationale is clearly structured with inhibitor/agonist classes, vehicle and inactive-analog controls. Uncertainty calibration is excellent: confidence 0.45, honest gap_flags distinguishing evidenced facts from standard-practice inference, and explicit flags for missing gene IDs, dose/timing, and CYP26 degradation. Minor shortfalls: no explicit safety/ethics check (RA is a teratogen — relevant for zebrafish work and expected by the rubric), and CYP26 inhibitors (a common RA-perturbation class) are omitted though flagged. Citations are plausible but the candidate itself notes the external PMIDs are only tangentially relevant. Overall a factually sound, well-hedged answer that misses only the safety/ethics dimension and some completeness.",
+        "rubric": {
+          "factuality": 0.95,
+          "completeness": 0.8,
+          "citation_correctness": 0.65,
+          "testability": 0.85,
+          "uncertainty_calibration": 0.95,
+          "safety_ethics": 0.5
+        },
+        "usage": {
+          "input_tokens": 2190,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 630,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The answer correctly identifies DEAB (Aldh1a/Raldh inhibitor blocking RA synthesis) and endogenous all-trans RA as key perturbagens, plus RAR antagonists/agonists, matching the expected small-molecule perturbation rationale. It appropriately notes receptor structure need (RAR/RXR LBDs) and discusses file formats feeding docking: it flags PDB/mmCIF for receptor structures and mentions SDF/MOL2/SMILES for small molecules (converted to PDBQT), which aligns with the expected .mol2/.sdf mention, though it hedges that only PDB/mmCIF is explicitly evidenced and the rest is standard-practice inference — good calibration. However, the safety/ethics check called out in the expected evidence is missing entirely; there's no mention of ethical/biosafety considerations for handling live embryos, chemical exposure, or animal welfare protocols, which is a notable omission relative to the rubric. The candidate is otherwise well-organized, distinguishes agonist/antagonist perturbation logic, and transparently reports confidence and gaps, avoiding overclaiming (e.g., flagging that CYP26 degradation and gene IDs are not represented). Citation practice is reasonable given the niche/PMID framework, though the PMIDs cited are described as tangential and not RA-specific, which is honestly disclosed. Overall a solid partial-credit answer: strong on molecule identification, receptor rationale, and file-format reasoning with appropriate hedging, but incomplete on the safety/ethics dimension explicitly required by the rubric.",
+        "overall_score": 0.62,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.75,
+          "completeness": 0.55,
+          "citation_correctness": 0.55,
+          "testability": 0.7,
+          "uncertainty_calibration": 0.8,
+          "safety_ethics": 0.15
+        },
+        "usage": {
+          "input_tokens": 2254,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 715,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.62,
+        "justification": "The candidate answer demonstrates strong conceptual understanding of RA signaling perturbation strategies—correctly identifying DEAB as a synthesis-blocking antagonist and endogenous RA as an agonist, with appropriate rationale for each perturbagen class. The answer meaningfully addresses file formats, specifying that receptor structures come in PDB/mmCIF formats and ligands in SDF/MOL2/SMILES, which directly aligns with expected evidence. The proposed experimental design (antagonist/agonist/control sets) is scientifically sound and well-motivated. However, critical gaps significantly limit the answer's completeness: (1) no specific zebrafish RAR genes or ENSDARG IDs are provided, which is problematic for a zebrafish-biology question; (2) the receptor structure origin (RN2, a bundle reference) is mentioned but the actual structures are not specified; (3) the candidate explicitly acknowledges uncertainty by flagging that PDBQT/SDF/MOL2 specifics are \"standard-practice inference, not stated in the provided evidence\"—a honest but limiting admission for a docking study; (4) CYP26-mediated RA degradation is omitted despite being relevant to RA signaling perturbation; (5) cited external PMIDs (41594861 on VDAC, neonicotinoids, cardiac epigenetics) are confessed to be only tangentially related, not RA-specific. The 0.45 confidence self-rating appears appropriately calibrated to these limitations. On balance, the answer excels in conceptual soundness and partial coverage of expected evidence axes but falls short on specificity (no gene IDs), direct citation completeness (heavy reliance on standard inference), and breadth of RA biology mechanisms.",
+        "rubric": {
+          "factuality": 0.75,
+          "citation_correctness": 0.55,
+          "completeness": 0.6,
+          "testability": 0.65,
+          "uncertainty_calibration": 0.8,
+          "safety_ethics": 0.65
+        },
+        "usage": {
+          "input_tokens": 1876,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 555,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.23,
+    "outcome": "positive",
+    "mean_overall": 0.697,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.45,
+    "n_path_b_papers": 3
+  }
+}

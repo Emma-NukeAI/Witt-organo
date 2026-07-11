@@ -1,0 +1,207 @@
+{
+  "question_id": "Q10",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "What bioelectric readouts (membrane potential maps, ion-channel configs) are relevant to early tubule/eye morphogenesis, and how would voltage-imaging data (.ome/.tiff, .mat) be ingested?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8435,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.8435,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.7606,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7376,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN9",
+          "type": "niche",
+          "score": 0.7563,
+          "text": "RN9 Morfología emergente y topología. Raw volumetric confocal time-series + segmentation masks (.ome/.tiff/.czi/.ims/.nd2); continuous voxel"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7118,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.6905,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.42 < tau=0.5",
+      "query": "zebrafish bioelectric readouts membrane potential ion-channel configs",
+      "papers": []
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle supports a partial, mostly infrastructural answer rather than a mechanistic one.\n\nRELEVANT BIOELECTRIC READOUTS (from niche RN5 \"Bioeléctrica\"):\n- Spatial coordinates paired with absolute membrane potential (Vmem) values, delivered as .csv — i.e. per-position voltage maps that can be laid over tissue geometry.\n- High-density temporal matrices from fluorescence/voltage-sensor imaging (voltage-sensitive dyes or genetically encoded voltage indicators), delivered as .mat and imaging stacks.\nThese are the two canonical bioelectric layers you would use to characterize early morphogenetic events: (1) steady-state membrane-potential maps (regional depolarization/hyperpolarization domains) and (2) time-resolved voltage dynamics. Ion-channel \"configs\" in this framework would parameterize the channels/pumps/gap junctions that set those Vmem domains, but the bundle does NOT enumerate specific channels (e.g. no kcnk, kir, atp1a, connexin identifiers are given), so I cannot name the ion-channel gene set from this evidence.\n\nTUBULE / EYE MORPHOGENESIS CONNECTION:\n- The only tissue-specific anchor in the bundle is CORPUS-2026-0003#c000, which frames the zebrafish pronephros as an in vivo model for nephron (tubule) development. It does not describe bioelectric mechanisms directly, so the tubule↔bioelectric link here is by juxtaposition, not by cited mechanism. There is NO eye/retina-specific evidence in the bundle at all.\n\nVOLTAGE-IMAGING DATA INGESTION:\n- Raw voltage-imaging acquisitions in .ome/.tiff (and related volumetric confocal time-series such as .czi/.ims/.nd2) map onto the RN9 \"Morfología emergente\" niche, which explicitly handles .ome/.tiff volumetric time-series plus segmentation masks — so imaging stacks are ingested through the RN9 morphology pipeline and can be spatially registered to segmentation masks.\n- The quantitative bioelectric derivatives (.mat temporal matrices, and the .csv Vmem-vs-coordinate maps) are ingested through the RN5 pipeline. A practical flow: acquire .ome/.tiff voltage movies → segment/register in RN9 → extract per-region fluorescence traces → convert to Vmem temporal matrices (.mat) and spatial-coordinate + absolute-potential tables (.csv) in RN5. An MCP-style wrapper to normalize proprietary formats into .csv is described for the neighboring RN4 niche and is the same pattern likely used here, though not stated explicitly for RN5.\n\nIn short: readouts = spatial Vmem maps (.csv) + temporal voltage-sensor matrices (.mat); ingestion = raw .ome/.tiff through RN9 volumetric-imaging handling, quantified voltage products through RN5. Specific ion channels and any eye-morphogenesis bioelectric detail are not covered by this bundle.",
+    "confidence": 0.42,
+    "evidence_cited": [
+      "niche:RN5",
+      "niche:RN9",
+      "niche:RN4",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Attribute .ome/.tiff ingestion solely to RN5 — rejected: RN5 lists .csv/.mat quantitative products while RN9 explicitly owns .ome/.tiff/.czi/.ims/.nd2 volumetric time-series, so imaging enters via RN9.",
+      "Name specific ion channels (kcnk/kir/atp1a/connexins) driving pronephros/eye Vmem domains — rejected: no channel identifiers appear anywhere in the bundle; asserting them would be fabrication.",
+      "Treat the pronephros chunk as establishing a bioelectric mechanism for tubulogenesis — rejected: it only frames pronephros as a nephron-development model and makes no bioelectric claim."
+    ],
+    "gap_flags": [
+      "No specific ion-channel genes/ENSDARGs provided; ion-channel 'configs' cannot be enumerated from this bundle.",
+      "No eye/retina-specific bioelectric evidence present — eye morphogenesis part is unsupported.",
+      "Tubule↔bioelectric link is inferred by juxtaposition (RN5 + pronephros chunk), not by a cited mechanistic source.",
+      "MCP wrapper→.csv normalization is stated for RN4, not confirmed for RN5 voltage data.",
+      "No quantitative Vmem values, thresholds, or channel-parameter examples given."
+    ],
+    "framework_applied": "Literature synthesis + data-provenance mapping: cross-walked the question's data modalities (Vmem maps, ion-channel configs, .ome/.tiff, .mat) onto the retrieved niche descriptors (RN5 bioelectric, RN9 imaging, RN4 wrapper pattern) and flagged everything not explicitly supported, to keep confidence calibrated to a thin, mostly-infrastructural bundle.",
+    "search_query": "zebrafish pronephros eye morphogenesis membrane potential Vmem ion channel bioelectric voltage imaging",
+    "_usage": {
+      "input_tokens": 2066,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1947,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.82,
+        "verdict": "correct",
+        "rubric": {
+          "citation_correctness": 0.85,
+          "completeness": 0.8,
+          "factuality": 0.85,
+          "safety_ethics": 1.0,
+          "testability": 0.75,
+          "uncertainty_calibration": 0.95
+        },
+        "justification": "The answer hits all three expected-evidence targets in spirit: it describes the ion-channel \"config\" concept (channels/pumps/gap junctions parameterizing Vmem), it articulates the Vmem-matrix concept (spatial coordinate + absolute-potential maps as .csv plus temporal .mat matrices), and it is scrupulously honest about the sparse zebrafish bioelectric data gap. Notably it does NOT fabricate a specific ion-channel gene set (kcnk/kir/atp1a/connexin), instead explicitly flagging that the bundle does not enumerate them — this is exactly the right calibration given the expected \"honest gap.\" It correctly identifies that eye/retina bioelectric evidence is absent and that the tubule link is by juxtaposition (pronephros chunk) rather than mechanism. The ingestion story (.ome/.tiff via RN9 volumetric pipeline, .mat/.csv via RN5, MCP-normalization pattern borrowed from RN4) is plausible and appropriately hedged. Minor deductions: the confidence 0.42 is arguably a bit low given how well it matches the expected evidence (the substantive concepts are all present), and the answer could be read as slightly overclaiming the RN5/RN9 pipeline routing, though it caveats these. The expected evidence wanted an ion-channel *set* — the answer explains the concept but honestly declines to name one, which is defensible rather than a failure since fabricating names would be worse. Overall a strong, well-calibrated, non-overclaiming answer.",
+        "usage": {
+          "input_tokens": 2544,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 692,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.62,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies the Vmem matrix concept (spatial coordinate + absolute potential maps, and temporal voltage-sensor matrices) and is honest about the sparse zebrafish bioelectric data, explicitly flagging that no ion-channel gene set (e.g., kcnk, kir, atp1a, connexins) is enumerated in the evidence bundle and that eye-morphogenesis bioelectric evidence is absent. This matches two of the three expected evidence points well (Vmem matrix concept, honest gap acknowledgment). However, it falls short on the 'ion-channel set' expected evidence: rather than providing any canonical ion-channel players relevant to bioelectric morphogenesis (e.g., known KCNJ/Kir channels, gap junctions/connexins, V-ATPases implicated in left-right patterning or regeneration in zebrafish/other model systems), it merely states the gap without offering any general background knowledge that might exist outside the narrow evidence bundle it's citing (which seems oddly formatted as a corpus-search rather than domain knowledge). The tubule/eye connection is very thin and admitted to be by juxtaposition only, with no eye-specific evidence at all, which is a significant completeness gap relative to the question (which explicitly asks about both tubule AND eye morphogenesis). The ingestion pipeline (.ome/.tiff via RN9, .mat/.csv via RN5) is plausible, well-organized, and clearly flagged as inferential where extrapolated (e.g., MCP wrapper for RN5 not confirmed). Confidence calibration (0.42) seems reasonably matched to the partial/gap-heavy nature of the answer. Overall this is a well-hedged, honest partial answer that covers ingestion mechanics and readout formats well but lacks any real ion-channel specifics and has essentially no eye-morphogenesis content, and the tubule linkage is weak/inferential.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.65, \"completeness\": 0.45, \"citation_correctness\": 0.6, \"uncertainty_calibration\": 0.8, \"testability\": 0.55, \"safety_ethics\": 0.9}",
+        "usage": {
+          "input_tokens": 2608,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 819,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.62,
+        "rubric": {
+          "factuality": 0.75,
+          "completeness": 0.5,
+          "citation_correctness": 0.7,
+          "uncertainty_calibration": 0.85,
+          "testability": 0.55,
+          "safety_ethics": 1.0
+        },
+        "justification": "The candidate answer correctly identifies the core expected evidence items: (1) ion-channel set consideration with honest acknowledgment that specific genes are absent, (2) Vmem matrix concept clearly articulated (.csv spatial maps, .mat temporal matrices), and (3) explicit flagging of sparse zebrafish bioelectric data gaps. The infrastructure mapping is sound—.ome/.tiff ingestion through RN9 morphology pipeline, quantified derivatives through RN5, format normalization patterns—and properly cited. However, completeness is limited: no mechanistic details connect bioelectrics to tubule or eye morphogenesis (only juxtaposition noted for tubule; eye is entirely absent), and the answer explicitly states inability to enumerate ion-channel genes, which is a direct hit to the \"ion-channel set\" expectation. The candidate wisely flags these gaps internally rather than fabricating details, showing good uncertainty calibration (0.85 appropriate for a 0.42 stated confidence). Citation correctness is solid for cited niche references but conservative by design. Testability is moderate—the infrastructure flow is clear and would be implementable, but lack of specific bioelectric mechanisms or quantitative thresholds limits falsifiability of claims. The answer is honest and well-scaffolded but falls short of the \"expected evidence\" standard because it provides framework without mechanistic substance for either tissue type.",
+        "usage": {
+          "input_tokens": 2023,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 454,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.2,
+    "outcome": "positive",
+    "mean_overall": 0.687,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.42,
+    "n_path_b_papers": 0
+  }
+}

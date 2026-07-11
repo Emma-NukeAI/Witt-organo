@@ -1,0 +1,275 @@
+{
+  "question_id": "Q08",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "ortholog_mapping",
+  "bundle": {
+    "question": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8056,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.8056,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.8059,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7711,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7824,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7656,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.794,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.12 < tau=0.5",
+      "query": "zebrafish zebrafish pronephros human orthologs ohnologs where",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "35899258",
+            "pmcid": "PMC9309457",
+            "doi": "10.1111/eva.13424",
+            "title": "Evolution and developmental expression of the sodium-iodide symporter (<i>NIS</i>, <i>slc5a5</i>) gene family: Implications for perchlorate toxicology.",
+            "year": "2022",
+            "journal": "Evol Appl",
+            "citations": 7
+          },
+          "abstract": "The vertebrate sodium-iodide symporter (NIS or SLC5A5) transports iodide into the thyroid follicular cells that synthesize thyroid hormone. The SLC5A protein family includes transporters of vitamins, minerals, and nutrients. Disruption of SLC5A5 function by perchlorate, a pervasive environmental contaminant, leads to human pathologies, especially hypothyroidism. Perchlorate also disrupts the sexual development of model animals, including threespine stickleback (Gasterosteus aculeatus) and zebrafish (Danio rerio), but the mechanism of action is unknown. To test the hypothesis that SLC5A5 paralogs are expressed in tissues necessary for the development of reproductive organs, and therefore are plausible candidates to mediate the effects of perchlorate on sexual development, we first investigated the evolutionary history of Slc5a paralogs to better understand potential functional trajectories of the gene family. We identified two clades of slc5a paralogs with respect to an outgroup of sodium/choline cotransporters (slc5a7); these clades are the NIS clade of sodium/iodide and lactate cotransporters (slc5a5, slc5a6, slc5a8, slc5a8, and slc5a12) and the SGLT clade of sodium/glucose cotran",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "34025644",
+            "pmcid": "PMC8138431",
+            "doi": "10.3389/fimmu.2021.636623",
+            "title": "Modeling Virus-Induced Inflammation in Zebrafish: A Balance Between Infection Control and Excessive Inflammation.",
+            "year": "2021",
+            "journal": "Front Immunol",
+            "citations": 35
+          },
+          "abstract": "The inflammatory response to viral infection in humans is a dynamic process with complex cell interactions that are governed by the immune system and influenced by both host and viral factors. Due to this complexity, the relative contributions of the virus and host factors are best studied in vivo using animal models. In this review, we describe how the zebrafish (Danio rerio) has been used as a powerful model to study host-virus interactions and inflammation by combining robust forward and reverse genetic tools with in vivo imaging of transparent embryos and larvae. The innate immune system has an essential role in the initial inflammatory response to viral infection. Focused studies of the innate immune response to viral infection are possible using the zebrafish model as there is a 4-6 week timeframe during development where they have a functional innate immune system dominated by neutrophils and macrophages. During this timeframe, zebrafish lack a functional adaptive immune system, so it is possible to study the innate immune response in isolation. Sequencing of the zebrafish genome has revealed significant genetic conservation with the human genome, and multiple studies have r",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "28271061",
+            "pmcid": "PMC5318412",
+            "doi": "10.3389/fcell.2017.00005",
+            "title": "Identification and Expression Analysis of the Complete Family of Zebrafish <i>pkd</i> Genes.",
+            "year": "2017",
+            "journal": "Front Cell Dev Biol",
+            "citations": 31
+          },
+          "abstract": "Polycystic kidney disease (PKD) proteins are trans-membrane proteins that have crucial roles in many aspects of vertebrate development and physiology, including the development of many organs as well as left-right patterning and taste. They can be divided into structurally-distinct PKD1-like and PKD2-like proteins and usually one PKD1-like protein forms a heteromeric polycystin complex with a PKD2-like protein. For example, PKD1 forms a complex with PKD2 and mutations in either of these proteins cause Autosomal Dominant Polycystic Kidney Disease (ADPKD), which is the most frequent potentially-lethal single-gene disorder in humans. Here, we identify the complete family of pkd genes in zebrafish and other teleosts. We describe the genomic locations and sequences of all seven genes: pkd1, pkd1b, pkd1l1, pkd1l2a, pkd1l2b, pkd2, and pkd2l1. pkd1l2a/pkd1l2b are likely to be ohnologs of pkd1l2, preserved from the whole genome duplication that occurred at the base of the teleosts. However, in contrast to mammals and cartilaginous and holostei fish, teleosts lack pkd2l2, and pkdrej genes, suggesting that these have been lost in the teleost lineage. In addition, teleost, and holostei fish ha",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot deliver the requested ortholog map with verified identifiers from this bundle. The retrieval names authoritative resolvers (Ensembl Danio rerio, ZFIN) and mentions pronephros biology (CORPUS-2026-0003 implicates the polarity proteins Prkci/Prkcz in pronephros tubulogenesis, RN1), but NO specific set of pronephros transcription factors was actually supplied, and NO zebrafish→human ortholog pairs with ENSDARG/HGNC bindings were retrieved. I therefore have no verified basis to assert gene IDs or to classify any of them as 1:many ohnologs.\n\nWhat the bundle DOES let me say, conceptually: teleost genome duplication (TGD) is a real and well-documented source of 1:many (co-ortholog / ohnolog) relationships in zebrafish — PMID:28271061 explicitly documents pkd1l2a/pkd1l2b as retained ohnologs of a single mammalian pkd1l2, and PMID:35899258 documents an expanded slc5a paralog family. These are the exact 'paralog compensation' patterns that confound single-gene KOs: if a zebrafish gene has an ohnolog partner, knocking out one copy may be buffered by the other. However, neither of these examples is a transcription factor and neither is the TF set you asked me to map.\n\nTo do this correctly I would need (1) the explicit list of pronephros TFs (e.g. from ZFIN's TF catalog: candidates commonly cited include pax2a/pax2b, pax8, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b, osr1, emx2, sall1a/sall1b, tfap2a, foxj1a — several of which are themselves duplicated 'a/b' pairs and thus prime ohnolog/paralog-compensation candidates), and (2) their resolved Ensembl human orthologs with cardinality. None of those bindings are present in this bundle, so I am flagging the gap rather than inventing them.",
+    "confidence": 0.12,
+    "evidence_cited": [
+      "db:Ensembl_DanioRerio",
+      "db:ZFIN",
+      "CORPUS-2026-0003",
+      "PMID:28271061",
+      "PMID:35899258"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      },
+      {
+        "symbol": "pkd1l2a"
+      },
+      {
+        "symbol": "pkd1l2b"
+      },
+      {
+        "symbol": "slc5a5"
+      }
+    ],
+    "alternatives_considered": [
+      "Return the pronephros polarity genes prkci/prkcz from CORPUS-2026-0003 as the 'TF set' — rejected: they are polarity kinases, not transcription factors, so they do not answer the ortholog_mapping question.",
+      "Assert a canonical pronephros TF list (pax2a/pax2b, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b, osr1, sall1a/sall1b) with human orthologs from memory — rejected: violates the no-invented-ID rule; no ENSDARG/HGNC bindings were retrieved.",
+      "Use the pkd and slc5a ohnolog examples as templates and extrapolate to TFs — rejected: those are non-TF illustrations only; extrapolating specific TF cardinality would be fabrication."
+    ],
+    "gap_flags": [
+      "No explicit list of pronephros transcription factors was provided in the query or bundle.",
+      "No zebrafish→human ortholog pairs with resolved ENSDARG/HGNC identifiers were retrieved; Ensembl and ZFIN are named as resolvers but returned no actual mappings here.",
+      "No ohnolog/cardinality annotations for any TF are present; the only ohnolog evidence (pkd1l2a/b, slc5a family) concerns non-TF genes.",
+      "CORPUS-2026-0003 concerns pronephros polarity kinases (prkci/prkcz), not transcription factors — off-target for ortholog_mapping.",
+      "Cannot classify 1:many vs 1:1 for the intended TFs without a verified orthology query."
+    ],
+    "framework_applied": "Evidence-grounded ortholog mapping with explicit gap-gating: I attempted to satisfy the ortholog_mapping schema (zebrafish TF → human ortholog + cardinality/ohnolog flag) but gated on missing inputs (no TF list, no resolved IDs) rather than fabricating bindings, per the no-invented-ENSDARG contract. Ohnolog/paralog-compensation reasoning is anchored to the teleost-genome-duplication framing evidenced by PMID:28271061 and PMID:35899258.",
+    "search_query": "zebrafish pronephros transcription factors pax2a pax2b hnf1ba hnf1bb wt1a wt1b lhx1a lhx1b osr1 sall1 human ortholog ohnolog teleost genome duplication paralog compensation",
+    "_usage": {
+      "input_tokens": 3526,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1818,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.68,
+        "verdict": "partial",
+        "rubric": {
+          "citation_correctness": 0.7,
+          "completeness": 0.4,
+          "factuality": 0.85,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.5,
+          "safety_ethics": 1.0
+        },
+        "justification": "The candidate honestly declines to fabricate a verified ENSDARG↔human ortholog table because no specific TF set or resolved identifiers were supplied, which is the correct behavior when evidence is absent — this earns strong uncertainty-calibration and factuality scores. Notably, its conceptual discussion actually names several of the exact expected paralog-compensation flags (hnf1ba/hnf1bb, and the a/b duplication pattern) and correctly explains the TGD/ohnolog mechanism that confounds single-gene KOs, including a plausible candidate TF list (pax2a/2b, wt1a/wt1b, lhx1a/1b, sall1a/1b, foxj1a). However, it stops short of delivering the core deliverable: no verified ID table, no cardinality classifications, and it omits foxc1a/foxc1b specifically. The cited PMIDs (pkd1l2a/b, slc5a) are honestly flagged as non-TF and thus tangential, and CORPUS-2026-0003 is correctly noted as off-target. So the answer is a well-reasoned, honest gap-flag that partially anticipates the expected evidence conceptually but does not produce the verified mapping the question requires — a solid partial rather than correct.",
+        "usage": {
+          "input_tokens": 2236,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 590,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.35,
+        "verdict": "partial",
+        "justification": "The candidate correctly refuses to fabricate a verified ENSDARG↔HGNC ortholog table, which is appropriate given no actual retrieval bundle with such mappings was shown, and it avoids the safety failure of inventing specific gene IDs. It also correctly explains the TGD/ohnolog concept and even names the exact expected flag examples (hnf1ba/hnf1bb, pax2a/pax2b, wt1a/wt1b, foxj1a, etc.) as 'candidates commonly cited,' which shows real domain knowledge and gets close to the expected evidence (foxc1a/foxc1b was not mentioned, but hnf1ba/hnf1bb was, matching one of the two examples explicitly named in the rubric). However, the answer ultimately provides no verified table and no actual flags for the specific TFs, falling short of the core deliverable. It hedges heavily and is transparent about gaps, which is good calibration, but the completeness and testability are low since no concrete, checkable ortholog/cardinality data is delivered. This is a reasonable middle-ground response: honest but incomplete, partially matching expected evidence conceptually without delivering the verified artifact requested.",
+        "rubric": {
+          "factuality": 0.6,
+          "citation_correctness": 0.3,
+          "completeness": 0.25,
+          "testability": 0.2,
+          "uncertainty_calibration": 0.75,
+          "safety_ethics": 0.8
+        },
+        "usage": {
+          "input_tokens": 2300,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 570,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies the critical constraint: the query lacks a specific input list of pronephros transcription factors and no verified ENSDARG↔human-ortholog table was retrieved from the bundle. This is an honest and appropriately cautious response that avoids fabrication of gene identifiers or unsupported cardinality claims. The answer demonstrates strong conceptual understanding of ohnolog/paralog compensation as a KO-confounding mechanism, correctly cites teleost genome duplication (TGD) as the source, and provides concrete (if off-target) examples (pkd1l2a/pkd1l2b, slc5a family). The candidate helpfully speculates on likely pronephros TF candidates (pax2a/b, hnf1ba/b, wt1a/b, etc.) and correctly notes that many exhibit 'a/b' duplication patterns characteristic of ohnologs — this shows domain competence. However, the answer does not deliver the core requested output (verified ortholog table) because the input data are genuinely absent, not because of analytical failure. The cited PMIDs are real and conceptually on-point, though not applied to TFs. The detailed gap-flags are well-reasoned. Minor weakness: the speculative TF list, while plausible, is not itself verified from ZFIN or published orthology resources shown here, so it remains illustrative rather than actionable. The confidence score (0.12) appropriately reflects inability to answer, and uncertainty calibration is well-judged. This is a model answer for \"graceful degradation under missing input\" — it would score lower if it had fabricated ortholog pairs, and higher only if the actual data had been present and properly mapped.",
+        "rubric": {
+          "factuality": 0.85,
+          "citation_correctness": 0.8,
+          "completeness": 0.5,
+          "testability": 0.7,
+          "uncertainty_calibration": 0.85,
+          "safety_ethics": 0.75
+        },
+        "usage": {
+          "input_tokens": 1938,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 542,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.37,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.583,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.12 < tau=0.5",
+    "pass1_confidence": 0.12,
+    "pass2_confidence": 0.12,
+    "n_path_b_papers": 3
+  }
+}

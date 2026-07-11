@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.85,
+      "verdict": "correct",
+      "justification": "The answer directly and thoroughly addresses all three expected evidence components. (1) Evidence-layer ladder: it lays out a clear, well-ordered ladder — spatial/temporal confirmation → regulatory-class (TF) evidence → interaction/network context → perturbation/causal evidence — with sensible rationale for why each layer adds credibility. (2) The false-positive trap: it explicitly names expression ≠ regulation, and correctly identifies scRNA-specific artifacts (ambient RNA, doublets, clustering artifacts) that expression alone cannot exclude, plus the correlation-vs-causation distinction. (3) Minimum bar: it gives a concrete two-part minimum (independent spatial/temporal expression confirmation to kill technical artifacts PLUS at least one causal/mechanistic layer, ideally a loss-of-function phenotype), which is a defensible and well-reasoned threshold. Citations are appropriate and used correctly as methodological resource types (ZFIN in-situ/TF/mutant, spatial atlas, BioGRID genetic interactions, Reactome). Notably, the gap_flags are honest and strong: the answer flags the absence of ATAC/ChIP/enhancer occupancy evidence (a genuinely important layer for calling a 'regulator' that is missing from the bundle) and the lack of quantitative thresholds/FDR, which is the one real weakness — the 'minimum' remains qualitative rather than specifying effect size or statistical false-positive control. Confidence of 0.63 is well-calibrated for a framework answer with no bound gene. Minor deductions for the missing chromatin/binding layer in the ladder itself (only flagged, not integrated) and for the purely qualitative minimum, but overall this is a substantively correct, complete, and honestly hedged answer.",
+      "rubric": {
+        "factuality": 0.9,
+        "completeness": 0.85,
+        "citation_correctness": 0.85,
+        "testability": 0.8,
+        "uncertainty_calibration": 0.9,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 2375,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 785,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.85,
+      "verdict": "correct",
+      "justification": "The candidate constructs a clear evidence-layer ladder (spatial/temporal confirmation → regulatory-class evidence → interaction/network evidence → perturbation/causal evidence), explicitly names the false-positive trap (expression ≠ regulation, citing ambient RNA/doublet/clustering artifacts as confounders scRNA alone cannot rule out), and states a concrete minimum bar (independent spatial/temporal expression confirmation PLUS at least one causal or mechanistic layer, ideally a loss-of-function phenotype). This matches the three expected evidence components well. It appropriately flags calibration caveats (no specific gene, no chromatin/ATAC-seq layer, no quantitative thresholds), which is honest and avoids overclaiming. Minor weaknesses: the omission of chromatin/binding (ChIP-seq/ATAC) evidence as a would-be layer is self-flagged but arguably should have been included as a fifth rung in the ladder for completeness, since direct TF-binding evidence is often considered key for 'regulator' status. Also, TF-class annotation alone (layer 2) is somewhat weaker mechanistic evidence than described—being a TF doesn't guarantee it regulates this specific process—but the answer reasonably treats this as necessary-not-sufficient. Overall the response is thorough, well-organized, testable (clear criteria), and calibrated with appropriate uncertainty and gap flags.",
+      "rubric": {
+        "completeness": 0.85,
+        "factuality": 0.85,
+        "testability": 0.8,
+        "citation_correctness": 0.75,
+        "uncertainty_calibration": 0.9,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2439,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 657,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.78,
+      "verdict": "correct",
+      "justification": "The candidate answer demonstrates strong conceptual accuracy and directly addresses the question's core challenge: distinguishing expression from regulation using evidence layers. The response correctly identifies the false-positive trap (expression ≠ regulation ≠ causation) and articulates a credible evidence ladder from weakest (spatial/temporal confirmation of scRNA signal) through intermediate layers (regulatory class, network placement) to causal evidence (perturbation phenotypes). The minimum bar is stated clearly and substantively: spatial confirmation + regulator-class annotation + network context, or spatial confirmation + perturbation phenotype. The specific database recommendations (ZFIN, BioGRID, Reactome, spatial atlases) are appropriate for zebrafish research and reflect genuine biological reasoning. Importantly, the candidate correctly identifies that loss-of-function data (\"clearing the regulator threshold\") and genetic interactions constitute the strongest evidence, not mere co-expression or network proximity. The self-identified gaps are honest and appropriate: the answer is methodological rather than gene-specific, lacks quantitative thresholds (e.g., effect size cutoffs, FDR criteria), and does not include cis-regulatory evidence (ChIP-seq, ATAC-seq, enhancer data). These gaps do not undermine the core answer—they acknowledge the frame of the question—but they do prevent a perfect score. The stated confidence (0.63) is appropriately calibrated to acknowledge methodological nature and absence of quantitative specifics. Against the rubric: factuality is strong (biology is sound), completeness covers the evidence ladder and minimum bar as requested, citation correctness is solid (databases named are real and relevant), uncertainty calibration is honest, testability is reasonable for a framework, and safety/ethics are neutral.",
+      "rubric": {
+        "factuality": 0.82,
+        "completeness": 0.79,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.77,
+        "testability": 0.73,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 1945,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 536,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.07,
+  "outcome": "positive",
+  "mean_overall": 0.827,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

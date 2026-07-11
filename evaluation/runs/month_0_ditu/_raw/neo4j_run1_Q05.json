@@ -1,0 +1,270 @@
+{
+  "question_id": "Q05",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "Which pronephros/eye transcription factors lack an experimentally resolved structure in zebrafish and would require an AlphaFold prediction (with PAE) before any docking?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8208,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.8208,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7973,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7773,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7453,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7811,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.7425,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.28 < tau=0.5",
+      "query": "zebrafish pronephros transcription factors experimentally resolved structure",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "42246187",
+            "pmcid": "PMC13241088",
+            "doi": "10.7554/elife.110593",
+            "title": "The NTR/prodrug revolution: Tools for controlling cell loss and regeneration.",
+            "year": "2026",
+            "journal": "Elife",
+            "citations": 0
+          },
+          "abstract": "Here, we review the history, advancements, and broad utility of the NTR/prodrug system, and suggest future strategies for developing versatile ablation models. As a chemogenetic tool, the nitroreductase (NTR)/prodrug system enables precise spatiotemporal control over cell ablation. The technology leverages bacterial NTR enzymes (e.g. nfsB) to convert inert prodrugs into cytotoxic agents, thereby allowing researchers to induce targeted cell death. Although the NTR/prodrug approach was first implemented in transgenic mice, it was subsequently adapted to zebrafish, where it has been extensively optimized and applied. Consequently, zebrafish remain the primary focus of this review. Nevertheless, the utility of the NTR/prodrug system has expanded to other important model organisms, including Drosophila, Nematostella, Xenopus, medaka, and rats, enabling detailed studies of tissue damage and regeneration. This review highlights how the NTR system has been deployed to model a spectrum of human diseases, including Parkinson's disease, retinal degeneration, demyelinating disorders, and kidney disease. These models provide valuable platforms to study pathogenesis in vivo. Furthermore, the pre",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41484648",
+            "pmcid": "PMC12857030",
+            "doi": "10.1186/s13059-025-03917-8",
+            "title": "Unravelling the progression of the zebrafish primary body axis with reconstructed spatiotemporal transcriptomics.",
+            "year": "2026",
+            "journal": "Genome Biol",
+            "citations": 2
+          },
+          "abstract": "BackgroundElucidating the spatiotemporal dynamics of gene expression is essential for understanding complex physiological and pathological processes. Current spatial transcriptomics techniques are hindered by low read depths and limited gene detection. ResultsHere, we introduce Palette, a pipeline that infers detailed spatial gene expression patterns from bulk RNA-seq data, utilizing existing spatial transcriptomics data as the sole reference. This method identifies more precise expression patterns by smoothing, imputing and adjusting gene expressions. We apply Palette to reconstruct the zebrafish SpatioTemporal Expression Profiles (zSTEP) by integrating 53-slice serial bulk RNA-seq data from three developmental stages with existing spatial transcriptomics and image references. zSTEP provides a comprehensive cartographic resource for examining gene expression and investigating developmental events within zebrafish embryos. Utilizing machine learning-based screening, we identify key morphogens and transcription factors essential for anteroposterior axis development and characterized their dynamic distribution throughout embryogenesis. In addition, among these transcription factors, ",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "38714702",
+            "pmcid": "PMC11076586",
+            "doi": "10.1038/s41467-024-47982-2",
+            "title": "The miR-144/Hmgn2 regulatory axis orchestrates chromatin organization during erythropoiesis.",
+            "year": "2024",
+            "journal": "Nat Commun",
+            "citations": 6
+          },
+          "abstract": "Differentiation of stem and progenitor cells is a highly regulated process that involves the coordinated action of multiple layers of regulation. Here we show how the post-transcriptional regulatory layer instructs the level of chromatin regulation via miR-144 and its targets to orchestrate chromatin condensation during erythropoiesis. The loss of miR-144 leads to impaired chromatin condensation during erythrocyte maturation. Among the several targets of miR-144 that influence chromatin organization, the miR-144-dependent regulation of Hmgn2 is conserved from fish to humans. Our genetic probing of the miR-144/Hmgn2 regulatory axis establish that intact miR-144 target sites in the Hmgn2 3'UTR are necessary for the proper maturation of erythrocytes in both zebrafish and human iPSC-derived erythroid cells while loss of Hmgn2 rescues in part the miR-144 null phenotype. Altogether, our results uncover miR-144 and its target Hmgn2 as the backbone of the genetic regulatory circuit that controls the terminal differentiation of erythrocytes in vertebrates.",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on the RN2 \"Estructura proteica y complejos\" record, the transcription factors that DO have experimentally resolved 3D structures in zebrafish are tfap2a, foxc1a, pax2a, and wt1a. These four therefore do NOT require an AlphaFold prediction before docking.\n\nThe evidence bundle does NOT provide an enumerated list of the full pronephros/eye transcription factor set, so I cannot definitively name which specific TFs LACK a resolved structure — that answer depends on a reference list that is not in this bundle. What can be stated cleanly is the complement logic: any pronephros/eye TF that is NOT among {tfap2a, foxc1a, pax2a, wt1a} would lack an experimentally resolved structure in the RN2 store and would require an AlphaFold prediction (with PAE) before docking.\n\nCandidate pronephros/eye TFs commonly relevant to these niches that are ABSENT from the resolved-structure list (and would thus need AlphaFold + PAE) plausibly include factors such as osr1, hnf1b, lhx1, pax8, sim1a, mecom, pitx2/pitx3, lmx1b, six1/six2, and sall1 — but I cannot assert any of these as confirmed members of the \"lacking structure\" set from this bundle alone, nor can I assert their ENSDARG IDs, because neither a target-TF roster nor identifier bindings were supplied/verified here.",
+    "confidence": 0.32,
+    "evidence_cited": [
+      "niche:RN2",
+      "db:ZFIN",
+      "CORPUS-2026-0003"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      }
+    ],
+    "alternatives_considered": [
+      "Assume the question wants the full negative complement of a canonical pronephros/eye TF panel — rejected because no such panel is present in the bundle to subtract from.",
+      "Interpret it narrowly as 'only the four listed TFs are resolved, all others need AlphaFold' — this is the defensible logical statement but does not name the missing TFs.",
+      "Name specific missing TFs (osr1, hnf1b, lhx1, pax8, pitx2, lmx1b, etc.) — deferred/not asserted because membership and ENSDARGs are not verifiable from this evidence."
+    ],
+    "gap_flags": [
+      "No enumerated master list of pronephros/eye transcription factors in the bundle to compute the 'lacking structure' complement.",
+      "No verified ENSDARG identifier bindings provided (Key entities resolved in DI: none checked).",
+      "RN2 record is truncated (Notch/Jagged... cut off) — additional resolved structures may exist beyond tfap2a/foxc1a/pax2a/wt1a.",
+      "External literature (Path B) is unrelated to structure availability of these TFs.",
+      "PAE/AlphaFold coverage status per-gene is not itemized in the bundle."
+    ],
+    "framework_applied": "Set-complement / gap analysis: from the closed set of experimentally resolved TF structures in RN2, infer that non-listed TFs require AlphaFold+PAE. Applied because the question is a marker_identification 'which lack X' query, which is answered by subtracting the resolved set from the target universe — but the target universe is missing, so only the resolved set can be stated confidently.",
+    "search_query": "zebrafish pronephros eye transcription factors structure osr1 hnf1b lhx1 pax8 pitx2 lmx1b AlphaFold PDB resolved",
+    "_usage": {
+      "input_tokens": 3407,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1341,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.2,
+        "verdict": "incorrect",
+        "justification": "The expected answer is that foxc1a, pax2a, and wt1a LACK experimentally resolved structures in zebrafish and would require AlphaFold predictions (with PAE) before docking, distinguishing .pdb from AlphaFold .json/.pae outputs. The candidate gets this exactly backwards: it asserts that foxc1a, pax2a, and wt1a (plus tfap2a) DO have experimentally resolved structures and therefore do NOT need AlphaFold — the opposite of the correct trio. This is a fundamental factual inversion of the core answer. While the candidate is commendably honest about uncertainty (confidence 0.32, extensive gap flags) and correctly recognizes the .pdb vs AlphaFold+PAE distinction conceptually, the substantive claim it does commit to is wrong, and it explicitly declines to name the actual lacking-structure set the question asks for. Its speculative list of alternative TFs (osr1, hnf1b, etc.) is unverified padding that does not match expected evidence. Good calibration and safety, but the primary claim is incorrect, so this cannot score above partial-to-incorrect; the load-bearing assertion is inverted, warranting 'incorrect.'",
+        "rubric": {
+          "citation_correctness": 0.25,
+          "completeness": 0.15,
+          "factuality": 0.1,
+          "safety_ethics": 0.9,
+          "testability": 0.3,
+          "uncertainty_calibration": 0.6
+        },
+        "usage": {
+          "input_tokens": 1938,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 584,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The expected evidence indicates that foxc1a, pax2a, and wt1a are the TFs lacking experimentally resolved structures (thus requiring AlphaFold prediction with PAE), implying tfap2a likely has a resolved structure (e.g., a PDB entry) while the other three do not. The candidate answer inverts this: it claims tfap2a, foxc1a, pax2a, and wt1a ALL have resolved structures, and that none of them require AlphaFold prediction — directly contradicting the expected answer, which explicitly names foxc1a, pax2a, and wt1a as lacking resolved structures. This is a significant factual error on the core question. The candidate does correctly note the .pdb vs AlphaFold-.json/.pae distinction conceptually and expresses appropriate epistemic humility about lacking a full TF roster, but the central claim inverts the expected structure-availability status for the three key TFs, which is the crux of the question. The speculative list of alternative TFs (osr1, hnf1b, lhx1, etc.) is not aligned with expected evidence and is explicitly hedged, which is somewhat appropriate but doesn't rescue the wrong core claim. Given the answer gets the key TF-to-status mapping backwards, this must be scored as largely incorrect despite good calibration language and acknowledgment of uncertainty.",
+        "overall_score": 0.15,
+        "verdict": "incorrect",
+        "rubric": {
+          "factuality": 0.1,
+          "completeness": 0.2,
+          "citation_correctness": 0.3,
+          "testability": 0.2,
+          "uncertainty_calibration": 0.5,
+          "safety_ethics": 0.8
+        },
+        "usage": {
+          "input_tokens": 2002,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 624,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.38,
+        "justification": "The candidate demonstrates honest uncertainty and correct methodological reasoning about what cannot be inferred from the provided evidence bundle. The core insight—that tfap2a, foxc1a, pax2a, and wt1a have experimentally resolved structures (not requiring AlphaFold) while other factors would need AlphaFold-PAE predictions—appears sound and aligns with the expected evidence distinction between .pdb and AlphaFold-.json/.pae. However, the answer fundamentally fails the primary deliverable: it does not provide the specific list of TFs that lack structures (the question asks which factors \"lack\" an experimentally resolved structure, not which ones have it). The candidate's reasoning that \"any TF not in {tfap2a, foxc1a, pax2a, wt1a}\" would need AlphaFold is logically correct but operationally useless without the target gene roster. The speculative list (osr1, hnf1b, lhx1, pax8, sim1a, mecom, pitx2/pitx3, lmx1b, six1/six2, sall1) is explicitly disclaimed as unverified and not derived from the bundle. The candidate's self-reported confidence (0.32) and detailed gap_flags reflect appropriate epistemic humility, but this honesty about data unavailability does not overcome the incompleteness of the actual answer. Factuality is sound where claims are made, but testability and citation correctness are compromised by the absence of a definitive target list from the bundle and the speculative nature of the candidate-TF enumeration.",
+        "rubric": {
+          "factuality": 0.72,
+          "completeness": 0.28,
+          "citation_correctness": 0.65,
+          "testability": 0.35,
+          "uncertainty_calibration": 0.85,
+          "safety_ethics": 0.8
+        },
+        "usage": {
+          "input_tokens": 1697,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 523,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.23,
+    "outcome": "negative",
+    "mean_overall": 0.243,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.28 < tau=0.5",
+    "pass1_confidence": 0.28,
+    "pass2_confidence": 0.32,
+    "n_path_b_papers": 3
+  }
+}

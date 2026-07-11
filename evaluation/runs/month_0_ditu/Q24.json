@@ -1,0 +1,193 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q24",
+  "claim_timestamp": "2026-07-11T21:14:29Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.25,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "pathway_assembly",
+  "question_id": "Q24",
+  "question": "Which regulatory elements respond to RA signaling during pronephros patterning, and how would DanioCODE functional-genomics data confirm responsiveness?",
+  "backend": "neo4j",
+  "direct_answer": "Honest answer: the provided evidence bundle does NOT contain the specific regulatory-element identities that respond to RA (retinoic acid) signaling during pronephros patterning, so I can only give a partial, mechanism-level answer and describe how DanioCODE would be used to confirm responsiveness.\n\nWhat the bundle supports:\n1. The relevant biology is zebrafish pronephros/nephron patterning (CORPUS-2026-0003 confirms the pronephros as an in vivo model for vertebrate nephron development; niche RN1/RN3). RA signaling is a well-known upstream patterner of proximo-distal nephron segment identity, but the specific RA-responsive enhancers are NOT enumerated in this bundle.\n2. The candidate transcription factors implicated in this niche are named in the RN2 structural entry — tfap2a, foxc1a, pax2a, wt1a (plus RA receptors and Notch/Jagged components). These are plausible nodes whose cis-regulatory elements would carry RA-response elements (RAREs), but the bundle gives no ENSDARG IDs and no direct evidence that their enhancers are RA-responsive.\n\nHow DanioCODE functional-genomics data would confirm responsiveness (this is the answerable part, grounded in the DanioCODE database entry, whose stated purpose is to \"identify which regulatory elements respond to which signals and when\"):\n- Use DanioCODE's open chromatin maps (ATAC-seq/DNase-seq) across developmental stages to locate candidate cis-regulatory elements (CREs) in the intermediate-mesoderm/pronephros domain at the stages when RA patterns the nephron.\n- Cross-reference DanioCODE ChIP-seq for RA receptors (RARs/RXRs) to identify CREs directly bound by the RA signaling machinery — direct occupancy is the primary evidence of an RA-responsive element (i.e., a functional RARE).\n- Correlate active-enhancer histone marks (e.g., H3K27ac) and stage-resolved accessibility with RA manipulation (RA agonist/antagonist or aldh1a2 perturbation) to show that mark/accessibility gain or loss tracks RA activity.\n- Confirm the CRE regulates a pronephros gene by linking it to target promoters (e.g., pax2a/wt1a-type genes) via DanioCODE's chromatin-interaction/annotation layers, then validate functionally with reporter/enhancer assays.\n- Ensembl DanioRerio is the authoritative identifier resolver to bind any candidate gene/element to a verified ENSDARG coordinate.\n\nI am not asserting any specific RA-responsive enhancer because none is named in the evidence.",
+  "stated_confidence": 0.25,
+  "prior": 0.25,
+  "evidence_cited": [
+    "db:DanioCODE",
+    "db:Ensembl_DanioRerio",
+    "niche:RN2",
+    "CORPUS-2026-0003#c000",
+    "CORPUS-2026-0003"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "tfap2a"
+    },
+    {
+      "symbol": "foxc1a"
+    },
+    {
+      "symbol": "pax2a"
+    },
+    {
+      "symbol": "wt1a"
+    }
+  ],
+  "alternatives_considered": [
+    "That specific RA-responsive enhancers (RAREs) near pronephros genes are named in the bundle — rejected: no enhancer coordinates or ENSDARG IDs are present.",
+    "That the external PMIDs (41108536, 39682323, 39115947) provide RA/pronephros enhancer detail — rejected: they are a general zebrafish review, a sturgeon transcriptome, and a renal-vasculature review, none addressing RA-responsive CREs in the pronephros.",
+    "That STRING protein-interaction predictions could substitute for cis-regulatory evidence — rejected: STRING gives protein/pathway predictions, not enhancer responsiveness."
+  ],
+  "gap_flags": [
+    "No specific RA-responsive regulatory element / RARE identified in the bundle.",
+    "No ENSDARG IDs provided for any gene; symbols (tfap2a/foxc1a/pax2a/wt1a) come from RN2 structural entry and are unverified against the resolver.",
+    "No direct RAR/RXR ChIP-seq or ATAC-seq peak data in the bundle — only the DanioCODE database description of capability.",
+    "No stage/segment-specific evidence linking RA signaling to named pronephros CREs.",
+    "External literature is off-target for the RA-enhancer question."
+  ],
+  "framework_applied": "Pathway assembly with evidence-gap triage: mapped the mechanistic question (RA → CRE → pronephros patterning) onto available data layers (DanioCODE accessibility/ChIP/histone marks, Ensembl resolver) and flagged the missing element identities rather than inventing them.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T21:14:29Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.78,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.85,
+            "completeness": 0.55,
+            "factuality": 0.85,
+            "safety_ethics": 1.0,
+            "testability": 0.9,
+            "uncertainty_calibration": 0.95
+          },
+          "justification": "The answer is honest and well-calibrated: it explicitly states the bundle lacks specific RA-responsive element identities and does not fabricate any RARE or ENSDARG IDs, which aligns with the expected \"gap flags\" evidence dimension. The DanioCODE methodology is described concretely and correctly — using stage-resolved ATAC/DNase accessibility, RAR/RXR ChIP-seq occupancy as primary evidence of a functional RARE, H3K27ac active-enhancer marks tracked under RA perturbation (agonist/antagonist, aldh1a2 knockdown), and target-linkage validation — satisfying the \"DanioCODE evidence type\" and \"timing\" dimensions strongly and testability well. The candidate transcription factors (tfap2a, foxc1a, pax2a, wt1a) are plausible and appropriately flagged as unverified. Weaknesses: on the core question \"which regulatory elements respond to RA,\" the answer provides no named RA-responsive elements at all — it can only gesture at candidate TF loci — so completeness on the primary ask is limited, though this is partly a bundle limitation and the answer is transparent about it. The low stated confidence (0.25) may slightly undersell the genuinely solid methodological portion. Overall a strong, honest partial answer that correctly refuses to overclaim.",
+          "usage": {
+            "input_tokens": 2374,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 620,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate correctly recognizes that the provided evidence bundle lacks specific named RA-responsive regulatory elements/RAREs for pronephros patterning, and appropriately flags this as a gap rather than fabricating specifics. It grounds its answer in plausible mechanistic reasoning (RA as a proximo-distal patterning cue, candidate TFs tfap2a/foxc1a/pax2a/wt1a from RN2) and gives a reasonable, generic description of how DanioCODE's ATAC-seq/ChIP-seq/H3K27ac functional-genomics layers could in principle be used to confirm RA-responsiveness (chromatin accessibility, RAR/RXR occupancy, histone marks, perturbation correlation, chromatin-interaction linking to target genes). This aligns with the rubric's expectation of naming RA-responsive elements, DanioCODE evidence type, timing, and gap flags — though the actual RA-responsive elements are not identified (because they're absent from the bundle), and timing is only generically described (\"stages when RA patterns the nephron\") without concrete stage information. Citations are appropriately vague/uncertain given the evidence gaps, and gap flags are thorough and well-calibrated. The confidence score of 0.25 is appropriately low. Overall this is a well-hedged, honest partial answer that does what's possible given a genuinely deficient evidence bundle, but it cannot satisfy the \"which regulatory elements\" part of the question with actual specifics, and does not provide concrete timing/stage details, so it falls short of full correctness while still being a strong-quality partial response.",
+          "overall_score": 0.55,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.7,
+            "completeness": 0.4,
+            "citation_correctness": 0.5,
+            "testability": 0.6,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2438,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 711,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "rubric": {
+            "factuality": 0.75,
+            "completeness": 0.55,
+            "citation_correctness": 0.8,
+            "uncertainty_calibration": 0.85,
+            "testability": 0.65,
+            "safety_ethics": 0.9
+          },
+          "justification": "The candidate demonstrates strong uncertainty calibration and honesty by explicitly stating that the evidence bundle does NOT contain specific RA-responsive regulatory-element identities. This transparent acknowledgment of gaps is appropriate and praiseworthy. The answer correctly identifies the relevant biological context (zebrafish pronephros, RA signaling, nephron patterning) and accurately cites supporting evidence (CORPUS-2026-0003, DanioCODE database, RN2 structural entry). The plausible candidate transcription factors (tfap2a, foxc1a, pax2a, wt1a) are correctly extracted and reasonably characterized as potential nodes whose enhancers would carry RAREs. The DanioCODE methodology section is well-reasoned and testable, correctly describing how functional-genomics data (ATAC-seq, ChIP-seq for RARs, H3K27ac correlation, chromatin interactions) would operationally confirm RA-responsiveness—this directly addresses the second part of the question. However, the answer fails to deliver the core expectation: identification of specific RA-responsive regulatory elements. While the candidate explicitly disclaims this, the question asks \"which regulatory elements respond to RA signaling,\" implying an enumeration was sought. The answer also does not provide timing information (developmental stages) or named gap flags with the specificity required. The citation of external literature as \"off-target\" may be overstated—literature on RA-responsive enhancers in vertebrate nephron development, if in the bundle, would strengthen the answer. The answer is factually sound in what it asserts, methodologically rigorous in its DanioCODE approach, and refreshingly honest about limitations, but it is incomplete relative to the expected evidence scope (RA-responsive elements + DanioCODE evidence type + timing + gap flags).",
+          "usage": {
+            "input_tokens": 2004,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 563,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.23,
+      "outcome": "positive",
+      "mean_overall": 0.65,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.34 < tau=0.5"
+    }
+  ]
+}

@@ -1,0 +1,245 @@
+{
+  "question_id": "Q06",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "pathway_assembly",
+  "bundle": {
+    "question": "Describe the Jagged2a–Notch and Foxc1a–Pitx2 complexes relevant to anterior-segment/eye development and how their interaction evidence would be assembled.",
+    "entities_checked": {
+      "foxc1a": {
+        "in_di": true,
+        "ensdarg": "ENSDARG00000091481"
+      },
+      "pitx2": {
+        "in_di": true,
+        "ensdarg": "ENSDARG00000036194"
+      }
+    },
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7856,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.7856,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7978,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7495,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.6892,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.6859,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7228,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.42 < tau=0.5",
+      "query": "zebrafish signaling foxc1a pitx2 describe jagged notch complexes relevant anterior-segment",
+      "papers": []
+    }
+  },
+  "contract": {
+    "direct_answer": "Two protein complexes relevant to zebrafish anterior-segment/eye development can be described from the bundle, though the evidence supports their *structural existence* far better than the specific *molecular interaction data* needed to link them:\n\n1) Jagged2a–Notch complex. This is a canonical ligand–receptor signaling pair: the DSL ligand Jagged2a on one cell binds the extracellular EGF-repeat region of a Notch receptor on the neighboring cell, triggering regulated intramembrane proteolysis and release of the Notch intracellular domain. The RN2 niche (\"Estructura proteica y complejos\") explicitly lists experimentally resolved 3D coordinates for \"Notch/Jagg[ed]\" structures, so the ligand–receptor interface can be grounded in resolved structure rather than inferred. This is a trans (cell–cell) signaling complex.\n\n2) Foxc1a–Pitx2 complex. Both foxc1a (in-DI) and pitx2 (in-DI) are resolved forkhead/bicoid-class transcription factors central to anterior-segment dysgenesis biology. The relationship here is a nuclear/cis-regulatory one: Foxc1a and Pitx2 are co-expressed periocular/anterior-segment transcription factors that can act combinatorially on shared target promoters and may physically associate as a transcription-factor pair. RN2 lists resolved coordinates for foxc1a (and related TFs tfap2a/pax2a/wt1a), so foxc1a can be structurally grounded; a resolved pitx2 structure and a co-crystal/complex is NOT confirmed in the bundle.\n\nHow the interaction evidence would be assembled: (a) Anchor each protein's 3D coordinates from the RN2 structural niche (Notch/Jagged and foxc1a explicitly present). (b) For the Jagged2a–Notch trans interface, use the resolved ligand–receptor structure directly; corroborate the pathway wiring via Reactome (Notch signaling pathway, zebrafish by orthology). (c) For Foxc1a–Pitx2, because no co-structure is asserted, assemble interaction support predictively: pull STRING_DB predicted protein–protein associations and Reactome pathway co-membership, then look for spatiotemporal co-expression in the CORPUS-2026-0002 anterior-segment (trabecular meshwork / annular ligament) scRNA atlas and the ZESTA (CORPUS-2026-0001) 3–24 hpf spatiotemporal atlas to establish that the two TFs occupy the same cells at the same stage. (d) Use RN10 (neighboring-tissue Cartesian coords + timing matrices) to check that Jagged2a–Notch-signaling cells and Foxc1a/Pitx2-expressing periocular mesenchyme are physically adjacent, which is the boundary condition that would make a Notch→TF regulatory hand-off plausible.\n\nCaveat: the bundle supports the *structures and a workflow for assembling evidence*, but it does NOT contain direct experimental interaction data for Foxc1a–Pitx2 binding, nor does it specify which Notch paralog partners Jagged2a in the eye, nor any measured Notch↔Foxc1a/Pitx2 crosstalk. Those links would be predicted (STRING/Reactome) or inferred from co-expression, not directly demonstrated.",
+    "confidence": 0.34,
+    "evidence_cited": [
+      "niche:RN2",
+      "CORPUS-2026-0002",
+      "CORPUS-2026-0001",
+      "db:Reactome",
+      "db:STRING_DB",
+      "niche:RN10"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "pitx2"
+      },
+      {
+        "symbol": "jag2a"
+      },
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      }
+    ],
+    "alternatives_considered": [
+      "Jagged2a signals through a specific Notch paralog (notch1a/1b/2/3) in the eye — bundle does not disambiguate which receptor, so the exact receptor identity is unresolved.",
+      "Foxc1a and Pitx2 may act in the same regulatory pathway WITHOUT forming a direct physical complex (parallel co-regulators rather than a heterodimer) — the bundle cannot distinguish physical binding from functional co-expression.",
+      "The Notch and Foxc1a/Pitx2 modules may be independent (non-interacting) programs that merely co-occur in periocular tissue, rather than a single interacting cascade."
+    ],
+    "gap_flags": [
+      "No ENSDARG identifiers provided in the bundle for foxc1a, pitx2, or jag2a — gene IDs left unbound rather than invented.",
+      "No resolved co-structure or direct experimental Foxc1a–Pitx2 binding data in the bundle; interaction would be predictive (STRING) only.",
+      "Notch receptor paralog partnering Jagged2a in the eye is not specified.",
+      "No direct evidence of Notch↔Foxc1a/Pitx2 crosstalk; any regulatory link is inferred from co-expression + adjacency, not measured.",
+      "Jagged2a is not explicitly named in the retrieved snippets (RN2 lists 'Notch/Jagg[ed]' generically); the a-paralog assignment is an assumption."
+    ],
+    "_usage": {
+      "input_tokens": 2054,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2000,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "rubric": {
+          "citation_correctness": 0.7,
+          "completeness": 0.65,
+          "factuality": 0.85,
+          "safety_ethics": 1.0,
+          "testability": 0.75,
+          "uncertainty_calibration": 0.9
+        },
+        "justification": "The expected evidence centers on two specific points: distinguishing physical vs predicted interaction provenance (IntAct physical, STRING predictive) and a complex PAE (predicted aligned error) note. The candidate handles the provenance distinction well — it clearly separates the structurally-grounded Notch/Jagged ligand-receptor interface from the predictive-only Foxc1a-Pitx2 association, and correctly routes the latter through STRING predicted associations plus co-expression/adjacency inference. This maps closely to the 'STRING predictive' half of the rubric. However, it never invokes IntAct as the source of physical interaction evidence — a notable omission since the expected evidence explicitly names IntAct as the physical-interaction database. Critically, the answer also completely omits any mention of a complex PAE note (predicted aligned error for the assembled/predicted complex), which is a required rubric element for gauging confidence in a predicted structure — this is a clear gap. On the positive side, factuality is strong: the Notch RIP mechanism, DSL ligand/EGF-repeat binding, and the forkhead/bicoid TF biology are all accurate, and uncertainty calibration is excellent — the low stated confidence (0.34), honest gap_flags about missing co-structure, unassigned paralog, refusal to invent ENSDARG IDs, and the caveat about inferred crosstalk are all appropriately hedged. The assembly workflow is coherent and testable. Overall a solid, honest answer that captures the physical-vs-predicted provenance logic but misses the specific IntAct citation and the PAE note, hence partial.",
+        "usage": {
+          "input_tokens": 2684,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 713,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The candidate addresses the core expected evidence points: it distinguishes physical/structural provenance (RN2 resolved coordinates for Notch/Jagged and foxc1a) from predictive interaction sources (STRING_DB predicted associations, Reactome pathway membership) for the Foxc1a–Pitx2 pair, which aligns with the expected 'physical vs predicted interaction provenance (IntAct physical, STRING predictive)' criterion — though it substitutes RN2 structural coordinates for IntAct as the physical evidence source rather than explicitly citing IntAct, which is a minor mismatch with the expected evidence's specific database framing. It does not explicitly mention 'complex PAE note' (predicted aligned error, a common structural-confidence metric in complex prediction models like AlphaFold-Multimer), which is called out as expected evidence — this is a notable omission. The answer provides a plausible, well-reasoned assembly workflow (structural anchoring, STRING/Reactome corroboration, co-expression in spatiotemporal atlases, spatial adjacency), which is thoughtful and testable, and it is appropriately hedged with a low stated confidence (0.34) and explicit caveats about missing gene IDs, unconfirmed Jagged2a paralog identity, and lack of direct experimental interaction data. Citations are somewhat generic (niche/database references rather than specific accession or paper IDs) but consistent with the hedged, uncertain framing. Overall, the answer captures much of the requested distinction between physical and predicted evidence and outlines a sound assembly method, but misses the specific PAE/complex-confidence detail and substitutes IntAct with RN2, so it's a partial match to the expected evidence.",
+        "overall_score": 0.55,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.6,
+          "completeness": 0.5,
+          "citation_correctness": 0.5,
+          "uncertainty_calibration": 0.8,
+          "testability": 0.6,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2748,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 751,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.78,
+        "justification": "The candidate answer directly addresses the question's requirement to distinguish physical vs predicted interaction evidence and to describe how interaction assembly would work. On the positive side: (1) The answer correctly identifies the distinction between experimentally resolved structures (Notch/Jagged ligand–receptor from RN2) and predicted associations (Foxc1a–Pitx2 via STRING/Reactome/co-expression); (2) it provides a clear methodological framework for evidence assembly spanning structural anchoring, pathway corroboration, and spatiotemporal grounding; (3) it explicitly cites relevant resources (RN2, CORPUS atlases, Reactome, STRING_DB, RN10) with appropriate context; (4) it honestly flags critical gaps (no co-structure for Foxc1a–Pitx2, unspecified Notch paralog, no direct crosstalk data) and avoids fabricating specifics (correctly refrains from inventing ENSDARG IDs). The candidate also correctly notes that the Jagged2a–Notch interface can be grounded in resolved structure while the Foxc1a–Pitx2 relationship must rely on predictive/co-expression evidence. Minor weaknesses: the answer could have been more explicit about IntAct's role or absence in the bundle, and the treatment of the Jagged2a assignment as an \"assumption\" is appropriately cautious but slightly undermines confidence. The stated confidence of 0.34 appears miscalibrated relative to the answer's substantive completeness and honesty—the answer merits higher confidence given its methodological rigor and transparency about limitations. Overall, this is a mature, carefully hedged answer that correctly prioritizes distinction of evidence types and avoids overclaiming, which aligns well with the rubric's emphasis on factuality, calibration, and testability.",
+        "rubric": {
+          "factuality": 0.82,
+          "citation_correctness": 0.85,
+          "completeness": 0.75,
+          "testability": 0.8,
+          "uncertainty_calibration": 0.72,
+          "safety_ethics": 0.85
+        },
+        "usage": {
+          "input_tokens": 2210,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 551,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.23,
+    "outcome": "positive",
+    "mean_overall": 0.683,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.34,
+    "n_path_b_papers": 0
+  }
+}

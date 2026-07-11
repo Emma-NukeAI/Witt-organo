@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.7,
+      "verdict": "partial",
+      "justification": "The candidate constructs the expected step ladder well: it maps cell dynamics → geometry → adhesion → diffusive fields → integration/calibration, and correctly ties adhesion inputs (affinity matrix, cortical tension, friction) to Morpheus .json and CPM contact/surface constraints (matching the expected affinity/cortical-tension .json and scaffold .xml evidence). It correctly names the framework (multi-scale Cellular Potts/Morpheus modules: Interaction, CellType constraints, motility plugins, Field/PDE) and provides per-step confidence and gap flags, which is exactly what the question asked. Strengths: honest, well-calibrated uncertainty (0.28 confidence), explicit MISSING flags for geometry, diffusion coefficients, and cornea-specific labeling, and it distinguishes on-target vs off-target corpus items — this shows good factuality and uncertainty calibration and avoids overclaiming a runnable model. Weaknesses: it does not surface CIL (contact-inhibition-of-locomotion) as a distinct step, which the expected ladder explicitly lists, and it misses the specific gap flag exemplar (TGF-β2 GOF bead) — instead giving only generic 'diffusion params missing' flags. Notably, its own structured gap_flags field is 'None' despite rich inline gap discussion, a minor inconsistency. Citations to RN6/RN8/RN13 and the atlas appear reasonable and internally consistent, though unverifiable here. Overall a strong, honest, but incomplete answer that omits CIL and the concrete TGF-β2 gap exemplar.",
+      "rubric": {
+        "citation_correctness": 0.75,
+        "completeness": 0.6,
+        "factuality": 0.85,
+        "safety_ethics": 1.0,
+        "testability": 0.65,
+        "uncertainty_calibration": 0.9
+      },
+      "usage": {
+        "input_tokens": 2734,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 725,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "The expected evidence calls for a clear step ladder (geometry → adhesion → diffusive fields → CIL), explicit mention of affinity/cortical-tension .json files, a scaffold .xml, and gap flags such as the TGF-β2 GOF bead experiment. The candidate does present a step ladder with framework mappings (CPM/Morpheus modules: Interaction, SurfaceConstraint, Field/Diffusion, CellDeath, motility plugins) and does mention affinity matrices and cortical tension as .json inputs (RN6) and a Morpheus .xml scaffold (RN13), which aligns reasonably well with the expected evidence. However, the ordering differs from the expected ladder (geometry → adhesion → diffusive fields → CIL): the candidate orders it as cell dynamics → geometry → adhesion → diffusive fields → integration, omitting CIL (contact inhibition of locomotion) entirely as a named step/plugin, which is an explicit expected component. The candidate also does not mention the TGF-β2 GOF bead gap flag specifically, instead flagging generic gaps (missing geometry, missing diffusion coefficients, unconfirmed cell-type mapping) — these are plausible and honest but do not match the specific expected gap flag content. This suggests either the underlying corpus wasn't matched precisely or the candidate substituted generic gaps for the specific expected one. The confidence calibration (0.28) is reasonably honest and matches the tone of extensive gap-flagging, avoiding overclaiming, which is good practice. Citations are given at the niche/corpus level rather than precise document/page citations, which is consistent with the informal sourcing style but can't be verified against ground truth. Overall this is a partial match: good structural attempt with reasonable Morpheus mappings and strong honesty/uncertainty calibration, but missing explicit CIL as a step, missing the specific TGF-β2 GOF bead gap flag, and no formal \"gap_flags\" field populated despite extensive prose gap flagging. This is a solid partial credit case.",
+      "overall_score": 0.45,
+      "verdict": "partial",
+      "rubric": {
+        "completeness": 0.45,
+        "factuality": 0.55,
+        "citation_correctness": 0.4,
+        "testability": 0.5,
+        "uncertainty_calibration": 0.75,
+        "safety_ethics": 0.8
+      },
+      "usage": {
+        "input_tokens": 2798,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 865,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.82,
+      "justification": "The candidate demonstrates exceptional intellectual honesty and methodological rigor by explicitly refusing to fabricate a complete model when the required data are absent. The answer provides a well-structured step-ladder (geometry → adhesion → diffusive fields → dynamics) aligned with the expected evidence framework. Each step correctly maps biological inputs to Morpheus framework components (CPM, Interaction energies, Field/PDE systems, motility plugins) and flags genuine gaps (missing cornea-specific quantitative data, geometry/mesh, diffusion coefficients, calibrated cell-type labels). The stated confidence of 0.28 appropriately reflects the severity of the gaps. The critical caveat about off-target corpus material (pronephros, angiogenesis) demonstrates careful scrutiny. Weaknesses: (1) gap_flags are stated as \"None\" despite the answer enumerating multiple critical gaps—this should have been explicitly structured as a list (e.g., [\"missing corneal geometry\", \"unverified migration/apoptosis cornea-specificity\", \"absent diffusion parameters\", \"unconfirmed cell-type labeling\", \"TGF-β2 GOF bead validation not addressed\"]); (2) the answer does not explicitly name a confidence level for each step, only overall; (3) no discussion of how the \"TGF-β2 GOF bead\" gap flag would materially constrain the model; (4) the assembly workflow, while logically sound, remains somewhat generic to CPM modeling rather than deeply cornea-contextualized. The answer exemplifies high intellectual standards by avoiding overclaiming and exposing real limitations, directly rewarding the rubric's emphasis on uncertainty calibration and penalizing fabrication.",
+      "rubric": {
+        "factuality": 0.88,
+        "citation_correctness": 0.85,
+        "completeness": 0.75,
+        "uncertainty_calibration": 0.92,
+        "testability": 0.78,
+        "safety_ethics": 0.92
+      },
+      "usage": {
+        "input_tokens": 2184,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 531,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.37,
+  "outcome": "positive",
+  "mean_overall": 0.657,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

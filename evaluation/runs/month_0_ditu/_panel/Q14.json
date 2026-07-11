@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "rubric": {
+        "citation_correctness": 0.7,
+        "completeness": 0.65,
+        "factuality": 0.8,
+        "safety_ethics": 1.0,
+        "testability": 0.8,
+        "uncertainty_calibration": 0.85
+      },
+      "justification": "The answer correctly captures the core of the expected evidence: a per-region/per-stage (per-hpf) statistics schema summarizing migration velocity and apoptosis rate, with a tidy record structure ({region, stage_hpf, mean_velocity, velocity_SD, n_cells, apoptosis_pct_per_hr}) that maps well to the expected .json per-region/per-hpf stats schema. It correctly grounds this in tracked cell trajectories as the ground truth and describes the calibration handoff. However, it misses a specific piece of the expected evidence: the ImageJ/Fiji tracking (.xml) provenance — the answer references tracking generically but never names the Fiji/ImageJ tooling or the .xml artifact, and even flags this as a gap. It also does not explicitly assert the .json format for the schema (implied via the tidy record but not named). The candidate is appropriately hedged (confidence 0.62) and its gap_flags are honest and accurate, transparently noting that units, region ontology, and detection methods are inferred rather than documented — good uncertainty calibration and no overclaiming. Citations to niche identifiers are plausible but unverifiable here, and the reliance on inferred RN8 field names slightly risks fabricated specifics, though the answer explicitly labels them as inferred. Overall a solid, honest, mostly-complete methodological answer that omits the provenance/tooling half of the expected evidence.",
+      "usage": {
+        "input_tokens": 2146,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 650,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "The candidate answer proposes a plausible aggregation scheme (per-region × per-stage tables with mean velocity, dispersion, apoptosis %/hr) that conceptually matches the expected evidence's notion of a per-region/per-hpf stats schema. However, it fails to mention the expected .json schema format explicitly as a file type, and critically omits any mention of ImageJ/Fiji tracking (.xml) provenance, which is a key piece of expected evidence about how the raw trajectories are generated/tracked. The candidate does discuss raw trajectories as an input layer but never ties this to the specific tool (ImageJ/Fiji) or file format (.xml) that the expected evidence calls for. The candidate is appropriately calibrated with a moderate confidence score (0.62) and transparently flags several gaps, including that exact fields, units, and tracking method are inferred rather than sourced from actual data. This honesty is commendable, but the core omission of the ImageJ/Fiji .xml provenance detail is a meaningful gap against the expected evidence. Citations to niche IDs (RN8, RN3, RN13, RN7) are used as scaffolding but cannot be verified independently; RN7 is cited without explanation in the answer body, which is a minor citation issue. Overall, the answer is thoughtful, methodologically sound, and well-hedged, but incomplete relative to the specific expected evidence about tracking software/file format provenance.",
+      "overall_score": 0.55,
+      "verdict": "partial",
+      "rubric": {
+        "factuality": 0.6,
+        "completeness": 0.45,
+        "citation_correctness": 0.5,
+        "testability": 0.6,
+        "uncertainty_calibration": 0.75,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 2210,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 651,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.72,
+      "rubric": {
+        "factuality": 0.8,
+        "completeness": 0.65,
+        "uncertainty_calibration": 0.85,
+        "citation_correctness": 0.7,
+        "testability": 0.6,
+        "safety_ethics": 1.0
+      },
+      "justification": "The candidate provides a methodologically sound and well-structured answer to the simulation-calibration question, correctly identifying the core workflow: track cells → bin by region/stage → aggregate statistics → feed into simulation. The four-layer framework (input, aggregation, output, simulation use) is logical and practical. However, the answer falls short of the expected evidence requirement in two critical ways: (1) No actual per-region/per-stage statistics schema is presented (the expected evidence explicitly calls for \".json\" format); the answer describes the conceptual structure but does not show a concrete data schema, field names, units, or example records. (2) ImageJ/Fiji tracking provenance (.xml format) is not discussed—the answer assumes tracked trajectories exist but does not address how they are acquired, stored, or validated via standard provenance metadata. The candidate correctly identifies dispersion metrics (SD/IQR), directionality, apoptosis rates (%/hr), and cites RN8/RN3/RN13, but these citations are assumed to contain the relevant details rather than verified. The candidate's own gap_flags are honest and appropriate: they acknowledge lack of RN8 actual data records, region nomenclature, exact field definitions, and the apoptosis-detection method. The answer is substantively correct in its methodological framework (binning, aggregation, calibration-target structure) and well-calibrated in confidence (0.62), but does not deliver the concrete, schema-level specificity or tracking-metadata documentation expected. The safety/ethics dimension is not relevant and scores maximally. Factuality is high because the approach is sound, but completeness and testability suffer from absence of instantiated schema and provenance details.",
+      "usage": {
+        "input_tokens": 1811,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 531,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.17,
+  "outcome": "positive",
+  "mean_overall": 0.663,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

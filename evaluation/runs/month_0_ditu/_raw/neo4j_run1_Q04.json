@@ -1,0 +1,263 @@
+{
+  "question_id": "Q04",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "specificity_ratio",
+  "bundle": {
+    "question": "Given a marker's expression across all clusters in a whole-embryo atlas, compute its tissue specificity ratio and assign a Tier (1/2/3) for a global-KO perturbation. Why is the broadest reference dataset mandatory before the Tier label?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7438,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7438,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.76,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "niche:RN1",
+          "type": "niche",
+          "score": 0.7034,
+          "text": "RN1 Transcriptómica y dinámica de linajes. Lineage hierarchy trees + transition-probability matrices (.json); average expression per cell ty"
+        },
+        {
+          "doc_id": "db:GEO_NCBI",
+          "type": "database",
+          "score": 0.6889,
+          "text": "GEO NCBI. Gene-expression analysis and interactions. Data: Gene count/expression data from published papers. Feeds RN1, RN8, RN9."
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.6907,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7296,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.34 < tau=0.5",
+      "query": "zebrafish marker expression clusters whole-embryo atlas tissue",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": null,
+            "pmcid": "PMC13232246",
+            "doi": null,
+            "title": "Embryo-scale Visual Cell Sorting reveals a conserved transcriptomic signature of nucleolar size linked to proteostasis",
+            "year": "2026",
+            "journal": "bioRxiv",
+            "citations": 0
+          },
+          "abstract": "",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41546624",
+            "pmcid": "PMC12958812",
+            "doi": "10.1093/g3journal/jkaf306",
+            "title": "Gli3R-mediated inhibition of hedgehog signaling alters the embryonic transcriptome in zebrafish.",
+            "year": "2026",
+            "journal": "G3 (Bethesda)",
+            "citations": 0
+          },
+          "abstract": "Hedgehog signaling is a conserved developmental pathway that patterns diverse tissues during vertebrate embryogenesis. In zebrafish, disruptions to the hedgehog pathway cause well-characterized defects in specific cell types including neurons and glia derived from the ventral neural tube. We inhibited hedgehog signaling by overexpressing the Gli3 repressor ubiquitously and performed bulk RNA sequencing of 30 h postfertilization zebrafish embryos. Consistent with known roles of hedgehog signaling, we observed reduced expression of genes marking lateral floor plate, motor neurons, Kolmer-Agduhr cells, dopaminergic neurons, slow muscle cells, and anterior pituitary. Gene set enrichment analysis using marker genes derived from the Daniocell atlas also revealed downregulation of genes marking H+-ATPase-rich ionocytes, which are located in the embryonic skin and are responsible for osmotic homeostasis. Reduced expression of ionocyte-specific transporter genes and the transcription factor foxi3a suggests that Gli activity may play a previously unrecognized role in the specification of this cell type.",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41922342",
+            "pmcid": "PMC13216532",
+            "doi": "10.1038/s41467-026-70989-w",
+            "title": "MIC-Drop-seq: scalable single-cell phenotyping of mutant vertebrate embryos.",
+            "year": "2026",
+            "journal": "Nat Commun",
+            "citations": 0
+          },
+          "abstract": "Pooled perturbation screens can reveal cellular regulatory networks, yet scaling these techniques for large-scale screens in animals remains challenging. Here we present MIC-Drop-seq, a technique that addresses these challenges by combining high-throughput CRISPR gene disruption in zebrafish embryos with phenotyping by multiplexed single-cell RNAseq. In one MIC-Drop-seq experiment, we simultaneously identified changes in gene expression and cell abundance across 74 cell types resulting from loss of function of 50 transcription factors. These observations recapitulate many known phenotypes, while also uncovering previously uncharacterized roles for transcription factors in brain and mesoderm development. A key advantage of whole-animal screens is that they reveal how changes in one cell type affect the development of other cell types. Surprisingly, such cell-extrinsic phenotypes are abundant, indicating that transcription factors frequently exert effects beyond the cells where they are expressed to adjacent cells. We propose that MIC-Drop-seq will facilitate efforts to dissect the complete gene regulatory networks that guide animal development.",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "METHOD (specificity_ratio):\n1. Take the marker's average expression per cell type/cluster — this is exactly the summary statistic that niche RN1 provides (\"average expression per cell type\"), sourced from GEO/ZFIN.\n2. Compute the tissue specificity ratio = (expression in the top/target cluster) ÷ (mean or summed expression across ALL clusters in the atlas). A ratio near 1 means the marker is essentially restricted to one tissue; a ratio near 1/N (N = number of clusters) means it is uniformly/ubiquitously expressed.\n3. Assign a Tier for a global (ubiquitous) KO perturbation based on that ratio:\n   • Tier 1 — high specificity (marker concentrated in one/few clusters): a global KO produces an interpretable, tissue-attributable phenotype because the affected transcript maps to a discrete cell population.\n   • Tier 2 — intermediate specificity (marker in several related clusters): phenotype is partly attributable but confounded by multi-tissue expression.\n   • Tier 3 — low specificity / broad or ubiquitous expression (ratio ≈ background): a global KO gives a smeared, hard-to-localize phenotype; cell-extrinsic and pleiotropic effects dominate.\n\nI cannot output an actual numeric ratio or a specific Tier here because the marker identity and the per-cluster expression vector were NOT included in this bundle — only the RN1 niche descriptor telling us such average-expression-per-cell-type data exists. So the answer is the procedure, not a value.\n\nWHY THE BROADEST REFERENCE DATASET IS MANDATORY BEFORE THE TIER LABEL:\nThe specificity ratio's denominator is \"expression across ALL clusters.\" If your reference atlas is missing cell types, the denominator is artificially small and the ratio is inflated — a genuinely broad marker looks falsely specific, and you would over-assign Tier 1. A whole-embryo atlas (e.g. ZESTA covering the full 3–24 hpf window, CORPUS-2026-0001, or the Daniocell-style whole-animal reference) is required so that every competing site of expression is represented in the denominator. This is directly reinforced by the whole-animal perturbation literature (PMID:41922342, MIC-Drop-seq): a key finding is that global/genetic perturbations produce abundant CELL-EXTRINSIC phenotypes — TFs affect cells beyond where they are expressed. For a global KO you therefore cannot judge attributability from a narrow, tissue-focused dataset; you need the broadest atlas to (a) normalize specificity correctly and (b) anticipate cross-tissue effects that a restricted reference would hide.",
+    "confidence": 0.34,
+    "evidence_cited": [
+      "niche:RN1",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0002",
+      "db:GEO_NCBI",
+      "db:ZFIN",
+      "db:CNGB_STOmics",
+      "PMID:41922342",
+      "PMID:41546624"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Report a concrete ratio and Tier — rejected: the specific marker and its per-cluster expression vector are absent from the bundle, so any number would be fabricated.",
+      "Use only the anterior-segment/corneal atlas (CORPUS-2026-0002) as reference — rejected: it is tissue-restricted, would shrink the denominator and inflate specificity, exactly the failure mode the question warns against.",
+      "Treat Tier purely by max expression rather than a ratio — rejected: without normalizing over all clusters you cannot distinguish specific from ubiquitous markers."
+    ],
+    "gap_flags": [
+      "No marker gene identity or ENSDARG supplied — cannot bind any symbol/ID.",
+      "No per-cluster average expression vector provided; only RN1's descriptor that such data exists.",
+      "No explicit Tier threshold definitions (cutoff ratios for Tier 1/2/3) are given in the bundle — my thresholds are illustrative, not sourced.",
+      "Number of clusters N in the reference atlas not stated, so the ubiquitous-expression baseline (1/N) cannot be computed."
+    ],
+    "framework_applied": "Denominator-integrity / normalization reasoning for a specificity metric, combined with perturbation-attributability logic (cell-intrinsic vs cell-extrinsic) — chosen because the question hinges on why the reference set breadth controls both the ratio's denominator and the interpretability of a global-KO Tier call.",
+    "search_query": "zebrafish marker tissue specificity ratio whole embryo atlas cluster average expression global knockout tier cell-extrinsic Daniocell",
+    "_usage": {
+      "input_tokens": 3070,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1725,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.52,
+        "verdict": "partial",
+        "justification": "The candidate gets the conceptual direction right and gives well-calibrated uncertainty (0.34, honest gap flags). Its \"why broadest dataset\" reasoning is exactly correct: a truncated atlas shrinks the denominator, inflates the ratio, and causes false Tier-1 over-assignment — matching the mafba lens-contamination lesson in spirit. However, it misses the specific expected formula: SR = target-mean / max-nontarget-mean (ratio to the single largest non-target cluster). The candidate instead defines SR as target ÷ mean/summed expression across ALL clusters, which is a different (and less discriminating) statistic — this is a factual deviation from the expected evidence. It also never surfaces the canonical worked example (mafba, SR≈0.145 → Tier 3), correctly noting the marker vector wasn't supplied, but thereby failing to reproduce the diagnostic case. Tier thresholds are appropriately flagged as illustrative. Citations are plausible but partly speculative (unverifiable corpus/PMID IDs). Overall: sound reasoning and good calibration, but the core formula is wrong and the key example is absent, so partial rather than correct.",
+        "rubric": {
+          "citation_correctness": 0.5,
+          "completeness": 0.45,
+          "factuality": 0.55,
+          "safety_ethics": 1.0,
+          "testability": 0.5,
+          "uncertainty_calibration": 0.85
+        },
+        "usage": {
+          "input_tokens": 2431,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 571,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.3,
+        "verdict": "partial",
+        "justification": "The candidate correctly explains the general methodology for computing a tissue specificity ratio and the rationale for why a broad, whole-embryo reference dataset is necessary (avoiding an artificially small denominator, capturing cell-extrinsic effects), which aligns reasonably with the expected reasoning about denominator inflation and Tier misassignment. However, it fails to match the specific expected evidence: the exact SR formula (target-mean / max-nontarget-mean, not target/all-clusters-mean or sum) is incorrect, and the answer omits the concrete mafba lens-contamination example (SR≈0.145 → Tier 3) entirely, despite this being the central expected evidence. The candidate acknowledges it lacks a concrete marker and per-cluster vector, and appropriately abstains from giving a numeric value, which is honest calibration, but this omission means the answer does not actually address the specific case that the question implicitly expects (the mafba example is treated as canonical evidence, suggesting the question intends the answer to include it or reason through it, possibly using known illustrative data). The formula error (mean-over-all-clusters vs. max-nontarget-mean) is a meaningful factual deviation since it changes what 'specificity' quantifies (contamination vs. average diffuseness). Citations are plausible-looking but unverifiable placeholders (CORPUS ids, PMIDs) that cannot be confirmed. Overall the answer demonstrates good conceptual understanding and appropriate epistemic humility about missing data, but the core specific evidence (correct SR formula, mafba example) is missing/inaccurate, warranting a partial rather than correct score.",
+        "rubric": {
+          "factuality": 0.35,
+          "completeness": 0.3,
+          "citation_correctness": 0.25,
+          "uncertainty_calibration": 0.6,
+          "safety_ethics": 0.9,
+          "testability": 0.4
+        },
+        "usage": {
+          "input_tokens": 2495,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 720,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.68,
+        "verdict": "partial",
+        "justification": "The candidate answer demonstrates solid methodological understanding: the specificity ratio formula (target-mean ÷ max-nontarget-mean or similar normalization) is correctly articulated, the Tier assignment logic (1=high specificity→interpretable; 3=low specificity→pleiotropic) aligns with expected interpretive frameworks, and the critical insight about why whole-embryo atlases are mandatory is well-explained. However, there are significant deficiencies against the expected evidence. Most critically, the candidate computes SR as \"target-cluster-expression ÷ mean-across-all-clusters,\" which differs from the specified benchmark formula SR = target-mean / max-nontarget-mean (using the maximum of nontarget clusters, not the mean). The expected evidence explicitly anchors on the mafba lens-contamination example where SR≈0.145→Tier 3, providing a calibrated threshold; the candidate provides only illustrative, unquantified thresholds without binding to this empirical reference point. While the candidate correctly identifies missing inputs (no marker identity, no per-cluster vector, no explicit Tier cutoffs) and appropriately refuses to fabricate a numeric Tier, the lack of quantitative grounding weakens completeness. The explanation of why broadest datasets prevent inflated specificity ratios is accurate and well-reasoned, but it does not fully address the mafba example as validation. The cited evidence (PMID:41922342, whole-animal atlas references) supports the conceptual framework but does not verify the candidate's formula choice or threshold assignments against published benchmarks. The answer reads as methodologically sound but incompletely calibrated to the quantitative standard implied by expected evidence.",
+        "rubric": {
+          "factuality": 0.72,
+          "testability": 0.65,
+          "completeness": 0.62,
+          "citation_correctness": 0.7,
+          "uncertainty_calibration": 0.78,
+          "safety_ethics": 0.85
+        },
+        "usage": {
+          "input_tokens": 2013,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 535,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.38,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.5,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.34,
+    "n_path_b_papers": 3
+  }
+}

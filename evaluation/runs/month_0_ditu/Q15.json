@@ -1,0 +1,185 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q15",
+  "claim_timestamp": "2026-07-11T20:58:47Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.42,
+    "n_path_b_papers": 0
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN9",
+  "claim_category": "literature_synthesis",
+  "question_id": "Q15",
+  "question": "Which morphometric/topological descriptors distinguish a correctly tubulated pronephros from teratogenic mesoderm, and what imaging formats supply them?",
+  "backend": "neo4j",
+  "direct_answer": "Based on the RN9 niche description (\"Morfología emergente y topología\"), the descriptors that distinguish a correctly tubulated pronephros from teratogenic/disorganized mesoderm fall into two evidence-supported classes:\n\n1) MORPHOMETRIC descriptors — derived from continuous voxel/volumetric data: tubule lumen diameter and continuity, epithelial wall thickness, cell volume/shape, nephron length, and volumetric measures of the segmented structure. A correctly tubulated pronephros shows a continuous, single, patent lumen with a coherent polarized epithelial wall; teratogenic mesoderm shows lumen discontinuity/absence, cyst-like dilation or collapse, disorganized cell packing, and loss of a defined tubular axis.\n\n2) TOPOLOGICAL descriptors — connectivity and branching/axis features: presence of a single connected luminal channel (connectivity/number of connected components), absence of ectopic branches or fragmented segments, and preserved apico-basal organization. The corpus (CORPUS-2026-0003) links correct tubulogenesis and epithelial-identity maintenance to polarity proteins Prkcι/Prkcζ, so loss of apical polarity (mislocalized apical markers, multi-lumen or no-lumen phenotypes) is a mechanistic hallmark distinguishing normal from teratogenic tissue.\n\nIMAGING FORMATS that supply these descriptors (RN9): raw volumetric confocal time-series plus segmentation masks in .ome/.tiff, .czi, .ims, and .nd2 formats, providing continuous voxel data from which the morphometric and topological measures above are computed. (Spatial-transcriptomic atlases via CNGB STOmics/Stereo-seq could add molecular context but are not imaging/morphometry formats per se.)\n\nCAVEAT: The bundle names the data types and formats and the polarity-gene link, but does NOT provide an explicit validated list of quantitative descriptor thresholds or a benchmarked teratogenicity classifier. The specific descriptors above are the standard measures implied by \"volumetric confocal + segmentation masks\" and \"morfología/topología,\" not an itemized list quoted from the evidence.",
+  "stated_confidence": 0.42,
+  "prior": 0.42,
+  "evidence_cited": [
+    "CORPUS-2026-0003#c000",
+    "niche:RN9",
+    "CORPUS-2026-0003",
+    "db:CNGB_STOmics"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "prkci"
+    },
+    {
+      "symbol": "prkcz"
+    }
+  ],
+  "alternatives_considered": [
+    "That the question could be answered purely at the molecular level (Prkcι/ζ polarity markers) rather than morphometric/topological — rejected because RN9 explicitly targets emergent morphology/topology from volumetric imaging.",
+    "That spatial transcriptomic atlases (CNGB STOmics/Stereo-seq) supply the descriptors — rejected as the primary answer because those are molecular/spatial-omics, not morphometric imaging formats.",
+    "That the bundle contains an explicit validated descriptor list with thresholds — rejected; no such enumeration is present."
+  ],
+  "gap_flags": [
+    "No explicit, validated list of quantitative morphometric/topological descriptors or discriminative thresholds is provided in the bundle — descriptors are inferred from niche data-type descriptions.",
+    "No ENSDARG identifiers were verified for prkci/prkcz; symbols asserted from corpus text without ID confirmation.",
+    "No benchmarked normal-vs-teratogenic classifier or morphometric study is cited; causal link between descriptors and teratogenicity is inferred.",
+    "Path B external literature returned no papers, so no independent methodological source corroborates the descriptor set."
+  ],
+  "framework_applied": "Evidence-grounded literature synthesis mapped onto the RN9 niche's declared data modality (volumetric confocal + segmentation) and cross-referenced to the mechanistic corpus (polarity-driven tubulogenesis); confidence kept low because descriptor enumeration is inferential, not directly quoted.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T20:58:47Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.78,
+          "verdict": "correct",
+          "rubric": {
+            "citation_correctness": 0.75,
+            "completeness": 0.8,
+            "factuality": 0.8,
+            "safety_ethics": 1.0,
+            "testability": 0.75,
+            "uncertainty_calibration": 0.9
+          },
+          "justification": "The answer covers the core expected evidence well: it names concrete morphometric features (lumen diameter/continuity, wall thickness, cell volume/shape, nephron length, volumetric segmentation) and identifies confocal volumetric formats (.ome/.tiff, .czi, .ims, .nd2) as the imaging source, matching the \"confocal .ome/.tiff → mesh\" pipeline expectation. The topological discussion covers connectivity/connected-component counting, branching, and single-lumen continuity, which aligns with the intended topology concept. However, it does not explicitly invoke the segmentation→mesh (.ply/.stl) surface-model step, nor the specific \"persistence pairs\"/persistent-homology framing that the expected evidence flags as the key topological descriptor concept — it stays at the more generic connected-components level. The polarity-gene (Prkcι/Prkcζ) mechanistic link adds relevant context though it drifts slightly beyond the pure descriptor question. Uncertainty calibration is excellent: the confidence of 0.42, the explicit caveat that no validated thresholds/classifier exists, and honest gap_flags (unverified ENSDARG IDs, inferred descriptors, no corroborating literature) are exemplary and appropriately temper any overclaiming. Factuality is sound with no obvious fabrication of specifics presented as verified. Overall a solid partial-to-correct answer; the main shortfall is the missing mesh-format output and the persistent-homology topological framing.",
+          "usage": {
+            "input_tokens": 2214,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 677,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate correctly identifies the two required imaging/mesh format transitions (confocal .ome/.tiff style volumetric data → segmentation) but never explicitly mentions the mesh output formats .ply/.stl that the expected evidence calls for, nor does it explicitly invoke 'persistence pairs' or persistent homology as a topological descriptor — instead it substitutes a looser, self-generated notion of 'topological descriptors' (connectivity, branching, polarity) that is plausible but not the specific persistence-pairs concept named in the expected evidence. This is a significant gap: the question and expected evidence specifically flag persistence pairs (a persistent-homology/topological-data-analysis concept) as the topological descriptor, and the mesh formats .ply/.stl as the geometric output feeding into that computation. The candidate's morphometric descriptors (lumen diameter, wall thickness, volume, connectivity) are reasonable and evidence-aligned in spirit, and it appropriately hedges with a low confidence (0.42) and explicit caveats about the lack of an itemized list, which is good calibration. However the omission of .ply/.stl mesh formats and of persistence pairs/persistent homology as the topological method is a meaningful factual/completeness shortfall relative to the expected evidence, even though the candidate's alternative framing (connected components, branching) is topologically adjacent. Citations are generic (niche:RN9, CORPUS-2026-0003) without specific chunk-level grounding for many claims, and the CNGB_STOmics citation is somewhat tangential/hedged appropriately. Overall this is a partial answer: correct on morphometric side and imaging modality (confocal, multiple raw formats), but missing key specified terms (.ply/.stl, persistence pairs) that the rubric explicitly wants, while showing appropriate honesty about the inference and gaps.",
+          "overall_score": 0.42,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.5,
+            "completeness": 0.35,
+            "citation_correctness": 0.4,
+            "testability": 0.4,
+            "uncertainty_calibration": 0.75,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2278,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 799,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.58,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.65,
+            "completeness": 0.52,
+            "citation_correctness": 0.55,
+            "testability": 0.48,
+            "uncertainty_calibration": 0.78,
+            "safety_ethics": 0.85
+          },
+          "justification": "The candidate answer demonstrates partially correct understanding of morphometric and topological descriptors for pronephric tubulation, aligning with the expected evidence framework (confocal imaging → segmentation → mesh formats; persistence pairs concept implied via topological connectivity). Strengths: (1) Correctly identifies morphometric features (lumen diameter, epithelial thickness, continuity) as volumetric descriptors from confocal data; (2) addresses topological connectivity and branching as distinguishing features; (3) explicitly names confocal .ome/.tiff formats; (4) appropriately invokes polarity proteins (Prkcι/Prkcζ) as mechanistic context; (5) demonstrates strong uncertainty calibration by candid caveat flagging gaps (no validated thresholds, no classifier, no independent literature confirmation, unverified ENSDARG IDs). Weaknesses: (1) Does not explicitly mention persistence diagrams, persistent homology, or Betti numbers—the expected evidence cites \"persistence pairs (topology)\" which is a core topological data analysis concept not addressed; (2) missing mention of the conversion pipeline confocal → mesh (.ply/.stl)—while .ome/.tiff formats are correct, the answer does not explain how volumetric data are converted to mesh geometry necessary for topological invariants; (3) the polarity-gene link is asserted from CORPUS-2026-0003 but without ENSDARG verification or quantitative validation (candidate self-flags this); (4) infers descriptors from \"niche data-type descriptions\" rather than from explicit empirical benchmarking, reducing testability. The candidate's low stated confidence (0.42) and detailed gap acknowledgment are appropriate given the exploratory nature of evidence assembly. Citation practices are reasonable (RN9, CORPUS-2026-0003) but lack specific page/figure references. Overall, the answer captures ~60% of the expected framework but incompletely addresses the critical persistent-topology component and mesh-generation pipeline required to fully answer the question.",
+          "usage": {
+            "input_tokens": 1834,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 607,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.36,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.593,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.42 < tau=0.5"
+    }
+  ]
+}

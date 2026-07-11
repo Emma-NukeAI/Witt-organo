@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DI-only vs DI+Tool Universe fallback — comparación (TYPE D)</title>
+<style>
+  :root{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;
+    --c-witt:#1d4e6e;--c-organo:#3a6a3f;--c-warn:#8a5a00;--c-critical:#8a2a2a;--c-good:#3a6a3f}
+  *{box-sizing:border-box} body{margin:0;background:var(--c-bg);color:var(--c-text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.9em}
+  nav{position:sticky;top:0;z-index:10;background:var(--c-surface);border-bottom:1px solid var(--c-border);
+    padding:.6rem 1.2rem;display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.85rem}
+  nav b{color:var(--c-witt)} nav a{color:var(--c-muted);text-decoration:none}
+  main{max-width:1080px;margin:0 auto;padding:1.5rem 1.3rem 4rem}
+  h1{font-size:1.6rem;margin:.2rem 0 .3rem;color:var(--c-witt)}
+  h2{font-size:1.2rem;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:2px solid var(--c-border);color:var(--c-witt)}
+  .sub{color:var(--c-muted);font-size:.9rem;margin-bottom:.8rem}
+  .chip{display:inline-block;border:1px solid #cfe0ea;border-radius:999px;padding:.2rem .7rem;font-size:.78rem;background:#eef3f7;color:var(--c-witt)}
+  .badge{display:inline-block;border-radius:6px;padding:.15rem .55rem;font-size:.78rem;font-weight:600}
+  .b-good{background:#e6efe7;color:var(--c-good)}.b-warn{background:#f6efe0;color:var(--c-warn)}
+  .b-bad{background:#f6e6e6;color:var(--c-critical)}.b-neu{background:#eceaf3;color:#5a4a8a}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.8rem;margin:1rem 0}
+  .stat{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.9rem 1rem}
+  .stat .n{font-size:1.6rem;font-weight:700;color:var(--c-witt)}.stat .l{font-size:.8rem;color:var(--c-muted)}
+  .callout{border-left:4px solid var(--c-border);border-radius:6px;padding:.7rem 1rem;margin:.8rem 0;background:var(--c-surface)}
+  .callout.good{border-color:var(--c-good);background:#f2f7f2}.callout.warn{border-color:var(--c-warn);background:#f9f4ea}
+  .callout.bad{border-color:var(--c-critical);background:#f9eeee}
+  table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.9rem;background:var(--c-surface)}
+  th,td{border:1px solid var(--c-border);padding:.5rem .6rem;text-align:left;vertical-align:top}
+  th{background:#f1efe9;color:var(--c-witt)} ul{margin:.4rem 0 .4rem 1.1rem}
+  footer{max-width:1080px;margin:0 auto;padding:1.4rem 1.3rem;color:var(--c-muted);font-size:.82rem;border-top:1px solid var(--c-border)}
+  @media (prefers-color-scheme:dark){:root{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;
+    --c-muted:#a8a49b;--c-witt:#7fb4d4;--c-organo:#8fc294;--c-warn:#d8a24a;--c-critical:#d98a8a;--c-good:#8fc294}
+    th{background:#2a2c30}.chip{background:#22323d;border-color:#33505f;color:#9fcbe4}
+    .b-good{background:#22331f;color:#8fc294}.b-warn{background:#332b1a;color:#d8a24a}.b-bad{background:#331f1f;color:#d98a8a}.b-neu{background:#272536;color:#b0a4d8}
+    .callout.good{background:#1e2a1e}.callout.warn{background:#2a2519}.callout.bad{background:#2a1e1e}.stat .n{color:#7fb4d4}}
+  :root[data-theme="dark"]{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;--c-muted:#a8a49b;--c-witt:#7fb4d4}
+  :root[data-theme="light"]{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;--c-witt:#1d4e6e}
+</style>
+</head>
+<body>
+<nav><b>DI-only vs DI+Tool Universe</b>
+  <a href="#resumen">Resumen</a><a href="#mcp">MCP</a><a href="#insuf">Insuficiencia</a>
+  <a href="#comp">Comparación</a><a href="#lim">Límites</a><a href="#next">Siguientes</a></nav>
+<main>
+  <h1>Fallback a Tool Universe: ¿mejora las respuestas cuando la DI es insuficiente?</h1>
+  <div class="sub">TYPE D · comparación · 2026-07-11 · <code>month_0</code> (DI-only) vs <code>month_0_ditu</code> (DI + Tool Universe, confidence-gated τ=0.5) · plan Track A</div>
+  <div><span class="chip">framework_applied: measurement — paired comparison + deterministic aggregation (compute_ece); no es juicio LLM</span></div>
+  <div style="margin:.5rem 0"><span class="badge b-good">confidence (mediciones): 0.95</span> <span class="badge b-warn">confidence (interpretación Level-1 insuf.): 0.8</span></div>
+
+  <h2 id="resumen">1 · Resumen ejecutivo</h2>
+  <div class="callout warn">
+    <b>direct_answer.</b> El fallback confidence-gated a Tool Universe <b>funciona end-to-end</b> (disparó en
+    25/30, trajo 46 papers reales, re-sintetizó). Pero su valor a <b>Level-1 (literatura sola)</b> es
+    <b>marginal</b>: la calidad juzgada sube apenas <b>+0.017</b> (mejor en 17/29) y la confianza <b>no se mueve</b>
+    (+0.007). Unos abstracts no le dan al modelo con qué contestar preguntas de intención que piden parámetros
+    cinéticos, ensamblado de modelos o IDs específicos. <b>El valor real está en Level-2</b> (uso agéntico de tools
+    estructurados: ensembl/zfin/reactome/string), no en literatura. Sobre <b>quién determina la insuficiencia</b>:
+    un <b>umbral de confianza</b> (automático), NO el chequeo estructural (se engaña) ni un gate humano (el gate
+    vive en la re-ingesta, no en el fetch).
+  </div>
+  <div class="grid">
+    <div class="stat"><div class="n">25/30</div><div class="l">fallback disparó (conf &lt; τ=0.5)</div></div>
+    <div class="stat"><div class="n">46</div><div class="l">papers Tool Universe traídos</div></div>
+    <div class="stat"><div class="n">+0.017</div><div class="l">calidad panel (0.609→0.626)</div></div>
+    <div class="stat"><div class="n">+0.007</div><div class="l">confianza (0.295→0.302) — plano</div></div>
+    <div class="stat"><div class="n">2223</div><div class="l">tools MCP verificados vivos</div></div>
+  </div>
+
+  <h2 id="mcp">2 · Verificación del MCP de Tool Universe</h2>
+  <table>
+    <tr><th>Chequeo</th><th>Resultado</th></tr>
+    <tr><td>Vivo</td><td><span class="badge b-good">PASS</span> 2223 tools / 520 categorías (zfin, ensembl, reactome, uniprot, EuropePMC, bgee, omnipath, string…)</td></tr>
+    <tr><td>Funcional (datos reales)</td><td><span class="badge b-good">PASS</span> <code>EuropePMC_search_articles</code> devolvió papers zebrafish-pronefro reales (incl. la cascada osr1/wnt2ba, PMID 36359386)</td></tr>
+    <tr><td>Manejo de error (no-hang §6)</td><td><span class="badge b-good">PASS</span> un Ensembl HTTP 500 transitorio volvió como <code>status:error</code> estructurado, sin colgar</td></tr>
+    <tr><td>Reproducible para el equipo</td><td><code>.mcp.json</code> fija <code>tooluniverse@1.2.6</code>; el runner usa el mismo SDK pineado en <code>.venv</code> (Layer 3, §6)</td></tr>
+  </table>
+
+  <h2 id="insuf">3 · ¿Quién determina la insuficiencia de la DI?</h2>
+  <table>
+    <tr><th>Mecanismo</th><th>Veredicto</th><th>Evidencia / razón</th></tr>
+    <tr><td>Estructural (¿hay chunk? ¿entidad presente?)</td><td><span class="badge b-bad">inadecuado solo</span></td>
+      <td><b>Q07</b>: dijo "suficiente" por existir <em>un</em> chunk (prkci, irrelevante) — pero conf del modelo = 0.18. Se engaña con "hay-algún-chunk".</td></tr>
+    <tr><td><b>Umbral de confianza</b> (conf pass-1 &lt; τ)</td><td><span class="badge b-good">recomendado</span></td>
+      <td>Rastrea "¿puedo contestar confiablemente desde mi store?" — mapea a "si no tengo info confiable en la DI". Automático, barato, atrapa el caso Q07.</td></tr>
+    <tr><td>Gate humano</td><td><span class="badge b-bad">NO en el fetch</span></td>
+      <td>Buscar es barato+reversible → por no-hang §6 debe ser automático. El <b>gate humano vive en la re-ingesta</b> (mutación de la DI), no en el fetch.</td></tr>
+  </table>
+  <div class="callout good">
+    <b>Separación limpia:</b> decisión de <b>buscar</b> (Path A insuf. → Tool Universe) = automática, disparada por
+    confianza, reversible. Decisión de <b>admitir</b> (evidencia → dentro de la DATA INAMOVIBLE) = gate humano,
+    irreversible. Alineado con las reglas duras (mutación DI siempre human-gated; no-hang: el fallback nunca bloquea).
+    <b>Matiz:</b> el umbral depende de que la confianza esté calibrada; hoy el substrato está sub-confiado → con
+    τ=0.5 dispara casi siempre (seguro, buscar es barato) y <b>se afila solo</b> conforme mejore la calibración.
+  </div>
+
+  <h2 id="comp">4 · Comparación DI-only vs DI+Tool Universe</h2>
+  <table>
+    <tr><th>Métrica (pareada por pregunta)</th><th>DI-only (<code>month_0</code>)</th><th>DI+TU (<code>month_0_ditu</code>)</th><th>Δ</th></tr>
+    <tr><td>Confianza media</td><td>0.295</td><td>0.302</td><td><span class="badge b-warn">+0.007 (plano)</span></td></tr>
+    <tr><td><b>Calidad juzgada (panel mean)</b></td><td>0.609</td><td>0.626</td><td><span class="badge b-good">+0.017 · mejor en 17/29</span></td></tr>
+    <tr><td>ECE_raw</td><td>0.582 (n=13)</td><td>0.518 (n=19)</td><td><span class="badge b-neu">−0.064 *n difiere → no apples-to-apples</span></td></tr>
+    <tr><td>Records puntuables (n_scored)</td><td>13 (7 sin-conf excluidos)</td><td>19 (0 sin-conf)</td><td><span class="badge b-good">+6 · 0 excluidos</span></td></tr>
+    <tr><td>Outcomes</td><td>17+ / 3− / 10?</td><td>17+ / 2− / 10? / 1∅</td><td>~igual</td></tr>
+    <tr><td>Fallback fired · TU papers</td><td>—</td><td>25/30 · 46 papers</td><td>—</td></tr>
+    <tr><td>Confianza pass1→pass2 (dentro de DI+TU)</td><td>—</td><td>mean −0.013 (subió 7/25)</td><td>—</td></tr>
+  </table>
+  <div class="callout warn">
+    <b>Lectura:</b> el mecanismo funciona y da una mejora <em>pequeña pero real</em> en calidad (+0.017), <b>ninguna</b>
+    en confianza. Beneficio colateral: la 2ª pasada + el campo requerido <code>search_query</code> hicieron que el
+    modelo poblara <code>confidence</code> siempre (0 excluidos vs 7). La mejora de ECE (0.582→0.518) es leve y con
+    <em>n</em> distinto — no la reportamos como ganancia limpia de calibración.
+  </div>
+
+  <h2 id="lim">5 · Límites (gap_flags)</h2>
+  <div class="callout bad"><ul>
+    <li><b>Solo Level-1 (literatura).</b> El fallback usa <code>EuropePMC_search_articles</code> de Tool Universe.
+      No explota los 2223 tools estructurados (ensembl/zfin/reactome/string) — eso es Level-2 (agéntico), el siguiente paso.</li>
+    <li><b>ECE DI-only vs DI+TU no es apples-to-apples</b> (n=13 vs 19, preguntas puntuadas distintas). La mejora es indicativa, no concluyente.</li>
+    <li><b>El umbral de confianza depende de calibración</b> — hoy sub-confiado → sobre-dispara. Seguro, pero "insuficiencia" hoy ≈ "casi todo".</li>
+    <li><b>La query de literatura</b> usa un fallback determinista de keywords cuando el modelo no da un <code>search_query</code> limpio; aún arrastra algo de ruido (Q10 bioeléctrico → 0 papers, gap real de literatura zebrafish).</li>
+    <li><b>Corpus DI delgado</b> (95 nodos) — el limitante de fondo; ni DI ni DI+TU-literatura contestan bien 30 preguntas amplias todavía.</li>
+  </ul></div>
+
+  <h2 id="next">6 · Siguientes pasos</h2>
+  <div class="callout"><ul>
+    <li><b>Level-2 (el lever real):</b> fallback agéntico donde el modelo elige tools de Tool Universe (ensembl para IDs, reactome/omnipath para vías, zfin para fenotipos) vía <code>find_tools</code>+<code>execute_tool</code> — no solo literatura.</li>
+    <li><b>Crecer el corpus de la DI</b> (sube el piso de todo; el store delgado es el limitante de fondo).</li>
+    <li><b>Re-medir con confianza calibrada</b> para que el umbral τ sea un instrumento fino, no un "dispara casi siempre".</li>
+    <li>Cerrar con <code>composite-auditor</code> (panel multi-familia) sobre el claim "el fallback Level-1 da lift marginal; Level-2 es el lever".</li>
+  </ul></div>
+
+  <footer>
+    <b>evidence_cited:</b> <code>evaluation/runs/month_0/</code> (DI-only, 30) · <code>evaluation/runs/month_0_ditu/</code> (DI+TU, 30) ·
+    <code>reports/ece_month0_20260711.json</code> · <code>reports/ece_month0_ditu_20260711.json</code> ·
+    MCP <code>tooluniverse@1.2.6</code> (2223 tools).<br>
+    <b>agents_invoked:</b> held-out-runner (invoked) · verify_output.admissible (invoked) · judge-panel Opus+Sonnet+Haiku (invoked) ·
+    <b>tooluniverse Path-B (SDK Layer 3, invoked 25/30, confidence-gated)</b> · compute_ece (invoked).<br>
+    <b>alternatives_considered:</b> trigger estructural vs confianza vs gate-humano (§3) · Level-1 literatura vs Level-2 agéntico (§6) · fallback none/europepmc/tooluniverse.<br>
+    Predecesor (ADR-0002): <code>reports/2026-07-11_a1-held-out-baseline_scorecard.html</code>. Cero mutación de la DATA INAMOVIBLE (read-only).
+  </footer>
+</main>
+</body>
+</html>

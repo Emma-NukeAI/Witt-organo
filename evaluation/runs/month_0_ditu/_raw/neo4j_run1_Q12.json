@@ -1,0 +1,261 @@
+{
+  "question_id": "Q12",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "How do you import a basal-membrane geometry and an AFM stiffness map as boundary conditions for a Morpheus tissue simulation?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8275,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.8275,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.7514,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7415,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.7456,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7201,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.7376,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.34 < tau=0.5",
+      "query": "zebrafish import basal-membrane geometry stiffness boundary conditions",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41026912",
+            "pmcid": "PMC7619124",
+            "doi": "10.1152/physrev.00001.2024",
+            "title": "The SLC-ome of membrane transport: From molecular discovery to physiology and clinical applications.",
+            "year": "2025",
+            "journal": "Physiol Rev",
+            "citations": 1
+          },
+          "abstract": "Membrane transporters are essential for human health, mediating the movement of nutrients, electrolytes, metabolites and other molecules across cellular and organellar membranes. Genes encoding these proteins account for approximately 5.2% of the human protein coding genome. Nearly half of these belong to the solute carriers (SLC) supergroup, the largest class of membrane transport proteins, collectively termed the \"SLC-ome.\" The current SLC-ome comprises 464 SLCs organized into 76 SLC families, of which 24% (111 SLCs) remain orphan transporters with unknown or incompletely characterized function. An additional 52 SLC-like proteins bring the total to 516 membrane transport proteins. SLCs function as molecular gatekeepers, and their dysfunction contributes to a wide spectrum of human diseases, including cancer, diabetes, and immunological, cardiovascular and neurodegenerative disorders. Pathological consequences of SLC defects include hypertension, hyperglycemia, hypercholesterolemia, nutritional deficiencies, metal ion imbalance, oxidative stress, and dysfunction of mitochondria, lysosomes, endoplasmic reticulum and Golgi apparatus. In addition, genetic defects in SLCs are the caus",
+          "open_access": false
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "38505223",
+            "pmcid": "PMC10903419",
+            "doi": "10.1063/5.0074317",
+            "title": "Appreciating the role of cell shape changes in the mechanobiology of epithelial tissues.",
+            "year": "2022",
+            "journal": "Biophys Rev (Melville)",
+            "citations": 24
+          },
+          "abstract": "The wide range of epithelial cell shapes reveals the complexity and diversity of the intracellular mechanisms that serve to construct their morphology and regulate their functions. Using mechanosensitive steps, epithelial cells can sense a variety of different mechanochemical stimuli and adapt their behavior by reshaping their morphology. These changes of cell shape rely on a structural reorganization in space and time that generates modifications of the tensional state and activates biochemical cascades. Recent studies have started to unveil how the cell shape maintenance is involved in mechanical homeostatic tasks to sustain epithelial tissue folding, identity, and self-renewal. Here, we review relevant works that integrated mechanobiology to elucidate some of the core principles of how cell shape may be conveyed into spatial information to guide collective processes such as epithelial morphogenesis. Among many other parameters, we show that the regulation of the cell shape can be understood as the result of the interplay between two counteracting mechanisms: actomyosin contractility and intercellular adhesions, and that both do not act independently but are functionally integrat",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "34837328",
+            "pmcid": "PMC8831476",
+            "doi": "10.1002/smll.202103466",
+            "title": "Generation, Transmission, and Regulation of Mechanical Forces in Embryonic Morphogenesis.",
+            "year": "2022",
+            "journal": "Small",
+            "citations": 19
+          },
+          "abstract": "Embryonic morphogenesis is a biological process which depicts shape forming of tissues and organs during development. Unveiling the roles of mechanical forces generated, transmitted, and regulated in cells and tissues through these processes is key to understanding the biophysical mechanisms governing morphogenesis. To this end, it is imperative to measure, simulate, and predict the regulation and control of these mechanical forces during morphogenesis. This article aims to provide a comprehensive review of the recent advances on mechanical properties of cells and tissues, generation of mechanical forces in cells and tissues, the transmission processes of these generated forces during cells and tissues, the tools and methods used to measure and predict these mechanical forces in vivo, in vitro, or in silico, and to better understand the corresponding regulation and control of generated forces. Understanding the biomechanics and mechanobiology of morphogenesis will not only shed light on the fundamental physical mechanisms underlying these concerted biological processes during normal development, but also uncover new information that will benefit biomedical research in preventing an",
+          "open_access": false
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "Workflow to import a basal-membrane geometry + AFM stiffness map as boundary conditions in Morpheus, grounded in the retrieved niche structure (the literature bundle is only tangentially relevant here):\n\n1) LOCATE / STAGE THE INPUT DATA\n   - Basal-membrane geometry: this is a tissue-boundary description. In your niche layout it lives in RN10 (\"Tejidos chaperones y boundary conditions\"), which holds Cartesian coordinates of neighboring tissues + timing matrices as .json. Use those coordinates to define the basal boundary contour/surface.\n   - AFM stiffness map: this is passive mechanics / regional stiffness data, which lives in RN6 (\"Biomecánica pasiva y ECM\" — regional stiffness, basal cortical tension, cell-friction coefficients for Morpheus as .json). The AFM map gives you spatial stiffness values to attach to the boundary.\n\n2) CONVERT GEOMETRY TO A MORPHEUS DOMAIN/BOUNDARY\n   - Rasterize/convert the RN10 basal-membrane coordinates into a Morpheus <Space>/<Lattice> domain. Represent the basal membrane either as (a) a fixed medium/boundary cell type occupying the membrane pixels (a \"wall\" CellType with high stiffness / no proliferation), or (b) a <Boundary> condition on the lattice edge matching the imported contour. Morpheus supports TIFF/image-based domain initialization, so the geometry is typically imported as a labeled mask created from the coordinates.\n\n3) MAP AFM STIFFNESS ONTO THE BOUNDARY AS A SPATIAL FIELD\n   - Import the RN6 AFM stiffness map as a Morpheus <Field> (a spatially resolved property over the lattice). Each lattice node carries a stiffness value read from the AFM map.\n   - Couple that Field to the mechanical behavior at the basal membrane: e.g., use it to scale basal cortical tension / adhesion / a Hooke-type constraint so stiffer regions resist deformation more. RN6 explicitly provides basal cortical tension and cell-friction coefficients \"for Morpheus,\" which are the parameters you'd modulate by the field.\n\n4) WIRE AS BOUNDARY CONDITIONS\n   - Treat the basal membrane cell type / lattice boundary as a Dirichlet-like fixed constraint (position/adhesion) and let the stiffness Field act as a spatially varying Neumann-type mechanical resistance.\n   - Store the assembled model as a Morpheus .xml (this is what RN13, \"Modelos de simulación y código,\" is for).\n\nIMPORTANT HONESTY NOTE: The evidence bundle tells me WHERE the data lives (RN6 stiffness/ECM, RN10 boundary geometry, RN13 Morpheus .xml output) but contains NO Morpheus documentation, no schema, and no worked example. The specific XML element names (<Field>, <Boundary>, <Constraint>, image import via TIFF) reflect standard Morpheus practice, not the provided bundle. Verify exact tags against Morpheus documentation before running.",
+    "confidence": 0.35,
+    "evidence_cited": [
+      "niche:RN6",
+      "niche:RN10",
+      "niche:RN13",
+      "PMID:38505223",
+      "PMID:34837328"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Import geometry as an image/TIFF mask vs. as an explicit coordinate polygon — both viable depending on RN10 file format",
+      "Encode stiffness as a Morpheus Field vs. as per-CellType parameter tables (RN6 provides .json affinity/tension matrices that could be read directly)",
+      "Represent the basal membrane as a fixed 'wall' CellType vs. as a lattice <Boundary> condition"
+    ],
+    "gap_flags": [
+      "Bundle contains NO Morpheus schema/manual — exact XML element names are from general knowledge, not the evidence",
+      "No file-format spec given for the RN10 basal-membrane coordinates or RN6 AFM/stiffness .json, so the conversion step is inferred",
+      "No worked example or code linking a Field to basal cortical tension in the bundle",
+      "The three literature PMIDs are about mechanobiology generally and SLC transporters — none describe the Morpheus import workflow",
+      "Unclear whether the AFM map resolution matches the simulation lattice; resampling may be required (not addressed by evidence)"
+    ],
+    "framework_applied": "Data-provenance mapping + tool-workflow decomposition: I mapped each required input (geometry, stiffness) to its source niche (RN10, RN6) and the output artifact to RN13, then decomposed the Morpheus assembly into load → convert-to-domain → attach-field → wire-as-BC steps. Chosen because the question is a model-assembly/pipeline task where the bundle defines data location but not procedure.",
+    "search_query": "Morpheus multicellular simulation import TIFF geometry Field spatial stiffness boundary condition cortical tension",
+    "_usage": {
+      "input_tokens": 3333,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1858,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.5,
+        "verdict": "partial",
+        "justification": "The candidate describes a plausible Morpheus workflow: converting geometry into a lattice domain/boundary cell type and mapping AFM stiffness onto a spatial Field coupled to mechanical parameters, storing the assembled model as a .xml. This partially aligns with the expected evidence, which emphasizes the .xml scaffold and a Young's modulus map for stiffness. However, the answer diverges from the expected evidence in key specifics: the expected evidence calls for an FEA mesh in .vtk/.vtu format as the boundary condition and a Young's modulus .csv, and crucially the distinction between static vs. dynamic boundary conditions — none of which the candidate addresses. Instead the candidate leans on niche-repository .json descriptions and inferred TIFF/image import, and never discusses the static/dynamic BC distinction at all, leaving a substantial completeness gap. On the positive side, the answer is exemplary in uncertainty calibration and honesty: the confidence is low (0.35), the honesty note explicitly flags that XML tags are from general knowledge rather than the bundle, and the gap_flags correctly note the PMIDs are tangential and the file-format specs are inferred. Citation correctness is weak because the cited PMIDs do not support the workflow (candidate admits this), though it is honestly disclosed. Factuality of the described Morpheus mechanism is reasonable general practice but not verifiable from the bundle. Testability is moderate — the steps are concrete enough to attempt but hinge on unverified schema. Overall a partial answer: honest and structurally sensible but missing the specific mesh formats, .csv stiffness input, and the static-vs-dynamic BC concept the rubric expects.",
+        "rubric": {
+          "citation_correctness": 0.3,
+          "completeness": 0.4,
+          "factuality": 0.55,
+          "safety_ethics": 1.0,
+          "testability": 0.5,
+          "uncertainty_calibration": 0.9
+        },
+        "usage": {
+          "input_tokens": 2548,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 745,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The expected evidence specifies a fairly concrete workflow: use an .xml scaffold together with a .vtk/.vtu FEA mesh as boundary conditions, a Young's modulus .csv for the AFM stiffness map, and a clear distinction between static (geometry) and dynamic (stiffness/mechanics) boundary conditions. The candidate answer never mentions .vtk/.vtu mesh files, never mentions a Young's modulus .csv, and does not explicitly frame the static-vs-dynamic distinction. Instead it invents a workflow based on TIFF/image-based domain initialization, <Field>, <Boundary>, <Constraint> elements, and ties everything to internal 'niche' RN6/RN10/RN13 references that are not part of the actual expected evidence (these appear to be artifacts of a different retrieval system than the one implied in the rubric). While the answer is honest about its own uncertainty and flags that it lacks direct schema/documentation support, it does not converge on the specific expected file types (.vtk/.vtu for FEA mesh, .csv for Young's modulus) which are central, verifiable, and testable details. This makes the answer largely a plausible-sounding but ungrounded reconstruction that misses the core expected specifics, despite reasonable epistemic hedging. Given the mismatch with the concrete expected evidence (file formats) and the reliance on unverifiable niche citations, this should be scored as partial at best, leaning toward incorrect on the completeness/factuality axes, but with good uncertainty calibration and safety.",
+        "overall_score": 0.25,
+        "verdict": "partial",
+        "rubric": {
+          "citation_correctness": 0.2,
+          "completeness": 0.2,
+          "factuality": 0.3,
+          "testability": 0.3,
+          "uncertainty_calibration": 0.7,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2612,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 692,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.42,
+        "justification": "The candidate answer attempts a structured workflow that maps the question to domain concepts (basal-membrane geometry, AFM stiffness, Morpheus) and proactively cites data sources from a custom knowledge bundle (RN6, RN10, RN13). The answer correctly identifies that boundary conditions should involve geometry specification (e.g., as a cell type or lattice boundary) and spatial stiffness fields, and acknowledges that output should be in .xml format. However, the answer critically fails to address the expected evidence requirements: it provides no concrete example of importing .xml scaffold + .vtk/.vtu FEA mesh files (the question specifies FEA mesh formats, not TIFF rasterization), does not show a Young's modulus .csv workflow, and does not explain the static vs. dynamic mechanical behavior distinction. The candidate's own confidence rating (0.35) and transparent gap flags are honest and appropriate—the bundle lacks Morpheus schema documentation, no worked examples are provided, and the cited PMIDs are tangentially relevant at best. The answer relies heavily on \"general knowledge\" rather than evidence, as the candidate admits. The workflow logic is plausible but speculative: there is no verification that Morpheus actually supports the proposed <Field>/<Boundary> coupling, no demonstration of file-format conversions, and no guidance on resolution matching between AFM maps and simulation lattices. While the transparency about uncertainty is commendable and the attempt to ground the answer in a knowledge structure shows methodological rigor, the lack of concrete technical detail, absence of the specific expected file formats (.vtk/.vtu, .csv), and missing explanation of static vs. dynamic mechanics significantly undercut practical utility.",
+        "rubric": {
+          "factuality": 0.45,
+          "citation_correctness": 0.4,
+          "completeness": 0.35,
+          "uncertainty_calibration": 0.8,
+          "testability": 0.25,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2048,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 526,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.25,
+    "outcome": "negative",
+    "mean_overall": 0.39,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.35,
+    "n_path_b_papers": 3
+  }
+}

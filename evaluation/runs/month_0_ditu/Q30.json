@@ -1,0 +1,171 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q30",
+  "claim_timestamp": "2026-07-11T21:22:15Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.28 < tau=0.5",
+    "pass1_confidence": 0.28,
+    "pass2_confidence": 0.24,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "cross_field_bridge",
+  "question_id": "Q30",
+  "question": "The team biomedic argued ocular biology should not be a niche separate from biophysics/biomechanics (systems modeling is governed by those laws). Re-evaluate the niche taxonomy: should N4/N5/N6 be reorganized, and what is the evidence for/against?",
+  "backend": "neo4j",
+  "direct_answer": "The evidence bundle does not actually contain a niche taxonomy with labels N4/N5/N6, nor an \"ocular biology\" niche, nor a \"biophysics/biomechanics\" niche defined as such. The niches present in the retrieval are labeled RN1, RN3, and RN6. Given that mismatch, here is what can and cannot be supported:\n\nWhat the evidence shows:\n- RN6 (\"Biomecánica pasiva y ECM\") IS the biomechanics niche: it holds affinity matrices, basal cortical tension, cell-friction coefficients (Morpheus .json), and regional stiffness data. This is the passive-biophysics/biomechanics layer.\n- RN3 (\"Redes de señalización y parámetros cinéticos\") holds signaling/state-transition trees, kinetic parameters, and simulation environment variables — i.e., the active dynamical/systems-modeling layer.\n- RN1 is a tissue/organ-system niche (pronephros tubulogenesis, polarity proteins Prkc iota/zeta — CORPUS-2026-0003).\n- Ocular biology appears only as DATASETS (CORPUS-2026-0002 anterior-segment scRNA atlas; CORPUS-2026-0001 ZESTA pre-corneal window), NOT as a standalone niche in this bundle.\n\nRe-evaluation of the biomedic's argument: The taxonomy in THIS bundle is organized by MODELING ABSTRACTION LAYER (RN3 = signaling/kinetics, RN6 = passive biomechanics/ECM) rather than by ORGAN SYSTEM. Under that scheme, \"ocular biology\" is correctly NOT a niche — it is a system/dataset (CORPUS-2026-0002/0001) whose behavior is modeled by the cross-cutting law-based niches (RN3 dynamics + RN6 mechanics). So the biomedic's principle — that ocular systems should be governed by the biophysics/biomechanics niches rather than siloed — is CONSISTENT with how RN3/RN6 are already structured. This ARGUES AGAINST creating a separate ocular niche and FOR routing ocular datasets through RN3/RN6.\n\nHowever, I cannot render a decision about \"N4/N5/N6\" specifically: those exact niche IDs are absent from the bundle. I therefore cannot confirm what N4/N5/N6 currently contain or whether they should be merged/reorganized. This appears to be either a label mismatch (N↔RN) or the relevant niche records were not retrieved.",
+  "stated_confidence": 0.24,
+  "prior": 0.24,
+  "evidence_cited": [
+    "niche:RN6",
+    "niche:RN3",
+    "CORPUS-2026-0003",
+    "CORPUS-2026-0002",
+    "CORPUS-2026-0001"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "prkci"
+    },
+    {
+      "symbol": "prkcz"
+    }
+  ],
+  "alternatives_considered": [
+    "N4/N5/N6 are a relabeling of the retrieved RN-series (RN3/RN6...), in which case biomechanics=RN6 and systems dynamics=RN3 already subsume ocular modeling — no separate ocular niche needed.",
+    "N4/N5/N6 are genuinely distinct niche records that were simply not retrieved into this bundle, in which case the question cannot be answered without them.",
+    "Ocular biology warrants its own niche because it has dedicated high-value datasets (CORPUS-2026-0002 closing GAP-5) — but 'has a dataset' is not the same as 'is a modeling niche', so this is weak."
+  ],
+  "gap_flags": [
+    "Niche IDs N4/N5/N6 named in the question do NOT appear anywhere in the evidence bundle; only RN1/RN3/RN6 were retrieved.",
+    "No niche record defining an 'ocular biology' niche is present — ocular material appears only as datasets, not as a niche.",
+    "No definition of RN4/RN5 (or N4/N5) retrieved, so any reorganization proposal is unverifiable.",
+    "Path B external literature returned no usable PMIDs (all PMID:None, off-topic hematology/abstract books) — no external support.",
+    "ENSDARG identifiers for prkci/prkcz were not provided in the bundle; not asserting any from memory."
+  ],
+  "framework_applied": "Cross-field bridge / taxonomy-consistency check: I tested whether the proposed organizing principle (systems modeling governed by biophysical laws) matches the observed niche structure (abstraction-layer niches RN3/RN6 vs organ-system datasets). Flagged the ID mismatch (N vs RN) as a blocking evidence gap rather than assuming equivalence.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T21:22:15Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "justification": "The candidate engages directly with the core conceptual argument the question demands — the taxonomy critique and the \"modeling is law-governed\" principle — and does so cogently: it correctly frames the biomedic's claim (ocular systems should be governed by biophysics/biomechanics niches rather than siloed) and articulates a defensible recommendation (route ocular datasets through the cross-cutting law-based niches RN3/RN6 rather than create a standalone ocular niche). This maps well onto the expected \"argument that modeling is law-governed\" and \"recommendation + uncertainty,\" and the low stated confidence (0.24) plus extensive, honest gap_flags show excellent uncertainty calibration and no overclaiming — it explicitly refuses to fabricate contents for N4/N5/N6. That intellectual honesty is a genuine strength and avoids the trap of inventing niche records. However, the answer is incomplete against the rubric on two fronts: (1) it does not connect the recommendation to the RAG niche index (Cycle 4) or to the possibility of triggering a governance-proposal, which are explicit expected-evidence items; and (2) it treats the N↔RN label mismatch as a blocker rather than reasoning through it, so the specific N4/N5/N6 reorganization question is left substantively unanswered. Citations are grounded in the retrieved bundle and appear internally consistent (no fabricated PMIDs), and there are no safety/ethics concerns. Net: a well-calibrated, factually careful, but partially responsive answer that misses the governance/index-integration dimension and does not fully resolve the reorganization ask.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.8, \"citation_correctness\": 0.75, \"completeness\": 0.5, \"uncertainty_calibration\": 0.9, \"testability\": 0.55, \"safety_ethics\": 1.0}",
+          "usage": {
+            "input_tokens": 2411,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 705,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.62,
+          "verdict": "partial",
+          "justification": "The candidate correctly flags that the specific labels N4/N5/N6 do not appear in the retrieved evidence bundle, and instead of fabricating a mapping, it transparently reasons using the actual retrieved niches (RN1, RN3, RN6), citing concrete evidence for each (kinetic/signaling parameters in RN3, biomechanical/ECM data in RN6, tissue-system data in RN1, ocular material only as datasets). This is a reasonable and honest way to engage with a taxonomy critique when the exact IDs are missing, and it does address the core conceptual question—whether ocular biology should be folded into biophysics/biomechanics-governed niches—arguing that the current RN3/RN6 structure already treats modeling as law-governed and cross-cutting, which supports the biomedic's argument. This satisfies part of the rubric: taxonomy critique, argument that modeling is law-governed, and a recommendation (route ocular data through RN3/RN6). However, the answer explicitly declines to give a recommendation specifically about N4/N5/N6 reorganization, which was the crux of the question, and does not explicitly connect this analysis to the RAG niche index (Cycle 4) or discuss whether it should trigger a governance-proposal, both of which were expected evidence elements. The uncertainty calibration is strong (0.24 confidence, explicit gap flags), and no fabrication occurred, which is commendable. But the answer somewhat sidesteps the direct question by pivoting to RN-labels rather than fully committing to a synthesized recommendation about reorganizing whatever niches are meant by N4/N5/N6, and it never mentions the \"Cycle 4\" RAG niche index or governance-proposal trigger explicitly. This leaves completeness and testability only partially satisfied.</justification>\n<parameter name=\"rubric\">{\"citation_correctness\": 0.75, \"completeness\": 0.55, \"factuality\": 0.8, \"testability\": 0.5, \"uncertainty_calibration\": 0.85, \"safety_ethics\": 0.9}",
+          "usage": {
+            "input_tokens": 2475,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 766,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.72,
+          "justification": "The candidate demonstrates excellent epistemological rigor by identifying and flagging a fundamental label mismatch (N4/N5/N6 vs. RN1/RN3/RN6) and refusing to speculate beyond evidence. The core substantive finding—that the taxonomy is organized by modeling abstraction layer rather than organ system, and that this architecture already implements the biomedic's principle by routing ocular datasets through law-governed niches RN3/RN6—is sound, well-articulated, and directly responsive to the question's core argument. The answer correctly inverts the apparent problem: the biomedic's critique isn't refuted but rather validated by the existing design. However, the answer falls short of the expected evidence bundle's requirement for a concrete \"recommendation + uncertainty\" and a governance-proposal trigger. The candidate appropriately states it cannot render a decision on N4/N5/N6 specifically, but stops there rather than proposing a verification workflow or governance action (e.g., \"confirm niche IDs with governance layer,\" \"if N4/N5/N6 map to RN3/RN6, document the abstraction-layer rationale publicly\"). The candidate's own low confidence flag (0.24) is well-calibrated to the retrieval gap, but a stronger answer would bridge from \"what the evidence shows\" to \"what governance should do about it.\" Citation correctness is strong where evidence exists; completeness is limited by the retrieval failure; factuality and testability are high for the RN-based analysis but indeterminate for N4/N5/N6. Safety/ethics and uncertainty calibration are exemplary.",
+          "rubric": {
+            "factuality": 0.84,
+            "citation_correctness": 0.86,
+            "completeness": 0.62,
+            "testability": 0.78,
+            "uncertainty_calibration": 0.95,
+            "safety_ethics": 0.88
+          },
+          "usage": {
+            "input_tokens": 2026,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 520,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.1,
+      "outcome": "positive",
+      "mean_overall": 0.653,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.28 < tau=0.5"
+    }
+  ]
+}

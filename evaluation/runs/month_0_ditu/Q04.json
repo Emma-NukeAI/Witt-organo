@@ -1,0 +1,182 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q04",
+  "claim_timestamp": "2026-07-11T20:36:46Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.34,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "specificity_ratio",
+  "question_id": "Q04",
+  "question": "Given a marker's expression across all clusters in a whole-embryo atlas, compute its tissue specificity ratio and assign a Tier (1/2/3) for a global-KO perturbation. Why is the broadest reference dataset mandatory before the Tier label?",
+  "backend": "neo4j",
+  "direct_answer": "METHOD (specificity_ratio):\n1. Take the marker's average expression per cell type/cluster — this is exactly the summary statistic that niche RN1 provides (\"average expression per cell type\"), sourced from GEO/ZFIN.\n2. Compute the tissue specificity ratio = (expression in the top/target cluster) ÷ (mean or summed expression across ALL clusters in the atlas). A ratio near 1 means the marker is essentially restricted to one tissue; a ratio near 1/N (N = number of clusters) means it is uniformly/ubiquitously expressed.\n3. Assign a Tier for a global (ubiquitous) KO perturbation based on that ratio:\n   • Tier 1 — high specificity (marker concentrated in one/few clusters): a global KO produces an interpretable, tissue-attributable phenotype because the affected transcript maps to a discrete cell population.\n   • Tier 2 — intermediate specificity (marker in several related clusters): phenotype is partly attributable but confounded by multi-tissue expression.\n   • Tier 3 — low specificity / broad or ubiquitous expression (ratio ≈ background): a global KO gives a smeared, hard-to-localize phenotype; cell-extrinsic and pleiotropic effects dominate.\n\nI cannot output an actual numeric ratio or a specific Tier here because the marker identity and the per-cluster expression vector were NOT included in this bundle — only the RN1 niche descriptor telling us such average-expression-per-cell-type data exists. So the answer is the procedure, not a value.\n\nWHY THE BROADEST REFERENCE DATASET IS MANDATORY BEFORE THE TIER LABEL:\nThe specificity ratio's denominator is \"expression across ALL clusters.\" If your reference atlas is missing cell types, the denominator is artificially small and the ratio is inflated — a genuinely broad marker looks falsely specific, and you would over-assign Tier 1. A whole-embryo atlas (e.g. ZESTA covering the full 3–24 hpf window, CORPUS-2026-0001, or the Daniocell-style whole-animal reference) is required so that every competing site of expression is represented in the denominator. This is directly reinforced by the whole-animal perturbation literature (PMID:41922342, MIC-Drop-seq): a key finding is that global/genetic perturbations produce abundant CELL-EXTRINSIC phenotypes — TFs affect cells beyond where they are expressed. For a global KO you therefore cannot judge attributability from a narrow, tissue-focused dataset; you need the broadest atlas to (a) normalize specificity correctly and (b) anticipate cross-tissue effects that a restricted reference would hide.",
+  "stated_confidence": 0.34,
+  "prior": 0.34,
+  "evidence_cited": [
+    "niche:RN1",
+    "CORPUS-2026-0001",
+    "CORPUS-2026-0002",
+    "db:GEO_NCBI",
+    "db:ZFIN",
+    "db:CNGB_STOmics",
+    "PMID:41922342",
+    "PMID:41546624"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Report a concrete ratio and Tier — rejected: the specific marker and its per-cluster expression vector are absent from the bundle, so any number would be fabricated.",
+    "Use only the anterior-segment/corneal atlas (CORPUS-2026-0002) as reference — rejected: it is tissue-restricted, would shrink the denominator and inflate specificity, exactly the failure mode the question warns against.",
+    "Treat Tier purely by max expression rather than a ratio — rejected: without normalizing over all clusters you cannot distinguish specific from ubiquitous markers."
+  ],
+  "gap_flags": [
+    "No marker gene identity or ENSDARG supplied — cannot bind any symbol/ID.",
+    "No per-cluster average expression vector provided; only RN1's descriptor that such data exists.",
+    "No explicit Tier threshold definitions (cutoff ratios for Tier 1/2/3) are given in the bundle — my thresholds are illustrative, not sourced.",
+    "Number of clusters N in the reference atlas not stated, so the ubiquitous-expression baseline (1/N) cannot be computed."
+  ],
+  "framework_applied": "Denominator-integrity / normalization reasoning for a specificity metric, combined with perturbation-attributability logic (cell-intrinsic vs cell-extrinsic) — chosen because the question hinges on why the reference set breadth controls both the ratio's denominator and the interpretability of a global-KO Tier call.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T20:36:46Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.52,
+          "verdict": "partial",
+          "justification": "The candidate gets the conceptual direction right and gives well-calibrated uncertainty (0.34, honest gap flags). Its \"why broadest dataset\" reasoning is exactly correct: a truncated atlas shrinks the denominator, inflates the ratio, and causes false Tier-1 over-assignment — matching the mafba lens-contamination lesson in spirit. However, it misses the specific expected formula: SR = target-mean / max-nontarget-mean (ratio to the single largest non-target cluster). The candidate instead defines SR as target ÷ mean/summed expression across ALL clusters, which is a different (and less discriminating) statistic — this is a factual deviation from the expected evidence. It also never surfaces the canonical worked example (mafba, SR≈0.145 → Tier 3), correctly noting the marker vector wasn't supplied, but thereby failing to reproduce the diagnostic case. Tier thresholds are appropriately flagged as illustrative. Citations are plausible but partly speculative (unverifiable corpus/PMID IDs). Overall: sound reasoning and good calibration, but the core formula is wrong and the key example is absent, so partial rather than correct.",
+          "rubric": {
+            "citation_correctness": 0.5,
+            "completeness": 0.45,
+            "factuality": 0.55,
+            "safety_ethics": 1.0,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.85
+          },
+          "usage": {
+            "input_tokens": 2431,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 571,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.3,
+          "verdict": "partial",
+          "justification": "The candidate correctly explains the general methodology for computing a tissue specificity ratio and the rationale for why a broad, whole-embryo reference dataset is necessary (avoiding an artificially small denominator, capturing cell-extrinsic effects), which aligns reasonably with the expected reasoning about denominator inflation and Tier misassignment. However, it fails to match the specific expected evidence: the exact SR formula (target-mean / max-nontarget-mean, not target/all-clusters-mean or sum) is incorrect, and the answer omits the concrete mafba lens-contamination example (SR≈0.145 → Tier 3) entirely, despite this being the central expected evidence. The candidate acknowledges it lacks a concrete marker and per-cluster vector, and appropriately abstains from giving a numeric value, which is honest calibration, but this omission means the answer does not actually address the specific case that the question implicitly expects (the mafba example is treated as canonical evidence, suggesting the question intends the answer to include it or reason through it, possibly using known illustrative data). The formula error (mean-over-all-clusters vs. max-nontarget-mean) is a meaningful factual deviation since it changes what 'specificity' quantifies (contamination vs. average diffuseness). Citations are plausible-looking but unverifiable placeholders (CORPUS ids, PMIDs) that cannot be confirmed. Overall the answer demonstrates good conceptual understanding and appropriate epistemic humility about missing data, but the core specific evidence (correct SR formula, mafba example) is missing/inaccurate, warranting a partial rather than correct score.",
+          "rubric": {
+            "factuality": 0.35,
+            "completeness": 0.3,
+            "citation_correctness": 0.25,
+            "uncertainty_calibration": 0.6,
+            "safety_ethics": 0.9,
+            "testability": 0.4
+          },
+          "usage": {
+            "input_tokens": 2495,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 720,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.68,
+          "verdict": "partial",
+          "justification": "The candidate answer demonstrates solid methodological understanding: the specificity ratio formula (target-mean ÷ max-nontarget-mean or similar normalization) is correctly articulated, the Tier assignment logic (1=high specificity→interpretable; 3=low specificity→pleiotropic) aligns with expected interpretive frameworks, and the critical insight about why whole-embryo atlases are mandatory is well-explained. However, there are significant deficiencies against the expected evidence. Most critically, the candidate computes SR as \"target-cluster-expression ÷ mean-across-all-clusters,\" which differs from the specified benchmark formula SR = target-mean / max-nontarget-mean (using the maximum of nontarget clusters, not the mean). The expected evidence explicitly anchors on the mafba lens-contamination example where SR≈0.145→Tier 3, providing a calibrated threshold; the candidate provides only illustrative, unquantified thresholds without binding to this empirical reference point. While the candidate correctly identifies missing inputs (no marker identity, no per-cluster vector, no explicit Tier cutoffs) and appropriately refuses to fabricate a numeric Tier, the lack of quantitative grounding weakens completeness. The explanation of why broadest datasets prevent inflated specificity ratios is accurate and well-reasoned, but it does not fully address the mafba example as validation. The cited evidence (PMID:41922342, whole-animal atlas references) supports the conceptual framework but does not verify the candidate's formula choice or threshold assignments against published benchmarks. The answer reads as methodologically sound but incompletely calibrated to the quantitative standard implied by expected evidence.",
+          "rubric": {
+            "factuality": 0.72,
+            "testability": 0.65,
+            "completeness": 0.62,
+            "citation_correctness": 0.7,
+            "uncertainty_calibration": 0.78,
+            "safety_ethics": 0.85
+          },
+          "usage": {
+            "input_tokens": 2013,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 535,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.38,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.5,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.34 < tau=0.5"
+    }
+  ]
+}

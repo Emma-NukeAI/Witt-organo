@@ -1,0 +1,175 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q27",
+  "claim_timestamp": "2026-07-11T21:18:57Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.45,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN2",
+  "claim_category": "perturbation_design",
+  "question_id": "Q27",
+  "question": "Which small molecules (e.g., DEAB, endogenous RA) would perturb RA signaling for a docking/perturbation study, and what file formats feed docking?",
+  "backend": "neo4j",
+  "direct_answer": "For a docking/perturbation study of retinoic acid (RA) signaling, candidate small molecules fall into two functional classes:\n\n1) Inhibitors / antagonists (reduce RA signaling):\n   - DEAB (4-diethylaminobenzaldehyde) — a classic inhibitor of aldehyde dehydrogenase (Aldh1a/Raldh), blocking RA synthesis from retinaldehyde. This is the canonical loss-of-RA perturbagen.\n   - A pan-RAR antagonist (e.g., a compound in the BMS/AGN antagonist class) would serve as a receptor-level negative perturbation, docked directly into the RAR ligand-binding pocket.\n\n2) Agonists / endogenous ligands (increase or mimic RA signaling):\n   - all-trans retinoic acid (endogenous RA) — the native RAR/RXR agonist and the natural docking ligand for the receptor LBD.\n   - Exogenous RA (bath application) as a gain-of-function control.\n\nSuggested design structure: perturbagen set = {DEAB (synthesis block), RAR antagonist (receptor block)}; positive/agonist set = {endogenous all-trans RA, exogenous RA}; with vehicle (DMSO) and an inactive-analog as controls. The docking target from RN2 would be the experimentally resolved RA receptor structure(s) (RAR/RXR ligand-binding domains).\n\nFile formats that feed docking: RN2 supplies 3D coordinates of experimentally resolved structures — i.e., receptor structures in PDB (.pdb) or mmCIF (.cif) format. For a typical docking pipeline these are converted to receptor input (e.g., PDBQT for AutoDock/Vina), and small-molecule ligands are supplied as SDF/MOL2/SMILES and likewise converted to PDBQT. NOTE: only PDB/mmCIF-style 3D coordinates are explicitly evidenced in the bundle (RN2); the PDBQT/SDF/MOL2/SMILES details are standard-practice inference, not stated in the provided evidence.",
+  "stated_confidence": 0.45,
+  "prior": 0.45,
+  "evidence_cited": "niche:RN2, niche:RN12, PMID:41594861",
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Additional RA-synthesis inhibitors beyond DEAB (e.g., other Aldh1a inhibitors) — plausible but not evidenced in bundle",
+    "CYP26 inhibitors (e.g., talarozole/liarozole/R115866) to raise endogenous RA by blocking degradation — biologically valid perturbation but not present in evidence",
+    "Selective RAR-subtype agonists/antagonists (RARa/b/g-specific) rather than pan-RAR — no subtype structures specified in bundle",
+    "Using predicted (non-experimental) structures via STRING/Reactome — rejected because docking requires 3D coordinates, which RN2 provides"
+  ],
+  "gap_flags": [
+    "Bundle does not name specific RA receptor structures/ENSDARG IDs — no gene identifiers could be verified",
+    "File formats: only 'experimentally resolved 3D coordinates' (RN2) are evidenced; PDB/mmCIF/PDBQT/SDF/MOL2/SMILES specifics are standard-practice inference, not in bundle",
+    "No dose/timing, control, or confounder details available from RN12 in this bundle beyond its topic label",
+    "External PMIDs retrieved (VDAC, neonicotinoids/AR, cardiac epigenetics) are not RA-specific; only tangentially confirm docking+MD workflow conventions",
+    "CYP26-mediated RA degradation not represented in retrieved evidence"
+  ],
+  "framework_applied": "Perturbation-design decomposition: partition RA pathway into synthesis (Aldh/Raldh → DEAB), receptor engagement (RAR/RXR → RA agonist vs antagonist), plus controls; then map docking inputs to the structural data niche (RN2). Chosen because the question is a perturbation_design task spanning the structure niche (RN2) and intervention niche (RN12).",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T21:18:57Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "correct",
+          "overall_score": 0.85,
+          "justification": "The candidate answer covers all key elements of the expected evidence with strong domain accuracy. It correctly identifies DEAB as an ALDH/Raldh inhibitor blocking RA synthesis, endogenous all-trans RA as the native RAR/RXR agonist, and adds a well-reasoned RAR antagonist as a receptor-level perturbagen. The small-molecule file formats (.sdf/.mol2/SMILES) are named as expected, and the receptor-structure need (PDB/mmCIF → PDBQT) is well articulated. Perturbation rationale is clearly structured with inhibitor/agonist classes, vehicle and inactive-analog controls. Uncertainty calibration is excellent: confidence 0.45, honest gap_flags distinguishing evidenced facts from standard-practice inference, and explicit flags for missing gene IDs, dose/timing, and CYP26 degradation. Minor shortfalls: no explicit safety/ethics check (RA is a teratogen — relevant for zebrafish work and expected by the rubric), and CYP26 inhibitors (a common RA-perturbation class) are omitted though flagged. Citations are plausible but the candidate itself notes the external PMIDs are only tangentially relevant. Overall a factually sound, well-hedged answer that misses only the safety/ethics dimension and some completeness.",
+          "rubric": {
+            "factuality": 0.95,
+            "completeness": 0.8,
+            "citation_correctness": 0.65,
+            "testability": 0.85,
+            "uncertainty_calibration": 0.95,
+            "safety_ethics": 0.5
+          },
+          "usage": {
+            "input_tokens": 2190,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 630,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The answer correctly identifies DEAB (Aldh1a/Raldh inhibitor blocking RA synthesis) and endogenous all-trans RA as key perturbagens, plus RAR antagonists/agonists, matching the expected small-molecule perturbation rationale. It appropriately notes receptor structure need (RAR/RXR LBDs) and discusses file formats feeding docking: it flags PDB/mmCIF for receptor structures and mentions SDF/MOL2/SMILES for small molecules (converted to PDBQT), which aligns with the expected .mol2/.sdf mention, though it hedges that only PDB/mmCIF is explicitly evidenced and the rest is standard-practice inference — good calibration. However, the safety/ethics check called out in the expected evidence is missing entirely; there's no mention of ethical/biosafety considerations for handling live embryos, chemical exposure, or animal welfare protocols, which is a notable omission relative to the rubric. The candidate is otherwise well-organized, distinguishes agonist/antagonist perturbation logic, and transparently reports confidence and gaps, avoiding overclaiming (e.g., flagging that CYP26 degradation and gene IDs are not represented). Citation practice is reasonable given the niche/PMID framework, though the PMIDs cited are described as tangential and not RA-specific, which is honestly disclosed. Overall a solid partial-credit answer: strong on molecule identification, receptor rationale, and file-format reasoning with appropriate hedging, but incomplete on the safety/ethics dimension explicitly required by the rubric.",
+          "overall_score": 0.62,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.75,
+            "completeness": 0.55,
+            "citation_correctness": 0.55,
+            "testability": 0.7,
+            "uncertainty_calibration": 0.8,
+            "safety_ethics": 0.15
+          },
+          "usage": {
+            "input_tokens": 2254,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 715,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "justification": "The candidate answer demonstrates strong conceptual understanding of RA signaling perturbation strategies—correctly identifying DEAB as a synthesis-blocking antagonist and endogenous RA as an agonist, with appropriate rationale for each perturbagen class. The answer meaningfully addresses file formats, specifying that receptor structures come in PDB/mmCIF formats and ligands in SDF/MOL2/SMILES, which directly aligns with expected evidence. The proposed experimental design (antagonist/agonist/control sets) is scientifically sound and well-motivated. However, critical gaps significantly limit the answer's completeness: (1) no specific zebrafish RAR genes or ENSDARG IDs are provided, which is problematic for a zebrafish-biology question; (2) the receptor structure origin (RN2, a bundle reference) is mentioned but the actual structures are not specified; (3) the candidate explicitly acknowledges uncertainty by flagging that PDBQT/SDF/MOL2 specifics are \"standard-practice inference, not stated in the provided evidence\"—a honest but limiting admission for a docking study; (4) CYP26-mediated RA degradation is omitted despite being relevant to RA signaling perturbation; (5) cited external PMIDs (41594861 on VDAC, neonicotinoids, cardiac epigenetics) are confessed to be only tangentially related, not RA-specific. The 0.45 confidence self-rating appears appropriately calibrated to these limitations. On balance, the answer excels in conceptual soundness and partial coverage of expected evidence axes but falls short on specificity (no gene IDs), direct citation completeness (heavy reliance on standard inference), and breadth of RA biology mechanisms.",
+          "rubric": {
+            "factuality": 0.75,
+            "citation_correctness": 0.55,
+            "completeness": 0.6,
+            "testability": 0.65,
+            "uncertainty_calibration": 0.8,
+            "safety_ethics": 0.65
+          },
+          "usage": {
+            "input_tokens": 1876,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 555,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.23,
+      "outcome": "positive",
+      "mean_overall": 0.697,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.42 < tau=0.5"
+    }
+  ]
+}

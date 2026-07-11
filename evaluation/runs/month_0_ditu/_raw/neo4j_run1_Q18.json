@@ -1,0 +1,241 @@
+{
+  "question_id": "Q18",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Propose a minimal perturbation set to test sufficiency of a pronephric program, with required controls and possible confounders. (Ranked-candidate work → must route through causal-pruner + human gate.)",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.788,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.788,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.6899,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.6789,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.6652,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.6434,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.6339,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.42 < tau=0.5",
+      "query": "zebrafish pronephros minimal perturbation sufficiency pronephric program required",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "37452023",
+            "pmcid": "PMC10349091",
+            "doi": "10.1038/s41467-023-39261-3",
+            "title": "Lysosomal cystine export regulates mTORC1 signaling to guide kidney epithelial cell fate specialization.",
+            "year": "2023",
+            "journal": "Nat Commun",
+            "citations": 36
+          },
+          "abstract": "Differentiation is critical for cell fate decisions, but the signals involved remain unclear. The kidney proximal tubule (PT) cells reabsorb disulphide-rich proteins through endocytosis, generating cystine via lysosomal proteolysis. Here we report that defective cystine mobilization from lysosomes through cystinosin (CTNS), which is mutated in cystinosis, diverts PT cells towards growth and proliferation, disrupting their functions. Mechanistically, cystine storage stimulates Ragulator-Rag GTPase-dependent recruitment of mechanistic target of rapamycin complex 1 (mTORC1) and its constitutive activation. Re-introduction of CTNS restores nutrient-dependent regulation of mTORC1 in knockout cells, whereas cell-permeant analogues of L-cystine, accumulating within lysosomes, render wild-type cells resistant to nutrient withdrawal. Therapeutic mTORC1 inhibition corrects lysosome and differentiation downstream of cystine storage, and phenotypes in preclinical models of cystinosis. Thus, cystine serves as a lysosomal signal that tailors mTORC1 and metabolism to direct epithelial cell fate decisions. These results identify mechanisms and therapeutic targets for dysregulated homeostasis in cy",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "SCOPE & HONEST CAVEAT: The evidence bundle does NOT supply a verified pronephric-program gene panel with ENSDARG IDs. The niche hits (RN12, RN2) name candidate TFs generically (pax2a, wt1a, tfap2a, foxc1a) but these are drawn from an unchecked structure niche, NOT from the verified identifier store, so I assert NO ENSDARG values here. The one external paper (PMID:37452023) is about lysosomal cystine/CTNS–mTORC1 control of proximal-tubule fate — relevant as a differentiation/confounder axis, not as a sufficiency driver. What follows is therefore a DESIGN TEMPLATE (ranked-candidate work) that MUST route through the causal-pruner + human gate before any IDs or reagents are committed.\n\nPROPOSED MINIMAL PERTURBATION SET (sufficiency = \"can we induce/complete pronephric program in a permissive but non-pronephric context?\"):\n\n1. Gain-of-function driver test — heat-shock or tissue-restricted (e.g. intermediate-mesoderm-adjacent) misexpression of the top-ranked master TF candidate (pax2a or wt1a family, pending ID verification), singly. Sufficiency readout = ectopic induction of pronephric markers.\n2. Combinatorial GOF — pairwise co-expression of the two highest-ranked TFs (e.g. a nephron-fate TF + a segment-identity TF) to test whether single factors are insufficient and a minimal 2-factor code is required.\n3. Dose/timing ladder — the same top driver across 2–3 developmental windows and 2 expression levels, since sufficiency is often stage- and dose-gated.\n\nREQUIRED CONTROLS:\n- Vehicle / empty-vector or non-coding (e.g. mCherry-only) heat-shock control to isolate the transgene effect from the induction method (heat-shock stress itself is a confounder).\n- Catalytically-dead / DNA-binding-mutant version of each TF (structure-informed via RN2 coords) to show the phenotype needs functional activity, not mere protein load.\n- Positive control: perturbation in a tissue already competent for the program (endogenous IM) to confirm reagent potency.\n- Negative-competence control: driver in a clearly non-permissive tissue to bound the \"permissive context\" claim.\n- Marker-panel control: at least one pan-mesoderm and one unrelated-lineage marker to show specificity (ectopic pronephric marker gain WITHOUT global fate scrambling).\n\nPOSSIBLE CONFOUNDERS:\n- Heat-shock / injection stress and mosaicism (use transgene-matched induction controls + clonal analysis).\n- Metabolic/growth-state confound: PMID:37452023 shows cystine→mTORC1 can push tubule cells toward proliferation vs differentiation — over-expression that raises growth signaling could phenocopy or mask true fate change; include an mTORC1-readout (e.g. rapamycin arm) as a differentiation-state control.\n- Marker ≠ function: transcript induction is not a functional nephron — require morphological/segmental confirmation.\n- Off-target of the driver via predicted STRING partners (predicted, not measured) — flag as hypothesis only.\n\nROUTING: This is ranked-candidate design work. All candidate IDs must be resolved through Ensembl_DanioRerio and pruned by the causal-pruner (to drop merely-correlated/STRING-predicted partners) and then pass the human gate before execution.",
+    "confidence": 0.32,
+    "evidence_cited": [
+      "niche:RN12",
+      "niche:RN2",
+      "db:STRING_DB",
+      "db:Ensembl_DanioRerio",
+      "PMID:37452023"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      },
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "ctns"
+      }
+    ],
+    "alternatives_considered": [
+      "Loss-of-function (necessity) screen instead of GOF — rejected because the question specifically asks for SUFFICIENCY, which requires gain-of-function in a permissive/ectopic context.",
+      "Single-factor-only design — rejected as likely insufficient; combinatorial arm retained because master programs often need a minimal TF code.",
+      "Using STRING predicted partners as drivers — deferred; these are predicted (not measured) and must be pruned before use.",
+      "Treating PMID:37452023 (CTNS/mTORC1) as a primary sufficiency driver — rejected; it informs a metabolic-state confounder/control arm, not a fate-inducing driver."
+    ],
+    "gap_flags": [
+      "No verified pronephric gene panel with ENSDARG IDs in the bundle — candidate TF symbols come from the unchecked RN2 structure niche and are NOT identifier-resolved.",
+      "No zebrafish-specific pronephros sufficiency dataset in bundle; the corpus atlases retrieved are cornea/anterior-segment, not kidney.",
+      "The only kidney-relevant paper is human/cell-line proximal tubule (cystinosis), not zebrafish pronephros in vivo.",
+      "STRING interactions are predictive only — cannot ground causal driver claims.",
+      "No developmental-window or expression-dose data provided to calibrate the timing/dose ladder.",
+      "Candidate ranking not yet run through causal-pruner or human gate."
+    ],
+    "_usage": {
+      "input_tokens": 2562,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2000,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.9,
+        "verdict": "correct",
+        "justification": "The answer delivers exactly what the expected evidence requires: a concrete candidate perturbation set (single GOF, combinatorial 2-factor GOF, dose/timing ladder), a thorough set of required controls (induction-method/vehicle control, DNA-binding-dead mutant, positive competence control, negative non-permissive tissue, marker-specificity panel), and well-articulated confounders (heat-shock stress/mosaicism, mTORC1/metabolic state via PMID:37452023, marker≠function, STRING off-target). Critically, it explicitly routes through the causal-pruner and human gate and populates rich, honest gap_flags. Uncertainty calibration is a standout strength: it refuses to fabricate ENSDARG IDs, correctly frames the cited human cystinosis paper as a confounder axis rather than a sufficiency driver, and flags STRING as predictive-only. Citation use is careful and non-overclaiming (confidence 0.32 is appropriately low given the bundle gaps). Minor deductions: the sufficiency-design logic is generic/template-level (as it honestly admits) and cannot advance beyond design given the verified-panel gap, so completeness of an actionable experiment is inherently capped — but this is an honest limitation of the evidence, not a flaw in the answer. Safety/ethics and testability are well served by the explicit human-gate routing and concrete falsifiable readouts.",
+        "rubric": {
+          "factuality": 0.9,
+          "citation_correctness": 0.92,
+          "completeness": 0.85,
+          "uncertainty_calibration": 0.95,
+          "testability": 0.9,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 2742,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 646,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.85,
+        "verdict": "correct",
+        "justification": "The answer delivers a clear, well-structured minimal perturbation set (GOF single/combinatorial/dose-timing) explicitly framed as a sufficiency test, paired with a thorough set of required controls (vehicle, catalytically-dead mutant, positive/negative competence, marker-panel specificity) and a substantive confounders list (heat-shock/mosaicism, metabolic/mTORC1 cross-talk grounded in the cited PMID, marker-vs-function gap, STRING-predicted off-targets). This matches the expected evidence of 'candidate set + controls + confounders in gap_flags.' Routing is explicitly and correctly stated: ranked-candidate work must pass through the causal-pruner and human gate before execution, satisfying the second expected-evidence requirement. Gap_flags are appropriately populated, honestly noting the lack of verified ENSDARG IDs, absence of zebrafish-specific sufficiency data, and the human/cell-line nature of the only kidney paper — good uncertainty calibration and no overclaiming (confidence 0.32 is appropriately low). Minor weaknesses: the TF candidates (pax2a, wt1a, tfap2a, foxc1a) are asserted as niche-derived without deeper justification of why these specific genes are top-ranked, and the combinatorial/dose-ladder design remains generic without proposing quantitative endpoints, but this is acceptable for a design template pending ID verification. Overall this closely matches the rubric's expectations with strong safety/process discipline (explicit human gate insistence) and honest scope-limiting caveats.</justification>\n<parameter name=\"rubric\">{\"completeness\": 0.9, \"factuality\": 0.85, \"citation_correctness\": 0.85, \"testability\": 0.85, \"uncertainty_calibration\": 0.9, \"safety_ethics\": 0.9}",
+        "usage": {
+          "input_tokens": 2806,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 705,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The candidate answer demonstrates strong methodological rigor and epistemic honesty in experimental design while simultaneously acknowledging critical gaps that prevent full correctness. STRENGTHS: The answer correctly structures a minimal perturbation framework (single GOF, combinatorial GOF, dose/timing ladder) with explicit controls addressing major confounders (heat-shock stress, protein dose vs. activity, metabolic state via mTORC1, marker vs. function, off-targets). The confound section shows sophisticated understanding of zebrafish developmental biology and the proximal-tubule metabolic confounder is appropriately sourced to PMID:37452023. Critically, the candidate explicitly routes the work through causal-pruner + human gate as required, correctly flagging that candidate symbols (pax2a, wt1a, tfap2a, foxc1a) lack ENSDARG verification and that the answer is a design template, not an executable protocol. The gap_flags are comprehensive and honest (no verified pronephric gene panel, only human cystinosis data, STRING predictive-only status, missing developmental calibration). The candidate's stated confidence (0.32) appropriately reflects uncertainty. WEAKNESSES: The answer does not deliver the ranked-candidate set with ENSDARG IDs or pre-causal-pruning output—it explicitly refuses to, which is epistemically correct but leaves the first part of the expected evidence (candidate set + controls + confounders in gap_flags) only partially addressed. No specific segmental markers are named (glomerulus, proximal tubule, distal tubule identity markers), limiting testability of the proposed readouts. The morphological/segmental confirmation control is mentioned but not operationalized (no guidance on how to assess \"segmental identity\"). The positive-competence control (\"perturbation in endogenous IM\") is vague—unclear whether this means wild-type background, morpholino rescue, or endogenous mis-expression. The negative-competence tissue choice is unspecified. These gaps prevent the design from being immediately actionable, though the answer correctly identifies this as pre-causal-pruner work. CALIBRATION: The candidate's 0.32 confidence is well-calibrated to the gap severity; the rubric asks for explicit causal-pruning + human-gate routing (present) AND candidate set with IDs (deferred correctly but not provided).",
+        "rubric": {
+          "factuality": 0.78,
+          "completeness": 0.68,
+          "testability": 0.65,
+          "citation_correctness": 0.85,
+          "uncertainty_calibration": 0.88,
+          "safety_ethics": 0.8
+        },
+        "usage": {
+          "input_tokens": 2246,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 669,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.18,
+    "outcome": "positive",
+    "mean_overall": 0.823,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.42 < tau=0.5",
+    "pass1_confidence": 0.42,
+    "pass2_confidence": 0.32,
+    "n_path_b_papers": 1
+  }
+}

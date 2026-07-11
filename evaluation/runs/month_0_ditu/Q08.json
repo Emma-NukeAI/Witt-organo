@@ -1,0 +1,196 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q08",
+  "claim_timestamp": "2026-07-11T20:45:59Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.12 < tau=0.5",
+    "pass1_confidence": 0.12,
+    "pass2_confidence": 0.12,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN3",
+  "claim_category": "ortholog_mapping",
+  "question_id": "Q08",
+  "question": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+  "backend": "neo4j",
+  "direct_answer": "I cannot deliver the requested ortholog map with verified identifiers from this bundle. The retrieval names authoritative resolvers (Ensembl Danio rerio, ZFIN) and mentions pronephros biology (CORPUS-2026-0003 implicates the polarity proteins Prkci/Prkcz in pronephros tubulogenesis, RN1), but NO specific set of pronephros transcription factors was actually supplied, and NO zebrafish→human ortholog pairs with ENSDARG/HGNC bindings were retrieved. I therefore have no verified basis to assert gene IDs or to classify any of them as 1:many ohnologs.\n\nWhat the bundle DOES let me say, conceptually: teleost genome duplication (TGD) is a real and well-documented source of 1:many (co-ortholog / ohnolog) relationships in zebrafish — PMID:28271061 explicitly documents pkd1l2a/pkd1l2b as retained ohnologs of a single mammalian pkd1l2, and PMID:35899258 documents an expanded slc5a paralog family. These are the exact 'paralog compensation' patterns that confound single-gene KOs: if a zebrafish gene has an ohnolog partner, knocking out one copy may be buffered by the other. However, neither of these examples is a transcription factor and neither is the TF set you asked me to map.\n\nTo do this correctly I would need (1) the explicit list of pronephros TFs (e.g. from ZFIN's TF catalog: candidates commonly cited include pax2a/pax2b, pax8, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b, osr1, emx2, sall1a/sall1b, tfap2a, foxj1a — several of which are themselves duplicated 'a/b' pairs and thus prime ohnolog/paralog-compensation candidates), and (2) their resolved Ensembl human orthologs with cardinality. None of those bindings are present in this bundle, so I am flagging the gap rather than inventing them.",
+  "stated_confidence": 0.12,
+  "prior": 0.12,
+  "evidence_cited": [
+    "db:Ensembl_DanioRerio",
+    "db:ZFIN",
+    "CORPUS-2026-0003",
+    "PMID:28271061",
+    "PMID:35899258"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "prkci"
+    },
+    {
+      "symbol": "prkcz"
+    },
+    {
+      "symbol": "pkd1l2a"
+    },
+    {
+      "symbol": "pkd1l2b"
+    },
+    {
+      "symbol": "slc5a5"
+    }
+  ],
+  "alternatives_considered": [
+    "Return the pronephros polarity genes prkci/prkcz from CORPUS-2026-0003 as the 'TF set' — rejected: they are polarity kinases, not transcription factors, so they do not answer the ortholog_mapping question.",
+    "Assert a canonical pronephros TF list (pax2a/pax2b, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b, osr1, sall1a/sall1b) with human orthologs from memory — rejected: violates the no-invented-ID rule; no ENSDARG/HGNC bindings were retrieved.",
+    "Use the pkd and slc5a ohnolog examples as templates and extrapolate to TFs — rejected: those are non-TF illustrations only; extrapolating specific TF cardinality would be fabrication."
+  ],
+  "gap_flags": [
+    "No explicit list of pronephros transcription factors was provided in the query or bundle.",
+    "No zebrafish→human ortholog pairs with resolved ENSDARG/HGNC identifiers were retrieved; Ensembl and ZFIN are named as resolvers but returned no actual mappings here.",
+    "No ohnolog/cardinality annotations for any TF are present; the only ohnolog evidence (pkd1l2a/b, slc5a family) concerns non-TF genes.",
+    "CORPUS-2026-0003 concerns pronephros polarity kinases (prkci/prkcz), not transcription factors — off-target for ortholog_mapping.",
+    "Cannot classify 1:many vs 1:1 for the intended TFs without a verified orthology query."
+  ],
+  "framework_applied": "Evidence-grounded ortholog mapping with explicit gap-gating: I attempted to satisfy the ortholog_mapping schema (zebrafish TF → human ortholog + cardinality/ohnolog flag) but gated on missing inputs (no TF list, no resolved IDs) rather than fabricating bindings, per the no-invented-ENSDARG contract. Ohnolog/paralog-compensation reasoning is anchored to the teleost-genome-duplication framing evidenced by PMID:28271061 and PMID:35899258.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T20:45:59Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.68,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.7,
+            "completeness": 0.4,
+            "factuality": 0.85,
+            "uncertainty_calibration": 0.9,
+            "testability": 0.5,
+            "safety_ethics": 1.0
+          },
+          "justification": "The candidate honestly declines to fabricate a verified ENSDARG↔human ortholog table because no specific TF set or resolved identifiers were supplied, which is the correct behavior when evidence is absent — this earns strong uncertainty-calibration and factuality scores. Notably, its conceptual discussion actually names several of the exact expected paralog-compensation flags (hnf1ba/hnf1bb, and the a/b duplication pattern) and correctly explains the TGD/ohnolog mechanism that confounds single-gene KOs, including a plausible candidate TF list (pax2a/2b, wt1a/wt1b, lhx1a/1b, sall1a/1b, foxj1a). However, it stops short of delivering the core deliverable: no verified ID table, no cardinality classifications, and it omits foxc1a/foxc1b specifically. The cited PMIDs (pkd1l2a/b, slc5a) are honestly flagged as non-TF and thus tangential, and CORPUS-2026-0003 is correctly noted as off-target. So the answer is a well-reasoned, honest gap-flag that partially anticipates the expected evidence conceptually but does not produce the verified mapping the question requires — a solid partial rather than correct.",
+          "usage": {
+            "input_tokens": 2236,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 590,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.35,
+          "verdict": "partial",
+          "justification": "The candidate correctly refuses to fabricate a verified ENSDARG↔HGNC ortholog table, which is appropriate given no actual retrieval bundle with such mappings was shown, and it avoids the safety failure of inventing specific gene IDs. It also correctly explains the TGD/ohnolog concept and even names the exact expected flag examples (hnf1ba/hnf1bb, pax2a/pax2b, wt1a/wt1b, foxj1a, etc.) as 'candidates commonly cited,' which shows real domain knowledge and gets close to the expected evidence (foxc1a/foxc1b was not mentioned, but hnf1ba/hnf1bb was, matching one of the two examples explicitly named in the rubric). However, the answer ultimately provides no verified table and no actual flags for the specific TFs, falling short of the core deliverable. It hedges heavily and is transparent about gaps, which is good calibration, but the completeness and testability are low since no concrete, checkable ortholog/cardinality data is delivered. This is a reasonable middle-ground response: honest but incomplete, partially matching expected evidence conceptually without delivering the verified artifact requested.",
+          "rubric": {
+            "factuality": 0.6,
+            "citation_correctness": 0.3,
+            "completeness": 0.25,
+            "testability": 0.2,
+            "uncertainty_calibration": 0.75,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 2300,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 570,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate correctly identifies the critical constraint: the query lacks a specific input list of pronephros transcription factors and no verified ENSDARG↔human-ortholog table was retrieved from the bundle. This is an honest and appropriately cautious response that avoids fabrication of gene identifiers or unsupported cardinality claims. The answer demonstrates strong conceptual understanding of ohnolog/paralog compensation as a KO-confounding mechanism, correctly cites teleost genome duplication (TGD) as the source, and provides concrete (if off-target) examples (pkd1l2a/pkd1l2b, slc5a family). The candidate helpfully speculates on likely pronephros TF candidates (pax2a/b, hnf1ba/b, wt1a/b, etc.) and correctly notes that many exhibit 'a/b' duplication patterns characteristic of ohnologs — this shows domain competence. However, the answer does not deliver the core requested output (verified ortholog table) because the input data are genuinely absent, not because of analytical failure. The cited PMIDs are real and conceptually on-point, though not applied to TFs. The detailed gap-flags are well-reasoned. Minor weakness: the speculative TF list, while plausible, is not itself verified from ZFIN or published orthology resources shown here, so it remains illustrative rather than actionable. The confidence score (0.12) appropriately reflects inability to answer, and uncertainty calibration is well-judged. This is a model answer for \"graceful degradation under missing input\" — it would score lower if it had fabricated ortholog pairs, and higher only if the actual data had been present and properly mapped.",
+          "rubric": {
+            "factuality": 0.85,
+            "citation_correctness": 0.8,
+            "completeness": 0.5,
+            "testability": 0.7,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.75
+          },
+          "usage": {
+            "input_tokens": 1938,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 542,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.37,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.583,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.12 < tau=0.5"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q29",
+  "claim_timestamp": "2026-07-11T21:20:56Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.42,
+    "n_path_b_papers": 0
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN13",
+  "claim_category": "model_assembly_morpheus",
+  "question_id": "Q29",
+  "question": "What is the smallest validating Morpheus step ('prueba pequeño') to test a single morphogen gradient before building a full multi-field model?",
+  "backend": "neo4j",
+  "direct_answer": "The smallest validating Morpheus step (\"prueba pequeño\") is to build a **single-field, single-morphogen reaction–diffusion model** and confirm it reproduces the expected analytic gradient before adding any biology. Concretely:\n\n1. Define ONE Field (the morphogen concentration) on a small 1D or thin 2D lattice.\n2. Add ONE localized Source (a fixed boundary/point production term at one edge) and ONE uniform first-order Decay (degradation), plus a Diffusion term — i.e. the minimal production–diffusion–degradation (∂c/∂t = D∇²c − k·c + source) system.\n3. Run to steady state and check that the concentration profile matches the known exponential steady-state solution with decay length λ = √(D/k). This is the validation: the numerical gradient should overlay the analytic exponential.\n4. Sanity-check conservation/units and do a quick sensitivity sweep on D and k to confirm λ scales as predicted.\n\nOnly once this single-morphogen gradient reproduces the analytic λ do you proceed to couple additional fields, cell populations, or multi-field interactions. The relevant assets live in niche RN13 (Morpheus .xml simulation models + code), with kinetic parameters (production/decay rates, diffusion constants) sourced from RN3 and any biomechanical/geometry inputs from RN6.\n\nNOTE: the retrieved bundle names the resource niches (RN13 = Morpheus .xml models/code; RN3 = signaling/kinetic parameters; RN6 = Morpheus biomechanics .json) but contains no document that explicitly prescribes a validation protocol. The step above is the standard minimal reaction–diffusion validation reasoned from the substrate model type, not a quoted procedure — treat it as a methodological recommendation.",
+  "stated_confidence": 0.42,
+  "prior": 0.42,
+  "evidence_cited": [
+    "niche:RN13",
+    "niche:RN3",
+    "niche:RN6"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Skip the analytic-gradient check and instead validate directly against a measured spatial expression profile from CNGB_STOmics/ZESTA spatial atlases — rejected as the 'smallest' step because it couples model validation to data-fitting rather than isolating the numerical gradient solver.",
+    "Start with a two-field ligand–receptor or activator–inhibitor pair — rejected because it is not the minimal single-morphogen test the question asks for.",
+    "Validate only by visual inspection of the gradient shape without the analytic λ comparison — rejected as insufficiently quantitative."
+  ],
+  "gap_flags": [
+    "No document in the bundle explicitly defines a 'prueba pequeño' validation protocol; the answer is reasoned from the reaction–diffusion model class and the RN13 asset description.",
+    "No concrete Morpheus .xml template, specific D/k parameter values, geometry, or timestep were retrieved from RN13/RN3.",
+    "System is 'any', so no tissue-specific morphogen (e.g. shh, bmp, fgf, wnt) is grounded — no gene identifiers can be asserted.",
+    "Cannot confirm which analytic solution/units convention the RN13 code assumes."
+  ],
+  "framework_applied": "Minimal-model / reductionist validation reasoning: isolate a single-morphogen reaction–diffusion system, verify against a closed-form steady-state (exponential, λ=√(D/k)) before adding complexity. Applied because the bundle identifies the Morpheus asset niche (RN13) and parameter sources (RN3, RN6) but supplies no explicit protocol, so the standard morphogen-gradient validation heuristic is used.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T21:20:56Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.82,
+          "verdict": "correct",
+          "justification": "The answer directly and competently addresses the question's expected evidence. It defines a genuinely minimal single-field step (one Field, one Source, one Decay, plus Diffusion), specifies what it validates (numerical gradient overlaying the analytic exponential steady-state with decay length λ=√(D/k)), and explains how it ladders up (only proceed to multi-field/cell coupling once λ is reproduced). The founder-principle alignment (\"prueba pequeño\" — smallest validating step before full model) is honored throughout. The reaction–diffusion math (∂c/∂t = D∇²c − k·c + source, λ=√(D/k)) is technically correct and standard. Uncertainty calibration is excellent: the candidate clearly flags that no document explicitly prescribes this protocol, that the step is reasoned from the substrate model class rather than quoted, and that no concrete parameters/templates were retrieved — with a well-calibrated confidence of 0.42. Citations to RN13/RN3/RN6 are described honestly as niche/asset locations, not as sources of a quoted procedure, avoiding overclaiming. Minor deductions: the exact niche-to-content mapping (RN13/RN3/RN6) is asserted somewhat confidently and cannot be independently verified here, and completeness could be slightly higher with a note that a single validation step should also confirm boundary-condition behavior. Overall this is a strong, honest, testable answer.",
+          "rubric": {
+            "factuality": 0.9,
+            "completeness": 0.8,
+            "citation_correctness": 0.75,
+            "testability": 0.95,
+            "uncertainty_calibration": 0.95,
+            "safety_ethics": 1.0
+          },
+          "usage": {
+            "input_tokens": 2021,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 652,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate provides a scientifically sound, generic reaction-diffusion validation protocol (single field, source+diffusion+decay, check against analytic exponential steady-state, sensitivity sweep, then ladder up to multi-field). This aligns reasonably with the expected evidence's general shape (minimal single-field step; what it validates; laddering up). However, it explicitly admits it could not find a document that specifies the actual 'prueba pequeño' protocol from the source material, and instead reasoned it from general knowledge of reaction-diffusion systems and generic niche descriptions (RN13, RN3, RN6). This is an honest and appropriate epistemic move given the retrieval gap, and the calibration (confidence 0.42, explicit gap flags) is commendable. However, since the question presumably refers to a specific protocol/step described in a particular corpus (given the Spanish term 'prueba pequeño' suggests this is a named concept from specific source material), the answer's inability to ground this in actual document content is a meaningful shortfall for completeness and citation_correctness — the citations to RN13/RN3/RN6 are asset-type placeholders, not evidence for the actual validation step content. The 'founder-principle alignment' expected evidence point is not addressed at all. Overall, the answer is methodologically reasonable and honestly caveated but doesn't fully deliver the expected evidence, especially the founder-principle alignment and any concrete grounding from retrieved documents.",
+          "overall_score": 0.45,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.65,
+            "completeness": 0.4,
+            "citation_correctness": 0.3,
+            "testability": 0.65,
+            "uncertainty_calibration": 0.75,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2085,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 657,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.68,
+          "verdict": "partial",
+          "justification": "The candidate provides a **well-reasoned, methodologically sound answer** that aligns with standard computational morphology practice (single-field reaction–diffusion validation before multi-field coupling), but falls short of the \"expected evidence\" standard due to lack of grounding. Strengths: (1) the four-step protocol is pedagogically clear and factually correct—steady-state exponential solutions (c(x) ∝ exp(−x/λ), λ = √(D/k)) are the canonical minimal validation for reaction–diffusion systems; (2) the focus on analytic overlay as the validation gate is the correct founder principle for morphogen gradient modeling; (3) the candidate explicitly flags its own epistemic gaps (no explicit \"prueba pequeño\" protocol in the bundle, no concrete .xml template, no tissue-specific morphogen), which demonstrates appropriate uncertainty calibration. Weaknesses: (1) Expected evidence calls for specificity on \"how it ladders up\" to multi-field models—the answer states \"proceed to couple\" but does not explain the next step's validation target or dependency structure; (2) no concrete Morpheus .xml example, boundary condition specification, or timestep guidance is provided (candidate acknowledges this gap); (3) the niche citations (RN13, RN3, RN6) are correct in naming asset types, but the candidate does not retrieve or quote from an actual validated protocol or parameter set; (4) no tissue-specific morphogen grounding limits testability—which biological system (e.g., Drosophila, vertebrate neural tube) should this validate? Factuality and safety are not compromised, and the general framework is not fabricated. The answer succeeds as a principled methodological recommendation but lacks the citation-backed, tissue-specific, and multi-step-integration evidence that would earn a \"correct\" verdict on a specialized question.",
+          "rubric": {
+            "factuality": 0.82,
+            "completeness": 0.62,
+            "citation_correctness": 0.6,
+            "uncertainty_calibration": 0.8,
+            "testability": 0.58,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 1726,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 571,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.37,
+      "outcome": "positive",
+      "mean_overall": 0.65,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.34 < tau=0.5"
+    }
+  ]
+}

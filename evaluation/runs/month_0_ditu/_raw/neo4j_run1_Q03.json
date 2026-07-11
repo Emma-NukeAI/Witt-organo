@@ -1,0 +1,74 @@
+{
+  "question_id": "Q03",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "regulator_vs_bystander",
+  "bundle": {
+    "question": "For a candidate gene co-expressed in the pronephros, how do you assemble evidence that it is a true regulator vs. a co-expressed bystander? Name the framework, confidence (0-1), and gap flags at each step.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7479,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7479,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.7273,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7446,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7231,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7368,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.699,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false,
+      "reason": "not yet evaluated"
+    }
+  },
+  "contract": {
+    "_error": "network error: Remote end closed connection without response",
+    "direct_answer": null,
+    "confidence": null,
+    "evidence_cited": [],
+    "identifier_bindings": []
+  },
+  "deterministic": null,
+  "panel": null,
+  "fallback": {
+    "fired": false
+  }
+}

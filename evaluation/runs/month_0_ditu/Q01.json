@@ -1,0 +1,189 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q01",
+  "claim_timestamp": "2026-07-11T20:32:28Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.15 < tau=0.5",
+    "pass1_confidence": 0.15,
+    "pass2_confidence": 0.15,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "marker_identification",
+  "question_id": "Q01",
+  "question": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?",
+  "backend": "neo4j",
+  "direct_answer": "Honest answer: the provided evidence bundle does NOT contain the specific expression-order data needed to answer this question rigorously. I can only give a partially-grounded, low-confidence sketch, and I explicitly cannot assert any ENSDARG IDs because none were verified in the bundle.\n\nWhat the bundle DOES support:\n- The zebrafish pronephros is a well-established in vivo model for nephron development (CORPUS-2026-0003#c000).\n- Several patterning/specification genes appear in the pronephric context in the literature hits: pax2 and ATPα1a.1 are cited as pronephric \"specification markers\" (PMID:39240899); hand2 (locus han) influences pronephric tubulogenesis (PMID:39240899); gdf11 acts through TGF-β to drive pronephros/cloaca formation (PMID:40055488); cfap300 is expressed in the pronephros and affects segmentation/multiciliated-cell fate (PMID:42067934).\n\nWhat the bundle does NOT provide (the core of the question):\n- No dataset here resolves the canonical intermediate-mesoderm vs. pronephric-mesoderm transcription-factor cascade at 12–24 hpf, and none gives temporal ordering. From the general nephrogenesis literature this cascade is usually described as intermediate mesoderm marked by lhx1a/pax2a/pax8 (and osr1 earlier), resolving into pronephric mesoderm/tubule fields — but I have NO in-bundle evidence for these identities or their order, so I flag this as unverified recall rather than a grounded claim.\n- pax2 (and pax8/lhx1/osr1) ENSDARG identifiers are NOT in the resolved-entities list (\"none checked\"), so I will not state any ENSDARG.\n\nBottom line: With only this bundle I can name pax2 and ATPα1a.1 as pronephric specification markers and hand2/gdf11/cfap300 as pronephric regulators, but I cannot responsibly assign the intermediate- vs. pronephric-mesoderm TF split or its temporal ordering/lineage constraint. This needs the RN1 lineage trees / ZESTA spatiotemporal atlas, which are referenced but not actually included as expression content in the bundle.",
+  "stated_confidence": 0.15,
+  "prior": 0.15,
+  "evidence_cited": [
+    "CORPUS-2026-0003#c000",
+    "PMID:39240899",
+    "PMID:40055488",
+    "PMID:42067934",
+    "niche:RN1",
+    "CORPUS-2026-0001"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "pax2"
+    },
+    {
+      "symbol": "ATPa1a.1"
+    },
+    {
+      "symbol": "hand2"
+    },
+    {
+      "symbol": "gdf11"
+    },
+    {
+      "symbol": "cfap300"
+    }
+  ],
+  "alternatives_considered": [
+    "Report the canonical osr1 → lhx1a/pax2a/pax8 intermediate-mesoderm cascade from general literature — rejected as primary answer because none of it is grounded in this bundle and no ENSDARGs were verified.",
+    "Treat pax2/ATPαa1.1 as sufficient markers — rejected because the bundle labels them 'specification markers' generally, not as discriminating intermediate vs. pronephric mesoderm with temporal order.",
+    "Use RN1 transition-probability matrices to infer lineage order — not possible: the niche is listed but its actual matrix/expression values are not in the bundle."
+  ],
+  "gap_flags": [
+    "No verified ENSDARG identifiers were provided for any pronephric/intermediate-mesoderm TF (entities resolved = none checked).",
+    "Bundle contains no explicit intermediate-mesoderm vs. pronephric-mesoderm marker contrast at 12–24 hpf.",
+    "No temporal-ordering / lineage-transition data actually included despite RN1 lineage-tree and ZESTA atlas being referenced.",
+    "Literature hits are mostly downstream/segmentation/regeneration (cfap300, gdf11, hand2/Fn), not early IM-vs-pronephros TF specification.",
+    "Cannot answer the 'expression order constrains lineage' part with any grounding."
+  ],
+  "framework_applied": "Evidence-gap triage: match question requirements (IM vs pronephric TF markers + temporal order) against available bundle content, downgrade confidence when core evidence is absent, and refuse to assert unverified identifiers per the output contract.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T20:32:28Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.55,
+          "verdict": "partial",
+          "justification": "The candidate honestly abstains from fabricating the core deliverable (per-cluster/per-hpf ordered TF expression from a scRNA atlas) and explicitly flags that the bundle lacks the required data. Its uncertainty calibration is excellent (stated confidence 0.15, clear gap flags, refusal to invent ENSDARG IDs). From general recall it does surface the correct canonical TF set — lhx1a, pax2a, pax8 (plus osr1) for intermediate mesoderm — which partially matches the expected evidence (pax2a, pax8, lhx1a, wt1a), though it omits wt1a and, critically, provides NO temporal ordering and NO lineage-restriction argument, which is the actual substance of the question. It correctly labels this recall as unverified rather than grounded. Factuality is high because claims are hedged and the marker recall is accurate; citation correctness is moderate since the cited literature hits (cfap300, gdf11, hand2) are downstream/tangential and don't support the core answer, though this is honestly acknowledged. Completeness is low: the question's central mechanistic ask (expression order constraining lineage) is essentially unanswered. This is a well-calibrated non-answer with useful partial recall — safe and honest, but incomplete.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.8, \"completeness\": 0.3, \"citation_correctness\": 0.45, \"uncertainty_calibration\": 0.95, \"testability\": 0.4, \"safety_ethics\": 1.0}",
+          "usage": {
+            "input_tokens": 2294,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 595,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate correctly declines to fabricate specifics and transparently flags that the provided bundle lacks the scRNA-atlas-derived, per-cluster/per-hpf expression order for pax2a, pax8, lhx1a, wt1a that the expected evidence calls for. It does recall from general knowledge that lhx1a/pax2a/pax8 (and osr1) mark intermediate mesoderm resolving into pronephric fields, but explicitly labels this as unverified recall rather than grounded fact, and never asserts the required ordered TF set or the lineage-restriction mechanism in a substantive way. It also omits wt1a entirely from its recalled sketch. The answer is honest and well-calibrated (appropriately low confidence, clear gap flags, no fabricated IDs), but it fails to deliver the core requested content: the ordered TF cascade with per-hpf/per-cluster expression and the lineage-restriction argument. This is a case of appropriate abstention/hedging given genuinely insufficient evidence in the bundle, which is safer than confidently answering incorrectly, but it does not satisfy completeness or testability requirements of the rubric.",
+          "overall_score": 0.25,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.6,
+            "completeness": 0.1,
+            "citation_correctness": 0.5,
+            "testability": 0.1,
+            "uncertainty_calibration": 0.9,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2358,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 558,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate demonstrates exemplary intellectual honesty and epistemic calibration by explicitly refusing to fabricate or overstate evidence. It correctly identifies that the provided bundle does not contain the scRNA-seq atlas data or temporal lineage-restriction data necessary to answer the core question (TF expression order at 12–24 hpf constraining intermediate mesoderm vs. pronephric lineages). The answer accurately cites what IS in the bundle (pax2/ATPα1a.1 as pronephric markers; hand2/gdf11/cfap300 as downstream regulators) with proper source attribution, and responsibly abstains from stating unverified ENSDARG identifiers. The gap identification is precise and reflects genuine understanding of what the question demands versus what is available. However, the answer is severely limited in its ability to address the question's core: it cannot provide the ordered TF set (pax2a, pax8, lhx1a, wt1a) with per-cluster/per-hpf expression dynamics, cannot explain how expression order constrains lineage restriction, and largely deflects rather than attempts to reconstruct or sketch the mechanism from first principles or acknowledged external knowledge. This is defensible given the constraint, but it results in a fundamentally incomplete response that does not advance understanding of the biological question. The citation correctness and factuality are high where claims are made, uncertainty calibration is exemplary (0.15 stated confidence is well-calibrated to the evidence gap), but completeness and testability are low due to the refusal to answer beyond the immediate bundle, and safety/ethics are excellent (no hallucination or false specificity).",
+          "rubric": {
+            "citation_correctness": 0.9,
+            "completeness": 0.3,
+            "factuality": 0.85,
+            "safety_ethics": 0.95,
+            "testability": 0.35,
+            "uncertainty_calibration": 0.95
+          },
+          "usage": {
+            "input_tokens": 1948,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 520,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.47,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.507,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.15 < tau=0.5"
+    }
+  ]
+}

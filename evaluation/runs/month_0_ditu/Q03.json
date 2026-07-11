@@ -1,0 +1,61 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q03",
+  "claim_timestamp": "2026-07-11T20:35:35Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": false
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "regulator_vs_bystander",
+  "question_id": "Q03",
+  "question": "For a candidate gene co-expressed in the pronephros, how do you assemble evidence that it is a true regulator vs. a co-expressed bystander? Name the framework, confidence (0-1), and gap flags at each step.",
+  "backend": "neo4j",
+  "direct_answer": null,
+  "stated_confidence": null,
+  "prior": null,
+  "evidence_cited": [],
+  "identifier_bindings": [],
+  "alternatives_considered": [],
+  "gap_flags": [],
+  "framework_applied": null,
+  "observed_outcome": null,
+  "observed_at": null,
+  "scoring": {
+    "method": "unscored",
+    "deterministic": null,
+    "panel": null
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "skipped-ad-hoc",
+      "reason": "deterministic outcome sufficed / synth skipped"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "not-applicable",
+      "reason": "DI sufficient / fallback disabled"
+    }
+  ]
+}

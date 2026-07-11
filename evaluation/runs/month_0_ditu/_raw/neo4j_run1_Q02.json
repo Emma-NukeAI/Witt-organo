@@ -1,0 +1,318 @@
+{
+  "question_id": "Q02",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "What markers distinguish periocular neural crest from optic-cup and lens-placode lineages at 14–24 hpf in zebrafish?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7914,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7914,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.808,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7227,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7219,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7523,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.7261,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.35 < tau=0.5",
+      "query": "zebrafish cornea/eye markers periocular neural crest optic-cup lens-placode",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41210874",
+            "pmcid": "PMC12592064",
+            "doi": "10.3389/fmed.2025.1545958",
+            "title": "Systematic review: &lt;i&gt;Xenopus laevis&lt;/i&gt; as a model for ophthalmic development and disease research.",
+            "year": "2025",
+            "journal": "Front Med (Lausanne)",
+            "citations": 0
+          },
+          "abstract": "Model organisms have played a pivotal role in ophthalmic research, providing essential platforms to investigate eye development, regeneration mechanisms, and disease pathology. Recent advancements in gene editing technologies and experimental methodologies have enabled the successful simulation of various human eye diseases, including glaucoma, retinal degeneration, and corneal disorders in model systems. These models have significantly advanced the understanding of the molecular and cellular mechanisms underlying ocular diseases and facilitated the screening and validation of potential therapeutic agents. Xenopus laevis (X. laevis) has emerged as an ideal system for developmental biology research due to its rapid embryonic development, transparent embryos, and ease of observation and manipulation. Its fully sequenced genome allows precise genetic modifications, including gene knockout, knock-in, and expression regulation studies. In ophthalmic research, X. laevis is widely used for studying eye development, disease modeling, and ocular structure. Its accessible embryonic stages and well-characterized eye development make it a valuable model for retinal disease investigations. This",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "40206405",
+            "pmcid": "PMC11979377",
+            "doi": "10.3389/fcell.2025.1552988",
+            "title": "Zebrafish as a model for crystallin-associated congenital cataracts in humans.",
+            "year": "2025",
+            "journal": "Front Cell Dev Biol",
+            "citations": 1
+          },
+          "abstract": "Congenital cataracts are a leading cause of vision loss in children and can be an isolated finding or associated with systemic abnormalities. Isolated congenital cataracts are most commonly associated with pathogenic variants in one of the Crystallin genes. The α-Crystallins are small heat shock proteins that act as chaperones in the lens and other organs throughout the body to prevent protein aggregation and maintain tissue function. In contrast, the ß- and γ-Crystallins are structural proteins that are predominantly expressed in the mature lens and regulate its refractive index. However, the role of the Crystallins during lens development such that pathogenic variants result in inherited cataracts is less well-defined. As zebrafish allow real-time visualization of lens development, genetic manipulation of both the endogenous Crystallin genes as well as the use of transgenic overexpression of identified pathogenic variants yields important insight into the pathogenesis of congenital cataracts. Herein, we review the similarities and differences between human and zebrafish Crystallin genes. Further, we discuss the use of zebrafish as a model for congenital cataracts and explore the ",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "35817658",
+            "pmcid": "PMC9669153",
+            "doi": "10.1016/j.preteyeres.2022.101093",
+            "title": "Cell fate decisions, transcription factors and signaling during early retinal development.",
+            "year": "2022",
+            "journal": "Prog Retin Eye Res",
+            "citations": 100
+          },
+          "abstract": "The development of the vertebrate eyes is a complex process starting from anterior-posterior and dorso-ventral patterning of the anterior neural tube, resulting in the formation of the eye field. Symmetrical separation of the eye field at the anterior neural plate is followed by two symmetrical evaginations to generate a pair of optic vesicles. Next, reciprocal invagination of the optic vesicles with surface ectoderm-derived lens placodes generates double-layered optic cups. The inner and outer layers of the optic cups develop into the neural retina and retinal pigment epithelium (RPE), respectively. In vitro produced retinal tissues, called retinal organoids, are formed from human pluripotent stem cells, mimicking major steps of retinal differentiation in vivo. This review article summarizes recent progress in our understanding of early eye development, focusing on the formation the eye field, optic vesicles, and early optic cups. Recent single-cell transcriptomic studies are integrated with classical in vivo genetic and functional studies to uncover a range of cellular mechanisms underlying early eye development. The functions of signal transduction pathways and lineage-specific ",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on the available evidence, the three lineages can be distinguished by the following canonical marker sets, though I must flag that the specific evidence bundle here does not provide gene-level marker tables with verified ENSDARGs for the 14–24 hpf window — so the marker assignments below are drawn from general vertebrate/zebrafish eye-development knowledge (supported in outline by PMID:35817658 and PMID:40206405), NOT from a marker table extracted from the ZESTA/anterior-segment datasets.\n\n1) Periocular neural crest (POM/POC): foxc1a/foxc1b, foxd3, pitx2, sox10, tfap2a, lmx1b — cranial neural crest–derived mesenchyme surrounding the optic cup that later contributes to the anterior segment/cornea stroma and endothelium.\n\n2) Optic cup (neuroepithelium): rx1/rx2/rx3 (rax), pax6a/pax6b, vsx2, six3, otx2; with mitfa/otx2 marking the RPE (outer) layer and vsx2/atoh7 the prospective neural retina (inner) layer.\n\n3) Lens placode / lens: pitx3, foxe3, mafba/maf, sox1/sox2, and the crystallins (cryaa, cryba/crybb, cryga family) as differentiation markers of lens fiber cells (crystallins emphasized in PMID:40206405).\n\nThe most discriminating contrasts in this window: pax6/rx/vsx2 mark the optic-cup neuroepithelium; foxe3/pitx3/crystallins mark the surface-ectoderm-derived lens; and foxc1/pitx2/foxd3/sox10/tfap2a mark the neural-crest-derived periocular mesenchyme (crest markers are absent from the optic cup and lens epithelium). pax6 is shared between optic cup and lens and therefore is NOT discriminating on its own.\n\nNote: the two directly relevant datasets in the bundle (ZESTA CORPUS-2026-0001; anterior-segment scRNA atlas CORPUS-2026-0002) cover exactly this pre-corneal 3–24 hpf window and would be the correct sources to extract verified, stage-resolved markers with ENSDARGs — but their marker contents were not surfaced in the provided text, so I cannot bind ENSDARGs from them here.",
+    "confidence": 0.42,
+    "evidence_cited": [
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0002",
+      "db:ZFIN",
+      "PMID:35817658",
+      "PMID:40206405"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "foxc1b"
+      },
+      {
+        "symbol": "foxd3"
+      },
+      {
+        "symbol": "pitx2"
+      },
+      {
+        "symbol": "sox10"
+      },
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "lmx1b"
+      },
+      {
+        "symbol": "rx3"
+      },
+      {
+        "symbol": "pax6a"
+      },
+      {
+        "symbol": "pax6b"
+      },
+      {
+        "symbol": "vsx2"
+      },
+      {
+        "symbol": "six3"
+      },
+      {
+        "symbol": "otx2"
+      },
+      {
+        "symbol": "mitfa"
+      },
+      {
+        "symbol": "atoh7"
+      },
+      {
+        "symbol": "pitx3"
+      },
+      {
+        "symbol": "foxe3"
+      },
+      {
+        "symbol": "sox2"
+      },
+      {
+        "symbol": "cryaa"
+      }
+    ],
+    "alternatives_considered": [
+      "Restrict the answer strictly to what the bundle text states and decline to list markers (the bundle abstracts confirm the lineages/stages but give no marker table)",
+      "Treat the anterior-segment atlas (CORPUS-2026-0002) as the authoritative marker source, but its gene contents were not provided",
+      "Use only PMID:40206405 crystallins as verified lens markers and PMID:35817658 for optic-cup TFs, omitting neural-crest markers entirely (would leave the periocular NC lineage under-specified)"
+    ],
+    "gap_flags": [
+      "No verified ENSDARG identifiers were provided in the evidence bundle; none of the asserted gene symbols could be bound to IDs from the verified store",
+      "The two directly relevant datasets (ZESTA, anterior-segment atlas) were retrieved but their actual marker/gene contents were not surfaced, so markers are inferred from general/review-level knowledge rather than extracted data",
+      "Stage-resolved (14 vs 24 hpf) discrimination of markers is not supported by any per-timepoint expression table in the bundle",
+      "Periocular neural crest markers are not directly documented in any cited abstract (PMID:35817658 focuses on retina/optic cup; PMID:40206405 on lens crystallins); crest marker list is background knowledge and should be verified against ZFIN/ZESTA"
+    ],
+    "framework_applied": "Lineage-contrastive marker triangulation: enumerate candidate markers per lineage, then keep only those that differentiate lineages (drop shared markers like pax6). Applied because the question is a marker_identification/discrimination task requiring differential rather than merely present markers.",
+    "search_query": "zebrafish periocular neural crest foxc1 pitx2 foxd3 optic cup rx3 pax6 vsx2 lens placode foxe3 pitx3 crystallin marker 14 24 hpf",
+    "_usage": {
+      "input_tokens": 3353,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1921,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.62,
+        "verdict": "partial",
+        "justification": "The candidate provides a biologically sound and well-organized set of canonical markers distinguishing the three lineages (crest: foxc1/pitx2/foxd3/sox10/tfap2a; optic cup: pax6/rx/vsx2/mitfa; lens: foxe3/pitx3/crystallins), and correctly identifies that pax6 is shared and non-discriminating. It also honestly flags the pre-corneal nature of the window and repeatedly discloses that it could not surface actual marker tables or ENSDARGs from the datasets. However, it diverges from the expected evidence in important ways: the rubric expected per-cluster % positive values for specific markers (hoxb8a for NC, prox1a for lens, tbx2b for optic cup), none of which the candidate names — it substitutes a different, more textbook marker set and provides no quantitative per-cluster positivity. So while factually defensible as general knowledge, it does not match the specific expected markers or the quantitative expectation. The uncertainty calibration is strong (confidence 0.42, extensive gap_flags), and the candidate correctly captures the pre-corneal caveat. Citation use is honest but the abstracts cited do not actually support the crest marker list, which the candidate admits. Net: a partial answer — good hedging and reasonable biology, but misses the specific expected markers and quantitative content.",
+        "rubric": {
+          "factuality": 0.7,
+          "completeness": 0.4,
+          "citation_correctness": 0.5,
+          "testability": 0.5,
+          "uncertainty_calibration": 0.9,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2339,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 624,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The expected evidence specifies a very particular quantitative answer: per-cluster percent-positive values for hoxb8a (neural crest), prox1a (lens), and tbx2b (optic cup) markers, with the caveat that the 14–24 hpf window is pre-corneal. The candidate's answer does not mention hoxb8a, prox1a, or tbx2b at all, nor any per-cluster percentage figures. Instead it substitutes a generic list of canonical vertebrate eye-development markers (foxc1a/b, foxd3, pitx2, sox10, tfap2a, lmx1b for crest; rx/pax6/vsx2/six3/otx2 for optic cup; pitx3, foxe3, mafba, sox1/2, crystallins for lens), explicitly derived from general background knowledge rather than from the specific dataset markers expected. The candidate is commendably transparent about this limitation, explicitly flagging that it could not surface the specific marker table from the cited corpora, could not bind ENSDARGs, and could not resolve stage-specific (14 vs 24 hpf) discrimination — this honesty is a strength for calibration. However, in terms of matching the expected evidence, the answer is substantively incorrect/incomplete: it fails to identify the actual key markers (hoxb8a, prox1a, tbx2b) that the question is really asking about, and does not provide any quantitative per-cluster data. It does correctly note the pre-corneal caveat implicitly (mentions \"pre-corneal\" indirectly by discussing anterior segment developing later) but does not explicitly state the pre-corneal caveat as required. Given the mismatch with the core expected markers and lack of quantitative structure, but with reasonable general biological accuracy and strong epistemic honesty, this is a partial-to-incorrect answer. The self-flagged gaps prevent it from being deemed a confident fabrication, but on strict grounds of completeness and factual matching to the expected evidence, it falls well short.",
+        "overall_score": 0.18,
+        "verdict": "incorrect",
+        "rubric": {
+          "factuality": 0.4,
+          "completeness": 0.1,
+          "citation_correctness": 0.25,
+          "testability": 0.15,
+          "uncertainty_calibration": 0.75,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2403,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 837,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.56,
+        "rubric": {
+          "factuality": 0.65,
+          "citation_correctness": 0.5,
+          "completeness": 0.48,
+          "uncertainty_calibration": 0.78,
+          "testability": 0.42,
+          "safety_ethics": 0.95
+        },
+        "justification": "The candidate provides a reasonable framework for distinguishing the three lineages (periocular neural crest, optic cup, lens) using canonical marker sets that are biologically plausible and broadly consistent with vertebrate eye development literature. The answer correctly identifies key markers: foxc1/pitx2/foxd3/sox10 for neural crest, pax6/rx/vsx2 for optic cup, and pitx3/foxe3/crystallins for lens. The biological logic is sound—crest markers absent from epithelial tissues, pax6 shared but not discriminating alone. However, the answer critically fails against the expected evidence requirement: it does not provide \"per-cluster % positive\" quantifications for hoxb8a (neural crest), prox1a (lens), or tbx2b (optic cup) that would constitute the actual experimental deliverable. The candidate acknowledges this gap extensively and transparently—noting that ZESTA and anterior-segment datasets were retrieved but their marker contents were not surfaced, and that markers are inferred from background knowledge rather than extracted data. This honesty is commendable and reflected in the stated low confidence (0.42) and detailed gap flags, but it means the answer does not meet the core deliverable. Citation correctness is weak: PMIDs 35817658 and 40206405 are cited as supporting the marker list, but the candidate admits they focus on retina/optic cup and lens crystallins respectively, not periocular neural crest markers, which are therefore unsourced from the bundle. Testability is compromised by absence of ENSDARGs, per-cluster percentages, and stage-resolved expression tables. The caveat about 14–24 hpf being pre-corneal is noted but not fully exploited. Uncertainty calibration is strong: the answer is forthright about what is and is not supported by the provided evidence. Factuality of the individual markers (e.g., foxc1a/foxc1b for crest) is plausible but not verified against the expected data sources.",
+        "usage": {
+          "input_tokens": 1986,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 615,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.44,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.453,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.35 < tau=0.5",
+    "pass1_confidence": 0.35,
+    "pass2_confidence": 0.42,
+    "n_path_b_papers": 3
+  }
+}

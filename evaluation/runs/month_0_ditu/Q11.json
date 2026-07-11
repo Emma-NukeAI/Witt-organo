@@ -1,0 +1,174 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q11",
+  "claim_timestamp": "2026-07-11T20:53:09Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.34 < tau=0.5",
+    "pass1_confidence": 0.34,
+    "pass2_confidence": 0.28,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN6",
+  "claim_category": "model_assembly_morpheus",
+  "question_id": "Q11",
+  "question": "Given cell-dynamics, geometry, cell adhesion and diffusive fields for zebrafish cornea, how do you assemble a Morpheus model matching early embryonic formation? Name the framework, confidence, and gap flags at each step.",
+  "backend": "neo4j",
+  "direct_answer": "HONEST ASSESSMENT: The evidence bundle does NOT contain the cornea-specific quantitative data needed to actually assemble this Morpheus model. I can only outline the assembly workflow and flag where each input is missing.\n\nProposed Morpheus assembly workflow (with framework, confidence, and gaps per step):\n\nSTEP 1 — CELL DYNAMICS (collective kinetics).\n- Source niche: RN8 (Cinética celular colectiva) provides per-region/per-stage mean migration velocity, apoptosis %/hr, and raw cell trajectories.\n- Morpheus mapping: encode as CPM update rules — migration bias/persistence (DirectedMotion or PersistentMotion plugin), apoptosis via a stochastic CellDeath rule keyed to the %/hr rate.\n- GAP: RN8 statistics are per-region/per-stage but NOT verified as cornea/anterior-segment specific in this bundle; migration and apoptosis values for the corneal primordium are not shown.\n\nSTEP 2 — GEOMETRY / DOMAIN.\n- Source: no cornea geometry/mesh is present in the bundle. RN6 mentions regional stiffness by region but not a segmentation mesh; the scRNA atlas (CORPUS-2026-0002) is temporal transcriptomic, not spatial geometry.\n- Morpheus mapping: would need a Lattice + initial CellPopulation seeding of the corneal/anterior-segment domain.\n- GAP: initial geometry/segmentation for the early embryonic cornea is MISSING from the bundle.\n\nSTEP 3 — CELL ADHESION.\n- Source niche: RN6 (Biomecánica pasiva y ECM) provides affinity matrices, basal cortical tension, and cell-friction coefficients as Morpheus .json inputs.\n- Morpheus mapping: affinity matrix → CPM contact-energy (Interaction/Contact energies between cell types + medium); basal cortical tension → SurfaceConstraint; friction coefficients → motility/dissipation terms.\n- GAP: adhesion affinity matrices are provided at niche level but their cornea-specific cell-type labeling is not confirmed here; need to cross-map to the atlas cell types in CORPUS-2026-0002.\n\nSTEP 4 — DIFFUSIVE FIELDS (morphogens/signaling).\n- Source: no cornea-specific diffusive field parameters (diffusion constants, decay, source cell types) appear in the bundle. CORPUS-2026-0002 (scRNA atlas of anterior segment) could in principle nominate ligand/receptor sources, but no quantitative field parameters are present.\n- Morpheus mapping: Field + Diffusion system (reaction-diffusion PDE), with production tied to atlas-identified source cell types and CPM cells reading local concentration.\n- GAP: diffusion coefficients, secretion/decay rates, and identity of secreting cell types for the early cornea are MISSING.\n\nSTEP 5 — INTEGRATION & CALIBRATION.\n- Generated-model niche RN13 (Morpheus .xml / BioNetGen .bngl / analysis scripts) is the intended output container; the atlas CORPUS-2026-0002 (closes Nat Witt GAP-5, the 'cornea hole') is the validation transcriptomic target.\n- Framework: composable multi-scale CPM (Cellular Potts) assembly — map each biological input class to its Morpheus module (Interaction, CellType constraints, motility plugins, Field/PDE), then calibrate against the temporal atlas.\n\nCRITICAL CAVEAT: Much of the retrieved corpus (CORPUS-2026-0003 pronephros/Prkci-zeta, the pronephros chunk, and the Path-B literature on angiogenesis assays and EV/biophysics abstracts) is NOT about cornea and is largely off-target for this task. The only directly cornea-relevant item is CORPUS-2026-0002 (anterior-segment atlas). No cornea-specific numeric parameters (geometry, diffusion, calibrated adhesion labels) are present, so a runnable model cannot be responsibly specified from this bundle alone.",
+  "stated_confidence": 0.28,
+  "prior": 0.28,
+  "evidence_cited": [
+    "CORPUS-2026-0002",
+    "niche:RN6",
+    "niche:RN8",
+    "niche:RN13"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Treat the model as fully specifiable now — rejected: geometry and diffusive-field parameters are absent from the bundle.",
+    "Borrow the pronephros tubulogenesis model (CORPUS-2026-0003, Prkci/Prkcz) as a template — rejected: different organ/geometry, not cornea.",
+    "Use Path-B angiogenesis-assay guidelines (PMID:29766399) to parameterize vascular fields — rejected: off-target, cornea early formation is not vascular angiogenesis here.",
+    "Assemble a purely mechanical CPM (RN6 + RN8 only, no diffusive fields) as a reduced first model — viable partial approach, but omits signaling the question explicitly requests."
+  ],
+  "gap_flags": [],
+  "framework_applied": null,
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T20:53:09Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.7,
+          "verdict": "partial",
+          "justification": "The candidate constructs the expected step ladder well: it maps cell dynamics → geometry → adhesion → diffusive fields → integration/calibration, and correctly ties adhesion inputs (affinity matrix, cortical tension, friction) to Morpheus .json and CPM contact/surface constraints (matching the expected affinity/cortical-tension .json and scaffold .xml evidence). It correctly names the framework (multi-scale Cellular Potts/Morpheus modules: Interaction, CellType constraints, motility plugins, Field/PDE) and provides per-step confidence and gap flags, which is exactly what the question asked. Strengths: honest, well-calibrated uncertainty (0.28 confidence), explicit MISSING flags for geometry, diffusion coefficients, and cornea-specific labeling, and it distinguishes on-target vs off-target corpus items — this shows good factuality and uncertainty calibration and avoids overclaiming a runnable model. Weaknesses: it does not surface CIL (contact-inhibition-of-locomotion) as a distinct step, which the expected ladder explicitly lists, and it misses the specific gap flag exemplar (TGF-β2 GOF bead) — instead giving only generic 'diffusion params missing' flags. Notably, its own structured gap_flags field is 'None' despite rich inline gap discussion, a minor inconsistency. Citations to RN6/RN8/RN13 and the atlas appear reasonable and internally consistent, though unverifiable here. Overall a strong, honest, but incomplete answer that omits CIL and the concrete TGF-β2 gap exemplar.",
+          "rubric": {
+            "citation_correctness": 0.75,
+            "completeness": 0.6,
+            "factuality": 0.85,
+            "safety_ethics": 1.0,
+            "testability": 0.65,
+            "uncertainty_calibration": 0.9
+          },
+          "usage": {
+            "input_tokens": 2734,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 725,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected evidence calls for a clear step ladder (geometry → adhesion → diffusive fields → CIL), explicit mention of affinity/cortical-tension .json files, a scaffold .xml, and gap flags such as the TGF-β2 GOF bead experiment. The candidate does present a step ladder with framework mappings (CPM/Morpheus modules: Interaction, SurfaceConstraint, Field/Diffusion, CellDeath, motility plugins) and does mention affinity matrices and cortical tension as .json inputs (RN6) and a Morpheus .xml scaffold (RN13), which aligns reasonably well with the expected evidence. However, the ordering differs from the expected ladder (geometry → adhesion → diffusive fields → CIL): the candidate orders it as cell dynamics → geometry → adhesion → diffusive fields → integration, omitting CIL (contact inhibition of locomotion) entirely as a named step/plugin, which is an explicit expected component. The candidate also does not mention the TGF-β2 GOF bead gap flag specifically, instead flagging generic gaps (missing geometry, missing diffusion coefficients, unconfirmed cell-type mapping) — these are plausible and honest but do not match the specific expected gap flag content. This suggests either the underlying corpus wasn't matched precisely or the candidate substituted generic gaps for the specific expected one. The confidence calibration (0.28) is reasonably honest and matches the tone of extensive gap-flagging, avoiding overclaiming, which is good practice. Citations are given at the niche/corpus level rather than precise document/page citations, which is consistent with the informal sourcing style but can't be verified against ground truth. Overall this is a partial match: good structural attempt with reasonable Morpheus mappings and strong honesty/uncertainty calibration, but missing explicit CIL as a step, missing the specific TGF-β2 GOF bead gap flag, and no formal \"gap_flags\" field populated despite extensive prose gap flagging. This is a solid partial credit case.",
+          "overall_score": 0.45,
+          "verdict": "partial",
+          "rubric": {
+            "completeness": 0.45,
+            "factuality": 0.55,
+            "citation_correctness": 0.4,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.75,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 2798,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 865,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "correct",
+          "overall_score": 0.82,
+          "justification": "The candidate demonstrates exceptional intellectual honesty and methodological rigor by explicitly refusing to fabricate a complete model when the required data are absent. The answer provides a well-structured step-ladder (geometry → adhesion → diffusive fields → dynamics) aligned with the expected evidence framework. Each step correctly maps biological inputs to Morpheus framework components (CPM, Interaction energies, Field/PDE systems, motility plugins) and flags genuine gaps (missing cornea-specific quantitative data, geometry/mesh, diffusion coefficients, calibrated cell-type labels). The stated confidence of 0.28 appropriately reflects the severity of the gaps. The critical caveat about off-target corpus material (pronephros, angiogenesis) demonstrates careful scrutiny. Weaknesses: (1) gap_flags are stated as \"None\" despite the answer enumerating multiple critical gaps—this should have been explicitly structured as a list (e.g., [\"missing corneal geometry\", \"unverified migration/apoptosis cornea-specificity\", \"absent diffusion parameters\", \"unconfirmed cell-type labeling\", \"TGF-β2 GOF bead validation not addressed\"]); (2) the answer does not explicitly name a confidence level for each step, only overall; (3) no discussion of how the \"TGF-β2 GOF bead\" gap flag would materially constrain the model; (4) the assembly workflow, while logically sound, remains somewhat generic to CPM modeling rather than deeply cornea-contextualized. The answer exemplifies high intellectual standards by avoiding overclaiming and exposing real limitations, directly rewarding the rubric's emphasis on uncertainty calibration and penalizing fabrication.",
+          "rubric": {
+            "factuality": 0.88,
+            "citation_correctness": 0.85,
+            "completeness": 0.75,
+            "uncertainty_calibration": 0.92,
+            "testability": 0.78,
+            "safety_ethics": 0.92
+          },
+          "usage": {
+            "input_tokens": 2184,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 531,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.37,
+      "outcome": "positive",
+      "mean_overall": 0.657,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.34 < tau=0.5"
+    }
+  ]
+}

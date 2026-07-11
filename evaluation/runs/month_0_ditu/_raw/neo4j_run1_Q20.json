@@ -1,0 +1,206 @@
+{
+  "question_id": "Q20",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "simulation_debug",
+  "bundle": {
+    "question": "A Morpheus run fails: 'Cell population NCC: Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)'. Diagnose and fix.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.6906,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.6906,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.7087,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "db:UCSC_Cell_Browser",
+          "type": "database",
+          "score": 0.6574,
+          "text": "UCSC Cell Browser. Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets. Data: Cell lineages across "
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.6634,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.6396,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6656,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.4 < tau=0.5",
+      "query": "zebrafish fails population spatial initializers created fewer",
+      "papers": []
+    }
+  },
+  "contract": {
+    "direct_answer": "This is a Morpheus configuration/initialization error, not a biology finding. The message \"Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)\" means Morpheus tried to place 40 cells for the NCC (neural crest cell) population but the spatial initializer(s) could only successfully seed fewer than requested — the parenthetical \"(40 < 1)\" indicates the requested `size` is being compared against how many the initializer actually placed. In practice this happens when:\n\n1. The `<InitCellObjects>` / spatial initializer region (e.g., an InitRectangle, InitCircle, InitProperty, or InitVectorProperty domain) is too small or falls outside the Lattice/Domain, so there is not enough free space to instantiate all 40 cells. Fix: enlarge the initializer region so its area ≥ (requested cell count × cell target volume), or reduce CellPopulation `size`, or lower the cells' `TargetVolume` so 40 fit within the seeded area.\n\n2. The initializer overlaps an excluded domain (Domain with a non-rectangular boundary / medium) or another already-placed CellPopulation, leaving too few open nodes. Fix: move/resize the region into free lattice space or set a non-overlapping placement.\n\n3. A units/coordinate mismatch: the initializer coordinates are specified in the wrong length units so the region is effectively a single node (hence \"< 1\"). Fix: check that Space/Lattice size, node length, and initializer coordinates use consistent units.\n\nRecommended concrete steps: open the offending Morpheus .xml under RN13 (Modelos de simulación y código), locate the `<CellPopulation type=\"NCC\">` block, and (a) confirm the spatial initializer geometry lies fully within the `<Lattice>`/`<Domain>`, (b) ensure the region area accommodates 40 cells at their TargetVolume, and (c) verify unit consistency. Either grow the seeding region or set `size` to match the available space. NOTE: The literal \"40 < 1\" is unusual (requested 40, floor 1) and may reflect a template where `size` and the initializer's own count are both parameterized — verify the initializer's own `number-of-cells` attribute is not accidentally set to 1 while `size` is 40; reconcile the two so they agree.",
+    "confidence": 0.42,
+    "evidence_cited": [
+      "niche:RN13"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Initializer region smaller than needed for 40 cells at their TargetVolume",
+      "Initializer region outside the Lattice/Domain or overlapping medium/another population",
+      "Unit/coordinate mismatch collapsing the region to ~1 node",
+      "Conflict between CellPopulation/size (40) and a separate initializer count attribute set to 1"
+    ],
+    "gap_flags": [
+      "The evidence bundle contains no actual Morpheus .xml content — only the RN13 niche description. Diagnosis is based on Morpheus semantics, not on the specific file.",
+      "The literal comparison '40 < 1' is ambiguous; without the source XML the exact requested-vs-placed values cannot be confirmed.",
+      "No biology-specific NCC parameters (TargetVolume, lattice size, domain geometry) are available in the bundle.",
+      "No gene identifiers relevant here; this is a simulation-config issue."
+    ],
+    "framework_applied": "Root-cause diagnostic reasoning for a tooling/config error: map the error string to Morpheus CellPopulation spatial-initialization semantics, enumerate the plausible failure modes (geometry, overlap, units, parameter mismatch), and give targeted fixes. Chosen because the task is simulation_debug, not a hypothesis about zebrafish biology.",
+    "search_query": "Morpheus CellPopulation spatial initializer fewer cells than size InitCellObjects lattice domain error",
+    "_usage": {
+      "input_tokens": 2042,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1434,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.72,
+        "verdict": "correct",
+        "justification": "The candidate correctly diagnoses the error as a Morpheus initialization/config issue rather than a biology finding, and identifies the core mechanism: spatial initializers placed fewer cells than the requested CellPopulation/size. It covers the expected evidence well — (a) diagnosis of an initializer-vs-domain-size mismatch, (b) the relevant XMLPath (CellPopulation/size, InitCellObjects, and even the possibility of the initializer's own count attribute), and (c) framework notes on units, lattice/domain geometry, and target volume. Concrete fixes are offered (enlarge region, reduce size, lower TargetVolume, fix unit mismatch), satisfying the 'concrete fix' requirement. The uncertainty calibration is a strength: confidence 0.42 is appropriate given no actual XML was available, and the gap_flags honestly flag the ambiguity of the '40 < 1' literal. Minor weaknesses: the answer somewhat over-interprets the '40 < 1' string — in Morpheus this message typically reflects the population getting fewer cells than the size attribute, and the '(40 < 1)' phrasing may be a formatting artifact of the specific error template rather than 'requested 40, placed 1'; the candidate hedges reasonably but spends effort speculating. The RN13 citation is only a niche pointer, not substantive file evidence, which the candidate transparently acknowledges. Overall a solid, well-calibrated, actionable diagnosis matching the expected evidence.",
+        "rubric": {
+          "citation_correctness": 0.55,
+          "completeness": 0.8,
+          "factuality": 0.75,
+          "safety_ethics": 1.0,
+          "testability": 0.8,
+          "uncertainty_calibration": 0.9
+        },
+        "usage": {
+          "input_tokens": 2172,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 680,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.62,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies this as a Morpheus configuration issue rather than a biology finding, and gives a reasonable general diagnosis (spatial initializer geometry too small, overlapping domains/populations, or unit mismatch causing too few placeable lattice nodes for the requested CellPopulation/size). It offers concrete, actionable fixes (enlarge initializer region, reduce requested size or TargetVolume, check unit consistency, verify Domain/Lattice boundaries) and explicitly notes the framework-specific nature of the error, matching the expected evidence's 'concrete fix' and 'framework note' components reasonably well. However, it does not correctly parse the actual error semantics: '(40 < 1)' in Morpheus indicates the reverse of what the candidate assumes — typically this message arises when the CellPopulation size is expressed as a fraction/probability (e.g., size=1 meaning 100% but interpreted oddly) or when initializer count 40 is being compared against domain capacity of 1, not '40 requested, floor 1 placed' as stated. The candidate's interpretation of the numbers is speculative and somewhat confused, admittedly flagged as 'unusual', which is a partial hedge but the core diagnostic reasoning about what the two numbers represent is not clearly correct. The answer appropriately hedges with a stated confidence of 0.42 and explicit gap flags acknowledging lack of access to the actual XML, which is good calibration. Citation to niche:RN13 is present but not deeply leveraged since no actual file content is shown. Overall this is a plausible, well-hedged, procedurally useful answer but with some factual uncertainty in interpreting the exact error semantics, meriting a 'partial' verdict.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.55, \"completeness\": 0.65, \"citation_correctness\": 0.4, \"testability\": 0.7, \"safety_ethics\": 0.9, \"uncertainty_calibration\": 0.75}",
+        "usage": {
+          "input_tokens": 2236,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 749,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.81,
+        "rubric": {
+          "factuality": 0.95,
+          "citation_correctness": 0.75,
+          "completeness": 0.85,
+          "uncertainty_calibration": 0.88,
+          "testability": 0.8,
+          "safety_ethics": 1.0
+        },
+        "justification": "The candidate provides an accurate diagnosis that directly addresses the expected evidence requirements: (1) correctly identifies an initializer vs domain size mismatch as the root cause, (2) specifies the XMLPath (CellPopulation/size) and explains the comparison semantics, and (3) includes a framework note about Morpheus architecture. The three concrete failure scenarios are technically sound and grounded in spatial simulation logic—too-small initializer regions, domain overlaps, and unit mismatches are legitimate mechanisms for seeding failures. The recommended fixes (enlarge region, adjust size, verify units, check number-of-cells attribute consistency) are concrete and actionable steps a user could execute. The answer demonstrates high uncertainty calibration by explicitly flagging that diagnosis is based on Morpheus semantics rather than the specific .xml file content, and by noting the unusual \"40 < 1\" phrasing. Citation is somewhat weak (only RN13 niche descriptor, no specific Morpheus documentation reference), and the answer acknowledges this limitation. The technical content is testable—each scenario and fix can be verified against an actual Morpheus configuration. Factuality is high: the technical claims align with how spatial cellular automata and discrete stochastic simulators handle initialization constraints. The low stated confidence (0.42) is appropriately calibrated given the absence of actual file content, though the answer quality arguably warrants slightly higher confidence in the diagnosis itself. Minor deduction for citation: while RN13 is correctly cited, a reference to actual Morpheus documentation would strengthen credibility.",
+        "usage": {
+          "input_tokens": 1839,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 493,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.19,
+    "outcome": "positive",
+    "mean_overall": 0.717,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.4 < tau=0.5",
+    "pass1_confidence": 0.4,
+    "pass2_confidence": 0.42,
+    "n_path_b_papers": 0
+  }
+}

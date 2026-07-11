@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.68,
+      "verdict": "partial",
+      "justification": "The expected evidence calls for double-KO inference from BioGRID genetic interactions plus paralog-redundancy reasoning. The candidate correctly identifies BioGRID as the appropriate data source for genetic-interaction/double-KO prediction and articulates a sound framework: synthetic/aggravating interactions imply redundancy that masks single KOs (classic paralog signature), while epistatic/linear-pathway interactions imply the single KO already reveals the phenotype. This directly and correctly captures the paralog-redundancy reasoning the rubric wants. However, the answer stops at a methodological schema and, honestly and appropriately, declines to make a concrete phenotype call because no gene pair is present in the bundle. This is well-calibrated (confidence 0.18, explicit gap_flags) and avoids fabrication — a strong point for uncertainty calibration and factuality. The cost is completeness: it delivers no concrete double-perturbation phenotype prediction, which was the literal task. Given the bundle genuinely lacks a named gene pair or BioGRID interaction record, the abstention is defensible rather than evasive, but the answer remains partial because the substantive prediction is absent. Citations map plausibly to the stated databases though they are descriptions rather than actual interaction records (correctly flagged).",
+      "rubric": {
+        "factuality": 0.85,
+        "completeness": 0.4,
+        "citation_correctness": 0.65,
+        "testability": 0.55,
+        "uncertainty_calibration": 0.95,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 2134,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 606,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.35,
+      "verdict": "partial",
+      "justification": "The candidate correctly identifies BioGRID as the relevant genetic-interaction database and articulates a sound general reasoning framework linking synthetic/aggravating interactions to redundancy-masking of single KOs, and epistatic/suppressive interactions to non-masking — this matches the expected reasoning pattern (double-KO inference from BioGRID + paralog-redundancy logic). However, it explicitly declines to produce any concrete prediction, naming no genes, no actual interaction record, and no specific embryonic phenotype, which is the core deliverable the question asks for ('predict the embryonic phenotype'). While honesty about missing gene-pair specification is reasonable given the vague prompt, a stronger answer would have hypothesized a plausible gene pair (e.g., known zebrafish paralogs with BioGRID interactions) to instantiate the framework concretely, or explicitly noted this as an illustrative example. As is, the answer is a methodological scaffold rather than a testable phenotype prediction, so it partially satisfies the expected evidence (the reasoning schema is present, but the actual prediction is missing). Calibration and epistemic honesty are good, but completeness and testability suffer significantly since no concrete falsifiable phenotype call is made.",
+      "rubric": {
+        "factuality": 0.6,
+        "citation_correctness": 0.5,
+        "completeness": 0.25,
+        "testability": 0.2,
+        "uncertainty_calibration": 0.7,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2198,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 590,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.62,
+      "justification": "The candidate provides a methodologically sound answer that demonstrates genuine expertise in genetic-interaction reasoning and explicitly acknowledges significant limitations. It correctly identifies BioGRID as the primary evidence source for double-KO prediction, accurately describes the synthetic-interaction framework (redundancy masking phenotype in single KOs), and appropriately prioritizes data sources by relevance (BioGRID > STRING/Reactome > GEO). The reasoning is logically structured: synthetic/aggravating interactions predict masked single-KO phenotypes, while epistatic/suppressive interactions do not; tissue co-expression increases redundancy plausibility. However, the answer is fundamentally incomplete for the question as stated. The candidate correctly identifies that no specific gene pair is named in the bundle, making concrete phenotype prediction impossible, but this severely limits the practical utility of the response. While intellectual honesty and self-awareness of gaps are valuable (and penalizing such transparency would be counterproductive), the answer remains a generic framework rather than the specific prediction the question appears to request. The gap_flags are accurate: no actual BioGRID interaction record is provided, only the database description; the target tissue is weakly implied (pronephros); and external literature on unrelated topics adds no support. The candidate's low confidence score (0.18) appropriately reflects this uncertainty. For a complete answer, the question would need to specify gene names and provide actual BioGRID records. As presented, the candidate has maximized what can be extracted from the available evidence while being honest about what cannot be claimed.",
+      "rubric": {
+        "factuality": 0.75,
+        "testability": 0.55,
+        "completeness": 0.5,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.9,
+        "safety_ethics": 0.75
+      },
+      "usage": {
+        "input_tokens": 1802,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 493,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.33,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.55,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

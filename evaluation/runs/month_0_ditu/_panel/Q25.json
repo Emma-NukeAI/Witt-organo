@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.78,
+      "verdict": "partial",
+      "justification": "The question is a meta/procedural task asking for a balanced synthesis of supporting and contradicting literature for a \"claimed regulator.\" The candidate correctly identifies a fatal underspecification: no specific regulator is named, and the evidence bundle contains no actual curated claim content—only niche descriptors and a generic background chunk. This is honest, well-calibrated behavior: it refuses to fabricate supporting/contradicting citations that don't exist, flags every gap explicitly, sets a very low confidence (0.12), and states exactly what inputs are needed to proceed. On the rubric's core demands—uncertainty stated, no overclaiming—this is exemplary. However, it does NOT deliver what the expected evidence describes: a balanced synthesis with obligatory contradictory evidence and citations. That is unavoidable given the empty bundle, so the abstention is defensible rather than a failure, but the task deliverable is unmet. A slightly stronger answer might have demonstrated the intended methodology (e.g., how it would weigh supporting vs. contradicting evidence and quantify residual uncertainty) as a template, which it did not. Citations are to niche pointers and one background chunk, correctly characterized as non-substantive. Verdict is partial: methodologically sound and safe, but the substantive synthesis the rubric wants is absent (justifiably), so it cannot be scored 'correct.'",
+      "rubric": {
+        "factuality": 0.9,
+        "completeness": 0.4,
+        "citation_correctness": 0.75,
+        "uncertainty_calibration": 0.95,
+        "testability": 0.7,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 1951,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 634,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.55,
+      "verdict": "partial",
+      "justification": "The expected evidence calls for a balanced synthesis of supporting and contradicting literature for a claimed regulator, with stated uncertainty and citations. The candidate does not provide this synthesis at all; instead it declines, citing that no specific regulator was named and that the retrieval bundle lacked actual claim content. This is a reasonable and honest response given an apparently underspecified or malformed evidence bundle, and it correctly avoids fabricating citations or overclaiming—aligning with the 'uncertainty stated, no overclaiming' aspect of the rubric. However, it entirely fails the core deliverable: no supporting/contradicting literature is retrieved or discussed, no regulator is analyzed, and no biological content is synthesized, which is the central task. The answer is transparent about gaps and calibrated in confidence (0.12), and cites what little evidence exists correctly (niche IDs, corpus chunk), so citation correctness for what is present is fine, but completeness is very low since the primary task requirements (named regulator, PRO/CON evidence, uncertainty about a specific claim) are unmet. This is a defensible 'abstain-like' response but the question likely intended a specific regulator to be inferable from context (e.g., a pronephros-related gene given the corpus snippet), and the candidate could have attempted a partial synthesis using domain knowledge rather than fully punting. Given the tension between honesty (good) and task incompleteness (bad), this sits in the 'partial' category—correct in caution but insufficient in delivering the requested synthesis.",
+      "rubric": {
+        "factuality": 0.7,
+        "completeness": 0.15,
+        "citation_correctness": 0.5,
+        "uncertainty_calibration": 0.85,
+        "testability": 0.4,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2015,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 684,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.78,
+      "verdict": "correct",
+      "justification": "The candidate demonstrates exceptional epistemic honesty and methodological rigor by refusing to fabricate a literature synthesis where none is possible. The question itself is malformed—it requests evaluation of \"a claimed regulator\" without specifying which regulator or providing any claim to evaluate. Rather than overclaiming, the candidate correctly identifies that the retrieval bundle contains only niche-level metadata (the RN11 descriptor) and a single generic background sentence about zebrafish pronephros development, with zero supporting or contradicting literature for any specific regulatory claim. The candidate explicitly names all gaps: no regulator specified, no curated claim records surfaced, no external papers retrieved, no entity resolution. The stated confidence of 0.12 appropriately reflects high uncertainty. This response fully satisfies the rubric expectation of \"stating residual uncertainty without overclaiming\"—it goes further by refusing synthesis when the premise is absent. Minor score deduction (0.22 points) reflects that the response could have been slightly more concise and could have offered a more explicit framework for what *would* constitute adequate input (e.g., \"Provide [regulator name] and I will retrieve RN11 records + cross-check Path B literature\"). The citation of niche:RN11 and gap flags document the investigation thoroughly. This exemplifies the correct response to an unanswerable question: honest refusal rather than fabrication.",
+      "rubric": {
+        "factuality": 0.95,
+        "completeness": 0.8,
+        "citation_correctness": 0.9,
+        "uncertainty_calibration": 0.98,
+        "testability": 0.75,
+        "safety_ethics": 0.98
+      },
+      "usage": {
+        "input_tokens": 1664,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 459,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.23,
+  "outcome": "positive",
+  "mean_overall": 0.703,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

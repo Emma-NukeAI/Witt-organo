@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.52,
+      "verdict": "partial",
+      "justification": "The candidate gets the conceptual direction right and gives well-calibrated uncertainty (0.34, honest gap flags). Its \"why broadest dataset\" reasoning is exactly correct: a truncated atlas shrinks the denominator, inflates the ratio, and causes false Tier-1 over-assignment — matching the mafba lens-contamination lesson in spirit. However, it misses the specific expected formula: SR = target-mean / max-nontarget-mean (ratio to the single largest non-target cluster). The candidate instead defines SR as target ÷ mean/summed expression across ALL clusters, which is a different (and less discriminating) statistic — this is a factual deviation from the expected evidence. It also never surfaces the canonical worked example (mafba, SR≈0.145 → Tier 3), correctly noting the marker vector wasn't supplied, but thereby failing to reproduce the diagnostic case. Tier thresholds are appropriately flagged as illustrative. Citations are plausible but partly speculative (unverifiable corpus/PMID IDs). Overall: sound reasoning and good calibration, but the core formula is wrong and the key example is absent, so partial rather than correct.",
+      "rubric": {
+        "citation_correctness": 0.5,
+        "completeness": 0.45,
+        "factuality": 0.55,
+        "safety_ethics": 1.0,
+        "testability": 0.5,
+        "uncertainty_calibration": 0.85
+      },
+      "usage": {
+        "input_tokens": 2431,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 571,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.3,
+      "verdict": "partial",
+      "justification": "The candidate correctly explains the general methodology for computing a tissue specificity ratio and the rationale for why a broad, whole-embryo reference dataset is necessary (avoiding an artificially small denominator, capturing cell-extrinsic effects), which aligns reasonably with the expected reasoning about denominator inflation and Tier misassignment. However, it fails to match the specific expected evidence: the exact SR formula (target-mean / max-nontarget-mean, not target/all-clusters-mean or sum) is incorrect, and the answer omits the concrete mafba lens-contamination example (SR≈0.145 → Tier 3) entirely, despite this being the central expected evidence. The candidate acknowledges it lacks a concrete marker and per-cluster vector, and appropriately abstains from giving a numeric value, which is honest calibration, but this omission means the answer does not actually address the specific case that the question implicitly expects (the mafba example is treated as canonical evidence, suggesting the question intends the answer to include it or reason through it, possibly using known illustrative data). The formula error (mean-over-all-clusters vs. max-nontarget-mean) is a meaningful factual deviation since it changes what 'specificity' quantifies (contamination vs. average diffuseness). Citations are plausible-looking but unverifiable placeholders (CORPUS ids, PMIDs) that cannot be confirmed. Overall the answer demonstrates good conceptual understanding and appropriate epistemic humility about missing data, but the core specific evidence (correct SR formula, mafba example) is missing/inaccurate, warranting a partial rather than correct score.",
+      "rubric": {
+        "factuality": 0.35,
+        "completeness": 0.3,
+        "citation_correctness": 0.25,
+        "uncertainty_calibration": 0.6,
+        "safety_ethics": 0.9,
+        "testability": 0.4
+      },
+      "usage": {
+        "input_tokens": 2495,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 720,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.68,
+      "verdict": "partial",
+      "justification": "The candidate answer demonstrates solid methodological understanding: the specificity ratio formula (target-mean ÷ max-nontarget-mean or similar normalization) is correctly articulated, the Tier assignment logic (1=high specificity→interpretable; 3=low specificity→pleiotropic) aligns with expected interpretive frameworks, and the critical insight about why whole-embryo atlases are mandatory is well-explained. However, there are significant deficiencies against the expected evidence. Most critically, the candidate computes SR as \"target-cluster-expression ÷ mean-across-all-clusters,\" which differs from the specified benchmark formula SR = target-mean / max-nontarget-mean (using the maximum of nontarget clusters, not the mean). The expected evidence explicitly anchors on the mafba lens-contamination example where SR≈0.145→Tier 3, providing a calibrated threshold; the candidate provides only illustrative, unquantified thresholds without binding to this empirical reference point. While the candidate correctly identifies missing inputs (no marker identity, no per-cluster vector, no explicit Tier cutoffs) and appropriately refuses to fabricate a numeric Tier, the lack of quantitative grounding weakens completeness. The explanation of why broadest datasets prevent inflated specificity ratios is accurate and well-reasoned, but it does not fully address the mafba example as validation. The cited evidence (PMID:41922342, whole-animal atlas references) supports the conceptual framework but does not verify the candidate's formula choice or threshold assignments against published benchmarks. The answer reads as methodologically sound but incompletely calibrated to the quantitative standard implied by expected evidence.",
+      "rubric": {
+        "factuality": 0.72,
+        "testability": 0.65,
+        "completeness": 0.62,
+        "citation_correctness": 0.7,
+        "uncertainty_calibration": 0.78,
+        "safety_ethics": 0.85
+      },
+      "usage": {
+        "input_tokens": 2013,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 535,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.38,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.5,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

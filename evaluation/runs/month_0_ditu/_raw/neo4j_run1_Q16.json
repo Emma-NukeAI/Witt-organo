@@ -1,0 +1,265 @@
+{
+  "question_id": "Q16",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Build the master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for inducing pronephric program in adjacent competent tissue.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8055,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.8055,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.754,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7548,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7559,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7089,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7113,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.15 < tau=0.5",
+      "query": "zebrafish pronephros build master chaperone-tissue interaction table source",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "30027602",
+            "pmcid": "PMC7379631",
+            "doi": "10.1111/febs.14608",
+            "title": "Endoplasmic reticulum stress signalling - from basic mechanisms to clinical applications.",
+            "year": "2019",
+            "journal": "FEBS J",
+            "citations": 705
+          },
+          "abstract": "The endoplasmic reticulum (ER) is a membranous intracellular organelle and the first compartment of the secretory pathway. As such, the ER contributes to the production and folding of approximately one-third of cellular proteins, and is thus inextricably linked to the maintenance of cellular homeostasis and the fine balance between health and disease. Specific ER stress signalling pathways, collectively known as the unfolded protein response (UPR), are required for maintaining ER homeostasis. The UPR is triggered when ER protein folding capacity is overwhelmed by cellular demand and the UPR initially aims to restore ER homeostasis and normal cellular functions. However, if this fails, then the UPR triggers cell death. In this review, we provide a UPR signalling-centric view of ER functions, from the ER's discovery to the latest advancements in the understanding of ER and UPR biology. Our review provides a synthesis of intracellular ER signalling revolving around proteostasis and the UPR, its impact on other organelles and cellular behaviour, its multifaceted and dynamic response to stress and its role in physiology, before finally exploring the potential exploitation of this knowle",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "35254480",
+            "pmcid": "PMC8899446",
+            "doi": "10.1007/s00210-022-02205-7",
+            "title": "Abstracts of the 88th Annual Meeting of the German Society for Experimental and Clinical Pharmacology and Toxicology (DGPT).",
+            "year": "2022",
+            "journal": "Naunyn Schmiedebergs Arch Pharmacol",
+            "citations": 0
+          },
+          "abstract": "",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": null,
+            "pmcid": "PMC9260650",
+            "doi": null,
+            "title": "Posters",
+            "year": "2022",
+            "journal": "FEBS Open Bio",
+            "citations": 0
+          },
+          "abstract": "",
+          "open_access": false
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot build a validated master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) from this evidence bundle. The bundle is fundamentally mismatched to the question.\n\nWHAT THE BUNDLE ACTUALLY CONTAINS:\n- The RN10 hit (\"Tejidos chaperones y boundary conditions\") is the ONLY item topically on-target. It is described as holding Cartesian coordinates of neighboring tissues plus timing matrices (.json) and a \"master indexed interac[tion]\" table — i.e., it is PRECISELY the artifact needed to answer this question. However, the bundle gives only the index/metadata stub; the actual coordinate tables, signal identities, and temporal windows were NOT retrieved. Without that payload I cannot transcribe Source/Target/Signal/Window rows.\n- The remaining corpus items are off-target: CORPUS-2026-0003 (Prkci/Prkcz pronephros polarity, niche RN1) concerns tubulogenesis/epithelial maintenance, not chaperone-mediated induction of pronephric program in adjacent competent tissue; CORPUS-2026-0001/0002 are anterior-segment/corneal atlases (ZESTA, 3–24 hpf) unrelated to pronephros induction; Reactome and CNGB_STOmics are generic databases.\n- The external literature (PMID:30027602 ER stress/UPR review; PMID:35254480 pharmacology meeting abstracts) is about the unfolded protein response as a cytoprotective stress pathway — NOT about extracellular/secreted \"chaperone\" signaling that induces a pronephric fate in competent mesoderm. These do not supply any Source→Target→Signal→Window relationships.\n\nWHAT I CAN SAY HONESTLY:\nThe correct data object to fulfill this request exists and is identified (RN10 \"Tejidos chaperones y boundary conditions\", score 0.8055) — its self-description (\"master indexed interac...\" + timing matrices) matches the deliverable exactly. The next action is to fetch/parse that .json payload (neighbor Cartesian coords + timing matrix) and read out the induction relationships directly. I will not fabricate the rows (Source tissue, Target competent tissue, inducing signal ligand, and hpf window) because none are present in the retrieved text, and I will not assert any gene ENSDARG for pronephros inducers (e.g. osr1, wt1a, pax2a, lhx1a, or candidate Wnt/BMP/RA signals) since none appear in the bundle.",
+    "confidence": 0.12,
+    "evidence_cited": [
+      "niche:RN10",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0002",
+      "db:Reactome",
+      "db:CNGB_STOmics",
+      "PMID:30027602",
+      "PMID:35254480"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Reconstruct the table de novo from canonical pronephros induction literature (intermediate mesoderm competence, RA/Wnt/BMP gradients, osr1/pax2a/lhx1a) — REJECTED: none of that is in the bundle; would require asserting facts and gene IDs from memory, violating the grounding contract.",
+      "Interpret 'chaperone' as UPR/ER-stress signaling per PMID:30027602 and build an ER-stress→pronephros table — REJECTED: that review is cell-autonomous proteostasis, provides no tissue-to-tissue induction edges, and conflates molecular chaperones with the RN10 'chaperone tissue' (organizer/inducer) usage.",
+      "Use CORPUS-2026-0003 (Prkci/Prkcz) as the signal axis — REJECTED: it addresses tubule epithelial identity MAINTENANCE, not INDUCTION of the pronephric program in adjacent competent tissue, and is in niche RN1 not RN10."
+    ],
+    "gap_flags": [
+      "The RN10 payload itself (Cartesian neighbor coords + timing matrices + master indexed interaction table .json) was NOT retrieved — only its metadata stub; the actual Source/Target/Signal/Window rows are unavailable.",
+      "No inducing-signal ligand identities present anywhere in the bundle.",
+      "No temporal windows (hpf) present anywhere in the bundle.",
+      "No pronephros inducer gene symbols or ENSDARGs in the bundle; cannot bind identifiers.",
+      "'Chaperone' is ambiguous between RN10's tissue-organizer sense and the external UPR/molecular-chaperone literature — bundle does not disambiguate.",
+      "External literature (Path B) is topically irrelevant to pronephric induction."
+    ],
+    "framework_applied": "Evidence-sufficiency gating for perturbation_design: before proposing a design table, verify the bundle supplies the required edge attributes (Source tissue, Target competent tissue, Signal, Temporal window). Gate FAILED — the one on-target artifact (RN10) is present only as an index stub, so I abstain from fabricating rows and instead specify the retrieval action needed. This keeps confidence low and honest per the substrate output contract.\"",
+    "search_query": "zebrafish pronephros induction intermediate mesoderm competent tissue chaperone organizer signal temporal window osr1 pax2a lhx1a retinoic acid wnt bmp RN10",
+    "_usage": {
+      "input_tokens": 2600,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1968,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The question demanded a concrete deliverable: indexed interaction rows (Source → Target → Signal → Temporal window), cited embryology, temporal windows in hpf, and gap flags. The candidate produces NONE of the substantive rows — no interaction table, no hpf windows, no cited embryology. On the deliverable itself, completeness is essentially zero. However, the candidate's stated reason is honest and well-calibrated: it correctly identifies that the retrieved bundle contains only a metadata stub for the on-target RN10 artifact and lacks the actual payload (coordinates, signal identities, timing matrices), so the required rows genuinely cannot be transcribed. This is a legitimate, defensible abstention rather than a failure to try, and it is a marked improvement over fabricating plausible-but-unsupported rows (e.g., inventing osr1/wt1a/pax2a Wnt/BMP/RA windows and ENSDARGs), which the rubric penalizes. Factuality is high — every claim about what the bundle does/does not contain is checkable and the candidate explicitly refuses to assert gene identifiers or hpf windows it cannot support. Uncertainty calibration is excellent (confidence 0.12, thorough gap_flags that map directly onto the expected-evidence axes). Citation handling is reasonable: it cites the bundle items and correctly diagnoses their off-target nature, though it does not verify the RN10 self-description against actual content (unverifiable). Testability of the answer's core factual claims (which items are on/off target) is good, but the answer provides no testable biological content of its own. Net: honest, safe, well-reasoned refusal that satisfies the gap-flag and evidence-honesty dimensions of the rubric but fails the primary completeness dimension of building the table — hence partial, not correct.",
+        "rubric": {
+          "factuality": 0.85,
+          "completeness": 0.15,
+          "citation_correctness": 0.7,
+          "testability": 0.4,
+          "uncertainty_calibration": 0.95,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2420,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 776,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The question asks for a concrete master interaction table with indexed rows (Source→Target→Signal→Temporal window), citations to embryology, hpf windows, and gap flags. The candidate declines to construct any table, asserting the evidence bundle lacks the necessary payload. While honest abstention is preferable to fabrication, the response provides zero indexed interaction rows and no synthesis of known zebrafish pronephros induction embryology (e.g., intermediate mesoderm induction by paraxial/somitic signals, retinoic acid, Wnt, BMP signaling in the context of nephron progenitor specification, which is well-documented in developmental biology literature independent of any 'bundle'). A strong answer would likely still attempt to draw on established embryological knowledge (e.g., osr1/osr2, pax2a, lhx1a induction windows ~10-24 hpf) even if flagging bundle gaps, or at minimum construct a partial table with confidence caveats per cell. Instead, the candidate treats the task as entirely blocked by a retrieval bundle it deems insufficient, which suggests the answer is a meta-commentary on a nonexistent 'RN10' retrieval system rather than substantive domain engagement — this reads as a fabricated framing device (talking about a payload/json that supposedly exists but wasn't fetched) rather than genuine synthesis. This meta-referential apparatus (RN10, corpus IDs, PMIDs) appears to be a simulated retrieval scenario, and the candidate's total refusal to provide any table content, even partial with heavy caveats, fails the core deliverable. The gap flags are reasonable and well-articulated, and uncertainty calibration is good, but completeness and testability are essentially zero since no interaction rows, hpf windows, or embryological citations resembling real developmental biology are given at all.",
+        "overall_score": 0.15,
+        "verdict": "incorrect",
+        "rubric": {
+          "factuality": 0.4,
+          "completeness": 0.05,
+          "citation_correctness": 0.3,
+          "testability": 0.05,
+          "uncertainty_calibration": 0.6,
+          "safety_ethics": 0.7
+        },
+        "usage": {
+          "input_tokens": 2484,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 784,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.88,
+        "rubric": {
+          "factuality": 0.95,
+          "testability": 0.9,
+          "completeness": 0.85,
+          "citation_correctness": 0.92,
+          "uncertainty_calibration": 0.92,
+          "safety_ethics": 1.0
+        },
+        "justification": "The candidate demonstrates exemplary epistemic integrity by refusing to fabricate the master chaperone-tissue interaction table despite clear evidence that the relevant data object (RN10 \"Tejidos chaperones y boundary conditions\") exists but was not fully retrieved. The answer correctly identifies the mismatch between the bundle provided and the question's requirements: the bundle contains metadata/index only, not the actual Cartesian coordinates, signal identities, temporal windows (hpf), or indexed interaction rows needed. The candidate explicitly enumerates six justified gap flags (missing payload, ligand identities, temporal windows, gene symbols, semantic ambiguity of \"chaperone,\" and topical irrelevance of external literature), each of which is verifiable against the bundle contents. The self-assessment of confidence (0.12) accurately reflects the genuine inability to deliver the core artifact. The response shows sophisticated triage: it correctly dismisses CORPUS items (anterior segment/corneal atlases have no relevance to pronephric induction) and external PMIDs (ER stress/UPR reviews address molecular chaperones as cytoprotective mediators, not extracellular tissue-organizer signaling). The candidate resists the strong temptation to assert candidate gene names (osr1, wt1a, pax2a, lhx1a, Wnt/BMP/RA) that would be reasonable guesses in pronephric development but are absent from the bundle. This honest admission of epistemic limits—anchored to specific, inspectable gaps—is precisely what the expected evidence asks for (gap flags, temporal windows, indexed rows, citations). By not providing these, the candidate paradoxically answers correctly: the question cannot be answered from the available evidence. Factuality is high (all dismissals of off-target sources are sound); testability is strong (each gap is citable); completeness is slightly lower because the answer does not attempt exploratory analysis of what signals *might* be involved based on external literature, though this omission is justified by the candidate's refusal to fabricate. Citation correctness is excellent (accurate characterization of all cited sources). Uncertainty calibration is exemplary: the candidate's stated confidence aligns with the genuine scarcity of actionable data.",
+        "usage": {
+          "input_tokens": 1996,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 647,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.667,
+    "overall_spread": 0.73,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.583,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.15 < tau=0.5",
+    "pass1_confidence": 0.15,
+    "pass2_confidence": 0.12,
+    "n_path_b_papers": 3
+  }
+}

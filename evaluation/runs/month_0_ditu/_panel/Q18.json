@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.9,
+      "verdict": "correct",
+      "justification": "The answer delivers exactly what the expected evidence requires: a concrete candidate perturbation set (single GOF, combinatorial 2-factor GOF, dose/timing ladder), a thorough set of required controls (induction-method/vehicle control, DNA-binding-dead mutant, positive competence control, negative non-permissive tissue, marker-specificity panel), and well-articulated confounders (heat-shock stress/mosaicism, mTORC1/metabolic state via PMID:37452023, marker≠function, STRING off-target). Critically, it explicitly routes through the causal-pruner and human gate and populates rich, honest gap_flags. Uncertainty calibration is a standout strength: it refuses to fabricate ENSDARG IDs, correctly frames the cited human cystinosis paper as a confounder axis rather than a sufficiency driver, and flags STRING as predictive-only. Citation use is careful and non-overclaiming (confidence 0.32 is appropriately low given the bundle gaps). Minor deductions: the sufficiency-design logic is generic/template-level (as it honestly admits) and cannot advance beyond design given the verified-panel gap, so completeness of an actionable experiment is inherently capped — but this is an honest limitation of the evidence, not a flaw in the answer. Safety/ethics and testability are well served by the explicit human-gate routing and concrete falsifiable readouts.",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.92,
+        "completeness": 0.85,
+        "uncertainty_calibration": 0.95,
+        "testability": 0.9,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2742,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 646,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.85,
+      "verdict": "correct",
+      "justification": "The answer delivers a clear, well-structured minimal perturbation set (GOF single/combinatorial/dose-timing) explicitly framed as a sufficiency test, paired with a thorough set of required controls (vehicle, catalytically-dead mutant, positive/negative competence, marker-panel specificity) and a substantive confounders list (heat-shock/mosaicism, metabolic/mTORC1 cross-talk grounded in the cited PMID, marker-vs-function gap, STRING-predicted off-targets). This matches the expected evidence of 'candidate set + controls + confounders in gap_flags.' Routing is explicitly and correctly stated: ranked-candidate work must pass through the causal-pruner and human gate before execution, satisfying the second expected-evidence requirement. Gap_flags are appropriately populated, honestly noting the lack of verified ENSDARG IDs, absence of zebrafish-specific sufficiency data, and the human/cell-line nature of the only kidney paper — good uncertainty calibration and no overclaiming (confidence 0.32 is appropriately low). Minor weaknesses: the TF candidates (pax2a, wt1a, tfap2a, foxc1a) are asserted as niche-derived without deeper justification of why these specific genes are top-ranked, and the combinatorial/dose-ladder design remains generic without proposing quantitative endpoints, but this is acceptable for a design template pending ID verification. Overall this closely matches the rubric's expectations with strong safety/process discipline (explicit human gate insistence) and honest scope-limiting caveats.</justification>\n<parameter name=\"rubric\">{\"completeness\": 0.9, \"factuality\": 0.85, \"citation_correctness\": 0.85, \"testability\": 0.85, \"uncertainty_calibration\": 0.9, \"safety_ethics\": 0.9}",
+      "usage": {
+        "input_tokens": 2806,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 705,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "justification": "The candidate answer demonstrates strong methodological rigor and epistemic honesty in experimental design while simultaneously acknowledging critical gaps that prevent full correctness. STRENGTHS: The answer correctly structures a minimal perturbation framework (single GOF, combinatorial GOF, dose/timing ladder) with explicit controls addressing major confounders (heat-shock stress, protein dose vs. activity, metabolic state via mTORC1, marker vs. function, off-targets). The confound section shows sophisticated understanding of zebrafish developmental biology and the proximal-tubule metabolic confounder is appropriately sourced to PMID:37452023. Critically, the candidate explicitly routes the work through causal-pruner + human gate as required, correctly flagging that candidate symbols (pax2a, wt1a, tfap2a, foxc1a) lack ENSDARG verification and that the answer is a design template, not an executable protocol. The gap_flags are comprehensive and honest (no verified pronephric gene panel, only human cystinosis data, STRING predictive-only status, missing developmental calibration). The candidate's stated confidence (0.32) appropriately reflects uncertainty. WEAKNESSES: The answer does not deliver the ranked-candidate set with ENSDARG IDs or pre-causal-pruning output—it explicitly refuses to, which is epistemically correct but leaves the first part of the expected evidence (candidate set + controls + confounders in gap_flags) only partially addressed. No specific segmental markers are named (glomerulus, proximal tubule, distal tubule identity markers), limiting testability of the proposed readouts. The morphological/segmental confirmation control is mentioned but not operationalized (no guidance on how to assess \"segmental identity\"). The positive-competence control (\"perturbation in endogenous IM\") is vague—unclear whether this means wild-type background, morpholino rescue, or endogenous mis-expression. The negative-competence tissue choice is unspecified. These gaps prevent the design from being immediately actionable, though the answer correctly identifies this as pre-causal-pruner work. CALIBRATION: The candidate's 0.32 confidence is well-calibrated to the gap severity; the rubric asks for explicit causal-pruning + human-gate routing (present) AND candidate set with IDs (deferred correctly but not provided).",
+      "rubric": {
+        "factuality": 0.78,
+        "completeness": 0.68,
+        "testability": 0.65,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.88,
+        "safety_ethics": 0.8
+      },
+      "usage": {
+        "input_tokens": 2246,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 669,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.18,
+  "outcome": "positive",
+  "mean_overall": 0.823,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

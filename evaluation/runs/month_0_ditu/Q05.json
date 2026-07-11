@@ -1,0 +1,191 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q05",
+  "claim_timestamp": "2026-07-11T20:37:45Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.28 < tau=0.5",
+    "pass1_confidence": 0.28,
+    "pass2_confidence": 0.32,
+    "n_path_b_papers": 3
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN2",
+  "claim_category": "marker_identification",
+  "question_id": "Q05",
+  "question": "Which pronephros/eye transcription factors lack an experimentally resolved structure in zebrafish and would require an AlphaFold prediction (with PAE) before any docking?",
+  "backend": "neo4j",
+  "direct_answer": "Based on the RN2 \"Estructura proteica y complejos\" record, the transcription factors that DO have experimentally resolved 3D structures in zebrafish are tfap2a, foxc1a, pax2a, and wt1a. These four therefore do NOT require an AlphaFold prediction before docking.\n\nThe evidence bundle does NOT provide an enumerated list of the full pronephros/eye transcription factor set, so I cannot definitively name which specific TFs LACK a resolved structure — that answer depends on a reference list that is not in this bundle. What can be stated cleanly is the complement logic: any pronephros/eye TF that is NOT among {tfap2a, foxc1a, pax2a, wt1a} would lack an experimentally resolved structure in the RN2 store and would require an AlphaFold prediction (with PAE) before docking.\n\nCandidate pronephros/eye TFs commonly relevant to these niches that are ABSENT from the resolved-structure list (and would thus need AlphaFold + PAE) plausibly include factors such as osr1, hnf1b, lhx1, pax8, sim1a, mecom, pitx2/pitx3, lmx1b, six1/six2, and sall1 — but I cannot assert any of these as confirmed members of the \"lacking structure\" set from this bundle alone, nor can I assert their ENSDARG IDs, because neither a target-TF roster nor identifier bindings were supplied/verified here.",
+  "stated_confidence": 0.32,
+  "prior": 0.32,
+  "evidence_cited": [
+    "niche:RN2",
+    "db:ZFIN",
+    "CORPUS-2026-0003"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "tfap2a"
+    },
+    {
+      "symbol": "foxc1a"
+    },
+    {
+      "symbol": "pax2a"
+    },
+    {
+      "symbol": "wt1a"
+    }
+  ],
+  "alternatives_considered": [
+    "Assume the question wants the full negative complement of a canonical pronephros/eye TF panel — rejected because no such panel is present in the bundle to subtract from.",
+    "Interpret it narrowly as 'only the four listed TFs are resolved, all others need AlphaFold' — this is the defensible logical statement but does not name the missing TFs.",
+    "Name specific missing TFs (osr1, hnf1b, lhx1, pax8, pitx2, lmx1b, etc.) — deferred/not asserted because membership and ENSDARGs are not verifiable from this evidence."
+  ],
+  "gap_flags": [
+    "No enumerated master list of pronephros/eye transcription factors in the bundle to compute the 'lacking structure' complement.",
+    "No verified ENSDARG identifier bindings provided (Key entities resolved in DI: none checked).",
+    "RN2 record is truncated (Notch/Jagged... cut off) — additional resolved structures may exist beyond tfap2a/foxc1a/pax2a/wt1a.",
+    "External literature (Path B) is unrelated to structure availability of these TFs.",
+    "PAE/AlphaFold coverage status per-gene is not itemized in the bundle."
+  ],
+  "framework_applied": "Set-complement / gap analysis: from the closed set of experimentally resolved TF structures in RN2, infer that non-listed TFs require AlphaFold+PAE. Applied because the question is a marker_identification 'which lack X' query, which is answered by subtracting the resolved set from the target universe — but the target universe is missing, so only the resolved set can be stated confidently.",
+  "observed_outcome": "negative",
+  "observed_at": "2026-07-11T20:37:45Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.2,
+          "verdict": "incorrect",
+          "justification": "The expected answer is that foxc1a, pax2a, and wt1a LACK experimentally resolved structures in zebrafish and would require AlphaFold predictions (with PAE) before docking, distinguishing .pdb from AlphaFold .json/.pae outputs. The candidate gets this exactly backwards: it asserts that foxc1a, pax2a, and wt1a (plus tfap2a) DO have experimentally resolved structures and therefore do NOT need AlphaFold — the opposite of the correct trio. This is a fundamental factual inversion of the core answer. While the candidate is commendably honest about uncertainty (confidence 0.32, extensive gap flags) and correctly recognizes the .pdb vs AlphaFold+PAE distinction conceptually, the substantive claim it does commit to is wrong, and it explicitly declines to name the actual lacking-structure set the question asks for. Its speculative list of alternative TFs (osr1, hnf1b, etc.) is unverified padding that does not match expected evidence. Good calibration and safety, but the primary claim is incorrect, so this cannot score above partial-to-incorrect; the load-bearing assertion is inverted, warranting 'incorrect.'",
+          "rubric": {
+            "citation_correctness": 0.25,
+            "completeness": 0.15,
+            "factuality": 0.1,
+            "safety_ethics": 0.9,
+            "testability": 0.3,
+            "uncertainty_calibration": 0.6
+          },
+          "usage": {
+            "input_tokens": 1938,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 584,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected evidence indicates that foxc1a, pax2a, and wt1a are the TFs lacking experimentally resolved structures (thus requiring AlphaFold prediction with PAE), implying tfap2a likely has a resolved structure (e.g., a PDB entry) while the other three do not. The candidate answer inverts this: it claims tfap2a, foxc1a, pax2a, and wt1a ALL have resolved structures, and that none of them require AlphaFold prediction — directly contradicting the expected answer, which explicitly names foxc1a, pax2a, and wt1a as lacking resolved structures. This is a significant factual error on the core question. The candidate does correctly note the .pdb vs AlphaFold-.json/.pae distinction conceptually and expresses appropriate epistemic humility about lacking a full TF roster, but the central claim inverts the expected structure-availability status for the three key TFs, which is the crux of the question. The speculative list of alternative TFs (osr1, hnf1b, lhx1, etc.) is not aligned with expected evidence and is explicitly hedged, which is somewhat appropriate but doesn't rescue the wrong core claim. Given the answer gets the key TF-to-status mapping backwards, this must be scored as largely incorrect despite good calibration language and acknowledgment of uncertainty.",
+          "overall_score": 0.15,
+          "verdict": "incorrect",
+          "rubric": {
+            "factuality": 0.1,
+            "completeness": 0.2,
+            "citation_correctness": 0.3,
+            "testability": 0.2,
+            "uncertainty_calibration": 0.5,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 2002,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 624,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.38,
+          "justification": "The candidate demonstrates honest uncertainty and correct methodological reasoning about what cannot be inferred from the provided evidence bundle. The core insight—that tfap2a, foxc1a, pax2a, and wt1a have experimentally resolved structures (not requiring AlphaFold) while other factors would need AlphaFold-PAE predictions—appears sound and aligns with the expected evidence distinction between .pdb and AlphaFold-.json/.pae. However, the answer fundamentally fails the primary deliverable: it does not provide the specific list of TFs that lack structures (the question asks which factors \"lack\" an experimentally resolved structure, not which ones have it). The candidate's reasoning that \"any TF not in {tfap2a, foxc1a, pax2a, wt1a}\" would need AlphaFold is logically correct but operationally useless without the target gene roster. The speculative list (osr1, hnf1b, lhx1, pax8, sim1a, mecom, pitx2/pitx3, lmx1b, six1/six2, sall1) is explicitly disclaimed as unverified and not derived from the bundle. The candidate's self-reported confidence (0.32) and detailed gap_flags reflect appropriate epistemic humility, but this honesty about data unavailability does not overcome the incompleteness of the actual answer. Factuality is sound where claims are made, but testability and citation correctness are compromised by the absence of a definitive target list from the bundle and the speculative nature of the candidate-TF enumeration.",
+          "rubric": {
+            "factuality": 0.72,
+            "completeness": 0.28,
+            "citation_correctness": 0.65,
+            "testability": 0.35,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 1697,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 523,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.23,
+      "outcome": "negative",
+      "mean_overall": 0.243,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.28 < tau=0.5"
+    }
+  ]
+}

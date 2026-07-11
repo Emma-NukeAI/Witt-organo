@@ -191,9 +191,15 @@ CONTRACT_TOOL = {
             "gap_flags": {"type": "array", "items": {"type": "string"}},
             "framework_applied": {"type": "string",
                                   "description": "Reasoning framework + why (per reasoning-frameworks-catalog)."},
+            "search_query": {"type": "string",
+                             "description": ("A focused KEYWORD query (gene symbols + biology terms, e.g. "
+                                             "'zebrafish pronephros osr1 wnt2ba intermediate mesoderm') for an "
+                                             "external literature/database search to run IF your confidence is "
+                                             "low. Keywords only — omit tool/format words like 'Morpheus' or "
+                                             "'BioNetGen'. Always provide it when confidence < 0.6.")},
         },
         "required": ["direct_answer", "confidence", "evidence_cited", "identifier_bindings",
-                     "alternatives_considered", "gap_flags", "framework_applied"],
+                     "alternatives_considered", "gap_flags", "framework_applied", "search_query"],
     },
 }
 
@@ -242,21 +248,89 @@ def extract_entities(question):
     return out
 
 
-def stage_retrieve(question, use_pathb):
-    """Reuse answer_pipeline. Path A always; Path B only if requested (network)."""
+_TU = None
+
+
+def get_tu():
+    """Lazy singleton of the Tool Universe SDK (Layer 3, CLAUDE.md §6). Loads the 2223-tool registry once
+    (~seconds) and reuses it across questions. This is the SAME pinned package the project standardizes on
+    via .mcp.json (tooluniverse@1.2.6) — the reproducible, script-native form of the Path-B MCP fallback."""
+    global _TU
+    if _TU is None:
+        import warnings
+        warnings.filterwarnings("ignore")
+        from tooluniverse import ToolUniverse
+        _TU = ToolUniverse()
+        _TU.load_tools()
+    return _TU
+
+
+def tu_literature(query, n=3):
+    """Path B via Tool Universe: literature search (EuropePMC_search_articles) with abstracts. `query` is a
+    focused KEYWORD string (the model's search_query, else the question). Returns normalized paper dicts.
+    Never a stopper — on any error returns []. (Level 1 fallback: literature. Richer multi-tool TU use —
+    ensembl/zfin/reactome/string via find_tools — is the Level 2 follow-up.)"""
+    try:
+        tu = get_tu()
+        res = tu.run({"name": "EuropePMC_search_articles", "arguments": {"query": query, "limit": n}})
+        data = (res if isinstance(res, dict) else json.loads(res)).get("data", []) or []
+    except Exception as e:
+        return {"error": str(e), "papers": []}
+    papers = [{
+        "source": "tooluniverse:EuropePMC_search_articles",
+        "search_rec": {k: p.get(k) for k in ("pmid", "pmcid", "doi", "title", "year", "journal", "citations")},
+        "abstract": (p.get("abstract") or "")[:1200],
+        "open_access": p.get("open_access"),
+    } for p in data]
+    return {"papers": papers}
+
+
+def stage_retrieve(question):
+    """Path A only (DATA INAMOVIBLE). Reuses answer_pipeline. Path B is added later, only when a fallback
+    trigger fires (structural OR confidence), by add_path_b()."""
     from lib import answer_pipeline as ap
     ents = extract_entities(question)
     a = ap.path_a(question)
     ent = ap.check_entities(ents)
     suf = ap.assess_sufficiency(a, ent)
-    bundle = {"question": question, "entities_checked": ent, "path_a": a, "sufficiency": suf}
-    if use_pathb and not suf["sufficient"]:
-        try:
-            bundle["path_b"] = {"triggered": True, "papers": ap.path_b(question, n=2)}
-        except Exception as e:
-            bundle["path_b"] = {"triggered": True, "error": str(e), "papers": []}
-    else:
-        bundle["path_b"] = {"triggered": False}
+    return {"question": question, "entities_checked": ent, "path_a": a, "sufficiency": suf,
+            "path_b": {"triggered": False, "reason": "not yet evaluated"}}
+
+
+_Q_STOP = {"reconstruct", "suitable", "network", "using", "would", "which", "about", "between", "across",
+           "described", "given", "there", "these", "their", "should", "could", "assemble", "evidence",
+           "additional", "layers", "identify", "distinguish", "propose", "summarize", "compute", "predict"}
+_Q_TOOLING = {"morpheus", "bionetgen", "bngl", "runpod", "squidiff", "alphafold", "csv", "json", "xml",
+              "vtk", "vtu", "cgns", "tiff", "mat", "ome", "pdb", "sdf", "mol"}
+
+
+def _fallback_query(q_dict, bundle):
+    """Deterministic keyword query for Path B when the model's search_query is missing or too long — biology
+    terms only (system + resolved entities + salient question tokens), stripping tool/format words that make
+    a literature search return nothing (the Q07 failure mode)."""
+    sys_ = q_dict.get("system", "")
+    sys_ = "" if sys_ in ("any", "") else sys_
+    ents = list(bundle.get("entities_checked", {}).keys())[:5]
+    toks = [w.lower() for w in re.findall(r"[A-Za-z][A-Za-z\-]{4,}", q_dict.get("q", ""))]
+    toks = [w for w in toks if w not in _Q_STOP and w not in _Q_TOOLING]
+    toks = list(dict.fromkeys(toks))[:6]
+    parts = ["zebrafish", sys_] + ents + toks
+    return " ".join(p for p in parts if p).strip()
+
+
+def add_path_b(bundle, question, source, trigger, detail, query=None):
+    """Mutate `bundle` with Path B evidence from `source` (europepmc | tooluniverse). `query` is the focused
+    keyword search string (the model's search_query); falls back to the raw question. `trigger`/`detail`
+    record WHY the fallback fired (structural insufficiency, or low synthesized confidence)."""
+    from lib import answer_pipeline as ap
+    q = (query or "").strip() or question
+    try:
+        r = tu_literature(q, n=3) if source == "tooluniverse" else {"papers": ap.path_b(q, n=2)}
+        bundle["path_b"] = {"triggered": True, "source": source, "trigger": trigger, "detail": detail,
+                            "query": q, **r}
+    except Exception as e:
+        bundle["path_b"] = {"triggered": True, "source": source, "trigger": trigger, "detail": detail,
+                            "query": q, "error": str(e), "papers": []}
     return bundle
 
 
@@ -265,12 +339,17 @@ def bundle_to_prompt(q, bundle):
     hits = bundle["path_a"].get("hits", [])
     lines = [f"- [{h['doc_id']} · {h['type']} · score={h['score']}] {h['text']}" for h in hits] or ["(none)"]
     ent = "; ".join(f"{k}={'in-DI' if v['in_di'] else 'ABSENT'}" for k, v in bundle["entities_checked"].items()) or "(none checked)"
-    papers = bundle.get("path_b", {}).get("papers", [])
+    pb = bundle.get("path_b", {})
+    papers = pb.get("papers", [])
     plines = []
     for p in papers:
         sr = p.get("search_rec", {})
-        plines.append(f"- [{p.get('source')}] PMID:{sr.get('pmid')} {sr.get('title')} ({sr.get('year')})")
-    ptxt = "\n".join(plines) if plines else "(Path B not triggered / no papers)"
+        ab = (p.get("abstract") or "").strip()
+        plines.append(f"- [{p.get('source')}] PMID:{sr.get('pmid')} · {sr.get('title')} ({sr.get('year')})"
+                      + (f"\n    {ab}" if ab else ""))
+    ptxt = "\n".join(plines) if plines else (
+        f"(Path B triggered but no papers: {pb.get('error')})" if pb.get("triggered")
+        else "(Path B not triggered — DI-only or DI sufficient)")
     return (f"QUESTION:\n{q['q']}\n\n"
             f"(type={q['type']}, niche={q.get('niche')}, system={q.get('system')})\n\n"
             f"DATA INAMOVIBLE retrieval (Path A):\n" + "\n".join(lines) + "\n\n"
@@ -363,18 +442,19 @@ def judge_answer(q, contract):
 
 
 # --------------------------------------------------------------------------- record assembly
-def make_record(q, backend, contract, deterministic, panel):
+def make_record(q, backend, contract, deterministic, panel, month="month_0", fb_meta=None):
     primary = deterministic["outcome"] if deterministic else (panel["outcome"] if panel else None)
     method = "deterministic-store" if deterministic and not panel else \
              "both" if deterministic and panel else \
              "judge-panel" if panel else "unscored"
     niche = q.get("niche", ["unspecified"])
     return {
-        "claim_id": f"held_out_month0_{q['id']}",
+        "claim_id": f"held_out_{month}_{q['id']}",
         "claim_timestamp": _now_iso(),
-        "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+        "session_id": f"evaluation/runs/{month} (run_held_out.py A1 baseline)",
         "skill_origin": "held-out-runner",
-        "skill_version": "run_held_out-1.0",
+        "skill_version": "run_held_out-1.1",
+        "fallback": fb_meta or {"fired": False},
         "stream": "biomedical",
         "sub_domain": niche[0] if isinstance(niche, list) and niche else "unspecified",
         "claim_category": q["type"],
@@ -399,6 +479,10 @@ def make_record(q, backend, contract, deterministic, panel):
              "reason": "deterministic identifier grounding" if deterministic else "no identifiers to gate"},
             {"agent": "judge-panel (multi-family, ADR-0031)", "status": "invoked" if panel else "skipped-ad-hoc",
              "reason": "reviewer-independence scoring" if panel else "deterministic outcome sufficed / synth skipped"},
+            {"agent": "tooluniverse (Path B fallback, MCP/SDK)",
+             "status": "invoked" if (fb_meta and fb_meta.get("fired") and fb_meta.get("source") == "tooluniverse") else "not-applicable",
+             "reason": (f"confidence-gated fallback: {fb_meta.get('detail')}" if (fb_meta and fb_meta.get("fired"))
+                        else "DI sufficient / fallback disabled")},
         ],
     }
 
@@ -425,19 +509,49 @@ def run(args):
     for d in (month_dir, raw_dir, panel_dir):
         d.mkdir(parents=True, exist_ok=True)
     questions = load_questions(args.questions)
-    print(f"[run_held_out] {len(questions)} Q · backend={args.backend} · runs={args.runs} · "
-          f"synth={'off' if args.no_synth else 'on'} · pathb={'on' if args.pathb else 'off'}")
+    print(f"[run_held_out] {len(questions)} Q · backend={args.backend} · runs={args.runs} · synth="
+          f"{'off' if args.no_synth else 'on'} · fallback={args.fallback} (trigger={args.fallback_trigger}, "
+          f"tau={args.conf_threshold})")
+
+    def _num(x):
+        return x if isinstance(x, (int, float)) and not isinstance(x, bool) else None
 
     for q in questions:
         for r in range(1, args.runs + 1):
-            bundle = stage_retrieve(q["q"], use_pathb=args.pathb)
-            contract, deterministic, panel = None, None, None
+            bundle = stage_retrieve(q["q"])              # Path A only
+            contract, deterministic, panel, fb_meta = None, None, None, {"fired": False}
             if not args.no_synth:
                 try:
-                    contract = stage_synthesize(q, bundle)
+                    contract = stage_synthesize(q, bundle)                 # PASS 1 — DI-only
+                    conf1 = _num(contract.get("confidence"))
+                    # FALLBACK TRIGGER (answers "who determines insufficiency?"):
+                    #   confidence = the model's own pass-1 confidence < tau (the real "is my store enough?" signal;
+                    #                the structural check is fooled by any-chunk-present — see Q07);
+                    #   structural  = the pre-synth heuristic (kept for comparison).
+                    #   Automatic, never human-gated: fetching is cheap+reversible (no-hang rule). The HUMAN GATE
+                    #   lives at re-ingest of fetched evidence into the DI, not at the fetch decision.
+                    fire, trigger, detail = False, None, None
+                    if args.fallback != "none":
+                        if args.fallback_trigger == "confidence":
+                            if conf1 is not None and conf1 < args.conf_threshold:
+                                fire, trigger, detail = True, "confidence", f"pass1_confidence={conf1} < tau={args.conf_threshold}"
+                        elif not bundle["sufficiency"]["sufficient"]:
+                            fire, trigger, detail = True, "structural", bundle["sufficiency"]["reasons"]
+                    if fire:
+                        sq = (contract.get("search_query") or "").strip()
+                        if not sq or len(sq.split()) > 12:          # missing or a copied-question, not keywords
+                            sq = _fallback_query(q, bundle)
+                        add_path_b(bundle, q["q"], args.fallback, trigger, detail, query=sq)
+                        contract2 = stage_synthesize(q, bundle)            # PASS 2 — DI + Path B
+                        conf2 = _num(contract2.get("confidence"))
+                        fb_meta = {"fired": True, "trigger": trigger, "source": args.fallback, "detail": detail,
+                                   "pass1_confidence": conf1, "pass2_confidence": conf2,
+                                   "n_path_b_papers": len(bundle["path_b"].get("papers", []))}
+                        contract = contract2                                # final answer = pass 2
+                    else:
+                        fb_meta = {"fired": False, "pass1_confidence": conf1,
+                                   "reason": "confidence>=tau" if args.fallback != "none" else "fallback disabled"}
                     deterministic = score_deterministic(contract, q["type"])
-                    # judge panel only on run 1 (the scored record); run 2 exists only for the EPS pair,
-                    # which needs the synthesized hypothesis + retrieval, not a second panel — halves judge spend.
                     if not args.no_judge and r == 1:
                         panel = judge_answer(q, contract)
                 except Exception as e:
@@ -445,20 +559,21 @@ def run(args):
                                 "evidence_cited": [], "identifier_bindings": []}
                     print(f"  ! {q['id']} run{r}: synth/score PENDING ({e})")
             raw = {"question_id": q["id"], "run": r, "backend": args.backend, "type": q["type"],
-                   "bundle": bundle, "contract": contract, "deterministic": deterministic, "panel": panel}
+                   "bundle": bundle, "contract": contract, "deterministic": deterministic,
+                   "panel": panel, "fallback": fb_meta}
             (raw_dir / f"{args.backend}_run{r}_{q['id']}.json").write_text(
                 json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
-            # primary record + panel detail written only from run 1 (compute_ece reads month_dir top level)
-            if r == 1:
-                rec = make_record(q, args.backend, contract, deterministic, panel)
+            if r == 1:                                    # compute_ece reads month_dir top level only
+                rec = make_record(q, args.backend, contract, deterministic, panel, month=args.month, fb_meta=fb_meta)
                 (month_dir / f"{q['id']}.json").write_text(
                     json.dumps(rec, ensure_ascii=False, indent=2), encoding="utf-8")
                 if panel:
                     (panel_dir / f"{q['id']}.json").write_text(
                         json.dumps(panel, ensure_ascii=False, indent=2), encoding="utf-8")
             oc = (deterministic or panel or {}).get("outcome") if (deterministic or panel) else "unscored"
+            fbtag = f" fb={fb_meta['pass1_confidence']}->{fb_meta.get('pass2_confidence')}" if fb_meta.get("fired") else ""
             print(f"  {q['id']} run{r}: hits={bundle['path_a']['n_hits']} suf={bundle['sufficiency']['sufficient']} "
-                  f"conf={contract.get('confidence') if contract else '-'} outcome={oc}")
+                  f"conf={contract.get('confidence') if contract else '-'} outcome={oc}{fbtag}")
     print(f"[run_held_out] wrote records -> {month_dir}")
 
 
@@ -519,7 +634,12 @@ def main():
     r.add_argument("--backend", default="sparse", choices=["sparse", "neo4j"])
     r.add_argument("--runs", type=int, default=1, help="paired runs (2 for EPS)")
     r.add_argument("--questions", default="", help="comma-separated subset, e.g. Q01,Q22")
-    r.add_argument("--pathb", action="store_true", help="enable Path B (Europe PMC; network)")
+    r.add_argument("--fallback", default="none", choices=["none", "europepmc", "tooluniverse"],
+                   help="Path B when DI insufficient: none (DI-only) | europepmc (urllib) | tooluniverse (SDK)")
+    r.add_argument("--fallback-trigger", default="confidence", choices=["confidence", "structural"],
+                   help="what decides insufficiency: confidence (pass-1 conf < tau, recommended) | structural")
+    r.add_argument("--conf-threshold", type=float, default=0.5,
+                   help="tau: pass-1 confidence below this triggers the Path B fallback (default 0.5)")
     r.add_argument("--no-synth", action="store_true", help="stage 1 only (NO-SPEND, no API key)")
     r.add_argument("--no-judge", action="store_true", help="skip the judge panel (deterministic scoring only)")
     r.set_defaults(func=run)

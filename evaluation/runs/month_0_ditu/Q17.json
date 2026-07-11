@@ -1,0 +1,178 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q17",
+  "claim_timestamp": "2026-07-11T21:02:09Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.12 < tau=0.5",
+    "pass1_confidence": 0.12,
+    "pass2_confidence": 0.12,
+    "n_path_b_papers": 0
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN11",
+  "claim_category": "literature_synthesis",
+  "question_id": "Q17",
+  "question": "Summarize the curated literature on whether zebrafish have a histologically distinct corneal endothelium, and grade the evidence.",
+  "backend": "neo4j",
+  "direct_answer": "The retrieved evidence bundle does NOT contain a direct histological finding on whether zebrafish have a distinct corneal endothelium. Based only on the available material, I can offer the following cautious synthesis, followed by an honest evidence grade.\n\nWhat the bundle supports:\n- The zebrafish cornea and anterior segment ARE a documented developmental topic in this corpus. CORPUS-2026-0002 is a temporal single-cell RNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament) and is explicitly described as closing a \"cornea\" gap (GAP-5). CORPUS-2026-0001 (ZESTA) covers the 3–24 hpf pre-corneal developmental window. Together these establish that corneal/anterior-segment tissue programs are being profiled transcriptomically in zebrafish.\n- However, none of these entries is a histology/anatomy study, and none makes a statement about the presence, absence, or histological distinctness of a corneal endothelium. The retrieval scores are moderate (0.71–0.78) and the top hits are transcriptomic datasets and generic databases (DanioCODE, Reactome), not curated morphological literature.\n\nWhat the bundle CANNOT answer:\n- Whether zebrafish possess a monolayer of corneal endothelial cells anatomically comparable to the mammalian corneal endothelium (Descemet's membrane–associated neural-crest–derived endothelium) is a histological/ultrastructural question. No section, EM, marker-based endothelial identification, or curated review addressing this is present in the bundle.\n\nProvisional statement (NOT evidence-backed by this bundle, flagged as a gap): the classical literature debate is that the teleost/zebrafish cornea is a relatively simple, avascular multilayered structure whose \"endothelial\" lining is thin and its distinctness debated — but I cannot confirm this from the provided evidence and therefore do not assert it as fact.\n\nEvidence grade: WEAK / INSUFFICIENT for the specific question. The corpus confirms active corneal-anterior-segment profiling exists but provides no curated histological evidence on corneal endothelium distinctness.",
+  "stated_confidence": 0.12,
+  "prior": 0.12,
+  "evidence_cited": [
+    "CORPUS-2026-0001",
+    "CORPUS-2026-0002"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Assert the commonly cited view that zebrafish cornea lacks a mammalian-type endothelium — rejected because no bundle evidence supports it and it would be memory-based.",
+    "Treat CORPUS-2026-0002 (anterior segment scRNA atlas) as answering the question — rejected: it profiles trabecular meshwork / annular ligament and closes a cornea gap transcriptomically, but reports no histological endothelium characterization.",
+    "Decline entirely — but a calibrated partial synthesis with explicit gap flags is more useful than silence."
+  ],
+  "gap_flags": [
+    "No histological or ultrastructural (EM/section) study on zebrafish corneal endothelium in the bundle.",
+    "No marker-based (endothelial identity) characterization of corneal cell layers present.",
+    "Top hits are transcriptomic datasets and generic pathway databases, not curated morphological literature.",
+    "Cannot confirm presence/absence or distinctness of a corneal endothelium from provided evidence.",
+    "No ENSDARG-verified endothelial marker genes retrieved for this system.",
+    "Question is niche RN11/RN1 but bundle only weakly matches (RN1 pronephros hit is off-target)."
+  ],
+  "framework_applied": "Evidence-grading / gap-driven literature synthesis (GRADE-style): rank retrieved sources by relevance and study type, distinguish what is supported vs. what is memory, and downgrade confidence when the bundle lacks the study type (histology) required to answer the question.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T21:02:09Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "justification": "The candidate answer is epistemically honest and well-calibrated: it correctly recognizes that the retrieved bundle contains transcriptomic/developmental datasets rather than curated histological or ultrastructural literature, and it appropriately flags this as a gap rather than fabricating specifics. It also gestures toward the actual debate (teleost cornea being simple/avascular with a thin, distinctness-debated endothelial lining), which aligns with the expected \"debate flagged (GAP-3 analog)\" element, and it explicitly notes the absence of marker-based endothelial identification, touching the \"endothelium marker panel caveat.\" However, the expected answer calls for a *graded synthesis* of the curated literature — an actual summary of what the literature says (i.e., that zebrafish do possess a corneal endothelium, though its histological distinctness/monolayer status has been debated) with an evidence grade. The candidate essentially declines to deliver this synthesis, retreating entirely to \"INSUFFICIENT,\" so completeness is low. It also mislabels the debate as \"GAP-5/GAP-3\" inconsistently and provides no substantive graded conclusion beyond \"weak/insufficient.\" Factuality of what is asserted is sound and nothing is overclaimed (a plus for safety and calibration), but the answer under-delivers on the core deliverable. Net: a defensible, honest, but incomplete response.",
+          "rubric": {
+            "factuality": 0.75,
+            "completeness": 0.4,
+            "citation_correctness": 0.6,
+            "uncertainty_calibration": 0.9,
+            "testability": 0.5,
+            "safety_ethics": 1.0
+          },
+          "usage": {
+            "input_tokens": 2155,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 635,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected answer requires a graded synthesis of curated literature on zebrafish corneal endothelium histology, explicit flagging of the debate (GAP-3 analog), and a caveat about endothelium marker panels. The candidate instead reports that the retrieved bundle contains no direct histological evidence, cites only two loosely related transcriptomic/developmental corpus entries (CORPUS-2026-0001, 0002), and explicitly declines to assert the debate as fact, labeling it 'provisional' and 'not evidence-backed.' While the candidate is appropriately cautious and transparent about uncertainty (good calibration, low stated confidence of 0.12), it fails to actually summarize the curated literature debate (GAP-3 analog) that the expected evidence indicates should exist in the corpus, and does not surface the marker panel caveat as anything other than a gap flag rather than substantive content. This suggests either the candidate lacked access to the relevant curated sources or failed to retrieve them, resulting in an answer that undershoots the expected completeness substantially. The honesty and abstention behavior is commendable and avoids fabrication, but the core content requested (the graded synthesis of the actual debate) is missing entirely, so the answer does not fulfill the question's substantive ask despite being safe and well-hedged.",
+          "overall_score": 0.25,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.6,
+            "completeness": 0.15,
+            "citation_correctness": 0.3,
+            "testability": 0.3,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2219,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 606,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "correct",
+          "overall_score": 0.87,
+          "rubric": {
+            "factuality": 0.9,
+            "citation_correctness": 0.95,
+            "completeness": 0.85,
+            "uncertainty_calibration": 0.95,
+            "testability": 0.8,
+            "safety_ethics": 0.85
+          },
+          "justification": "The candidate answer demonstrates exemplary epistemic rigor by explicitly distinguishing between what the provided evidence bundle supports and what it cannot answer. The response correctly identifies that the corpus contains transcriptomic developmental datasets (CORPUS-2026-0001, CORPUS-2026-0002) focused on anterior segment development but lacks direct histological or ultrastructural evidence on corneal endothelial distinctness in zebrafish. The candidate appropriately flags the question as a \"histological/ultrastructural\" inquiry unaddressed by transcriptomic data, correctly notes the moderate retrieval scores (0.71–0.78) and off-target database hits, and explicitly acknowledges the \"classical literature debate\" while responsibly declining to assert unverified claims. The evidence grading of \"WEAK/INSUFFICIENT\" is justified and honest. The candidate's self-reported confidence (0.12) shows appropriate calibration to genuine epistemic limitations. All gap-flagging is substantive and verifiable: absence of histology/EM studies, lack of marker-based endothelial characterization, and mismatch between dataset type and question specificity. Citations are accurate. Minor weaknesses: (1) the answer could have discussed more explicitly whether any of the transcriptomic work directly probed endothelial transcription factors or cell-type markers that might inform the question indirectly; (2) \"GAP-5\" reference is precise but the answer could have elaborated on what that gap refers to. These are refinements; the core answer is methodologically sound and correctly implements the adversarial rubric by rewarding honest uncertainty and penalizing non-assertion.",
+          "usage": {
+            "input_tokens": 1811,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 515,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.62,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.58,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "invoked",
+      "reason": "confidence-gated fallback: pass1_confidence=0.12 < tau=0.5"
+    }
+  ]
+}

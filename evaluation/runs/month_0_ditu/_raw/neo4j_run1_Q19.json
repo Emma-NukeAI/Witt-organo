@@ -1,0 +1,261 @@
+{
+  "question_id": "Q19",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Using genetic-interaction data, predict the embryonic phenotype of a double-gene perturbation and whether redundancy would mask a single-KO.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.771,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.771,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7255,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.7171,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "db:GEO_NCBI",
+          "type": "database",
+          "score": 0.6926,
+          "text": "GEO NCBI. Gene-expression analysis and interactions. Data: Gene count/expression data from published papers. Feeds RN1, RN8, RN9."
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7014,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7003,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": true,
+      "source": "tooluniverse",
+      "trigger": "confidence",
+      "detail": "pass1_confidence=0.28 < tau=0.5",
+      "query": "zebrafish genetic-interaction embryonic phenotype double-gene perturbation whether",
+      "papers": [
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "42068575",
+            "pmcid": "PMC13135384",
+            "doi": "10.1111/ede.70041",
+            "title": "Internalized Evolutionary Inertia on Body Plan Evolution.",
+            "year": "2026",
+            "journal": "Evol Dev",
+            "citations": 0
+          },
+          "abstract": "Despite the phenotypic diversity of animal species, the basic anatomical features, or body plan, of each animal phylum have been strictly conserved since their initial establishment in the early Cambrian. While this remarkable conservation could be explained by the conservation of the mid-embryonic phase (the developmental hourglass model) when the body plan is established, the underlying evolutionary mechanisms remained largely unclear. In this respect, recent studies have highlighted intrinsic properties in development, such as robustness, stability, and pleiotropic constraints, as potential contributors to its limitation of phenotypic diversifications. These findings suggest a potential mechanism of how phenotypic evolution is intrinsically limited or biased. In this review, potential developmental factors that contributed to the intrinsic limiting effects of animal embryogenesis against phenotypic diversification will be overviewed, with a particular focus on the general relationship between evolution and developmental processes.",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41421763",
+            "pmcid": "PMC12804389",
+            "doi": "10.1016/j.cstres.2025.100141",
+            "title": "Expanding the landscape of the unfolded protein response: The roles of secondary transcription factors in development and disease.",
+            "year": "2026",
+            "journal": "Cell Stress Chaperones",
+            "citations": 0
+          },
+          "abstract": "The unfolded protein response (UPR) of the endoplasmic reticulum (ER) is a classic cellular reaction to stress that helps restore ER homeostasis. However, growing evidence demonstrates that the main UPR effectors (Activating Transcription Factor 6 (ATF6), X-box Binding Protein 1 (XBP1s), and Activating Transcription Factor 4 (ATF4)) not only regulate canonical UPR target genes but also promote the transcription of genes encoding secondary transcription factors (TFs). These secondary TFs contribute to ER homeostasis maintenance and are involved in various physiological processes that extend beyond the traditional UPR. In this review, we examine the secondary TFs activated by UPR master regulators (UPR-TFs) and discuss their functional roles in different tissues and organs. We emphasize how these secondary TFs, controlled by their respective UPR-TFs, participate in stress responses, cell differentiation, embryonic development, circadian rhythms, metabolism, and other physiological processes. Furthermore, we explore common signaling pathways and tissue- and cell-specific regulatory mechanisms, highlighting convergence points where secondary TFs from different UPR branches intersect, i",
+          "open_access": true
+        },
+        {
+          "source": "tooluniverse:EuropePMC_search_articles",
+          "search_rec": {
+            "pmid": "41980769",
+            "pmcid": "PMC13224860",
+            "doi": "10.1101/gad.352760.125",
+            "title": "A dual role for cGAS in shaping cellular and organismal responses to genomic instability.",
+            "year": "2026",
+            "journal": "Genes Dev",
+            "citations": 0
+          },
+          "abstract": "Mutations in DNA damage repair (DDR) genes lead to genomic instability, driving a range of degenerative syndromes. In addition to promoting mutation accumulation, unrepaired DNA damage can leak into the cytosol and activate innate immune-sensing pathways, particularly the cGAS-STING axis. However, the extent to which cGAS causally contributes to organismal pathology in DDR syndromes in vivo remains unresolved. Here, we genetically model ataxia telangiectasia (A-T) and Bloom syndrome in the short-lived turquoise killifish (Nothobranchius furzeri) and demonstrate that genetic disruption of cgas in the A-T model partially ameliorates germline failure, hepatic senescence, and cerebellar neuroinflammation. Unexpectedly, cgas loss also reversed cellular hallmarks of genome instability, including reduced micronuclei, improved telomere integrity, and restored H3K9me3-marked heterochromatin landscape, consistent with STING-independent nuclear functions of cGAS that influence DNA repair and chromatin. Together, these data identify cGAS as a context-dependent amplifier of DDR pathology acting through canonical inflammatory signaling and noncanonical nuclear mechanisms that shape genome stabil",
+          "open_access": true
+        }
+      ]
+    }
+  },
+  "contract": {
+    "direct_answer": "This question asks for a specific double-gene perturbation prediction, but the evidence bundle does not name any gene pair, so I can only give a methodological answer plus a general prediction schema — not a concrete phenotype call.\n\nWhat the bundle DOES support:\n1. The correct data source for genetic-interaction prediction is BioGRID (score 0.771), which explicitly catalogs GENETIC interactions — \"what happens to the embryo if you alter two genes at once.\" This is the primary evidence layer for double-KO prediction. STRING (0.717) and Reactome (0.726) add PREDICTIVE protein-interaction / pathway context (STRING is explicitly flagged as predicted, zebrafish-via-orthology), and GEO (0.693) supplies expression overlap. The pronephros/nephron development corpus (CORPUS-2026-0003) suggests the intended system may be pronephric nephron development.\n\nGeneral inference rule (framework):\n- If BioGRID reports the two genes in a SYNTHETIC/aggravating genetic interaction (double perturbation phenotype more severe than the sum of singles), then redundancy WOULD mask the single KOs — each single KO is near-normal, and the double KO produces a strong (potentially synthetic-lethal or severe morphological) embryonic phenotype. This is the classic paralog/parallel-pathway redundancy signature.\n- If the interaction is epistatic/suppressive or the genes act in a strict linear pathway, redundancy would NOT mask the single KO — the upstream (or non-redundant) single KO already reproduces the phenotype and the double adds little.\n- If the two genes are co-expressed (GEO) in the same tissue (e.g., pronephros) and share a STRING/Reactome pathway edge, functional redundancy is more plausible, favoring a masked-single-KO scenario.\n\nConcrete prediction I CANNOT make: which genes, their ENSDARG IDs, the actual BioGRID interaction sign, or the resulting phenotype — none of these are present in the bundle. I will not invent gene IDs.",
+    "confidence": 0.18,
+    "evidence_cited": [
+      "db:BioGRID",
+      "db:STRING_DB",
+      "db:Reactome",
+      "db:GEO_NCBI",
+      "CORPUS-2026-0003#c000",
+      "niche:RN10"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Synthetic/aggravating interaction -> redundancy masks single KOs (both singles mild, double severe)",
+      "Epistatic/linear-pathway interaction -> single KO already reveals phenotype, no masking",
+      "Suppressive interaction -> double KO milder than one single KO",
+      "No genetic interaction in BioGRID -> additive independent phenotypes, no masking"
+    ],
+    "gap_flags": [
+      "No gene pair specified in question or bundle — cannot name genes or ENSDARG IDs",
+      "No actual BioGRID interaction record (sign, phenotype) present in retrieved evidence — only the database description",
+      "Target tissue/system only weakly implied (pronephros) via CORPUS-2026-0003; question says system=any",
+      "External literature (Path B) is off-topic (UPR, cGAS, body-plan evolution) — provides no support for this perturbation",
+      "Cannot commit to a specific embryonic phenotype without the interaction record"
+    ],
+    "framework_applied": "Genetic-interaction epistasis logic (synthetic vs. epistatic vs. suppressive classification) applied to predict double-KO phenotype and redundancy masking; chosen because BioGRID genetic-interaction sign is the decisive determinant of whether single KOs are masked. Framework could not be instantiated because the specific gene pair and interaction record are absent from the bundle.",
+    "search_query": "zebrafish pronephros paralog redundancy double knockout synthetic genetic interaction nephron BioGRID",
+    "_usage": {
+      "input_tokens": 3296,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1426,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.68,
+        "verdict": "partial",
+        "justification": "The expected evidence calls for double-KO inference from BioGRID genetic interactions plus paralog-redundancy reasoning. The candidate correctly identifies BioGRID as the appropriate data source for genetic-interaction/double-KO prediction and articulates a sound framework: synthetic/aggravating interactions imply redundancy that masks single KOs (classic paralog signature), while epistatic/linear-pathway interactions imply the single KO already reveals the phenotype. This directly and correctly captures the paralog-redundancy reasoning the rubric wants. However, the answer stops at a methodological schema and, honestly and appropriately, declines to make a concrete phenotype call because no gene pair is present in the bundle. This is well-calibrated (confidence 0.18, explicit gap_flags) and avoids fabrication — a strong point for uncertainty calibration and factuality. The cost is completeness: it delivers no concrete double-perturbation phenotype prediction, which was the literal task. Given the bundle genuinely lacks a named gene pair or BioGRID interaction record, the abstention is defensible rather than evasive, but the answer remains partial because the substantive prediction is absent. Citations map plausibly to the stated databases though they are descriptions rather than actual interaction records (correctly flagged).",
+        "rubric": {
+          "factuality": 0.85,
+          "completeness": 0.4,
+          "citation_correctness": 0.65,
+          "testability": 0.55,
+          "uncertainty_calibration": 0.95,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2134,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 606,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.35,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies BioGRID as the relevant genetic-interaction database and articulates a sound general reasoning framework linking synthetic/aggravating interactions to redundancy-masking of single KOs, and epistatic/suppressive interactions to non-masking — this matches the expected reasoning pattern (double-KO inference from BioGRID + paralog-redundancy logic). However, it explicitly declines to produce any concrete prediction, naming no genes, no actual interaction record, and no specific embryonic phenotype, which is the core deliverable the question asks for ('predict the embryonic phenotype'). While honesty about missing gene-pair specification is reasonable given the vague prompt, a stronger answer would have hypothesized a plausible gene pair (e.g., known zebrafish paralogs with BioGRID interactions) to instantiate the framework concretely, or explicitly noted this as an illustrative example. As is, the answer is a methodological scaffold rather than a testable phenotype prediction, so it partially satisfies the expected evidence (the reasoning schema is present, but the actual prediction is missing). Calibration and epistemic honesty are good, but completeness and testability suffer significantly since no concrete falsifiable phenotype call is made.",
+        "rubric": {
+          "factuality": 0.6,
+          "citation_correctness": 0.5,
+          "completeness": 0.25,
+          "testability": 0.2,
+          "uncertainty_calibration": 0.7,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2198,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 590,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.62,
+        "justification": "The candidate provides a methodologically sound answer that demonstrates genuine expertise in genetic-interaction reasoning and explicitly acknowledges significant limitations. It correctly identifies BioGRID as the primary evidence source for double-KO prediction, accurately describes the synthetic-interaction framework (redundancy masking phenotype in single KOs), and appropriately prioritizes data sources by relevance (BioGRID > STRING/Reactome > GEO). The reasoning is logically structured: synthetic/aggravating interactions predict masked single-KO phenotypes, while epistatic/suppressive interactions do not; tissue co-expression increases redundancy plausibility. However, the answer is fundamentally incomplete for the question as stated. The candidate correctly identifies that no specific gene pair is named in the bundle, making concrete phenotype prediction impossible, but this severely limits the practical utility of the response. While intellectual honesty and self-awareness of gaps are valuable (and penalizing such transparency would be counterproductive), the answer remains a generic framework rather than the specific prediction the question appears to request. The gap_flags are accurate: no actual BioGRID interaction record is provided, only the database description; the target tissue is weakly implied (pronephros); and external literature on unrelated topics adds no support. The candidate's low confidence score (0.18) appropriately reflects this uncertainty. For a complete answer, the question would need to specify gene names and provide actual BioGRID records. As presented, the candidate has maximized what can be extracted from the available evidence while being honest about what cannot be claimed.",
+        "rubric": {
+          "factuality": 0.75,
+          "testability": 0.55,
+          "completeness": 0.5,
+          "citation_correctness": 0.85,
+          "uncertainty_calibration": 0.9,
+          "safety_ethics": 0.75
+        },
+        "usage": {
+          "input_tokens": 1802,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 493,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.33,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.55,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": true,
+    "trigger": "confidence",
+    "source": "tooluniverse",
+    "detail": "pass1_confidence=0.28 < tau=0.5",
+    "pass1_confidence": 0.28,
+    "pass2_confidence": 0.18,
+    "n_path_b_papers": 3
+  }
+}

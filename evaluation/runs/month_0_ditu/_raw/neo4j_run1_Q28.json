@@ -1,0 +1,210 @@
+{
+  "question_id": "Q28",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "regulator_vs_bystander",
+  "bundle": {
+    "question": "Given an scRNA finding that a gene is highly expressed in a target cluster, what additional evidence layers raise it from 'expressed' to 'regulator', and what is the minimum to avoid a false-positive?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7266,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "db:GEO_NCBI",
+          "type": "database",
+          "score": 0.7266,
+          "text": "GEO NCBI. Gene-expression analysis and interactions. Data: Gene count/expression data from published papers. Feeds RN1, RN8, RN9."
+        },
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.6827,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.6886,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.6824,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7055,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "db:UCSC_Cell_Browser",
+          "type": "database",
+          "score": 0.6868,
+          "text": "UCSC Cell Browser. Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets. Data: Cell lineages across "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false,
+      "reason": "not yet evaluated"
+    }
+  },
+  "contract": {
+    "direct_answer": "To move a gene from \"expressed in cluster X\" (a bystander/marker) to \"candidate regulator,\" you layer complementary, orthogonal evidence on top of the scRNA expression signal:\n\n1. SPATIAL CONFIRMATION (is it expressed in the right place/time?): Cross-check the scRNA finding against a spatial/temporal atlas. CNGB_STOmics/ZESTA (Stereo-seq) confirms the gene is physically localized to the target tissue at the relevant stage, and ZFIN in-situ/expression records give independent WISH validation. This rules out the \"ambient RNA / doublet / clustering artifact\" false positive that scRNA alone cannot exclude.\n\n2. REGULATORY-CLASS EVIDENCE (can it plausibly regulate?): ZFIN transcription-factor mapping tells you whether the gene is a TF (or otherwise a plausible regulator) rather than a passive effector/structural marker. A gene enriched in a cluster is only a \"regulator\" candidate if it has a mechanism to act as one.\n\n3. INTERACTION / NETWORK EVIDENCE (does it sit in the right circuit?): BioGRID (physical + GENETIC interactions) and Reactome (pathway/signaling context, via orthology) place the gene in an interaction network with known regulators of the target cell type. Genetic interactions are especially informative because they report developmental consequences of perturbation.\n\n4. PERTURBATION / CAUSAL EVIDENCE (does removing/altering it change the outcome?): ZFIN mutant/morphant phenotype records and BioGRID genetic-interaction data provide the causal test — the difference between correlation and regulation. This is the layer that actually earns the label \"regulator.\"\n\nMINIMUM to avoid a false positive: scRNA co-expression is necessary but not sufficient. The minimum credible bar is (a) an INDEPENDENT expression confirmation in the correct spatial/temporal context (ZFIN in-situ and/or CNGB spatial atlas) to kill technical artifacts, PLUS (b) at least one causal or mechanistic layer — either the gene is a bona fide regulator class (ZFIN TF annotation) sitting in the relevant network (BioGRID/Reactome), or, better, a loss-of-function phenotype (ZFIN mutant / BioGRID genetic interaction) that alters the target cell population. Expression + regulator-class + network raises it to a strong candidate; expression + a perturbation phenotype is what actually clears the \"regulator\" threshold.",
+    "confidence": 0.63,
+    "evidence_cited": [
+      "db:GEO_NCBI",
+      "db:ZFIN",
+      "db:BioGRID",
+      "db:Reactome",
+      "db:CNGB_STOmics",
+      "db:UCSC_Cell_Browser"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Treat high scRNA expression + a strong marker score alone as sufficient — rejected: cannot distinguish ambient RNA, doublets, or a highly-expressed structural/effector gene from a true upstream regulator.",
+      "Require full genetic epistasis / multi-gene BioGRID genetic-interaction mapping as the minimum bar — rejected as the *minimum*; it is the gold standard but too stringent for a first-pass false-positive filter, where independent spatial confirmation plus one causal/mechanistic layer suffices.",
+      "Use trajectory/lineage evidence (UCSC Cell Browser) as the regulator test — considered: useful for ordering expression along a lineage and nominating drivers, but pseudotime correlation is still associative, not causal."
+    ],
+    "gap_flags": [
+      "Evidence bundle is a set of database descriptions, not a specific gene or dataset — answer is a methodological framework, not a claim about any particular regulator.",
+      "No specific gene symbols or ENSDARG IDs were provided or resolved, so no identifier bindings could be asserted.",
+      "Bundle does not include quantitative thresholds (e.g. effect size, FDR, or a formal statistical false-positive rate), so 'minimum' is described qualitatively.",
+      "No enhancer/ATAC/ChIP (cis-regulatory occupancy) resource is present in this bundle; a stronger regulator claim would normally add chromatin/binding evidence, which cannot be sourced here."
+    ],
+    "framework_applied": "Evidence-triangulation / causal-ladder framework: rank evidence from correlational (scRNA co-expression) → independent-replication (spatial+in-situ) → mechanistic-plausibility (TF class + network) → causal (loss-of-function phenotype/genetic interaction). Chosen because 'regulator vs bystander' is fundamentally a correlation-vs-causation discrimination problem, and the DI databases map cleanly onto successive rungs of that ladder.",
+    "search_query": "zebrafish scRNA candidate regulator validation transcription factor in situ mutant phenotype genetic interaction false positive",
+    "_usage": {
+      "input_tokens": 2033,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1809,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.85,
+        "verdict": "correct",
+        "justification": "The answer directly and thoroughly addresses all three expected evidence components. (1) Evidence-layer ladder: it lays out a clear, well-ordered ladder — spatial/temporal confirmation → regulatory-class (TF) evidence → interaction/network context → perturbation/causal evidence — with sensible rationale for why each layer adds credibility. (2) The false-positive trap: it explicitly names expression ≠ regulation, and correctly identifies scRNA-specific artifacts (ambient RNA, doublets, clustering artifacts) that expression alone cannot exclude, plus the correlation-vs-causation distinction. (3) Minimum bar: it gives a concrete two-part minimum (independent spatial/temporal expression confirmation to kill technical artifacts PLUS at least one causal/mechanistic layer, ideally a loss-of-function phenotype), which is a defensible and well-reasoned threshold. Citations are appropriate and used correctly as methodological resource types (ZFIN in-situ/TF/mutant, spatial atlas, BioGRID genetic interactions, Reactome). Notably, the gap_flags are honest and strong: the answer flags the absence of ATAC/ChIP/enhancer occupancy evidence (a genuinely important layer for calling a 'regulator' that is missing from the bundle) and the lack of quantitative thresholds/FDR, which is the one real weakness — the 'minimum' remains qualitative rather than specifying effect size or statistical false-positive control. Confidence of 0.63 is well-calibrated for a framework answer with no bound gene. Minor deductions for the missing chromatin/binding layer in the ladder itself (only flagged, not integrated) and for the purely qualitative minimum, but overall this is a substantively correct, complete, and honestly hedged answer.",
+        "rubric": {
+          "factuality": 0.9,
+          "completeness": 0.85,
+          "citation_correctness": 0.85,
+          "testability": 0.8,
+          "uncertainty_calibration": 0.9,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2375,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 785,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.85,
+        "verdict": "correct",
+        "justification": "The candidate constructs a clear evidence-layer ladder (spatial/temporal confirmation → regulatory-class evidence → interaction/network evidence → perturbation/causal evidence), explicitly names the false-positive trap (expression ≠ regulation, citing ambient RNA/doublet/clustering artifacts as confounders scRNA alone cannot rule out), and states a concrete minimum bar (independent spatial/temporal expression confirmation PLUS at least one causal or mechanistic layer, ideally a loss-of-function phenotype). This matches the three expected evidence components well. It appropriately flags calibration caveats (no specific gene, no chromatin/ATAC-seq layer, no quantitative thresholds), which is honest and avoids overclaiming. Minor weaknesses: the omission of chromatin/binding (ChIP-seq/ATAC) evidence as a would-be layer is self-flagged but arguably should have been included as a fifth rung in the ladder for completeness, since direct TF-binding evidence is often considered key for 'regulator' status. Also, TF-class annotation alone (layer 2) is somewhat weaker mechanistic evidence than described—being a TF doesn't guarantee it regulates this specific process—but the answer reasonably treats this as necessary-not-sufficient. Overall the response is thorough, well-organized, testable (clear criteria), and calibrated with appropriate uncertainty and gap flags.",
+        "rubric": {
+          "completeness": 0.85,
+          "factuality": 0.85,
+          "testability": 0.8,
+          "citation_correctness": 0.75,
+          "uncertainty_calibration": 0.9,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 2439,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 657,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.78,
+        "verdict": "correct",
+        "justification": "The candidate answer demonstrates strong conceptual accuracy and directly addresses the question's core challenge: distinguishing expression from regulation using evidence layers. The response correctly identifies the false-positive trap (expression ≠ regulation ≠ causation) and articulates a credible evidence ladder from weakest (spatial/temporal confirmation of scRNA signal) through intermediate layers (regulatory class, network placement) to causal evidence (perturbation phenotypes). The minimum bar is stated clearly and substantively: spatial confirmation + regulator-class annotation + network context, or spatial confirmation + perturbation phenotype. The specific database recommendations (ZFIN, BioGRID, Reactome, spatial atlases) are appropriate for zebrafish research and reflect genuine biological reasoning. Importantly, the candidate correctly identifies that loss-of-function data (\"clearing the regulator threshold\") and genetic interactions constitute the strongest evidence, not mere co-expression or network proximity. The self-identified gaps are honest and appropriate: the answer is methodological rather than gene-specific, lacks quantitative thresholds (e.g., effect size cutoffs, FDR criteria), and does not include cis-regulatory evidence (ChIP-seq, ATAC-seq, enhancer data). These gaps do not undermine the core answer—they acknowledge the frame of the question—but they do prevent a perfect score. The stated confidence (0.63) is appropriately calibrated to acknowledge methodological nature and absence of quantitative specifics. Against the rubric: factuality is strong (biology is sound), completeness covers the evidence ladder and minimum bar as requested, citation correctness is solid (databases named are real and relevant), uncertainty calibration is honest, testability is reasonable for a framework, and safety/ethics are neutral.",
+        "rubric": {
+          "factuality": 0.82,
+          "completeness": 0.79,
+          "citation_correctness": 0.85,
+          "uncertainty_calibration": 0.77,
+          "testability": 0.73,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 1945,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 536,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.07,
+    "outcome": "positive",
+    "mean_overall": 0.827,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  },
+  "fallback": {
+    "fired": false,
+    "pass1_confidence": 0.63,
+    "reason": "confidence>=tau"
+  }
+}

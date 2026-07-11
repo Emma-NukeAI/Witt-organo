@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.82,
+      "verdict": "correct",
+      "rubric": {
+        "factuality": 0.85,
+        "completeness": 0.85,
+        "citation_correctness": 0.85,
+        "testability": 0.75,
+        "uncertainty_calibration": 0.95,
+        "safety_ethics": 1.0
+      },
+      "justification": "The answer correctly identifies the expected flow/shear fields (flow velocity vectors/magnitudes, wall shear stress as the key mechanical cue for filtration onset), which matches the \"flow/shear fields\" evidence requirement. It handles the mesh-format question honestly: rather than fabricating a .vtu vs .cgns claim, it flags that the RN7 catalogue text is truncated at \"high-density 3D meshes wi...\" and explicitly declines to confirm which extension is used — this satisfies both the \"mesh format note\" and \"gap flags\" evidence points, and demonstrates excellent uncertainty calibration (low confidence 0.34, clear gap_flags). It also correctly notes the sparse molecular/threshold evidence linking flow to filtration onset in zebrafish at this stage, consistent with the expected \"sparse zebrafish flow data\" flag. Minor deductions: shear is inferred rather than directly cited (the answer is transparent about this), and it doesn't strongly commit to concrete testable readout thresholds. Citations (RN7, CORPUS-2026-0003) are used appropriately and not overextended. Overall an honest, well-scoped answer that avoids overclaiming.",
+      "usage": {
+        "input_tokens": 1964,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 575,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.78,
+      "verdict": "correct",
+      "justification": "The candidate identifies the key fluid-dynamic readouts (flow velocity, pressure, and shear stress derived from velocity gradients) and correctly flags that shear is inferred rather than explicitly listed in the source, showing good calibration. It addresses the mesh format question directly and honestly, noting that the RN7 catalogue entry is truncated and does not explicitly confirm .vtu or .cgns, instead reporting .csv/.tsv for tabular readouts and flagging the gap — matching the expected evidence's emphasis on 'mesh format note' and 'gap flags.' It also explicitly notes the sparse zebrafish-specific data at this developmental stage (via the CORPUS citation and stated gaps), fulfilling the 'sparse zebrafish flow data' expectation. Citations (niche:RN7, CORPUS-2026-0003) are used appropriately and the uncertainty is well-calibrated (confidence 0.34, appropriately hedged). Minor weaknesses: the pressure field is added beyond the question's explicit scope (velocity/shear), and the mesh format resolution remains genuinely unresolved, which is acceptable given the evidence but slightly reduces completeness. Overall, this is a well-reasoned, appropriately hedged, and rubric-aligned answer.",
+      "rubric": {
+        "factuality": 0.8,
+        "completeness": 0.75,
+        "citation_correctness": 0.8,
+        "uncertainty_calibration": 0.85,
+        "testability": 0.75,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2028,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 608,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "justification": "The candidate demonstrates solid understanding of the fluid-dynamic readouts relevant to pronephric filtration (flow velocity fields, pressure, and wall shear stress) and correctly identifies the zebrafish pronephros as the relevant in vivo model system, citing CORPUS-2026-0003. However, the answer falls short of the expected evidence on multiple fronts. On the mesh-format question, the candidate appropriately acknowledges a critical gap: the RN7 catalogue entry is truncated and does not explicitly confirm whether meshes are in .vtu or .cgns format. The candidate instead reports .csv/.tsv as the format for tabular readouts—a reasonable inference but not what the question asks for. The expected evidence specifies mesh formats (.vtu/.cgns) should carry the fields, yet the candidate cannot confirm this from the bundle and honestly flags the truncation as a blocking limitation. The candidate also notes that shear stress is inferred rather than explicitly named in the RN7 listing, which is an important caveat that weakens the claim's grounding. The candidate's explicit gap flags are well-calibrated and demonstrate appropriate epistemic humility, but the core unanswered question—which mesh format (if any) actually carries flow/shear fields in the zebrafish pronephric data—remains unresolved. The answer is factually sound in what it asserts, cites evidence appropriately, and correctly flags limitations; however, it does not fulfill the expected evidence requirement of confirming which mesh formats carry the fluid-dynamic readouts, leaving a material gap that undermines completeness.",
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.8,
+        "completeness": 0.5,
+        "testability": 0.6,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 1671,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 501,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.2,
+  "outcome": "positive",
+  "mean_overall": 0.74,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

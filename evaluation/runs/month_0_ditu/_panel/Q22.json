@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "justification": "The answer correctly captures the core rationale for why IDs must never come from memory: unverifiable/hallucinated strings, versioned/retired/merged IDs, and zebrafish paralog/synonym complications requiring live resolution against an authoritative store. It also handles the \"positive NOT_FOUND\" concept well — treating it as a valid asserted result rather than silently dropping, including ambiguous/deprecated cases. It honestly flags that no symbol list was provided and refuses to fabricate ENSDARG IDs, which shows good uncertainty calibration and safety. However, it misses several specific expected-evidence anchors: it does not describe a resolve_id round-trip (the symbol→ID→symbol verification loop), does not reference CLAUDE.md §7/§7.9 as the governing rationale, and does not mention a verify_output gate that would enforce this before emission. It substitutes a plausible-sounding but unverified framing (\"authoritative identifier resolver behind the DATA INAMOVIBLE\") and names Ensembl/ZFIN, which is reasonable but not the same as citing the specific verification mechanism and policy sections. So the conceptual answer is largely correct but incomplete on the concrete testable procedure and citations expected.",
+      "rubric": {
+        "factuality": 0.75,
+        "completeness": 0.5,
+        "citation_correctness": 0.4,
+        "testability": 0.45,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2147,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 586,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.58,
+      "verdict": "partial",
+      "justification": "The candidate correctly explains the resolve-or-flag procedure (resolver lookup, exact match requirement, POSITIVE NOT_FOUND for no/ambiguous/deprecated match) and gives a solid, mostly accurate rationale for why IDs must never come from memory (hallucination risk, versioning/retirement, paralog/synonym ambiguity, auditability against a single source of truth). This aligns well with the NOT_FOUND handling and 'why never from memory' parts of the expected evidence. However, it omits explicit mention of the resolve_id round-trip mechanism and the verify_output gate, and does not cite CLAUDE.md §7/§7.9 by name or rationale, which are specifically called out in the expected evidence — instead it references a generic 'DATA INAMOVIBLE' framing that may or may not correspond to those sections. The candidate appropriately flags that no gene list was actually provided and abstains from fabricating IDs, which is good calibration and safety, but this also means the core task (producing a list of resolved/NOT_FOUND IDs) was not demonstrated at all, leaving completeness and testability weak. Citations are plausible but not tied to the specific document sections named in the rubric, so citation correctness is only partial.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.7, \"completeness\": 0.45, \"citation_correctness\": 0.4, \"testability\": 0.4, \"uncertainty_calibration\": 0.75, \"safety_ethics\": 0.85}",
+      "usage": {
+        "input_tokens": 2211,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 584,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.88,
+      "rubric": {
+        "factuality": 0.92,
+        "completeness": 0.85,
+        "citation_correctness": 0.9,
+        "uncertainty_calibration": 0.88,
+        "testability": 0.82,
+        "safety_ethics": 0.9
+      },
+      "justification": "The candidate answer demonstrates strong understanding of the core requirements: (1) it correctly identifies Ensembl Zebrafish as the authoritative resolver for ENSDARG IDs and appropriately names the ZFIN supplement role; (2) it properly defines the three-step resolution procedure with exact matching and NOT_FOUND flagging; (3) it articulates the critical principle that positive NOT_FOUND results must be asserted, not silently dropped; (4) the explanation of why IDs must never come from memory is factually sound — it correctly cites hallucination risk, versioning/retirement, Danio rerio paralogs (ohnologs with -a/-b duplicates), and synonym complexity, all grounded in domain reality; (5) the candidly stated gap (\"no symbol list provided; Key entities resolved: none checked\") demonstrates honest uncertainty and avoids fabrication; (6) the confidence of 0.55 appropriately reflects the inability to demonstrate concrete resolution on actual inputs. Minor incompleteness: the answer does not explicitly name the \"resolve_id round-trip\" mechanism or the verify_output gate as a validation checkpoint (though the spirit is captured in \"accept only exact, unambiguous match\"). Citation choices (Ensembl_DanioRerio, ZFIN) are correct and properly contextualized. The answer models the DATA INAMOVIBLE audit trail correctly and resists the strong temptation to invent IDs. Safety/ethics score reflects appropriate refusal to hallucinate identifiers and adherence to evidence-driven constraints.",
+      "usage": {
+        "input_tokens": 1774,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 500,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.3,
+  "outcome": "positive",
+  "mean_overall": 0.693,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

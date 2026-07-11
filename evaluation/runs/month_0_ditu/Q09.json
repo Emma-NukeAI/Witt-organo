@@ -1,0 +1,184 @@
+{
+  "claim_id": "held_out_month_0_ditu_Q09",
+  "claim_timestamp": "2026-07-11T20:47:38Z",
+  "session_id": "evaluation/runs/month_0_ditu (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.1",
+  "fallback": {
+    "fired": false,
+    "pass1_confidence": null,
+    "reason": "confidence>=tau"
+  },
+  "stream": "biomedical",
+  "sub_domain": "RN4",
+  "claim_category": "literature_synthesis",
+  "question_id": "Q09",
+  "question": "What metabolic pathways (lipid/ion) shape the biochemical microenvironment during tubulogenesis, and which database layers (KEGG/MetaCyc) would feed a gradient model?",
+  "backend": "neo4j",
+  "direct_answer": "The evidence bundle supports a partial, mostly structural answer rather than a mechanistic one.\n\nWHAT THE BUNDLE ACTUALLY SUPPORTS:\n- The RN4 \"Microambiente bioquímico\" (biochemical microenvironment) niche is the relevant data layer. It provides mass-spec metabolomics and lipidomics data (.mzML/.mzXML converted to .csv via an MCP wrapper) plus spatial lipid distribution maps (.imML / imaging-MS). This is the empirical substrate for describing the lipid and ion biochemical microenvironment during tubulogenesis — i.e., where lipid species are spatially concentrated across the tubule.\n- The relevant developmental context is zebrafish pronephros tubulogenesis (CORPUS-2026-0003), which is described as reliant on polarity proteins Prkc iota/zeta (aPKC). Epithelial polarization is functionally coupled to lipid-defined apical/basolateral membrane domains and to ion transport across the polarized epithelium, so lipid gradients and ion transport are plausibly the microenvironmental axes — but the bundle does NOT name specific lipid classes (e.g., PIP2/PIP3, sphingolipids, cholesterol) or specific ion pathways for tubulogenesis. That linkage is inferential, not stated.\n- Complementary niches that would flank a gradient model: RN5 \"Bioeléctrica\" supplies absolute membrane potential and voltage-sensor time series (the ion/electrochemical dimension), and RN3 supplies signaling networks + kinetic parameters. Together RN4 (lipid/metabolite spatial maps) + RN5 (bioelectric/ion potential) define the lipid+ion microenvironment.\n\nDATABASE LAYERS TO FEED A GRADIENT MODEL:\nThe bundle contains Reactome (metabolic pathway analysis with zebrafish coverage via computational orthology inference), which is the pathway/reaction layer available here to annotate metabolomic/lipidomic hits into reactions and to link metabolites to catalyzing genes for a reaction-diffusion / gradient model. The question specifically asks about KEGG and MetaCyc — NEITHER KEGG NOR MetaCyc is present in this evidence bundle. I cannot confirm their content or zebrafish coverage from the provided data. Based only on what is retrieved, Reactome is the pathway layer that would connect RN4 metabolite/lipid maps to reactions and orthology-inferred zebrafish genes for a gradient model.\n\nBOTTOM LINE: The specific lipid and ion pathways shaping the tubulogenesis microenvironment are not enumerated in the bundle; RN4 (spatial lipidomics/metabolomics) + RN5 (membrane potential/ion) are the data layers, and Reactome is the available pathway layer. KEGG/MetaCyc are not represented in the evidence and cannot be assessed.</parameter>\n<parameter name=\"confidence\">0.3",
+  "stated_confidence": null,
+  "prior": null,
+  "evidence_cited": [
+    "niche:RN4",
+    "niche:RN5",
+    "niche:RN3",
+    "db:Reactome",
+    "CORPUS-2026-0003",
+    "CORPUS-2026-0003#c000"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "prkci"
+    },
+    {
+      "symbol": "prkcz"
+    }
+  ],
+  "alternatives_considered": [
+    "Answer specific lipid pathways (PIP signaling, sphingolipid, cholesterol) and ion transporters (Na/K-ATPase, aquaporins) — rejected: no such species/pathways are named in the bundle; would be memory-based invention.",
+    "Claim KEGG/MetaCyc zebrafish pathway content directly — rejected: neither database appears in the retrieval; only Reactome is present.",
+    "Treat RN4 alone as sufficient — rejected: ion dimension requires RN5 (bioelectric/membrane potential), so a lipid+ion microenvironment model spans RN4+RN5."
+  ],
+  "gap_flags": [
+    "KEGG and MetaCyc are NOT in the evidence bundle; question asks about them specifically and cannot be answered from provided data.",
+    "No specific lipid classes or ion-transport pathways for tubulogenesis are named in the bundle.",
+    "Link between aPKC polarity (prkci/prkcz) and lipid/ion microenvironment is inferential, not stated in the retrieved chunks.",
+    "No ENSDARG identifiers were verified for prkci/prkcz — omitted rather than asserted from memory.",
+    "No quantitative gradient/kinetic data retrieved (RN3 mentioned but not provided in detail)."
+  ],
+  "framework_applied": "Evidence-scoped literature synthesis with gap-first honesty: map the question's two asks (metabolic pathways; database layers) onto retrieved niches/DBs, refuse to fabricate absent KEGG/MetaCyc content, and flag inferential links explicitly. Chosen because the bundle is thin and structural rather than mechanistic.</parameter>\n<parameter name=\"search_query\">zebrafish pronephros tubulogenesis lipid microenvironment sphingolipid PIP2 ion transport membrane potential KEGG MetaCyc metabolic gradient",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T20:47:38Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.62,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.7,
+            "completeness": 0.45,
+            "factuality": 0.75,
+            "safety_ethics": 1.0,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.85
+          },
+          "justification": "The answer is honest and well-calibrated: it correctly flags that KEGG and MetaCyc are absent from the bundle and refuses to fabricate specific lipid classes or ion pathways, and it explicitly marks the aPKC→lipid/ion linkage as inferential. This maps onto the expected 'gap flags' element and earns strong uncertainty-calibration and safety marks. It also correctly identifies the .mzML→.csv wrapper need (an expected-evidence item) and reasonably localizes the data layers (RN4 lipidomics/metabolomics + RN5 bioelectric/ion). However, completeness is limited: the expected answer wants NAMED pathways (which the candidate declines to supply, arguably appropriately given the bundle, but still leaves the core question unanswered) and, critically, requires O2/pH gradient geometry framed as a Morpheus input — this Morpheus/gradient-geometry element is entirely missing, a substantive omission that lowers testability and completeness. The substitution of Reactome for the requested KEGG/MetaCyc is a defensible, transparent move rather than overclaiming. Overall a solid, honest partial answer that nails the epistemic hygiene but under-delivers on the modeling-input specifics the rubric expects.</parameter>\n</invoke>\n",
+          "usage": {
+            "input_tokens": 2525,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 594,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.35,
+          "verdict": "partial",
+          "justification": "The expected evidence calls for named lipid/ion metabolic pathways, the .mzML→.csv wrapper need, O2/pH gradient geometry as Morpheus input, and gap flags. The candidate correctly identifies the .mzML/.mzXML→.csv wrapper need (matching one expected element) and does flag gaps explicitly and honestly (KEGG/MetaCyc absence, no named lipid/ion pathways, inferential linkage) — strong uncertainty calibration and safety/honesty here. However, it fails to name any specific lipid or ion pathways (e.g., PIP2/PIP3, sphingolipid, Na+/K+-ATPase, etc.) even tentatively, and entirely omits the O2/pH gradient geometry as Morpheus input, which is a core expected element for the gradient model. It substitutes Reactome for KEGG/MetaCyc, which is a reasonable move given retrieval constraints but doesn't fulfill the question's specific ask about KEGG/MetaCyc content or absence details beyond noting non-presence. The answer is honest and well-hedged but incomplete relative to the rubric, missing the Morpheus/geometry component entirely and offering no concrete named pathways, which was a key ask. Citation use (RN4, RN5, RN3, Reactome, CORPUS-2026-0003) is plausible and consistent with the framework used in the transcript, though unverifiable independently. Overall this is a partial, cautious, but under-informative answer.",
+          "rubric": {
+            "factuality": 0.55,
+            "completeness": 0.3,
+            "citation_correctness": 0.5,
+            "uncertainty_calibration": 0.75,
+            "testability": 0.3,
+            "safety_ethics": 0.85
+          },
+          "usage": {
+            "input_tokens": 2589,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 674,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.62,
+          "verdict": "partial",
+          "justification": "The candidate answer demonstrates strong epistemological honesty and accurate gap flagging—it correctly identifies that KEGG and MetaCyc are absent from the evidence bundle despite being explicitly requested in the question, and it avoids fabricating their contents. The structural answer is sound: RN4 (spatial lipidomics via .mzML→.csv conversion) and RN5 (bioelectric/ion data) are correctly identified as the relevant data layers for lipid/ion microenvironments, and Reactome is appropriately cited as the available pathway annotation layer in the bundle. The candidate correctly notes that the lipid-polarity-tubulogenesis linkage (via aPKC/prkci/prkcz) is inferential rather than explicitly stated, showing proper calibration of uncertainty. However, the answer is incomplete: it does not name specific lipid classes (PIP2/PIP3, ceramides, sphingolipids, phosphatidylcholine), specific ion transporters (Na+/K+-ATPase, calcium channels, proton pumps), or concrete metabolic pathways (e.g., phosphoinositide metabolism, lipid raft biogenesis) that would be expected from a direct examination of the RN4/RN5 content. The candidate correctly states these are not enumerated in the bundle, which is an honest limitation, but this means the answer fails to fully deliver what the question asks: named pathways. The gap flags are precise and appropriately weighted. The reliance on \"inferential\" reasoning about the aPKC-lipid-ion connection, while honest, suggests the evidence bundle itself may not tightly support the mechanistic link. The answer prioritizes truthfulness about what is and isn't in the evidence over narrative completeness, which is appropriate for an adversarial review but results in a partial rather than complete answer to the original question.",
+          "rubric": {
+            "factuality": 0.85,
+            "completeness": 0.45,
+            "uncertainty_calibration": 0.9,
+            "citation_correctness": 0.88,
+            "testability": 0.6,
+            "safety_ethics": 0.75
+          },
+          "usage": {
+            "input_tokens": 2043,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 569,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.27,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.53,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    },
+    {
+      "agent": "tooluniverse (Path B fallback, MCP/SDK)",
+      "status": "not-applicable",
+      "reason": "DI sufficient / fallback disabled"
+    }
+  ]
+}
