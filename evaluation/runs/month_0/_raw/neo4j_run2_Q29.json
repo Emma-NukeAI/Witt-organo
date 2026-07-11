@@ -1,0 +1,102 @@
+{
+  "question_id": "Q29",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "What is the smallest validating Morpheus step ('prueba pequeño') to test a single morphogen gradient before building a full multi-field model?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.727,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.727,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.6985,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.695,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7043,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6987,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.6765,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The smallest validating Morpheus step (\"prueba pequeño\") is to build a single-field 1D (or thin 2D strip) reaction-diffusion model of ONE morphogen on a small fixed lattice, and check that it reproduces the expected steady-state gradient shape before any cell behavior, multiple fields, or coupling is added. Concretely, in the RN13 Morpheus .xml (the niche that holds simulation models + code):\n\n1. Define ONE Field (the morphogen concentration) on a small Lattice — a 1D line or a short 2D rectangle, coarse resolution, no CellTypes/CPM yet.\n2. Add a localized Source at one boundary (constant production or a fixed Dirichlet boundary condition) and a linear Degradation term, plus a Diffusion coefficient — i.e., the minimal production–diffusion–decay system (∂c/∂t = D∇²c − k·c + source).\n3. Run to steady state and verify the analytic expectation: an exponential decay profile with characteristic length λ = √(D/k). That single check — does the gradient reach the predicted steady-state exponential with the right length scale and is it numerically stable (no oscillation/negative values, insensitive to lattice/timestep refinement) — is the validating unit test.\n\nOnly after this single-morphogen field validates against λ = √(D/k) do you scale up to multi-field / multi-cell coupled models. Kinetic parameters (D, k, source) would come from RN3 (signaling networks and kinetic parameters), and any geometry/mechanics from RN6, but the retrieved bundle does not contain a specific worked morphogen example, so the exact parameter values must be sourced there.</parameter>\n<parameter name=\"confidence\">0.4",
+    "evidence_cited": [
+      "niche:RN13",
+      "niche:RN3",
+      "niche:RN6"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Start directly with a full multi-morphogen coupled model and validate globally (rejected — violates the 'smallest step / prueba pequeño' intent and makes debugging intractable)",
+      "Test morphogen readout via a downstream cell-fate rule first (rejected — adds cell behavior before the gradient itself is validated)",
+      "Validate purely against experimental spatial data (e.g., CNGB/ZESTA atlas) as the first step (rejected — the minimal unit test is analytic gradient recovery; atlas comparison is a later, larger validation)"
+    ],
+    "gap_flags": [
+      "The evidence bundle only identifies RN13 as the niche holding Morpheus .xml/BioNetGen/analysis code; it contains NO specific worked morphogen example, template, or documented 'prueba pequeño' procedure — so the concrete steps above are inferred from standard reaction-diffusion modeling practice, not quoted from a retrieved document.",
+      "No kinetic parameter values (D, k, production rate) or specific morphogen identity were retrieved; RN3 is named as the source but its contents were not in the bundle.",
+      "No document explicitly defines the phrase 'prueba pequeño' as a validation protocol; interpretation is assistant-supplied.",
+      "Confidence kept moderate-low because the answer relies on domain reasoning rather than a directly retrieved procedure."
+    ],
+    "framework_applied": "Minimal-viable-model / unit-test decomposition: isolate the smallest independently verifiable subsystem (single morphogen field), validate against a closed-form analytic expectation (steady-state exponential, λ=√(D/k)) before compositional scale-up. Chosen because the question explicitly asks for the smallest validating step before a full multi-field build, and RN13 is confirmed as the relevant modeling/code niche.",
+    "_usage": {
+      "input_tokens": 1884,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1347,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

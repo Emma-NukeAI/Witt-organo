@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "rubric": {
+        "citation_correctness": 0.7,
+        "completeness": 0.6,
+        "factuality": 0.75,
+        "safety_ethics": 1.0,
+        "testability": 0.7,
+        "uncertainty_calibration": 0.9
+      },
+      "justification": "The answer correctly addresses the ingestion mechanics (.ome/.tiff stacks, .mat temporal matrices, reduction to .csv Vmem maps registered to position) and the Vmem-matrix concept the rubric wants. It is notably honest and well-calibrated: it flags the sparse/absent bioelectric evidence, explicitly disclaims that no specific ion channels are named, disclaims the eye-morphogenesis link, and labels the ingestion pipeline as an inferred reconstruction rather than a documented protocol — this matches the expected 'honest gap' criterion strongly. Weaknesses: the rubric expects an actual ion-channel set, and the candidate provides none (it correctly notes the bundle lacks named channels but does not supply canonical bioelectric channels like Kir/Kv/V-ATPase/connexins from general domain knowledge, leaving the 'ion-channel set' criterion unmet). Much of the RN5/RN9 niche structure appears to be niche-specific corpus artifacts that cannot be independently verified, so citation correctness is moderate. Overall a strong, appropriately hedged answer that nails the honest-gap and Vmem-matrix elements but is incomplete on the concrete ion-channel set — hence partial.",
+      "usage": {
+        "input_tokens": 2368,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 597,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "justification": "The candidate correctly identifies the two relevant data formats (.ome/.tiff imaging stacks and .mat temporal matrices, plus .csv spatial+Vmem outputs) and proposes a plausible ingestion pipeline, matching part of the expected evidence around Vmem matrix concept and file ingestion. It also explicitly and appropriately flags the sparse zebrafish bioelectric data gap, including honest uncertainty about ion-channel identities and lack of eye-morphogenesis linkage, which aligns well with the 'honest gap' expectation. However, it does not name or describe the specific ion-channel set (e.g., Kir, Nav, or other channels typically implicated in bioelectric morphogenesis models) even at a general/conceptual level — it only notes their absence from the bundle, which under-delivers on the 'ion-channel set' evidence component. The tubule connection is grounded via pronephros citation, but eye morphogenesis linkage is admittedly absent, which is honest but leaves a completeness gap. Citations are consistent with the retrieval-bundle framing, calibration is strong (fitting stated confidence 0.42 with appropriate hedging), and no unsafe or fabricated specifics are present. Overall this is a reasonably calibrated, partially complete answer that satisfies two of three expected evidence elements robustly and appropriately hedges on the third.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.7, \"completeness\": 0.55, \"citation_correctness\": 0.65, \"uncertainty_calibration\": 0.85, \"testability\": 0.6, \"safety_ethics\": 0.9}",
+      "usage": {
+        "input_tokens": 2432,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 629,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.62,
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.8,
+        "completeness": 0.5,
+        "uncertainty_calibration": 0.85,
+        "testability": 0.55,
+        "safety_ethics": 1.0
+      },
+      "justification": "The candidate answer demonstrates strong epistemic discipline by explicitly flagging gaps and distinguishing inferred from evidenced claims. On factuality: the invocation of RN5 as a bioelectric niche and RN9 for morphology is correctly cited, and the conceptual framework (Vmem matrices, spatial coordinate mapping, file formats) aligns with stated evidence. On citation_correctness: all four citations (RN5, RN9, RN4, CORPUS-2026-0003#c000) are properly attributed and the reasoning chain is transparent. On uncertainty_calibration: the candidate self-reports 0.42 confidence and explicitly lists four substantive gaps—including the absence of specific ion-channel genes, lack of eye-morphogenesis linkage, and missing formal ETL protocols—showing honest assessment rather than overclaiming. On completeness: while the answer covers the Vmem matrix concept and file-format ingest pathway, it falls short on the \"ion-channel set\" component of expected evidence (no named channels, no genetic identifiers) and provides only pronephros validation, not eye tubule. On testability: the inferred pipeline (load .ome/.tiff → parse .mat → output .csv → co-register with RN9) is conceptually reproducible but relies on reconstruction from metadata rather than documented protocols, limiting verifiability. The answer avoids ethical issues and respects domain boundaries. The main weakness is incomplete coverage of expected evidence (ion-channel identities remain absent) and the acknowledged lack of zebrafish-specific bioelectric literature grounding, which tempers the answer from \"correct\" to \"partial\"—a reasonable and appropriately modest self-assessment.",
+      "usage": {
+        "input_tokens": 1932,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 525,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.1,
+  "outcome": "positive",
+  "mean_overall": 0.653,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

@@ -1,0 +1,184 @@
+{
+  "question_id": "Q30",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "cross_field_bridge",
+  "bundle": {
+    "question": "The team biomedic argued ocular biology should not be a niche separate from biophysics/biomechanics (systems modeling is governed by those laws). Re-evaluate the niche taxonomy: should N4/N5/N6 be reorganized, and what is the evidence for/against?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.708,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.708,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7001,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.6753,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.6715,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.6565,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7009,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle does not contain enough to properly adjudicate a reorganization of N4/N5/N6 — and notably, the retrieved niche descriptors are labeled RN3, RN6 (and query-scoped RN1/RN4/RN6), NOT the \"N4/N5/N6\" the question asks about. So the first honest finding is a taxonomy/label mismatch: I cannot confirm what N4 and N5 even are from this bundle. What I CAN say about the biomedic's specific claim:\n\n1) The claim's premise — that ocular systems modeling is \"governed by\" biophysics/biomechanics — is partially supported by the structure of the niche taxonomy itself. RN6 (\"Biomecánica pasiva y ECM\") holds the affinity matrices, basal cortical tension, cell-friction coefficients (for Morpheus) and regional stiffness parameters. These are exactly the passive-mechanics/ECM inputs any ocular anterior-segment model would need. So there is genuine dependency of ocular modeling on the RN6 (biomechanics) niche.\n\n2) HOWEVER, the taxonomy appears deliberately factored by data-type / modeling-layer, not by anatomical system. RN3 holds signaling networks + kinetic parameters + simulation env variables; RN6 holds passive biomechanics + ECM. An ocular dataset (e.g. CORPUS-2026-0002, the anterior-segment / trabecular-meshwork / annular-ligament scRNA atlas) is a *system-specific data source* that would draw on BOTH RN3 (signaling) and RN6 (biomechanics) — it is a consumer of the niches, not a peer of them. This argues AGAINST collapsing an \"ocular biology\" niche into biophysics: the niches are orthogonal modeling layers, so folding a system-defined niche into a mechanism-defined one would conflate two different axes of the taxonomy.\n\n3) Evidence FOR the biomedic's push: ocular anterior-segment development (TM/annular ligament, CORPUS-2026-0002) is strongly mechanics-driven (outflow, stiffness, ECM), so its modeling parameters legitimately live in RN6; there may be little justification for a self-contained ocular biophysics niche if all its parameters are already RN6-type. Evidence AGAINST: a system atlas also needs signaling (RN3) and other inputs, so it doesn't reduce cleanly to biomechanics alone.\n\nRecommendation: Do NOT reorganize on the strength of this bundle. First resolve the N4/N5/N6-vs-RN naming, then decide whether the taxonomy axis is 'modeling layer' (keep RN3/RN6 split; treat ocular as a cross-cutting system tag) or 'anatomical system' (then an ocular niche is justified). The retrieved evidence favors keeping mechanism-layer niches and tagging ocular datasets across them rather than merging.</parameter>\n<parameter name=\"confidence\">0.28",
+    "evidence_cited": [
+      "CORPUS-2026-0002",
+      "niche:RN3",
+      "niche:RN6",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0003"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Merge ocular niche into biomechanics (RN6): supported if all ocular model parameters are passive-mechanics/ECM, but contradicted by ocular data also needing RN3 signaling inputs",
+      "Keep niches as orthogonal modeling layers (signaling=RN3, biomechanics=RN6) and treat ocular as a cross-cutting system tag on datasets like CORPUS-2026-0002 — best fit to the bundle's structure",
+      "Create a dedicated ocular/anterior-segment niche — justified only if taxonomy axis is anatomical rather than modeling-layer, which the bundle does not establish"
+    ],
+    "gap_flags": [
+      "Label mismatch: question references N4/N5/N6 but bundle only exposes RN1/RN3/RN6 (and query-scoped RN4); N4 and N5 are undefined in the evidence",
+      "No descriptor retrieved for RN1 or RN4 content, so their relation to ocular/biomechanics cannot be assessed",
+      "No explicit statement in the bundle of the taxonomy's organizing axis (modeling-layer vs anatomical system)",
+      "Path B (external literature) not triggered — no independent biomechanics/ocular modeling references to weigh the biomedic's governing-laws claim",
+      "No evidence quantifying how much of ocular anterior-segment modeling reduces to RN6-type parameters vs RN3 signaling"
+    ],
+    "framework_applied": "Cross-field bridge / taxonomy-axis disambiguation: separate the 'system' axis (ocular) from the 'mechanism/modeling-layer' axis (signaling RN3 vs biomechanics RN6), then test whether the proposed merge respects a single axis. Chosen because the question is a classification-schema critique, not a mechanistic biology claim.</parameter>\n</invoke>\n",
+    "_usage": {
+      "input_tokens": 1928,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1794,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.8,
+        "verdict": "correct",
+        "justification": "The candidate delivers a strong, appropriately calibrated answer. It hits the core expected-evidence elements: (1) taxonomy critique — it dissects whether the niches are factored by modeling-layer vs anatomical system, which is exactly the right analytical frame for reorganizing N4/N5/N6; (2) engages the \"law-governed modeling\" argument by acknowledging genuine dependency of ocular modeling on RN6 biomechanics while distinguishing dependency from taxonomic equivalence (a sophisticated and correct rebuttal — a consumer is not a peer); (3) provides a clear recommendation (do NOT reorganize on this bundle, first resolve naming, then choose the taxonomy axis) with explicit uncertainty. The uncertainty calibration is excellent: it flags the N4/N5/N6-vs-RN label mismatch as the first honest finding rather than fabricating what N4/N5 are, and low stated confidence (0.28) matches the thin evidence. Gap flags are detailed and honest. Weaknesses: it does not explicitly connect to the RAG niche index (Cycle 4) or the governance-proposal trigger that the expected evidence mentions — a completeness miss on the downstream-action dimension. Citations are plausible and internally consistent, though several (CORPUS-2026-0001/0003) are listed without being used. Overall this is a nuanced, non-overclaiming, testable answer that would earn 'correct' with minor completeness deductions.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.8, \"completeness\": 0.7, \"citation_correctness\": 0.75, \"uncertainty_calibration\": 0.95, \"testability\": 0.8, \"safety_ethics\": 1.0}",
+        "usage": {
+          "input_tokens": 2574,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 667,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The candidate directly engages the core question: it critiques the taxonomy (arguing niches are organized by modeling-layer/data-type rather than anatomical system), explicitly addresses the 'modeling is law-governed' claim (agreeing ocular modeling depends on RN6 biomechanics but also RN3 signaling, so it's a consumer not a peer), gives a recommendation (don't reorganize yet, resolve naming first, then decide the taxonomy axis) with calibrated uncertainty, and flags that this would inform data organization (implicitly tied to RAG niche indexing) — though it does not explicitly mention 'Cycle 4' or a 'governance-proposal' trigger from the expected evidence, which is a gap. It transparently notes the N4/N5/N6 vs RN-label mismatch, which is a reasonable and honest observation given the evidence bundle, and the uncertainty calibration is strong (clear hedging, explicit gap_flags). However, factuality/citation-correctness cannot be fully verified since we lack the actual corpus, and the answer relies on inferred niche content (RN3/RN6 descriptions) that may or may not be accurate — this is a moderate risk. Completeness is partial: it misses explicit connection to 'RAG niche index (Cycle 4)' and 'governance-proposal' triggers mentioned in expected evidence, though it implies a taxonomy-decision process. Overall this is a thoughtful, well-hedged answer that partially fulfills the rubric but leaves some expected-evidence elements unaddressed and rests on unverifiable specifics.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.6, \"completeness\": 0.65, \"citation_correctness\": 0.55, \"safety_ethics\": 0.9, \"testability\": 0.7, \"uncertainty_calibration\": 0.85}",
+        "usage": {
+          "input_tokens": 2638,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 700,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.75,
+          "citation_correctness": 0.8,
+          "completeness": 0.65,
+          "uncertainty_calibration": 0.85,
+          "testability": 0.68,
+          "safety_ethics": 0.9
+        },
+        "justification": "The candidate provides a intellectually honest and well-structured response that correctly identifies a critical label/taxonomy mismatch (N4/N5/N6 vs. RN3/RN6) and avoids overclaiming despite incomplete evidence. The core reasoning is sound: the candidate recognizes that niches appear organized by modeling layer (signaling/kinetics in RN3, passive mechanics in RN6) rather than anatomical system, and therefore argues against collapsing ocular biology into biomechanics. The specific evidence cited (CORPUS-2026-0002 as a cross-cutting system requiring both RN3 and RN6 inputs) is concrete and well-reasoned. However, the answer falls short of full completeness on several fronts: (1) the expected evidence bundle calls for a governance-proposal or RAG-index implication, which is entirely absent; (2) the candidate does not provide quantitative or declarative evidence FOR the \"mechanism-layer\" organizing principle (it infers it from structure), creating circular reasoning; (3) the biomedic's specific claim about \"governing laws\" is addressed only partially—the candidate notes that biomechanics are *necessary* inputs to ocular modeling, but does not engage with whether they are *governing* in a causal/fundamental sense; (4) the recommendation to \"first resolve naming, then decide axis\" appropriately flags work needed but does not address what decision rule or threshold would trigger reorganization if the naming is resolved. Uncertainty calibration is strong (candidate explicitly flags gaps and states 0.28 confidence), and safety/ethics are high (no fabrication, appropriately adversarial to the biomedic's claim). Citation of RN3/RN6 and the CORPUS atlas is accurate and appropriately scoped. The answer would benefit from explicitly proposing what RAG-governance change (if any) this analysis should trigger for Cycle 4, and from testing whether the \"modeling-layer axis\" hypothesis can be independently validated or falsified.",
+        "usage": {
+          "input_tokens": 2117,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 598,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.08,
+    "outcome": "positive",
+    "mean_overall": 0.747,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

@@ -105,6 +105,14 @@ def main():
     scored = [(r, outcome_to_label(r.get("observed_outcome"))) for r in observable]
     excluded = [r for r, lab in scored if lab is None]
     scored = [(r, lab) for r, lab in scored if lab is not None]
+    # A calibration point needs BOTH a label AND a numeric stated_confidence. A record with a resolved
+    # outcome but no confidence (e.g. a synthesis that omitted the field) is NOT calibratable — exclude it
+    # rather than crash on None inside compute_ece (guards the held-out runner's occasional missing confidence).
+    def _has_conf(r):
+        c = r.get("stated_confidence")
+        return isinstance(c, (int, float)) and not isinstance(c, bool)
+    excluded_no_conf = [r for r, _ in scored if not _has_conf(r)]
+    scored = [(r, lab) for r, lab in scored if _has_conf(r)]
 
     by_category = defaultdict(list)
     by_skill = defaultdict(list)
@@ -144,6 +152,7 @@ def main():
         "n_observable": len(observable),
         "n_scored": n_scored,
         "n_excluded_unfalsifiable": len(excluded),
+        "n_excluded_no_confidence": len(excluded_no_conf),
         "tests_status": {"test_4": test_4_status},
         "reporting_note": (
             f"Per ADR-0005 + SCOPE §5: n_scored={n_scored} -> '{test_4_status}'. 'satisfied' is NOT "

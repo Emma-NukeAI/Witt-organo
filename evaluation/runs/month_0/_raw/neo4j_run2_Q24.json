@@ -1,0 +1,117 @@
+{
+  "question_id": "Q24",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "pathway_assembly",
+  "bundle": {
+    "question": "Which regulatory elements respond to RA signaling during pronephros patterning, and how would DanioCODE functional-genomics data confirm responsiveness?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8682,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.8682,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7751,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.7661,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        },
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.7668,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.7544,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7748,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle does not identify specific RA-responsive regulatory elements (e.g., named enhancers/RAREs) for pronephros patterning, so I cannot name concrete elements from this data. What the bundle DOES support is a workflow-level answer:\n\n(1) Candidate RA-responsive elements would be RA response elements (RAREs) located near pronephros patterning genes. The bundle names plausible target/regulator genes via the RN2 niche entry — tfap2a, foxc1a, pax2a, wt1a — plus RA receptors and Notch/Jagged components, but it provides NO ENSDARG identifiers and NO direct evidence that specific cis-elements near these genes are RA-responsive. Treat these gene names as leads, not verified RA targets.\n\n(2) DanioCODE is the appropriate resource because its stated purpose is exactly \"identify which regulatory elements respond to which signals and when\" using an open-source functional genome of zebrafish. Confirmation of RA responsiveness would come from DanioCODE functional-genomics tracks by: (a) mapping open/active chromatin at candidate elements during pronephros-patterning stages (ATAC-seq/DNase for accessibility; H3K27ac for active enhancers); (b) showing RA-receptor (RAR/RXR) occupancy at those elements via TF ChIP-seq; (c) demonstrating stage-specific and RA-dependent changes — i.e., accessibility/activation marks and transcription of the linked gene shift upon RA gain- or loss-of-function during the relevant developmental window; and (d) confirming the element lies within a regulatory domain linked to a pronephros gene, with identifiers resolved through Ensembl Zebrafish (the authoritative ENSDARG resolver). STRING could add predictive support for the downstream signaling network but is not confirmatory.\n\nIn short: the bundle establishes the method (DanioCODE signal-vs-element mapping) and plausible gene neighbourhoods, but does not contain the actual element-level RA-responsiveness evidence needed to name the elements.</parameter>\n<parameter name=\"confidence\">0.24",
+    "evidence_cited": "db:DanioCODE, db:Ensembl_DanioRerio, niche:RN2, db:STRING_DB, CORPUS-2026-0003#c000, CORPUS-2026-0003",
+    "identifier_bindings": [
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      },
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "That the bundle contains specific RA-responsive enhancers/RAREs — rejected: no cis-element records or coordinates are present.",
+      "That the RN2-listed TFs (tfap2a/foxc1a/pax2a/wt1a) are confirmed RA targets — rejected: RN2 only lists them as structural/protein-complex entries, with no RA-responsiveness evidence and no ENSDARGs.",
+      "That CORPUS-2026-0003 (prkci/prkcz polarity, tubulogenesis) speaks to RA-responsive elements — rejected: it concerns epithelial polarity, not RA cis-regulation."
+    ],
+    "gap_flags": [
+      "No specific RA-responsive regulatory element (RARE/enhancer) is named or coordinate-mapped in the bundle.",
+      "No ENSDARG identifiers were resolved for any gene; symbols are unverified leads only.",
+      "No DanioCODE track-level data (ATAC/ChIP/H3K27ac) actually retrieved — only the database's stated purpose is available.",
+      "No direct experimental evidence linking RA gain/loss-of-function to element activity during pronephros patterning.",
+      "RA-receptor occupancy (RAR/RXR ChIP) at candidate elements is asserted as a method, not shown in evidence.",
+      "No path B literature to corroborate gene–element–signal relationships."
+    ],
+    "framework_applied": "Pathway assembly framed as evidence-gap triage: separated (a) what the bundle can support (DanioCODE method for signal→element mapping) from (b) what it cannot (specific RA-responsive elements/IDs). Confidence kept low because the core object of the question — the actual elements — is absent from the evidence.",
+    "_usage": {
+      "input_tokens": 1869,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1567,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

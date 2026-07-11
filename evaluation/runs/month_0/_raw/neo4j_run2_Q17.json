@@ -1,0 +1,107 @@
+{
+  "question_id": "Q17",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "Summarize the curated literature on whether zebrafish have a histologically distinct corneal endothelium, and grade the evidence.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7334,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7334,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7749,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7083,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.6975,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.6262,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.6845,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The provided evidence bundle does NOT contain any curated literature that directly addresses whether zebrafish possess a histologically distinct corneal endothelium. No histological, ultrastructural, or morphological studies of the zebrafish cornea are present in the retrieved items, and Path B (external literature) was not triggered, so no primary papers are available to summarize or grade.\n\nWhat the bundle DOES contain is adjacent transcriptomic/regulatory resources, none of which report corneal endothelial histology:\n- CORPUS-2026-0002 is a temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament) that is described as closing a \"cornea gap\" (GAP-5). This is the most topically relevant item, but as a single-cell transcriptomic dataset it addresses cell-type/molecular identity, not histological distinctness of an endothelial layer, and its description does not state a corneal endothelium finding.\n- CORPUS-2026-0001 (ZESTA) covers only the 3–24 hpf pre-corneal window, i.e., before corneal differentiation, so it is not informative on adult/juvenile corneal endothelial histology.\n- CORPUS-2026-0003 (pronephros/Prkci-zeta polarity), DanioCODE, Reactome, and niche RN10 are off-topic for this question.\n\nEvidence grade: INSUFFICIENT / VERY LOW. There is no direct histological evidence in this bundle either supporting or refuting a distinct zebrafish corneal endothelium. A defensible answer to the biological question cannot be given from the provided evidence alone. (Background note, not from this bundle: the wider literature debates whether the teleost/zebrafish cornea has a true endothelium versus a simpler inner epithelial/Descemet-like arrangement — but no such source is in this bundle, so it cannot be cited here.)",
+    "confidence": 0.12,
+    "evidence_cited": [
+      "CORPUS-2026-0002",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0003",
+      "db:DanioCODE",
+      "db:Reactome",
+      "niche:RN10"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Treat CORPUS-2026-0002 (anterior-segment scRNA atlas closing the 'cornea gap') as sufficient to infer corneal endothelial identity — rejected: single-cell transcriptomics is not histology, and the description does not report an endothelial layer.",
+      "Use ZESTA (CORPUS-2026-0001) developmental data — rejected: it covers only 3–24 hpf, pre-corneal, so it cannot speak to corneal endothelial histology.",
+      "Answer from general textbook knowledge of teleost corneal anatomy — rejected: not present in the bundle; would violate the ground-only-in-evidence constraint."
+    ],
+    "gap_flags": [
+      "No curated primary literature on zebrafish corneal histology/ultrastructure in the bundle.",
+      "Path B external literature not triggered — zero papers available to grade.",
+      "Most relevant item (CORPUS-2026-0002) is transcriptomic, not histological, and does not explicitly report a corneal endothelium.",
+      "No adult/juvenile corneal morphology data; only pre-corneal (3-24 hpf) developmental coverage present.",
+      "Cannot resolve or verify any gene identifiers because no genes relevant to the question were provided/checked."
+    ],
+    "framework_applied": "Evidence-availability triage before synthesis: I first assessed whether the bundle contains literature capable of answering the histology question (GRADE-style sufficiency check), found it does not, and therefore report an honest 'insufficient evidence' finding rather than over-extrapolating from adjacent transcriptomic datasets. Chosen because a literature_synthesis with an empty/thin bundle must foreground the gap.",
+    "_usage": {
+      "input_tokens": 1863,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1416,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

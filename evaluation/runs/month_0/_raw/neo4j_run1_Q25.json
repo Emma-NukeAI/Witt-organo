@@ -1,0 +1,192 @@
+{
+  "question_id": "Q25",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "For a claimed regulator, retrieve supporting AND contradicting literature and state the residual uncertainty without overclaiming.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.6011,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6011,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.5924,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.5791,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN11",
+          "type": "niche",
+          "score": 0.6762,
+          "text": "RN11 Claims curados de literatura biológica. Bibliographic reference databases (.bib/.ris); scientific documents + curated claims (.pdf/.jso"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.6329,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        },
+        {
+          "doc_id": "niche:RN1",
+          "type": "niche",
+          "score": 0.0549,
+          "text": "RN1 Transcriptómica y dinámica de linajes. Lineage hierarchy trees + transition-probability matrices (.json); average expression per cell ty"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot complete the requested literature synthesis for the claimed regulator because the evidence bundle does not actually contain the supporting or contradicting claims needed. The retrieval correctly points to niche RN11 (\"Claims curados de literatura biológica\" — bibliographic reference databases and curated claims), which is the right place to look, but no actual curated claims, PMIDs, or claim records were returned in this bundle. Critically, the question itself never names the \"claimed regulator\" (no gene symbol, no target, no system), so I have no entity to search against. The only substantive literature chunk present (CORPUS-2026-0003#c000) is a generic statement about the zebrafish pronephros as a model for nephron development; it contains no named regulator, no directional effect, and no supporting/contradicting structure. Therefore: (1) I have no regulator identity, (2) I have no retrieved supporting claims, (3) I have no retrieved contradicting claims. Residual uncertainty is effectively total for the specific synthesis requested. To proceed I would need the regulator's identity (symbol + ENSDARG), a target/process, and the actual RN11 claim records (with PMIDs and direction of effect).",
+    "confidence": 0.1,
+    "evidence_cited": [
+      "niche:RN11",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Treat CORPUS-2026-0003 as the target claim and synthesize around pronephros regulators — rejected because the chunk names no regulator and offers no supporting/contradicting evidence pair.",
+      "Infer a plausible regulator from the pronephros context (e.g., a known nephron gene) — rejected because asserting an unspecified regulator would violate the no-invention rule and misrepresent the question.",
+      "Answer that RN11 is the correct source niche and defer synthesis pending actual claim records — adopted."
+    ],
+    "gap_flags": [
+      "Question does not name the claimed regulator (no gene symbol, target, or system provided).",
+      "No curated RN11 claim records, PMIDs, or .bib/.ris entries were returned in the bundle despite RN11 being the top-scoring niche.",
+      "No supporting literature retrieved.",
+      "No contradicting literature retrieved.",
+      "Path B (external literature) not triggered — no papers available.",
+      "Only one generic literature chunk present (pronephros overview) with no regulator-level content.",
+      "No entities resolved in DI (none checked)."
+    ],
+    "framework_applied": "Evidence-sufficiency gating (refuse-to-overclaim): before synthesizing supporting vs. contradicting evidence, verify that (a) the claim/regulator is specified and (b) claim records exist in the bundle. Both preconditions fail, so the honest output is a gap report rather than a fabricated synthesis. Chosen over standard literature-synthesis because the required inputs are absent.",
+    "_usage": {
+      "input_tokens": 1814,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1077,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.78,
+        "verdict": "partial",
+        "rubric": {
+          "citation_correctness": 0.8,
+          "completeness": 0.4,
+          "factuality": 0.9,
+          "safety_ethics": 1.0,
+          "testability": 0.85,
+          "uncertainty_calibration": 0.95
+        },
+        "justification": "The expected answer is a balanced synthesis with obligatory contradictory evidence, stated uncertainty, and citations. The candidate does NOT deliver this synthesis — it declines because the question never names a specific regulator and the evidence bundle lacks actual claim records. This is an honest and well-reasoned refusal rather than a fulfillment of the task. On the positive side, the answer is highly calibrated (confidence 0.1), avoids fabrication, correctly identifies the appropriate niche (RN11) for curated claims, transparently enumerates the missing pieces via gap_flags, and specifies exactly what inputs (gene symbol + ENSDARG, target/process, PMIDs, direction of effect) would be needed to proceed. This demonstrates strong uncertainty calibration, factuality, and testability. However, on completeness it scores low: the rubric's core requirement — supporting AND contradicting literature with balanced synthesis — is not produced at all. Since the question was underspecified (no named regulator), a defensible reviewer could argue the refusal is correct given the inputs, but measured against the expected evidence the deliverable is largely absent. Hence 'partial': excellent epistemic hygiene and honest uncertainty, but the substantive synthesis the question asks for is not delivered.",
+        "usage": {
+          "input_tokens": 1785,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 600,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.35,
+        "verdict": "partial",
+        "justification": "The question asks for a balanced synthesis of supporting and contradicting literature about a \"claimed regulator,\" with explicit uncertainty statement — implying the regulator identity and relevant evidence should be inferable or already established in context (as is typical for such benchmark questions, which usually reference a specific gene from prior context). The candidate instead treats the question as wholly unanswerable due to missing entity identification and empty retrieval, refusing to attempt any synthesis. While honest non-fabrication and flagging of missing regulator identity is commendable and shows good calibration instincts (no invented citations, appropriate low confidence), the response fails to deliver the core expected content: any balanced synthesis, any citations to real supporting/contradicting studies, or substantive engagement with a regulator's evidence base. It's unclear whether the retrieval bundle genuinely lacked data (making refusal correct) or whether the candidate should have used background knowledge of zebrafish nephron regulators (e.g., pax2a, wt1a, lhx1a) to construct a synthesis even without perfect retrieval. Given the rubric's requirement for actual balanced synthesis with contradictory evidence and citations, this answer is safe and well-calibrated but incomplete — it satisfies uncertainty calibration and safety but scores very low on completeness, testability, and citation correctness since no real evidence is presented at all. This is a defensible abstention-style answer but does not fulfill the deliverable, so it can only be rated partial rather than correct.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.6, \"completeness\": 0.15, \"citation_correctness\": 0.1, \"uncertainty_calibration\": 0.7, \"testability\": 0.2, \"safety_ethics\": 0.8}",
+        "usage": {
+          "input_tokens": 1849,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 664,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.85,
+        "rubric": {
+          "factuality": 0.95,
+          "completeness": 0.75,
+          "citation_correctness": 0.9,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.8,
+          "safety_ethics": 0.85
+        },
+        "justification": "The candidate demonstrates exemplary intellectual honesty and appropriate epistemic calibration by refusing to fabricate a literature synthesis when essential prerequisites are absent. The response correctly identifies three critical gaps: (1) the question provides no regulator identity (no gene symbol, target organism context, or biological process), (2) no curated claim records with supporting/contradicting evidence were returned despite RN11 being the expected niche, and (3) only a generic pronephros corpus chunk exists without regulator-specific directionality. This is factually sound reasoning—a regulator cannot be evaluated against evidence if unidentified. The candidate explicitly states residual uncertainty as \"effectively total\" and identifies what would be needed to proceed (ENSDARG identifier, RN11 claim records with PMIDs and effect directions), meeting the \"uncertainty stated without overclaiming\" requirement. The gap flags are systematic and well-articulated, and the cited evidence references (RN11, CORPUS-2026-0003#c000) are appropriate to the analysis. Minor limitations: (1) the response does not attempt to hypothesize what a \"regulator\" might mean in a zebrafish context (though attempting this without a real referent would risk overclaiming), and (2) completeness is moderate because the task itself cannot be fully addressed—a feature, not a flaw. The stated confidence of 0.1 appropriately reflects the inability to perform the requested synthesis. This exemplifies the exact epistemic virtue the rubric rewards: transparent refusal to confabulate specifics when foundational data are absent.",
+        "usage": {
+          "input_tokens": 1547,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 497,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.5,
+    "outcome": "positive",
+    "mean_overall": 0.66,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

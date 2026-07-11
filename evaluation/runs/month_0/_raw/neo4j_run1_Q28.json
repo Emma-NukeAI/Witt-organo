@@ -1,0 +1,195 @@
+{
+  "question_id": "Q28",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "regulator_vs_bystander",
+  "bundle": {
+    "question": "Given an scRNA finding that a gene is highly expressed in a target cluster, what additional evidence layers raise it from 'expressed' to 'regulator', and what is the minimum to avoid a false-positive?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7266,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "db:GEO_NCBI",
+          "type": "database",
+          "score": 0.7266,
+          "text": "GEO NCBI. Gene-expression analysis and interactions. Data: Gene count/expression data from published papers. Feeds RN1, RN8, RN9."
+        },
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.6827,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.6886,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.6824,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7055,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "db:UCSC_Cell_Browser",
+          "type": "database",
+          "score": 0.6868,
+          "text": "UCSC Cell Browser. Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets. Data: Cell lineages across "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "To promote a gene from \"expressed\" (an scRNA correlation) to \"regulator\" (a causal driver of the target cluster's identity/function), layer evidence along a correlation → mechanism → causation ladder using the databases in this bundle:\n\n1) Expression confirmation & specificity (still correlational). Confirm the scRNA signal is real and enriched, not just detected. Cross-check bulk/count data in GEO_NCBI and, critically, add SPATIAL confirmation via CNGB_STOmics/ZESTA (Stereo-seq) so you know the gene is expressed in the right cells in situ, not a dissociation/ambient-RNA artifact. Confirm the gene is annotated in the correct cell type and, if a TF, that it is a bona fide transcription factor in ZFIN.\n\n2) Regulatory-role plausibility (mechanistic). Is the gene the kind of thing that can regulate a program? ZFIN's TF mapping tells you if it's a transcription factor / signaling regulator rather than a passive effector. Reactome (via orthology) situates it in a pathway/signaling context, giving candidate downstream targets and a mechanism.\n\n3) Interaction/network evidence (mechanistic). BioGRID genetic + protein interactions place the gene in a regulatory network — genetic interactions (double-perturbation phenotypes) are especially informative because they show the gene alters an outcome in combination with others.\n\n4) Causal perturbation (the decisive layer, largely OUTSIDE this bundle). \"Regulator\" status ultimately requires loss/gain-of-function evidence: knockout/knockdown/mutant → does the target cluster's marker program, abundance, or differentiation change? ZFIN catalogs mutants/markers that can support this; BioGRID genetic-interaction phenotypes can corroborate; but the primary causal experiment itself is not delivered by these annotation databases.\n\nMINIMUM to avoid a false-positive (regulator vs. bystander): do not call a highly-expressed gene a regulator on expression alone. The floor is (a) specificity/artifact control — the gene must be specifically enriched in the target cluster AND spatially confirmed in situ (CNGB_STOmics/ZESTA) rather than an ambient/doublet artifact, and (b) at least one causal or quasi-causal line beyond co-expression — ideally a perturbation phenotype showing the cluster's identity/marker program depends on the gene, or failing direct perturbation data, convergent TF-status (ZFIN) + network/genetic-interaction evidence (BioGRID) that the gene sits upstream of the cluster's program. Co-expression + \"it's a TF\" alone is suggestive, not sufficient.</parameter>\n<parameter name=\"confidence\">0.55",
+    "evidence_cited": [
+      "db:GEO_NCBI",
+      "db:BioGRID",
+      "db:ZFIN",
+      "db:Reactome",
+      "db:CNGB_STOmics",
+      "db:UCSC_Cell_Browser"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Treat high scRNA expression + TF annotation as sufficient for 'regulator' — rejected: expression and TF-status are correlational/permissive, not causal, and prone to bystander/ambient-RNA false positives.",
+      "Rely solely on network/interaction databases (BioGRID/Reactome) for causality — rejected: interaction membership shows association, not direction or that the target cluster depends on the gene.",
+      "Require only spatial confirmation (ZESTA) — rejected: spatial specificity controls artifacts but still does not establish regulatory causation."
+    ],
+    "gap_flags": [
+      "This is a methodological/heuristic question; the bundle provides database capabilities, not a validated protocol or benchmark for regulator calling.",
+      "No Path B literature was retrieved, so no published criteria or effect sizes support the specific 'minimum evidence' threshold — it is reasoned from database roles.",
+      "The decisive causal layer (loss/gain-of-function perturbation on the target cluster) is largely outside these annotation databases; ZFIN/BioGRID index some mutant/genetic-interaction data but do not themselves provide the primary perturbation-scRNA experiment.",
+      "No niche-specific (RN1/RN11) evidence was provided; answer is generic across systems.",
+      "No specific gene was named, so no ENSDARG identifiers could be bound or verified."
+    ],
+    "framework_applied": "Correlation-to-causation evidence ladder (Bradford-Hill-style triangulation adapted to functional genomics): specificity/artifact control → mechanistic plausibility (TF status, pathway) → network/interaction → causal perturbation. Chosen because 'regulator vs bystander' is fundamentally a causal-inference problem layered on a correlational scRNA observation.</parameter>\n</invoke>\n",
+    "_usage": {
+      "input_tokens": 1877,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1715,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.85,
+        "verdict": "correct",
+        "justification": "The answer directly and thoroughly addresses all three expected evidence elements. It builds a clear evidence-layer ladder (correlation → mechanism → causation): expression/specificity confirmation, regulatory-role plausibility (TF status), interaction/network evidence, and decisive causal perturbation. It explicitly names the false-positive trap (expression ≠ regulation; ambient-RNA/doublet artifacts; \"co-expression + it's a TF alone is suggestive, not sufficient\"). And it states a clear minimum bar: specificity/artifact control plus at least one causal or quasi-causal line beyond co-expression, ideally a perturbation phenotype. The methodology is sound and correctly identifies that the decisive causal layer (loss/gain-of-function) largely lies outside annotation databases — an honest and accurate caveat. Gap flags are well-calibrated (no benchmark protocol, no literature retrieval, no specific gene). Minor weaknesses: the answer is somewhat over-anchored to the specific database bundle rather than general principles, and the placement of spatial validation as a strict \"floor\" is arguably too strong (spatial confirmation is helpful but not always mandatory to avoid a false positive — cluster-specific enrichment plus a causal line can suffice). Prioritizing genetic-interaction data over other causal evidence is a defensible but slightly idiosyncratic emphasis. Overall this is a strong, well-reasoned, appropriately hedged answer with good uncertainty calibration and no fabricated specifics.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.88, \"completeness\": 0.9, \"citation_correctness\": 0.8, \"uncertainty_calibration\": 0.9, \"testability\": 0.85, \"safety_ethics\": 1.0}",
+        "usage": {
+          "input_tokens": 2469,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 684,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.88,
+        "verdict": "correct",
+        "justification": "The answer builds a clear correlation→mechanism→causation evidence ladder (expression/specificity/spatial confirmation, TF/pathway plausibility, network/interaction evidence, and causal perturbation), explicitly names the false-positive trap (expression ≠ regulation, co-expression + TF status alone is not sufficient), and states a concrete minimum bar (specificity/artifact control plus at least one causal or quasi-causal line of evidence). This closely matches all three expected evidence components. It appropriately flags that direct perturbation data is largely outside the cited database bundle and is honest about the reasoning being heuristic rather than benchmarked, which is good calibration. Minor weaknesses: the causal layer is somewhat hand-waved as 'largely outside this bundle' without deeper discussion of what a genuine causal experiment (e.g., CRISPR knockout + re-clustering) would look like, and the answer doesn't quantify effect sizes or statistical thresholds for 'specificity,' but this is acceptable given the open-ended nature of the question. Overall a thorough, well-structured, and appropriately hedged response.",
+        "rubric": {
+          "completeness": 0.9,
+          "factuality": 0.85,
+          "citation_correctness": 0.8,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.85,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2533,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 549,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.76,
+        "verdict": "correct",
+        "justification": "The candidate answer directly and substantially addresses the three core elements required by the expected evidence: (1) it articulates a clear evidence-layer ladder from expression → specificity/confirmation → mechanistic plausibility → causal perturbation, with explicit emphasis on the correlation-vs-causation distinction; (2) it identifies the false-positive trap (expression ≠ regulation) multiple times and grounds it in concrete artifact sources (dissociation/ambient RNA); (3) it sets a defensible minimum bar: spatial confirmation + TF/network status is necessary but insufficient without perturbation evidence. The answer is well-structured, practical, and leverages appropriate database tools (ZFIN, BioGRID, Reactome, CNGB_STOmics/ZESTA). The candidate appropriately acknowledges the decisive limitation—that the primary causal experiment (loss/gain-of-function on cluster) lies outside these annotation databases—rather than overstating database capability. Minor weaknesses: no literature-retrieved validation of the stated thresholds, no niche-specific (zebrafish RN) evidence, and no named gene example. However, these gaps are inherent to the question's scope (a methodological heuristic, not a benchmark protocol) and are flagged honestly in gap_flags. Uncertainty calibration is well-calibrated (0.55 confidence stated, gap_flags indicate honest epistemic humility).",
+        "rubric": {
+          "factuality": 0.85,
+          "completeness": 0.8,
+          "citation_correctness": 0.8,
+          "uncertainty_calibration": 0.85,
+          "testability": 0.75,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 2026,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 456,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.12,
+    "outcome": "positive",
+    "mean_overall": 0.83,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

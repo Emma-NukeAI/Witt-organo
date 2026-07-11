@@ -1,0 +1,112 @@
+{
+  "question_id": "Q23",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "cross_field_bridge",
+  "bundle": {
+    "question": "EXPLORATORY-NOT-TEST-5: What from ocular anterior-segment development could inform a pronephros chaperone-tissue strategy, and where does the analogy break?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8019,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.8019,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7823,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7523,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7533,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7004,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.0262,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "TRANSFERABLE CONCEPTS (what anterior-segment work could inform a pronephros \"chaperone-tissue\" strategy):\n\n1. Temporal-atlas scaffolding. CORPUS-2026-0002 provides a temporal scRNA atlas of zebrafish anterior-segment development (trabecular meshwork / annular ligament), and CORPUS-2026-0001 (ZESTA, CNGB STOmics) provides a spatiotemporal transcriptomic atlas over the 3–24 hpf window. The methodological lesson that transfers is: use a dense temporal + spatial expression atlas to identify a transient supporting/organizer cell population and reconstruct its trajectory. If a \"chaperone tissue\" (a transient cell population that guides morphogenesis of a target epithelium) exists in the pronephros, the same atlas-based trajectory approach used to resolve annular-ligament/trabecular-meshwork lineages could be applied to detect and characterize it.\n\n2. Epithelial-identity framing. CORPUS-2026-0003 shows pronephros tubulogenesis and epithelial identity maintenance depend on polarity proteins Prkci and Prkcz. The anterior-segment atlas concept of tracking how a supporting mesenchyme sets up and stabilizes a neighboring epithelium maps conceptually onto the question of how pronephric tubule epithelial identity is established and maintained — i.e., a candidate chaperone tissue would be one whose signaling coincides temporally with polarity-protein-dependent epithelialization.\n\n3. Shared assay window/platform. Both systems are covered by overlapping/adjacent stages and the same Stereo-seq spatial platform (ZESTA), so a chaperone-tissue screen could reuse the same experimental and analytical pipeline.\n\nWHERE THE ANALOGY BREAKS:\n- Tissue architecture and origin differ fundamentally: anterior-segment structures (cornea, trabecular meshwork, annular ligament) are heavily neural-crest/periocular-mesenchyme derived and organized around an optically transparent avascular tissue, whereas the pronephros is an intermediate-mesoderm-derived tubular/filtration epithelium. A \"chaperone tissue\" in the eye (e.g., periocular mesenchyme guiding corneal/anterior-segment assembly) would not have a direct lineage counterpart in the kidney.\n- Functional endpoint differs: the eye endpoint is transparency/aqueous-outflow mechanics; the pronephros endpoint is polarized tubulogenesis and filtration/flow — the guidance cues and mechanical constraints (RN7-type flow/pressure fields) are not the same.\n- The evidence bundle does NOT establish that a discrete \"chaperone tissue\" actually exists or is documented in either system; the term is not defined in any retrieved doc. So the bridge is at the level of transferable ATLAS METHODOLOGY, not a validated biological homology.",
+    "confidence": 0.28,
+    "evidence_cited": [
+      "CORPUS-2026-0002",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000",
+      "db:CNGB_STOmics"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "That there is a true developmental homology (not just methodological analogy) between periocular mesenchyme and a pronephric supporting tissue — rejected: no evidence in bundle for a shared lineage or a named 'chaperone tissue'.",
+      "That RN7 flow/mechanics data is the primary bridge — considered but scored near zero (0.0262) and only relevant as a divergence point, not a connection.",
+      "That the question can be answered concretely at the gene level — rejected: only prkci/prkcz are named for pronephros and no ENSDARGs are verified in the bundle."
+    ],
+    "gap_flags": [
+      "No document in the bundle defines 'chaperone tissue'; the concept is inferred, not sourced.",
+      "No verified ENSDARG identifiers were provided/checked for prkci or prkcz — symbols asserted without ID confirmation.",
+      "No molecular marker overlap between anterior-segment supporting cells and any pronephric cell population is demonstrated in the evidence.",
+      "Anterior-segment atlas (CORPUS-2026-0002) content is truncated; annular-ligament/trabecular-meshwork cell trajectories not actually inspected.",
+      "Path B (external literature) not triggered, so no independent corroboration of the cross-field analogy.",
+      "This is an exploratory (non-test) prompt; answer is a reasoned bridge, not an evidence-confirmed finding."
+    ],
+    "framework_applied": "Cross-field analogical bridge: map source-domain (ocular anterior-segment atlas methodology + supporting-tissue concept) onto target-domain (pronephros epithelial development), then stress-test the mapping for lineage/functional/mechanical divergence. Chosen because the question is explicitly type=cross_field_bridge and asks both for the transferable insight and its failure boundary.",
+    "_usage": {
+      "input_tokens": 1935,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1859,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,213 @@
+{
+  "claim_id": "held_out_month0_Q02",
+  "claim_timestamp": "2026-07-11T18:36:45Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "marker_identification",
+  "question_id": "Q02",
+  "question": "What markers distinguish periocular neural crest from optic-cup and lens-placode lineages at 14–24 hpf in zebrafish?",
+  "backend": "neo4j",
+  "direct_answer": "The evidence bundle provided does NOT contain resolvable marker-level content — it lists dataset/database descriptors (ZESTA, an anterior-segment scRNA atlas, ZFIN, CNGB STOmics, DanioCODE) but no extracted gene expression tables, no verified ENSDARG bindings, and no cell-type-specific marker calls. I therefore cannot cite specific distinguishing markers for periocular neural crest vs. optic-cup vs. lens-placode at 14–24 hpf from THIS bundle without inventing them.\n\nWhat I can say honestly, framed as hypotheses to verify (NOT asserted from the bundle):\n- Periocular/cranial neural crest is canonically distinguished by neural-crest TFs (e.g., foxd3, sox10, tfap2a, and periocular NC markers such as pitx2, eya2, lmx1b, foxc1a/foxc1b). These are the genes you should query in ZESTA / ZFIN / the anterior-segment atlas (CORPUS-2026-0002) to confirm periocular-NC identity in the pre-corneal window.\n- Optic-cup (neuroretina/RPE) lineage is canonically distinguished by rx1/rx2/rx3, vsx2 (neuroretina), pax6a/pax6b (retina + lens, so NOT specific alone), and mitfa/otx2 (RPE).\n- Lens placode is canonically distinguished by cryaa/cryba/crygm crystallins (later), and early by foxe3, pitx3, mab21l1, prox1, together with pax6.\n\nBecause pax6 is shared between optic cup and lens, the discriminating logic is: NC = foxd3/sox10/tfap2a/foxc1/pitx2; optic cup = rx/vsx2/mitf; lens = foxe3/pitx3/prox1/crystallins. But I must flag that NONE of these gene symbols or ENSDARGs are confirmed against the verified store from the material given — they are prior-knowledge candidates for you to retrieve from the named datasets, not evidence-backed calls.</parameter>\n<parameter name=\"confidence\">0.15",
+  "stated_confidence": null,
+  "prior": null,
+  "evidence_cited": [
+    "CORPUS-2026-0001",
+    "CORPUS-2026-0002",
+    "db:ZFIN",
+    "db:CNGB_STOmics",
+    "db:DanioCODE"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "foxd3"
+    },
+    {
+      "symbol": "sox10"
+    },
+    {
+      "symbol": "tfap2a"
+    },
+    {
+      "symbol": "pitx2"
+    },
+    {
+      "symbol": "foxc1a"
+    },
+    {
+      "symbol": "foxc1b"
+    },
+    {
+      "symbol": "eya2"
+    },
+    {
+      "symbol": "lmx1b"
+    },
+    {
+      "symbol": "rx1"
+    },
+    {
+      "symbol": "rx2"
+    },
+    {
+      "symbol": "rx3"
+    },
+    {
+      "symbol": "vsx2"
+    },
+    {
+      "symbol": "pax6a"
+    },
+    {
+      "symbol": "pax6b"
+    },
+    {
+      "symbol": "mitfa"
+    },
+    {
+      "symbol": "otx2"
+    },
+    {
+      "symbol": "foxe3"
+    },
+    {
+      "symbol": "pitx3"
+    },
+    {
+      "symbol": "prox1"
+    },
+    {
+      "symbol": "mab21l1"
+    },
+    {
+      "symbol": "cryaa"
+    }
+  ],
+  "alternatives_considered": [
+    "Answering with specific ENSDARG-bound markers extracted from ZESTA/anterior-segment atlas — rejected because the bundle exposes only dataset descriptors, not per-cell-type marker tables or verified identifiers",
+    "Declining entirely with no candidate markers — rejected because the canonical lineage-discriminating logic (NC vs optic-cup vs lens) can be offered as clearly-labeled hypotheses to guide retrieval, without fabricating IDs"
+  ],
+  "gap_flags": [
+    "No marker-level or cell-type-annotated data present in bundle; only dataset/database descriptors retrieved (Path A) with no entities resolved.",
+    "No ENSDARG identifiers available/verified for any gene symbol listed — all symbols are prior-knowledge candidates, NOT bundle-backed.",
+    "Path B (literature) not triggered, so no primary papers to ground marker claims.",
+    "The relevant datasets (ZESTA CORPUS-2026-0001, anterior-segment atlas CORPUS-2026-0002) appear to cover the correct 3–24 hpf / pre-corneal window but their actual expression content was not retrieved into this bundle — a follow-up query into those datasets for the candidate genes is required.",
+    "pax6 alone cannot discriminate optic-cup from lens; discrimination requires the combinatorial marker sets noted, which remain unverified here."
+  ],
+  "framework_applied": "Evidence-sufficiency gating + honest-gap disclosure: first assessed whether the bundle contains marker-level, ENSDARG-resolvable content (it does not), then separated verifiable-from-bundle claims (none) from prior-knowledge candidate hypotheses (labeled as such), keeping confidence low to reflect the absence of grounded evidence.</parameter>\n</invoke>\n",
+  "observed_outcome": "negative",
+  "observed_at": "2026-07-11T18:36:45Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.6,
+          "verdict": "partial",
+          "justification": "The candidate honestly flags that the evidence bundle lacks resolvable marker-level content and refuses to fabricate bundle-backed calls, which is excellent uncertainty calibration and safety. Its prior-knowledge hypotheses are biologically sound: periocular NC = foxd3/sox10/tfap2a/foxc1/pitx2/eya2/lmx1b; optic cup = rx/vsx2/mitfa/otx2; lens = foxe3/pitx3/mab21l1/prox1/crystallins, with the correct discriminating caveat that pax6 is shared between optic cup and lens. It even notes crystallins come later, aligning loosely with the expected 'pre-corneal window' caveat. However, it does not match the expected evidence's specific framing: no per-cluster %-positive values, and it names different (though defensible) markers than the expected trio (hoxb8a for NC, prox1a for lens — which it partly captures via prox1, tbx2b for optic cup — which it omits, offering rx/vsx2 instead). Critically, the expected 'pre-corneal' caveat is only weakly gestured at rather than stated as the key temporal fact. So it provides useful, correct biology but does not deliver the quantitative per-cluster answer the question sought, and explicitly cannot ground anything in the bundle. This is a partial answer: honest, non-hallucinated, and directionally correct, but incomplete on the specific expected quantitative/marker evidence.</parameter>\n<parameter name=\"rubric\">{\"citation_correctness\": 0.5, \"completeness\": 0.4, \"factuality\": 0.85, \"safety_ethics\": 1.0, \"testability\": 0.75, \"uncertainty_calibration\": 0.95}",
+          "usage": {
+            "input_tokens": 2297,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 661,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.18,
+          "verdict": "partial",
+          "justification": "The expected evidence specifically requires the markers hoxb8a (periocular neural crest), prox1a (lens), and tbx2b (optic cup), each with per-cluster percent-positive quantitative data and the caveat that 14–24 hpf is a pre-corneal developmental window. The candidate answer does not mention hoxb8a or tbx2b at all, and only mentions prox1 (not prox1a specifically) as one of several lens candidates. Instead, it offers a generic, hedged list of canonical neural crest/optic cup/lens markers from prior biological knowledge (foxd3, sox10, tfap2a, rx1/2/3, vsx2, foxe3, pitx3, crystallins, etc.), explicitly disclaiming that these are unverified guesses rather than answers grounded in retrieved data. While the epistemic humility and refusal to fabricate specific bundle-backed claims is commendable from a calibration standpoint, this results in a response that is not substantively responsive to the question — it fails to identify the specific correct markers requested, provides no quantitative per-cluster percentages, and only weakly gestures at the pre-corneal caveat (mentioning \"pre-corneal window\" language once tangentially). The answer prioritizes honesty over informativeness, which is safer than confident fabrication but ultimately does not satisfy completeness or factuality relative to the expected evidence. Citation correctness is reasonable (it doesn't fabricate specific bindings), and safety/ethics is fine, but the core content is a near-miss on the actual expected markers.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.3, \"completeness\": 0.1, \"citation_correctness\": 0.4, \"uncertainty_calibration\": 0.75, \"testability\": 0.3, \"safety_ethics\": 0.9}",
+          "usage": {
+            "input_tokens": 2361,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 686,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.42,
+          "verdict": "partial",
+          "justification": "The candidate demonstrates honest epistemic discipline by refusing to fabricate marker data and instead clearly demarcating prior-knowledge gene candidates (foxd3, sox10, tfap2a, foxc1/foxc1b for NC; rx/vsx2/mitf for optic-cup; foxe3/pitx3/prox1 for lens) from unverified claims. This transparency is ethically sound and appropriately calibrates uncertainty. However, the answer falls short of the expected evidence requirement: the rubric explicitly calls for \"per-cluster % positive\" data for hoxb8a (NC), prox1a (lens), and tbx2b (optic-cup) at 14–24 hpf, along with acknowledgment that this window is pre-corneal. The candidate does not provide these quantitative per-cluster percentages, nor does it cite hoxb8a or tbx2b as specific markers, instead listing a broader set of canonical NC/optic-cup/lens TFs. While the candidate's gene list overlaps with what domain knowledge predicts (prox1 is correctly associated with lens; foxc1, pitx2 with periocular NC; rx/vsx2 with optic-cup), the absence of numerical marker frequencies and the specific marker genes mentioned in expected evidence (hoxb8a, tbx2b, prox1a) represents a material incompleteness gap. The candidate's decision to defer to follow-up queries into ZESTA/atlas datasets is pragmatic but does not deliver the specific marker-level distinctions requested. Factuality and calibration are strong; completeness and citation correctness are weak due to missing quantitative data and unverified ENSDARG bindings.",
+          "rubric": {
+            "factuality": 0.75,
+            "citation_correctness": 0.35,
+            "completeness": 0.28,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.88,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 1942,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 527,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.42,
+      "outcome": "negative",
+      "mean_overall": 0.4,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

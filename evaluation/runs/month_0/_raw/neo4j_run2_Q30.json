@@ -1,0 +1,113 @@
+{
+  "question_id": "Q30",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "cross_field_bridge",
+  "bundle": {
+    "question": "The team biomedic argued ocular biology should not be a niche separate from biophysics/biomechanics (systems modeling is governed by those laws). Re-evaluate the niche taxonomy: should N4/N5/N6 be reorganized, and what is the evidence for/against?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.708,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.708,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7001,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.6753,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.6715,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.6565,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7009,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle does not contain a niche taxonomy that includes \"N4/N5/N6\" (or \"RN4/RN5\") as defined entities, so I cannot fully adjudicate the proposed reorganization. What the bundle DOES resolve is a set of research niches organized by *methodological/parametric layer*, not by organ system:\n\n- RN3 = signaling networks + kinetic parameters (state-transition trees, simulation variables, expression data)\n- RN6 = passive biomechanics + ECM (affinity matrices, cortical tension, cell-friction coefficients for Morpheus, regional stiffness)\n- RN1 = appears associated with epithelial/polarity + tubulogenesis systems (CORPUS-2026-0003, pronephros; Prkc iota/zeta)\n\nThe biomedic's argument — that ocular biology should not be its own niche because systems modeling is governed by biophysical/biomechanical laws — is PARTIALLY supported by how these niches are already structured. The retrieved taxonomy is organized by governing-law layer (signaling kinetics = RN3, passive biomechanics/ECM = RN6), which is exactly the biophysics-first organization the biomedic advocates. Under this scheme, an ocular system (e.g., the anterior-segment / trabecular-meshwork atlas in CORPUS-2026-0002, or the corneal/pre-corneal window in CORPUS-2026-0001) would NOT be its own niche; its mechanics would live in RN6 and its signaling in RN3, with the eye treated as a *system* (an axis orthogonal to niche), consistent with the query's system=any framing.\n\nEVIDENCE FOR reorganizing away from organ-specific niches (toward biophysics/biomechanics layers):\n1. The existing niches RN3 and RN6 are already defined by governing physical/kinetic laws, not by organ — precedent that supports the biomedic.\n2. RN6 explicitly holds ECM stiffness, cortical tension, and friction coefficients that would govern ocular tissue mechanics — so ocular biomechanics has a natural home there.\n3. Ocular datasets (CORPUS-2026-0002 anterior segment; CORPUS-2026-0001 corneal window) are indexed as *datasets/systems*, not as their own niche, in the retrieval — suggesting the corpus already treats the eye as a system rather than a niche.\n\nEVIDENCE AGAINST / cautions:\n1. The bundle contains NO entries labeled N4, N5, or N6-as-ocular, so the premise that an ocular niche exists to be reorganized is unverified here. RN6 is biomechanics, not ocular.\n2. Organ-specific developmental programs (e.g., anterior-segment TM specification, corneal window) may carry system-specific gene-regulatory logic not reducible to generic biophysical parameters — the RN3/RN6 split could lose that specificity.\n\nRecommendation: Keep niches organized by governing-law layer (signaling/kinetics vs. passive biomechanics/ECM), which already realizes the biomedic's principle, and treat ocular biology as a *system* tag cutting across RN3/RN6 rather than as its own niche. But I cannot confirm the N4/N5/N6 numbering or that a standalone ocular niche currently exists — that must be checked against the authoritative niche registry.",
+    "confidence": 0.32,
+    "evidence_cited": [
+      "niche:RN3",
+      "niche:RN6",
+      "niche:RN1",
+      "CORPUS-2026-0002",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "Keep ocular biology as its own niche because organ-specific GRNs may not reduce to generic biophysical parameters (rejected as primary answer due to no evidence of such a niche in the bundle, but retained as a valid caution).",
+      "The question's N4/N5/N6 labels map onto RN-series niches — unverifiable from the bundle, so treated as unconfirmed.",
+      "Treat the eye as a cross-cutting 'system' axis over the law-based niches RN3/RN6 (favored, consistent with system=any framing)."
+    ],
+    "gap_flags": [
+      "No N4, N5, or N6 (or RN5) entries in the bundle — the 'ocular niche' to be reorganized is not present in evidence; premise unverified.",
+      "RN6 is biomechanics/ECM, NOT ocular biology — the query's numbering does not align with retrieved niche labels (RN1/RN3/RN6).",
+      "No definition of RN1's scope beyond its association with the pronephros/polarity dataset (CORPUS-2026-0003).",
+      "prkci/prkcz ENSDARG identifiers not provided in the bundle; symbols asserted without verified IDs.",
+      "No Path B literature to independently support or challenge the taxonomy reorganization."
+    ],
+    "framework_applied": "Cross-field bridge evaluation: mapped the biomedic's biophysics-primacy claim onto the retrieved niche structure (law-layer vs. organ-layer organization), then weighed for/against using only bundle-resolved niche definitions. Kept confidence low because the core premise (existence/labeling of N4/N5/N6 ocular niche) is not represented in the evidence.",
+    "_usage": {
+      "input_tokens": 1928,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1942,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

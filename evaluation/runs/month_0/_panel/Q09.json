@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "justification": "The candidate demonstrates strong uncertainty calibration and honesty: it correctly flags that KEGG and MetaCyc are absent from the bundle (only Reactome present), avoids fabricating pathway names, and explicitly declines to invent ENSDARG identifiers. It captures the .mzML→.csv wrapper need (expected evidence item) and correctly separates lipid (RN4) from ion/bioelectric (RN5) modalities, which aligns with the microenvironment framing. However, on completeness it falls short of the expected evidence: it does NOT name any specific metabolic pathways (the question and rubric explicitly expect named pathways — lipid biosynthesis, ion-transport pathways), and it does not address the O2/pH gradient geometry as a Morpheus simulation input, a specific expected item. It substitutes RN3 kinetic parameters as a generic stand-in but never mentions Morpheus or O2/pH gradient geometry. The gap flags are thorough and appropriate, and citations are internally consistent (though one notes CORPUS-2026-0003 is actually RN1-tagged, an honest caveat). Factuality is sound because it does not overclaim; the low confidence (0.28) is well-matched to the genuinely thin evidence. Net: honest and well-calibrated, but incomplete on two of the four expected-evidence anchors (named pathways, O2/pH+Morpheus geometry), hence partial.",
+      "rubric": {
+        "factuality": 0.8,
+        "completeness": 0.4,
+        "citation_correctness": 0.75,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.45,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 2636,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 652,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "The expected evidence calls for named metabolic pathways (lipid/ion), the .mzML→.csv wrapper need, O2/pH gradient geometry as Morpheus input, and gap flags. The candidate answer correctly identifies the .mzML/.mzXML→.csv conversion need and appropriately flags that specific named pathways are absent from the evidence bundle, which is honest calibration rather than fabrication. However, it completely omits any mention of O2/pH gradient geometry or Morpheus as a modeling input — a core piece of expected evidence — and does not address this gap explicitly (no gap flag mentions O2/pH/Morpheus). It also does not surface KEGG/MetaCyc at all beyond noting their absence, which is arguably correct given the bundle, but the expected evidence implies these should be discussed as intended database layers, suggesting the answer may have missed a linkage the corpus intends, or alternatively the corpus itself may reference KEGG/MetaCyc elsewhere not captured in the RN4/RN5/RN3 breakdown. The candidate did a good job of avoiding overclaiming, cataloguing gaps in detail, and correctly noting Reactome as the actual database evidenced. But the omission of O2/pH gradient geometry and Morpheus entirely is a significant completeness gap against the expected evidence, and the confidence score (0.28) seems reasonably calibrated to the partial nature of the answer. Overall this is a partial answer: strong on honesty and identifying missing database layers, weak on covering the Morpheus/O2/pH geometry aspect and lacking named pathways entirely.",
+      "overall_score": 0.42,
+      "verdict": "partial",
+      "rubric": {
+        "factuality": 0.6,
+        "completeness": 0.35,
+        "citation_correctness": 0.6,
+        "testability": 0.4,
+        "uncertainty_calibration": 0.75,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2700,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 715,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.62,
+      "verdict": "partial",
+      "justification": "The candidate demonstrates commendable epistemic honesty by explicitly acknowledging what the evidence bundle does NOT contain (KEGG, MetaCyc, specific named pathways) rather than fabricating answers. The answer correctly identifies the relevant niche layers (RN4 for lipidomics, RN5 for bioelectric data, RN3 for kinetics), accurately maps data modalities (.mzML/.mzXML → .csv conversion), and identifies Reactome as the sole pathway database in the bundle. The model architecture proposed (combining RN4 lipid gradients + RN5 ionic gradients with RN3 parameters scaffolded on Reactome) is logically sound and well-reasoned. However, the answer falls short on completeness: it does not enumerate ANY specific metabolic pathways (lipid biosynthesis, fatty acid oxidation, ion-transport systems, etc.), which was explicitly requested in the question. The answer correctly flags that KEGG and MetaCyc are absent from the bundle, but the question itself may have presupposed these databases or expected the candidate to identify proxy alternatives; the answer could have been stronger by proposing which Reactome pathways would substitute for them. The confidence self-rating of 0.28 is appropriately calibrated to the acknowledged gaps. The gap-flagging is thorough and honest. Factuality is strong where claims are made (Reactome present, KEGG/MetaCyc absent, data modalities correct), but the near-total absence of named pathways and IO/chemical flux models leaves a significant factual gap relative to the question's request for \"named pathways.\"",
+      "rubric": {
+        "factuality": 0.75,
+        "completeness": 0.5,
+        "citation_correctness": 0.85,
+        "testability": 0.6,
+        "uncertainty_calibration": 0.9,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2134,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 520,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.2,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.553,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

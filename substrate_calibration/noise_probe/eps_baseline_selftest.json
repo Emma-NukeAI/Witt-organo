@@ -16,12 +16,12 @@
       "eps_pass": 0.75
     },
     "hypothesis_cosine": {
-      "status": "pending (needs local embedding model + RAG backend; plan \u00a7A OPEN)",
+      "status": "pending (no hypothesis text in pairs; pass hyp_a/hyp_b + optional embedder)",
       "median": null,
       "sigma": null,
       "eps_delta": null,
       "eps_pass": null
     }
   },
-  "note": "EPS is MEASURED here, not assumed. Axes a/b run now on set-overlap; axis c activates with the RAG backend. No delta is counted as improvement below eps_delta (RIL_PROGRAM \u00a78)."
+  "note": "EPS is MEASURED here, not assumed. Axes a/b run on set-overlap; axis c is semantic when an embedder is passed, else a NO-SPEND lexical TF-IDF proxy (labelled). No delta counts as improvement below eps_delta (RIL_PROGRAM \u00a78)."
 }

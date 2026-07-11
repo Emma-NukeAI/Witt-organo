@@ -1,0 +1,98 @@
+{
+  "question_id": "Q10",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "What bioelectric readouts (membrane potential maps, ion-channel configs) are relevant to early tubule/eye morphogenesis, and how would voltage-imaging data (.ome/.tiff, .mat) be ingested?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8435,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.8435,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.7606,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7376,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN9",
+          "type": "niche",
+          "score": 0.7563,
+          "text": "RN9 Morfología emergente y topología. Raw volumetric confocal time-series + segmentation masks (.ome/.tiff/.czi/.ims/.nd2); continuous voxel"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7118,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.6905,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on the RN5 Bioeléctrica niche, the relevant bioelectric readouts for early tubule/eye morphogenesis are: (1) **spatial membrane-potential maps** — spatial coordinates paired with absolute membrane potential values, delivered as .csv; and (2) **ion-channel configurations / high-density temporal matrices** derived from fluorescence/voltage-sensor imaging (.mat). Conceptually, these capture the resting Vmem landscape and its spatiotemporal dynamics across a developing tissue, which in bioelectric models of morphogenesis pattern events such as pronephric tubule and eye field organization. However, the evidence bundle does NOT specify which particular ion channels (e.g., specific K+, Cl-, or proton-pump genes) are involved, nor does it link concrete Vmem thresholds to tubule/eye outcomes — so those mechanistic specifics cannot be asserted here.\n\nFor ingestion of voltage-imaging data: the raw voltage/fluorescence-sensor movies arrive as image stacks. The .ome/.tiff volumetric time-series pipeline is described under RN9 (Morfología emergente), which handles raw volumetric/time-series microscopy (.ome/.tiff/.czi/.ims/.nd2) and segmentation masks — so ome/tiff voltage movies would plausibly be ingested through that imaging/segmentation route, then registered spatially so each voxel/cell can be assigned a membrane-potential value. The quantitative outputs (per-coordinate absolute Vmem) are stored as .csv (RN5), and the high-density temporal sensor matrices as .mat (RN5). A typical flow: .ome/.tiff (raw sensor movies) → segmentation/registration (RN9 tooling) → temporal intensity matrices (.mat) → calibrated absolute-Vmem spatial tables (.csv). I am inferring the .ome/.tiff → RN9 handoff; the bundle states RN5 outputs are .csv and .mat but does not explicitly say RN5 ingests .ome/.tiff.",
+    "confidence": 0.42,
+    "evidence_cited": "niche:RN5, niche:RN9, CORPUS-2026-0003#c000",
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "That voltage .ome/.tiff data is ingested directly within RN5 rather than routed through the RN9 imaging pipeline — plausible but not stated; the bundle only lists .csv/.mat as RN5 formats.",
+      "That RN4 (biochemical microenvironment) or RN6 (biomechanics) contribute channel/ion context — retrieved but not evidently on-topic for bioelectric Vmem readouts.",
+      "That specific ion-channel genes drive the tubule/eye phenotype — no gene-level evidence in the bundle, so intentionally not asserted."
+    ],
+    "gap_flags": [
+      "No specific ion channels, pumps, or gene IDs (ENSDARG) provided linking bioelectrics to tubule/eye morphogenesis.",
+      "Bundle does not explicitly state that RN5 ingests .ome/.tiff; the .ome/.tiff→RN9→RN5 handoff is inferred.",
+      "No quantitative Vmem thresholds or documented causal link between membrane-potential patterns and pronephros/eye development in the provided evidence.",
+      "CORPUS-2026-0003 only establishes pronephros as a nephron-development model; it does not address bioelectrics or imaging ingestion.",
+      "No Path B (external literature) support was available to corroborate mechanism."
+    ],
+    "framework_applied": "Literature synthesis via data-provenance/format mapping across retrieved niche descriptors (RN5 primary, RN9 for imaging ingestion), because the question is about datatypes and pipeline flow rather than a single mechanistic claim; kept confidence low due to absence of gene-level and explicit ingestion-path evidence.",
+    "_usage": {
+      "input_tokens": 1917,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1448,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

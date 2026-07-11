@@ -1,0 +1,102 @@
+{
+  "question_id": "Q11",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "Given cell-dynamics, geometry, cell adhesion and diffusive fields for zebrafish cornea, how do you assemble a Morpheus model matching early embryonic formation? Name the framework, confidence, and gap flags at each step.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8119,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.8119,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.766,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.7213,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7447,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.747,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7579,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Assembly workflow (Morpheus CPM/multiscale) for early embryonic zebrafish cornea, mapping each step to the retrieved evidence niches:\n\nSTEP 1 — Geometry & cell population initialization. Define the 2D/3D Lattice, initial cell fields and regional domains (cornea/anterior-segment territory). Source: CORPUS-2026-0002 (temporal scRNA atlas of anterior segment development, closes the \"cornea gap\") gives cell types and staging to seed populations; RN13 provides the Morpheus .xml scaffolding. Framework: staged-atlas-to-CellType mapping. Confidence in having the right cell identities: moderate. GAP: the atlas is trabecular-meshwork/annular-ligament centric — it may not resolve true corneal epithelial/stromal/endothelial layers at the earliest embryonic stages.\n\nSTEP 2 — Cell adhesion / passive biomechanics (CellType + Interaction/contact energy). Populate affinity matrices, basal cortical tension and cell-friction coefficients from RN6 (Biomecánica pasiva y ECM; affinity matrices + regional stiffness as .json). These map directly onto Morpheus Contact energies, SurfaceConstraint/tension, and friction terms. Framework: CPM Hamiltonian parameterization (adhesion-driven sorting). Confidence: moderate–good, because RN6 explicitly provides Morpheus-ready .json. GAP: RN6 parameters are generic passive-mechanics/ECM — need to confirm they were measured for cornea and at embryonic (not adult) stages.\n\nSTEP 3 — Cell dynamics / collective kinetics (Motility + Events/Apoptosis). Use RN8 (Cinética celular colectiva) per-region/per-stage statistics: mean migration velocity, apoptosis %/hr, and raw trajectories. Encode as Morpheus persistent-motion / directed-motion plugins, and death Events. Framework: data-driven motility & turnover calibration. Confidence: moderate. GAP: RN8 is per-region — need cornea-specific rows; trajectory noise/anisotropy for the neural-crest-derived corneal migration is not confirmed present.\n\nSTEP 4 — Diffusive fields (PDE Fields + Reaction/secretion). Add morphogen/signalling fields as Morpheus PDE Fields with production/decay tied to CellTypes. NO evidence bundle item provides diffusion coefficients, secretion rates, or ligand identities for cornea. Framework: reaction–diffusion coupling to CPM — but here it is unsourced. Confidence: LOW. GAP (major): diffusive-field parameters are entirely missing from this bundle.\n\nSTEP 5 — Integration, output, validation. Wire CellTypes + Interactions + Motility + Fields + Time in the RN13 Morpheus .xml; validate simulated morphology/dynamics against RN8 velocities/apoptosis and the CORPUS-2026-0002 staging. Framework: simulate-compare-recalibrate loop. Confidence: moderate for the mechanical/kinetic parts, LOW overall because the diffusive layer and true corneal (vs meshwork/pronephros) grounding are weak.\n\nOverall framework: multiscale CPM (Cellular Potts, Morpheus) assembled niche-by-niche — RN6 (adhesion/mechanics) + RN8 (dynamics) + RN13 (code) + CORPUS-2026-0002 (cell identity/geometry). The two structural building blocks (adhesion, dynamics) are well supported; geometry is partially supported; diffusive fields are NOT supported by this bundle.</parameter>\n<parameter name=\"confidence\">0.34",
+    "evidence_cited": [
+      "CORPUS-2026-0002",
+      "niche:RN6",
+      "niche:RN8",
+      "niche:RN13"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Vertex/tissue-mechanics model instead of CPM — but RN6/RN8/RN13 are explicitly Morpheus-formatted, so CPM in Morpheus is the intended path.",
+      "Using CORPUS-2026-0003 (pronephros tubulogenesis, Prkci/Prkcz polarity) as an epithelial-morphogenesis template — rejected as primary source because it is a different organ (kidney) though it could inform epithelial polarity plugins.",
+      "Treating the anterior-segment atlas as fully corneal — rejected/flagged because it is trabecular-meshwork/annular-ligament focused, not confirmed corneal-layer resolved."
+    ],
+    "gap_flags": [
+      "No diffusive-field parameters in bundle (diffusion coefficients, secretion/decay rates, ligand identities) — Step 4 is unsourced/LOW confidence.",
+      "CORPUS-2026-0002 is trabecular-meshwork/annular-ligament centric; true early corneal epithelial/stromal/endothelial identities may be missing.",
+      "RN6 mechanics (.json) not confirmed cornea-specific or embryonic-stage-specific vs adult/generic.",
+      "RN8 kinetics are per-region/per-stage but cornea-specific rows not verified present.",
+      "No gene identifiers resolved/verified in DI (Key entities: none checked); no ENSDARG grounding available.",
+      "Path B (external literature) not triggered — no independent validation of parameter values."
+    ],
+    "_usage": {
+      "input_tokens": 1904,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2000,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

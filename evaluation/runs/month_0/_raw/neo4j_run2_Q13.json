@@ -1,0 +1,101 @@
+{
+  "question_id": "Q13",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "What fluid-dynamic readouts (flow velocity, shear) matter for pronephric filtration onset, and what mesh formats (.vtu/.cgns) carry them?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7958,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.7958,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7094,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.719,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.7077,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7314,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7219,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "For pronephric filtration onset, the fluid-dynamic readouts that matter are (1) flow velocity — the local speed/direction of fluid movement through the developing nephron lumen and pronephric duct, captured as flow vectors; (2) pressure fields — the intraluminal/transmural pressure gradients that must build for glomerular filtration to begin; and (3) shear stress — the wall/segment shear that developing tubular and podocyte-lineage cells experience, which is a candidate mechanical cue for maturation and filtration onset. The RN7 niche (\"Mecánica activa y dinámica de fluidos\") is the resource that explicitly carries these: it provides cell/segment/node-indexed flow vectors, velocity, and pressure as tabular files (.csv/.tsv), together with high-density 3D meshes. In the biology-context corpus, CORPUS-2026-0003 establishes the zebrafish pronephros as an in vivo model for when/how renal (nephron) development and function initiate, which is the developmental process these readouts would be applied to.\n\nIMPORTANT CAVEAT on mesh formats: The question presupposes .vtu/.cgns mesh containers. The provided RN7 description states only that flow scalars/vectors are carried in .csv/.tsv and that \"high-density 3D meshes\" are provided, but the retrieved text is truncated and does NOT confirm the specific container format(s) (.vtu, .cgns, or other) that carry the mesh + fields. So I cannot verify from this bundle that .vtu or .cgns specifically are used. What I can support: velocity, pressure, and (by segment/node indexing) shear-relevant fields are in .csv/.tsv, associated with high-density 3D meshes of unspecified format.",
+    "confidence": 0.42,
+    "evidence_cited": [
+      "niche:RN7",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "That the meshes are stored specifically as .vtu or .cgns as the question assumes — not confirmable from the truncated RN7 description, which only names .csv/.tsv explicitly.",
+      "That shear is directly provided as a field rather than derived — the bundle lists velocity and pressure explicitly; shear is inferable from segment/node-indexed velocity gradients but is not named verbatim.",
+      "That RN6 (passive biomechanics/ECM stiffness) or RN8 (collective cell kinetics, migration velocity) could be the flow-dynamics source — rejected, as those cover tissue stiffness/tension and cell trajectories, not luminal fluid flow/shear."
+    ],
+    "gap_flags": [
+      "RN7 chunk is truncated after 'high-density 3D meshes wi...' — the actual mesh container format (.vtu/.cgns) is NOT stated in the retrieved evidence and cannot be verified.",
+      "Shear stress is not named verbatim in the bundle; only velocity, pressure, and flow vectors are explicitly listed.",
+      "No quantitative thresholds (e.g., velocity or shear values marking filtration onset) are present in the evidence.",
+      "CORPUS-2026-0003 text is truncated; it establishes the pronephros as a filtration-onset model but does not itself specify fluid-dynamic metrics.",
+      "No gene identifiers were relevant or retrievable for this fluid-dynamics/data-format question."
+    ],
+    "framework_applied": "Evidence-source mapping (match question's data-need — fluid readouts + file formats — to the niche resource whose scope explicitly covers active mechanics/fluid dynamics), constrained by literal-fidelity to the truncated bundle to avoid asserting an unverified format.",
+    "_usage": {
+      "input_tokens": 1875,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1353,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

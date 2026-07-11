@@ -1,0 +1,104 @@
+{
+  "question_id": "Q01",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7203,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7203,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7652,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7917,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN1",
+          "type": "niche",
+          "score": 0.6926,
+          "text": "RN1 Transcriptómica y dinámica de linajes. Lineage hierarchy trees + transition-probability matrices (.json); average expression per cell ty"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.679,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7284,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle does not contain the specific transcription-factor expression data needed to answer this question confidently. The retrieval returns only metadata/descriptions of resources (ZFIN, ZESTA/CORPUS-2026-0001, the RN1 lineage niche, CNGB STOmics) plus one on-topic chunk (CORPUS-2026-0003#c000) that merely states the zebrafish pronephros is a good in vivo system for studying nephron development — it does not enumerate markers, ENSDARG IDs, or temporal expression order.\n\nWhat can be said from canonical pronephros biology is NOT supported by this bundle, so I will not assert it as fact. In general terms, intermediate mesoderm (the broader field that gives rise to kidney) is typically marked early by pax genes and lhx1/osr transcription factors, while pronephric/nephron segment identity is refined later by more restricted regulators; the temporal sequence (broad IM field → committed pronephric mesoderm → segmented nephron) is what constrains lineage, with early broad-domain TFs preceding and delimiting later segment-specific TFs. However, the bundle provides NO gene symbols, NO ENSDARG identifiers, and NO stage-resolved expression values to substantiate which specific TFs mark each compartment at 12–24 hpf or their exact expression order.\n\nTo answer properly I would need the per-cell-type / per-stage expression tables from ZESTA (CORPUS-2026-0001) or the RN1 lineage niche (transition-probability matrices + average expression per cell type), and verified ENSDARG bindings from ZFIN — none of which are present as actual data values in this bundle.",
+    "confidence": 0.12,
+    "evidence_cited": [
+      "CORPUS-2026-0003#c000",
+      "CORPUS-2026-0001",
+      "niche:RN1",
+      "db:ZFIN",
+      "db:CNGB_STOmics"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Assert canonical IM markers (pax2a, pax8, lhx1a, osr1/osr2) vs. pronephric segment TFs from memory — REJECTED because no ENSDARG or expression evidence is in the bundle and asserting gene IDs from memory violates the substrate contract.",
+      "Query ZESTA/RN1 expression tables directly for stage-resolved TF expression — the resources are indexed but their actual expression values are not in this bundle, so this cannot be executed here.",
+      "Treat the RN1 transition-probability matrices as evidence of lineage order — REJECTED because only the niche description, not the matrix contents, is provided."
+    ],
+    "gap_flags": [
+      "No gene symbols or ENSDARG identifiers present in the retrieved evidence.",
+      "No stage-resolved (12-24 hpf) expression values for any transcription factor.",
+      "The single on-topic chunk (CORPUS-2026-0003#c000) is introductory framing only, with no marker or ordering data.",
+      "RN1 lineage/transition-probability data and ZESTA per-cell-type expression tables are referenced but their contents are not included, preventing any lineage-constraint inference.",
+      "Cannot distinguish pronephric mesoderm vs. intermediate mesoderm markers from this bundle."
+    ],
+    "framework_applied": "Evidence-gating / abstention framework: because the bundle contains resource descriptions rather than the substantive marker and expression-order data required, the calibrated response is to flag the gap and abstain from asserting unsupported gene identifiers, keeping confidence low per the substrate honesty requirement.",
+    "_usage": {
+      "input_tokens": 1897,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1310,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

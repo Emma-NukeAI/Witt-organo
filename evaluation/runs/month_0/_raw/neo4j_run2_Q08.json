@@ -1,0 +1,105 @@
+{
+  "question_id": "Q08",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "ortholog_mapping",
+  "bundle": {
+    "question": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8056,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.8056,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.8059,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7711,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7824,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7656,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.794,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot deliver the requested ortholog mapping from this evidence bundle. The task asks me to (1) take a defined set of zebrafish pronephros transcription factors, (2) resolve each to its human ortholog via Ensembl/ZFIN, and (3) flag 1:many (ohnolog) relationships where paralog compensation could confound a single-gene knockout. However, the bundle contains no resolved gene records: \"Key entities resolved in DI: (none checked)\" and no ENSDARG↔human-ortholog pairs were retrieved. The retrieval surfaced only database *descriptions* (Ensembl Danio rerio, ZFIN, Reactome) and corpus abstracts (CORPUS-2026-0003 on Prkci/Prkcz pronephros polarity; CORPUS-2026-0001 ZESTA atlas) — none of which enumerate a TF set or provide verified orthology tables.\n\nWhat I can say with the evidence available: the pronephros niche (RN1) corpus (CORPUS-2026-0003) implicates the atypical PKC polarity proteins Prkc iota and Prkc zeta in tubulogenesis, but these are kinases, not transcription factors, and no ENSDARG identifiers are given for them here. I will NOT assert any zebrafish TF symbols or their ENSDARG/human-ortholog mappings from memory, since that is exactly the class of claim the substrate contract forbids without a verified store hit.\n\nTo complete this correctly I would need: (a) the actual input TF list, and (b) an executed Ensembl/ZFIN orthology lookup returning ENSDARG → ENSG pairs with homology type (one2one vs one2many). The ohnolog/paralog-compensation flagging step depends entirely on that homology-type field, which is absent here.",
+    "confidence": 0.1,
+    "evidence_cited": [
+      "db:Ensembl_DanioRerio",
+      "db:ZFIN",
+      "db:Reactome",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000",
+      "CORPUS-2026-0001"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Attempt to enumerate canonical pronephros TFs (e.g. pax, hnf, wt1, lhx families) from domain knowledge and map them — REJECTED: violates the contract's prohibition on asserting gene IDs/orthologs from memory without a verified store hit.",
+      "Treat Prkci/Prkcz from CORPUS-2026-0003 as the answer set — REJECTED: they are polarity kinases, not TFs, and no ENSDARG/ortholog data is provided for them in the bundle.",
+      "Provide a partial mapping with heavy caveats — REJECTED: no single verified ENSDARG↔ENSG pair exists in the bundle, so even a partial answer would be fabricated."
+    ],
+    "gap_flags": [
+      "No input TF set was provided or retrieved — the question presupposes a gene list that is absent from the bundle.",
+      "No ENSDARG identifiers or verified store hits ('none checked') — cannot bind any zebrafish gene symbol to an identifier.",
+      "No Ensembl/ZFIN orthology table retrieved — only database descriptions, not queryable records; homology type (one2one/one2many) is unavailable.",
+      "Ohnolog/paralog-compensation flagging is impossible without the homology-type field from an executed orthology query.",
+      "Bundle content (Prkci/Prkcz polarity, ZESTA atlas) is topically about pronephros but does not supply orthology or a TF roster."
+    ],
+    "framework_applied": "Evidence-sufficiency gate + identifier-integrity guard (CLAUDE.md §5): before answering an ortholog_mapping task I check for (1) a defined input set and (2) verified identifier/orthology hits. Both are missing, so I decline to fabricate and instead report the gap with low confidence rather than assert unverified ENSDARG/ENSG pairs.",
+    "_usage": {
+      "input_tokens": 1885,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1455,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,201 @@
+{
+  "question_id": "Q15",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "Which morphometric/topological descriptors distinguish a correctly tubulated pronephros from teratogenic mesoderm, and what imaging formats supply them?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7477,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7477,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN9",
+          "type": "niche",
+          "score": 0.7612,
+          "text": "RN9 Morfología emergente y topología. Raw volumetric confocal time-series + segmentation masks (.ome/.tiff/.czi/.ims/.nd2); continuous voxel"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7084,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.694,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.6626,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7134,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on the RN9 niche (\"Morfología emergente y topología\") and the pronephros tubulogenesis corpus, the descriptors that would distinguish a correctly tubulated pronephros from teratogenic (disorganized) mesoderm are morphometric and topological ones derived from segmented volumetric imaging:\n\n- **Topological continuity / lumen connectivity** — a correct pronephros forms a single continuous, patent tubule lumen, whereas teratogenic mesoderm shows fragmented, discontinuous, or absent lumina.\n- **Epithelial polarity organization** — apical/basal axis coherence (the corpus explicitly ties tubulogenesis and epithelial-identity maintenance to the polarity proteins Prkci and Prkcz; loss of polarity is a hallmark of failed tubulation).\n- **Tube geometry / morphometrics** — lumen diameter/cross-sectional area, tube length, wall thickness, and curvature/straightness of the nephron axis.\n- **Voxel-level continuity in time** — the RN9 descriptor set is built on \"continuous voxel\" time-series, so temporal persistence and progressive convergence-extension of the tube (vs. mesodermal mass that fails to elongate) is a distinguishing feature.\n\nThese come from **raw volumetric confocal time-series plus segmentation masks**, supplied in the imaging formats named in the RN9 niche: **.ome/.tiff, .czi, .ims, and .nd2**.\n\nI cannot, from this bundle, give a validated quantitative threshold list (e.g., specific diameter cut-offs or named topological metrics like Betti numbers/branch counts); the niche description only names the raw/segmented data types and formats, not a benchmarked descriptor panel.",
+    "confidence": 0.42,
+    "evidence_cited": "niche:RN9, CORPUS-2026-0003#c000, CORPUS-2026-0003",
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "RN5 (Bioeléctrica) could contribute membrane-potential descriptors, but that is electrophysiological rather than morphometric/topological and is not tubulation-specific.",
+      "CNGB_STOmics / ZESTA spatial transcriptomics could distinguish cell-identity domains, but supplies molecular not morphometric/topological descriptors.",
+      "That a formal descriptor panel (branch number, Betti/genus, sphericity, tortuosity) exists in a benchmarked form — not supported by the bundle, only inferable from the 'topología' niche label."
+    ],
+    "gap_flags": [
+      "The RN9 niche description lists data types and imaging FORMATS but does not enumerate specific named morphometric/topological metrics or their diagnostic thresholds.",
+      "No ENSDARG identifiers were provided/verified for prkci or prkcz in this bundle — symbols asserted without verified gene IDs.",
+      "No direct evidence in the bundle characterizing 'teratogenic mesoderm' morphometrics as a contrast class; contrast is inferred, not documented.",
+      "No Path B literature retrieved to corroborate descriptor definitions."
+    ],
+    "framework_applied": "Evidence-grounded literature synthesis with source-typing: separated niche metadata (data format layer) from corpus biology (mechanistic layer), and flagged inferred vs. documented claims to keep confidence calibrated to a thin bundle.",
+    "_usage": {
+      "input_tokens": 1893,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1286,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.7,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.75,
+          "completeness": 0.65,
+          "citation_correctness": 0.7,
+          "testability": 0.7,
+          "uncertainty_calibration": 0.85,
+          "safety_ethics": 1.0
+        },
+        "justification": "The answer covers most of the expected evidence: it names morphometric features (lumen diameter/cross-sectional area, tube length, wall thickness, curvature/straightness) and touches topological concepts (lumen connectivity, continuity, temporal persistence). It correctly identifies confocal volumetric formats including .ome/.tiff (plus .czi, .ims, .nd2). However, it misses two specific expected elements: the mesh formats (.ply/.stl) that the pipeline would produce for surface-based morphometrics, and the explicit \"persistence pairs\" concept from topological data analysis — the candidate gestures at \"temporal persistence\" and even flags that it cannot name metrics like Betti numbers, but does not surface the persistent-homology/persistence-pair framing that is the intended topological descriptor. The epithelial-polarity/Prkci-Prkcz material is plausible but tangential and, as the candidate itself flags, unverified. Uncertainty calibration is strong: low stated confidence (0.42), honest gap flags about missing thresholds, missing gene IDs, and inferred contrast class. The candidate appropriately declines to fabricate quantitative cutoffs. Overall a solid, honest partial answer that captures the morphometric-features and confocal-format half of the evidence but does not reach the mesh-format and persistence-pair specifics.",
+        "usage": {
+          "input_tokens": 2017,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 623,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The candidate captures the general spirit of the expected evidence (morphometric features, imaging formats, and a topology concept) but diverges from the specific expected content. The expected evidence explicitly calls for confocal .ome/.tiff → mesh .ply/.stl pipeline and 'persistence pairs' as the topology concept, whereas the candidate instead invents 'lumen connectivity,' 'voxel-level continuity,' and lists formats as .ome/.tiff, .czi, .ims, .nd2 without mentioning the mesh conversion (.ply/.stl) or persistence pairs/persistent homology at all. This is a significant gap in citation_correctness and completeness relative to the expected evidence. The candidate does appropriately hedge with an explicit uncertainty disclosure, flags missing quantitative thresholds, and avoids overclaiming fabricated numbers, which is good calibration. However, it fabricates plausible-sounding but unverified specifics (polarity proteins Prkci/Prkcz tied to tubulogenesis, specific format list of .czi/.ims/.nd2) without clear grounding, and never surfaces the key expected concept of persistence pairs / mesh formats, meaning it misses the core topological descriptor that the question was probing for. Overall this is a partial answer: correct on the general theme (morphometric descriptors + imaging modalities distinguishing tubulation), but missing the specific expected topological method and file-conversion pipeline, and introducing unverified specifics not in expected evidence.",
+        "overall_score": 0.35,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.4,
+          "completeness": 0.3,
+          "citation_correctness": 0.25,
+          "testability": 0.35,
+          "uncertainty_calibration": 0.65,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2081,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 679,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.58,
+        "justification": "The candidate answer correctly identifies the three core expected-evidence components: morphometric descriptors (lumen diameter, cross-sectional area, tube length, wall thickness, curvature), topological concepts (continuity, connectivity), and imaging formats (.ome/.tiff, .czi, .ims, .nd2). The answer also appropriately introduces epithelial polarity as a related morphological marker and acknowledges the temporal dimension via \"continuous voxel\" time-series. However, the answer falls materially short on testability and specificity: it does NOT provide quantitative thresholds, named topological metrics (e.g., Betti numbers, branch counts, or persistence pairs—which the expected evidence explicitly mentions), or a validated diagnostic descriptor panel. The candidate's own gap-flagging is accurate and honest—it notes the absence of named metrics, verified gene IDs for polarity proteins, and direct documentation of teratogenic mesoderm morphometrics as a contrast class. Factuality is reasonably sound for the descriptors named, and citation practice is transparent (self-acknowledged low confidence 0.42; cited evidence paths), but the answer stops short of the depth and quantitative specificity the expected evidence demands. The invocation of \"persistence pairs\" would have substantially strengthened the response and appears absent from the final answer, despite being in the expected evidence. This is a competent but incomplete response that correctly frames the problem space but lacks the technical rigor and specificity required for clinical or research application.",
+        "rubric": {
+          "factuality": 0.72,
+          "citation_correctness": 0.68,
+          "completeness": 0.54,
+          "testability": 0.48,
+          "uncertainty_calibration": 0.79,
+          "safety_ethics": 0.85
+        },
+        "usage": {
+          "input_tokens": 1702,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 481,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.35,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.543,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

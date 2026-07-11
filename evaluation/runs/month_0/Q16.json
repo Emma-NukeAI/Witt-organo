@@ -1,0 +1,163 @@
+{
+  "claim_id": "held_out_month0_Q16",
+  "claim_timestamp": "2026-07-11T19:07:32Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN10",
+  "claim_category": "perturbation_design",
+  "question_id": "Q16",
+  "question": "Build the master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for inducing pronephric program in adjacent competent tissue.",
+  "backend": "neo4j",
+  "direct_answer": "I cannot responsibly build the requested master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for pronephric induction from this bundle. The bundle POINTS to the right resource but does not expose its actual contents.\n\nWhat the evidence supports:\n- The niche RN10 hit (\"Tejidos chaperones y boundary conditions\") is the intended source: it is described as containing Cartesian coordinates of neighboring tissues, timing matrices (.json), and a \"master indexed interaction\" table. This is exactly the object that would let you populate Source/Target/Signal/Temporal-window rows. HOWEVER, the retrieval only returns the DESCRIPTION/metadata of RN10 — the actual coordinate arrays, timing matrices, and interaction rows are not included in this bundle, so no concrete rows can be transcribed without fabrication.\n- CORPUS-2026-0003 provides one tangentially relevant, defensible fact: zebrafish pronephros tubulogenesis and epithelial identity maintenance depend on polarity proteins Prkci (PKC iota) and Prkcz (PKC zeta). This concerns intrinsic epithelial-identity maintenance WITHIN the pronephros, not the chaperone-mediated inductive signal from an adjacent source tissue, so it does not directly furnish a Source→Target→Signal row.\n- The remaining hits (CORPUS-2026-0001 ZESTA, CORPUS-2026-0002 anterior-segment atlas, Reactome, CNGB_STOmics) are corneal/anterior-segment or generic-pathway resources and are not on-target for pronephric induction.\n\nBottom line: To actually build the table, the RN10 .json timing matrices and master interaction index must be retrieved and parsed (Path A dereference of the RN10 artifact, not just its metadata). I will not invent tissue pairs, signaling ligands, or hpf windows.",
+  "stated_confidence": 0.15,
+  "prior": 0.15,
+  "evidence_cited": [
+    "niche:RN10",
+    "CORPUS-2026-0003"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "prkci"
+    },
+    {
+      "symbol": "prkcz"
+    }
+  ],
+  "alternatives_considered": [
+    "Transcribe the RN10 'master indexed interaction' table directly — rejected: only the metadata description was returned, not the underlying coordinate/timing/interaction data; transcribing would require fabrication.",
+    "Use CORPUS-2026-0003 (Prkci/Prkcz polarity) as an inductive-signal row — rejected: it describes intrinsic epithelial identity maintenance within the pronephros, not a chaperone-mediated signal from an adjacent source tissue.",
+    "Reconstruct the table from ZESTA/CNGB spatial atlases — rejected: those hits (CORPUS-2026-0001, CNGB_STOmics) cover the pre-corneal/anterior-segment window, not pronephric induction, and their contents are not in this bundle.",
+    "Infer signaling via Reactome orthology — rejected: no pronephros-specific pathway content is provided in the bundle."
+  ],
+  "gap_flags": [
+    "RN10 artifact returned as metadata only: the actual Cartesian coordinates, .json timing matrices, and master interaction index needed to populate rows are NOT in this bundle.",
+    "No source tissue, signaling ligand/receptor, or temporal (hpf) window for pronephric induction is explicitly present in any retrieved document.",
+    "No verified ENSDARG bindings available for prkci/prkcz in the bundle — symbols asserted from CORPUS-2026-0003 description only, IDs not confirmed.",
+    "Path B (external literature) not triggered, so no orthogonal inductive-signaling evidence available.",
+    "Cannot confirm whether 'chaperone-tissue' in RN10 refers to molecular chaperones or a tissue-guidance ('chaperone') metaphor — term is ambiguous from metadata alone."
+  ],
+  "framework_applied": "Evidence-sufficiency gating / retrieval-provenance check: distinguished metadata-level hits from content-level evidence, refused to synthesize a structured table whose rows are not backed by retrieved data, and flagged the specific missing artifact (RN10 .json) needed to answer. Honest abstention over fabrication per the output contract.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T19:07:32Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "correct",
+          "overall_score": 0.78,
+          "justification": "The question demands a concrete master interaction table (Source→Target→Signal→Temporal window) with indexed rows, cited embryology, hpf windows, and gap flags. The candidate correctly recognizes that the retrieval bundle only exposes RN10's metadata/description (which merely POINTS to timing matrices, Cartesian coordinates, and a master interaction index) rather than the actual contents, so no genuine rows can be transcribed without fabrication. This is honest and well-calibrated: rather than inventing tissue pairs, ligands, or hpf windows, it explicitly refuses to hallucinate and flags exactly what is missing. Its handling of CORPUS-2026-0003 (prkci/prkcz as intrinsic epithelial-identity maintenance, not an adjacent-tissue inductive source signal) is a defensible, appropriately hedged disambiguation, and it correctly dismisses the off-target corneal/anterior-segment hits. The gap_flags are strong: they cover the metadata-only limitation, absence of explicit source/signal/hpf data, unconfirmed ENSDARG IDs, no external-literature fallback, and even the ambiguity of 'chaperone' (molecular vs. guidance metaphor). Weaknesses: on the completeness axis, the answer produces zero table rows and offers no scaffold/template of the expected columns, and it does not draw on well-established canonical zebrafish pronephros embryology (e.g., intermediate mesoderm patterning, retinoic acid/wt1/pax2/pax8, roughly ~10–24 hpf windows) even as clearly-flagged external context, which a maximally useful answer could have supplied under a Path-B caveat. Low stated confidence (0.15) matches the impoverished bundle. Overall this is a correct, honest, non-overclaiming response that satisfies the gap-flagging and calibration demands while falling short of any substantive table content.",
+          "rubric": {
+            "factuality": 0.85,
+            "citation_correctness": 0.8,
+            "completeness": 0.35,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.95,
+            "safety_ethics": 1.0
+          },
+          "usage": {
+            "input_tokens": 2152,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 815,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.55,
+          "verdict": "partial",
+          "justification": "The candidate declines to fabricate the requested indexed interaction table, correctly noting that the retrieved bundle (RN10) only exposes metadata/description rather than the actual coordinate arrays, timing matrices, or interaction index needed to populate Source→Target→Signal→hpf rows. This is an honest and well-calibrated refusal that avoids hallucinating tissue pairs, ligands, or temporal windows, which aligns with safety/uncertainty expectations. However, it falls short of the expected evidence: it does not attempt any indexed interaction rows (even partial, sourced ones), does not cite established embryology of pronephric induction (e.g., known intermediate mesoderm/lateral plate mesoderm signaling, retinoic acid, Wnt, BMP pathways from zebrafish literature) that could have been used to construct at least a partial table with appropriate caveats, and does not propose concrete hpf windows from known developmental staging (e.g., 10-24hpf pronephros specification) that are well-established in zebrafish literature independent of the bundle. The one biological fact cited (Prkci/Prkcz) is tangential and appropriately flagged as not fitting the Source→Target induction model. Gap flags are appropriately specific and useful. Overall this is a defensible but incomplete response — good calibration and honesty, but low completeness since no real progress toward the table structure (even a skeleton with cited unknowns per row) was made, and no external embryology knowledge was leveraged to partially satisfy the \"cited embryology\" requirement.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.6, \"completeness\": 0.25, \"citation_correctness\": 0.5, \"uncertainty_calibration\": 0.8, \"safety_ethics\": 0.85, \"testability\": 0.3}",
+          "usage": {
+            "input_tokens": 2216,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 680,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.85,
+          "verdict": "correct",
+          "justification": "The candidate demonstrates exemplary epistemic integrity by refusing to fabricate a master table when the required source material (RN10 artifact contents, timing matrices, and interaction indices) is unavailable. The answer correctly identifies that only metadata descriptions were retrieved, not the actionable data structures needed to populate the requested Source→Target→Signal→Temporal window rows. The candidate appropriately cites relevant evidence (niche:RN10 and CORPUS-2026-0003 on Prkci/Prkcz) while explicitly acknowledging its limitations: RN10 contains the blueprint for such a table but the actual coordinates/matrices are not exposed, and CORPUS-2026-0003 addresses intrinsic pronephric epithelial maintenance rather than inter-tissue inductive signaling. The gap flags are thorough and defensible—highlighting the absence of explicit source tissues, signaling molecules, temporal windows, and the ambiguity of \"chaperone-tissue\" semantics from metadata alone. The low stated confidence (0.15) is appropriately calibrated to the data scarcity. Minor points: the answer does not independently verify whether external literature on pronephric induction (FGF, Pax8, Lim1, etc.) exists or applies, and it does not explicitly state what a competent alternative approach would be (e.g., requesting RN10 artifact dereferencing). However, honest refusal to hallucinate a table is the correct response given the bundle's limitations, and the reasoning is transparent and methodologically sound.",
+          "rubric": {
+            "factuality": 0.95,
+            "completeness": 0.75,
+            "citation_correctness": 0.9,
+            "uncertainty_calibration": 0.95,
+            "testability": 0.8,
+            "safety_ethics": 0.95
+          },
+          "usage": {
+            "input_tokens": 1777,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 492,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.3,
+      "outcome": "positive",
+      "mean_overall": 0.727,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

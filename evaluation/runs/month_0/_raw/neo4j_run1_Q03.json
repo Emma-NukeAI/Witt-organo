@@ -1,0 +1,201 @@
+{
+  "question_id": "Q03",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "regulator_vs_bystander",
+  "bundle": {
+    "question": "For a candidate gene co-expressed in the pronephros, how do you assemble evidence that it is a true regulator vs. a co-expressed bystander? Name the framework, confidence (0-1), and gap flags at each step.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7478,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7478,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.7273,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7446,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7231,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7369,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.699,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "To distinguish a true pronephros regulator from a co-expressed bystander, assemble evidence as a causal-inference ladder, moving from correlation to intervention. Name the framework at each rung and track confidence and gaps:\n\nSTEP 1 — Establish co-expression (correlational baseline). Confidence in \"regulator\" claim from this alone: ~0.1. Use the pronephros scRNA/spatial evidence (CORPUS-2026-0003) to show the candidate is expressed in the right cells/segment (niche RN1) at the right stage of tubulogenesis. Co-expression is necessary but NOT sufficient — many bystanders ride along with a shared program. Gap flag: co-expression ≠ causation; no temporal ordering yet.\n\nSTEP 2 — Temporal precedence / dynamics. Confidence: ~0.2. Show that the candidate's expression precedes or tracks the developmental event it is proposed to regulate (\"when and how renal cells commit,\" CORPUS-2026-0003#c000). A regulator should be expressed before/at the decision point, not merely as a downstream differentiation marker. Gap flag: the bundle gives a tubulogenesis dataset but I have no explicit pseudotime/temporal trajectory for the candidate — cannot verify precedence from evidence provided.\n\nSTEP 3 — Network / interaction context (mechanistic plausibility). Confidence: ~0.35. Query interaction databases (BioGRID for genetic/physical interactions; Reactome for pathway membership via orthology) to test whether the candidate sits in a plausible regulatory module (e.g., polarity/signaling pathways implicated in nephron epithelial identity). Placement in a known regulatory pathway raises prior odds it is a regulator. Gap flag: Reactome zebrafish data is computational-orthology-inferred, so pathway calls are indirect; BioGRID interactions do not by themselves establish direction of causation in the pronephros.\n\nSTEP 4 — Causal perturbation (the decisive rung). Confidence if a clean loss-of-function phenotype is obtained: ~0.7-0.85. Use RN12 (perturbation/intervention design) to build a knockdown/knockout (CRISPR F0/stable, MO with controls) and score pronephros phenotypes — tubulogenesis defects, loss of epithelial/polarity identity, segment-marker changes. The published exemplar in this niche (prkci/prkcz polarity proteins required for tubulogenesis and epithelial identity, CORPUS-2026-0003) is the phenotypic template: a true regulator produces a specific developmental defect when removed; a bystander does not. Gap flag: need proper controls/confounders (RN12: candidate sets, controls, confounders), off-target checks, and rescue.\n\nSTEP 5 — Epistasis / rescue (direction & specificity). Confidence: ~0.85-0.9. Rescue with wild-type mRNA, and use double perturbations / genetic interactions (BioGRID-style two-gene experiments) to place the candidate up- or downstream of known regulators. Rescue plus epistasis converts \"associated with phenotype\" into \"regulator with a defined position in the hierarchy.\" Gap flag: interaction-database data here is generic, not candidate-specific.\n\nBottom line: co-expression → temporal precedence → network plausibility → perturbation phenotype → rescue/epistasis. Only after a controlled loss-of-function phenotype (RN12) plus rescue can you assert \"true regulator\" with high confidence; anything short of perturbation leaves the bystander hypothesis open.",
+    "confidence": 0.6,
+    "evidence_cited": [
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000",
+      "db:BioGRID",
+      "db:Reactome",
+      "niche:RN12",
+      "niche:RN1"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "Pure guilt-by-association / co-expression clustering alone — rejected as insufficient because it cannot separate regulators from downstream bystanders.",
+      "Relying on interaction-database membership (BioGRID/Reactome) as proof of regulation — rejected as only prior-raising, not causal, especially since zebrafish Reactome is orthology-inferred.",
+      "GWAS/eQTL-style association — not applicable/available in this developmental scRNA bundle."
+    ],
+    "gap_flags": [
+      "No candidate gene was named in the question; framework is generic and cannot be verified against a specific ENSDARG.",
+      "I did NOT resolve ENSDARG IDs for prkci/prkcz — cited only as the published phenotypic exemplar, not verified from the store.",
+      "Bundle lacks explicit pseudotime/temporal-precedence data for any candidate.",
+      "BioGRID/Reactome entries in the bundle are generic database descriptions, not candidate-specific interaction records.",
+      "No Path B literature retrieved; perturbation-design details (controls, off-target, rescue) are inferred from RN12's stated scope, not from a concrete protocol in the bundle."
+    ],
+    "framework_applied": "Causal-inference ladder (correlation → temporal precedence → mechanistic/network plausibility → perturbation → epistasis/rescue), chosen because 'regulator vs. bystander' is fundamentally a causal-discrimination problem; each rung maps onto an available evidence source in the bundle (scRNA co-expression, interaction DBs, RN12 perturbation niche).",
+    "_usage": {
+      "input_tokens": 1872,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1981,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "verdict": "partial",
+        "overall_score": 0.62,
+        "justification": "The expected evidence calls for a specific \"Pearl-hierarchy evidence ladder (L1..L3c),\" a scored rubric with an explicit confirmed/candidate/bystander threshold, and a worked example. The candidate answer does construct a causal-inference ladder that moves from correlation (co-expression) → temporal precedence → network plausibility → perturbation → rescue/epistasis, which is conceptually well aligned with a Pearl-style ladder (association → intervention → counterfactual). It attaches per-step confidence values (0.1 → 0.9) and thorough gap flags at each rung, which is strong on testability and uncertainty calibration. However, it does NOT reproduce the specific L1..L3c labeling scheme, and critically it never states an explicit numeric threshold that separates \"confirmed regulator\" vs \"candidate\" vs \"bystander\" — it gestures at \"high confidence after perturbation+rescue\" but gives no cutoff, so the scored-rubric requirement is only partially met. The worked example is generic (prkci/prkcz as an exemplar template) rather than a fully instantiated candidate-specific walk-through, and the answer honestly flags that no candidate gene was named and that IDs were not resolved. Factuality is sound and the honesty about gaps is exemplary — no overclaiming, citations are hedged appropriately (Reactome orthology-inferred, BioGRID directionality caveats). The main deductions are for missing the named L1..L3c taxonomy and the explicit classification threshold, which are core to the expected evidence. Citations are plausible but unverifiable and self-flagged as such, which is appropriately cautious.",
+        "rubric": {
+          "factuality": 0.75,
+          "citation_correctness": 0.55,
+          "completeness": 0.55,
+          "testability": 0.8,
+          "uncertainty_calibration": 0.85,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 2740,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 722,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.35,
+        "verdict": "partial",
+        "justification": "The expected answer calls for the specific \"Pearl-hierarchy evidence ladder (L1..L3c)\" framework with a scored rubric distinguishing confirmed/candidate/bystander thresholds and a worked example tied to that named framework. The candidate instead invents its own generic 5-step \"causal-inference ladder\" (co-expression → temporal precedence → network context → perturbation → epistasis/rescue) with self-assigned confidence values at each step, which is a reasonable and coherent evidentiary framework in a general causal-inference sense, but it does not name or map onto the Pearl-hierarchy (Rung 1 association / Rung 2 intervention / Rung 3 counterfactual, do-calculus) explicitly, nor does it produce a scored rubric with explicit confirmed/candidate/bystander categorical thresholds — it only gives continuous confidence numbers per step, not a final classification scheme. The worked example (prkci/prkcz polarity proteins) is present and appropriately tied to a corpus citation, partially satisfying the 'worked example' requirement, though it is somewhat generic and not fully grounded in a specific candidate gene walkthrough with concrete rubric scoring. Citations to CORPUS-2026-0003, BioGRID, Reactome, and niches RN1/RN12 appear plausible and consistent with the framing, and the gap flags are honest, appropriately hedged, and correctly note lack of pseudotime data, non-candidate-specific interaction records, and unresolved ENSDARG IDs — good uncertainty calibration and safety. However, factual/citation correctness against the required framework is weak since the exact named ladder (Pearl-hierarchy L1..L3c) is absent, so this is a substantive miss on the primary expected evidence structure even though the reasoning process itself is scientifically sound and well-hedged. Overall this is a partial match: strong general biological reasoning and appropriate epistemic humility, but missing the specific named framework and formal scored threshold rubric requested.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.55, \"citation_correctness\": 0.4, \"completeness\": 0.3, \"testability\": 0.5, \"uncertainty_calibration\": 0.7, \"safety_ethics\": 0.9}",
+        "usage": {
+          "input_tokens": 2804,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 841,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.87,
+        "justification": "The candidate answer directly addresses the Pearl-hierarchy evidence ladder framework (L1–L3c implicit in the five-step progression from correlation through intervention to rescue/epistasis) and provides a structured causal-inference ladder with confidence scoring at each rung (0.1 → 0.2 → 0.35 → 0.7–0.85 → 0.85–0.9). The answer correctly identifies that co-expression alone is necessary but insufficient to distinguish a true regulator from a bystander, and it explicitly names the criteria at each step: temporal precedence, network plausibility, perturbation phenotype, and rescue/epistasis. The worked example (prkci/prkcz polarity proteins) is apt and directly sourced to the provided corpus (CORPUS-2026-0003). The candidate appropriately flags critical gaps at each step—lack of pseudotime data, indirect pathway inference, need for proper controls—and acknowledges confounding factors (off-target effects, rescue validation). The stated confidence of 0.6 is somewhat conservative relative to the structured framework offered (which reaches 0.85–0.9), but this reflects honest uncertainty about generalizability without a named candidate gene. The answer avoids overclaiming: it clearly states that \"anything short of perturbation leaves the bystander hypothesis open\" and distinguishes between databases (BioGRID/Reactome) and the zebrafish-specific intervention niche (RN12). The gap-flag list is comprehensive and self-aware, noting the absence of candidate-specific data, unresolved ortholog identities, and missing concrete protocol details. Minor weaknesses: the answer does not explicitly name \"Pearl hierarchy\" or L1–L3c labels (though the structure is isomorphic), and the conceptual bridge between generic database queries and candidate-specific mechanistic plausibility could be tighter. However, these are refinements; the core answer is robust, well-calibrated, and directly responsive to the question's request for framework, confidence, and gaps.",
+        "rubric": {
+          "factuality": 0.92,
+          "completeness": 0.88,
+          "citation_correctness": 0.85,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.85,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2212,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 607,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.52,
+    "outcome": "positive",
+    "mean_overall": 0.613,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

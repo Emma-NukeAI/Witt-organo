@@ -1,0 +1,145 @@
+{
+  "claim_id": "held_out_month0_Q22",
+  "claim_timestamp": "2026-07-11T19:19:40Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "ortholog_mapping",
+  "question_id": "Q22",
+  "question": "Resolve a list of gene symbols to verified ENSDARG IDs and flag any that do not resolve (positive NOT_FOUND). Why must IDs never come from memory?",
+  "backend": "neo4j",
+  "direct_answer": "To resolve a list of gene symbols to verified ENSDARG IDs, each symbol must be looked up against the authoritative identifier resolver — Ensembl Zebrafish (Danio rerio), which the evidence bundle names as \"the authoritative identifier resolver behind the DATA INAMOVIBLE\" (with ZFIN as the zebrafish-specific gene/marker nomenclature source). The procedure is: (1) submit each symbol to Ensembl_DanioRerio / ZFIN, (2) retrieve the ENSDARG for exact-match resolutions, and (3) for any symbol with no match, emit a POSITIVE NOT_FOUND flag rather than guessing a plausible ID.\n\nHowever, the bundle here contains NO actual gene symbols to resolve (the question gives no list) and NO resolved entities — \"Key entities resolved in DI: (none checked).\" Therefore I cannot return any concrete ENSDARG bindings or NOT_FOUND flags for specific genes; I can only describe the correct procedure.\n\nWhy IDs must never come from memory: Gene-symbol→ENSDARG mappings are not stable knowledge. Symbols are ambiguous (aliases, paralog pairs like a/b duplicates in zebrafish, deprecated names), ENSDARG accessions are updated/retired across Ensembl releases, and a memorized string can be subtly wrong yet look valid (correct prefix, wrong digits) — a hallucinated ID that silently corrupts every downstream interaction/expression lookup (BioGRID, IntAct, GEO, etc.). Only a live query against the verified store (Ensembl/ZFIN) guarantees the accession is current and actually corresponds to the intended locus. Under this contract, an unresolved symbol must be surfaced as an honest NOT_FOUND, never patched over with a fabricated identifier.</parameter>\n<parameter name=\"confidence\">0.55",
+  "stated_confidence": null,
+  "prior": null,
+  "evidence_cited": [
+    "db:Ensembl_DanioRerio",
+    "db:ZFIN"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Attempt to supply ENSDARG IDs from prior knowledge — rejected: violates the contract's rule against memory-sourced IDs and risks silent hallucination.",
+    "Assume a default gene list — rejected: no list was provided, so any list would be invented.",
+    "Use ZFIN alone as resolver — viable for nomenclature/markers, but the bundle designates Ensembl_DanioRerio as the authoritative ENSDARG resolver, so both are used together."
+  ],
+  "gap_flags": [
+    "No gene symbols were actually provided in the question, so no resolutions or NOT_FOUND flags could be produced.",
+    "No entities were resolved in the DI store (none checked), so no verified ENSDARG bindings are available.",
+    "Path B literature not triggered; answer rests solely on database descriptors, not on a completed resolution run."
+  ],
+  "framework_applied": "Identifier-resolution / provenance-integrity framework: separate the resolution procedure (query authoritative store, positive NOT_FOUND on miss) from asserted results, and refuse memory-sourced accessions per the substrate contract. Chosen because the task is ortholog/ID mapping where accession correctness and honest gap-flagging dominate over inference.</parameter>\n</invoke>\n",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T19:19:40Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "justification": "The candidate captures the core rationale for why IDs must never come from memory (accession drift across Ensembl releases, symbol ambiguity/aliases/paralog a-b duplicates, plausible-but-wrong hallucinated IDs corrupting downstream lookups) and correctly insists on positive NOT_FOUND flagging rather than fabrication — this aligns well with the CLAUDE.md §7/§7.9 spirit. It also honestly flags that no gene list was actually provided, which is good uncertainty calibration and avoids fabricating ENSDARG bindings. However, it does not name the specific expected mechanisms: there is no mention of a resolve_id round-trip (the symbol→ID→symbol verification loop) nor of the verify_output gate, and it cites the general database descriptors (Ensembl/ZFIN) rather than the §7/§7.9 sections by name. So it describes the correct procedure in generic terms but misses the concrete tooling/gating vocabulary the rubric expects, and cannot demonstrate an actual resolution run. Solid on factuality and safety, weaker on completeness and testability.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.8, \"completeness\": 0.5, \"citation_correctness\": 0.4, \"testability\": 0.45, \"uncertainty_calibration\": 0.8, \"safety_ethics\": 0.9}</parameter>\n</invoke>\n",
+          "usage": {
+            "input_tokens": 2003,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 538,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.55,
+          "verdict": "partial",
+          "justification": "The candidate correctly explains the resolve_id procedure (submit symbol → Ensembl/ZFIN → retrieve ENSDARG or emit positive NOT_FOUND) and gives a solid, well-reasoned explanation for why IDs must never come from memory (aliases, paralog duplication, version churn, silent corruption of downstream lookups), which aligns with the CLAUDE.md §7/§7.9 rationale even though it does not explicitly cite that section number. It also correctly flags that no actual gene list was supplied, so it cannot perform a concrete round-trip resolution or produce actual NOT_FOUND flags — an honest and appropriate uncertainty acknowledgment rather than fabricating gene IDs. However, it falls short of the expected evidence in several ways: it never explicitly invokes a \"verify_output gate\" concept, nor does it clearly describe an ENSDARG→symbol round-trip verification step (only forward resolution), and it does not cite CLAUDE.md §7/§7.9 by name, only paraphrasing similar reasoning. Given the question supplied no actual gene list, the candidate's choice to explain procedure rather than fabricate results is safe and appropriate, but completeness is reduced because the round-trip and verify_output gate concepts are only partially covered.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.7, \"completeness\": 0.5, \"citation_correctness\": 0.4, \"testability\": 0.5, \"uncertainty_calibration\": 0.8, \"safety_ethics\": 0.85}",
+          "usage": {
+            "input_tokens": 2067,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 602,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.62,
+          "rubric": {
+            "factuality": 0.75,
+            "completeness": 0.5,
+            "citation_correctness": 0.7,
+            "uncertainty_calibration": 0.75,
+            "testability": 0.45,
+            "safety_ethics": 0.8
+          },
+          "justification": "The candidate demonstrates solid understanding of the procedural and ethical requirements for ID resolution and appropriately identifies Ensembl Zebrafish (Danio rerio) and ZFIN as authoritative sources. The explanation of why IDs must not come from memory is well-reasoned: symbols are ambiguous (aliases, paralog pairs like a/b duplicates), ENSDARG accessions are unstable across releases, and hallucinated IDs silently corrupt downstream pipelines. The NOT_FOUND positive-flagging requirement is correctly stated. However, the answer has critical gaps against expected evidence: (1) \"resolve_id round-trip\" is not explained—no concrete walkthrough of the query-and-verify cycle is provided; (2) CLAUDE.md §7/§7.9 rationale is mentioned but not cited or integrated, leaving this core evidence undemonstrated; (3) verify_output gate is not addressed; (4) the answer explicitly disclaims producing concrete resolutions or NOT_FOUND flags because no gene list was provided, which, while honest, makes the answer largely procedural rather than demonstrative. The candidate's acknowledgment of gaps (no symbols provided, no entities resolved, Path B not triggered) shows good calibration and honesty but undercuts completeness. The factuality of the procedural description and the reasoning about memory hazards are sound, but the answer does not fulfill the expected evidence checklist—it describes what *should* happen rather than showing what *does* happen via actual resolution and verification steps.",
+          "usage": {
+            "input_tokens": 1680,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 489,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.07,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.597,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

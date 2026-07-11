@@ -1,0 +1,161 @@
+{
+  "claim_id": "held_out_month0_Q08",
+  "claim_timestamp": "2026-07-11T18:49:35Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN3",
+  "claim_category": "ortholog_mapping",
+  "question_id": "Q08",
+  "question": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+  "backend": "neo4j",
+  "direct_answer": "I cannot complete the requested ortholog mapping with the evidence provided. The bundle names the correct authoritative resolvers for this task — Ensembl (Danio rerio) for orthology and ZFIN for the zebrafish TF catalog — but it does NOT contain any actual gene records: no zebrafish pronephros TF symbols, no ENSDARG IDs, no human ortholog assignments, and no ohnolog/1:many relationship data have been retrieved into the bundle. No entities were resolved in the DI store (\"Key entities resolved in DI: (none checked)\"), so I have nothing verified to map.\n\nWhat I can say from the corpus that is present: CORPUS-2026-0003 (niche RN1) concerns zebrafish pronephros tubulogenesis and epithelial-identity maintenance and implicates the atypical-PKC polarity proteins Prkc iota and zeta — but these are kinases/polarity proteins, not the transcription factors the question asks about, and no ENSDARG identifiers are given for them. CORPUS-2026-0001 (ZESTA atlas) covers a 3–24 hpf window but is not an ortholog resource.\n\nMethodologically, the correct approach once the data are available would be: (1) pull the pronephros TF set from ZFIN (with ENSDARG IDs), (2) query Ensembl Compara orthology for each to get human orthologs and the cardinality of the relationship, and (3) flag any zebrafish gene with two (or more) human orthologs, or any human gene with two zebrafish co-orthologs arising from the teleost genome duplication (ohnologs), as candidates where paralog compensation could mask a single-gene KO phenotype. Classic pronephros TFs one would expect to check for this (e.g., the pax2a/pax2b, hnf1ba/hnf1bb, and wt1a/wt1b duplicate pairs, plus lhx1a/lhx1b) — but I will NOT assert any of these mappings or ENSDARG IDs as fact here because none are present or verified in this bundle. They must be resolved against Ensembl/ZFIN before being stated.",
+  "stated_confidence": 0.12,
+  "prior": 0.12,
+  "evidence_cited": "db:Ensembl_DanioRerio, db:ZFIN, CORPUS-2026-0003, CORPUS-2026-0003#c000, CORPUS-2026-0001",
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Attempt to map a canonical pronephros TF set (pax2a/pax2b, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b) from background knowledge — rejected because no ENSDARG IDs are verified in the bundle and the substrate contract forbids asserting IDs from memory.",
+    "Use CORPUS-2026-0003's Prkc iota/zeta as the entity set — rejected because those are polarity kinases, not transcription factors, and lack orthology/ID data here.",
+    "Treat the named databases (Ensembl, ZFIN) as sufficient — rejected because they are described as resolvers, but no records were actually retrieved or resolved (none checked)."
+  ],
+  "gap_flags": [
+    "No zebrafish pronephros TF list retrieved (ZFIN records absent from bundle).",
+    "No ENSDARG identifiers present or resolved (DI: none checked).",
+    "No human ortholog assignments retrieved from Ensembl Compara.",
+    "No ohnolog / 1:many cardinality data available to perform the paralog-compensation flagging.",
+    "Only corpus content present is on pronephros polarity kinases (Prkc iota/zeta), not TFs — off-target for the question.",
+    "Cannot fulfill core deliverable (the mapping table) with current bundle."
+  ],
+  "framework_applied": "Evidence-gap triage / negative-result reporting: inventoried the bundle against the task's data requirements (TF set → ENSDARG → human ortholog → cardinality), found the required gene-level records absent, and reported the gap honestly rather than fabricating a mapping. Kept confidence low because the deliverable cannot be produced from the provided evidence.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T18:49:35Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.62,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.8,
+            "completeness": 0.3,
+            "factuality": 0.9,
+            "safety_ethics": 1.0,
+            "testability": 0.55,
+            "uncertainty_calibration": 0.9
+          },
+          "justification": "The candidate honestly declines to fabricate the ortholog table it cannot verify, correctly identifying that the bundle lacks ZFIN records, ENSDARG IDs, and Ensembl Compara cardinality data. This is well-calibrated and non-overclaiming: it flags the polarity-kinase corpus content as off-target and lays out a sound methodology (ZFIN → Ensembl Compara → flag 1:many). Crucially, it does surface the biologically correct candidate ohnolog pairs the expected evidence wants (hnf1ba/hnf1bb, plus pax2a/pax2b, wt1a/wt1b, lhx1a/lhx1b), though it explicitly refuses to assert them as verified. It notably omits foxc1a/foxc1b named in the expected evidence. However, the core deliverable — a verified ENSDARG↔human-ortholog table with compensation flags — is not produced. This is defensible given a genuinely empty bundle, and honest abstention is preferable to hallucination, but the answer still fails to deliver the requested artifact. The domain knowledge in the 'methodologically' section (naming real ohnolog pairs, correctly explaining teleost-genome-duplication-driven paralog compensation) shows the model could have provided a well-hedged provisional mapping. Partial rather than correct because completeness is low; not incorrect because factuality and calibration are strong.",
+          "usage": {
+            "input_tokens": 2197,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 642,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate declines to produce the requested ENSDARG↔human-ortholog table and paralog-flagging analysis, citing absence of retrieved gene records in the provided bundle. This is an honest abstention rather than fabrication, which is commendable for avoiding overclaiming. However, the expected evidence explicitly wants a verified table with flags like hnf1ba/hnf1bb and foxc1a/foxc1b — the candidate does mention hnf1ba/hnf1bb as a 'classic' example but explicitly refuses to assert it, and never mentions foxc1a/foxc1b at all, despite this being common domain knowledge (Ensembl Compara orthology data) that could reasonably be supplied even without a live database query, since the model has priors about zebrafish/human orthology from training. A stronger answer would have used background knowledge to produce a best-effort table (clearly caveated as needing verification) rather than a blanket refusal, since the question is answerable in substantial part from well-established comparative genomics knowledge (many zebrafish pronephros TF paralogy relationships are well documented: pax2a/pax2b, hnf1ba/hnf1bb, foxc1a/foxc1b, wt1a/wt1b, etc.). The candidate's caution is appropriate given the tool-context framing, but it results in essentially zero completeness against the rubric's core deliverable. Uncertainty calibration is good (confidence 0.12, appropriately low), and safety/ethics is fine (no fabrication). But factuality/testability/completeness are all very low since no actual table or verified flags are produced. This is a case of appropriate abstention given the (apparently deliberately impoverished) evidence bundle, but it underperforms relative to what an ideal answer would provide, and given the rubric heavily rewards the actual table and flags, this should be scored as largely incomplete, though the abstention itself is defensible and not incorrect.",
+          "overall_score": 0.32,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.6,
+            "completeness": 0.05,
+            "factuality": 0.5,
+            "testability": 0.1,
+            "uncertainty_calibration": 0.8,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2261,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 807,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.78,
+          "verdict": "partial",
+          "justification": "The candidate demonstrates strong methodological clarity and honest epistemic calibration by explicitly refusing to assert unverified claims. It correctly identifies that the bundle lacks the core deliverables (ENSDARG↔human-ortholog table, ohnolog flags) and articulates the proper workflow (ZFIN → Ensembl Compara → cardinality flagging). It also appropriately references CORPUS-2026-0003 and acknowledges the presence of pronephros-relevant content, while correctly noting that Prkc iota/zeta are kinases, not transcription factors—demonstrating domain knowledge. The candidate's self-assigned confidence (0.12) aligns well with its inability to produce the expected mapping table. However, the answer fundamentally fails the core requirement: no verified ortholog mappings, no ENSDARG IDs, and no paralog-compensation flags are provided. While the candidate mentions \"classic pronephros TFs\" (pax2a/pax2b, hnf1ba/hnf1bb, wt1a/wt1b, lhx1a/lhx1b) as examples of what \"one would expect to check,\" it correctly refuses to assert these without verification—a principled choice that prevents false positives but leaves the deliverable unfulfilled. The answer excels in testability (explicit about what is and is not resolved) and uncertainty calibration (transparent about gaps), but scores poorly on completeness and factuality because no actual ortholog assignments or ohnolog data are present to evaluate.",
+          "rubric": {
+            "factuality": 0.85,
+            "citation_correctness": 0.88,
+            "completeness": 0.15,
+            "uncertainty_calibration": 0.95,
+            "testability": 0.92,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 1895,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 499,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.46,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.573,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

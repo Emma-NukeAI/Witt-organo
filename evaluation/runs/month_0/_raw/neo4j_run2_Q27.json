@@ -1,0 +1,104 @@
+{
+  "question_id": "Q27",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Which small molecules (e.g., DEAB, endogenous RA) would perturb RA signaling for a docking/perturbation study, and what file formats feed docking?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7993,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.7993,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.7448,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7344,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7287,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7201,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.674,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "For a docking/perturbation study targeting retinoic acid (RA) signaling, candidate small molecules fall into a few mechanistic classes:\n\n1. RA synthesis inhibitors — DEAB (N,N-diethylaminobenzaldehyde), a classic ALDH/RALDH (aldehyde dehydrogenase) inhibitor that blocks conversion of retinaldehyde to RA, thereby lowering endogenous RA. This is a natural positive control for RA-pathway perturbation.\n2. Endogenous/agonist ligands — all-trans retinoic acid (endogenous RA) and 9-cis RA, which bind the RA receptor ligand-binding domains (RAR/RXR). These are the physiological ligands that would dock into the RA-receptor structures noted in RN2.\n3. Synthetic RAR agonists/antagonists — e.g., TTNPB (agonist) and BMS-493 / AGN-193109 (RAR inverse agonists/antagonists), commonly used to push or block receptor activity in zebrafish assays.\n\nThe evidence bundle explicitly supports two of these: the RN2 niche contains experimentally resolved 3D coordinates of RA receptors (the docking targets), and the question itself names DEAB and endogenous RA. The synthetic agonist/antagonist names above are standard pharmacology and are offered as candidates but are NOT grounded in the provided bundle.\n\nFile formats that feed docking:\n- Receptor/protein structures: PDB (.pdb) and mmCIF (.cif) — the RN2 \"3D coords of experimentally resolved structures\" are the receptor inputs. For AutoDock-family tools these are typically converted to PDBQT (.pdbqt).\n- Small-molecule ligands: MOL/SDF (.mol, .sdf), MOL2 (.mol2), SMILES strings for enumeration, and PDBQT (.pdbqt) for the prepared, charged/rotatable-bond ligand.\n\nNote: the bundle describes RN2 coordinates and RN12 perturbation-design docs but does not itself specify docking file formats or a molecule library — those specifics are supplied from domain knowledge, not the retrieved evidence.</parameter>\n<parameter name=\"confidence\">0.55",
+    "evidence_cited": [
+      "niche:RN2",
+      "niche:RN12",
+      "db:STRING_DB",
+      "db:Reactome"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Restricting molecules strictly to DEAB + endogenous RA (bundle-grounded) and omitting synthetic agonists/antagonists",
+      "Framing perturbation at the network level (RN3/Reactome/STRING pathway edits) instead of physical docking",
+      "Using RXR-selective ligands (rexinoids, e.g., bexarotene) if the RN2 structures include RXR rather than RAR"
+    ],
+    "gap_flags": [
+      "No gene identifiers were resolved/checked in DI, so no ENSDARG bindings can be asserted for RA receptors (raraa, rarab, rxr genes).",
+      "The bundle does not list specific docking file formats; PDB/PDBQT/SDF/MOL2/SMILES are supplied from standard docking practice, not the evidence.",
+      "Synthetic RAR/RXR agonists and antagonists (TTNPB, BMS-493, AGN-193109, bexarotene) are candidate suggestions not supported by the retrieved evidence.",
+      "RN2 says RA receptor structures exist but does not enumerate which receptors/PDB IDs are available, so exact docking targets are unconfirmed.",
+      "No Path B literature was retrieved to validate DEAB concentration/efficacy in zebrafish RA perturbation."
+    ],
+    "framework_applied": "Perturbation-design reasoning: enumerate mechanistically distinct intervention classes (synthesis inhibitor, endogenous ligand, receptor agonist/antagonist) around the RA node, then map required computational inputs (receptor + ligand file formats) to the available RN2 structural coordinates — chosen because the task is a docking/perturbation design spanning RN2 (structures) and RN12 (intervention designs).</parameter>\n</invoke>\n",
+    "_usage": {
+      "input_tokens": 1837,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1507,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

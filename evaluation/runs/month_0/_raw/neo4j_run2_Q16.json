@@ -1,0 +1,114 @@
+{
+  "question_id": "Q16",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Build the master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for inducing pronephric program in adjacent competent tissue.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8055,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.8055,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7541,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7548,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.756,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7089,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7112,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot responsibly build the requested master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for pronephric induction from the evidence available. Here is what the bundle does and does not support:\n\nWHAT THE BUNDLE SUGGESTS EXISTS (but is not exposed as retrievable content):\n- The niche node [niche:RN10] is titled \"Tejidos chaperones y boundary conditions\" and is described as containing exactly the primitives this question needs: \"Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac[tion table]\". This is the intended authoritative source for a Source→Target→Signal→Temporal-window table. HOWEVER, the actual JSON contents (the coordinate pairs, the timing matrices, and the master interaction rows) are NOT present in the retrieved snippet — only the node's abstract/title is. I therefore have no concrete Source→Target→Signal→Temporal rows to populate.\n\nWHAT THE BUNDLE ACTUALLY CONTAINS ON PRONEPHROS:\n- [CORPUS-2026-0003] states that zebrafish pronephros tubulogenesis and epithelial identity maintenance depend on the polarity proteins Prkc iota (prkci) and Prkc zeta (prkcz). This concerns MAINTENANCE of epithelial/tubular identity within the pronephros, not the chaperone-mediated INDUCTION signaling from a source tissue into an adjacent competent tissue. No ENSDARG IDs are provided in the bundle for these genes, so I will not assert any from memory.\n\nWHY I WILL NOT FABRICATE THE TABLE:\n- No source-tissue identities, no target competent-tissue identities, no signal molecules (\"chaperones\"/ligands), and no temporal windows (hpf) are quantitatively present in the retrieved evidence. Building a 4-column interaction table would require inventing every cell, which violates the grounding contract.\n\nRECOMMENDED NEXT RETRIEVAL (to actually answer): pull the raw contents of the RN10 node — specifically the `.json` timing matrices and the \"master indexed interaction table\" — plus any spatial adjacency data (CNGB_STOmics / ZESTA) that gives Cartesian neighbor coordinates for the intermediate mesoderm / pronephric field in the 3–24 hpf window. With those, the table can be assembled directly.",
+    "confidence": 0.15,
+    "evidence_cited": [
+      "niche:RN10",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0001",
+      "db:CNGB_STOmics"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "Populate the table from CORPUS-2026-0003 (prkci/prkcz) — rejected: that source describes intracellular polarity-driven tubulogenesis/identity MAINTENANCE, not inter-tissue chaperone induction signaling; it does not provide Source→Target→Signal→Temporal rows.",
+      "Infer signals/timing from ZESTA/CNGB spatial atlas orthology — rejected: only database descriptors are in the bundle, not queryable adjacency or timing values.",
+      "Reconstruct the interaction table from RN10's title alone — rejected: the title advertises the data but the actual JSON coordinates/timing matrices/interaction rows are not in the retrieved snippet, so any table would be fabricated."
+    ],
+    "gap_flags": [
+      "RN10 node retrieved as abstract/title only — the actual .json timing matrices, Cartesian neighbor coords, and master indexed interaction table are NOT in the bundle.",
+      "No source tissue identities present.",
+      "No target competent-tissue identities present.",
+      "No signal/ligand ('chaperone') molecules named for induction.",
+      "No temporal windows (hpf) provided for any interaction.",
+      "No ENSDARG IDs supplied for prkci/prkcz; not asserting from memory.",
+      "Path B (external literature) not triggered — no corroborating primary sources."
+    ],
+    "framework_applied": "Evidence-sufficiency gating for perturbation_design: attempted to instantiate the requested 4-tuple schema (Source→Target→Signal→Temporal window) against retrieved primitives; when the authoritative niche (RN10) returns only a descriptor rather than its JSON payload, the correct action is to decline fabrication, report the exact retrieval gap, and specify the next-hop fetch needed — rather than hallucinate table cells.",
+    "_usage": {
+      "input_tokens": 1896,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1664,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

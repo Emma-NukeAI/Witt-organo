@@ -1,0 +1,105 @@
+{
+  "question_id": "Q14",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "How would collective cell-migration kinetics (velocity, apoptosis rate) be summarized per tissue region and stage to calibrate a simulation?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8142,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.8142,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.7042,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7061,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.6921,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.6883,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:UCSC_Cell_Browser",
+          "type": "database",
+          "score": 0.6807,
+          "text": "UCSC Cell Browser. Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets. Data: Cell lineages across "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "To calibrate a simulation, collective cell-migration kinetics should be summarized as per-region × per-stage aggregate statistics, which is exactly the structure the RN8 niche (\"Cinética celular colectiva\") provides. Concretely:\n\n1. **Define the binning axes.** (a) Tissue region — a spatial segmentation of the embryo/tissue (e.g., anatomical domains within the pre-corneal window), and (b) developmental stage (e.g., hpf bins). Each region×stage cell is the unit of aggregation.\n\n2. **Migration velocity.** From the raw cell trajectories that RN8 stores alongside the summaries, compute instantaneous cell velocities (displacement/time between tracked positions), then aggregate per region×stage into a mean migration velocity (with a dispersion measure such as SD/IQR and n = number of tracks/cells). RN8 explicitly reports \"mean migration velocity\" per region/per stage. Directionality/persistence could be added but is not named in the bundle.\n\n3. **Apoptosis rate.** Express as a percentage per hour (apoptosis %/hr) per region×stage — i.e., fraction of cells undergoing apoptosis normalized by observation time — which RN8 lists directly (\"apoptosis %/hr\").\n\n4. **Output for the model.** Store as a structured table/JSON keyed by (region, stage) with fields {mean_velocity, velocity_dispersion, apoptosis_pct_per_hr, n}. These per-region/per-stage values become the calibration targets / input parameters for the simulation engine. RN13 (simulation models/code — e.g., Morpheus .xml, BioNetGen .bngl) is the natural consumer of these calibrated parameters; RN7 (active mechanics: flow vectors, velocity, pressure fields) can supply complementary velocity-field data if mechanical coupling is needed, and RN3 holds signaling kinetic parameters/simulation env variables.\n\nIn short: track cells → derive velocities and apoptosis events → bin by tissue region and developmental stage → report mean velocity (+ dispersion, n) and apoptosis %/hr per bin → feed as calibration parameters to the simulation model.</parameter>\n<parameter name=\"confidence\">0.62",
+    "evidence_cited": [
+      "niche:RN8",
+      "niche:RN13",
+      "niche:RN7",
+      "niche:RN3"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Reporting only whole-tissue (non-regionalized) averages — rejected because the question and RN8 both specify per-region/per-stage granularity.",
+      "Using RN7 flow/velocity/pressure fields as the primary velocity source — plausible for mechanical velocity fields but RN7 is cell/segment/node flow vectors, not the migration-kinetics summary the question asks for; RN8 is the direct match.",
+      "Deriving velocities from scRNA-seq trajectory atlases (ZESTA / UCSC Cell Browser) — rejected because those give lineage/transcriptomic trajectories, not physical migration velocity or apoptosis rate."
+    ],
+    "gap_flags": [
+      "Bundle gives only niche-level descriptions; no concrete schema, units convention, or example values were retrieved, so exact field names/formatting are inferred.",
+      "Region segmentation scheme (how tissue regions are defined and named) is not specified in the evidence.",
+      "Stage binning resolution (hpf granularity) is not specified.",
+      "No detail on how apoptosis events are detected/annotated in the raw data.",
+      "Whether velocity dispersion, n, or directionality are actually stored in RN8 is not confirmed — only mean velocity and apoptosis %/hr are named.",
+      "No Path B literature was available to cross-validate the summarization convention."
+    ],
+    "framework_applied": "Data-schema / calibration-pipeline decomposition: mapped the question to the retrieval niche that directly matches (RN8), derived the aggregation axes (region×stage) and required metrics from the niche description, and traced the downstream consumer (RN13) and adjacent complementary niches (RN7, RN3). Chosen because the task is a literature/data-synthesis question about how to structure calibration data.</parameter>\n</invoke>\n",
+    "_usage": {
+      "input_tokens": 1874,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1509,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

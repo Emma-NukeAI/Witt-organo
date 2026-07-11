@@ -1,0 +1,102 @@
+{
+  "question_id": "Q20",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "simulation_debug",
+  "bundle": {
+    "question": "A Morpheus run fails: 'Cell population NCC: Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)'. Diagnose and fix.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.6908,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.6908,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.7089,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "db:UCSC_Cell_Browser",
+          "type": "database",
+          "score": 0.6576,
+          "text": "UCSC Cell Browser. Visualize lineage trajectories and cell populations; aggregates published scRNA-seq datasets. Data: Cell lineages across "
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.663,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.6393,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6655,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "This is a Morpheus configuration/initialization error, not a biology error. The message says the spatial initializers for CellPopulation \"NCC\" produced fewer cells than the population's declared `size` — the parenthetical \"(40 < 1)\" indicates 40 cells were actually placed by the initializer(s) but the CellPopulation/@size (or the requested count) resolved to a value that the seeding logic treats as unsatisfiable (a common symptom of a mis-set or expression-evaluated size, e.g. size=1 while 40 slots exist, or an initializer/lattice mismatch). \n\nDiagnosis — check these in the Morpheus .xml (RN13 holds the Morpheus models/code):\n1. The <CellPopulation type=\"NCC\"> element's `size` attribute. If it is a fixed small number (e.g. size=\"1\") or an expression that evaluates too low, the initializer cannot reconcile the count. Set `size` to the number you actually want seeded (or remove it and let the spatial initializer define the count).\n2. The spatial initializer block(s) — e.g. <InitCellObjects>, <InitCircle>, <InitRectangle>, <InitDistribute number-of-cells=\"...\">, or <InitProperty>. Make sure the initializer's cell count / geometry matches the domain. If the initialization region is smaller than the lattice or overlaps occupied space, Morpheus places fewer cells than requested and aborts.\n3. Domain/lattice size and node availability: a Space/Lattice too small (or already filled by another CellPopulation) leaves no room, so the initializer under-fills.\n4. Placement mode: with non-overlapping placement and a dense target, requested > available nodes causes under-seeding. Either enlarge the lattice, reduce requested cells, or allow the mode that permits the achievable count.\n\nFix (most likely): edit the NCC <CellPopulation> so its `size`/requested count and its spatial initializer agree — set them both to the intended number (e.g. use the initializer to place the cells and set `size` to match, or lower the requested count to what the region can hold). Then re-run; the \"fewer cells than requested\" guard should clear.\n\nI cannot see the actual .xml file contents in this bundle, so the exact offending attribute value cannot be confirmed — retrieve the specific Morpheus model from RN13 to pinpoint the line.",
+    "confidence": 0.4,
+    "evidence_cited": [
+      "niche:RN13"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Lattice/domain too small so spatial initializer runs out of free nodes before reaching requested count",
+      "CellPopulation/@size set as an expression that evaluates to a low value (e.g. 1) at parse time",
+      "Initializer geometry (InitCircle/InitRectangle/InitDistribute) region does not overlap the intended domain or is already occupied by another population",
+      "Non-overlapping placement mode conflicting with a high requested density",
+      "A biology data problem — ruled out; this is a simulation-engine seeding error, no gene involved"
+    ],
+    "gap_flags": [
+      "The actual Morpheus .xml file contents for the NCC CellPopulation are not in the bundle — cannot confirm the exact size attribute or initializer causing the mismatch",
+      "The '(40 < 1)' phrasing is ambiguous; interpretation of which number is 'requested' vs 'created' is inferred, not verified against the source XML/Morpheus version",
+      "No Morpheus version or schema documentation retrieved to confirm the exact element/attribute names for this build"
+    ],
+    "framework_applied": "Root-cause diagnosis for a configuration/tooling error: partition into engine-config causes (size attribute, initializer geometry, lattice capacity, placement mode) rather than biological reasoning, because the error originates in the Morpheus simulation setup (RN13 domain), not in gene/lineage data.",
+    "_usage": {
+      "input_tokens": 1892,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1410,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

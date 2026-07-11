@@ -1,0 +1,173 @@
+{
+  "question_id": "Q02",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "What markers distinguish periocular neural crest from optic-cup and lens-placode lineages at 14–24 hpf in zebrafish?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7914,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7914,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.808,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7227,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.7219,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7523,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.7261,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on general zebrafish eye-development knowledge, the three lineages at 14–24 hpf are canonically distinguished as follows: (1) Periocular neural crest (POM/periocular mesenchyme) — foxc1a/foxc1b, foxd3, pitx2, sox10, eya2, lmx1b, and pdgfra; these cells migrate around the optic cup and give rise to anterior-segment structures. (2) Optic cup (neuroretina/RPE) — rx1/rx2/rx3, vsx2 (chx10), six3, pax6a/pax6b (retinal domain), sox2, and mitfa/otx2 for the RPE layer. (3) Lens placode/lens — pitx3, foxe3, cryaa/cryba/crygamma (crystallins, later), mab21l1, and pax6a/pax6b (shared with retina but with a distinct lens-restricted domain). HOWEVER — I must flag strongly that NONE of these marker assignments are supported by the retrieved evidence bundle. The bundle lists dataset titles (ZESTA atlas CORPUS-2026-0001, anterior-segment scRNA atlas CORPUS-2026-0002) that are HIGHLY relevant and would likely contain exactly this marker information, but no marker-level content, no gene expression tables, and critically no verified ENSDARG identifiers were retrieved. I therefore cannot responsibly assert any ENSDARG. The markers above should be treated as literature-derived hypotheses to be validated against ZESTA/anterior-segment atlas data and ZFIN, not as evidence-grounded findings from this bundle.",
+    "confidence": 0.2,
+    "evidence_cited": [
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0002",
+      "db:ZFIN",
+      "db:CNGB_STOmics"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "foxc1b"
+      },
+      {
+        "symbol": "foxd3"
+      },
+      {
+        "symbol": "pitx2"
+      },
+      {
+        "symbol": "sox10"
+      },
+      {
+        "symbol": "eya2"
+      },
+      {
+        "symbol": "lmx1b"
+      },
+      {
+        "symbol": "pdgfra"
+      },
+      {
+        "symbol": "rx1"
+      },
+      {
+        "symbol": "rx2"
+      },
+      {
+        "symbol": "rx3"
+      },
+      {
+        "symbol": "vsx2"
+      },
+      {
+        "symbol": "six3"
+      },
+      {
+        "symbol": "pax6a"
+      },
+      {
+        "symbol": "pax6b"
+      },
+      {
+        "symbol": "sox2"
+      },
+      {
+        "symbol": "mitfa"
+      },
+      {
+        "symbol": "otx2"
+      },
+      {
+        "symbol": "pitx3"
+      },
+      {
+        "symbol": "foxe3"
+      },
+      {
+        "symbol": "cryaa"
+      },
+      {
+        "symbol": "mab21l1"
+      }
+    ],
+    "alternatives_considered": [
+      "Declining to answer entirely because the bundle contains no marker-level evidence — rejected because the question deserves a scaffolded, clearly-flagged hypothesis that names the relevant atlases for follow-up",
+      "Asserting ENSDARG identifiers from memory to make the answer look complete — rejected per the substrate contract (never assert gene IDs from memory)",
+      "Treating pax6a/pax6b as a clean discriminator — rejected because it is shared between optic-cup (retina) and lens-placode lineages and only distinguishes via spatial domain, not presence/absence"
+    ],
+    "gap_flags": [
+      "No marker-level content or expression tables were retrieved from CORPUS-2026-0001 (ZESTA) or CORPUS-2026-0002 (anterior-segment atlas) — the most relevant sources are cited by title only",
+      "Zero verified ENSDARG identifiers retrieved; all gene symbols are unbound and unvalidated against the verified store",
+      "No entities were checked/resolved in DI (Key entities resolved: none checked)",
+      "Path B literature not triggered, so no primary-literature marker support",
+      "Marker assignments are from general domain knowledge, NOT from this evidence bundle — temporal specificity to the exact 14–24 hpf window is not verified here",
+      "Cannot confirm which markers are truly discriminating vs. co-expressed at these stages without the actual scRNA/spatial data"
+    ],
+    "framework_applied": "Marker-identification triage with evidence-grounding gate: attempted to map candidate lineage markers to retrieved evidence, found the bundle relevance-rich but content-poor (titles only, no expression data, no IDs), so downgraded from assertion to clearly-flagged hypothesis and withheld all ENSDARG per the substrate's no-invented-identifiers rule.",
+    "_usage": {
+      "input_tokens": 1895,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1669,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

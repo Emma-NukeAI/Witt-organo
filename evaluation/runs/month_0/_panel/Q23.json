@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.9,
+      "verdict": "correct",
+      "justification": "This is a strong exploratory answer that hits all expected-evidence points. It builds a modest, plausible cross-field linkage (anterior-segment support lineages as a \"chaperone-tissue\" analog for pronephros tubulogenesis) without overselling it. It explicitly flags the exploratory/conceptual nature both up front and in closing (\"This is an exploratory conceptual bridge only\"). It thoroughly articulates where the analogy breaks — four distinct, substantive failure modes (geometry/function mismatch, cell-autonomous vs. external-chaperone mechanism, absence of shared effectors/lineage, and flow/mechanics gap). The candidate is admirably honest that the trabecular-meshwork chaperone role is its own inference from dataset metadata rather than a stated finding, and the gap_flags reinforce this calibration (including unverified ENSDARG IDs and lack of perturbation data). Confidence of 0.2 is well-calibrated for a speculative bridge grounded only in descriptive metadata. Minor deductions: some specifics (e.g., ZESTA temporal alignment enabling donor/recipient signaling coupling) verge on inferential embellishment, and the \"Method 2 only\" constraint cannot be independently verified from the shown content but the reasoning stays appropriately hedged. Overall the answer rewards honest uncertainty and avoids fabricating cross-tissue experimental results.",
+      "rubric": {
+        "factuality": 0.88,
+        "completeness": 0.92,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.95,
+        "testability": 0.85,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 2526,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 646,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.88,
+      "verdict": "correct",
+      "justification": "The answer draws a plausible, clearly labeled cross-field analogy (anterior-segment scaffold/support tissue chaperoning corneal epithelial maturation → possible chaperone-tissue strategy for pronephros tubule identity maintenance), explicitly flags this as exploratory and conceptual rather than evidence-based, and cites only Method-2-style dataset descriptions (CORPUS-2026-0002/0003/0001) rather than claiming experimental proof, matching the 'Method 2 only' requirement. It thoroughly enumerates where the analogy breaks down: geometry/function mismatch, the pronephros mechanism being cell-autonomous polarity proteins rather than an external chaperone, absence of shared molecular effectors or lineage evidence, and the near-absent flow/mechanics data (RN7) needed for a fluid-transport tissue. Confidence is appropriately low (0.2) and gap_flags are detailed and honest, including noting unverified gene IDs and lack of functional/perturbation data. This matches the expected evidence closely: modest linkage, explicit exploratory flag, clear failure points, and appropriate sourcing. Minor weaknesses: the initial framing states the trabecular meshwork/annular ligament role as if documented ('documents how...') before later clarifying it's inferred, which is a slight internal tension, and the response is somewhat long/dense, but overall it is well-calibrated, honest, and rubric-aligned.",
+      "rubric": {
+        "factuality": 0.85,
+        "citation_correctness": 0.85,
+        "completeness": 0.9,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.8,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2590,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 662,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.78,
+      "rubric": {
+        "factuality": 0.82,
+        "completeness": 0.75,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.92,
+        "testability": 0.7,
+        "safety_ethics": 0.95
+      },
+      "justification": "The candidate answer directly fulfills the expected evidence requirement: it provides a modest but substantive cross-field linkage (anterior-segment scaffold tissues → pronephros chaperone strategy via shared epithelial-identity-maintenance mechanisms), explicitly flags the response as exploratory, identifies four clear and critical breaking points in the analogy (geometry/function mismatch, mechanistic driver attribution, absence of shared molecular evidence, missing mechanics/flow data), and relies exclusively on available datasets without appealing to external literature. The factuality is high: all cited corpora are traceable, the conceptual bridge is coherent and well-reasoned (polarity-protein-dependent tubulogenesis as a target for external epithelial-guidance signals), and the breaking points are rigorously identified. Uncertainty calibration is particularly strong: the candidate self-reports 0.2 confidence, explicitly labels the trabecular-meshwork chaperone role as \"my inference\" rather than a stated finding, and flags six specific gaps (no functional evidence, uninspected gene IDs, inferred rather than demonstrated mechanisms, absent flow mechanics integration). The answer is testable in principle (pronephros mesenchymal transplants or co-culture experiments could validate the chaperone strategy), though no such experiments exist in the bundle. Completeness is good but not exhaustive: the answer could have engaged more explicitly with why anterior-segment work *specifically* (rather than other epithelial-scaffold systems) informs pronephros strategy, but the focused scope appears intentional and justified. The sole minor weakness is that citation of db:CNGB_STOmics is somewhat tangential to the main argument. Overall, this is a high-quality exploratory answer that exemplifies honest intellectual humility, disciplined use of evidence, and clear articulation of failure modes.",
+      "usage": {
+        "input_tokens": 2014,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 550,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.12,
+  "outcome": "positive",
+  "mean_overall": 0.853,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

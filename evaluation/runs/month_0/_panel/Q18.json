@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.82,
+      "verdict": "correct",
+      "justification": "The answer delivers on all core expected-evidence elements: a ranked candidate perturbation set (pax2a, wt1a, combinatorial, RA, Notch), explicit required controls (vehicle/heat-shock-only, dosage/timing, spatial/lineage, marker specificity panel, positive control), and a substantive list of possible confounders (field expansion, overexpression toxicity, competence gating, partial-program induction, positional-signal dependency, paralog/identifier confounder). Crucially it explicitly routes through the causal-pruner and human gate before wet-lab commitment, satisfying the required task contract. The sufficiency-vs-necessity framing is biologically sound (gain-of-function/ectopic induction), and the candidate TFs are legitimately canonical intermediate-mesoderm/pronephric regulators. Uncertainty calibration is strong and honest: it flags that ENSDARGs were not verified, that these are hypothesis-stage candidates from RN2 passing mentions only, and gives a low confidence (0.28) appropriate to an unvalidated design. The main deduction is that gap_flags is set to 'None' even though the answer prose is full of gaps it identifies — the confounders and unverified-identifier caveats belong in gap_flags per the expected-evidence spec (\"confounders in gap_flags\"), so the structured field is inconsistent with the narrative. This is a modest structural/citation-hygiene lapse rather than a factual error. Otherwise factuality, testability, and safety are high.",
+      "rubric": {
+        "factuality": 0.85,
+        "citation_correctness": 0.75,
+        "completeness": 0.9,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.9,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2641,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 678,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "justification": "The answer directly addresses the prompt with a clear, well-reasoned minimal perturbation set (single-factor → combinatorial → signaling-context escalation), explicit required controls (vehicle/heat-shock-only, dosage/timing titration, spatial/lineage control, marker specificity panel, positive control), and a thorough confounders list (endogenous-field expansion, toxicity, competence gating, partial-program induction, positional-signal dependency, identifier/paralog confusion). It also explicitly states the causal-pruner + human gate routing requirement, matching the expected evidence structure closely. Calibration is reasonable: confidence is low (0.28) and the answer flags that ENSDARG IDs were not verified and that RN2 lacks functional/epistasis data for pronephros, appropriately hedging overclaiming. However, there are some deviations from expected format: gap_flags is reported as None despite the answer containing clear textual gap-flag-like caveats (unverified IDs, no functional data) — this is a rubric-relevant omission since the expected evidence specifies gap_flags should contain confounders/controls/candidate info explicitly, not just embedded in prose. This is a structural/formatting shortfall even though the content is largely present narratively. Citations are somewhat generic (niche:RN2, RN12, CORPUS ids) without clear traceability of how each control/confounder maps to a specific source, so citation_correctness is middling. Overall, this is a solid, cautious, well-structured answer with correct routing logic and appropriate epistemic humility, but loses points for not populating gap_flags formally and for somewhat loose citation grounding.",
+      "rubric": {
+        "completeness": 0.85,
+        "testability": 0.8,
+        "citation_correctness": 0.55,
+        "safety_ethics": 0.85,
+        "uncertainty_calibration": 0.75,
+        "factuality": 0.7
+      },
+      "usage": {
+        "input_tokens": 2705,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 717,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.82,
+      "verdict": "correct",
+      "justification": "The candidate answer demonstrates exceptional rigor in proposing a minimal perturbation set for testing sufficiency of a pronephric program. Strengths: (1) Clear framing distinguishing sufficiency (gain-of-function) from necessity; (2) Properly calibrated epistemic humility—explicitly flags that candidates are \"hypothesis-stage only\" and ENSDARGs not verified, treating symbol→ID mapping as unconfirmed; (3) Ranked candidate prioritization rationale is sound (single-factor before combinatorial, TF-intrinsic before signaling, additive escalation for minimality); (4) Required controls are comprehensive and well-justified: vehicle controls, dosage/timing titration, spatial/lineage specificity assay, multi-marker validation, and positive calibration; (5) Confounder enumeration is sophisticated and domain-appropriate: field expansion vs. ectopic induction, toxicity artifacts, competence gating, partial programs, positional-signal dependencies, and identifier errors (paralog confusion); (6) Routing compliance: explicitly states the design must pass through causal-pruner and human gate before execution, satisfying the task contract requirement. Weaknesses: (1) Stated confidence (0.28) seems miscalibrated—answer quality warrants higher confidence given its thoroughness; (2) Gap_flags field marked \"None,\" yet the answer itself enumerates multiple epistemic gaps (unverified ENSDARG mapping, no functional data, hypothesis-stage candidates)—should have populated gap_flags with these explicitly; (3) Citation chain references 'niche:RN2' and Ensembl but does not show explicit verification trace; (4) Competence-mapping and lineage-tracing logistics are mentioned but could specify tissue contexts more concretely (e.g., axial hypaxial vs. coelomic mesoderm). The answer is testable, appropriately caveated, and properly routes through peer review gates. The minor discrepancy between stated confidence and answer quality, plus the unfilled gap_flags field despite clear gaps enumerated in text, prevents a perfect score.",
+      "rubric": {
+        "factuality": 0.85,
+        "testability": 0.88,
+        "completeness": 0.8,
+        "citation_correctness": 0.78,
+        "uncertainty_calibration": 0.75,
+        "safety_ethics": 0.85
+      },
+      "usage": {
+        "input_tokens": 2174,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 626,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.1,
+  "outcome": "positive",
+  "mean_overall": 0.787,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

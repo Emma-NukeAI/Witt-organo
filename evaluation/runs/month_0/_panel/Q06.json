@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "justification": "The expected evidence centers on distinguishing physical vs predicted interaction provenance (IntAct physical, STRING predictive) plus a complex PAE note. The candidate does capture the core distinction well: it explicitly flags STRING as PREDICTED and Reactome as orthology-inferred/computational, contrasting these with resolved structures — this maps closely onto the \"physical vs predicted provenance\" requirement. It correctly identifies Jagged2a–Notch as a ligand–receptor (DSL/EGF interface) physical pairing and Foxc1a–Pitx2 as a TF co-regulatory relationship, both biologically accurate for anterior-segment dysgenesis. Weaknesses: (1) It does not cite IntAct as the physical-interaction resource — it substitutes structural coordinates and Reactome/STRING, missing the specific physical-interaction curation channel expected. (2) It omits any mention of a complex PAE (predicted aligned error) note, which is a specific expected element for judging modeled-complex confidence — this is a clear gap. The uncertainty calibration is a strength: honest, well-scoped gap_flags, low stated confidence (0.35), and no fabricated ENSDARGs or interface residues. Overall this is a solid, honest partial answer that gets the provenance framing but misses the IntAct-physical anchor and the PAE note.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.85, \"citation_correctness\": 0.55, \"completeness\": 0.6, \"uncertainty_calibration\": 0.9, \"testability\": 0.7, \"safety_ethics\": 1.0}",
+      "usage": {
+        "input_tokens": 2608,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 627,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "justification": "The expected evidence centers on two specific points: (1) distinguishing physical interaction provenance (IntAct) from predicted/computational provenance (STRING) for these complexes, and (2) noting a PAE (predicted aligned error) caveat for the complex structure confidence. The candidate's answer discusses STRING as predictive and contrasts it with 'experimentally resolved 3D structures' from an RN2 niche, and generally treats structural/interaction evidence with appropriate epistemic caution, flagging that no curated interaction record exists. However, it never mentions IntAct specifically as the physical-interaction database, and it never mentions PAE (predicted aligned error) as a metric for complex-structure confidence — both of which are explicitly named in the expected evidence as key provenance/quality markers. Instead it substitutes generic 'structural layer' and 'interaction/pathway layer' framing using Reactome/STRING/RN2, which is a reasonable but distinct evidence-assembly narrative. The answer is well-organized, appropriately hedged, and transparent about gaps (no ENSDARG, no curated PPI, no cross-talk evidence), reflecting good uncertainty calibration and honesty. But because it omits the two specific expected terms (IntAct physical vs STRING predictive distinction by name, and PAE note for complex structure) it only partially satisfies the rubric's specific evidentiary requirements even though the underlying reasoning is in the right direction (predictive vs physical distinction is implicitly present via STRING vs 'experimentally resolved structures', but IntAct is never named, and PAE is completely absent). Overall this is a thoughtful, cautious answer that captures the spirit of the expected evidence but misses specific named sources (IntAct, PAE) that were called out as required evidence points, making it partial rather than fully correct.",
+      "overall_score": 0.45,
+      "verdict": "partial",
+      "rubric": {
+        "factuality": 0.55,
+        "completeness": 0.35,
+        "citation_correctness": 0.4,
+        "uncertainty_calibration": 0.75,
+        "testability": 0.5,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2672,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 783,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.68,
+      "verdict": "partial",
+      "justification": "The candidate answer demonstrates strong methodological awareness and appropriate epistemic humility by explicitly framing the response as \"a plan for assembly rather than an assertion of established interactions.\" The answer correctly identifies the two protein complexes (Jagged2a–Notch as ligand–receptor signaling; Foxc1a–Pitx2 as transcription-factor co-regulatory complex) and maps them to relevant biological contexts (anterior-segment development, cell-fate decisions). The three-layer assembly framework (structural/RN2, interaction/Reactome+STRING, expression/spatiotemporal) is methodologically sound and accurately reflects how multi-resource evidence integration works in this domain. The candidate appropriately distinguishes physical interactions (IntAct-class experimental data) from predicted interactions (STRING) and orthology-inferred pathways (Reactome), directly addressing the expected evidence rubric. However, the answer is severely constrained by the stated limitations: no actual structural coordinates, no curated experimental protein–protein interaction records, no Ensembl gene identifiers to anchor claims, no disambiguation of isoform specificity (Jagged2a vs. generic Jagg family), and no direct experimental validation. The candidate's own confidence score (0.35) and gap_flags transparently list these critical absences, limiting the answer to a workflow blueprint rather than established facts. While this honesty is commendable and increases calibration accuracy, it also means the substantive content is thin: the description of the complexes themselves relies on functional/textbook knowledge rather than evidence from the stated bundle. The citation of RN2, RN10, CORPUS-2026-0002/0001, Reactome, and STRING is appropriate given the constraints, but without actualized data (coordinates, curated interactions, expression matrices), the answer cannot fully satisfy a question asking for description and evidence assembly of specific complexes. The answer is thus well-reasoned but incompletely grounded in the available evidence, warranting a \"partial\" verdict.",
+      "rubric": {
+        "factuality": 0.72,
+        "citation_correctness": 0.75,
+        "completeness": 0.6,
+        "testability": 0.65,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2127,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 593,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.27,
+  "outcome": "positive",
+  "mean_overall": 0.617,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

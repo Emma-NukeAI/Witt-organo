@@ -1,0 +1,128 @@
+{
+  "question_id": "Q06",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "pathway_assembly",
+  "bundle": {
+    "question": "Describe the Jagged2a–Notch and Foxc1a–Pitx2 complexes relevant to anterior-segment/eye development and how their interaction evidence would be assembled.",
+    "entities_checked": {
+      "foxc1a": {
+        "in_di": true,
+        "ensdarg": "ENSDARG00000091481"
+      },
+      "pitx2": {
+        "in_di": true,
+        "ensdarg": "ENSDARG00000036194"
+      }
+    },
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7855,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.7855,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7978,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7495,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.6891,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.6858,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7228,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle points to two protein-complex axes relevant to zebrafish anterior-segment/eye development, but supports only a schematic, not mechanistic, description:\n\n1) Jagged2a–Notch complex — a ligand–receptor signaling complex. The Notch pathway (Jagged ligand engaging a Notch receptor) is present in the RN2 structural resource (\"Notch/Jagg[ed]\" among experimentally resolved 3D structures). This is a canonical juxtacrine signaling module where a Jagged2a ligand on one cell binds a Notch receptor on the adjacent cell, but the bundle gives no zebrafish-specific structural coordinates, stoichiometry, or interface detail for jag2a–notch here — only that structures exist in RN2.\n\n2) Foxc1a–Pitx2 complex — a transcription-factor module. Both foxc1a and pitx2 are resolved in the DI (foxc1a=in-DI, pitx2=in-DI), and foxc1a is among the TFs with experimentally resolved structures in RN2. In the anterior-segment/glaucoma literature these two TFs act together (FOXC1 and PITX2 are the classic Axenfeld-Rieger anterior-segment dysgenesis genes and are known to interact/co-regulate), but the provided bundle asserts co-membership in the DI structural set, NOT a directly evidenced Foxc1a–Pitx2 physical complex.\n\nHow the interaction evidence would be assembled:\n- Path A (DI-inamovible) supplies the ground truth backbone: RN2 provides experimentally resolved 3D coordinates for the TFs (foxc1a) and the Notch/Jagged proteins — use these for structural/interface grounding. RN10 supplies neighboring-tissue Cartesian coords + timing matrices (the master indexed interaction table) to constrain WHERE and WHEN cells expressing these components are adjacent (essential for a juxtacrine Notch interaction).\n- Temporal/spatial expression co-occurrence would come from CORPUS-2026-0002 (scRNA atlas of anterior-segment / trabecular meshwork-annular ligament, closes GAP-5) and CORPUS-2026-0001 (ZESTA spatiotemporal atlas, 3–24 hpf pre-corneal window) to test whether jag2a/notch and foxc1a/pitx2 are co-expressed in the right cells at the right stage.\n- Predictive interaction layer: STRING_DB (predicted protein–protein interactions) and Reactome (orthology-inferred pathway membership) would supply candidate edges — explicitly flagged as PREDICTIVE, to be confirmed against the RN2 structures and atlas co-expression, never treated as ground truth.\n\nAssembly logic: anchor on RN2 structures (physical plausibility) → constrain with RN10 adjacency/timing (juxtacrine feasibility for Notch; nuclear co-occurrence for the TF pair) → confirm co-expression in CORPUS atlases → decorate with STRING/Reactome predicted edges. The Notch axis is a cell–cell ligand-receptor complex; the Foxc1a–Pitx2 axis is a nuclear TF pairing feeding into anterior-segment differentiation.",
+    "confidence": 0.34,
+    "evidence_cited": [
+      "niche:RN2",
+      "niche:RN10",
+      "CORPUS-2026-0002",
+      "CORPUS-2026-0001",
+      "db:STRING_DB",
+      "db:Reactome"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "pitx2"
+      },
+      {
+        "symbol": "jag2a"
+      },
+      {
+        "symbol": "notch"
+      }
+    ],
+    "alternatives_considered": [
+      "That the bundle directly documents a physical Foxc1a–Pitx2 complex — rejected: DI only asserts co-membership in the RN2 structural set, not a resolved heterocomplex.",
+      "That jag2a–Notch structural interface details are available for zebrafish — rejected: RN2 lists Notch/Jagged among resolved structures but the bundle exposes no coordinates, stoichiometry, or species-specific interface here.",
+      "Treating STRING/Reactome edges as confirmed interactions — rejected: both are explicitly predictive/orthology-inferred and must be validated against DI ground truth."
+    ],
+    "gap_flags": [
+      "No ENSDARG identifiers provided in the bundle for foxc1a, pitx2, jag2a, or any notch gene — cannot bind gene symbols to verified IDs.",
+      "No mechanistic/structural detail (interface residues, stoichiometry, affinity) for either the Jagged2a–Notch or Foxc1a–Pitx2 pairing is present.",
+      "Direct physical-interaction evidence (co-IP, resolved heterocomplex) for Foxc1a–Pitx2 is absent; only co-membership in a structural resource is stated.",
+      "Path B (external literature) was not triggered, so no primary-paper corroboration of either complex's role in anterior-segment development.",
+      "The specific ligand isoform 'jag2a' and which Notch paralog engages it are inferred from the abbreviated 'Notch/Jagg' string, not explicitly resolved in DI."
+    ],
+    "_usage": {
+      "input_tokens": 1905,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2000,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,28 @@
+{
+  "month_tag": "month_0",
+  "config_hash": "held-out-neo4j",
+  "n_pairs": 30,
+  "axes": {
+    "retrieval_jaccard": {
+      "median": 1.0,
+      "sigma": 0.0,
+      "eps_delta": 0.0,
+      "eps_pass": 1.0
+    },
+    "citation_overlap": {
+      "median": 0.7321428571428572,
+      "sigma": 0.42795446479210864,
+      "eps_delta": 0.8559089295842173,
+      "eps_pass": 0.0
+    },
+    "hypothesis_cosine": {
+      "method": "semantic:bge",
+      "median": 0.954332943623077,
+      "sigma": 0.019355512524201604,
+      "eps_delta": 0.03871102504840321,
+      "eps_pass": 0.9431169507591218,
+      "n": 29
+    }
+  },
+  "note": "EPS is MEASURED here, not assumed. Axes a/b run on set-overlap; axis c is semantic when an embedder is passed, else a NO-SPEND lexical TF-IDF proxy (labelled). No delta counts as improvement below eps_delta (RIL_PROGRAM §8)."
+}

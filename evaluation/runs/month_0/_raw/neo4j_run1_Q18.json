@@ -1,0 +1,217 @@
+{
+  "question_id": "Q18",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Propose a minimal perturbation set to test sufficiency of a pronephric program, with required controls and possible confounders. (Ranked-candidate work → must route through causal-pruner + human gate.)",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7881,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.7881,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.6899,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.6789,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.6651,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.6338,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.6573,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "PROPOSED MINIMAL PERTURBATION SET — sufficiency test for a pronephric program (RANKED CANDIDATES; NOT a validated design. Must be routed through the causal-pruner + human gate before execution.)\n\nFRAMING: \"Sufficiency\" means driving pronephric fate/program in a context where it would not otherwise arise (gain-of-function / ectopic induction), as opposed to necessity (loss-of-function). The evidence bundle names candidate pronephric-relevant regulators only in passing (RN2 lists TFs tfap2a, foxc1a, pax2a, wt1a and Notch/Jagged components as resolved protein structures) — it does NOT provide expression, epistasis, or functional data for the pronephros. So these are HYPOTHESIS-STAGE candidates only; ENSDARGs were NOT verified against the DI store (Key entities resolved: none checked). Do not treat symbol→ID as confirmed.\n\nRANKED CANDIDATE PERTURBATIONS (gain-of-function / sufficiency):\n1. pax2a — ectopic/heat-shock or Gal4-UAS forced expression in competent naive mesoderm (top candidate: canonical intermediate-mesoderm/pronephric master-regulator role in the literature; explicitly named in RN2).\n2. wt1a — forced expression, alone and in combination with pax2a (podocyte/nephron program; named in RN2).\n3. Combinatorial pax2a + wt1a (± lhx1a-type co-factor if available) — test whether a minimal TF cocktail is *sufficient* to induce ectopic pronephric tubule/podocyte markers where single factors are not.\n4. RA (retinoic acid) pathway agonism (RN2 lists RA receptors) — provide a permissive posterior/positional signal that may be required for the TF cocktail to be sufficient.\n5. Notch/Jagged modulation (RN2) — as a segmentation/cell-type-proportioning modifier layered on top of the TF cocktail.\n\nRank rationale: single-factor before combinatorial; TF-intrinsic before signaling-context; each step adds only what the prior step failed to achieve (minimality by additive escalation).\n\nREQUIRED CONTROLS:\n- Vehicle / empty-vector / heat-shock-only (no transgene) sibling controls.\n- Dosage titration + inducible timing controls (to bound the \"minimal\" sufficient dose/window).\n- Spatial/lineage control: assay in a defined non-pronephric competent domain vs. non-competent domain to distinguish true sufficiency from mere expansion of endogenous field.\n- Marker specificity panel: multiple independent pronephric readouts (tubule, duct, podocyte, corpuscle-of-Stannius) rather than a single marker, plus at least one non-pronephric fate marker to test exclusivity.\n- Positive control: known pronephric-inducing condition (if available in the atlas metadata) to calibrate assay sensitivity.\n\nPOSSIBLE CONFOUNDERS:\n- Endogenous-field expansion mistaken for ectopic induction (need lineage tracing).\n- Toxicity / non-specific stress from overexpression or heat-shock driving artifactual marker changes.\n- Competence gating: a \"negative\" sufficiency result may reflect an incompetent host tissue, not insufficiency of the factor — requires competence-window mapping.\n- Partial-program induction (marker without morphogenesis) misread as full sufficiency.\n- Positional-signal dependency (RA/Notch) confounding TF-only interpretation.\n- Identifier confounder: symbol→ENSDARG not verified here; wrong-paralog targeting (pax2a vs pax2b, wt1a vs wt1b) would invalidate the design.\n\nROUTING: This is a ranked-candidate design and per the task contract MUST pass through the causal-pruner (to prune redundant/non-identifiable interventions and enforce minimality) and then a human gate before any wet-lab commitment.",
+    "confidence": 0.28,
+    "evidence_cited": [
+      "niche:RN12",
+      "niche:RN2",
+      "db:Ensembl_DanioRerio",
+      "CORPUS-2026-0001",
+      "CORPUS-2026-0002"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      },
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "lhx1a"
+      },
+      {
+        "symbol": "pax2b"
+      },
+      {
+        "symbol": "wt1b"
+      }
+    ],
+    "alternatives_considered": [
+      "Necessity-first design (loss-of-function morpholino/CRISPR knockdown of pax2a/wt1a) instead of sufficiency — rejected because the question explicitly asks for sufficiency, but LOF is the natural complementary follow-up.",
+      "Signaling-only perturbation (RA or Notch alone) as the minimal set — deprioritized because sufficiency of a *program* is more plausibly TF-driven; signaling used as context modifier instead.",
+      "Single-cell-atlas-guided factor selection (mining CORPUS-2026-0001 ZESTA for pronephric-enriched TFs) before choosing candidates — strongly preferred but NOT executable here because the bundle gives no pronephric expression data; flagged as the key missing prerequisite."
+    ],
+    "_usage": {
+      "input_tokens": 1930,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2000,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.82,
+        "verdict": "correct",
+        "justification": "The answer delivers on all core expected-evidence elements: a ranked candidate perturbation set (pax2a, wt1a, combinatorial, RA, Notch), explicit required controls (vehicle/heat-shock-only, dosage/timing, spatial/lineage, marker specificity panel, positive control), and a substantive list of possible confounders (field expansion, overexpression toxicity, competence gating, partial-program induction, positional-signal dependency, paralog/identifier confounder). Crucially it explicitly routes through the causal-pruner and human gate before wet-lab commitment, satisfying the required task contract. The sufficiency-vs-necessity framing is biologically sound (gain-of-function/ectopic induction), and the candidate TFs are legitimately canonical intermediate-mesoderm/pronephric regulators. Uncertainty calibration is strong and honest: it flags that ENSDARGs were not verified, that these are hypothesis-stage candidates from RN2 passing mentions only, and gives a low confidence (0.28) appropriate to an unvalidated design. The main deduction is that gap_flags is set to 'None' even though the answer prose is full of gaps it identifies — the confounders and unverified-identifier caveats belong in gap_flags per the expected-evidence spec (\"confounders in gap_flags\"), so the structured field is inconsistent with the narrative. This is a modest structural/citation-hygiene lapse rather than a factual error. Otherwise factuality, testability, and safety are high.",
+        "rubric": {
+          "factuality": 0.85,
+          "citation_correctness": 0.75,
+          "completeness": 0.9,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.9,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 2641,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 678,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The answer directly addresses the prompt with a clear, well-reasoned minimal perturbation set (single-factor → combinatorial → signaling-context escalation), explicit required controls (vehicle/heat-shock-only, dosage/timing titration, spatial/lineage control, marker specificity panel, positive control), and a thorough confounders list (endogenous-field expansion, toxicity, competence gating, partial-program induction, positional-signal dependency, identifier/paralog confusion). It also explicitly states the causal-pruner + human gate routing requirement, matching the expected evidence structure closely. Calibration is reasonable: confidence is low (0.28) and the answer flags that ENSDARG IDs were not verified and that RN2 lacks functional/epistasis data for pronephros, appropriately hedging overclaiming. However, there are some deviations from expected format: gap_flags is reported as None despite the answer containing clear textual gap-flag-like caveats (unverified IDs, no functional data) — this is a rubric-relevant omission since the expected evidence specifies gap_flags should contain confounders/controls/candidate info explicitly, not just embedded in prose. This is a structural/formatting shortfall even though the content is largely present narratively. Citations are somewhat generic (niche:RN2, RN12, CORPUS ids) without clear traceability of how each control/confounder maps to a specific source, so citation_correctness is middling. Overall, this is a solid, cautious, well-structured answer with correct routing logic and appropriate epistemic humility, but loses points for not populating gap_flags formally and for somewhat loose citation grounding.",
+        "rubric": {
+          "completeness": 0.85,
+          "testability": 0.8,
+          "citation_correctness": 0.55,
+          "safety_ethics": 0.85,
+          "uncertainty_calibration": 0.75,
+          "factuality": 0.7
+        },
+        "usage": {
+          "input_tokens": 2705,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 717,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.82,
+        "verdict": "correct",
+        "justification": "The candidate answer demonstrates exceptional rigor in proposing a minimal perturbation set for testing sufficiency of a pronephric program. Strengths: (1) Clear framing distinguishing sufficiency (gain-of-function) from necessity; (2) Properly calibrated epistemic humility—explicitly flags that candidates are \"hypothesis-stage only\" and ENSDARGs not verified, treating symbol→ID mapping as unconfirmed; (3) Ranked candidate prioritization rationale is sound (single-factor before combinatorial, TF-intrinsic before signaling, additive escalation for minimality); (4) Required controls are comprehensive and well-justified: vehicle controls, dosage/timing titration, spatial/lineage specificity assay, multi-marker validation, and positive calibration; (5) Confounder enumeration is sophisticated and domain-appropriate: field expansion vs. ectopic induction, toxicity artifacts, competence gating, partial programs, positional-signal dependencies, and identifier errors (paralog confusion); (6) Routing compliance: explicitly states the design must pass through causal-pruner and human gate before execution, satisfying the task contract requirement. Weaknesses: (1) Stated confidence (0.28) seems miscalibrated—answer quality warrants higher confidence given its thoroughness; (2) Gap_flags field marked \"None,\" yet the answer itself enumerates multiple epistemic gaps (unverified ENSDARG mapping, no functional data, hypothesis-stage candidates)—should have populated gap_flags with these explicitly; (3) Citation chain references 'niche:RN2' and Ensembl but does not show explicit verification trace; (4) Competence-mapping and lineage-tracing logistics are mentioned but could specify tissue contexts more concretely (e.g., axial hypaxial vs. coelomic mesoderm). The answer is testable, appropriately caveated, and properly routes through peer review gates. The minor discrepancy between stated confidence and answer quality, plus the unfilled gap_flags field despite clear gaps enumerated in text, prevents a perfect score.",
+        "rubric": {
+          "factuality": 0.85,
+          "testability": 0.88,
+          "completeness": 0.8,
+          "citation_correctness": 0.78,
+          "uncertainty_calibration": 0.75,
+          "safety_ethics": 0.85
+        },
+        "usage": {
+          "input_tokens": 2174,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 626,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.1,
+    "outcome": "positive",
+    "mean_overall": 0.787,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

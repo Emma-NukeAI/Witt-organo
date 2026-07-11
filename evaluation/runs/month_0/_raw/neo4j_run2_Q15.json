@@ -1,0 +1,109 @@
+{
+  "question_id": "Q15",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "Which morphometric/topological descriptors distinguish a correctly tubulated pronephros from teratogenic mesoderm, and what imaging formats supply them?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7477,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7477,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN9",
+          "type": "niche",
+          "score": 0.7612,
+          "text": "RN9 Morfología emergente y topología. Raw volumetric confocal time-series + segmentation masks (.ome/.tiff/.czi/.ims/.nd2); continuous voxel"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7084,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.694,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.6626,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7134,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle only weakly supports a full answer. The most directly relevant item is the RN9 niche descriptor (\"Morfología emergente y topología\"), which tells us what KINDS of descriptors and imaging formats are in play, but the bundle contains no paper that explicitly contrasts a correctly tubulated pronephros against \"teratogenic mesoderm\" using named metrics.\n\nWhat the bundle DOES support:\n\n1) Imaging formats that supply the descriptors (from the RN9 niche entry): raw volumetric confocal time-series plus segmentation masks in .ome/.tiff, .czi, .ims, and .nd2, accompanied by continuous voxel(-scale) data. So the format answer is: 3D/4D confocal volumetric stacks (OME-TIFF, Zeiss CZI, Imaris IMS, Nikon ND2) with paired segmentation masks.\n\n2) The class of distinguishing descriptors implied by RN9 (\"emergent morphology and topology\") would be morphometric/topological in nature — e.g., lumen continuity/connectivity (topology), tube diameter/wall thickness, epithelial polarity organization, and volumetric geometry derived from segmentation. This is consistent with CORPUS-2026-0003, which frames the pronephros as an in vivo tubulogenesis model and (in the dataset abstract) links proper tubulogenesis and epithelial identity to apicobasal polarity proteins Prkc iota and Prkc zeta — implying that a correctly tubulated pronephros shows a single continuous polarized lumen, whereas defective/teratogenic mesoderm would show disrupted lumen topology and lost epithelial polarity.\n\nHowever, the specific quantitative descriptors that \"distinguish\" normal from teratogenic mesoderm (e.g., named metrics, thresholds) are NOT provided in this bundle. I cannot enumerate a validated descriptor list beyond the topology/geometry categories above without over-claiming.",
+    "confidence": 0.34,
+    "evidence_cited": [
+      "niche:RN9",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "That the RN5 (bioelectric, membrane-potential .csv/.mat) niche might supply distinguishing descriptors — rejected as off-topic for morphometric/topological tubulogenesis.",
+      "That the STOmics/ZESTA spatial transcriptomic atlas could distinguish tissue identity — but that is molecular, not morphometric/topological, and not tied to pronephros tubulation here.",
+      "That CORPUS-2026-0002 (anterior segment scRNA atlas) is relevant — rejected, unrelated system."
+    ],
+    "gap_flags": [
+      "No bundle document explicitly defines 'teratogenic mesoderm' or contrasts it with correct pronephros tubulation.",
+      "No named quantitative morphometric/topological metrics or thresholds are provided; only descriptor categories are inferable.",
+      "Gene ENSDARG identifiers for prkci/prkcz were NOT verified against the store (none checked in DI); symbols stated without IDs.",
+      "RN9 entry text is truncated ('continuous voxel...'), so the full descriptor/format list may be incomplete.",
+      "No Path B literature retrieved to corroborate descriptor choices."
+    ],
+    "framework_applied": "Evidence-gap triage + niche-schema mapping: mapped the question's two asks (descriptors vs. imaging formats) onto the RN9 niche schema (which specifies formats and descriptor class) and the CORPUS-2026-0003 pronephros/polarity context, then flagged the missing normal-vs-teratogenic contrast rather than fabricating metrics.",
+    "_usage": {
+      "input_tokens": 1893,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1411,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,200 @@
+{
+  "question_id": "Q01",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7203,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7203,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0001",
+          "type": "dataset",
+          "score": 0.7652,
+          "text": "ZESTA — Zebrafish Embryogenesis Spatiotemporal Transcriptomic Atlas. Covers the SAME 3-24 hpf pre-corneal window as the held_out set + the p"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7917,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN1",
+          "type": "niche",
+          "score": 0.6926,
+          "text": "RN1 Transcriptómica y dinámica de linajes. Lineage hierarchy trees + transition-probability matrices (.json); average expression per cell ty"
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.679,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7284,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The retrieved bundle is too thin to name specific transcription factors with verified identifiers. The only substantive pronephros document (CORPUS-2026-0003) confirms that the zebrafish pronephros is a tractable in vivo model for nephron development, but the retrieved chunk (#c000) does not list the marker transcription factors for the pronephric versus intermediate mesoderm, nor their expression timing at 12–24 hpf. I therefore cannot responsibly state which TFs mark each compartment or reconstruct their temporal order and its lineage constraints from this evidence.\n\nWhat the literature would typically require (and what is NOT documented in this bundle, so treated as unverified): intermediate-mesoderm specification markers (e.g., pax2/pax8, lhx1) generally precede and give rise to more restricted pronephric/nephron-segment TFs — but I will not assert these as facts or attach ENSDARG IDs without corpus/ZFIN confirmation. To answer properly, retrieve (a) additional CORPUS-2026-0003 chunks covering marker lists and staging, and (b) ZFIN gene-expression records with resolved ENSDARG IDs and 12–24 hpf expression windows for each candidate TF.",
+    "confidence": 0.12,
+    "evidence_cited": [
+      "CORPUS-2026-0003#c000",
+      "db:ZFIN",
+      "niche:RN1"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Assert canonical IM/pronephros TFs (pax2a, pax8, lhx1a, wt1a, etc.) from prior knowledge — rejected because no bundle document lists them and no ENSDARG could be verified against the store.",
+      "Use the RN1 lineage-hierarchy trees / transition-probability matrices to infer expression order — plausible route, but the actual matrix/tree contents were not returned in the bundle, only the niche description.",
+      "Use ZESTA (CORPUS-2026-0001 / CNGB_STOmics) spatiotemporal atlas to read out compartment markers over 12–24 hpf — appropriate data source, but no marker-level content was retrieved, and ZESTA's noted focus overlaps the pre-corneal window rather than pronephros specifically."
+    ],
+    "gap_flags": [
+      "No TF marker list retrieved for pronephric vs intermediate mesoderm.",
+      "No expression-timing data (12–24 hpf staging) in the returned chunks.",
+      "No ENSDARG identifiers resolved for any candidate gene (DI entities: none checked).",
+      "RN1 lineage trees / transition-probability matrices referenced but contents not included in bundle.",
+      "ZESTA atlas retrieved but no pronephros-specific marker content surfaced; its highlighted coverage is the cornea/pre-corneal window.",
+      "Path B (external literature) not triggered, so no primary-paper corroboration available."
+    ],
+    "framework_applied": "Evidence-gating / abstention under insufficient grounding: the marker_identification task requires named TFs with verified IDs and staged expression order; when the bundle lacks marker-level and identifier content, the calibrated response is to abstain, flag gaps, and specify the retrieval needed rather than fabricate genes or ENSDARGs (per contract §5 no-invented-identifiers rule).",
+    "_usage": {
+      "input_tokens": 1897,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1223,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "verdict": "abstain",
+        "overall_score": 0.35,
+        "justification": "The candidate is a well-calibrated non-answer. It explicitly declines to name the expected TF set (pax2a, pax8, lhx1a, wt1a) with per-cluster/per-hpf expression, so on completeness and testability against the expected evidence it fails: none of the specific markers, staging windows, or lineage-restriction reconstruction are provided. However, the answer is honest and non-fabricating — it refuses to invent ENSDARG IDs or overclaim, correctly flags the retrieval gaps, and even gestures accurately (without asserting) at the general biology that pax2/pax8/lhx1-type IM markers precede more restricted nephron TFs, which happens to align with the expected ordering. Factuality is high precisely because it makes almost no factual claims; uncertainty calibration (stated 0.12) is appropriate and honest; safety/ethics fine. Citation correctness is weak-to-moderate: it cites only a generic pronephros-model chunk and unsurfaced DB/niche handles that do not support any marker-level claim. Because the answer neither confirms nor contradicts the expected evidence and transparently abstains rather than guessing, the appropriate verdict is 'abstain' with modest credit for honesty but low overall utility given it delivers none of the substantive content requested.",
+        "rubric": {
+          "factuality": 0.8,
+          "citation_correctness": 0.35,
+          "completeness": 0.05,
+          "testability": 0.1,
+          "uncertainty_calibration": 0.9,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 1886,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 604,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The expected answer requires naming the ordered TF set (pax2a, pax8, lhx1a, wt1a) with per-cluster/per-hpf expression evidence from a scRNA atlas, plus a lineage-restriction note explaining how expression order constrains fate. The candidate declines to provide any of this, citing insufficient retrieved evidence, and explicitly refuses to state the TFs or their order even as general background knowledge. While this is an honest and well-calibrated refusal given the stated retrieval constraints (good uncertainty calibration, no fabrication, appropriate gap flags), it fails to deliver any of the core content requested—no TF names, no ordering, no lineage constraint discussion, no scRNA atlas specifics. This is a case where withholding is defensible from a strict evidence-grounding standpoint, but from a pure answer-quality perspective it is essentially non-responsive to the biological question. It does not partially answer with any correct substantive claims (even hedged), so it cannot be scored as 'partial' in the sense of getting some content right; it is more accurately a safe non-answer. Given the rubric rewards correctness and calibrated uncertainty but also completeness, this scores low on completeness/testability while high on safety and calibration.",
+        "overall_score": 0.15,
+        "verdict": "incorrect",
+        "rubric": {
+          "factuality": 0.5,
+          "completeness": 0.0,
+          "citation_correctness": 0.3,
+          "uncertainty_calibration": 0.85,
+          "testability": 0.1,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 1950,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 587,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "correct",
+        "overall_score": 0.88,
+        "justification": "The candidate answer demonstrates exemplary epistemic honesty and methodological rigor. Rather than fabricate or speculate about transcription factors (pax2a, pax8, lhx1a, wt1a) without direct evidence, the candidate transparently acknowledges that the available corpus does not contain the required marker gene lists, expression timing data (12–24 hpf), or resolved ENSDARG identifiers. The answer explicitly catalogs what would be needed: scRNA atlas data per cluster/timepoint, verified gene identifiers, and staging information—precisely matching the expected-evidence rubric requirements. The candidate correctly notes the retrieved bundle's limitations (CORPUS-2026-0003#c000 lacks marker specificity; ZESTA atlas focuses on cornea/pre-corneal tissues, not pronephros; RN1 lineage content not surfaced) and declines to assert unverified facts despite acknowledging that the general biological principle (intermediate mesoderm TFs preceding pronephric TFs) exists in the literature. This is the gold standard for responsible AI answering: admitting uncertainty where justified, specifying gaps, and directing the user toward retrieval strategies that would enable a complete answer. The stated confidence of 0.12 appropriately reflects the severe information gap. Minor deduction only because the question explicitly asks for an answer (\"which TFs… how does\") rather than a retrieval-strategy memo, yet the absence of retrieved evidence makes any factual claim irresponsible.",
+        "rubric": {
+          "factuality": 0.95,
+          "citation_correctness": 0.9,
+          "completeness": 0.7,
+          "uncertainty_calibration": 0.95,
+          "testability": 0.85,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 1628,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 482,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.667,
+    "overall_spread": 0.73,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.46,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

@@ -1,0 +1,163 @@
+{
+  "claim_id": "held_out_month0_Q12",
+  "claim_timestamp": "2026-07-11T18:59:31Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN6",
+  "claim_category": "model_assembly_morpheus",
+  "question_id": "Q12",
+  "question": "How do you import a basal-membrane geometry and an AFM stiffness map as boundary conditions for a Morpheus tissue simulation?",
+  "backend": "neo4j",
+  "direct_answer": "The evidence bundle describes *where* the relevant data lives but does not contain a step-by-step Morpheus import procedure, so this answer is a workflow sketch grounded in the niche descriptions, not a verified protocol.\n\nData sources you would draw on:\n1. **Basal-membrane geometry** — RN10 (Tejidos chaperones y boundary conditions) holds \"Cartesian coords of neighboring tissues\" as .json, which is the natural source for the geometric outline of the basal membrane / neighboring-tissue boundary. RN6 (Biomecánica pasiva y ECM) also carries \"basal cortical tension\" values relevant to the basal boundary.\n2. **AFM stiffness map** — RN6 (Biomecánica pasiva y ECM) is the source: it explicitly lists \"regional stiffness\" and ECM/affinity/friction matrices in .json for Morpheus.\n\nSketch of how these map onto a Morpheus model (general Morpheus conventions, NOT from the bundle):\n- Morpheus models are XML files (cf. RN13, which stores \"Morpheus .xml\"). You define the domain under `<Space>` and the boundary of the tissue.\n- A basal-membrane geometry given as Cartesian coordinates (RN10 .json) would be converted into a Morpheus geometry — e.g. a `<Lattice>`/`<Domain>` image mask or a `MembraneProperty`/`Boundary` region — and imported via a TIFF/PDE field or a coordinate-driven initializer, so that the basal surface acts as a fixed boundary condition.\n- A spatially varying AFM stiffness map (RN6 .json \"regional stiffness\") would be loaded as a spatial `Field`/`PDE` layer (e.g. via a TIFF or per-node/per-cell value file) and then referenced by the mechanical terms (cortical tension, friction coefficients — also RN6) so stiffness varies by region.\n- RN13 is where the resulting assembled Morpheus .xml model + analysis scripts would be stored/generated.\n\nI cannot confirm the exact Morpheus tags, file-format conversions, or import syntax from this bundle — those details are not present in the evidence.",
+  "stated_confidence": 0.28,
+  "prior": 0.28,
+  "evidence_cited": [
+    "niche:RN6",
+    "niche:RN10",
+    "niche:RN13"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Using RN7 (high-density 3D meshes with node-indexed flow) as the geometry source instead of RN10 — possible if the basal membrane is represented as a mesh rather than tissue coordinates, but RN7 is oriented to active mechanics/flow rather than boundary geometry.",
+    "Treating stiffness as a global scalar rather than a spatial field — rejected because the question specifies an AFM stiffness *map*, implying regional/spatial variation, which matches RN6's 'regional stiffness'.",
+    "Storing/importing via RN3 signaling-environment .json variables — rejected as RN3 is kinetic/signaling parameters, not mechanics or geometry."
+  ],
+  "gap_flags": [
+    "Bundle identifies data-source niches but contains NO actual Morpheus import syntax, XML tags, or file-conversion steps — the procedural how-to is inferred from general Morpheus conventions, not from the evidence.",
+    "No sample .json schema for RN10 basal geometry or RN6 stiffness map is provided, so the exact field structure and unit conventions are unknown.",
+    "Unclear whether the basal-membrane geometry in RN10 is a closed polygon, point cloud, or mesh — determines whether a Morpheus image mask vs. coordinate initializer is appropriate.",
+    "No verification that RN6 stiffness values are pre-formatted for Morpheus's Field/PDE loader vs. needing conversion (e.g. to TIFF)."
+  ],
+  "framework_applied": "Source-to-sink data mapping: match each requested input (basal geometry, stiffness map) to the niche whose described contents best fit, then overlay generic Morpheus model-assembly structure. Chosen because the bundle is a retrieval index of data locations rather than a protocol, so honest scoping requires separating 'where the data is' (grounded) from 'how to import it' (inferred/gap-flagged).\"",
+  "observed_outcome": "negative",
+  "observed_at": "2026-07-11T18:59:31Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "verdict": "partial",
+          "overall_score": 0.42,
+          "justification": "The expected evidence points to a fairly specific technical answer: an .xml scaffold plus a .vtk/.vtu FEA mesh used as boundary conditions, a Young's modulus .csv for the AFM stiffness map, and a distinction between static vs. dynamic boundary conditions. The candidate captures the correct general shape of the workflow — Morpheus models are XML, geometry becomes a domain/boundary, and a spatially-varying stiffness map is imported as a spatial Field/PDE — which aligns loosely with the .xml scaffold and stiffness-map concepts. However, it misses key expected specifics: it names .json rather than the expected .vtk/.vtu FEA mesh format and .csv for Young's modulus, and it entirely omits the static vs. dynamic boundary condition distinction, which was an explicit rubric item. The answer is heavily hedged and honest about its uncertainty (confidence 0.28, multiple gap_flags), so it does not overclaim or fabricate a precise protocol — good uncertainty calibration and safety. But because the concrete file-format and static/dynamic points are absent or mismatched, completeness and citation-specificity are weak. Net: an honest, partially-correct sketch that fails to deliver the expected technical specifics.",
+          "rubric": {
+            "factuality": 0.6,
+            "completeness": 0.35,
+            "citation_correctness": 0.4,
+            "uncertainty_calibration": 0.85,
+            "testability": 0.35,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2228,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 597,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected evidence specifies a fairly concrete workflow: an .xml scaffold combined with a .vtk/.vtu FEA mesh serving as the boundary condition, a Young's modulus .csv for the AFM stiffness map, and a clear distinction between static and dynamic boundary conditions. The candidate answer does not mention .vtk/.vtu mesh import at all, does not mention a Young's modulus .csv file, and does not address the static-vs-dynamic distinction that the rubric explicitly calls for. Instead, it invents a different, generic narrative involving fictitious 'RN' niche identifiers, .json files, TIFF-based field imports, and generic Morpheus tags like <Space>, <Lattice>, <Domain>, MembraneProperty, PDE layers, etc., none of which correspond to the expected evidence. While the candidate appropriately hedges uncertainty (low confidence 0.28, explicit gap flags, disclaiming exact syntax), the content itself does not align with the expected artifacts (.vtk/.vtu mesh, .csv modulus) and instead presents a plausible-sounding but unsubstantiated alternative scheme. This suggests either a mismatched evidence bundle or fabrication of citation labels not grounded in the real source materials. The honesty/calibration is decent (it flags uncertainty and admits inference), but factual alignment with the expected evidence is weak, completeness against the rubric elements (.vtk/.vtu, .csv, static/dynamic) is essentially absent, and the citations (RN6, RN10, RN13) do not match the expected evidentiary items, raising concerns about citation correctness/relevance. Overall this is a low-partial answer: it makes an effort at general Morpheus mechanics and appropriately signals low confidence, but it misses nearly all the concrete expected content and may be citing non-existent or irrelevant sources.",
+          "overall_score": 0.18,
+          "verdict": "incorrect",
+          "rubric": {
+            "factuality": 0.2,
+            "completeness": 0.1,
+            "citation_correctness": 0.15,
+            "uncertainty_calibration": 0.6,
+            "testability": 0.2,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2292,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 806,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "verdict": "partial",
+          "overall_score": 0.42,
+          "rubric": {
+            "factuality": 0.5,
+            "citation_correctness": 0.55,
+            "completeness": 0.25,
+            "uncertainty_calibration": 0.85,
+            "testability": 0.2,
+            "safety_ethics": 1.0
+          },
+          "justification": "The candidate provides a plausible but unverified sketch grounded in cited niches (RN6, RN10, RN13) rather than concrete Morpheus import procedures. **Strengths:** (1) Explicit identification of data sources (.json from RN10 and RN6 for geometry/stiffness), (2) general correctness about Morpheus using XML and spatial Fields/PDEs, (3) honest framing as \"sketch not verified protocol,\" (4) excellent uncertainty calibration (self-assessed 0.28 confidence, flagged four specific gaps without overclaiming). **Critical weaknesses:** (1) *Completeness fails*: the expected evidence requests .xml scaffold + .vtk/.vtu FEA mesh import, static vs. dynamic definitions—none are provided; the answer infers general Morpheus conventions but lacks the specific boundary-condition import workflow, (2) *Testability is near zero*: no actual tags (e.g., `<BoundaryCondition>`, `<Field>` syntax), file formats (.vtk/.vtu conversion steps), or schema for the .json data are given—answer cannot be directly executed or falsified, (3) *Factuality uncertain*: references to \"MembraneProperty,\" \"coordinate-driven initializer,\" and per-node stiffness loading are plausible but not validated against Morpheus documentation or the evidence bundle itself. The candidate correctly prioritizes uncertainty over fabrication and explicitly acknowledges missing procedural detail, which is commendable for calibration but does not offset the absence of the core deliverable (a working import procedure with example syntax).",
+          "usage": {
+            "input_tokens": 1867,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 521,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.333,
+      "overall_spread": 0.24,
+      "outcome": "negative",
+      "mean_overall": 0.34,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

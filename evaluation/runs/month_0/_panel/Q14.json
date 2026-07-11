@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "verdict": "partial",
+      "overall_score": 0.63,
+      "rubric": {
+        "citation_correctness": 0.6,
+        "completeness": 0.65,
+        "factuality": 0.7,
+        "safety_ethics": 1.0,
+        "testability": 0.75,
+        "uncertainty_calibration": 0.8
+      },
+      "justification": "The candidate correctly identifies the core structure expected: per-region × per-stage (hpf) aggregate statistics for migration velocity and apoptosis rate, and frames these as calibration targets. This aligns well with the expected evidence's \"per-region/per-hpf stats schema.\" However, it misses one explicit expected element: the schema being a concrete .json stats file and the ImageJ/Fiji tracking (.xml) provenance for the trajectories. The answer gestures at \"raw trajectories\" and mentions ImageJ-style tracking only implicitly, but never names the .json schema format or the Fiji/TrackMate .xml provenance chain, which is a specific gap the rubric rewards. Metric choices (mean velocity + dispersion, apoptosis %/hr) are sensible and testable. Uncertainty is honestly and thoroughly flagged (0.62 confidence, detailed gap_flags acknowledging inferred schema/units), which is well-calibrated given the missing file-format specifics. Cited niches (RN8, RN7, RN13) are plausibly relevant but unverifiable here and lean on inference. Overall a solid, honest partial answer that captures the conceptual schema but omits the concrete file-format/provenance evidence the rubric expects.",
+      "usage": {
+        "input_tokens": 2070,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 593,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.45,
+      "verdict": "partial",
+      "justification": "The candidate correctly identifies the core idea of a per-region/per-stage aggregate schema with velocity and apoptosis rate metrics, matching the expected evidence's general concept. However, it fails to mention the specific expected provenance detail that the schema is stored as .json and that raw tracking data provenance comes from ImageJ/Fiji (.xml) — this is a key piece of expected evidence entirely missing from the answer. Instead, the candidate vaguely references 'raw cell trajectories' without specifying the tool or file format, which is a significant gap. The candidate's citations (RN8, RN7, RN13) are plausible but unverifiable from the excerpt, and the answer appropriately flags uncertainty about exact schema details, units, and staging conventions in its gap_flags, which is good calibration. The stated confidence (0.62) is reasonably appropriate given the acknowledged gaps. Overall, the answer captures the conceptual framework well but misses the concrete file-format/tooling specifics (.json, ImageJ/Fiji .xml) that were central to the expected evidence, making it partially correct rather than fully correct.",
+      "rubric": {
+        "factuality": 0.5,
+        "completeness": 0.4,
+        "citation_correctness": 0.5,
+        "testability": 0.4,
+        "uncertainty_calibration": 0.7,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2134,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 548,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.62,
+      "justification": "The candidate provides a methodologically sound and well-structured answer to a technical question about summarizing cell-migration kinetics for simulation calibration. The three-part framework (aggregation scheme, metrics per bin, calibration use) is logical and directly addresses the question. The specific recommendations—binning by region and developmental stage, computing mean velocity with dispersion measures, and expressing apoptosis as %/hr—are all reasonable and implementable. The connection to simulation tools (Morpheus-style ABM, active-mechanics models) demonstrates understanding of the downstream application. However, the answer falls short of the expected evidence standard: it references niche-level concepts (RN8, RN7, RN13) but provides no concrete file schema (.json example), no explicit ImageJ/Fiji tracking provenance (.xml format or handling), and no verified specifics about actual data structures, units conventions, or spatial/temporal region ontologies used in practice. The candidate honestly flags these gaps in its self-assessment, identifying that exact column definitions, staging conventions, and dispersion-measure specifics are inferred rather than verified. This transparency prevents overclaiming but means the answer cannot be marked 'correct'—it offers solid methodological guidance but lacks the concrete schema and provenance documentation that the expected evidence explicitly requires. The answer would need an actual .json schema template and clarification of how raw tracking data (from ImageJ/Fiji .xml output) flows into the aggregation to fully satisfy the rubric.",
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.7,
+        "completeness": 0.55,
+        "testability": 0.6,
+        "uncertainty_calibration": 0.8,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 1749,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 475,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.18,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.567,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

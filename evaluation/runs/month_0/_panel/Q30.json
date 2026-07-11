@@ -1,0 +1,82 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.8,
+      "verdict": "correct",
+      "justification": "The candidate delivers a strong, appropriately calibrated answer. It hits the core expected-evidence elements: (1) taxonomy critique — it dissects whether the niches are factored by modeling-layer vs anatomical system, which is exactly the right analytical frame for reorganizing N4/N5/N6; (2) engages the \"law-governed modeling\" argument by acknowledging genuine dependency of ocular modeling on RN6 biomechanics while distinguishing dependency from taxonomic equivalence (a sophisticated and correct rebuttal — a consumer is not a peer); (3) provides a clear recommendation (do NOT reorganize on this bundle, first resolve naming, then choose the taxonomy axis) with explicit uncertainty. The uncertainty calibration is excellent: it flags the N4/N5/N6-vs-RN label mismatch as the first honest finding rather than fabricating what N4/N5 are, and low stated confidence (0.28) matches the thin evidence. Gap flags are detailed and honest. Weaknesses: it does not explicitly connect to the RAG niche index (Cycle 4) or the governance-proposal trigger that the expected evidence mentions — a completeness miss on the downstream-action dimension. Citations are plausible and internally consistent, though several (CORPUS-2026-0001/0003) are listed without being used. Overall this is a nuanced, non-overclaiming, testable answer that would earn 'correct' with minor completeness deductions.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.8, \"completeness\": 0.7, \"citation_correctness\": 0.75, \"uncertainty_calibration\": 0.95, \"testability\": 0.8, \"safety_ethics\": 1.0}",
+      "usage": {
+        "input_tokens": 2574,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 667,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "justification": "The candidate directly engages the core question: it critiques the taxonomy (arguing niches are organized by modeling-layer/data-type rather than anatomical system), explicitly addresses the 'modeling is law-governed' claim (agreeing ocular modeling depends on RN6 biomechanics but also RN3 signaling, so it's a consumer not a peer), gives a recommendation (don't reorganize yet, resolve naming first, then decide the taxonomy axis) with calibrated uncertainty, and flags that this would inform data organization (implicitly tied to RAG niche indexing) — though it does not explicitly mention 'Cycle 4' or a 'governance-proposal' trigger from the expected evidence, which is a gap. It transparently notes the N4/N5/N6 vs RN-label mismatch, which is a reasonable and honest observation given the evidence bundle, and the uncertainty calibration is strong (clear hedging, explicit gap_flags). However, factuality/citation-correctness cannot be fully verified since we lack the actual corpus, and the answer relies on inferred niche content (RN3/RN6 descriptions) that may or may not be accurate — this is a moderate risk. Completeness is partial: it misses explicit connection to 'RAG niche index (Cycle 4)' and 'governance-proposal' triggers mentioned in expected evidence, though it implies a taxonomy-decision process. Overall this is a thoughtful, well-hedged answer that partially fulfills the rubric but leaves some expected-evidence elements unaddressed and rests on unverifiable specifics.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.6, \"completeness\": 0.65, \"citation_correctness\": 0.55, \"safety_ethics\": 0.9, \"testability\": 0.7, \"uncertainty_calibration\": 0.85}",
+      "usage": {
+        "input_tokens": 2638,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 700,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.72,
+      "verdict": "partial",
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.8,
+        "completeness": 0.65,
+        "uncertainty_calibration": 0.85,
+        "testability": 0.68,
+        "safety_ethics": 0.9
+      },
+      "justification": "The candidate provides a intellectually honest and well-structured response that correctly identifies a critical label/taxonomy mismatch (N4/N5/N6 vs. RN3/RN6) and avoids overclaiming despite incomplete evidence. The core reasoning is sound: the candidate recognizes that niches appear organized by modeling layer (signaling/kinetics in RN3, passive mechanics in RN6) rather than anatomical system, and therefore argues against collapsing ocular biology into biomechanics. The specific evidence cited (CORPUS-2026-0002 as a cross-cutting system requiring both RN3 and RN6 inputs) is concrete and well-reasoned. However, the answer falls short of full completeness on several fronts: (1) the expected evidence bundle calls for a governance-proposal or RAG-index implication, which is entirely absent; (2) the candidate does not provide quantitative or declarative evidence FOR the \"mechanism-layer\" organizing principle (it infers it from structure), creating circular reasoning; (3) the biomedic's specific claim about \"governing laws\" is addressed only partially—the candidate notes that biomechanics are *necessary* inputs to ocular modeling, but does not engage with whether they are *governing* in a causal/fundamental sense; (4) the recommendation to \"first resolve naming, then decide axis\" appropriately flags work needed but does not address what decision rule or threshold would trigger reorganization if the naming is resolved. Uncertainty calibration is strong (candidate explicitly flags gaps and states 0.28 confidence), and safety/ethics are high (no fabrication, appropriately adversarial to the biomedic's claim). Citation of RN3/RN6 and the CORPUS atlas is accurate and appropriately scoped. The answer would benefit from explicitly proposing what RAG-governance change (if any) this analysis should trigger for Cycle 4, and from testing whether the \"modeling-layer axis\" hypothesis can be independently validated or falsified.",
+      "usage": {
+        "input_tokens": 2117,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 598,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.08,
+  "outcome": "positive",
+  "mean_overall": 0.747,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

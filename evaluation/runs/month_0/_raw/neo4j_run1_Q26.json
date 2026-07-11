@@ -1,0 +1,216 @@
+{
+  "question_id": "Q26",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "Which segment-specific markers separate proximal tubule, distal early, distal late, and duct in the zebrafish pronephros, and what are their verified IDs?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.816,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.816,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.8154,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.8087,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7479,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.7693,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        },
+        {
+          "doc_id": "db:Ensembl_DanioRerio",
+          "type": "database",
+          "score": 0.7629,
+          "text": "Ensembl Zebrafish (Danio rerio). Functional human equivalents (a dictionary); the authoritative identifier resolver behind the DATA INAMOVIB"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on general zebrafish pronephros biology, the canonical segment-specific markers are: proximal tubule (proximal convoluted/straight) — slc20a1a and trpm7/slc13a1 with the classic proximal marker being slc20a1a; distal early (DE) — slc12a1 (the NKCC2 co-transporter); distal late (DL) — slc12a3 (the NCC co-transporter); and the pronephric duct — gata3 (and stc300/clcnk in the collecting-duct region). However, I CANNOT provide verified ENSDARG identifiers for any of these markers from the supplied evidence bundle. The retrieved documents (CORPUS-2026-0003 on prkci/prkcz-dependent tubulogenesis and epithelial identity; an unrelated anterior-segment atlas; and database descriptors for ZFIN, DanioCODE, Ensembl) do NOT contain segment-marker-to-ENSDARG mappings, and no entities were resolved against the verified DATA INAMOVIBLE store. I therefore decline to assert any gene ID, because doing so would require recalling identifiers from memory, which is prohibited.",
+    "confidence": 0.15,
+    "evidence_cited": [
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000",
+      "db:ZFIN",
+      "db:Ensembl_DanioRerio"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "slc20a1a"
+      },
+      {
+        "symbol": "slc12a1"
+      },
+      {
+        "symbol": "slc12a3"
+      },
+      {
+        "symbol": "gata3"
+      },
+      {
+        "symbol": "clcnk"
+      }
+    ],
+    "alternatives_considered": [
+      "Deferring entirely (no answer) because the bundle lacks marker mappings — rejected in favour of naming the widely-used canonical markers while flagging that IDs are unverified.",
+      "Asserting ENSDARG IDs from background knowledge — rejected because it violates the no-memory-IDs rule and the verified store was not queried for these symbols.",
+      "Treating CORPUS-2026-0003 as an authoritative marker source — rejected: it concerns polarity proteins (prkci/prkcz) in tubulogenesis, not a segment-marker catalogue."
+    ],
+    "gap_flags": [
+      "Evidence bundle contains NO segment-marker-to-ENSDARG mappings; identifiers cannot be verified from provided data.",
+      "No entities were resolved/checked against the DATA INAMOVIBLE store (Key entities resolved: none).",
+      "The top-scoring corpus doc (CORPUS-2026-0003) is about prkci/prkcz polarity-driven tubulogenesis, not a marker panel — it is only tangentially relevant to the question.",
+      "Path B (external literature) not triggered, so no primary references (e.g. Wingert & Davidson) are available to ground the marker assignments.",
+      "Marker names given rely on domain background knowledge, not the bundle; they should be re-verified via ZFIN/Ensembl before use."
+    ],
+    "framework_applied": "Evidence-gap-first reasoning: I separated what the bundle actually supports (essentially nothing on segment markers) from domain-canonical knowledge, and refused to fabricate IDs — mapping to the substrate's 'honest confidence + gap_flags when the bundle is thin' rule.",
+    "_usage": {
+      "input_tokens": 1865,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1233,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.6,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies the core segment→marker structure: PT (slc20a1a), DE (slc12a1/NKCC2), DL (slc12a3/NCC), and gata3 for duct — these match the expected map. However, it is incomplete versus the expected evidence: it omits slc4a4a (PT), kcnj1a.1 (DE), and cdh17 (duct), and it introduces some imprecise/questionable extras (trpm7, slc13a1, \"stc300/clcnk\"). Crucially, it provides NO verified ENSDARG IDs at all — the central deliverable — but it does so honestly, transparently flagging that the evidence bundle lacks marker-to-ENSDARG mappings and refusing to fabricate identifiers from memory. This is excellent uncertainty calibration and honesty (confidence 0.15 is appropriate), avoiding overclaiming. The gap flags are candid and accurate. Citation correctness is weak since the cited docs are only tangentially relevant and support little of the marker claims. Net: factually sound on the well-known markers, honest about limits, but fails to deliver the verified IDs and misses several expected markers, warranting a partial verdict.",
+        "rubric": {
+          "factuality": 0.7,
+          "completeness": 0.45,
+          "citation_correctness": 0.3,
+          "uncertainty_calibration": 0.95,
+          "testability": 0.4,
+          "safety_ethics": 1.0
+        },
+        "usage": {
+          "input_tokens": 1938,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 571,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The candidate correctly identifies most of the segment-specific markers from memory (slc20a1a for PT, slc12a1 for DE, slc12a3 for DL, gata3 for duct), matching much of the expected evidence, but misses slc4a4a (PT) and cdh17 (duct) entirely, and introduces some questionable/unclear additions (trpm7/slc13a1, \"stc300/clcnk\") that are not part of the expected canonical marker set and are not clearly justified. Critically, the answer provides zero verified ENSDARG IDs, which is a core explicit requirement of the question (\"what are their verified IDs?\"). The candidate is transparent about this gap, correctly refusing to fabricate IDs and explaining why (no matching evidence in the retrieved bundle), which is a responsible calibration choice and avoids hallucination — a real strength for honesty and safety. However, this means the answer is incomplete relative to the rubric, which explicitly wants the marker-to-ENSDARG mapping. The uncertainty acknowledgement is well-calibrated and evidence citations are honestly characterized (correctly noting the retrieved corpus doesn't contain the needed mapping). Overall this is a partial answer: correct on marker gene names (mostly) but not fully complete, and entirely lacking the verified ID component that the rubric requires.",
+        "overall_score": 0.45,
+        "verdict": "partial",
+        "rubric": {
+          "factuality": 0.6,
+          "completeness": 0.35,
+          "citation_correctness": 0.5,
+          "testability": 0.3,
+          "uncertainty_calibration": 0.85,
+          "safety_ethics": 0.9
+        },
+        "usage": {
+          "input_tokens": 2002,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 619,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.52,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies most of the canonical segment-specific markers (slc20a1a for PT, slc12a1 for DE, slc12a3 for DL, gata3 for duct), demonstrating solid domain knowledge and aligning well with the expected evidence for the marker→segment map. However, the answer explicitly fails on the second half of the question: it provides zero verified ENSDARG identifiers, which are a required component of the expected answer. The candidate transparently acknowledges this gap and correctly declines to fabricate gene IDs from memory, demonstrating appropriate epistemic honesty and high uncertainty calibration (self-reported confidence: 0.15). Factuality of the named markers appears sound based on canonical pronephros biology, though the mismatch between PT markers in the evidence (slc20a1a, slc4a4a) and the candidate's answer (slc20a1a, trpm7/slc13a1) introduces minor ambiguity. The candidate's reasoning for why verified IDs cannot be provided is transparent and logically sound—the supplied corpus does not contain the necessary segment-marker-to-ENSDARG mappings, and external verification tools were not accessed. The answer is well-structured and explicitly flags all evidence gaps. This represents a genuinely partial response: approximately 50% of the expected answer is present and correct, the remaining 50% is absent due to legitimate data limitations, and the candidate avoids overclaiming or fabrication.",
+        "rubric": {
+          "factuality": 0.65,
+          "completeness": 0.5,
+          "citation_correctness": 0.7,
+          "uncertainty_calibration": 0.9,
+          "testability": 0.55,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 1697,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 486,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.15,
+    "outcome": "unfalsifiable_in_phase_I",
+    "mean_overall": 0.523,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

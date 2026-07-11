@@ -1,0 +1,98 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.66,
+      "verdict": "partial",
+      "rubric": {
+        "citation_correctness": 0.7,
+        "completeness": 0.55,
+        "factuality": 0.85,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.5,
+        "safety_ethics": 1.0
+      },
+      "justification": "The answer is honest and well-calibrated: it explicitly refuses to fabricate species, identifiers, or kinetic values, and cites the correct repository niches (RN3 for parameters, RN13 for executable artifacts) and the corpus pronephros/polarity evidence. The scaffold is biologically sensible and correctly names the canonical modules (BMP→pSmad1/5/8, Nodal→pSmad2/3, RA via Aldh1a2/Cyp26 with RAR/RXR) and the required parameter *categories* (kon/koff, kcat, dephosphorylation, nuclear transport, diffusion D, Vmax/Km for Cyp26, Hill/EC50 thresholds, initial copy numbers, geometry). However, against the expected evidence it falls short on concrete deliverables: there is no actual .bngl rule sketch (e.g., no `begin molecule types`/`begin reaction rules` syntax with even placeholder rate names), no explicitly cited cascade *edges* with directionality/provenance, and no gap_flags field populated despite the prose flagging gaps — the structured gap_flags is 'None', which undercuts testability and completeness. The refusal to guess is appropriate given a thin bundle, but a stronger answer could still have emitted a symbolic, parameter-free .bngl template (rules with named-but-unspecified rate constants) and a schema for the calibration .csv, which the expected evidence explicitly rewards. Factually accurate with no overclaiming; confidence 0.12 is arguably slightly under-calibrated given the scaffold is largely correct, but erring conservative is acceptable. Net: a solid, safe, honest partial answer that names the right structure but does not produce the requested concrete artifacts.",
+      "usage": {
+        "input_tokens": 2650,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 758,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.3,
+      "verdict": "partial",
+      "justification": "The candidate correctly refuses to fabricate numeric kinetic parameters and flags the gap explicitly, which is good calibration and safety practice. It also gives a reasonable conceptual scaffold of molecule types, rule classes (binding/unbinding, phosphorylation, nuclear transport, RA synthesis/degradation, transcriptional activation) and a sensible list of parameter categories (kon/koff, kcat, diffusion coefficients, Hill parameters, etc.), which partially satisfies the 'kinetic parameters needed' and 'gap flags' components of the expected evidence. However, it falls short of the expected evidence in several ways: it provides no actual .bngl rule sketch (even a skeletal one with placeholder syntax), no cited cascade edges with specific gene names in the citation sense (e.g., bmp2b→smad1/5/8, nodal→smad2/3, RA→cyp26 repression documented from literature), and no concrete reference to a .csv of kinetic constants structure. The citations given (CORPUS-2026-0003, Reactome, RN3/RN13 niches) are generic pointers rather than substantive cascade edges or parameter sources, and no real BioNetGen syntax example was attempted even hedged as illustrative. This makes the answer safe but incomplete relative to the rubric, which wanted an actual (even if hedged/templated) rule sketch and citation of specific cascade edges and parameter placeholders in a table/csv-like structure. Overall it's an honest, appropriately hedged partial answer rather than a full reconstruction.",
+      "rubric": {
+        "citation_correctness": 0.4,
+        "completeness": 0.25,
+        "factuality": 0.6,
+        "testability": 0.2,
+        "uncertainty_calibration": 0.8,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2714,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 698,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.68,
+      "justification": "The candidate demonstrates exceptional epistemic honesty and scientific integrity by declining to fabricate kinetic parameters, rule specifications, or validated topology—a crucial virtue in systems biology modeling. The response correctly identifies what the evidence bundle does and does not support, explicitly flags gaps (kinetic parameters absent), and provides a structurally sound scaffold outlining the necessary BioNetGen module architecture (Smad phosphorylation cascades, RA synthesis/degradation, cross-antagonism logic) and Morpheus integration strategy (coupled ODEs + PDEs over tissue domain). The categorized parameter checklist (kon/koff, kcat, diffusion coefficients, Aldh1a2 synthesis Km/Vmax, Hill coefficients) is appropriately granular and scientifically sound. However, the response fails the core deliverable: it is *not* a reconstructed BMP/Nodal/RA cascade with a rule-based network suitable for immediate BioNetGen→Morpheus implementation. No executable .bngl rule syntax is provided (only prose description), no specific reaction rules are written (e.g., \"BMP:Receptor(phos~u) + Smad1() → BMP:Receptor(phos~p) + Smad1(phos~p) [kcat]\"), and no example kinetic values—even if taken from prior literature or as typical ranges—are offered to show how parameterization would work. The candidate correctly cites RN3 and RN13 as target repositories but does not retrieve or synthesize content from them. While the gap-flagging and methodological framing are exemplary, the answer provides a *scaffold and protocol* rather than the requested *reconstruction*. For a well-resourced team with access to RN3/RN13 artifacts, this scaffold is an efficient starting point; for a user needing a reproducible model, the incompleteness and lack of any concrete rule syntax or parameter examples limits practical utility.",
+      "rubric": {
+        "factuality": 0.85,
+        "citation_correctness": 0.75,
+        "completeness": 0.45,
+        "testability": 0.35,
+        "uncertainty_calibration": 0.95,
+        "safety_ethics": 0.98
+      },
+      "usage": {
+        "input_tokens": 2166,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 590,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.38,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.547,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

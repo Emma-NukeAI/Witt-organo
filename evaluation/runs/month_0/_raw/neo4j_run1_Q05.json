@@ -1,0 +1,187 @@
+{
+  "question_id": "Q05",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "marker_identification",
+  "bundle": {
+    "question": "Which pronephros/eye transcription factors lack an experimentally resolved structure in zebrafish and would require an AlphaFold prediction (with PAE) before any docking?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8208,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN2",
+          "type": "niche",
+          "score": 0.8208,
+          "text": "RN2 Estructura proteica y complejos. 3D coords of experimentally resolved structures (RA receptors; TFs tfap2a/foxc1a/pax2a/wt1a; Notch/Jagg"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.7973,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7773,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "db:ZFIN",
+          "type": "database",
+          "score": 0.7453,
+          "text": "ZFIN. Mapping of zebrafish transcription factors; gene expression, clones, mutants, markers. Data: TFs, gene expression, clones, mutants, ma"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7811,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "db:DanioCODE",
+          "type": "database",
+          "score": 0.7425,
+          "text": "DanioCODE. Identify which regulatory elements respond to which signals and when. Data: Functional genome (open-source) of zebrafish. Feeds R"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "Based on the RN2 \"Estructura proteica y complejos\" node, the transcription factors that DO have experimentally resolved 3D structures in the bundle are tfap2a, foxc1a, pax2a, and wt1a. The question asks for pronephros/eye TFs that LACK such a resolved structure and would therefore need an AlphaFold prediction (with PAE) before docking. Honestly, the evidence bundle only enumerates the TFs that ARE resolved — it does not provide a complete roster of pronephros/eye TFs, so I cannot definitively name the ones that are missing. Any pronephros or eye TF NOT in the resolved set {tfap2a, foxc1a, pax2a, wt1a} would, by exclusion, require an AlphaFold model with PAE prior to docking; but the bundle does not list candidate TFs outside this set, so no specific missing factor can be asserted from this evidence alone.</parameter>\n<parameter name=\"confidence\">0.28",
+    "evidence_cited": "niche:RN2, CORPUS-2026-0003, db:ZFIN, CORPUS-2026-0002",
+    "identifier_bindings": [
+      {
+        "symbol": "tfap2a"
+      },
+      {
+        "symbol": "foxc1a"
+      },
+      {
+        "symbol": "pax2a"
+      },
+      {
+        "symbol": "wt1a"
+      }
+    ],
+    "alternatives_considered": [
+      "Naming specific unresolved TFs (e.g., pax8, lhx1a, hnf1b, sim1a for pronephros; pax6a/b, rx family, six3/six6 for eye) — rejected because none of these appear in the bundle and asserting them (or their ENSDARGs) would be fabrication.",
+      "Interpreting the question as answerable by the resolved set alone — rejected because the question explicitly asks for the complement (unresolved TFs), which the bundle does not enumerate."
+    ],
+    "gap_flags": [
+      "Bundle lists only experimentally-resolved TFs (tfap2a, foxc1a, pax2a, wt1a); it does not provide a full inventory of pronephros/eye TFs, so the unresolved complement cannot be identified.",
+      "No ENSDARG identifiers were provided or verified for any TF in the bundle.",
+      "No AlphaFold/PAE availability data present in the bundle — the docking-readiness claim cannot be grounded per-gene.",
+      "Would need a ZFIN/PDB cross-reference of all pronephros+eye TFs against experimentally resolved structures to answer definitively."
+    ],
+    "framework_applied": "Set-complement / exclusion reasoning grounded in the RN2 structure inventory. Applied because the question requires identifying members absent from a known 'resolved' set; the framework exposes that the bundle supplies the set but not the universe, making the complement underdetermined.",
+    "_usage": {
+      "input_tokens": 1875,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1034,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.2,
+        "verdict": "incorrect",
+        "justification": "The expected answer is that foxc1a, pax2a, and wt1a are the pronephros/eye TFs lacking experimentally resolved zebrafish structures and thus require AlphaFold predictions (with .json/.pae) rather than experimental .pdb files, before docking. The candidate gets this essentially backwards: it asserts that foxc1a, pax2a, and wt1a (plus tfap2a) DO have experimentally resolved structures, which is the opposite of the expected evidence. It then abstains from naming the unresolved set, claiming the bundle only lists resolved TFs. While the candidate is commendably honest about uncertainty and flags real gaps (no ENSDARG IDs, no per-gene PAE data), the core factual claim is inverted and it fails to deliver the expected answer. The .pdb vs AlphaFold-.json/.pae distinction is mentioned only generically. Good uncertainty calibration and safety, but the substantive content is incorrect and incomplete relative to the target.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.15, \"completeness\": 0.1, \"citation_correctness\": 0.3, \"testability\": 0.2, \"uncertainty_calibration\": 0.6, \"safety_ethics\": 0.9}",
+        "usage": {
+          "input_tokens": 1790,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 506,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "justification": "The expected evidence indicates that foxc1a, pax2a, and wt1a are the TFs lacking experimentally resolved structures (requiring AlphaFold/PAE), while presumably another TF (e.g., tfap2a) has a resolved .pdb structure. The candidate's answer inverts this: it claims tfap2a, foxc1a, pax2a, and wt1a ALL have resolved structures, then declines to identify any TF lacking structure, citing insufficient evidence. This directly contradicts the expected answer, which specifically names foxc1a, pax2a, and wt1a as the ones lacking resolved structures. The candidate's uncertainty framing does not rescue this because the core factual claim (all four are resolved) is likely incorrect per the expected evidence - the question setup implies foxc1a/pax2a/wt1a are the AlphaFold-needed set, not the resolved set. Thus the candidate get the categorization backwards, fails to distinguish .pdb vs AlphaFold-json/pae for the correct TFs, and ultimately provides no actionable list of unresolved TFs despite the question explicitly naming them in the expected evidence. This is a significant factual error, not just an honest gap in coverage.</parameter>\n<parameter name=\"overall_score\">0.1</parameter>\n<parameter name=\"verdict\">incorrect</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.05, \"completeness\": 0.1, \"citation_correctness\": 0.2, \"testability\": 0.2, \"uncertainty_calibration\": 0.3, \"safety_ethics\": 0.8}</parameter>\n</invoke>\n",
+        "usage": {
+          "input_tokens": 1854,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 561,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "overall_score": 0.32,
+        "verdict": "incorrect",
+        "justification": "The candidate's answer fundamentally misinterprets the question and fails to provide the requested information. The question asks which pronephros/eye TFs LACK experimentally resolved structures and need AlphaFold predictions; the candidate instead identifies the set of TFs that DO have resolved structures (tfap2a, foxc1a, pax2a, wt1a) and then correctly notes that the bundle does not provide a complete roster to identify the missing ones. While this acknowledgment of epistemic limitation is honest and shows appropriate uncertainty calibration (scoring well on uncertainty_calibration), it does not answer the question. The expected evidence explicitly lists TFs with structure-availability status and distinguishes between .pdb and AlphaFold-.json/.pae formats. The candidate produces neither list—neither the specific unresolved TFs nor the structural format classifications. The gap-flagging is accurate and reflects sound reasoning about data limitations, but it does not constitute a substantive answer. The candidate's confidence of 0.28 is appropriately low given the lack of concrete deliverables. On completeness, the answer is severely deficient; on factuality, the identification of the resolved set is correct but addresses the wrong direction of the question; on testability, no verifiable claims about which TFs lack structures are made; on citation_correctness, references are mentioned but not used to resolve the actual question.",
+        "rubric": {
+          "factuality": 0.45,
+          "completeness": 0.15,
+          "citation_correctness": 0.5,
+          "testability": 0.2,
+          "uncertainty_calibration": 0.75,
+          "safety_ethics": 0.95
+        },
+        "usage": {
+          "input_tokens": 1578,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 458,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.0,
+    "overall_spread": 0.12,
+    "outcome": "negative",
+    "mean_overall": 0.26,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

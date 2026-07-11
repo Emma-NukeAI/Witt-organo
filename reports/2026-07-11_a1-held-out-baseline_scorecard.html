@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A1 · Held-out baseline month_0 — scorecard (TYPE D)</title>
+<style>
+  :root{
+    --c-bg:#fafaf7; --c-surface:#ffffff; --c-border:#e5e3dd; --c-text:#1a1a1a; --c-muted:#5a5a5a;
+    --c-witt:#1d4e6e; --c-organo:#3a6a3f; --c-warn:#8a5a00; --c-critical:#8a2a2a; --c-good:#3a6a3f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--c-bg);color:var(--c-text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+  code,.mono{font-family:'Cascadia Code','Consolas',monospace;font-size:.9em}
+  nav{position:sticky;top:0;z-index:10;background:var(--c-surface);border-bottom:1px solid var(--c-border);
+    padding:.6rem 1.2rem;display:flex;gap:1.1rem;flex-wrap:wrap;align-items:center;font-size:.85rem}
+  nav b{color:var(--c-witt)} nav a{color:var(--c-muted);text-decoration:none} nav a:hover{color:var(--c-witt)}
+  main{max-width:1100px;margin:0 auto;padding:1.5rem 1.3rem 4rem}
+  h1{font-size:1.7rem;margin:.2rem 0 .3rem;color:var(--c-witt)}
+  h2{font-size:1.2rem;margin:2.2rem 0 .7rem;padding-bottom:.3rem;border-bottom:2px solid var(--c-border);color:var(--c-witt)}
+  h3{font-size:1rem;margin:1.2rem 0 .4rem;color:var(--c-organo)}
+  .sub{color:var(--c-muted);font-size:.9rem;margin-bottom:.8rem}
+  .chips{display:flex;gap:.5rem;flex-wrap:wrap;margin:.6rem 0}
+  .chip{border:1px solid var(--c-border);border-radius:999px;padding:.2rem .7rem;font-size:.78rem;background:var(--c-surface)}
+  .chip.f{background:#eef3f7;border-color:#cfe0ea;color:var(--c-witt)}
+  .badge{display:inline-block;border-radius:6px;padding:.15rem .55rem;font-size:.78rem;font-weight:600}
+  .b-good{background:#e6efe7;color:var(--c-good)} .b-warn{background:#f6efe0;color:var(--c-warn)}
+  .b-bad{background:#f6e6e6;color:var(--c-critical)} .b-neu{background:#eceaf3;color:#5a4a8a}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin:1rem 0}
+  .stat{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.9rem 1rem}
+  .stat .n{font-size:1.7rem;font-weight:700;color:var(--c-witt)} .stat .l{font-size:.8rem;color:var(--c-muted)}
+  .card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:1rem 1.1rem;margin:.8rem 0}
+  .callout{border-left:4px solid var(--c-border);border-radius:6px;padding:.7rem 1rem;margin:.8rem 0;background:var(--c-surface)}
+  .callout.good{border-color:var(--c-good);background:#f2f7f2}
+  .callout.warn{border-color:var(--c-warn);background:#f9f4ea}
+  .callout.bad{border-color:var(--c-critical);background:#f9eeee}
+  table{border-collapse:collapse;width:100%;margin:.8rem 0;font-size:.9rem;background:var(--c-surface)}
+  th,td{border:1px solid var(--c-border);padding:.5rem .6rem;text-align:left;vertical-align:top}
+  th{background:#f1efe9;color:var(--c-witt)}
+  .bar{height:14px;border-radius:7px;background:#ece9e2;position:relative;overflow:hidden;min-width:120px}
+  .bar>i{position:absolute;top:0;left:0;height:100%;display:block}
+  .scroll{overflow-x:auto}
+  ul{margin:.4rem 0 .4rem 1.1rem;padding:0} li{margin:.25rem 0}
+  footer{max-width:1100px;margin:0 auto;padding:1.5rem 1.3rem;color:var(--c-muted);font-size:.82rem;border-top:1px solid var(--c-border)}
+  @media (prefers-color-scheme:dark){
+    :root{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;--c-muted:#a8a49b;
+      --c-witt:#7fb4d4;--c-organo:#8fc294;--c-warn:#d8a24a;--c-critical:#d98a8a;--c-good:#8fc294}
+    th{background:#2a2c30} .chip.f{background:#22323d;border-color:#33505f;color:#9fcbe4}
+    .b-good{background:#22331f;color:#8fc294}.b-warn{background:#332b1a;color:#d8a24a}
+    .b-bad{background:#331f1f;color:#d98a8a}.b-neu{background:#272536;color:#b0a4d8}
+    .bar{background:#34363a}
+    .callout.good{background:#1e2a1e}.callout.warn{background:#2a2519}.callout.bad{background:#2a1e1e}
+    .stat .n{color:#7fb4d4}
+  }
+  :root[data-theme="dark"]{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;--c-muted:#a8a49b;--c-witt:#7fb4d4;--c-organo:#8fc294}
+  :root[data-theme="light"]{--c-bg:#fafaf7;--c-surface:#ffffff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;--c-witt:#1d4e6e;--c-organo:#3a6a3f}
+</style>
+</head>
+<body>
+<nav>
+  <b>A1 · Held-out baseline</b>
+  <a href="#resumen">Resumen</a><a href="#metodo">Método</a><a href="#scorecard">Scorecard</a>
+  <a href="#t4">Test 4</a><a href="#t3">Test 3</a><a href="#indep">Independencia</a>
+  <a href="#alt">Alternativas</a><a href="#lim">Límites</a><a href="#next">Siguientes</a>
+</nav>
+<main>
+  <h1>A1 — Baseline <code>month_0</code> del held-out set</h1>
+  <div class="sub">TYPE D · formal retrospective/scorecard · sesión 2026-07-11 · <code>evaluation/runs/month_0</code> · plan Track A (Medir para validar)</div>
+  <div class="chips">
+    <span class="chip f">framework_applied: Logic-LM-class deterministic aggregation (compute_ece histogram-binning + noise_probe set-overlap/cosine) — NO es juicio LLM</span>
+  </div>
+  <div class="chips">
+    <span class="badge b-good">confidence (mediciones): 0.97</span>
+    <span class="badge b-warn">confidence (interpretación): 0.80</span>
+    <span class="badge b-neu">confidence (generalización n=13): 0.50</span>
+  </div>
+
+  <h2 id="resumen">1 · Resumen ejecutivo</h2>
+  <div class="callout good">
+    <b>direct_answer.</b> El baseline <code>month_0</code> corrió las 30 preguntas del held-out set contra la
+    DATA INAMOVIBLE viva (Neo4j hosted, retrieval híbrido RRF), sintetizando cada respuesta con el contrato §5
+    (Opus 4.8) y puntuándola contra verdad de tierra independiente. Resultado: <b>Test 3 pasó de SCAFFOLD →
+    baseline medido</b> (30/30 respondidas, EPS real) y <b>Test 4 pasó de agregado degenerado → agregado real
+    no-degenerado</b> (n=13, ECE_raw <b>0.58</b>, con <b>3 negativos reales</b>). El hallazgo central: el
+    substrato está <b>sistemáticamente sub-confiado</b> (dice ~0.34, acierta ~0.92 en lo puntuado) — ese es el
+    número a mejorar. Además se <b>midió la independencia de revisores</b> (34% de divergencia inter-familia):
+    el panel NO es "un voto con costo extra".
+  </div>
+
+  <div class="grid">
+    <div class="stat"><div class="n">30/30</div><div class="l">preguntas respondidas (Test 3 baseline)</div></div>
+    <div class="stat"><div class="n">0.58</div><div class="l">ECE_raw (Test 4, no-degenerado)</div></div>
+    <div class="stat"><div class="n">3</div><div class="l">negativos reales (rompe el all-positive)</div></div>
+    <div class="stat"><div class="n">+0.58</div><div class="l">brecha calibración → sub-confianza</div></div>
+    <div class="stat"><div class="n">33.9%</div><div class="l">divergencia inter-familia (jueces)</div></div>
+    <div class="stat"><div class="n">≈$4</div><div class="l">gasto (60 síntesis + 90 jueces + embeds)</div></div>
+  </div>
+
+  <h2 id="metodo">2 · Método (qué se hizo)</h2>
+  <div class="card">
+    <b>Pipeline de 3 etapas por pregunta</b> (<code>evaluation/run_held_out.py</code>, reusa
+    <code>answer_pipeline</code>/<code>rag_backend</code>/<code>resolve_id</code>/<code>verify_output</code> sin tocarlos):
+    <ol>
+      <li><b>Recuperar</b> (determinista): Path A de la DATA INAMOVIBLE (Neo4j, embeddings OpenAI 1536-dim, RRF
+        sparse+denso). DI-only — sin Path B, porque Test 3 mide el crecimiento del <em>propio store</em>, no substrato+web.</li>
+      <li><b>Sintetizar</b> (Anthropic Messages API vía urllib, <code>claude-opus-4-8</code>): contrato §5 como tool-call forzado + reintentos.</li>
+      <li><b>Puntuar</b> contra verdad de tierra <b>independiente</b>: (a) determinista contra el store para
+        identificadores; (b) panel juez multi-familia para las abiertas.</li>
+    </ol>
+    <div><b>agents_invoked:</b>
+      <span class="badge b-good">held-out-runner · invoked</span>
+      <span class="badge b-good">verify_output.admissible · invoked (0 disparó — el modelo no afirmó IDs puntuables)</span>
+      <span class="badge b-good">judge-panel Opus+Sonnet+Haiku · invoked</span>
+      <span class="badge b-bad">judge Fable-5 · skipped (refusal 3/3)</span>
+      <span class="badge b-good">compute_ece · invoked</span>
+      <span class="badge b-good">noise_probe · invoked</span>
+    </div>
+  </div>
+
+  <h2 id="scorecard">3 · Scorecard antes → después</h2>
+  <div class="scroll"><table>
+    <tr><th>Dimensión</th><th>Antes (diagnóstico de esta revisión)</th><th>Después (month_0 medido)</th></tr>
+    <tr><td><b>Test 3</b> — loop de iteración</td>
+      <td><span class="badge b-bad">SCAFFOLD</span> <code>runs/month_{0,4,8}</code> vacíos; EPS solo sintético</td>
+      <td><span class="badge b-good">MEDIDO (baseline)</span> 30/30 respondidas; EPS real (axes a/b + c semántico)</td></tr>
+    <tr><td><b>Test 4</b> — calibración/ECE</td>
+      <td><span class="badge b-bad">CASE-CAPTURED degenerado</span> 10 outcomes all-<code>positive</code>; isotonic→0 trivial</td>
+      <td><span class="badge b-warn">aggregate-captured, no-degenerado</span> n=13, ECE_raw 0.58, 3 negativos; sub-confianza</td></tr>
+    <tr><td><b>Independencia de revisores</b> (Fable-5 rec #2)</td>
+      <td><span class="badge b-bad">afirmada, no medida</span></td>
+      <td><span class="badge b-good">MEDIDA</span> 33.9% divergencia inter-familia (panel ≠ 1 voto)</td></tr>
+  </table></div>
+
+  <h2 id="t4">4 · Evidencia — Test 4 (calibración)</h2>
+  <p>De 30 records: 30 observables → 10 <code>unfalsifiable</code> excluidos + 7 sin <code>confidence</code>
+  excluidos (endurecí <code>compute_ece</code> para excluirlos en vez de romper) → <b>n_scored = 13</b>.</p>
+  <table>
+    <tr><th>Métrica</th><th>Valor</th><th>Lectura</th></tr>
+    <tr><td>ECE_raw</td><td><b>0.582</b></td><td>umbral defensivo 0.20 — <span class="badge b-bad">lejos</span>, honesto (baseline)</td></tr>
+    <tr><td>Accuracy (frac positive, scored)</td><td>0.923</td><td>los jueces validan la mayoría de respuestas</td></tr>
+    <tr><td>Confianza media (scored)</td><td>0.342</td><td>el modelo se declara muy inseguro</td></tr>
+    <tr><td>Brecha (acc − conf)</td><td><b>+0.582</b></td><td><span class="badge b-warn">SUB-CONFIANZA sistemática</span></td></tr>
+    <tr><td>Predicciones high-conf (≥0.80)</td><td>0 (máx 0.62)</td><td>sub-umbral ≥85% N/A</td></tr>
+    <tr><td>ece_after_isotonic</td><td>0.0</td><td><span class="badge b-warn">in-sample overfit</span> — no es ganancia real; el número honesto es ECE_raw</td></tr>
+  </table>
+  <div class="callout warn">
+    <b>Distribución de outcomes (30):</b> 17 positive · 3 negative · 10 unfalsifiable.
+    Los <b>3 negativos</b> son lo que rompe el agregado all-positive degenerado que tenía Test 4 antes.
+  </div>
+
+  <h2 id="t3">5 · Evidencia — Test 3 (piso de ruido EPS, 30 pares reales)</h2>
+  <p>Primer EPS medido sobre corridas pareadas reales (reemplaza <code>eps_baseline_selftest.json</code> sintético):</p>
+  <table>
+    <tr><th>Eje</th><th>Mediana</th><th>σ</th><th>eps_delta (2σ)</th><th>Lectura</th></tr>
+    <tr><td>(a) Retrieval Jaccard</td><td>1.000</td><td>0.000</td><td>0.000</td><td>recuperación perfectamente estable run-to-run</td></tr>
+    <tr><td>(b) Citation overlap</td><td>0.732</td><td>0.428</td><td>0.856</td><td><span class="badge b-warn">citas ruidosas</span> — futura mejora por-citas debe superar 0.86</td></tr>
+    <tr><td>(c) Hypothesis cosine <span class="badge b-neu">semantic:bge</span></td><td>0.954</td><td>0.019</td><td>0.039</td><td>respuestas <b>semánticamente estables</b> (n=29)</td></tr>
+  </table>
+  <div class="callout good">
+    Axis c ahora es <b>semántico real</b> (embedder local bge, NO-SPEND), no el proxy léxico ni el stub previo.
+    Un cambio de calidad futuro debe superar un eps_delta de <b>0.039</b> en coseno para contar como señal (RIL_PROGRAM §8).
+  </div>
+
+  <h2 id="indep">6 · Independencia de revisores (respuesta a la crítica externa Fable-5 #1/#2)</h2>
+  <p>La review externa marcó como riesgo #1: <em>"si los 3 revisores son el mismo modelo base, sus errores están
+  correlacionados → ≈ un voto con costo extra; el panel es teatro salvo que el desacuerdo medido lo demuestre."</em>
+  Medición sobre las 30 preguntas:</p>
+  <table>
+    <tr><th>Métrica</th><th>Valor</th></tr>
+    <tr><td>Desacuerdo medio inter-juez (label)</td><td>0.167</td></tr>
+    <tr><td>Jueces no-Opus que difieren de Opus</td><td><b>20 de 59 comparaciones = 33.9%</b></td></tr>
+    <tr><td>Familias</td><td>Opus 4.8 · Sonnet 5 · Haiku 4.5 (3 familias que funcionan)</td></tr>
+  </table>
+  <div class="callout good">
+    <b>34% de divergencia ⇒ el panel NO es "un voto con costo extra".</b> Hay independencia empírica entre familias.
+    <b>Límite honesto:</b> las 3 son de Anthropic, no un 3er proveedor externo — la independencia inter-familia es
+    real pero no inter-proveedor.
+  </div>
+
+  <h2 id="alt">7 · Alternativas consideradas</h2>
+  <div class="card"><ul>
+    <li><b>Backend sparse vs neo4j:</b> sparse (offline, NO-SPEND) probado; el baseline final corrió en <b>neo4j</b>
+      (substrato real, retrieval híbrido). Se forzó <code>EMBED_MODEL=openai</code> para que la query matcheara el
+      índice 1536-dim y evitar la degradación silenciosa a sparse (bug del Track B).</li>
+    <li><b>Scoring determinista-solo vs +panel juez:</b> se eligió ambos; el determinista (store) no disparó porque
+      el modelo declinó afirmar IDs sobre evidencia delgada → la calibración descansa en el panel.</li>
+    <li><b>Outcome del juez por mayoría-estricta vs umbral-sobre-media:</b> la mayoría estricta daba casi todo
+      <code>unfalsifiable</code> (sin señal); se adoptó umbral sobre la media del panel (≥0.6/≤0.4) con guardas de
+      desacuerdo/abstención — LLM-as-judge estándar.</li>
+    <li><b>DI-only vs +Path B (Europe PMC):</b> DI-only, porque Test 3 mide el crecimiento del propio store.</li>
+    <li><b>Fable-5 en el panel:</b> descartado — rechaza (refusal) el tool-call forzado 3/3; sustituido por Haiku 4.5.</li>
+  </ul></div>
+
+  <h2 id="lim">8 · Límites (gap_flags)</h2>
+  <div class="callout bad"><ul>
+    <li><b>n_scored=13 es chico</b> — el ECE_raw 0.58 es un baseline honesto, no un número estable; la tendencia (meses 4/8) es lo que importa.</li>
+    <li><b>0 outcomes determinista store-grounded</b> — el modelo no afirmó IDs puntuables sobre el corpus delgado; la calibración es LLM-graded (panel), no store-grounded. Es una forma más débil de "verdad de tierra independiente".</li>
+    <li><b>Corpus delgado</b> (95 nodos, ~3 records) — el substrato no puede responder bien 30 preguntas amplias todavía. Baja confianza y pocos IDs afirmados reflejan esto (infra-pesado, contenido-delgado — el diagnóstico).</li>
+    <li><b>Las 3 familias de jueces son de Anthropic</b> — independencia inter-familia real, no inter-proveedor.</li>
+    <li><b>ece_after_isotonic=0.0 es in-sample</b> — isotonic sobre los mismos 13 puntos sobreajusta; se reporta ECE_raw.</li>
+    <li><b>7 records sin confidence</b> — el modelo la omite a veces pese a 3 reintentos; excluidos de ECE (no fabricados).</li>
+    <li>Sin arco longitudinal (meses 0/4/8) el estado es <code>aggregate-captured</code>, <b>nunca</b> <code>satisfied</code> (ADR-0005/0030).</li>
+  </ul></div>
+
+  <h2 id="next">9 · Siguientes pasos</h2>
+  <div class="card"><ul>
+    <li><b>A3 — higiene del loop RIL:</b> re-correr <code>rolling_calibration</code>/<code>retrospect</code> incluyendo estos records; cerrar la propuesta de gobernanza abierta.</li>
+    <li><b>Crecer el corpus</b> (la palanca real para subir todos los números): el ECE 0.58 y la baja confianza son síntomas del store delgado. Más literatura anclada → más IDs afirmables → señal store-grounded determinista.</li>
+    <li><b>Reducir la sub-confianza:</b> calibración post-hoc fuera-de-muestra (isotonic sobre un split separado, no in-sample) cuando n crezca.</li>
+    <li><b>Repetir en el mes 4</b> con el mismo runner (reproducible vía API) para el primer punto de "mejora con uso".</li>
+    <li>Cerrar con <code>composite-auditor</code> (panel multi-familia) sobre el claim "estos controles ya están medidos, no solo corridos".</li>
+  </ul></div>
+
+  <footer id="foot">
+    <b>evidence_cited:</b>
+    <code>reports/ece_month0_20260711.json</code> ·
+    <code>evaluation/runs/month_0/eps_neo4j.json</code> ·
+    <code>evaluation/runs/month_0/Q*.json</code> (30 records) ·
+    <code>evaluation/runs/month_0/_panel/*.json</code> (30 paneles) ·
+    <code>evaluation/held_out_set_v1.json</code> (30 Q, frozen).<br><br>
+    <b>Generado:</b> 2026-07-11 · TYPE D per <code>html-report-contract.md</code> · plan
+    <code>~/.claude/plans/quiero-que-revises-el-iridescent-scott.md</code> Track A/A1-A2.<br>
+    <b>Herramientas:</b> <code>run_held_out.py</code> (nuevo) · <code>compute_ece.py</code> (endurecido: excluye no-confidence) ·
+    <code>noise_probe.py</code> (axis c semántico activado). Cero mutación de la DATA INAMOVIBLE (read-only).
+  </footer>
+</main>
+</body>
+</html>

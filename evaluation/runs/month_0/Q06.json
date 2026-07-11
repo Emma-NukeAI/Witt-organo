@@ -1,0 +1,182 @@
+{
+  "claim_id": "held_out_month0_Q06",
+  "claim_timestamp": "2026-07-11T18:44:14Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN2",
+  "claim_category": "pathway_assembly",
+  "question_id": "Q06",
+  "question": "Describe the Jagged2a–Notch and Foxc1a–Pitx2 complexes relevant to anterior-segment/eye development and how their interaction evidence would be assembled.",
+  "backend": "neo4j",
+  "direct_answer": "Based on the evidence bundle, two protein complexes relevant to anterior-segment/eye development can be described at the level of the resources that would supply the evidence, but the bundle does NOT contain resolved structural coordinates or curated interaction records for either complex — so the description below is a plan for assembly rather than an assertion of established interactions.\n\n(1) Jagged2a–Notch complex: This is a ligand–receptor signaling pair. Jagged (Jagg-family) ligand and Notch receptor appear in the RN2 \"Estructura proteica y complejos\" niche listing (which explicitly names \"Notch/Jagg...\" among experimentally resolved 3D structures). The physical complex would be the Jagged extracellular DSL/EGF domains engaging the Notch receptor's EGF-repeat ligand-binding region, triggering canonical Notch signaling. In an anterior-segment context this would drive cell-fate/boundary decisions.\n\n(2) Foxc1a–Pitx2 complex: Both foxc1a (forkhead transcription factor) and pitx2 (paired-like homeodomain factor) are confirmed present in the DATA INAMOVIBLE store (\"foxc1a=in-DI; pitx2=in-DI\"), and foxc1a is among the TFs listed in the RN2 structural niche (tfap2a/foxc1a/pax2a/wt1a). Foxc1a and Pitx2 are the two canonical anterior-segment dysgenesis transcription factors; their interaction would be a transcription-factor complex / co-regulatory relationship on shared target promoters rather than a receptor–ligand engagement.\n\nHOW THE INTERACTION EVIDENCE WOULD BE ASSEMBLED (three converging layers):\n- Structural layer (RN2): pull experimentally resolved 3D coordinates for the Notch/Jagged pair and for foxc1a (and any resolved pitx2) to establish physical binding interfaces where structures exist.\n- Interaction/pathway layer (Reactome + STRING): Reactome supplies orthology-inferred zebrafish signaling pathway membership (e.g., Notch signaling), and STRING supplies PREDICTED protein–protein interaction edges (foxc1a–pitx2, jagged2a–notch). Both are computational/predictive, so they support but do not confirm direct physical contact.\n- Expression/spatiotemporal co-occurrence layer (CORPUS-2026-0002 anterior-segment scRNA atlas; CORPUS-2026-0001/ZESTA 3–24 hpf atlas): establish that the partners are co-expressed in the same cells/tissue and time window (trabecular meshwork / annular ligament; pre-corneal window), which is necessary contextual evidence that a proposed complex is biologically plausible in situ.\n- Boundary/timing layer (RN10): neighboring-tissue coordinates and timing matrices to constrain where/when the signaling boundary (Notch) and TF co-regulation act.\n\nConfidence in the *assembly workflow* is moderate; confidence in the specific molecular details of each complex is low because the bundle exposes only resource descriptions, not the actual coordinates, curated interactions, or a specific jagged2a ENSDARG.",
+  "stated_confidence": 0.35,
+  "prior": 0.35,
+  "evidence_cited": [
+    "niche:RN2",
+    "niche:RN10",
+    "CORPUS-2026-0002",
+    "CORPUS-2026-0001",
+    "db:Reactome",
+    "db:STRING_DB"
+  ],
+  "identifier_bindings": [
+    {
+      "symbol": "foxc1a"
+    },
+    {
+      "symbol": "pitx2"
+    },
+    {
+      "symbol": "jagged2a"
+    },
+    {
+      "symbol": "notch"
+    },
+    {
+      "symbol": "tfap2a"
+    },
+    {
+      "symbol": "pax2a"
+    },
+    {
+      "symbol": "wt1a"
+    }
+  ],
+  "alternatives_considered": [
+    "That the bundle contains actual resolved structures for the Jagged2a-Notch and Foxc1a-Pitx2 complexes — rejected: RN2 only describes the presence of such coordinates, none are provided inline.",
+    "That STRING/Reactome edges are experimental confirmation of physical binding — rejected: both are explicitly predictive/orthology-inferred.",
+    "That Foxc1a-Pitx2 act as a receptor-ligand pair like Jagged-Notch — rejected: both are transcription factors, so any complex is co-regulatory/TF-TF, not signaling ligand-receptor."
+  ],
+  "gap_flags": [
+    "No ENSDARG provided for any gene (foxc1a, pitx2, jagged2a, notch) in the bundle — identifiers unverified.",
+    "No actual 3D structural coordinates or interface residues are present, only a niche description that such data exist.",
+    "No curated experimental protein-protein interaction record for either complex; STRING is predictive only, Reactome is orthology-inferred.",
+    "The specific ligand isoform 'Jagged2a' vs generic 'Jagg' family is not disambiguated in the bundle.",
+    "Path B (primary literature) not triggered, so no direct experimental validation of the complexes is available.",
+    "No evidence directly linking these two complexes to each other (cross-talk) in the bundle."
+  ],
+  "framework_applied": "Pathway/complex assembly via multi-layer evidence triangulation (structure -> predicted interaction -> spatiotemporal co-expression -> boundary/timing), matching type=pathway_assembly across niches RN2/RN3; kept assertions to resource-level given absence of primary interaction data.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T18:44:14Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The expected evidence centers on distinguishing physical vs predicted interaction provenance (IntAct physical, STRING predictive) plus a complex PAE note. The candidate does capture the core distinction well: it explicitly flags STRING as PREDICTED and Reactome as orthology-inferred/computational, contrasting these with resolved structures — this maps closely onto the \"physical vs predicted provenance\" requirement. It correctly identifies Jagged2a–Notch as a ligand–receptor (DSL/EGF interface) physical pairing and Foxc1a–Pitx2 as a TF co-regulatory relationship, both biologically accurate for anterior-segment dysgenesis. Weaknesses: (1) It does not cite IntAct as the physical-interaction resource — it substitutes structural coordinates and Reactome/STRING, missing the specific physical-interaction curation channel expected. (2) It omits any mention of a complex PAE (predicted aligned error) note, which is a specific expected element for judging modeled-complex confidence — this is a clear gap. The uncertainty calibration is a strength: honest, well-scoped gap_flags, low stated confidence (0.35), and no fabricated ENSDARGs or interface residues. Overall this is a solid, honest partial answer that gets the provenance framing but misses the IntAct-physical anchor and the PAE note.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.85, \"citation_correctness\": 0.55, \"completeness\": 0.6, \"uncertainty_calibration\": 0.9, \"testability\": 0.7, \"safety_ethics\": 1.0}",
+          "usage": {
+            "input_tokens": 2608,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 627,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected evidence centers on two specific points: (1) distinguishing physical interaction provenance (IntAct) from predicted/computational provenance (STRING) for these complexes, and (2) noting a PAE (predicted aligned error) caveat for the complex structure confidence. The candidate's answer discusses STRING as predictive and contrasts it with 'experimentally resolved 3D structures' from an RN2 niche, and generally treats structural/interaction evidence with appropriate epistemic caution, flagging that no curated interaction record exists. However, it never mentions IntAct specifically as the physical-interaction database, and it never mentions PAE (predicted aligned error) as a metric for complex-structure confidence — both of which are explicitly named in the expected evidence as key provenance/quality markers. Instead it substitutes generic 'structural layer' and 'interaction/pathway layer' framing using Reactome/STRING/RN2, which is a reasonable but distinct evidence-assembly narrative. The answer is well-organized, appropriately hedged, and transparent about gaps (no ENSDARG, no curated PPI, no cross-talk evidence), reflecting good uncertainty calibration and honesty. But because it omits the two specific expected terms (IntAct physical vs STRING predictive distinction by name, and PAE note for complex structure) it only partially satisfies the rubric's specific evidentiary requirements even though the underlying reasoning is in the right direction (predictive vs physical distinction is implicitly present via STRING vs 'experimentally resolved structures', but IntAct is never named, and PAE is completely absent). Overall this is a thoughtful, cautious answer that captures the spirit of the expected evidence but misses specific named sources (IntAct, PAE) that were called out as required evidence points, making it partial rather than fully correct.",
+          "overall_score": 0.45,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.55,
+            "completeness": 0.35,
+            "citation_correctness": 0.4,
+            "uncertainty_calibration": 0.75,
+            "testability": 0.5,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2672,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 783,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.68,
+          "verdict": "partial",
+          "justification": "The candidate answer demonstrates strong methodological awareness and appropriate epistemic humility by explicitly framing the response as \"a plan for assembly rather than an assertion of established interactions.\" The answer correctly identifies the two protein complexes (Jagged2a–Notch as ligand–receptor signaling; Foxc1a–Pitx2 as transcription-factor co-regulatory complex) and maps them to relevant biological contexts (anterior-segment development, cell-fate decisions). The three-layer assembly framework (structural/RN2, interaction/Reactome+STRING, expression/spatiotemporal) is methodologically sound and accurately reflects how multi-resource evidence integration works in this domain. The candidate appropriately distinguishes physical interactions (IntAct-class experimental data) from predicted interactions (STRING) and orthology-inferred pathways (Reactome), directly addressing the expected evidence rubric. However, the answer is severely constrained by the stated limitations: no actual structural coordinates, no curated experimental protein–protein interaction records, no Ensembl gene identifiers to anchor claims, no disambiguation of isoform specificity (Jagged2a vs. generic Jagg family), and no direct experimental validation. The candidate's own confidence score (0.35) and gap_flags transparently list these critical absences, limiting the answer to a workflow blueprint rather than established facts. While this honesty is commendable and increases calibration accuracy, it also means the substantive content is thin: the description of the complexes themselves relies on functional/textbook knowledge rather than evidence from the stated bundle. The citation of RN2, RN10, CORPUS-2026-0002/0001, Reactome, and STRING is appropriate given the constraints, but without actualized data (coordinates, curated interactions, expression matrices), the answer cannot fully satisfy a question asking for description and evidence assembly of specific complexes. The answer is thus well-reasoned but incompletely grounded in the available evidence, warranting a \"partial\" verdict.",
+          "rubric": {
+            "factuality": 0.72,
+            "citation_correctness": 0.75,
+            "completeness": 0.6,
+            "testability": 0.65,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2127,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 593,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.27,
+      "outcome": "positive",
+      "mean_overall": 0.617,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

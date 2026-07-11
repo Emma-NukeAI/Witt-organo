@@ -1,0 +1,159 @@
+{
+  "claim_id": "held_out_month0_Q04",
+  "claim_timestamp": "2026-07-11T18:41:12Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN1",
+  "claim_category": "specificity_ratio",
+  "question_id": "Q04",
+  "question": "Given a marker's expression across all clusters in a whole-embryo atlas, compute its tissue specificity ratio and assign a Tier (1/2/3) for a global-KO perturbation. Why is the broadest reference dataset mandatory before the Tier label?",
+  "backend": "neo4j",
+  "direct_answer": "Method (procedure, since no marker-specific expression values were provided in the bundle):\n\n1. Tissue specificity ratio. From the whole-embryo atlas, take the marker's mean expression in its top (peak) cluster and divide by the mean expression averaged across all clusters (or, equivalently, top-cluster / second-highest cluster, or a tau/entropy-based index depending on convention). Higher ratio = more tissue-restricted.\n   - specificity_ratio = E_peak / mean(E_all_clusters)\n\n2. Tier assignment for a global (whole-embryo) knockout:\n   - Tier 1 (high ratio, e.g. expression concentrated in ≤1–2 clusters): highly tissue-restricted marker — a global KO phenotype can be attributed with reasonable confidence to that restricted tissue; cleanest interpretation.\n   - Tier 2 (moderate ratio, expression in a handful of clusters): partially restricted — global KO effects are plausibly but not unambiguously localized; needs corroboration.\n   - Tier 3 (low ratio, broad/ubiquitous expression): pleiotropic marker — a global KO's phenotype cannot be assigned to a single tissue; confounded readout.\n\nThe exact numeric cutoffs are NOT specified in this evidence bundle, so the Tier boundaries above are a schema, not a validated threshold set.\n\nWhy the broadest reference dataset is mandatory BEFORE labeling the Tier: the specificity ratio's denominator is \"expression across ALL clusters.\" If your reference atlas is missing cell types, time points, or tissues, the denominator is systematically underestimated, so the ratio is inflated and a broadly-expressed gene can be mislabeled Tier 1 (falsely specific). A whole-embryo, all-timepoint atlas (e.g. ZESTA, CORPUS-2026-0001, spanning the 3–24 hpf window and Stereo-seq spatial coverage) minimizes this \"hidden cluster\" bias so the ratio — and therefore the Tier — reflects true organism-wide specificity rather than the sampling limits of a narrow dataset. In short: you cannot certify tissue-specificity from a dataset that never observed the tissues where the gene might also be on.",
+  "stated_confidence": 0.42,
+  "prior": 0.42,
+  "evidence_cited": "CORPUS-2026-0001, CORPUS-2026-0002, niche:RN1, db:CNGB_STOmics, db:GEO_NCBI, db:ZFIN",
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Using tau or Shannon-entropy specificity indices instead of a simple peak/mean ratio — chosen ratio form because the question explicitly says 'specificity ratio'.",
+    "Reporting a concrete numeric ratio and Tier — rejected because no marker identity or per-cluster expression values were supplied in the bundle.",
+    "Treating RN1's average-expression-per-cell-type tables as the reference — viable, but RN1 is lineage-focused and may be narrower than ZESTA for whole-embryo coverage."
+  ],
+  "gap_flags": [
+    "No specific marker/gene name or ENSDARG was provided, so no actual ratio or Tier could be computed.",
+    "No per-cluster expression matrix values are in the bundle — only dataset/database descriptors.",
+    "Tier cutoff thresholds (numeric boundaries for 1/2/3) are not defined in the evidence; schema is inferred.",
+    "Bundle does not confirm ZESTA covers ALL developmental windows relevant to an arbitrary marker (it is described for the 3-24 hpf pre-corneal window), so 'broadest' is relative to available atlases."
+  ],
+  "framework_applied": "Denominator-integrity / sampling-bias reasoning for specificity metrics: the specificity ratio is only as valid as the completeness of the reference set defining its denominator; applied because the question hinges on why reference breadth precedes the Tier label.",
+  "observed_outcome": "unfalsifiable_in_phase_I",
+  "observed_at": "2026-07-11T18:41:12Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.55,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.4,
+            "completeness": 0.5,
+            "factuality": 0.6,
+            "safety_ethics": 1.0,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.85
+          },
+          "justification": "The candidate correctly captures the conceptual thrust of why the broadest reference is mandatory before Tier labeling — a truncated atlas underestimates the non-target denominator and inflates specificity, risking false Tier 1 calls. This \"hidden cluster bias\" reasoning aligns well with the intended lesson. However, the specific SR formula is wrong relative to the expected evidence: the rubric defines SR = target-mean / max-nontarget-mean, whereas the candidate proposes E_peak / mean(all clusters) (with alternatives). This matters because the mafba lens-contamination case (SR≈0.145 → Tier 3) is grounded in the max-nontarget denominator, and the candidate neither reproduces this formula nor cites the mafba worked example that is the crux of the expected evidence. The Tier schema is reasonable but explicitly acknowledged as inferred/uncalibrated, which is honest. Uncertainty calibration is a genuine strength: the candidate flags the missing marker, missing expression matrix, undefined cutoffs, and the relativity of \"broadest,\" and states low confidence (0.42) appropriately. Overall: correct high-level rationale, honest about gaps, but the core formula deviates from the expected definition and the diagnostic mafba example is absent — hence partial.",
+          "usage": {
+            "input_tokens": 2258,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 606,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The expected evidence specifies a precise formula (SR = target-mean / max-nontarget-mean) and a concrete worked example (mafba lens-contamination lesson, SR≈0.145 → Tier 3) illustrating why the broadest reference dataset matters. The candidate does not use this formula—it instead proposes E_peak/mean(E_all_clusters), which is a different (and less discriminating) definition, since it doesn't isolate the single worst-case off-target cluster. It also never mentions mafba or the SR≈0.145 example at all, missing the concrete illustrative case that grounds the \"why broadest reference is mandatory\" argument in a real failure mode (lens contamination causing false Tier assignment). The conceptual reasoning about denominator inflation from missing clusters is directionally correct and echoes the spirit of the expected point, but it's generic and not tied to the specific mechanism (max-nontarget-mean vs mean-all-clusters affects sensitivity to contaminating tissues like lens for mafba). The candidate is appropriately calibrated, flags uncertainty, notes lack of specific marker data, and reasonably hedges tier cutoffs as unvalidated—good uncertainty handling. However, factual alignment with the expected specific formula and example is weak, so completeness and citation-correctness are compromised. Citations are dataset IDs but not clearly tied to the mafba example, so we can't verify their appropriateness for this specific evidence point. Overall this is a partial match: sound generic reasoning, honest hedging, but missing the exact rubric-specified formula and the key illustrative case.",
+          "overall_score": 0.35,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.5,
+            "completeness": 0.3,
+            "citation_correctness": 0.3,
+            "testability": 0.5,
+            "uncertainty_calibration": 0.7,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2322,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 706,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate provides a methodologically sound explanation of tissue specificity ratio (SR) calculation and defensible Tier assignment logic that aligns with the expected evidence framework (higher SR → Tier 1, lower SR → Tier 3). The critical insight—that the broadest reference dataset is mandatory to avoid inflating specificity ratios through hidden-cluster bias—is clearly articulated and directly addresses the question's core concern. However, the answer conflates two distinct formulas in step 1: \"E_peak / mean(E_all_clusters)\" differs from the expected evidence's formula \"SR = target-mean / max-nontarget-mean,\" which is more restrictive and arguably more interpretable (peak vs. second-peak rather than peak vs. global mean). The candidate acknowledges the absence of the mafba lens-contamination exemplar and does not explicitly compute the expected SR ≈ 0.145 threshold, relying instead on an inferred schema without numeric boundaries. The candidate is appropriately transparent about gaps (no specific marker, no expression matrix, undefined cutoffs, temporal coverage uncertainty), demonstrating honest uncertainty calibration. The logical chain—why incomplete datasets break the Tier label—is robust and well-reasoned. For factuality: the methodological reasoning is sound, but the formula deviation and absence of the canonical SR calculation and mafba lesson example prevent a \"correct\" verdict. For testability: the method is general but not applied to concrete data. The answer demonstrates good foundational reasoning with appropriate caveats, but does not fully instantiate the expected evidence's specific formula and key exemplar.",
+          "rubric": {
+            "factuality": 0.75,
+            "completeness": 0.68,
+            "citation_correctness": 0.65,
+            "uncertainty_calibration": 0.85,
+            "testability": 0.7,
+            "safety_ethics": 0.8
+          },
+          "usage": {
+            "input_tokens": 1866,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 504,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.37,
+      "outcome": "unfalsifiable_in_phase_I",
+      "mean_overall": 0.54,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

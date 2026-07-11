@@ -1,0 +1,167 @@
+{
+  "claim_id": "held_out_month0_Q19",
+  "claim_timestamp": "2026-07-11T19:14:36Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN12",
+  "claim_category": "perturbation_design",
+  "question_id": "Q19",
+  "question": "Using genetic-interaction data, predict the embryonic phenotype of a double-gene perturbation and whether redundancy would mask a single-KO.",
+  "backend": "neo4j",
+  "direct_answer": "I cannot make a specific, gene-level prediction from this bundle, because no actual genes, no actual genetic-interaction records, and no phenotype data were retrieved — only database descriptors and a single generic corpus chunk about the pronephros. What I CAN give is the correct methodological reasoning frame:\n\n(1) SOURCE OF EVIDENCE: To predict a double-perturbation phenotype and judge redundancy masking, the primary resource is BioGRID (the retrieved DI explicitly describes it as holding GENETIC interactions — 'what happens to the embryo if you alter two genes at once'). STRING is explicitly labeled PREDICTIVE (computationally inferred protein associations) and Reactome is orthology-inferred, so both are supporting/hypothesis-generating rather than confirmatory for an in-vivo embryonic phenotype.\n\n(2) HOW TO PREDICT THE DOUBLE-KO PHENOTYPE: In BioGRID's genetic-interaction schema, the relevant interaction TYPE tells you the expected combined outcome. A 'synthetic lethal' or 'synthetic enhancement' interaction predicts that the double perturbation produces a strong/lethal embryonic phenotype that is more severe than either single KO. An 'epistatic'/'suppression' relationship predicts the double phenotype resembles one single-KO (the epistatic gene), or is rescued.\n\n(3) WHETHER REDUNDANCY MASKS A SINGLE-KO: Redundancy is inferred precisely when each single KO is (near-)wild-type but the double KO shows a phenotype — the classic synthetic-interaction signature. This is common for paralog pairs (whole-genome-duplication ohnologs in zebrafish). So the operational test is: single-KO A ≈ WT, single-KO B ≈ WT, double-KO A;B = phenotype → redundancy masked each single-KO. If a single KO already shows the phenotype, redundancy is NOT masking it.\n\nTo turn this into an actual prediction I need the two specific gene symbols/ENSDARGs and the BioGRID interaction record (type + evidence code) linking them, plus a described phenotype — none of which are in this bundle.",
+  "stated_confidence": 0.15,
+  "prior": 0.15,
+  "evidence_cited": [
+    "db:BioGRID",
+    "db:STRING_DB",
+    "db:Reactome",
+    "CORPUS-2026-0003#c000"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "Give a concrete gene-pair prediction (e.g. a paralog pair) — rejected: no genes were retrieved and asserting any ENSDARG would be fabrication.",
+    "Treat STRING predicted interactions as sufficient to predict an embryonic phenotype — rejected: STRING is explicitly PREDICTIVE/protein-association, not an in-vivo genetic-interaction phenotype source.",
+    "Use the pronephros corpus chunk to invent a nephron-specific double-KO — rejected: the chunk is a generic intro with no interaction or phenotype data."
+  ],
+  "gap_flags": [
+    "No specific gene pair (symbols or ENSDARGs) provided in the question or bundle.",
+    "No actual BioGRID genetic-interaction record (interaction type, directionality, evidence code) was retrieved.",
+    "No phenotype/expression data retrieved to anchor a predicted embryonic outcome.",
+    "No single-KO baseline phenotypes available to assess redundancy masking.",
+    "Path B (literature) not triggered — no primary experimental support.",
+    "Answer is methodological framing only, not a data-grounded prediction."
+  ],
+  "framework_applied": "Genetic-interaction epistasis reasoning (synthetic-enhancement vs suppression/epistasis) plus paralog-redundancy logic; applied at the meta level because no concrete gene-pair data were present, so only the decision procedure — not a specific prediction — can be grounded in the bundle.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T19:14:36Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "rubric": {
+            "citation_correctness": 0.8,
+            "completeness": 0.55,
+            "factuality": 0.9,
+            "safety_ethics": 1.0,
+            "testability": 0.85,
+            "uncertainty_calibration": 0.95,
+            "factuality_note": "n/a"
+          },
+          "justification": "The candidate provides an accurate and well-structured methodological frame that squarely addresses both expected-evidence components: it correctly identifies BioGRID as the source of genetic-interaction data for double-KO inference and gives sound paralog-redundancy reasoning (the synthetic-interaction signature where single KOs are WT but the double KO shows a phenotype, tied to WGD ohnologs in zebrafish). The distinctions between synthetic lethal/enhancement vs. epistatic/suppression outcomes are correct, and the operational test for redundancy masking is clearly articulated and testable. Uncertainty calibration is excellent — the answer honestly declares it cannot make a gene-level prediction because no actual gene pair or BioGRID record was retrieved, and it flags these gaps explicitly with a low confidence (0.15) that is appropriate given the empty bundle. Factuality is high with no fabricated specifics. The shortfall is on completeness: the question asked to *predict the phenotype* of a specific double perturbation, and the answer delivers only a framework rather than a concrete prediction. This is defensible given the absence of retrieved gene/interaction data (honest abstention on specifics is preferable to fabrication), but it does leave the core deliverable unfulfilled. Citations are to database descriptors and a generic corpus chunk, which is consistent with what was available. Overall a strong, honest, methodologically correct partial answer that stops short of a data-grounded prediction.",
+          "usage": {
+            "input_tokens": 2166,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 675,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "justification": "The candidate correctly identifies BioGRID genetic interactions as the relevant evidence source and articulates sound reasoning about synthetic lethality/enhancement predicting double-KO phenotypes, and the classic redundancy-masking signature (single KOs ~WT, double KO shows phenotype). This matches the conceptual core of the expected evidence (double-KO inference from BioGRID genetic interactions; paralog-redundancy reasoning). However, the answer is entirely abstract/methodological — it explicitly states no genes, no actual interaction records, and no phenotype data were retrieved, so it declines to make any concrete prediction. This falls short of 'predict the embryonic phenotype' as the question demands, since a good answer should ideally apply the reasoning to a specific gene pair or at least a plausible worked example rather than only describing the method. The candidate is honest about its uncertainty and appropriately flags gaps rather than fabricating a gene pair or phenotype, which is commendable for calibration and avoids overclaiming. But because it produces no testable prediction and no paralog-specific reasoning applied to any actual case, it only partially satisfies the rubric — it demonstrates understanding of the reasoning framework but does not execute the task as asked.",
+          "overall_score": 0.45,
+          "verdict": "partial",
+          "rubric": {
+            "factuality": 0.8,
+            "completeness": 0.35,
+            "citation_correctness": 0.7,
+            "testability": 0.3,
+            "uncertainty_calibration": 0.85,
+            "safety_ethics": 0.9
+          },
+          "usage": {
+            "input_tokens": 2230,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 587,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate's answer demonstrates strong metacognitive honesty and correct methodological reasoning about how to use BioGRID genetic-interaction data to predict double-KO phenotypes and infer redundancy masking. The framing is accurate: synthetic-lethal/enhancement interactions predict severe phenotypes; epistatic relationships predict rescue or dominance; and the redundancy signature is specifically WT-single-KO + WT-single-KO + Phenotype-double-KO. However, the answer fails to deliver what the question explicitly asks for: a *prediction* of an embryonic phenotype for a specific double-gene perturbation. The candidate correctly identifies that no gene pair, no BioGRID records, and no phenotype data were provided, then chooses to provide methodology rather than attempt prediction. This is intellectually honest but does not satisfy the question's core demand. A stronger response would have either (1) requested concrete input (genes, interaction type, single-KO phenotypes) and then made conditional predictions, or (2) attempted a plausible worked example using actual zebrafish paralogs (e.g., *tbx16a/tbx16b*) and publicly available BioGRID data to demonstrate the reasoning. The gap acknowledgment is thorough and accurate, but incompleteness and lack of testable prediction prevent this from scoring higher than partial. Factuality of method is sound; citation of BioGRID as the correct source is appropriate; but the answer provides zero empirical grounding.",
+          "rubric": {
+            "factuality": 0.85,
+            "completeness": 0.45,
+            "citation_correctness": 0.9,
+            "uncertainty_calibration": 0.9,
+            "testability": 0.3,
+            "safety_ethics": 0.85
+          },
+          "usage": {
+            "input_tokens": 1791,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 488,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.27,
+      "outcome": "positive",
+      "mean_overall": 0.63,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

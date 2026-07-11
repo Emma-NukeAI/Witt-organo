@@ -1,0 +1,102 @@
+{
+  "question_id": "Q21",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "Walk the pipeline from a curated signaling network to optimized ODEs to a Morpheus-ready model. Which files at each hop (.bngl → equations → .xml)?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8412,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.8412,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.8093,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.7709,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7466,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7288,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.6895,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The pipeline runs across two niches — RN3 (curated signaling network + kinetics) and RN13 (generated simulation models + code) — with the file handoffs as follows:\n\nHOP 1 — Curated signaling network → rule-based model (.bngl):\nSource is RN3, which holds the signaling/state-transition trees and simulation environment variables as .json, plus kinetic parameters. From this curated network you author a BioNetGen rule-based model (.bngl). The .bngl artifact itself lives in RN13 (which explicitly lists BioNetGen .bngl among its file types).\n\nHOP 2 — .bngl → optimized ODEs (equations):\nBioNetGen expands the .bngl rules into a reaction network and emits ODEs. In practice these come out as generated equation/network files (e.g., BNGL's .net expansion and/or exported ODE systems), which RN13 covers under \"simulation models + code\" together with analysis scripts used for parameter optimization. RN3's kinetic parameters feed the optimization step. (Note: the bundle names RN13 as the home of models/code but does not give the exact equation-file extension — see gaps.)\n\nHOP 3 — ODEs → Morpheus-ready model (.xml):\nThe optimized model is assembled into a Morpheus model file (.xml), which RN13 explicitly lists (Morpheus .xml). RN6 additionally supplies Morpheus-consumable biomechanics/ECM inputs (.json: affinity matrices, cortical tension, friction, regional stiffness) that can parameterize the spatial Morpheus model, though RN6 is outside the requested niche scope.\n\nSummary of files per hop: RN3 curated network (.json + kinetic params) → .bngl (RN13) → generated ODE/equation + analysis-script files (RN13) → Morpheus model .xml (RN13).</parameter>\n<parameter name=\"confidence\">0.55",
+    "evidence_cited": [
+      "niche:RN3",
+      "niche:RN13",
+      "niche:RN6"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "The intermediate 'equations' step could be represented by BioNetGen's own .net/.ode expansion files rather than a distinct hand-written equation file — the bundle does not disambiguate.",
+      "RN6 .json biomechanics could be the primary Morpheus parameter source rather than RN3, but RN6 is out of the stated niche scope so it is treated as supplementary.",
+      "Reactome/STRING could seed the curated network upstream of RN3, but they are external DBs (predictive/orthology) and not part of the file-handoff pipeline itself."
+    ],
+    "gap_flags": [
+      "The bundle names RN13 as the home of .bngl, models/code, and Morpheus .xml, but does NOT specify the exact file extension for the intermediate 'optimized ODE/equations' artifact (e.g., .net, .ode, .py, .m). This middle hop is inferred, not documented.",
+      "No document describes the parameter-optimization procedure or which analysis script performs it; 'optimized' is inferred from RN3 kinetic params + RN13 analysis scripts.",
+      "No specific file names/IDs are provided — only file-type descriptors per niche.",
+      "Whether RN3's .json trees are converted to .bngl automatically or manually is not stated."
+    ],
+    "framework_applied": "Pipeline/dataflow tracing across niche provenance — mapped each described artifact type to its source niche and ordered the hops (.bngl → equations → .xml), flagging the undocumented intermediate as a gap rather than inventing an extension.",
+    "_usage": {
+      "input_tokens": 1858,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1302,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

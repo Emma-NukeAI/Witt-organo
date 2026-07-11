@@ -1,0 +1,104 @@
+{
+  "question_id": "Q19",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "perturbation_design",
+  "bundle": {
+    "question": "Using genetic-interaction data, predict the embryonic phenotype of a double-gene perturbation and whether redundancy would mask a single-KO.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.771,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "db:BioGRID",
+          "type": "database",
+          "score": 0.771,
+          "text": "BioGRID. How genes interact with each other and with proteins; GENETIC interactions (what happens to the embryo if you alter two genes at on"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7255,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "db:STRING_DB",
+          "type": "database",
+          "score": 0.7171,
+          "text": "STRING DB. Which proteins work with which genes and which signaling is activated (PREDICTIVE). Data: Protein interaction data (predicted). F"
+        },
+        {
+          "doc_id": "db:GEO_NCBI",
+          "type": "database",
+          "score": 0.6926,
+          "text": "GEO NCBI. Gene-expression analysis and interactions. Data: Gene count/expression data from published papers. Feeds RN1, RN8, RN9."
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7014,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7003,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot responsibly predict a specific double-perturbation phenotype from this bundle, because no actual genetic-interaction records were retrieved — only database descriptions and one unrelated pronephros corpus chunk. Here is the correct methodological answer given the data sources named.\n\nWHAT THE EVIDENCE SUPPORTS (workflow, not a specific prediction):\n1. Redundancy masking a single-KO is the classic signature of a *synthetic* genetic interaction. To detect it, query BioGRID (db:BioGRID) — the only cited source that holds curated GENETIC interactions (\"what happens to the embryo if you alter two genes at once\"). If gene A and gene B are annotated as a \"synthetic lethal\" / \"synthetic enhancement\" / \"negative genetic\" pair, that is the direct signal that a single KO would be masked by redundancy while the double KO is deranged.\n2. If BioGRID has no genetic pair record, cross-check STRING_DB and Reactome for shared pathway membership / predicted protein interaction. Two genes acting in the same pathway or as paralogs are candidates for functional redundancy — but STRING is explicitly PREDICTIVE and Reactome is via computational orthology inference, so any prediction from them is a hypothesis, not evidence of masking.\n3. GEO_NCBI expression data can test whether the two genes are co-expressed in the relevant tissue/stage (a prerequisite for redundancy to operate in the embryo).\n\nGENERAL RULE FOR THE PREDICTION:\n- If the two genes are paralogs / same-pathway with overlapping expression → expect each single KO to be near-wild-type (redundancy masks it) and the double KO to show the pathway-loss phenotype (synthetic phenotype). This is the \"redundancy masks single-KO\" case.\n- If they are in a linear epistatic relationship (one upstream of the other) → the double KO phenotype resembles the more severe single KO (epistasis, NOT masking by redundancy).\n\nI cannot name the actual genes, the direction of interaction, or the concrete embryonic phenotype because no specific gene pair or interaction record is present in this bundle.",
+    "confidence": 0.15,
+    "evidence_cited": [
+      "db:BioGRID",
+      "db:STRING_DB",
+      "db:Reactome",
+      "db:GEO_NCBI",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Predicting a concrete phenotype for a named gene pair — rejected: no gene pair or genetic-interaction record was retrieved, only database self-descriptions.",
+      "Treating STRING/Reactome predicted interactions as proof of redundancy — rejected: both are explicitly predictive/orthology-inferred, insufficient to assert masking.",
+      "Using the pronephros corpus chunk to anchor a nephron-specific double-KO prediction — rejected: it describes the system generally and names no interacting gene pair."
+    ],
+    "gap_flags": [
+      "No specific gene pair supplied in the question or bundle.",
+      "No actual BioGRID genetic-interaction record retrieved — only the database description.",
+      "No ENSDARG identifiers available; none can be asserted.",
+      "No expression co-localization data (GEO) actually retrieved to confirm embryonic co-expression.",
+      "Cannot distinguish synthetic (redundancy-masking) vs epistatic (linear) interaction without the record."
+    ],
+    "framework_applied": "Genetic-interaction classification framework (synthetic/redundant vs epistatic/linear) mapped onto available data sources; chosen because the task is perturbation_design requiring inference of masking, but applied only at the methodological level since no concrete interaction evidence was present.\"",
+    "_usage": {
+      "input_tokens": 1809,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1365,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

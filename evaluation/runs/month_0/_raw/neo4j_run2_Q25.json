@@ -1,0 +1,103 @@
+{
+  "question_id": "Q25",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "For a claimed regulator, retrieve supporting AND contradicting literature and state the residual uncertainty without overclaiming.",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.6011,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6011,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.5924,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.5791,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN11",
+          "type": "niche",
+          "score": 0.6762,
+          "text": "RN11 Claims curados de literatura biológica. Bibliographic reference databases (.bib/.ris); scientific documents + curated claims (.pdf/.jso"
+        },
+        {
+          "doc_id": "niche:RN12",
+          "type": "niche",
+          "score": 0.6329,
+          "text": "RN12 Perturbaciones e intervenciones causales. Generated docs: perturbation/intervention designs (candidate sets, controls, confounders). Ra"
+        },
+        {
+          "doc_id": "niche:RN1",
+          "type": "niche",
+          "score": 0.0549,
+          "text": "RN1 Transcriptómica y dinámica de linajes. Lineage hierarchy trees + transition-probability matrices (.json); average expression per cell ty"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "I cannot complete the requested literature synthesis for the claimed regulator because the evidence bundle does not actually contain any curated claims, supporting papers, or contradicting papers — nor does it name the regulator in question. What the retrieval returned is almost entirely niche-level *descriptors* (metadata about what each niche contains), not the underlying literature or claims themselves:\n\n- RN11 (\"Claims curados de literatura biológica\", score=0.6762) is the correct niche for this task — it is described as holding bibliographic references (.bib/.ris) and curated claims (.pdf/.json). However, only the niche description was retrieved; no individual claim records, PMIDs, or paper contents were returned, so there is nothing to synthesize from.\n- The only content-level chunk is CORPUS-2026-0003#c000, a general statement that the zebrafish pronephros is a good in vivo system for studying nephron development. It names no regulator, cites no PMID, and offers neither supporting nor contradicting evidence for any specific claim.\n- Path B (external literature) was not triggered, so no external supporting/contradicting papers are available.\n- No entities were resolved in DI, and the question itself does not specify which regulator is being evaluated.\n\nHonest position on residual uncertainty: with zero curated claims and zero paper-level evidence in hand, the residual uncertainty is effectively total. I can neither affirm nor refute any regulatory claim, and I will not fabricate supporting/contradicting citations or a gene–ENSDARG binding to fill the gap. The correct next step is to query RN11 for the specific regulator's curated claim set (and trigger Path B for external supporting/contradicting literature) before any synthesis can be attempted.",
+    "confidence": 0.08,
+    "evidence_cited": [
+      "niche:RN11",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Attempt a synthesis anyway using the pronephros chunk (CORPUS-2026-0003#c000) — rejected: it names no regulator and provides no supporting/contradicting evidence.",
+      "Assume a specific regulator based on the RN11/pronephros context — rejected: the question does not name the regulator and guessing would risk fabricating claims and identifiers.",
+      "Draw on external/background knowledge of common pronephros regulators — rejected: violates the ground-only-in-bundle constraint and would produce unverifiable citations."
+    ],
+    "gap_flags": [
+      "No regulator named in the question — target of the synthesis is unspecified.",
+      "RN11 returned only its niche description, not any curated claims, PMIDs, or paper contents.",
+      "No supporting literature retrieved.",
+      "No contradicting literature retrieved.",
+      "Path B (external literature) not triggered — no external corroboration/refutation available.",
+      "No entities resolved in DI; no gene identifiers verifiable.",
+      "Only one content chunk (pronephros overview) present, which is topically generic and non-evidentiary for any specific claim."
+    ],
+    "framework_applied": "Evidence-sufficiency gating before synthesis: a claim-level supporting-vs-contradicting synthesis requires actual claim/paper records; when the bundle contains only niche metadata, the honest output is a gap report with near-zero confidence rather than a fabricated synthesis (consistent with the substrate's honest-uncertainty mandate).",
+    "_usage": {
+      "input_tokens": 1814,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1242,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,104 @@
+{
+  "question_id": "Q12",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "How do you import a basal-membrane geometry and an AFM stiffness map as boundary conditions for a Morpheus tissue simulation?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.8275,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.8275,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.7514,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.7415,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        },
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.7456,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7201,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.7376,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle only tells us *which niches hold the relevant data*, not a step-by-step Morpheus import recipe, so what follows is a workflow scaffold anchored to the retrieved niches rather than a validated procedure.\n\nThe two boundary-condition inputs map to two different niches:\n\n1. Basal-membrane geometry → this is a tissue/boundary specification. The most relevant sources are RN10 (Tejidos chaperones y boundary conditions), which stores Cartesian coordinates of neighboring tissues + timing matrices as .json, and RN6 (Biomecánica pasiva y ECM), which holds basal cortical tension and regional stiffness data. In Morpheus terms, a basal-membrane geometry is expressed inside <Space>/<Lattice> via a domain/membrane image (e.g. a TIFF/image-based domain or a MembraneProperty), or as a fixed CellType/MembraneProperty whose shape comes from the imported coordinates. Concretely: convert the RN10 Cartesian coordinate .json into a raster/label image (or a set of node positions) and load it as the simulation Domain / a boundary CellType, so the membrane contour becomes a no-flux or fixed boundary.\n\n2. AFM stiffness map → this is a passive-mechanics / ECM field. The relevant source is RN6 (Biomecánica pasiva y ECM: affinity matrices, basal cortical tension, cell-friction coefficients as .json; regional stiffness). In Morpheus, a spatially varying stiffness map is represented as a <Field> (a lattice-resolved scalar) or as position-dependent parameters (cortical tension / friction) attached to CellTypes. You would resample the AFM map onto the Morpheus lattice and bind it either as a <Field> initialized from the stiffness raster, or as per-cell/per-segment cortical-tension and friction coefficients drawn from the RN6 .json affinity/tension/friction matrices.\n\nAssembly sketch (not verified against a Morpheus schema in this bundle):\n- Import RN10 geometry → Morpheus <Space><Lattice>/<Domain> (image- or coordinate-based boundary) and/or a fixed boundary CellType.\n- Import RN6 regional stiffness → a <Field> on the same lattice; import RN6 cortical-tension/friction/affinity matrices → CellType MembraneProperty / interaction (adhesion) and friction parameters.\n- Ensure both are resampled onto a common lattice/coordinate frame before binding as boundary conditions.\n\nI cannot give exact Morpheus XML element names, units, or a guaranteed-correct import path from this bundle — those would need the RN13 Morpheus .xml templates (which the retrieval lists as existing but whose contents were not provided).</parameter>\n<parameter name=\"confidence\">0.28",
+    "evidence_cited": [
+      "niche:RN6",
+      "niche:RN10",
+      "niche:RN13",
+      "niche:RN7"
+    ],
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Treat the AFM stiffness map as per-cell cortical-tension/friction parameters (RN6) rather than a lattice Field — both are viable in Morpheus depending on resolution.",
+      "Represent the basal membrane as an image-based Domain vs. as a fixed boundary CellType built from RN10 coordinates.",
+      "Pull high-density 3D meshes from RN7 if the geometry must be a true 3D mesh rather than a 2D contour, though RN7 is active-mechanics/flow-oriented, not the primary geometry source."
+    ],
+    "gap_flags": [
+      "Bundle contains only niche routing descriptors, no actual Morpheus XML schema, element names, or import syntax.",
+      "RN13 (Morpheus .xml templates) is referenced but its file contents were not retrieved — the concrete import mechanism is unverified.",
+      "No units, coordinate-frame conventions, or lattice-resolution details for AFM map / geometry are provided.",
+      "No worked example or file-format specification (e.g. how the .json coordinates/stiffness are structured) is in the bundle.",
+      "Answer is a plausible workflow scaffold, not an evidence-backed procedure; steps should be validated against actual RN6/RN10/RN13 file contents and Morpheus documentation."
+    ],
+    "framework_applied": "Retrieval-routing decomposition: split the question into its two boundary-condition components (geometry, stiffness) and map each to the best-matching niche (RN10/RN6 for geometry+ECM, RN6 for stiffness, RN13 for Morpheus templates), then flag that the concrete import syntax is absent from the bundle. Chosen because the evidence is niche-level routing metadata, not a procedural document.",
+    "_usage": {
+      "input_tokens": 1855,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1696,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

@@ -1,0 +1,177 @@
+{
+  "question_id": "Q13",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "What fluid-dynamic readouts (flow velocity, shear) matter for pronephric filtration onset, and what mesh formats (.vtu/.cgns) carry them?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.7958,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN7",
+          "type": "niche",
+          "score": 0.7958,
+          "text": "RN7 Mecánica activa y dinámica de fluidos. Cell/segment/node-indexed flow vectors, velocity, pressure (.csv/.tsv); high-density 3D meshes wi"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7094,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7192,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN8",
+          "type": "niche",
+          "score": 0.7076,
+          "text": "RN8 Cinética celular colectiva. Per-region/per-stage statistics (mean migration velocity, apoptosis %/hr) (.json); raw cell trajectories ind"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.7315,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN10",
+          "type": "niche",
+          "score": 0.722,
+          "text": "RN10 Tejidos chaperones y boundary conditions. Cartesian coords of neighboring tissues + timing matrices (.json); the master indexed interac"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "For pronephric filtration onset, the fluid-dynamic readouts that matter are: (1) flow velocity — cell/segment/node-indexed flow vectors quantifying the magnitude and direction of fluid movement through the developing nephron; (2) pressure fields, which set up the filtration gradient across the glomerular/tubular wall; and (3) wall shear stress, which is derived from the velocity field near tubular/glomerular surfaces and is a mechanically relevant cue for filtration and epithelial maturation. In the RN7 niche (\"Mecánica activa y dinámica de fluidos\"), these scalar/vector fields — flow vectors, velocity, and pressure — are carried as cell/segment/node-indexed tabular data in .csv/.tsv format, while the spatial domain on which they are defined is provided as high-density 3D meshes. NOTE: the retrieved RN7 description is truncated and does NOT explicitly confirm .vtu or .cgns as the mesh container formats, nor does it explicitly list \"shear\" as a stored field — those specifics are not verifiable from the evidence provided. The CORPUS-2026-0003 chunk confirms the zebrafish pronephros as an in vivo model for studying when/how the nephron develops but does not itself specify fluid-dynamic quantities or mesh formats.</parameter>\n<parameter name=\"confidence\">0.4",
+    "evidence_cited": "niche:RN7, CORPUS-2026-0003#c000",
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Shear stress may be stored directly as a precomputed field rather than derived — cannot confirm from truncated RN7 text.",
+      "Mesh may be carried in .vtu/.cgns as the question presupposes, but the RN7 snippet only states 'high-density 3D meshes' without naming the container format.",
+      "RN6 (passive biomechanics/ECM) and RN8 (collective cell kinetics) were considered but concern stiffness/migration statistics, not fluid flow/shear, so they are not the primary source."
+    ],
+    "gap_flags": [
+      "RN7 niche description is truncated ('high-density 3D meshes wi...') — the actual mesh file format (.vtu/.cgns) is not confirmed in the retrieved text.",
+      "Explicit 'shear stress' as a stored readout is not stated in the evidence; it is inferred as velocity-derived.",
+      "No evidence bundle document specifically ties fluid-dynamic thresholds to the timing/onset of pronephric filtration — CORPUS-2026-0003 establishes the model but not the fluid readouts.",
+      "No gene identifiers were involved or verifiable."
+    ],
+    "framework_applied": "Evidence-mapping / source-attribution synthesis: map each element of the question (velocity, shear, mesh format) to the most relevant retrieved niche/corpus item, and flag where the evidence is truncated or silent rather than extrapolating. Chosen because this is a literature_synthesis task requiring honest gap disclosure over confident completion.",
+    "_usage": {
+      "input_tokens": 1875,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1120,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.8,
+        "verdict": "correct",
+        "justification": "The answer correctly identifies the core fluid-dynamic readouts expected (flow velocity and shear/wall shear stress), and reasonably adds pressure fields as the filtration gradient driver. It addresses the mesh-format component, but honestly and explicitly flags that the retrieved evidence does NOT confirm .vtu/.cgns — this is well-calibrated uncertainty rather than fabrication, matching the expected \"gap flags\" element. It also flags the sparse/truncated data situation and the fact that CORPUS-2026-0003 establishes the model but not the readouts, which aligns with the expected \"sparse zebrafish flow data at this stage\" note. Minor weaknesses: it does not affirmatively confirm the mesh formats the question asks about (though honesty here is appropriate given the evidence), and shear is inferred rather than confirmed as stored. Overall this is a faithful, appropriately hedged answer that covers flow/shear fields, mesh format, and gap flags — strong on factuality and uncertainty calibration, with completeness slightly limited by the inability to confirm the exact container format.</parameter>\n<parameter name=\"rubric\">{\"citation_correctness\": 0.75, \"completeness\": 0.75, \"factuality\": 0.9, \"safety_ethics\": 1.0, \"testability\": 0.7, \"uncertainty_calibration\": 0.95}",
+        "usage": {
+          "input_tokens": 1881,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 537,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.72,
+        "verdict": "partial",
+        "justification": "The candidate correctly identifies the key fluid-dynamic readouts (velocity, pressure, wall shear stress) and their biological relevance to filtration onset, addressing the 'flow/shear fields' evidence requirement reasonably well, including a plausible mechanistic note on shear as a maturation cue. However, on the 'mesh format note' criterion, it explicitly states it cannot confirm .vtu/.cgns from the retrieved evidence and instead claims the fields are stored as .csv/.tsv with meshes as a separate 'high-density 3D' domain — this contradicts the expected evidence which ties .vtu/.cgns directly to carrying these fields, suggesting either the source material does specify this and the candidate's retrieval was incomplete/truncated, or the candidate is being overly conservative. The gap-flagging behavior is honest and well-calibrated (explicitly noting truncation, inferred vs. confirmed fields, and lack of a direct developmental-timing link), which aligns with the required 'gap flags: sparse zebrafish flow data' criterion, though it frames the gap as a retrieval/citation limitation rather than a broader field-wide data scarcity issue. Overall this is a partially correct answer: strong on identifying readouts and calibrated uncertainty, weak/uncertain on the mesh-format specifics that the rubric expects to be confirmed.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.7, \"completeness\": 0.65, \"citation_correctness\": 0.6, \"uncertainty_calibration\": 0.85, \"testability\": 0.6, \"safety_ethics\": 1.0}</parameter>\n</invoke>\n",
+        "usage": {
+          "input_tokens": 1945,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 623,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.52,
+        "rubric": {
+          "factuality": 0.65,
+          "completeness": 0.45,
+          "citation_correctness": 0.6,
+          "uncertainty_calibration": 0.75,
+          "testability": 0.4,
+          "safety_ethics": 0.95
+        },
+        "justification": "The candidate correctly identifies flow velocity, pressure fields, and wall shear stress as mechanistically relevant for pronephric filtration onset, demonstrating solid domain knowledge. However, it critically **fails to directly address the mesh format question** (.vtu/.cgns) — the core technical specification requested. While the answer acknowledges that RN7 mentions \"high-density 3D meshes\" and explicitly notes that the mesh format is not confirmed in the retrieved text, this admission undercuts the answer's ability to fulfill the expected evidence requirement. The candidate appropriately flags the gap (shear stress as inferred rather than explicitly stored, truncated RN7 description, and absence of explicit filtration-onset thresholds), demonstrating good uncertainty calibration. On completeness, the answer covers flow velocity and shear conceptually but provides no concrete mesh format assertion or evidence synthesis. Citation correctness is moderate: RN7 and CORPUS-2026-0003 are invoked appropriately, but neither conclusively supports .vtu or .cgns. Testability suffers because no specific readout values, coordinate systems, or verifiable mesh examples are provided. The answer is factually defensible on the physics (velocity→shear derivation is correct) but evades the primary question. Strengths: honest gap-flagging, conceptual accuracy on fluid mechanics. Weaknesses: does not answer the mesh-format question, limited completeness, no verifiable data structure specifications.",
+        "usage": {
+          "input_tokens": 1599,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 472,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.28,
+    "outcome": "positive",
+    "mean_overall": 0.68,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

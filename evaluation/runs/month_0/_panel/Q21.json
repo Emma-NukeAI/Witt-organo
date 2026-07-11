@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "overall_score": 0.78,
+      "verdict": "correct",
+      "justification": "The answer correctly reconstructs the core expected hop chain: curated signaling network (.bngl) → BioNetGen ODE expansion → Morpheus-ready .xml, and clearly delineates what the substrate packages (RN3 curated signaling network + kinetic parameters as .json, plus RN6 spatial/biomechanical inputs) versus what BioNetGen and Morpheus do (rule expansion into ODEs; Morpheus consuming the .xml). This matches the \"BioNetGen → .xml hop chain; what the substrate packages vs what BioNetGen/Morpheus do\" expected evidence. Uncertainty calibration is strong and honest: the candidate explicitly flags that no explicit extension is named for the intermediate equations stage, that it infers the ODE hop from standard BioNetGen behavior, and that SBML-as-export is not stated — appropriate given confidence 0.62. Minor deductions: the specific niche-role assignments (which niche performs optimization) are hedged but somewhat speculative, and the RN13-houses-.bngl claim is an inference presented with more certainty than the evidence may support. No overclaiming of fabricated filenames, and the answer resists inventing an equation-file extension. Overall a well-calibrated, largely faithful reconstruction.",
+      "rubric": {
+        "factuality": 0.8,
+        "completeness": 0.8,
+        "citation_correctness": 0.75,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.7,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 1971,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 605,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.55,
+      "verdict": "partial",
+      "justification": "The candidate correctly identifies the high-level pipeline structure (.bngl → ODE equations → .xml) and attributes BioNetGen as the tool that expands rules into ODEs and generates Morpheus-compatible output, which aligns with the expected evidence's core point about the BioNetGen→.xml hop chain and division of labor between the substrate (curated network/parameters) and BioNetGen/Morpheus (equation generation and simulation). It appropriately flags uncertainty about the missing intermediate equation-file extension and abstains from inventing specifics like SBML, which is good calibration. However, the answer is somewhat convoluted with speculative niche assignments (RN3, RN13, RN6) that aren't verifiable from the shown evidence, and it introduces unconfirmed spatial-parameter tangents (RN6) that may not belong to this specific pipeline question, slightly diluting focus. Citation correctness is plausible but unverifiable without the source bundle; the answer's structure otherwise reasonably tracks the expected hops with reasonable hedging on gaps.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.55, \"citation_correctness\": 0.5, \"completeness\": 0.6, \"uncertainty_calibration\": 0.7, \"testability\": 0.5, \"safety_ethics\": 1.0}",
+      "usage": {
+        "input_tokens": 2035,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 527,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.58,
+      "rubric": {
+        "factuality": 0.7,
+        "completeness": 0.5,
+        "citation_correctness": 0.65,
+        "testability": 0.45,
+        "uncertainty_calibration": 0.8,
+        "safety_ethics": 0.95
+      },
+      "justification": "The candidate provides a structured walkthrough of a three-hop pipeline (curated network → .bngl → ODEs → .xml) with explicit niche assignments (RN3, RN13, RN6) and identifies the core file formats (.bngl and .xml) at endpoints. However, critical weaknesses undermine confidence: (1) The expected evidence explicitly requires \"BioNetGen → .xml hop chain\" and details about substrate packages vs. tool responsibilities, but the candidate does not explain how BioNetGen itself connects to Morpheus—whether SBML or another intermediate format is used, or whether BioNetGen directly generates Morpheus .xml. (2) The \"equations\" stage is acknowledged as inferred rather than explicitly named in the bundle, leaving a factual gap in traceability. (3) The candidate conflates RN3 (.json kinetic parameters) with curated network files without clarifying what format the \"signaling/state-transition trees\" actually take in RN3. (4) The role of \"optimization/fitting\" is mentioned but neither attributed to a specific tool nor connected to the hop chain with concrete file types. The candidate's own gap flags are well-calibrated and honest, which supports uncertainty scoring. The answer shows structural understanding of the workflow but lacks the technical specificity (SBML routes, tool invocations, exact input/output formats per hop) needed to fully satisfy the expected evidence. Citation to niches is present but does not recover the missing mapping of BioNetGen capabilities to Morpheus requirements.\"",
+      "usage": {
+        "input_tokens": 1712,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 496,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.23,
+  "outcome": "positive",
+  "mean_overall": 0.637,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

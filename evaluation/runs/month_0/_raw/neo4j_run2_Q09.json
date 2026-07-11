@@ -1,0 +1,111 @@
+{
+  "question_id": "Q09",
+  "run": 2,
+  "backend": "neo4j",
+  "type": "literature_synthesis",
+  "bundle": {
+    "question": "What metabolic pathways (lipid/ion) shape the biochemical microenvironment during tubulogenesis, and which database layers (KEGG/MetaCyc) would feed a gradient model?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.795,
+      "has_literature_chunks": true,
+      "hits": [
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.795,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "db:Reactome",
+          "type": "database",
+          "score": 0.7531,
+          "text": "Reactome. Metabolic pathway analysis, gene interaction and signaling (zebrafish via computational orthology inference). Data: Pathways, gene"
+        },
+        {
+          "doc_id": "CORPUS-2026-0003#c000",
+          "type": "chunk",
+          "score": 0.7041,
+          "text": "The zebrafish pronephros provides an excellent in vivo system to study the mechanisms of vertebrate nephron development. When and how renal "
+        },
+        {
+          "doc_id": "CORPUS-2026-0003",
+          "type": "dataset",
+          "score": 0.6912,
+          "text": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta..  niche RN1 "
+        },
+        {
+          "doc_id": "niche:RN5",
+          "type": "niche",
+          "score": 0.6911,
+          "text": "RN5 Bioeléctrica. Spatial coords + absolute membrane potential (.csv); high-density temporal matrices from fluorescence/voltage sensors (.ma"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.7388,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": true,
+      "reasons": [],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The evidence bundle supports a partial, qualitative answer rather than a mechanistic one.\n\nMetabolic pathways shaping the biochemical microenvironment during tubulogenesis: The RN4 niche (\"Microambiente bioquímico\") is explicitly the layer that captures this microenvironment through mass-spec metabolomics/lipidomics (.mzML/.mzXML) and spatial lipid distribution maps (.imML). This tells us that (1) LIPID pathways are directly measurable as spatially resolved lipid distribution maps, and (2) small-molecule/metabolite gradients (from metabolomics) are the intended readout. The bundle does not name specific pathways (e.g., glycerophospholipid, sphingolipid, or fatty-acid metabolism for lipids; or specific ion-transport/handling pathways). For ION handling, the closest evidence is the adjacent RN5 \"Bioeléctrica\" niche, which measures absolute membrane potential and voltage-sensor time series — implying ion gradients (and thus ion-transport metabolism) are captured there rather than in RN4. The biological substrate is zebrafish pronephros tubulogenesis (CORPUS-2026-0003), where epithelial identity/polarity (Prkc iota/zeta) is established, so the microenvironment would plausibly involve apical/basolateral lipid asymmetry and transepithelial ion transport — but the bundle does NOT provide the specific pathway members to assert this.\n\nWhich database layers would feed a gradient model: The bundle contains Reactome (metabolic pathway analysis, gene interaction/signaling, zebrafish via computational orthology inference) as the available pathway database. The question asks specifically about KEGG and MetaCyc, but NEITHER KEGG NOR MetaCyc appears anywhere in this evidence bundle — only Reactome does. Therefore, based on this evidence, the pathway/reaction-network layer that would feed a gradient model is Reactome (providing pathway topology and reaction stoichiometry via orthology-inferred zebrafish pathways), combined with the RN4 metabolomics/lipidomics measurements (quantitative metabolite/lipid abundances) and the .imML spatial lipid maps (the spatial dimension the gradient model needs). RN3 (signaling networks + kinetic parameters, .json) would supply rate constants for a dynamic gradient/reaction-diffusion model. I cannot confirm KEGG or MetaCyc from this bundle.</parameter>\n<parameter name=\"confidence\">0.32",
+    "evidence_cited": [
+      "niche:RN4",
+      "niche:RN5",
+      "niche:RN3",
+      "db:Reactome",
+      "CORPUS-2026-0003",
+      "CORPUS-2026-0003#c000"
+    ],
+    "identifier_bindings": [
+      {
+        "symbol": "prkci"
+      },
+      {
+        "symbol": "prkcz"
+      }
+    ],
+    "alternatives_considered": [
+      "That KEGG/MetaCyc are the intended database layers as phrased in the question — rejected as assertible because neither appears in the bundle; only Reactome is present.",
+      "That RN4 alone covers both lipid and ion metabolism — partly rejected: RN4 covers lipid/metabolite microenvironment, while ion/bioelectric gradients map more naturally to RN5 (Bioeléctrica).",
+      "That specific pathways (glycerophospholipid, sphingolipid, ion-channel/transporter families) could be named — rejected: the bundle names no specific pathway members, so naming them would be invention."
+    ],
+    "gap_flags": [
+      "KEGG and MetaCyc are NOT present in the evidence bundle; the question presupposes them but only Reactome is available — cannot confirm KEGG/MetaCyc feed the model.",
+      "No specific lipid or ion metabolic pathways are named in the bundle; specific pathway identities cannot be asserted.",
+      "No gene ENSDARG identifiers are provided in the bundle for prkci/prkcz (symbols from CORPUS-2026-0003 title only); ENSDARGs left unbound.",
+      "Link between RN4 microenvironment metabolomics and pronephros tubulogenesis (CORPUS-2026-0003, niche listed as RN1) is inferred, not stated — the corpus dataset is not explicitly tagged to RN4.",
+      "No details on how a 'gradient model' is formally specified (reaction-diffusion vs. static gradient) in the bundle."
+    ],
+    "framework_applied": "Literature synthesis with evidence-gap auditing: mapped the question's two sub-parts (metabolic pathways vs. database layers) onto available niche/database entries, flagged the presupposition mismatch (KEGG/MetaCyc absent, Reactome present), and kept confidence low because the bundle is thin on specific pathway members and does not contain the databases named in the question.",
+    "_usage": {
+      "input_tokens": 1866,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1728,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": null
+}

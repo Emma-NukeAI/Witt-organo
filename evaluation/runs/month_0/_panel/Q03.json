@@ -1,0 +1,90 @@
+{
+  "models": [
+    "claude-opus-4-8",
+    "claude-sonnet-5",
+    "claude-haiku-4-5-20251001"
+  ],
+  "verdicts": [
+    {
+      "model": "claude-opus-4-8",
+      "verdict": "partial",
+      "overall_score": 0.62,
+      "justification": "The expected evidence calls for a specific \"Pearl-hierarchy evidence ladder (L1..L3c),\" a scored rubric with an explicit confirmed/candidate/bystander threshold, and a worked example. The candidate answer does construct a causal-inference ladder that moves from correlation (co-expression) → temporal precedence → network plausibility → perturbation → rescue/epistasis, which is conceptually well aligned with a Pearl-style ladder (association → intervention → counterfactual). It attaches per-step confidence values (0.1 → 0.9) and thorough gap flags at each rung, which is strong on testability and uncertainty calibration. However, it does NOT reproduce the specific L1..L3c labeling scheme, and critically it never states an explicit numeric threshold that separates \"confirmed regulator\" vs \"candidate\" vs \"bystander\" — it gestures at \"high confidence after perturbation+rescue\" but gives no cutoff, so the scored-rubric requirement is only partially met. The worked example is generic (prkci/prkcz as an exemplar template) rather than a fully instantiated candidate-specific walk-through, and the answer honestly flags that no candidate gene was named and that IDs were not resolved. Factuality is sound and the honesty about gaps is exemplary — no overclaiming, citations are hedged appropriately (Reactome orthology-inferred, BioGRID directionality caveats). The main deductions are for missing the named L1..L3c taxonomy and the explicit classification threshold, which are core to the expected evidence. Citations are plausible but unverifiable and self-flagged as such, which is appropriately cautious.",
+      "rubric": {
+        "factuality": 0.75,
+        "citation_correctness": 0.55,
+        "completeness": 0.55,
+        "testability": 0.8,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 2740,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 722,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-sonnet-5",
+      "overall_score": 0.35,
+      "verdict": "partial",
+      "justification": "The expected answer calls for the specific \"Pearl-hierarchy evidence ladder (L1..L3c)\" framework with a scored rubric distinguishing confirmed/candidate/bystander thresholds and a worked example tied to that named framework. The candidate instead invents its own generic 5-step \"causal-inference ladder\" (co-expression → temporal precedence → network context → perturbation → epistasis/rescue) with self-assigned confidence values at each step, which is a reasonable and coherent evidentiary framework in a general causal-inference sense, but it does not name or map onto the Pearl-hierarchy (Rung 1 association / Rung 2 intervention / Rung 3 counterfactual, do-calculus) explicitly, nor does it produce a scored rubric with explicit confirmed/candidate/bystander categorical thresholds — it only gives continuous confidence numbers per step, not a final classification scheme. The worked example (prkci/prkcz polarity proteins) is present and appropriately tied to a corpus citation, partially satisfying the 'worked example' requirement, though it is somewhat generic and not fully grounded in a specific candidate gene walkthrough with concrete rubric scoring. Citations to CORPUS-2026-0003, BioGRID, Reactome, and niches RN1/RN12 appear plausible and consistent with the framing, and the gap flags are honest, appropriately hedged, and correctly note lack of pseudotime data, non-candidate-specific interaction records, and unresolved ENSDARG IDs — good uncertainty calibration and safety. However, factual/citation correctness against the required framework is weak since the exact named ladder (Pearl-hierarchy L1..L3c) is absent, so this is a substantive miss on the primary expected evidence structure even though the reasoning process itself is scientifically sound and well-hedged. Overall this is a partial match: strong general biological reasoning and appropriate epistemic humility, but missing the specific named framework and formal scored threshold rubric requested.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.55, \"citation_correctness\": 0.4, \"completeness\": 0.3, \"testability\": 0.5, \"uncertainty_calibration\": 0.7, \"safety_ethics\": 0.9}",
+      "usage": {
+        "input_tokens": 2804,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 841,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.87,
+      "justification": "The candidate answer directly addresses the Pearl-hierarchy evidence ladder framework (L1–L3c implicit in the five-step progression from correlation through intervention to rescue/epistasis) and provides a structured causal-inference ladder with confidence scoring at each rung (0.1 → 0.2 → 0.35 → 0.7–0.85 → 0.85–0.9). The answer correctly identifies that co-expression alone is necessary but insufficient to distinguish a true regulator from a bystander, and it explicitly names the criteria at each step: temporal precedence, network plausibility, perturbation phenotype, and rescue/epistasis. The worked example (prkci/prkcz polarity proteins) is apt and directly sourced to the provided corpus (CORPUS-2026-0003). The candidate appropriately flags critical gaps at each step—lack of pseudotime data, indirect pathway inference, need for proper controls—and acknowledges confounding factors (off-target effects, rescue validation). The stated confidence of 0.6 is somewhat conservative relative to the structured framework offered (which reaches 0.85–0.9), but this reflects honest uncertainty about generalizability without a named candidate gene. The answer avoids overclaiming: it clearly states that \"anything short of perturbation leaves the bystander hypothesis open\" and distinguishes between databases (BioGRID/Reactome) and the zebrafish-specific intervention niche (RN12). The gap-flag list is comprehensive and self-aware, noting the absence of candidate-specific data, unresolved ortholog identities, and missing concrete protocol details. Minor weaknesses: the answer does not explicitly name \"Pearl hierarchy\" or L1–L3c labels (though the structure is isomorphic), and the conceptual bridge between generic database queries and candidate-specific mechanistic plausibility could be tighter. However, these are refinements; the core answer is robust, well-calibrated, and directly responsive to the question's request for framework, confidence, and gaps.",
+      "rubric": {
+        "factuality": 0.92,
+        "completeness": 0.88,
+        "citation_correctness": 0.85,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.85,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 2212,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 607,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.52,
+  "outcome": "positive",
+  "mean_overall": 0.613,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

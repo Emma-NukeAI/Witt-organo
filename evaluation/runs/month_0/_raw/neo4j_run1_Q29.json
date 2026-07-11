@@ -1,0 +1,179 @@
+{
+  "question_id": "Q29",
+  "run": 1,
+  "backend": "neo4j",
+  "type": "model_assembly_morpheus",
+  "bundle": {
+    "question": "What is the smallest validating Morpheus step ('prueba pequeño') to test a single morphogen gradient before building a full multi-field model?",
+    "entities_checked": {},
+    "path_a": {
+      "n_hits": 6,
+      "top_score": 0.727,
+      "has_literature_chunks": false,
+      "hits": [
+        {
+          "doc_id": "niche:RN13",
+          "type": "niche",
+          "score": 0.727,
+          "text": "RN13 Modelos de simulación y código. Generated docs: simulation models + code (Morpheus .xml, BioNetGen .bngl, analysis scripts). File types"
+        },
+        {
+          "doc_id": "CORPUS-2026-0002",
+          "type": "dataset",
+          "score": 0.6985,
+          "text": "Temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament). CLOSES Nat Witt GAP-5 (the cornea h"
+        },
+        {
+          "doc_id": "niche:RN4",
+          "type": "niche",
+          "score": 0.695,
+          "text": "RN4 Microambiente bioquímico. Mass-spec metabolomics/lipidomics (.mzML/.mzXML; MCP wrapper → .csv); spatial lipid distribution maps (.imML);"
+        },
+        {
+          "doc_id": "niche:RN6",
+          "type": "niche",
+          "score": 0.7043,
+          "text": "RN6 Biomecánica pasiva y ECM. Affinity matrices, basal cortical tension, cell-friction coefficients for Morpheus (.json); regional stiffness"
+        },
+        {
+          "doc_id": "niche:RN3",
+          "type": "niche",
+          "score": 0.6987,
+          "text": "RN3 Redes de señalización y parámetros cinéticos. Signaling/state-transition trees + simulation env variables (.json); average expression + "
+        },
+        {
+          "doc_id": "db:CNGB_STOmics",
+          "type": "database",
+          "score": 0.6765,
+          "text": "CNGB STOmics (ZESTA / spatial atlases). Spatial + temporal transcriptomic atlases (Stereo-seq). ZESTA = Zebrafish Embryogenesis Spatiotempor"
+        }
+      ]
+    },
+    "sufficiency": {
+      "sufficient": false,
+      "reasons": [
+        "DI has no paper/chunk evidence on this topic (catalog-only)"
+      ],
+      "missing_entities": []
+    },
+    "path_b": {
+      "triggered": false
+    }
+  },
+  "contract": {
+    "direct_answer": "The smallest validating Morpheus step ('prueba pequeño') is a single-field, single-morphogen reaction–diffusion model on a small 1D or 2D lattice: define ONE diffusible species with a localized source (a fixed boundary/production zone at one edge), a uniform diffusion coefficient, and a first-order linear degradation term, then run it to steady state and check that the concentration profile matches the analytic exponential gradient c(x) = c0·exp(−x/λ), where the decay length λ = sqrt(D/k). Concretely: (1) build a Morpheus .xml with a single Field (the morphogen) plus a Diffusion, a constant source term, and a degradation reaction; (2) run on a small domain with reflecting/zero-flux boundaries except the source; (3) validate by comparing the simulated steady-state gradient against the closed-form exp solution and confirming λ responds correctly when you vary D or k. Passing this analytic-gradient check confirms the diffusion, source, and degradation modules are wired correctly BEFORE you add additional fields, cell populations, or coupled signaling — i.e., before building the full multi-field model. NOTE: this recommendation is inferred from the repository's stated tooling (RN13 hosts Morpheus .xml simulation models/code; RN3 holds kinetic parameters; RN6 holds Morpheus biomechanics inputs); the evidence bundle does NOT contain an explicit documented 'prueba pequeño' protocol, so the specific steps above are a standard-practice reconstruction rather than a cited procedure.</parameter>\n<parameter name=\"confidence\">0.42",
+    "evidence_cited": "niche:RN13, niche:RN3, niche:RN6",
+    "identifier_bindings": [],
+    "alternatives_considered": [
+      "Test a single Turing-type activator-inhibitor pair instead of a single graded morphogen — rejected because that is already a two-species/multi-field model, not the smallest single-gradient validation.",
+      "Skip analytic validation and only do visual inspection of the gradient — rejected because it does not quantitatively confirm the diffusion/degradation coupling.",
+      "Validate directly against a spatial transcriptomic gradient from CNGB STOmics/ZESTA — plausible for biological realism but premature; the smallest step should validate the numerics against a known analytic solution first."
+    ],
+    "gap_flags": [
+      "No document in the bundle explicitly defines a 'prueba pequeño' / minimal-validation protocol; the answer is a standard-practice reconstruction.",
+      "No concrete Morpheus .xml example, parameter values, domain size, or boundary spec is provided in the retrieved evidence.",
+      "RN13 is described only at the niche level (contains Morpheus .xml + code) with no file-level contents retrieved, so I cannot confirm whether a validated single-gradient template already exists in the repo.",
+      "No system-specific coupling (e.g., anterior segment morphogen) is specified, so parameters (D, k, λ) would need to come from RN3/RN6, which were not retrieved at file level."
+    ],
+    "framework_applied": "Minimal-viable-model / incremental verification framework: isolate the smallest testable unit (one field, one gradient) and validate against a closed-form analytic solution before adding complexity. Chosen because the question asks for the smallest validating step prior to full multi-field assembly, which maps to unit-testing a single reaction–diffusion component.</parameter>\n</invoke>\n",
+    "_usage": {
+      "input_tokens": 1884,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 1249,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    },
+    "_model": "claude-opus-4-8"
+  },
+  "deterministic": null,
+  "panel": {
+    "models": [
+      "claude-opus-4-8",
+      "claude-sonnet-5",
+      "claude-haiku-4-5-20251001"
+    ],
+    "verdicts": [
+      {
+        "model": "claude-opus-4-8",
+        "overall_score": 0.82,
+        "verdict": "correct",
+        "justification": "The answer directly addresses all four expected evidence points: it specifies a minimal single-field step (one diffusible morphogen with a localized source, uniform diffusion, and first-order degradation on a small lattice), states clearly what it validates (that the diffusion/source/degradation modules are wired correctly, checked against the analytic exponential gradient c(x)=c0·exp(−x/λ) with λ=√(D/k)), explains how it ladders up (pass this analytic check before adding fields, cell populations, or coupled signaling), and aligns with the founder principle of building incrementally from a small validated unit. The technical content is sound and correctly reproduces the standard 1D reaction–diffusion steady-state solution. Notably, the candidate is honestly calibrated: it explicitly flags that no documented 'prueba pequeño' protocol exists in the evidence bundle and that the concrete steps are a standard-practice reconstruction, with appropriate gap_flags and a modest 0.42 confidence — this avoids overclaiming while still delivering a testable, actionable procedure. Citations to RN13/RN3/RN6 are used cautiously and appropriately at the niche level rather than fabricating file-level contents. Minor deductions: the answer does not tie λ to any system-specific parameter values and the founder-principle alignment is implicit rather than explicitly named, but overall it is a strong, well-reasoned, honest response.</parameter>\n<parameter name=\"rubric\">{\"factuality\": 0.9, \"completeness\": 0.8, \"citation_correctness\": 0.75, \"testability\": 0.95, \"uncertainty_calibration\": 0.9, \"safety_ethics\": 1.0}",
+        "usage": {
+          "input_tokens": 1983,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 640,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-sonnet-5",
+        "overall_score": 0.55,
+        "verdict": "partial",
+        "justification": "The candidate gives a technically coherent and plausible description of a minimal single-morphogen reaction-diffusion validation step (single field, source, diffusion, degradation, compared to analytic exponential gradient), which does address the 'what it validates' and partially the 'laddering up' components of the expected evidence (explicitly stating this precedes adding more fields/cells/coupling). However, it explicitly admits the evidence bundle contains no documented 'prueba pequeño' protocol and that the answer is a reconstruction from general standard practice rather than grounded in the specific repository documents (RN13, RN3, RN6) which are only cited at a coarse, unverified level. This means citation_correctness and factual grounding to the actual source material are weak/unverifiable, even though scientific plausibility is high. The 'founder-principle alignment' aspect of the expected evidence is not addressed at all — no mention of how this minimal step ties to founder-cell modeling principles. Uncertainty calibration is a strength: the candidate transparently flags gaps and confidence level. Overall this is a partial answer: plausible and honestly caveated, but incomplete relative to full expected evidence (missing founder-principle tie-in) and not clearly grounded in cited sources.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.6, \"completeness\": 0.45, \"citation_correctness\": 0.3, \"uncertainty_calibration\": 0.8, \"testability\": 0.65, \"safety_ethics\": 0.9}",
+        "usage": {
+          "input_tokens": 2047,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 579,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "service_tier": "standard",
+          "inference_geo": "global"
+        }
+      },
+      {
+        "model": "claude-haiku-4-5-20251001",
+        "verdict": "partial",
+        "overall_score": 0.58,
+        "rubric": {
+          "factuality": 0.75,
+          "completeness": 0.5,
+          "citation_correctness": 0.45,
+          "uncertainty_calibration": 0.7,
+          "testability": 0.65,
+          "safety_ethics": 0.95
+        },
+        "justification": "The candidate provides a scientifically sound and methodologically correct minimal Morpheus validation protocol: a single morphogen, reaction–diffusion system with analytic validation against c(x) = c₀·exp(−x/λ) is genuinely a best-practice \"baby test\" for gradient-building pipelines. The layering from single-field → multi-field, the insistence on boundary conditions, and the parametric sensitivity checks (D, k) all demonstrate solid experimental design. However, the answer critically understates its own uncertainty and frames inferential reconstruction as semi-authoritative guidance. The candidate does flag—buried in a NOTE—that no explicit 'prueba pequeño' protocol exists in the bundle, yet presents the protocol with confident procedural specificity (boundary types, steady-state check, kinetic form) without clearly marking these as standard practice extrapolation rather than repository-sourced information. The citation targets (RN13, RN3, RN6) are vague niche-level references; file-level contents and concrete parameter examples are absent. Completeness is limited: no actual Morpheus .xml skeleton, no domain dimensions, no D/k values, and no guidance on how to report/visualize the validation. The expected evidence calls for \"founder-principle alignment\" (i.e., how does this test bootstrap confidence in larger models?), which the answer addresses implicitly but does not articulate clearly. Factuality is high for the core principle (exponential gradients, diffusion–degradation balance) but weakened by lack of citation rigor. Testability is moderate—the protocol is reproducible in concept, but someone would need to source parameters and a Morpheus template independently. The self-reported 42% confidence is appropriate and commendable, yet the answer's tone does not fully reflect that limitation when discussing concrete steps. Overall: sound methodological foundation, but incomplete execution, overstated sourcing, and insufficient transparency about the inferential gap.",
+        "usage": {
+          "input_tokens": 1688,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "cache_creation": {
+            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_1h_input_tokens": 0
+          },
+          "output_tokens": 585,
+          "service_tier": "standard",
+          "inference_geo": "not_available"
+        }
+      }
+    ],
+    "label_disagreement": 0.333,
+    "overall_spread": 0.27,
+    "outcome": "positive",
+    "mean_overall": 0.65,
+    "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+  }
+}

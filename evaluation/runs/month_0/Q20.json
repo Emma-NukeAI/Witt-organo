@@ -1,0 +1,152 @@
+{
+  "claim_id": "held_out_month0_Q20",
+  "claim_timestamp": "2026-07-11T19:15:51Z",
+  "session_id": "evaluation/runs/month_0 (run_held_out.py A1 baseline)",
+  "skill_origin": "held-out-runner",
+  "skill_version": "run_held_out-1.0",
+  "stream": "biomedical",
+  "sub_domain": "RN13",
+  "claim_category": "simulation_debug",
+  "question_id": "Q20",
+  "question": "A Morpheus run fails: 'Cell population NCC: Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)'. Diagnose and fix.",
+  "backend": "neo4j",
+  "direct_answer": "This is a Morpheus initialization error, not a biology error. The message \"Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)\" means the geometric/spatial initializer(s) you defined for the NCC (neural crest cell) population only succeeded in placing ~40 cells into the lattice, but you (or the model) requested at least the number implied by CellPopulation/size. The clause \"(40 < 1)\" is the initializer's own accounting: it placed 40 cells but the per-initializer target it was checking against evaluated to a value it treats as unmet (the parenthetical is Morpheus reporting placed < still-requested for that initializer pass). The core problem is a mismatch between the requested population size and the space actually available/reachable to the spatial initializers.\n\nDIAGNOSIS — most likely causes, in order:\n1. Not enough room / overlap rejection: The InitCircle / InitRectangle / InitCellObjects region is too small (or cell volume too large) so the initializer hits the lattice boundary or existing cells and rejects placements after 40. Morpheus stops when it can't find non-overlapping positions.\n2. Requested count exceeds region capacity: CellPopulation/size (or the initializer's 'number-of-cells' / 'mode=\"regular\"' spacing) asks for more cells than fit in the specified geometry given cell target volume and lattice size.\n3. Initializer region lies partly (or mostly) outside the Lattice/Domain, or the Domain boundary conditions clip it, so valid seed points are scarce.\n4. Multiple initializers competing for the same region, so the second-and-later ones can seed only the leftover space.\n\nFIX (choose per your intent):\n- If you want exactly the requested number: enlarge the initializer region (increase InitCircle radius / InitRectangle extent) and/or shrink cell target volume (VolumeConstraint target), and/or enlarge the Lattice Size so there is room for all requested cells without overlap.\n- If 40 cells is actually acceptable for the NCC population: set CellPopulation/size to match what the initializer produces (or remove the hard size requirement) so the requested and placed counts agree.\n- Check that the initializer region coordinates are fully inside the Domain; move/resize it so it does not extend past the lattice bounds.\n- If using 'regular' (lattice) placement, adjust the spacing/displacement so the requested count fits the region; if using 'random', increase the region area or reduce cell size to lower rejection.\n- Ensure only one initializer targets the NCC region, or that their combined requested counts fit the available space.\n\nThen re-run; the error clears when placed cells == requested for every initializer pass.\n\nThe concrete offending values (exact requested size, region geometry, lattice size, cell target volume) are in the Morpheus .xml for this run — retrievable from RN13 (Modelos de simulación y código; Morpheus .xml). I could not inspect that file here, so the specific numeric fix cannot be given.",
+  "stated_confidence": 0.45,
+  "prior": 0.45,
+  "evidence_cited": [
+    "niche:RN13"
+  ],
+  "identifier_bindings": [],
+  "alternatives_considered": [
+    "The '(40 < 1)' could indicate the requested size field itself is a formula/expression evaluating to 1 (or a symbol resolving wrongly), so the initializer placed 40 but the size-check symbol collapsed to 1 — meaning the bug is a mis-scoped symbol/expression in CellPopulation/size rather than a geometry-capacity problem.",
+    "The initializer region may be correct but cell VolumeConstraint target volume too large relative to lattice node count, causing overlap rejection.",
+    "A Domain shape (non-rectangular) masks out most of the initializer region, leaving only 40 valid nodes."
+  ],
+  "gap_flags": [
+    "The actual Morpheus .xml (RN13) was not retrieved/inspected, so exact requested size, initializer type, region geometry, lattice size, and cell target volume are unknown.",
+    "The precise semantics of Morpheus's '(40 < 1)' parenthetical (placed vs. still-requested vs. per-pass) are inferred, not confirmed from a Morpheus version log in the bundle.",
+    "No error/console log doc was provided beyond the quoted line, so I cannot confirm which initializer element failed."
+  ],
+  "framework_applied": "Fault-isolation / differential diagnosis: map the tool's error string to candidate root causes, rank by likelihood, and give the corresponding minimal fix for each — appropriate for a simulation_debug task where the artifact (Morpheus .xml) lives in the RN13 niche but was not directly available.",
+  "observed_outcome": "positive",
+  "observed_at": "2026-07-11T19:15:51Z",
+  "scoring": {
+    "method": "judge-panel",
+    "deterministic": null,
+    "panel": {
+      "models": [
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001"
+      ],
+      "verdicts": [
+        {
+          "model": "claude-opus-4-8",
+          "overall_score": 0.66,
+          "verdict": "partial",
+          "justification": "The answer correctly identifies the core issue: an initializer-vs-domain/size mismatch where spatial initializers placed fewer cells (40) than the CellPopulation/size requested, and it correctly frames this as an initialization (not biology) error. The proposed fixes are concrete and appropriate: enlarge the initializer region, shrink cell target volume, enlarge the lattice, or reconcile CellPopulation/size to match placed cells — these align with the expected concrete-fix evidence. The framework note (Morpheus XML, CellPopulation/size XMLPath, InitCircle/InitRectangle/InitCellObjects, VolumeConstraint) is present and largely accurate. However, the interpretation of the specific '(40 < 1)' parenthetical is somewhat strained and likely partially misreads the actual Morpheus message semantics — the '1' suggests a minimum threshold rather than 40 vs requested count, and the candidate over-narrates a speculative reading of the accounting while flagging this uncertainty honestly. Uncertainty calibration is good (0.45 confidence, clear gap_flags acknowledging the .xml was not inspected). The citation is thin (single niche reference, unverified). Overall a solid diagnostic that would help a user, but with a mildly overclaimed message-semantics interpretation and no concrete numeric grounding, warranting partial rather than correct.",
+          "rubric": {
+            "factuality": 0.7,
+            "completeness": 0.75,
+            "citation_correctness": 0.5,
+            "uncertainty_calibration": 0.85,
+            "testability": 0.7,
+            "safety_ethics": 1.0
+          },
+          "usage": {
+            "input_tokens": 2387,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 636,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-sonnet-5",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate correctly identifies this as a Morpheus framework/initialization issue rather than a biological one, and gives a plausible, technically reasonable diagnosis: spatial initializer (InitCircle/InitRectangle/etc.) placing fewer cells than the requested CellPopulation/size due to insufficient region size, overlap rejection, domain boundary clipping, or competing initializers. It offers multiple concrete, actionable fixes (enlarge region, shrink target volume, adjust CellPopulation/size to match, check domain bounds, adjust spacing for regular placement, avoid initializer overlap), which aligns well with the expected evidence points on initializer/domain mismatch and population size XMLPath. It also appropriately notes the framework note context and honestly flags uncertainty about the exact numeric values and the precise semantics of the '(40 < 1)' message, without fabricating specifics from the actual XML file. However, the interpretation of the parenthetical '(40 < 1)' is somewhat awkward/incorrect — the actual Morpheus message format typically compares placed vs requested (e.g., 40 < requested_number), and the candidate's explanation that \"1\" represents \"a per-initializer target it was checking against evaluated to a value it treats as unmet\" is confusing and likely not accurate; this could confuse readers about the actual mechanism. Overall the answer is solid on diagnosis and fix strategy, appropriately hedges uncertainty, and cites the relevant resource, but the muddled explanation of the exact error semantics and lack of a single concrete example fix reduce precision. This merits a 'partial' correct verdict with above-average score.</justification>\n<parameter name=\"rubric\">{\"factuality\": 0.7, \"completeness\": 0.75, \"citation_correctness\": 0.6, \"safety_ethics\": 0.9, \"testability\": 0.75, \"uncertainty_calibration\": 0.85}",
+          "usage": {
+            "input_tokens": 2451,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 716,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "service_tier": "standard",
+            "inference_geo": "global"
+          }
+        },
+        {
+          "model": "claude-haiku-4-5-20251001",
+          "overall_score": 0.72,
+          "verdict": "partial",
+          "justification": "The candidate provides a well-structured diagnosis and actionable fixes that directly address the core issue: mismatch between requested population size and spatial initializer capacity. The explanation of the error message is plausible (fewer cells placed than requested), and the troubleshooting sequence (region size, cell volume, lattice size, domain bounds, initializer overlap, placement mode) represents sound systems thinking appropriate for a spatial stochastic simulator. Strengths: (1) correctly identifies this as an initialization, not biology, problem; (2) provides concrete, prioritized remedies aligned with expected evidence; (3) acknowledges uncertainty by citing missing .xml file and noting inference about Morpheus semantics; (4) avoids fabricated specifics. Weaknesses: (1) the interpretation of \"(40 < 1)\" as \"placed 40 vs. still-requested\" lacks confirmation—this notation may mean something else in Morpheus (e.g., placed 40 vs. total requested 1, which would flip the logic); (2) the diagnosis is generic and would apply to many lattice-based simulators without Morpheus-specific verification; (3) no attempt to note expected Morpheus version, documentation source, or framework-level context that would validate the error reporting semantics; (4) the candidate does not propose retrieving or inspecting RN13 as a next step, instead only noting it could not be done; (5) completeness is limited because Morpheus-specific XMLPath precision (e.g., /Model/CellTypes/CellType/VolumeConstraint/TargetVolume vs. /Model/Lattice/Size) is not exemplified in the fix instructions. The answer is pragmatically useful and honest about gaps, but lacks the framework-specific validation and concrete numeric or XML example that would elevate it to \"correct.\"",
+          "rubric": {
+            "citation_correctness": 0.65,
+            "completeness": 0.7,
+            "factuality": 0.7,
+            "safety_ethics": 0.95,
+            "testability": 0.65,
+            "uncertainty_calibration": 0.85
+          },
+          "usage": {
+            "input_tokens": 1993,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "cache_creation": {
+              "ephemeral_5m_input_tokens": 0,
+              "ephemeral_1h_input_tokens": 0
+            },
+            "output_tokens": 564,
+            "service_tier": "standard",
+            "inference_geo": "not_available"
+          }
+        }
+      ],
+      "label_disagreement": 0.0,
+      "overall_spread": 0.06,
+      "outcome": "positive",
+      "mean_overall": 0.7,
+      "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+    }
+  },
+  "test_mapping": [
+    "test_1",
+    "test_3",
+    "test_4"
+  ],
+  "agents_invoked": [
+    {
+      "agent": "held-out-runner",
+      "status": "invoked",
+      "evidence_generated": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "agent": "verify_output.admissible",
+      "status": "not-applicable",
+      "reason": "no identifiers to gate"
+    },
+    {
+      "agent": "judge-panel (multi-family, ADR-0031)",
+      "status": "invoked",
+      "reason": "reviewer-independence scoring"
+    }
+  ]
+}

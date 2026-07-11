@@ -1,0 +1,110 @@
+{
+  "generated": "2026-07-11T19:39:50Z",
+  "n_total_records": 30,
+  "n_observable": 30,
+  "n_scored": 13,
+  "n_excluded_unfalsifiable": 10,
+  "n_excluded_no_confidence": 7,
+  "tests_status": {
+    "test_4": "aggregate-captured"
+  },
+  "reporting_note": "Per ADR-0005 + SCOPE \u00a75: n_scored=13 -> 'aggregate-captured'. 'satisfied' is NOT emitted by this single-snapshot tool \u2014 it additionally requires the longitudinal 'improve with use' arc (month 0/4/8) AND the >=85% high-confidence sub-threshold. ece_raw at n<10 is descriptive only; post-hoc isotonic is not applied until n_scored>=10.",
+  "satisfied_requires": {
+    "defensive_ece_met": false,
+    "high_conf_subthreshold_met": false,
+    "longitudinal_improve_with_use": "not-establishable-from-single-run",
+    "note": "'satisfied' needs all three; this tool can only attest the first two."
+  },
+  "aggregate": {
+    "ece_raw": 0.5815384615384616,
+    "defensive_threshold": 0.2,
+    "ambitious_threshold": 0.1,
+    "high_conf_frac_correct": null,
+    "high_conf_threshold": 0.8,
+    "high_conf_subthreshold_met": false,
+    "ece_after_isotonic": 0.0
+  },
+  "per_category": {
+    "regulator_vs_bystander": {
+      "n": 1,
+      "ece_raw": 0.4
+    },
+    "pathway_assembly": {
+      "n": 1,
+      "ece_raw": 0.65
+    },
+    "literature_synthesis": {
+      "n": 2,
+      "ece_raw": 0.74
+    },
+    "model_assembly_morpheus": {
+      "n": 3,
+      "ece_raw": 0.41333333333333333
+    },
+    "perturbation_design": {
+      "n": 4,
+      "ece_raw": 0.75
+    },
+    "simulation_debug": {
+      "n": 1,
+      "ece_raw": 0.55
+    },
+    "cross_field_bridge": {
+      "n": 1,
+      "ece_raw": 0.8
+    }
+  },
+  "per_skill": {
+    "held-out-runner": {
+      "n": 13,
+      "ece_raw": 0.5815384615384616
+    }
+  },
+  "per_sub_domain": {
+    "RN1": {
+      "n": 1,
+      "ece_raw": 0.4,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN2": {
+      "n": 2,
+      "ece_raw": 0.615,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN5": {
+      "n": 2,
+      "ece_raw": 0.6900000000000001,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN6": {
+      "n": 2,
+      "ece_raw": 0.43000000000000005,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN10": {
+      "n": 1,
+      "ece_raw": 0.85,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN12": {
+      "n": 2,
+      "ece_raw": 0.7849999999999999,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN13": {
+      "n": 1,
+      "ece_raw": 0.55,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN3": {
+      "n": 1,
+      "ece_raw": 0.38,
+      "isotonic_fit": "pending (n<10)"
+    },
+    "RN11": {
+      "n": 1,
+      "ece_raw": 0.9,
+      "isotonic_fit": "pending (n<10)"
+    }
+  }
+}
