@@ -376,18 +376,23 @@ def stage_synthesize(q, bundle):
 
 
 # --------------------------------------------------------------------------- stage 3: scoring
-def score_deterministic(contract, qtype):
+def score_deterministic(contract, qtype, reingest_cache=None):
     """Store-grounded outcome for identifier-bearing questions (INDEPENDENT ground truth).
-    positive = every ENSDARG resolves and bindings are consistent; negative = a fabricated/misbound id.
+    positive = every ENSDARG resolves (or is a re-ingest candidate) and bindings are consistent;
+    negative = a fabricated/misbound id. `reingest_cache` (ADR-0036): §7.9 raw cache path(s) produced by a
+    live fetch this question — an out-of-store id present there is a re-ingest CANDIDATE (surfaced, not a
+    fabrication fail), so the Q08 case (real Ensembl ids not yet in the store) is no longer a false negative.
     Returns dict or None when the question isn't identifier-type or the answer carries no identifiers."""
     from lib import verify_output
-    rep = verify_output.verify_identifiers(contract)
-    has_ids = bool(rep.verified_raw or rep.verified_derived or rep.unresolved or rep.misbound)
+    rep = verify_output.verify_identifiers(contract, reingest_cache=reingest_cache)
+    has_ids = bool(rep.verified_raw or rep.verified_derived or rep.unresolved
+                   or rep.reingest_candidates or rep.misbound)
     if qtype not in ID_TYPES or not has_ids:
         return None
-    adm, reasons = verify_output.admissible(contract)
+    adm, reasons = verify_output.admissible(contract, reingest_cache=reingest_cache)
     return {"admissible": adm, "outcome": "positive" if adm else "negative",
-            "report": rep.as_dict(), "reasons": reasons}
+            "report": rep.as_dict(), "reasons": reasons,
+            "reingest_candidates": sorted(rep.reingest_candidates)}
 
 
 def judge_answer(q, contract):

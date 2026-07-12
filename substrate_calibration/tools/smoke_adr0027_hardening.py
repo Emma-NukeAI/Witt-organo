@@ -94,7 +94,9 @@ print("=" * 90)
 print("B . NON-REGRESSION  (real corpus must not break; legitimate outputs not newly FAILed)")
 print("=" * 90)
 ar = A.run(RECORDS)
-verdicts = {r["claim_id"]: r["verdict"] for r in ar["results"]}
+# skip non-claim artifacts in records/ (e.g. panel_multifamily_*.json is a reviewer-disagreement log with
+# no claim_id — added 2026-07-05, ADR-0031); the §4/§11 accountability checks apply to CLAIM records only.
+verdicts = {r["claim_id"]: r["verdict"] for r in ar["results"] if r.get("claim_id")}
 r_recs = [c for c in verdicts if c.startswith("claim_20260618")]
 check("R1-R4 records still PASS", all(verdicts[c] == "PASS" for c in r_recs))
 check("legacy 2026-05-14 records still FAIL (by design, §4)", all(verdicts[c] == "FAIL" for c in verdicts if c.startswith("claim_20260514")))

@@ -19,6 +19,7 @@ uniprot_acc values.
 import json
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List
 
 from . import resolve_id
@@ -45,7 +46,8 @@ class VerificationReport:
     verified_raw: List[str] = field(default_factory=list)        # resolved + raw §7.9 cache on disk
     verified_derived: List[str] = field(default_factory=list)    # resolved but DERIVED tier only
     not_found_positive: List[str] = field(default_factory=list)  # store says "looked, absent"
-    unresolved: List[str] = field(default_factory=list)          # in output, not in store => FAILURE
+    unresolved: List[str] = field(default_factory=list)          # in output, not in store, NO live provenance => FAILURE
+    reingest_candidates: List[str] = field(default_factory=list) # not in store BUT present in a §7.9 raw cache => re-ingest candidate, NOT a failure (ADR-0036)
     flagged_external: List[str] = field(default_factory=list)    # PMID/GEO — can't verify offline (gap_flag)
     misbound: List[str] = field(default_factory=list)            # symbol<->ENSDARG pair that contradicts the store (N1)
 
@@ -57,6 +59,7 @@ class VerificationReport:
             "verified_derived": sorted(self.verified_derived),
             "not_found_positive": sorted(self.not_found_positive),
             "unresolved": sorted(self.unresolved),
+            "reingest_candidates": sorted(self.reingest_candidates),
             "flagged_external": sorted(self.flagged_external),
             "misbound": sorted(self.misbound),
         }
@@ -119,23 +122,54 @@ def verify_bindings(obj, store=None) -> List[str]:
     return sorted(set(out))
 
 
-def verify_identifiers(text_or_obj, store=None) -> VerificationReport:
+def _live_verified_ids(reingest_cache) -> set:
+    """Canonical ENSDARG present in the §7.9 raw cache file(s) — the deterministic, OFFLINE provenance that an
+    out-of-store ID was fetched from an authoritative source (Ensembl), NOT fabricated (ADR-0036).
+
+    An id counts as a re-ingest candidate ONLY if it literally appears in a real cached raw response; a bare
+    assertion (no backing raw file, or file missing) does NOT — so this NEVER weakens the anti-fabrication
+    gate. `reingest_cache` is a path or iterable of paths; unreadable paths are skipped."""
+    if not reingest_cache:
+        return set()
+    paths = [reingest_cache] if isinstance(reingest_cache, (str, Path)) else list(reingest_cache)
+    ids = set()
+    for p in paths:
+        try:
+            txt = Path(p).read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for digits in _ENSDARG_EXTRACT.findall(txt):
+            ids.add("ENSDARG" + digits)
+    return ids
+
+
+def verify_identifiers(text_or_obj, store=None, reingest_cache=None) -> VerificationReport:
     """Extract external identifiers from a string or JSON-serializable object and gate them.
 
-    GATE FAILURE (report.ok == False) iff any ENSDARG in the output does not resolve in the store,
-    OR any EXPLICIT structured symbol<->ENSDARG pair contradicts the store binding (N1 / ADR-0027).
-    PMIDs/GEO accessions are flagged (honest gap), not failures, in v1.
+    GATE FAILURE (report.ok == False) iff any ENSDARG in the output does not resolve in the store AND lacks
+    live §7.9 provenance, OR any EXPLICIT structured symbol<->ENSDARG pair contradicts the store binding
+    (N1 / ADR-0027). PMIDs/GEO accessions are flagged (honest gap), not failures, in v1.
+
+    reingest_cache (ADR-0036): optional path(s) to §7.9 raw cache file(s). An out-of-store ENSDARG that
+    appears in such a cached raw response is a *re-ingest candidate* (real, fetched live, not yet in the
+    store) — surfaced in report.reingest_candidates and does NOT fail the gate. An out-of-store ENSDARG with
+    NO such backing is `unresolved` and STILL fails (possible fabrication). Default None => identical to the
+    prior behavior (no candidates; every out-of-store id is unresolved). Offline + deterministic.
     """
     sot = store or resolve_id._get_default()
     text = text_or_obj if isinstance(text_or_obj, str) else json.dumps(text_or_obj)
     report = VerificationReport()
+    live_ids = _live_verified_ids(reingest_cache)
 
     for digits in sorted(set(_ENSDARG_EXTRACT.findall(text))):
         ens = "ENSDARG" + digits   # N2: canonical form (case/separator/version normalized) before resolving
         rec = sot.resolve(ens)
         if rec is resolve_id.NOT_FOUND:
-            report.unresolved.append(ens)
-            report.ok = False
+            if ens in live_ids:
+                report.reingest_candidates.append(ens)  # real (raw §7.9 backing), not in store yet -> re-ingest
+            else:
+                report.unresolved.append(ens)            # no provenance -> possible fabrication -> FAIL
+                report.ok = False
         elif rec.is_raw_verified:
             report.verified_raw.append(ens)
         else:
@@ -182,7 +216,7 @@ def tier_weight_for_record(rec):
     return tier_weight("RAW" if getattr(rec, "is_raw_verified", False) else "DERIVED")
 
 
-def admissible(text_or_obj, store=None, extra_predicates=None):
+def admissible(text_or_obj, store=None, extra_predicates=None, reingest_cache=None):
     """Hard admissibility predicate H(c) in {0,1} (R2 / ADR-0024).
 
     H is a CONJUNCTION of hard invariants, and is EXTENSIBLE by design (the additive principle): adding a
@@ -199,10 +233,12 @@ def admissible(text_or_obj, store=None, extra_predicates=None):
         predicates over free-form callables so the conjunction stays auditable.
     Returns (admissible: bool, reasons: list[str]).
     """
-    report = verify_identifiers(text_or_obj, store=store)
+    report = verify_identifiers(text_or_obj, store=store, reingest_cache=reingest_cache)
     reasons = []
     if report.unresolved:
         reasons.append(f"unresolved external identifiers (hard fail): {sorted(report.unresolved)}")
+    # NOTE: report.reingest_candidates are deliberately NOT a reason — an out-of-store id with §7.9 raw
+    # backing is admissible + surfaced for the human-gated re-ingest loop (ADR-0036), not a fabrication fail.
     if report.misbound:
         reasons.append(f"mis-bound symbol<->ENSDARG pairs (hard fail, N1): {sorted(report.misbound)}")
     for pred in (extra_predicates or []):
@@ -272,3 +308,17 @@ if __name__ == "__main__":
     print("info_priority_order =",
           [(c["symbol"], c["reason"]) for c in info_priority_order(
               [{"symbol": "clcnkb", "prior": 0.8}, {"symbol": "wt1a", "prior": 0.9}])])
+    # ADR-0036: an out-of-store id WITH §7.9 raw backing is a re-ingest candidate (admissible), one WITHOUT
+    # backing is still a fabrication fail. Uses a temp cache holding one syntactically-valid out-of-store id.
+    import tempfile as _tf, os as _os
+    _fake = "ENSDARG00000099999"; _other = "ENSDARG00000088888"   # neither is in the store
+    _cache = _os.path.join(_tf.gettempdir(), "verify_output_reingest_selftest.json")
+    Path(_cache).write_text(json.dumps({"responses": {"foo": {"id": _fake}}}), encoding="utf-8")
+    adm_nocache, _ = admissible(f"gene X is {_fake}")                        # no backing -> FAIL
+    adm_cache, _ = admissible(f"gene X is {_fake}", reingest_cache=_cache)   # backed -> candidate, admissible
+    adm_other, _ = admissible(f"gene Y is {_other}", reingest_cache=_cache)  # not in cache -> FAIL
+    rep = verify_identifiers(f"gene X is {_fake}", reingest_cache=_cache)
+    print(f"ADR-0036 reingest: no_cache_admissible={adm_nocache} (expect False) | "
+          f"cache_backed_admissible={adm_cache} (expect True) | other_id_admissible={adm_other} (expect False) | "
+          f"reingest_candidates={rep.reingest_candidates}")
+    _os.remove(_cache)
