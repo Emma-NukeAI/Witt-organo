@@ -365,11 +365,36 @@ SYNTH_SYSTEM = ("You are a zebrafish developmental-biology research assistant op
                 "in [0,1] (use a low value when unsure; never omit it).")
 
 
+_LEAKED_CONF_RE = re.compile(r'name="confidence"\s*>\s*([0-9]*\.?[0-9]+)')
+
+
+def _recover_leaked_confidence(contract):
+    """Some tool-call responses leak trailing parameters as TEXT into direct_answer (e.g.
+    '...</parameter>\\n<parameter name="confidence">0.15'), leaving the structured confidence=None.
+    Recover the value + strip the leaked tail. Forward fix for the run_held_out parser bug the closing
+    composite-audit caught (2026-07-11): 8/30 month_0 records lost their confidence this way, dropping 2 of
+    3 real negatives from the ECE aggregate and inflating the headline accuracy."""
+    da = contract.get("direct_answer") or ""
+    if contract.get("confidence") is None:
+        m = _LEAKED_CONF_RE.search(da)
+        if m:
+            try:
+                contract["confidence"] = float(m.group(1))
+                contract["_confidence_recovered"] = True
+            except ValueError:
+                pass
+    cut = da.find("</parameter>")
+    if cut != -1:
+        contract["direct_answer"] = da[:cut].rstrip()
+    return contract
+
+
 def stage_synthesize(q, bundle):
     prompt = bundle_to_prompt(q, bundle)
     # retries=2 (3 attempts): `confidence` omission is intermittent across questions; extra attempts
     # maximize the fraction of records that carry a stated_confidence (required by compute_ece).
     contract, usage = anthropic_tool_call(SYNTH_MODEL, SYNTH_SYSTEM, prompt, CONTRACT_TOOL, retries=2)
+    contract = _recover_leaked_confidence(contract)   # salvage confidence leaked as text into direct_answer
     contract["_usage"] = usage
     contract["_model"] = SYNTH_MODEL
     return contract

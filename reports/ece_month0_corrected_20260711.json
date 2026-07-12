@@ -1,0 +1,15 @@
+{
+  "generated": "2026-07-11",
+  "correction": "recovered confidence leaked into direct_answer (parser bug caught by closing composite-audit)",
+  "n_scored_corrected": 20,
+  "n_recovered": 8,
+  "mean_confidence": 0.34,
+  "accuracy": 0.85,
+  "ece_raw": 0.51,
+  "negatives": [
+    "Q02",
+    "Q05",
+    "Q12"
+  ],
+  "supersedes": "reports/ece_month0_20260711.json (n=13, ECE 0.582, accuracy 0.923)"
+}

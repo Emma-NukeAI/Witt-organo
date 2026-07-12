@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closing composite-audit — session 2026-07-11 (TYPE D)</title>
+<style>
+  :root{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;
+    --c-witt:#1d4e6e;--c-organo:#3a6a3f;--c-warn:#8a5a00;--c-critical:#8a2a2a;--c-good:#3a6a3f}
+  *{box-sizing:border-box} body{margin:0;background:var(--c-bg);color:var(--c-text);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.55}
+  code{font-family:'Cascadia Code','Consolas',monospace;font-size:.88em}
+  nav{position:sticky;top:0;z-index:10;background:var(--c-surface);border-bottom:1px solid var(--c-border);
+    padding:.6rem 1.2rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.84rem}
+  nav b{color:var(--c-witt)} nav a{color:var(--c-muted);text-decoration:none}
+  main{max-width:1100px;margin:0 auto;padding:1.5rem 1.3rem 4rem}
+  h1{font-size:1.55rem;margin:.2rem 0 .3rem;color:var(--c-witt)}
+  h2{font-size:1.2rem;margin:2rem 0 .7rem;padding-bottom:.3rem;border-bottom:2px solid var(--c-border);color:var(--c-witt)}
+  .sub{color:var(--c-muted);font-size:.9rem;margin-bottom:.8rem}
+  .chip{display:inline-block;border:1px solid #cfe0ea;border-radius:999px;padding:.2rem .7rem;font-size:.78rem;background:#eef3f7;color:var(--c-witt)}
+  .badge{display:inline-block;border-radius:6px;padding:.15rem .55rem;font-size:.76rem;font-weight:700}
+  .b-revise{background:#f6efe0;color:var(--c-warn)}.b-confirm{background:#e6efe7;color:var(--c-good)}.b-reject{background:#f6e6e6;color:var(--c-critical)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin:1rem 0}
+  .stat{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.85rem 1rem}
+  .stat .n{font-size:1.5rem;font-weight:700;color:var(--c-witt)}.stat .l{font-size:.78rem;color:var(--c-muted)}
+  .callout{border-left:4px solid var(--c-border);border-radius:6px;padding:.7rem 1rem;margin:.8rem 0;background:var(--c-surface)}
+  .callout.good{border-color:var(--c-good);background:#f2f7f2}.callout.warn{border-color:var(--c-warn);background:#f9f4ea}
+  .callout.bad{border-color:var(--c-critical);background:#f9eeee}
+  .claim{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;padding:.9rem 1.1rem;margin:.9rem 0}
+  .claim h3{margin:.1rem 0 .5rem;font-size:1rem;color:var(--c-witt)}
+  .was{color:var(--c-critical);text-decoration:line-through;opacity:.8}
+  .now{color:var(--c-good)}
+  table{border-collapse:collapse;width:100%;margin:.6rem 0;font-size:.88rem;background:var(--c-surface)}
+  th,td{border:1px solid var(--c-border);padding:.45rem .55rem;text-align:left;vertical-align:top}
+  th{background:#f1efe9;color:var(--c-witt)}
+  ul{margin:.3rem 0 .3rem 1.1rem} .obj{font-size:.86rem;color:var(--c-muted);margin:.3rem 0}
+  footer{max-width:1100px;margin:0 auto;padding:1.4rem 1.3rem;color:var(--c-muted);font-size:.82rem;border-top:1px solid var(--c-border)}
+  @media (prefers-color-scheme:dark){:root{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;
+    --c-muted:#a8a49b;--c-witt:#7fb4d4;--c-organo:#8fc294;--c-warn:#d8a24a;--c-critical:#d98a8a;--c-good:#8fc294}
+    th{background:#2a2c30}.chip{background:#22323d;border-color:#33505f;color:#9fcbe4}
+    .b-revise{background:#332b1a;color:#d8a24a}.b-confirm{background:#22331f;color:#8fc294}.b-reject{background:#331f1f;color:#d98a8a}
+    .callout.good{background:#1e2a1e}.callout.warn{background:#2a2519}.callout.bad{background:#2a1e1e}.stat .n{color:#7fb4d4}
+    .was{color:#d98a8a}.now{color:#8fc294}}
+  :root[data-theme="dark"]{--c-bg:#17181a;--c-surface:#202225;--c-border:#34363a;--c-text:#e8e6e1;--c-muted:#a8a49b;--c-witt:#7fb4d4}
+  :root[data-theme="light"]{--c-bg:#fafaf7;--c-surface:#fff;--c-border:#e5e3dd;--c-text:#1a1a1a;--c-muted:#5a5a5a;--c-witt:#1d4e6e}
+</style>
+</head>
+<body>
+<nav><b>Closing composite-audit · 2026-07-11</b>
+  <a href="#resumen">Resumen</a><a href="#bug">Bug</a><a href="#claims">Claims corregidos</a>
+  <a href="#flaws">Fallas de método</a><a href="#next">Siguientes</a></nav>
+<main>
+  <h1>Auditoría de cierre — el gate atrapó lo que la auto-evaluación no</h1>
+  <div class="sub">TYPE D · composite-auditor Mode 1 · 7 claims × 3 auditores adversariales multi-familia (Opus/Sonnet/Haiku) · 21 auditorías, 0 errores, ~1.44M tokens, 298 tool-calls</div>
+  <div><span class="chip">framework_applied: composite-auditor (§7 audit gate; el agente productor NO puede auto-sustituirlo)</span></div>
+
+  <h2 id="resumen">1 · Resumen — veredicto global</h2>
+  <div class="callout bad">
+    <b>direct_answer.</b> El panel adversarial votó <b>REVISE en los 7 claims</b> (C5: 2 REVISE / 1 CONFIRMED),
+    <b>0 CONFIRMED</b> netos. No es que el trabajo esté mal — es que <b>todos los claims estaban sobre-afirmados</b>
+    respecto a su evidencia (n chico, LLM-juez tratado como verdad de tierra, comparaciones no apples-to-apples),
+    y el panel atrapó <b>un bug real de mi harness</b> que mi propia revisión NO vio. <b>Esto es exactamente para
+    lo que existe el gate</b> (§7: la auto-evaluación del productor no cuenta). Respuesta a "¿está completa la
+    auditoría?": <b>ahora sí — está AUDITADA y CORREGIDA</b>, que es distinto de "todos los claims validados".
+  </div>
+  <div class="grid">
+    <div class="stat"><div class="n">7/7</div><div class="l">claims → REVISE (0 confirmados)</div></div>
+    <div class="stat"><div class="n">1 bug</div><div class="l">parser de confidence (8/30 records)</div></div>
+    <div class="stat"><div class="n">0.92→0.85</div><div class="l">accuracy corregida (A1)</div></div>
+    <div class="stat"><div class="n">0.58→0.51</div><div class="l">ECE_raw corregido (A1)</div></div>
+    <div class="stat"><div class="n">21</div><div class="l">auditorías adversariales</div></div>
+  </div>
+
+  <h2 id="bug">2 · El bug que atrapó (C1, Sonnet)</h2>
+  <div class="callout warn">
+    <b>8 de 30 records de <code>month_0</code></b> (Q02,Q05,Q13,Q22,Q24,Q28,Q29,Q30) tenían su valor de
+    <code>confidence</code> <b>filtrado como texto de tool-call dentro de <code>direct_answer</code></b>
+    (ej. <code>...&lt;/parameter&gt;&lt;parameter name="confidence"&gt;0.15</code>). El modelo SÍ emitió confidence;
+    mi parser en <code>run_held_out.py</code> no lo capturó → escribió <code>stated_confidence=null</code> →
+    <code>compute_ece</code> los excluyó. Consecuencia: <b>2 de los 3 negativos reales se cayeron del agregado</b>,
+    inflando accuracy y ECE. <b>Corregido:</b> fix forward en <code>run_held_out.py</code> (recupera + limpia el
+    tail) + rescore.
+  </div>
+  <table>
+    <tr><th>Métrica A1</th><th>Reportado (buggy)</th><th>Corregido (recuperando los 8)</th></tr>
+    <tr><td>n_scored</td><td>13</td><td><b>20</b></td></tr>
+    <tr><td>accuracy (frac positive)</td><td>0.923</td><td><b>0.850</b></td></tr>
+    <tr><td>ECE_raw</td><td>0.582</td><td><b>0.510</b></td></tr>
+    <tr><td>negativos reales en el agregado</td><td>1 (pese a decir "3")</td><td><b>3</b> (Q02,Q05,Q12) — ahora sí</td></tr>
+    <tr><td>confianza media</td><td>0.34</td><td>0.34 (sin cambio)</td></tr>
+  </table>
+  <div class="sub">Reporte corregido: <code>reports/ece_month0_corrected_20260711.json</code> (supersede <code>ece_month0_20260711.json</code>).</div>
+
+  <h2 id="claims">3 · Los 7 claims — corregidos (walk-back honesto)</h2>
+
+  <div class="claim"><h3>C1 · A1 baseline <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"Test 4 no-degenerado (ECE 0.58, 3 negativos); el substrato es SISTEMÁTICAMENTE sub-confiado (0.34 vs accuracy 0.92)."</div>
+    <div class="now"><b>→</b> Test 3 scaffold→medido (30/30, EPS real). Test 4 pasó de degenerado (n=2 all-positive) a no-degenerado (n=20 corregido, 3 negativos reales). En 20 ítems <b>juzgados por LLM</b>: confianza 0.34 vs accuracy-del-juez 0.85 → ECE_raw 0.51 — señal <b>sugestiva</b> de sub-confianza <b>relativa a un juez sin grounding</b>, en un snapshot chico, sin verdad de tierra determinista. <b>NO "sistemática"</b> hasta confirmar contra outcomes deterministas + el arco meses 4/8.</div>
+  </div>
+
+  <div class="claim"><h3>C2 · Independencia de revisores <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"El panel NO es 'un voto con costo extra' (34% divergencia)."</div>
+    <div class="now"><b>→</b> El panel same-vendor no es literalmente unánime (33.9% divergencia de etiqueta, 20/59), <b>pero 90% (18/20) es ruido de etiqueta ADYACENTE</b> (partial↔correct), direccionalmente uniforme (Opus más estricto), y <b>Opus es autor Y juez</b>; las 3 son de Anthropic. <b>NO demuestra independencia epistémica</b> — solo que no emite etiquetas idénticas. Falta ground-truth por-modelo + un juez no-Anthropic.</div>
+  </div>
+
+  <div class="claim"><h3>C3 · DI+TU Level-1 (literatura) <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"Lift marginal de calidad (+0.017, 17/29) y ninguno de confianza (+0.007)."</div>
+    <div class="now"><b>→</b> El "lift" NO es estadísticamente distinguible de cero: 17/29 ≈ volado (sign-test p≈0.46); +0.017 y +0.007 caen dentro del ruido en n=29/20. Honesto: <b>literatura-sola no muestra efecto detectable</b> (marginal-a-nulo), y la métrica es LLM-juez.</div>
+  </div>
+
+  <div class="claim"><h3>C4 · Level-2 "es el lever" <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"Level-2 (tool-use estructurado) ES el lever (conf 0.14→0.71, calidad 0.60→0.84)."</div>
+    <div class="now"><b>→</b> En un subconjunto <b>favorable de n=6 (pre-seleccionado para tools estructurados)</b>, Level-2 ganó a DI-only y L1 en cada pregunta (calidad-juez 0.60→0.84, confianza 0.14→0.71). PERO: (a) confianza y calidad son <b>lecturas correlacionadas del mismo rasgo de superficie</b> ("parece grounded"); (b) <b>el juez FABRICÓ narrativas de verificación</b> que no puede hacer (11/18 veredictos dicen "verifiqué contra Ensembl" sin acceso a tools — ver §4); (c) solo ~22–51 de 68 bindings están respaldados por crudo §7.9; (d) el único gate independiente dio <b>NEGATIVE</b> en la Q08 estrella. Honesto: <b>señal direccional prometedora en un subconjunto favorable</b>, NO "el lever" establecido. Requiere las 30 + ground-truth.</div>
+  </div>
+
+  <div class="claim"><h3>C5 · Disciplina anti-fabricación (ADR-0035) <span class="badge b-revise">REVISE 2/1</span></h3>
+    <div class="was">"La disciplina anti-fabricación se sostuvo (23/23)."</div>
+    <div class="now"><b>→</b> Los hechos sobreviven recomputación independiente (23/23 símbolos resuelven a ENSDARG válidos vía Ensembl, raw cacheado, add human-gated 51→74). Precisión de lenguaje: fue <b>verificación por symbol-lookup</b>, no un cross-check por-binding exhaustivo de cada pareja afirmada. Sólido; solo se afina el "held".</div>
+  </div>
+
+  <div class="claim"><h3>C6 · Gate ADR-0036 <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"...SIN debilitar el gate: comportamiento por defecto byte-for-byte sin cambios."</div>
+    <div class="now"><b>→</b> Con <code>reingest_cache=None</code> el <b>VEREDICTO pass/fail no cambia</b> — pero "byte-for-byte" es falso: <code>as_dict()</code> ahora emite siempre la key <code>reingest_candidates</code> (6→7 keys). Además: la "provenance" es un scan regex-presencia sobre <b>el archivo que pase el caller</b> (no autentica el crudo); y el smoke ADR-0027 (22/22) <b>NO cubre reingest</b> — solo el self-test de <code>__main__</code> lo hace. La garantía anti-fabricación default no se debilita; el path opt-in delega en disciplina §7.9, no la <em>enforza</em>.</div>
+  </div>
+
+  <div class="claim"><h3>C7 · Determinante de insuficiencia <span class="badge b-revise">REVISE 3/3</span></h3>
+    <div class="was">"El umbral de confianza es el MEJOR determinante (no estructural, no gate humano)."</div>
+    <div class="now"><b>→</b> El umbral de confianza es <b>UN</b> determinante defensible y el estructural tiene un falso-negativo demostrado (Q07) — pero "mejor" es sobre-afirmado: Q07 es n=1 y <b>circular</b> (usa la confianza 0.18 como la verdad que indicta al estructural), y la confianza <b>sobre-dispara</b> (~uncalibrada, dispara en casi todas). Honesto: "una señal razonable, no establecida como la mejor; el gate humano en re-ingesta se mantiene."</div>
+  </div>
+
+  <h2 id="flaws">4 · Fallas de método que el panel expuso (standing)</h2>
+  <div class="callout bad"><ul>
+    <li><b>Judge-fabrication (la más seria):</b> el juez recibe SOLO texto (sin tools), pero 11/18 veredictos afirman haber "verificado contra Ensembl / confirmado que el cache existe" — actos que es estructuralmente incapaz de hacer. Premia la <b>apariencia</b> de grounding. → La métrica "calidad-juez" mide parcialmente "parece fundamentado", no correctitud. <b>Arreglo pendiente:</b> darle al juez acceso de verificación real, o prohibir explícitamente afirmar verificación.</li>
+    <li><b>LLM-juez ≠ verdad de tierra</b> (los 3 auditores, transversal): confianza y calidad son ambas de razonamiento Claude; sin grounding independiente, "sub-confianza del substrato" y "generosidad del juez" son indistinguibles.</li>
+    <li><b>Panel same-vendor:</b> divergencia entre tiers Anthropic ≠ independencia epistémica; puede ser artefacto de capacidad. Falta un juez no-Anthropic real.</li>
+    <li><b>n chico + subconjuntos favorables:</b> A1 n=20, Level-2 n=6 pre-seleccionado. Case-capture, no agregados.</li>
+    <li><b>Provenance no autenticada</b> (ADR-0036): el gate confía en el archivo que pasa el caller, no valida que sea una respuesta Ensembl genuina.</li>
+  </ul></div>
+
+  <h2 id="next">5 · Siguientes pasos (del propio auditor)</h2>
+  <div class="callout"><ul>
+    <li><b>Arreglar el judge-fabrication</b> antes de citar "calidad-juez" otra vez: juez con verificación real, o prohibir afirmaciones de verificación no-ejecutadas.</li>
+    <li><b>Conseguir verdad de tierra independiente</b> (gate determinista sobre respuestas, o rating humano-experto) — es el limitante de TODA la calibración.</li>
+    <li><b>Escalar Level-2 a las 30</b> (no solo el subconjunto favorable) antes de cualquier claim general.</li>
+    <li><b>Un juez no-Anthropic</b> para que "independencia de revisores" signifique algo.</li>
+    <li>Re-correr <code>run_held_out</code> con el parser arreglado para regenerar <code>month_0</code> limpio (opcional; el rescore ya dio los números corregidos).</li>
+  </ul></div>
+
+  <footer>
+    <b>evidence_cited:</b> verdicts <code>reports/2026-07-11_closing-audit_verdicts.json</code> (7 claims × 3) ·
+    workflow <code>evaluation/workflows/session_closing_composite_audit.js</code> · corrected numbers
+    <code>reports/ece_month0_corrected_20260711.json</code> · audited artifacts: the three
+    <code>2026-07-11_*.html</code> reports + <code>evaluation/runs/month_0{,_ditu,_l2}/</code>.<br>
+    <b>agents_invoked:</b> composite-auditor Mode 1 — 21 adversarial auditors (Opus/Sonnet/Haiku), §7 gate; the
+    producing agent (me) did NOT self-substitute. <b>alternatives_considered / gap_flags:</b> §3 (per-claim) + §4.<br>
+    Prior reports (ADR-0002, NOT rewritten — this audit supersedes their over-claims):
+    <code>2026-07-11_a1-held-out-baseline_scorecard.html</code> · <code>_di-vs-tooluniverse-fallback_comparison.html</code> ·
+    <code>_level2-agentic-tooluniverse_comparison.html</code>.
+  </footer>
+</main>
+</body>
+</html>
