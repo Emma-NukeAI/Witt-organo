@@ -1,0 +1,138 @@
+{
+  "panel": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "verdicts": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "overall_score": 0.94,
+      "verdict": "correct",
+      "justification": "All three resolved IDs (ENSDARG00000028148 pax2a, ENSDARG00000031420 wt1a, ENSDARG00000014091 osr1) match the deterministic store check exactly (verified_in_store), with no misbound or unresolved flags — so the citation claims are fully corroborated. The answer correctly demonstrates the resolve_id round-trip, handles NOT_FOUND as a positive result (clcnkb) with an appropriately careful caveat distinguishing \"no symbol in namespace\" from \"no ortholog exists,\" and does not overclaim by conflating the two. The core \"why never from memory\" rationale is strong and on-target: opaque checksum-free accessions, silent syntactically-valid hallucinations, propagation into downstream claims, and the structural fix (resolve() before use, verify against authoritative source, cache RAW response per §7.9, require() raising on NOT_FOUND, human-gated store mutation). Expected evidence axes are all covered (round-trip, NOT_FOUND, CLAUDE.md §7/§7.9, verify_output/gate). Minor deductions: the specific failure-history figures (5/11 ~45%, 15/16, specific dated filenames) and cache filenames cannot be independently confirmed from the check and could be embellished specifics, and the task supplied no input list so the demonstration set is self-chosen — but this is honestly flagged. Confidence 0.96 is slightly high given those unverifiable narrative specifics, but well-calibrated overall since the verifiable core is exactly right.</justification>\n<parameter name=\"rubric\">{\"citation_correctness\": 0.95, \"completeness\": 0.95, \"factuality\": 0.92, \"safety_ethics\": 1.0, \"testability\": 0.95, \"uncertainty_calibration\": 0.85}",
+      "usage": {
+        "input_tokens": 3506,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 685,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "overall_score": 0.9,
+      "verdict": "correct",
+      "justification": "The candidate resolves a representative gene set to ENSDARG IDs, and the deterministic check confirms all three cited IDs (ENSDARG00000028148, ENSDARG00000031420, ENSDARG00000014091) are verified in the store, with no misbound or unresolved-provenance entries — matching the answer's claims exactly. The NOT_FOUND handling for clcnkb is well-explained with correct semantics (positive absence vs. non-existence of ortholog), aligning with expected evidence on resolve_id round-trip and NOT_FOUND handling. The \"why IDs must never come from memory\" explanation is thorough and well-reasoned, citing structural rationale (opaque checksum-free IDs, silent propagation of errors) and grounding it in CLAUDE.md §7/§7.9-style verification gate and cache-raw-response requirement, matching the expected rationale closely. The answer transparently flags that no explicit input list was given and substituted a representative set, which is honest calibration rather than overclaiming. Some cited specifics (session dates, corruption file names, exact percentages) are unverifiable and presented with high confidence (0.96) — this is a mild overclaiming risk since these narrative details cannot be checked by the deterministic tool, but the core identifier claims that CAN be checked are fully consistent with the ground truth. Overall this is a strong, well-structured, mostly accurate answer with only minor unverifiable embellishment in the failure-history narrative.",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.85,
+        "completeness": 0.9,
+        "testability": 0.9,
+        "safety_ethics": 0.95,
+        "uncertainty_calibration": 0.85
+      },
+      "usage": {
+        "input_tokens": 3570,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 663,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.94,
+      "rubric": {
+        "factuality": 0.96,
+        "citation_correctness": 0.95,
+        "completeness": 0.92,
+        "testability": 0.95,
+        "uncertainty_calibration": 0.92,
+        "safety_ethics": 0.93
+      },
+      "justification": "The candidate answer demonstrates expert-level execution of deterministic identifier resolution with rigorous procedural discipline. Factuality: All three resolved IDs (pax2a → ENSDARG00000028148, wt1a → ENSDARG00000031420, osr1 → ENSDARG00000014091) are verified in the deterministic check as live-verified, store-corroborated, and cross-referenced. The NOT_FOUND handling for clcnkb correctly interprets the HTTP 400 response and properly distinguishes symbol-namespace absence from ortholog absence — a subtle but critical distinction. The failure history (May 2026 ~45% error rate, June 2026 15/16 marker corruption) is cited as concrete motivation for the anti-fabrication rule. Citation correctness: All tool invocations point to actual endpoints (ensembl_lookup_gene with species=danio_rerio), raw responses are cached per protocol, and store cross-checks are explicit with version pinning (2026-06-23.1). CLAUDE.md §7/§7.9 and resolve_id.py semantics are accurately invoked. The structural diagnosis (checksum-free opaque accessions, undetectable hallucinations, propagation into downstream analysis) is precise and grounded in design rationale. Completeness: The answer covers resolve-round-trip, NOT_FOUND positive detection, symbol-namespace caveats, and the orthology-gap clarification. Gap-flags are appropriately self-documented (no caller input, homolog-vs-ortholog distinction, store promotion gating, agent-invocation scope, report emission deferral). Testability: The claim is fully reproducible: tool call, raw cache location, store record, error semantics, and failure-history reference are all specified. Uncertainty calibration: The candidate confidence (0.96) is well-justified—high confidence is warranted given live-tool corroboration and store verification, and the gap flags (no input list, clcnkb homolog-search not attempted, no RAW-tier promotion) honestly bound the scope without overclaiming. Safety/ethics: The framing centers on error prevention (hallucination detection, propagation risk, human-gated mutations) and transparency (gap flags, caveats, scope deferral). Minor deductions: completeness is slightly below 1.0 because no explicit input list was resolved (though the candidate explains this clearly and demonstrates the workflow); citation_correctness is 0.95 rather than 1.0 pending independent verification of the actual store contents and CLAUDE.md sections (though the check confirms the three IDs and the procedural rationale is sound). The answer fully satisfies all required rubric axes: expected_evidence elements (round-trip, NOT_FOUND, CLAUDE.md rationale, verify_output gate) are all delivered with high fidelity and disciplined reasoning.",
+      "usage": {
+        "input_tokens": 2821,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 809,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "rubric": {
+        "factuality": 1,
+        "citation_correctness": 0.8,
+        "completeness": 0.9,
+        "testability": 1,
+        "uncertainty_calibration": 1,
+        "safety_ethics": 1
+      },
+      "overall_score": 0.95,
+      "verdict": "correct",
+      "justification": "The candidate answer correctly resolved the given gene symbols to their respective ENSDARG IDs, while accurately identifying a NOT_FOUND case for clcnkb. The explanation of why IDs must never be used from memory is precise and aligns with the provided rationale from CLAUDE.md. The answer is well-grounded, properly handling NOT_FOUND semantics and citing live tool responses and verified sources. It addresses the task requirements, highlights the gaps by clarifying the choice of demonstrated gene symbols, and contextualizes the implications of improperly resolved IDs. The overall response is both factually accurate and comprehensive.",
+      "usage": {
+        "completion_tokens": 177,
+        "prompt_tokens": 1821,
+        "total_tokens": 1998,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.05,
+  "outcome": "positive",
+  "mean_overall": 0.932,
+  "within_anthropic_disagree": false,
+  "cross_provider_disagree": false,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

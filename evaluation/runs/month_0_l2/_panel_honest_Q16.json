@@ -1,0 +1,140 @@
+{
+  "panel": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "verdicts": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "overall_score": 0.83,
+      "verdict": "correct",
+      "justification": "The answer delivers exactly what the expected evidence asks for: an indexed interaction table (rows 1–6) with Source → Signal → Target → Temporal window (hpf) → role structure, a companion readout module distinguishing source signals from target-intrinsic competence TFs, cited embryology (RA counter-gradient via aldh1a2/cyp26, posteriorizing Wnt/FGF, BMP DV competence, Shh midline), explicit hpf windows, and thorough gap flags. Every one of the 16 Ensembl IDs cited is confirmed by the deterministic check (verified_in_store), with zero unresolved or misbound identifiers — citation correctness is essentially perfect. The biology is canonical and correct: aldh1a2 RA synthesis for proximo-distal pronephric patterning, cyp26 degradation for distal identity, osr1/pax2a/pax8/lhx1a as IM specifiers, wt1a/b podocyte, hnf1b tubule — all standard and appropriately roled. Uncertainty calibration is a standout strength: confidence 0.42 is honest, the sufficiency claim is explicitly demoted to a hypothesis requiring wet-lab GOF, temporal windows are flagged as literature-derived/weakest column (~0.40), Shh is flagged exploratory, and ZFIN 404s are disclosed rather than papered over. It correctly avoids overclaiming induction sufficiency. Minor deductions: the hpf windows are asserted without structured-tool grounding (self-flagged), source→signal tissue assignments are model attributions not spatially resolved, and the framing (\"chaperone-tissue,\" HTML report paths, ADR references) is somewhat idiosyncratic/internal-jargon-heavy which slightly muddies the scientific core. But these are honestly disclosed rather than hidden. This is a well-calibrated, correctly-grounded design scaffold that neither fabricates specifics nor overstates causality.",
+      "rubric": {
+        "factuality": 0.85,
+        "citation_correctness": 0.95,
+        "completeness": 0.85,
+        "testability": 0.8,
+        "uncertainty_calibration": 0.92,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 3823,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 835,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "justification": "The candidate produces a well-structured, indexed interaction table with Source→Signal→Target→Window→Role rows, covering canonical zebrafish pronephros-induction pathways (RA via aldh1a2/cyp26a1/cyp26b1, Wnt via wnt8a/wnt2ba, FGF via fgf8a/fgf24, BMP via bmp2b, Hh via shha) plus a companion readout module of IM-intrinsic TFs (osr1, pax2a, pax8, lhx1a, wt1a/b, hnf1ba). All cited Ensembl gene IDs match the deterministic verified_in_store check exactly (16/16 verified, no unresolved or misbound IDs), which is strong support for citation correctness on the identifier layer. Temporal windows (hpf) are provided for every row, satisfying the temporal-window requirement, though the candidate honestly flags these as literature/domain-derived rather than tool-retrieved this session — appropriate uncertainty calibration rather than overclaiming. Gap flags are extensive and well-targeted: explicitly noting the lack of native perturbation-sufficiency evidence for induction (the core ask — 'inducing' the program), the 404s on ZFIN expression-ribbon endpoints, that source-tissue assignments are canonical-model attributions not spatially resolved from an atlas, and that shha's role is weak/exploratory. This matches the expected evidence's demand for gap flags well. The main weakness: the question asks to \"build\" a table for *inducing* the pronephric program, i.e., causal/sufficiency claims, but the candidate itself acknowledges this remains a hypothesis requiring wet-lab GOF — appropriately hedged (stated confidence 0.42) rather than fabricated, which is the correct epistemic stance given no sufficiency data exists natively. Embryology framing (RA proximodistal gradient, posteriorizing Wnt/FGF, BMP for DV/competence, Hh as weak modifier) is broadly consistent with established zebrafish developmental biology, though not independently verifiable here beyond plausibility. Overall this is a strong, well-hedged, properly gapped answer that satisfies structure and identifier-correctness requirements while being honest about the unproven causal/sufficiency layer and the non-tool-derived nature of temporal windows.",
+      "overall_score": 0.8,
+      "verdict": "correct",
+      "rubric": {
+        "citation_correctness": 0.95,
+        "completeness": 0.8,
+        "testability": 0.7,
+        "uncertainty_calibration": 0.85,
+        "factuality": 0.75,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 3887,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 957,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "partial",
+      "overall_score": 0.68,
+      "rubric": {
+        "citation_correctness": 0.82,
+        "completeness": 0.65,
+        "factuality": 0.75,
+        "safety_ethics": 0.8,
+        "uncertainty_calibration": 0.88,
+        "testability": 0.48
+      },
+      "justification": "The candidate provides a well-structured master table addressing the core question with 6 indexed interaction rows (Source → Signal → Target → Temporal window). STRENGTHS: (1) Citation correctness is strong—all 16 gene identifiers passed deterministic verification; Ensembl IDs are correctly assigned and no misbound identifiers were detected. (2) The answer explicitly cites embryological context (intermediate mesoderm competence, DV patterning, A-P axis patterning via RA gradients), meeting the expected evidence requirement. (3) Temporal windows are provided in hpf (8–18 hpf range for RA, 5–10 hpf for BMP, etc.), though the candidate honestly flags these as domain-derived literature values, not live spatiotemporal atlas-resolved data. (4) Gap flags are unusually thorough and honest (low sufficiency confidence ~0.25, expression-ribbon endpoint failures, noted skipping of causal-pruner sub-agents), demonstrating appropriate uncertainty calibration. (5) The companion readout module of target-intrinsic TFs (osr1, pax2a, pax8, etc.) adds semantic value for defining competence. WEAKNESSES: (1) Testability is weak (0.48)—the candidate explicitly states the core induction-sufficiency claim is a hypothesis NOT validated by the cited data; no wet-lab GOF protocol is provided, only a design scaffold. This is flagged as Phase II work, which is honest but limits actionability. (2) Completeness is moderate (0.65)—the table omits some classical signals (e.g., activin/nodal, mesodermal Pax signaling cross-talk), and spatial resolution is acknowledged as canonical-model attribution rather than atlas-resolved. (3) Factuality is sound (0.75) for identifier and phenotype existence, but the causal induction logic (whether these signals together INDUCE the program) rests on indirect evidence (phenotype counts, marker expression existence), not direct perturbation data. The candidate does not overclaim this, but it remains the weakest pillar. (4) The Hedgehog role is admitted as exploratory and weakest (0.35 confidence), appropriate for a table that aims to be comprehensive. Overall, this is a competently constructed, transparently limited design scaffold with strong identifier provenance and careful uncertainty qualification, but it falls short of being a validated induction protocol or comprehensive causal-sufficiency map.\"",
+      "usage": {
+        "input_tokens": 3094,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 716,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "parameters": {
+        "overall_score": 0.8,
+        "verdict": "partial",
+        "justification": "The candidate answer provides a detailed master chaperone-tissue interaction table that is well-structured and includes indexed interaction rows, citations to embryology, and temporal windows in hours post-fertilization (hpf). It also accurately flags gaps and limitations in the data, such as the lack of native perturbation-sufficiency evidence and the speculative nature of some role assignments (e.g., Hedgehog's weak role) which aligns with the expected evidence. However, while the gene IDs have been verified as correct, the temporal windows are acknowledged to be derived from literature rather than structured data tools, introducing potential inaccuracies. The answer effectively communicates uncertainties and does not make unsupported claims about signal sufficiency, but it lacks the complete testability needed to validate the induction hypothesis without additional experimental evidence. Thus, it meets most criteria for factuality and uncertainty calibration, but falls short on completeness and testability, resulting in a partial verdict."
+      },
+      "usage": {
+        "completion_tokens": 204,
+        "prompt_tokens": 2092,
+        "total_tokens": 2296,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      }
+    }
+  ],
+  "label_disagreement": 0.333,
+  "overall_spread": 0.15,
+  "outcome": "positive",
+  "mean_overall": 0.77,
+  "within_anthropic_disagree": true,
+  "cross_provider_disagree": null,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

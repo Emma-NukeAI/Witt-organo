@@ -1,0 +1,146 @@
+{
+  "panel": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "verdicts": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "overall_score": 0.86,
+      "verdict": "correct",
+      "justification": "The answer correctly recovers the expected segment→marker structure: PT (slc20a1a, slc4a4a), DE (slc12a1, with kcnj1a.1 as supporting/shared — an accurate nuance the expected evidence also endorses), DL (slc12a3), and duct (gata3). All 8 ENSDARG IDs cited appear in the deterministic check's verified_in_store list with zero misbound, unresolved, or reingest candidates, so citation correctness is strong. The four-way discriminator summary (slc20a1a/trpm7 proximal | slc12a1 DE | slc12a3 DL | gata3 duct) matches the expected map well. Minor deductions: the expected evidence lists cdh17 as a duct marker, which the answer omits (offering only gata3 for duct); the answer adds trpm7/slc13a1 PST markers beyond scope, which is defensible but unrequested. Uncertainty calibration is excellent and honest — it explicitly separates high-confidence IDs (~0.99) from the literature-mapping claim (~0.87), flags that the in-repo scRNA atlas is anterior-biased and did not detect slc12a1, and flags the unverified Wingert PMID rather than overclaiming. The provenance narrative is somewhat verbose/theatrical, but the substantive claims are corroborated by the store check and not fabricated. Testability is good: specific IDs and a clear DE/DL boundary discriminator are given. No safety concerns.",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.95,
+        "completeness": 0.8,
+        "uncertainty_calibration": 0.92,
+        "testability": 0.9,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 3616,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 670,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "justification": "The candidate correctly identifies the expected marker→segment mapping requested (slc20a1a/slc4a4a PT; slc12a1 DE; slc12a3 DL; gata3 duct), matching the expected evidence, and adds reasonable extra granularity (PCT/PST sub-markers trpm7/slc13a1, kcnj1a.1 as a DE/DL-spanning marker). The expected evidence also lists cdh17 as a duct marker; the candidate omits cdh17 but includes gata3, which is in the expected list, so duct is still covered by one of the two acceptable markers. All 8 cited ENSDARG IDs are confirmed by the deterministic check (verified_in_store matches all 8 cited IDs exactly, no unresolved or misbound entries), so identifier correctness is fully supported. The answer is transparent about tiering (DERIVED vs RAW-verified), flags that the Wingert 2007 citation was not re-verified this run, and notes that slc12a1 (DE) was not found in the in-repo expression atlas — appropriate calibrated uncertainty rather than overclaiming. Minor deduction: heavy \"preflight/DATA INAMOVIBLE\" narrative apparatus is unnecessary process overhead that doesn't affect core correctness but adds verbosity; also PMID/literature claim for Wingert et al. 2007 is stated as canonical without citation verification, appropriately flagged as unverified. Overall this is a strong, well-hedged, correct answer that satisfies the core rubric requirement (segment→marker map with verified ENSDARG) and appropriately caveats extrapolations.",
+      "overall_score": 0.9,
+      "verdict": "correct",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.95,
+        "completeness": 0.85,
+        "uncertainty_calibration": 0.95,
+        "testability": 0.9,
+        "safety_ethics": 1.0
+      },
+      "usage": {
+        "input_tokens": 3680,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 721,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "verdict": "correct",
+      "overall_score": 0.91,
+      "rubric": {
+        "factuality": 0.95,
+        "citation_correctness": 0.93,
+        "completeness": 0.88,
+        "testability": 0.9,
+        "uncertainty_calibration": 0.92,
+        "safety_ethics": 1.0
+      },
+      "justification": "The candidate provides a comprehensive answer directly addressing the question's dual requirement: segment-specific marker identification and verified ENSDARG IDs. All 8 provided ENSDARG identifiers (slc20a1a/ENSDARG00000020114, slc4a4a/ENSDARG00000013730, trpm7/ENSDARG00000036232, slc13a1/ENSDARG00000045638, slc12a1/ENSDARG00000098096, kcnj1a.1/ENSDARG00000091232, slc12a3/ENSDARG00000013855, gata3/ENSDARG00000016526) match the deterministic identifier check exactly, all verified in store. The marker-to-segment mapping matches the expected evidence structure (slc20a1a/slc4a4a for PT; slc12a1/kcnj1a.1 for DE; slc12a3 for DL; gata3 for duct), with the core four-way separation explicitly highlighted. The candidate goes beyond minimum requirements by providing biological context (transporter types, DE/DL boundary discrimination), additional proximal-segment markers (trpm7, slc13a1), and explicit confidence breakdowns distinguishing ID verification (~0.99, all live-verified via Ensembl GRCz11) from marker-to-segment biological mapping (~0.87, based on canonical Wingert et al. 2007 without re-verification). Weaknesses are modest but honestly flagged by the candidate: (1) Wingert et al. 2007 is cited but the PMID was not re-verified via a literature tool, reducing confidence on biological assignments; (2) in-repo scRNA data do not independently corroborate all distal assignments (slc12a1 returned id_not_in_var_names), limiting empirical validation; (3) the store records remain tier DERIVED pending raw-response promotion (acknowledged as not performed this run). These gaps are transparently enumerated in gap_flags and confidence breakdown, demonstrating honest uncertainty rather than overclaiming. The answer is testable: all 8 ENSDARG IDs can be independently validated against Ensembl GRCz11; the marker-to-segment assignments are grounded in a specific literature reference (Wingert et al. 2007) and in-repo expression data (with explicit null results documented); the cached raw Ensembl responses provide an audit trail. No safety or ethics concerns. The stated confidence of 0.9 is calibrated slightly optimistic given the literature re-verification gap and distal under-sampling in in-repo expression, but the candidate's breakdown of subclaim confidences (0.99 for IDs, 0.87 for mapping) and explicit flagging of limitations justifies overall confidence near the stated level. Verdict: correct—all primary claims are factually accurate and verified; secondary gaps are appropriately bounded and disclosed.",
+      "usage": {
+        "input_tokens": 2957,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 835,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.9,
+        "completeness": 0.9,
+        "testability": 0.8,
+        "uncertainty_calibration": 1.0,
+        "safety_ethics": 1.0
+      },
+      "overall_score": 0.9,
+      "verdict": "correct",
+      "justification": "The candidate provided a detailed account of segment-specific markers for different parts of the zebrafish pronephros, with ENSDARG IDs for each marker that align well with the question's expected evidence. The inclusion of both segment designations and marker ENSDARG IDs ensures completeness. The verification process described, although not directly verifiable here, suggests a diligent effort to ensure ID accuracy, which is corroborated by the pre-run deterministic check results. Gaps and potential uncertainties around certain aspects of the literature and in-repo analysis are transparently reported, demonstrating a well-calibrated confidence in the answer's components. Overall, the answer is factual, comprehensive, and reflects a robust uncertainty calibration.",
+      "usage": {
+        "completion_tokens": 209,
+        "prompt_tokens": 1947,
+        "total_tokens": 2156,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      }
+    }
+  ],
+  "label_disagreement": 0.0,
+  "overall_spread": 0.05,
+  "outcome": "positive",
+  "mean_overall": 0.893,
+  "within_anthropic_disagree": false,
+  "cross_provider_disagree": false,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

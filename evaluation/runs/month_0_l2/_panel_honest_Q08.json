@@ -1,0 +1,146 @@
+{
+  "panel": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5"
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  ],
+  "verdicts": [
+    {
+      "provider": "anthropic",
+      "model": "claude-opus-4-8",
+      "overall_score": 0.78,
+      "verdict": "correct",
+      "justification": "The answer delivers exactly what the expected evidence asks for: an ENSDARG↔human-ortholog table with paralog/compensation flags, explicitly catching the canonical ohnolog-compensation confounds (pax2a/pax2b, hnf1ba/hnf1bb). The hnf1ba/hnf1bb case matches the expected exemplar directly. The identifier check strongly supports factuality: all 9 asserted ENSDARG IDs that carry claims (wt1a, wt1b, pax2a, pax2b, pax8, hnf1ba, hnf1bb, sim1a, sim1b, lhx1a) are verified_in_store, misbound is empty, and the ONE ID the answer itself flagged as unconfirmed (ENSDARG00000039935) is precisely the one the check lists as UNRESOLVED — so the answer's uncertainty is well-calibrated to reality rather than overclaimed. The WT1 \"hidden ohnolog\" point (one2one ortholog call vs. within-species paralog) is a genuinely valuable calibration insight for KO design and is presented with appropriately graded confidence. Weaknesses: (1) the expected pair foxc1a/foxc1b is entirely absent, and the panel is a self-admitted 7-locus subset omitting several core pronephros TFs (osr1/osr2, tfap2a, sall1a, gata3), reducing completeness; (2) the compensation claims are functional inferences from teleost-redundancy priors, not measured KO/rescue data — honestly flagged, but still the weakest link; (3) heavy reliance on unverifiable URL/session narrative (\"re-verified live this session\", cache files) that I cannot and should not credit as grounding — the IDs happen to check out, but the specific homology-endpoint return values and identity percentages are not independently confirmable from what is shown. Citation correctness is judged only on the ID-level check (passes); the surrounding REST-call specifics are decorative provenance I do not reward. Overall a strong, honest, appropriately hedged answer that nails the key rubric items despite an incomplete panel and one missing expected exemplar.",
+      "rubric": {
+        "factuality": 0.85,
+        "completeness": 0.65,
+        "citation_correctness": 0.75,
+        "uncertainty_calibration": 0.9,
+        "testability": 0.8,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 4405,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 888,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-sonnet-5",
+      "justification": "The answer covers the expected evidence well: it provides a zebrafish-to-human ortholog table with ENSDARG IDs, and explicitly flags known 1:many ohnolog cases including the two named in the expected evidence (hnf1ba/hnf1bb and a foxc1-analog case, here pax2a/pax2b, plus an additional hidden case wt1a/wt1b). Although foxc1a/foxc1b specifically isn't covered, the answer substitutes other well-documented ohnolog pairs (pax2a/b, hnf1ba/bb, wt1a/b) which are biologically accurate and highly relevant, arguably going beyond the minimum bar. The deterministic identifier check confirms all the ENSDARG IDs used (pax2a, pax2b, pax8, wt1a, wt1b, hnf1ba, hnf1bb, sim1a, sim1b, lhx1a) are in the verified store — good factual grounding. The one ID not verified (ENSDARG00000039935, the SIM1 second ortholog) is explicitly flagged by the candidate as unconfirmed/identity-unresolved, which is exactly the correct epistemic behavior — matching the check's own \"UNRESOLVED\" flag. This is strong calibration: the candidate does not overclaim on the identifier it could not verify, and lhx1a/LHX1 is honestly reported as unresolved rather than fabricated. The structure separates confident claims from moderate-confidence (sim1a/sim1b pairing) and unresolved (lhx1a) claims, which is commendable rubric behavior. Weaknesses: the answer is fairly verbose and layers in a lot of \"session verification\" narrative (e.g., \"RE-verified live via Ensembl this session\", \"no memory IDs\", cache file names) that reads as unfalsifiable meta-commentary rather than substantive content — this is somewhat theatrical framing that inflates apparent rigor without being independently checkable by the reviewer, though it doesn't contradict the deterministic check. The panel is limited to 7 loci rather than a broader panel of pronephros TFs (osr1/2, tfap2a, sall1a, gata3, mecom, irx3b are explicitly noted as unmapped), which slightly reduces completeness relative to a full \"set of pronephros TFs\" as the question implies. Overall, the substantive content is accurate per the check, correctly flags the expected ohnolog-confound pattern, and shows excellent calibration on uncertain claims (SIM1 second paralog, lhx1a). This is a strong answer with minor completeness gaps and some unnecessary narrative embellishment.",
+      "overall_score": 0.83,
+      "verdict": "correct",
+      "rubric": {
+        "factuality": 0.85,
+        "citation_correctness": 0.8,
+        "completeness": 0.75,
+        "testability": 0.85,
+        "uncertainty_calibration": 0.9,
+        "safety_ethics": 0.95
+      },
+      "usage": {
+        "input_tokens": 4469,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 1053,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard",
+        "inference_geo": "global"
+      }
+    },
+    {
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "overall_score": 0.78,
+      "verdict": "partial",
+      "justification": "The answer demonstrates strong technical competence and appropriate epistemic calibration on a specialized task. Strengths: (1) All 9 verified ENSDARG identifiers were confirmed against the deterministic check; (2) The core ortholog mappings for pax2a, pax8, hnf1ba, and wt1a are sound and well-flagged; (3) The critical insight about wt1a (ONE2ONE ortholog call masks a within-species ohnolog) correctly identifies a hidden compensation risk and validates the answer's central premise that naive ortholog calls can mislead; (4) Honest uncertainty is well-calibrated: SIM1 confidence (0.60) appropriately reflects that the sim1a↔sim1b ohnolog pairing was inferred from gene existence but not directly verified via a paralogue query; LHX1 is correctly flagged as unresolved, not forced. Weaknesses: (1) ENSDARG00000039935 (SIM1's \"second target\") remains unresolved—no symbol lookup confirmed this session, violating the answer's own verification standard; this undermines confidence in the SIM1 case; (2) Functional compensation is inferred from teleost-redundancy priors and hnf1bb expression data, but KO/rescue experiments are missing—the \"0.70 functional inference\" confidence is reasonable but the evidence gap is large; (3) Scope is narrow (7 of a larger pronephros TF set, acknowledged but still a limitation for a complete answer). The answer's self-aware gap-flagging and methodological transparency are exemplary and partially offset these limitations. Citation correctness is high for verified Ensembl REST calls, though the specific responses are not independently verifiable here. Completeness is good for the 7-locus subset but incomplete for the broader pronephros TF landscape. Testability is high for ortholog assignments (Ensembl query reproducibility) but lower for functional compensation claims. Overall, this is a competent, well-reasoned answer with honest boundaries, but the unresolved ENSDARG00000039935 identity and gap in functional evidence prevent a higher score.",
+      "rubric": {
+        "factuality": 0.82,
+        "citation_correctness": 0.8,
+        "completeness": 0.75,
+        "testability": 0.78,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 0.9
+      },
+      "usage": {
+        "input_tokens": 3542,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 645,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      }
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-4o",
+      "rubric": {
+        "factuality": 0.9,
+        "citation_correctness": 0.8,
+        "completeness": 0.75,
+        "testability": 0.8,
+        "uncertainty_calibration": 0.85,
+        "safety_ethics": 1.0
+      },
+      "overall_score": 0.85,
+      "verdict": "partial",
+      "justification": "The candidate answer provides a detailed mapping of zebrafish pronephros TFs to their human orthologs, including specific attention to the potential for paralog compensation in single-gene KO scenarios. It correctly acknowledges gaps, such as the unresolved mapping for lhx1a and the unconfirmed status of sim1a's paralog. The answer is well calibrated regarding uncertainty, offering flags where evidence is incomplete or inferred. However, it slightly overclaims completeness and testability, considering unresolved mappings and the reliance on internal evidence and priors for functional inference. The answer's citations and evidence seem to align with known databases, but without external verification available, exact correctness can't be fully confirmed. Overall, it provides a strong, if not entirely comprehensive or externally verifiable, response.",
+      "usage": {
+        "completion_tokens": 226,
+        "prompt_tokens": 2445,
+        "total_tokens": 2671,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": 0,
+          "audio_tokens": 0,
+          "reasoning_tokens": 0,
+          "rejected_prediction_tokens": 0
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": 0,
+          "cached_tokens": 0
+        }
+      }
+    }
+  ],
+  "label_disagreement": 0.5,
+  "overall_spread": 0.07,
+  "outcome": "unfalsifiable_in_phase_I",
+  "mean_overall": 0.81,
+  "within_anthropic_disagree": true,
+  "cross_provider_disagree": true,
+  "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"
+}

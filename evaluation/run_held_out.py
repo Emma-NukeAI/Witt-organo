@@ -62,13 +62,14 @@ RUNS = ROOT / "evaluation" / "runs"
 # Identifier-bearing question types get a DETERMINISTIC store-grounded outcome (the falsifiable subset).
 ID_TYPES = {"marker_identification", "ortholog_mapping", "specificity_ratio"}
 
-# Multi-family judge panel (ADR-0031 reviewer independence): three DISTINCT families for diversity of
-# failure modes, NOT a cost downgrade of the deliverable (the ANSWER is synthesized by Opus 4.8 below).
-# Fable-5 was the intended 3rd family but CONSISTENTLY REFUSES the forced-tool judging call
-# (stop_reason=refusal, empty input, 3/3 — both forced and auto tool_choice, 2026-07-11), so Haiku 4.5
-# takes the 3rd slot. Haiku's role here is INDEPENDENT REVIEW, not primary reasoning — consistent with the
-# no-downgrade rule (which governs the substantive answer, not judge-panel family diversity).
-JUDGE_MODELS = ["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5-20251001"]
+# Multi-PROVIDER judge panel (ADR-0031 + ADR-0038): the closing audit (ADR-0037/C2) showed that within-Anthropic
+# divergence (Opus/Sonnet/Haiku) is mostly capability-tier grading noise, NOT epistemic independence. Adding an
+# OpenAI (GPT) judge makes cross-PROVIDER disagreement measurable — the only kind that meaningfully tests
+# reviewer independence. Fable-5 stays excluded (refuses forced tool-calls). Each judge is tagged with its
+# provider so judge_answer() dispatches to the right API and the disagreement split (within-Anthropic vs
+# Anthropic-vs-OpenAI) can be computed.
+JUDGE_PANEL = [("anthropic", "claude-opus-4-8"), ("anthropic", "claude-sonnet-5"),
+               ("anthropic", "claude-haiku-4-5-20251001"), ("openai", os.environ.get("OPENAI_JUDGE_MODEL", "gpt-4o"))]
 SYNTH_MODEL = "claude-opus-4-8"
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
@@ -160,6 +161,25 @@ def anthropic_tool_call(model, system, user_text, tool, max_tokens=2000, timeout
             continue
         return tool_input, payload.get("usage", {})
     raise last  # pragma: no cover
+
+
+def openai_verdict(model, system, user_text, tool, max_tokens=1200, timeout=120):
+    """Cross-PROVIDER judge via the OpenAI SDK (function-calling forced). Reuses the SAME tool schema as the
+    Anthropic judges (tool['input_schema'] -> function.parameters) so verdicts are directly comparable. Reads
+    OPENAI_API_KEY from env (already present for embeddings). Raises on failure so the caller records the
+    judge as errored (excluded), never fabricated."""
+    from openai import OpenAI
+    client = OpenAI()  # OPENAI_API_KEY from env
+    fn = {"type": "function", "function": {"name": tool["name"], "description": tool.get("description", ""),
+                                           "parameters": tool["input_schema"]}}
+    resp = client.chat.completions.create(
+        model=model, max_tokens=max_tokens, timeout=timeout,
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
+        tools=[fn], tool_choice={"type": "function", "function": {"name": tool["name"]}})
+    msg = resp.choices[0].message
+    if not msg.tool_calls:
+        raise RuntimeError(f"openai: no tool_call (finish_reason={resp.choices[0].finish_reason})")
+    return json.loads(msg.tool_calls[0].function.arguments), (resp.usage.model_dump() if resp.usage else {})
 
 
 # --------------------------------------------------------------------------- tool schemas (§5 contract, verdict)
@@ -420,30 +440,55 @@ def score_deterministic(contract, qtype, reingest_cache=None):
             "reingest_candidates": sorted(rep.reingest_candidates)}
 
 
-def judge_answer(q, contract):
-    """Multi-family panel (ADR-0031). Each family scores independently vs expected_evidence + §4 rubric.
-    Returns per-judge verdicts + a disagreement metric + a majority outcome. Judges are independent of the
-    answering model family for the non-Opus members (reviewer-independence signal, Fable-5 rec #2)."""
+def judge_answer(q, contract, reingest_cache=None):
+    """Multi-PROVIDER panel (ADR-0031 + ADR-0038). Each judge scores independently vs expected_evidence + the
+    §4 rubric; provider dispatch (Anthropic vs OpenAI) enables a within-Anthropic vs cross-provider disagreement
+    split — the only kind that tests reviewer independence (ADR-0037/C2). FABRICATION FIX (ADR-0038): a
+    deterministic identifier check is run HERE and handed to the judges, which are told they have NO tools and
+    must NOT claim verification they did not perform (the C4 finding: judges fabricated 'verified vs Ensembl')."""
+    from lib import verify_output
+    rep = verify_output.verify_identifiers(contract, reingest_cache=reingest_cache)
+    det_summary = ("DETERMINISTIC IDENTIFIER CHECK — already run FOR you against the verified store; you did "
+                   "NOT run it and have NO tools: "
+                   f"verified_in_store={sorted(rep.verified_raw) + sorted(rep.verified_derived)} | "
+                   f"reingest_candidates(real, live-verified, not-yet-in-store)={sorted(rep.reingest_candidates)} | "
+                   f"UNRESOLVED(no provenance -> treat as unverified)={sorted(rep.unresolved)} | "
+                   f"misbound={sorted(rep.misbound)}")
     system = ("You are an adversarial expert reviewer scoring an AI answer to a zebrafish-biology question "
-              "against the expected evidence and a rubric. Independence matters: judge only what is shown. "
-              "You MUST call emit_verdict with ALL required fields populated: a numeric overall_score in "
-              "[0,1], a verdict (correct/partial/incorrect/abstain), and a justification. Never omit a field.")
+              "against the expected evidence and a rubric. You have NO database or tool access. Do NOT claim to "
+              "have verified, spot-checked, re-run, or confirmed anything against Ensembl/ZFIN/Reactome/any "
+              "source — a deterministic identifier check has ALREADY been run FOR you (below); use ONLY that "
+              "check and the answer text. Reward correctness + honest uncertainty; do NOT reward the mere "
+              "APPEARANCE of grounding (citing tool names / IDs is not evidence they are right). Populate ALL "
+              "required fields: numeric overall_score in [0,1], a verdict, a justification. Never omit a field.")
     user = (f"QUESTION:\n{q['q']}\n\nEXPECTED EVIDENCE (what a good answer contains):\n{q.get('expected_evidence','')}\n\n"
             f"CANDIDATE ANSWER:\n{contract.get('direct_answer','')}\n\n"
             f"Candidate's stated confidence: {contract.get('confidence')}\n"
             f"Candidate's cited evidence: {contract.get('evidence_cited')}\n"
             f"Candidate's gap_flags: {contract.get('gap_flags')}\n\n"
-            "Score against the rubric and give an overall verdict.")
+            f"{det_summary}\n\n"
+            "Score against the rubric and give an overall verdict. Judge only what is shown + the check above.")
     verdicts = []
-    for model in JUDGE_MODELS:
+    for provider, model in JUDGE_PANEL:
         try:
-            v, usage = anthropic_tool_call(model, system, user, VERDICT_TOOL, max_tokens=1200)
-            verdicts.append({"model": model, **v, "usage": usage})
+            if provider == "openai":
+                v, usage = openai_verdict(model, system, user, VERDICT_TOOL)
+            else:
+                v, usage = anthropic_tool_call(model, system, user, VERDICT_TOOL, max_tokens=1200)
+            verdicts.append({"provider": provider, "model": model, **v, "usage": usage})
         except Exception as e:
-            verdicts.append({"model": model, "verdict": "error", "error": str(e)})
+            verdicts.append({"provider": provider, "model": model, "verdict": "error", "error": str(e)})
     scored = [v for v in verdicts if v.get("verdict") in ("correct", "partial", "incorrect", "abstain")]
     labels = [v["verdict"] for v in scored]
     overalls = [float(v["overall_score"]) for v in scored if isinstance(v.get("overall_score"), (int, float))]
+    # reviewer-independence split (ADR-0038): within-Anthropic vs cross-provider (Anthropic vs OpenAI) label diff
+    anth = [v["verdict"] for v in scored if v.get("provider") == "anthropic"]
+    oai = [v["verdict"] for v in scored if v.get("provider") == "openai"]
+    within_anthropic_disagree = (len(set(anth)) > 1) if len(anth) >= 2 else None
+    cross_provider_disagree = None
+    if anth and oai:
+        anth_maj = max(set(anth), key=anth.count)
+        cross_provider_disagree = any(o != anth_maj for o in oai)
     # disagreement = 1 - (max label share); + spread of overall scores
     if labels:
         share = max(labels.count(x) for x in set(labels)) / len(labels)
@@ -466,17 +511,24 @@ def judge_answer(q, contract):
         outcome = "negative"
     else:
         outcome = "unfalsifiable_in_phase_I"
-    return {"models": JUDGE_MODELS, "verdicts": verdicts, "label_disagreement": disagreement,
-            "overall_spread": spread, "outcome": outcome, "mean_overall": mean_overall,
+    return {"panel": [{"provider": p, "model": m} for p, m in JUDGE_PANEL], "verdicts": verdicts,
+            "label_disagreement": disagreement, "overall_spread": spread, "outcome": outcome,
+            "mean_overall": mean_overall,
+            "within_anthropic_disagree": within_anthropic_disagree, "cross_provider_disagree": cross_provider_disagree,
             "outcome_rule": "mean_overall>=0.6 positive / <=0.4 negative / else unfalsifiable; guarded by disagreement<0.5 & abstain<0.5"}
 
 
 # --------------------------------------------------------------------------- record assembly
 def make_record(q, backend, contract, deterministic, panel, month="month_0", fb_meta=None):
+    # DETERMINISTIC-FIRST (ADR-0038): a store-grounded outcome, when it exists, is the primary signal and is
+    # real ground truth; the LLM judge panel is ADVISORY (not ground truth — ADR-0037/C4). primary_signal makes
+    # the provenance of the outcome explicit in every record.
     primary = deterministic["outcome"] if deterministic else (panel["outcome"] if panel else None)
+    primary_signal = ("store-grounded-deterministic" if deterministic
+                      else "llm-judge-advisory (NOT ground truth)" if panel else "unscored")
     method = "deterministic-store" if deterministic and not panel else \
-             "both" if deterministic and panel else \
-             "judge-panel" if panel else "unscored"
+             "both (deterministic primary + judge advisory)" if deterministic and panel else \
+             "judge-panel (advisory)" if panel else "unscored"
     niche = q.get("niche", ["unspecified"])
     return {
         "claim_id": f"held_out_{month}_{q['id']}",
@@ -501,7 +553,8 @@ def make_record(q, backend, contract, deterministic, panel, month="month_0", fb_
         "framework_applied": contract.get("framework_applied") if contract else None,
         "observed_outcome": primary,
         "observed_at": _now_iso() if primary else None,
-        "scoring": {"method": method, "deterministic": deterministic, "panel": panel},
+        "scoring": {"method": method, "primary_signal": primary_signal,
+                    "deterministic": deterministic, "panel": panel},
         "test_mapping": ["test_1", "test_3", "test_4"],
         "agents_invoked": [
             {"agent": "held-out-runner", "status": "invoked", "evidence_generated": ["test_1", "test_3"]},
