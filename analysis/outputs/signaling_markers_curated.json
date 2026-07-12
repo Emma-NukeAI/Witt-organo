@@ -2,11 +2,175 @@
   "_meta": {
     "purpose": "Pronephros upstream-signaling / induction markers added to the DATA INAMOVIBLE (ADR-0029, 2026-06-23). Human-gated ADD authorized after the 2026-06-22 E2E test revealed these were unanchored exactly where induction questions are weakest. Consumed by build_verified_store.py (single writer).",
     "verification": "ENSDARG resolved LIVE from Ensembl REST (xrefs/symbol + lookup, danio_rerio, GRCz11) on 2026-06-23; raw response cached at mcp_cache/raw_ensembl_signaling-genes_20260623.json (CLAUDE.md §7 / §7.9). Never from memory.",
-    "tier": "RAW (raw external response retained)"
+    "tier": "RAW (raw external response retained)",
+    "adr0035_addition": "ADR-0035 (2026-07-11): +23 pronephros-induction cascade IDs (BMP/Nodal/RA/Wnt/FGF/Hox/paralogs) surfaced by the Level-2 agentic Tool Universe fallback, each INDEPENDENTLY re-verified vs Ensembl REST (23/23 MATCH) with raw cached at mcp_cache/raw_ensembl_l2-candidates_20260711.json. Human-gated ADD (Emmanuel approved)."
   },
-  "osr1":    {"ensdarg": "ENSDARG00000014091", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "earliest intermediate-mesoderm induction marker"},
-  "wnt8a":   {"ensdarg": "ENSDARG00000052910", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "Wnt inducer candidate (posteriorizing Wnt)"},
-  "fgf8a":   {"ensdarg": "ENSDARG00000003399", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "FGF inducer candidate"},
-  "aldh1a2": {"ensdarg": "ENSDARG00000053493", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "retinoic-acid synthesis (proximodistal patterning)"},
-  "cyp26a1": {"ensdarg": "ENSDARG00000033999", "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json", "verified_on": "2026-06-23", "role": "retinoic-acid degradation"}
+  "osr1": {
+    "ensdarg": "ENSDARG00000014091",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+    "verified_on": "2026-06-23",
+    "role": "earliest intermediate-mesoderm induction marker"
+  },
+  "wnt8a": {
+    "ensdarg": "ENSDARG00000052910",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+    "verified_on": "2026-06-23",
+    "role": "Wnt inducer candidate (posteriorizing Wnt)"
+  },
+  "fgf8a": {
+    "ensdarg": "ENSDARG00000003399",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+    "verified_on": "2026-06-23",
+    "role": "FGF inducer candidate"
+  },
+  "aldh1a2": {
+    "ensdarg": "ENSDARG00000053493",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+    "verified_on": "2026-06-23",
+    "role": "retinoic-acid synthesis (proximodistal patterning)"
+  },
+  "cyp26a1": {
+    "ensdarg": "ENSDARG00000033999",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+    "verified_on": "2026-06-23",
+    "role": "retinoic-acid degradation"
+  },
+  "bmp2b": {
+    "ensdarg": "ENSDARG00000041430",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "BMP ligand (dorsoventral)"
+  },
+  "bmp4": {
+    "ensdarg": "ENSDARG00000019995",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "BMP ligand"
+  },
+  "bmp7a": {
+    "ensdarg": "ENSDARG00000018260",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "BMP ligand"
+  },
+  "chrd": {
+    "ensdarg": "ENSDARG00000006110",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "chordin (BMP antagonist)"
+  },
+  "cyp26b1": {
+    "ensdarg": "ENSDARG00000077121",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "retinoic-acid degradation"
+  },
+  "fgf24": {
+    "ensdarg": "ENSDARG00000037677",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "FGF24 (pronephros fate, redundant w/ fgf8)"
+  },
+  "hoxb1b": {
+    "ensdarg": "ENSDARG00000054033",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Hox posteriorizing"
+  },
+  "hoxb8a": {
+    "ensdarg": "ENSDARG00000056027",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Hox posteriorizing (pronephros AP)"
+  },
+  "lft1": {
+    "ensdarg": "ENSDARG00000019920",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "lefty1 (Nodal antagonist)"
+  },
+  "lft2": {
+    "ensdarg": "ENSDARG00000044059",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "lefty2 (Nodal antagonist)"
+  },
+  "ndr1": {
+    "ensdarg": "ENSDARG00000057096",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Nodal ligand (squint/ndr1)"
+  },
+  "ndr2": {
+    "ensdarg": "ENSDARG00000101279",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Nodal ligand (cyclops/ndr2)"
+  },
+  "pax2b": {
+    "ensdarg": "ENSDARG00000032578",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "pax2a co-ortholog (paralog compensation)"
+  },
+  "raraa": {
+    "ensdarg": "ENSDARG00000056783",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "retinoic-acid receptor alpha-a"
+  },
+  "rarga": {
+    "ensdarg": "ENSDARG00000034117",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "retinoic-acid receptor gamma-a"
+  },
+  "rxrba": {
+    "ensdarg": "ENSDARG00000078954",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "retinoid-X receptor beta-a"
+  },
+  "shha": {
+    "ensdarg": "ENSDARG00000068567",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "sonic hedgehog a"
+  },
+  "sim1b": {
+    "ensdarg": "ENSDARG00000013789",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "sim1a ohnolog (paralog compensation)"
+  },
+  "smad2": {
+    "ensdarg": "ENSDARG00000006389",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Nodal signal transducer"
+  },
+  "smad4a": {
+    "ensdarg": "ENSDARG00000075226",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "co-Smad (BMP/Nodal)"
+  },
+  "smad5": {
+    "ensdarg": "ENSDARG00000037238",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "BMP signal transducer"
+  },
+  "tdgf1": {
+    "ensdarg": "ENSDARG00000035095",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Nodal co-receptor (oep)"
+  },
+  "wnt2ba": {
+    "ensdarg": "ENSDARG00000005050",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+    "verified_on": "2026-07-11",
+    "role": "Wnt2ba (downstream of osr1; podocyte)"
+  }
 }

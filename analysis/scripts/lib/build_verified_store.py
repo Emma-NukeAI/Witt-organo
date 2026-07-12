@@ -39,7 +39,7 @@ RAW_ANCHORS = {"cdh17", "gata3", "lhx1a", "pax2a", "pax8", "wt1a", "wt1b"}
 RAW_CACHE = "mcp_cache/raw_ensembl_lookup_genes_20260531.json"
 
 SCHEMA_VERSION = "1.0"
-STORE_VERSION = "2026-06-23.1"   # ADR-0029: +5 pronephros upstream-signaling/induction markers (human-gated ADD)
+STORE_VERSION = "2026-07-11.1"   # ADR-0035: +23 pronephros-induction cascade IDs from the Level-2 Tool Universe fallback (human-gated ADD; each re-verified vs Ensembl REST). Prior: 2026-06-23.1 (ADR-0029, +5).
 
 
 def build():
@@ -133,6 +133,7 @@ def build():
             "mcp_cache/raw_ensembl_lookup_genes_20260531.json",
             "mcp_cache/raw_ensembl_ocular_lookup_*_20260611.json",
             "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
+            "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
         ],
         "read_only": True,
         "human_gate_required_to_modify": True,

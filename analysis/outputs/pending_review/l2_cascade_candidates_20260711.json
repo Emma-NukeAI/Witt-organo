@@ -1,0 +1,200 @@
+{
+  "_proposal": "APPLIED (ADR-0035, 2026-07-11, human-gated by Emmanuel); store 51->74, version 2026-07-11.1",
+  "_what_changes": "ADD 23 pronephros-induction cascade gene identifiers (BMP/Nodal/RA/Wnt/FGF/Hox + paralogs) to the verified-identifier store (DATA INAMOVIBLE v1).",
+  "_source": "Level-2 agentic Tool Universe fallback (workflow wf_53990926) surfaced these; every ENSDARG was INDEPENDENTLY re-verified live against Ensembl REST /lookup/symbol/danio_rerio (23/23 MATCH, 0 mismatch) and the raw responses cached per §7.9.",
+  "_specification": {
+    "store_version_bump": "2026-06-23.1 -> 2026-07-11.1",
+    "snapshot_prior_to": "analysis/outputs/verified_identifiers.v2026-06-23.1.json (ADR-0002)",
+    "n_records": "51 -> 74 (+23)",
+    "tier": "RAW (raw Ensembl REST response cached: mcp_cache/raw_ensembl_l2-candidates_20260711.json)",
+    "writer": "analysis/scripts/lib/build_verified_store.py (single writer) after folding these into signaling_markers_curated.json",
+    "gate": "HUMAN — Emmanuel must approve + run the builder; NOTHING applied here."
+  },
+  "_human_gate_instruction": "To APPLY: fold these into analysis/outputs/signaling_markers_curated.json, bump STORE_VERSION in build_verified_store.py to 2026-07-11.1, snapshot the prior store, then run: ./.venv/Scripts/python.exe analysis/scripts/lib/build_verified_store.py",
+  "markers": {
+    "bmp2b": {
+      "ensdarg": "ENSDARG00000041430",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP"
+    },
+    "bmp4": {
+      "ensdarg": "ENSDARG00000019995",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP"
+    },
+    "bmp7a": {
+      "ensdarg": "ENSDARG00000018260",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP"
+    },
+    "chrd": {
+      "ensdarg": "ENSDARG00000006110",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP-antagonist(chordin)"
+    },
+    "cyp26b1": {
+      "ensdarg": "ENSDARG00000077121",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "RA-degrading"
+    },
+    "fgf24": {
+      "ensdarg": "ENSDARG00000037677",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "FGF(pronephros-fate)"
+    },
+    "hoxb1b": {
+      "ensdarg": "ENSDARG00000054033",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Hox-posteriorizing"
+    },
+    "hoxb8a": {
+      "ensdarg": "ENSDARG00000056027",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Hox-posteriorizing"
+    },
+    "lft1": {
+      "ensdarg": "ENSDARG00000019920",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal-antagonist(lefty1)"
+    },
+    "lft2": {
+      "ensdarg": "ENSDARG00000044059",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal-antagonist(lefty2)"
+    },
+    "ndr1": {
+      "ensdarg": "ENSDARG00000057096",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal(squint)"
+    },
+    "ndr2": {
+      "ensdarg": "ENSDARG00000101279",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal(cyclops)"
+    },
+    "pax2b": {
+      "ensdarg": "ENSDARG00000032578",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "pax2a-co-ortholog"
+    },
+    "raraa": {
+      "ensdarg": "ENSDARG00000056783",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "RA-receptor"
+    },
+    "rarga": {
+      "ensdarg": "ENSDARG00000034117",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "RA-receptor"
+    },
+    "rxrba": {
+      "ensdarg": "ENSDARG00000078954",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "RXR"
+    },
+    "shha": {
+      "ensdarg": "ENSDARG00000068567",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Shh"
+    },
+    "sim1b": {
+      "ensdarg": "ENSDARG00000013789",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "sim1a-ohnolog"
+    },
+    "smad2": {
+      "ensdarg": "ENSDARG00000006389",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal-transducer"
+    },
+    "smad4a": {
+      "ensdarg": "ENSDARG00000075226",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP/Nodal-coSmad"
+    },
+    "smad5": {
+      "ensdarg": "ENSDARG00000037238",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "BMP-transducer"
+    },
+    "tdgf1": {
+      "ensdarg": "ENSDARG00000035095",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Nodal-coreceptor(oep)"
+    },
+    "wnt2ba": {
+      "ensdarg": "ENSDARG00000005050",
+      "resolver": "ensembl-rest-lookup",
+      "raw_cache_ref": "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
+      "verified_on": "2026-07-11",
+      "reverify_status": "MATCH (independent Ensembl re-verification vs Level-2 agent claim)",
+      "family_hint": "Wnt(downstream osr1)"
+    }
+  }
+}
