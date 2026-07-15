@@ -1,4 +1,4 @@
-# HANDOFF — GWT v1.1 (handoff único estable · al 2026-07-05)
+# HANDOFF — GWT v1.1 (handoff único estable · al 2026-07-11)
 
 > **Siguiente agente:** `CLAUDE.md` se auto-carga (contrato operativo — léelo primero). **Este** es el único
 > handoff vigente: estado del sistema, cómo operarlo, decisiones, y qué sigue. Es la fusión de los dos
@@ -16,10 +16,12 @@ usuario, y es un **sistema que responde preguntas y se refuerza solo**, todo hum
 - **Front door:** MCP `data-inamovible` (`query_data_inamovible` semántico · `resolve_identifier` determinista · `fetch_raw` drill-a-crudo).
 - **Loop auto-reforzante (ADR-0022):** `Path A (DI) → si insuficiente → Path B (EuropePMC / Tool Universe) → composite-auditor ≥3 → propose → GATE HUMANO → re-ingesta`. "No está en la DI" **no es stopper** — es disparador de aprendizaje. El store **crece con el uso**.
 
-**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**sesión 2026-07-05, audit total**; ver §Estado git).
+**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**sesión 2026-07-11**, commit `7d43c94`; ver §Estado git).
 **Nunca** pushear a `polimat-old` (repo viejo, además caído). Local se trabaja en `feat/gwt-v1.1-cycle1` (== master).
 
-**Última sesión (2026-07-04/05) — ver la sección nueva abajo:** **auditoría de funcionalidad TOTAL** +
+**Última sesión (2026-07-11) — ver la sección nueva abajo:** primer **baseline held-out A1** medido + estudio del **fallback Tool Universe** + loop de re-ingesta + auto-auditoría de cierre. Titulares (todos con disciplina de honestidad — "medido + auditado-y-corregido", NO "validado"): Test 3 scaffold→**medido** (30/30), Test 4 degenerado→**no-degenerado** (n=20 corregido, ECE_raw 0.51); **Level-2 = tool-use estructurado de Tool Universe es el lever** del fallback (no la literatura), señal en n=6 favorable; **DATA INAMOVIBLE 51→74** human-gated (ADR-0035, +23 IDs cascada de inducción re-verificados vs Ensembl); gate `verify_output` gana `reingest_candidate` (ADR-0036); **composite-audit de cierre → 7/7 REVISE** (atrapó un bug real del parser + overclaims sistemáticos, todo corregido, ADR-0037); **paquete de honestidad** (ADR-0038): juez **cross-proveedor OpenAI/gpt-4o**, fix judge-fabrication, deterministic-first. La insuficiencia de la DI se decide por **umbral de confianza** (no estructural, no gate humano; el gate humano vive en la re-ingesta).
+
+**Sesión previa (2026-07-04/05) — ver la sección más abajo:** **auditoría de funcionalidad TOTAL** +
 composite-auditor (3 auditores adversariales Opus). Se probó la maquinaria offline + en vivo (Neo4j retrieval,
 ambas ramas del `answer_pipeline`, Path B Reactome, MinIO round-trip, sandbox DI mutation, squidiff Mode 0,
 human gate del ingest_service). Entregables: **sync de contratos** (CLAUDE/SCOPE/README a la realidad) +
@@ -35,6 +37,23 @@ del operador — corregidos. **Cero mutación de la DATA INAMOVIBLE** (todo read
 **Sesión previa (2026-06-22/23) — ver las 2 secciones más abajo:** MITAD_A **endurecida** tras validación
 adversarial (ADR-0027: binding símbolo↔ENSDARG, gates §4/§11 reforzados) + **guard de validez-de-lente**
 (ADR-0028) + la **DATA INAMOVIBLE creció 46→51** human-gated (ADR-0029) + **test E2E** (3 rounds, pronefros).
+
+---
+
+## Held-out baseline + Tool Universe fallback + cierre auto-auditado (sesión 2026-07-11)
+
+Ciclo "medir para validar" (Track A del roadmap `~/.claude/plans/`). Todo commiteado + **pusheado** (feat + master `7d43c94`). **Disciplina clave:** todos los titulares quedaron en **"medido + auditado-y-corregido", NO "validado"** — la auditoría de cierre lo forzó.
+
+- **A1 — baseline held-out `month_0`** (`evaluation/run_held_out.py`, NUEVO — pipeline 3 etapas: recuperar `answer_pipeline` → sintetizar §5 vía **Anthropic API urllib** (sin SDK) → puntuar). Test 3 scaffold→**medido** (30/30 respondidas, EPS real axes a/b + axis c semántico bge). Test 4 degenerado→**no-degenerado**. **OJO (bug corregido):** el parser filtró 8/30 `confidence` como texto en `direct_answer` → `compute_ece` los tiró; **corregido** (`_recover_leaked_confidence`) → n=20, accuracy 0.85, ECE_raw 0.51, 3 negativos (`reports/ece_month0_corrected_20260711.json` supersede al buggy). `EMBED_MODEL=openai` forzado en backend neo4j (índice 1536; si no, degrada silenciosamente a sparse).
+- **Fallback Tool Universe (3 niveles):** DI-only vs **DI+TU-Level-1 (literatura)** vs **DI+TU-Level-2 (tool-use estructurado agéntico)**. L1 no mueve la aguja (indistinguible de cero); **Level-2 es el lever** (agente ejecuta ensembl/reactome/zfin vía MCP) — señal fuerte pero en **n=6 pre-seleccionado favorable** (case-capture, no las 30). Level-2 corre como **workflow** (`evaluation/workflows/level2_tooluniverse_fallback.js`). Insuficiencia = **umbral de confianza** (el estructural se engaña — Q07). MCP Tool Universe **verificado vivo** (2223 tools).
+- **DATA INAMOVIBLE 51→74 (ADR-0035, HUMAN-GATED):** +23 IDs de la cascada de inducción (BMP/Nodal/RA/Wnt/FGF/Hox/paralogs), cada ENSDARG **re-verificado independientemente vs Ensembl** (23/23 MATCH, raw §7.9 `mcp_cache/raw_ensembl_l2-candidates_20260711.json`), vía el escritor único; snapshot `verified_identifiers.v2026-06-23.1.json`. `store_integrity_scan` CLEAN.
+- **`verify_output` gana `reingest_candidate` (ADR-0036):** un ID out-of-store PERO respaldado por crudo §7.9 = candidato a re-ingesta (admisible, surfaced), NO fabricación. Default (`reingest_cache=None`) = veredicto pass/fail idéntico al previo.
+- **Composite-audit de cierre (ADR-0037) — el gate hizo su trabajo:** 7 claims × 3 auditores adversariales (Opus/Sonnet/Haiku) → **7/7 REVISE, 0 CONFIRMED**. Atrapó el bug del parser (arriba) + overclaims sistemáticos que mi auto-revisión NO vio (confirma §7: la auto-auditoría NO es gate). Todos los titulares caminados hacia atrás. Reporte `reports/2026-07-11_closing-composite-audit_retrospective.html` + verdicts JSON.
+- **Paquete de honestidad (ADR-0038):** (1) juez **cross-PROVEEDOR OpenAI/gpt-4o** (`openai_verdict()`, usa la `OPENAI_API_KEY` de embeddings) — el "34% divergencia within-Anthropic" era ruido de tier, no independencia; GPT concuerda 5/6 con la mayoría Anthropic > within-Anthropic 3/6. (2) **fix judge-fabrication**: al juez se le pasa el check determinista + se le prohíbe fingir verificación (antes fabricaba "verifiqué vs Ensembl"). (3) **deterministic-first**: `record.scoring.primary_signal` = store-grounded vs llm-judge-advisory.
+
+**Lecciones para el próximo agente (CRÍTICAS):** (a) **LLM-juez ≠ verdad de tierra** — toda métrica de "calidad" esta sesión es LLM-juez, n chico, single-snapshot; no citar como validación. (b) `claude-fable-5` **rechaza tool-calls forzados** → panel Opus+Sonnet+Haiku+gpt-4o. (c) el composite-auditor atrapa un over-claim CADA vez, incl. del operador — no cometer el error de leer "medido" como "validado".
+
+**Lo que sigue (del propio auditor; NO hecho):** (1) **gold set calificado por experto humano** (Martín) para preguntas de razonamiento abierto — el ancla de verdad de tierra que ningún LLM/compute sustituye; es EL limitante. (2) arreglar del todo el judge-fabrication (juez con verificación real). (3) escalar Level-2 a las 30 (~7M tokens). (4) autenticar la provenance por-binding (límite ADR-0036). (5) A3 del roadmap: re-correr `rolling_calibration`/`retrospect` (RIL stale desde 2026-06-11) + cerrar la propuesta de gobernanza abierta. **Recomendación de cierre:** el harness de eval está en punto sólido; la próxima inversión grande va a la biología (wet-lab GOF Fase II) o al gold set humano, no a más instrumentación (ADR-0034 + review Fable-5: no sobre-construir el substrato).
 
 ---
 
@@ -266,13 +285,15 @@ end-to-end; la suficiencia biológica del conjunto-mínimo sigue ABIERTA** (sin 
 
 **Dos repos privados, aislados estructuralmente** (MITAD_A y MITAD_B no comparten `.git` ni código):
 - **MITAD_A** — `witt-organogenesis` → `origin` = `https://github.com/Emma-NukeAI/Witt-organo.git` (PRIVADO).
-  **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`). Todo commiteado + pusheado (feat + master, FF),
-  working tree limpio (salvo 2 `reports/presentacion-witt-*.html` pre-existentes, no de estas sesiones). **Nunca**
-  pushear a `polimat-old`. Cadena de la sesión **2026-07-04/05** (audit total + review externa): `66e6afc`
-  (handoff previo) → **`ef0fc43`** (sync contratos + doc-coherence gate + no-hang MCP + ADR-0030) → **`afa2a1a`**
-  (reporte TYPE D + Test 5 round-2) → **`5b919a1`** (handoff) → **`1ffe513`** (tools medición + review Fable 5 +
-  panel multi-familia) → **`60e09b1`** (ADR-0031..0034 + sync docs) → **este commit del HANDOFF**. Sesión previa
-  2026-06-22/23: `8ba31a4`→`ad9e102`(ADR-0027)→`bb2671e`/`5782bad`(ADR-0028/0029)→`4c0ea08`→`ba9dddc`(E2E).
+  **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`; ambas ramas remotas en **`7d43c94`**). Todo
+  commiteado + **pusheado** (feat + master, FF). Working tree: 3 `reports/*.html` untracked NO pusheados —
+  2 `presentacion-witt-*` pre-existentes + 1 `2026-07-11_chaperone-tissue-interaction-table_v1.html` (byproduct
+  de un subagente Level-2 por el reflejo HTML §7; revisar/borrar sin prisa). **Nunca** pushear a `polimat-old`.
+  Cadena de la sesión **2026-07-11** (held-out + Tool Universe fallback + cierre auto-auditado): `75c11bb`
+  (A1 baseline) → `3ed5c83` (DI+TU L1) → `76f3d62` (Level-2) → `50f97ff` (ADR-0035 DI 51→74) → `13910cb`
+  (ADR-0036 gate) → `4363b24` (ADR-0037 closing audit + correcciones) → **`7d43c94`** (ADR-0038 honesty bundle).
+  Sesión previa **2026-07-04/05** (audit total + review externa): `66e6afc`→`ef0fc43`→`afa2a1a`→`5b919a1`→
+  `1ffe513`→`60e09b1`→`a28a149`. Previa 2026-06-22/23: `8ba31a4`→`ad9e102`→`bb2671e`/`5782bad`→`ba9dddc`.
   *(`polimat-old` está caído — "Repository not found".)*
 - **MITAD_B** — `conciencia-universal` (repo HERMANO en `C:/Users/Emmanuel/dev/conciencia-universal`) → su propio
   remoto privado `https://github.com/Emma-NukeAI/conciencia-universal.git` (génesis `868404a`, `master`).
