@@ -2,35 +2,71 @@
   "k": 6,
   "high_conf_threshold": 0.7,
   "regime_doc": "substrate_calibration/RIL_PROGRAM.md \u00a74 (ADR-0014)",
-  "n_resolved_total": 2,
+  "n_resolved_total": 10,
   "per_stream": {
     "extraction_toy": {
-      "n_resolved": 2,
-      "window_size": 2,
-      "n_high_conf_in_window": 1,
+      "n_resolved": 10,
+      "window_size": 6,
+      "n_high_conf_in_window": 6,
       "hit_rate_high_conf": 1.0,
       "trigger": 0.34,
       "cap_mode": "clamp_to",
       "cap_value": 0.3,
       "confidence_cap_active": false,
-      "status": "dormant (window not full or no high-conf predictions; descriptive only)",
+      "status": "ok",
       "window": [
         {
-          "claim_id": "claim_20260531_190000_collaborator-zebrafish-lbpp",
-          "stated_confidence": 0.5,
+          "claim_id": "claim_20260618_120000_r1-regression-loop",
+          "stated_confidence": 0.95,
           "observed_correct": true,
-          "resolved_at": "2026-05-31T19:05:00Z",
-          "sub_domain": null,
-          "claim_category": "extraction",
+          "resolved_at": "2026-06-18T12:30:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
           "stream": "extraction_toy"
         },
         {
-          "claim_id": "claim_20260610_120000_verified-identifier-store-v1",
+          "claim_id": "claim_20260618_140000_r2-admissibility-purity",
           "stated_confidence": 0.95,
           "observed_correct": true,
-          "resolved_at": "2026-06-10T12:05:00Z",
-          "sub_domain": "single-cell",
-          "claim_category": "extraction",
+          "resolved_at": "2026-06-18T14:20:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
+          "stream": "extraction_toy"
+        },
+        {
+          "claim_id": "claim_20260618_160000_r3-accountability-gates",
+          "stated_confidence": 0.95,
+          "observed_correct": true,
+          "resolved_at": "2026-06-18T16:20:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
+          "stream": "extraction_toy"
+        },
+        {
+          "claim_id": "claim_20260618_180000_r4-wsts-tooluniverse",
+          "stated_confidence": 0.94,
+          "observed_correct": true,
+          "resolved_at": "2026-06-18T18:20:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
+          "stream": "extraction_toy"
+        },
+        {
+          "claim_id": "claim_20260622_120000_adr0027-detection-hardening",
+          "stated_confidence": 0.9,
+          "observed_correct": true,
+          "resolved_at": "2026-06-22T12:30:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
+          "stream": "extraction_toy"
+        },
+        {
+          "claim_id": "claim_20260623_120000_adr0029-di-signaling-markers",
+          "stated_confidence": 0.97,
+          "observed_correct": true,
+          "resolved_at": "2026-06-23T12:20:00Z",
+          "sub_domain": "substrate-tooling",
+          "claim_category": "methodological",
           "stream": "extraction_toy"
         }
       ]

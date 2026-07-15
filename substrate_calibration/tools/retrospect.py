@@ -86,6 +86,10 @@ def main():
         "Every claim record gets top-level alternatives_considered + contradictory_evidence_cited.",
         "Cite the framework by specific §section with a quoted criterion, never '§Tier N'.",
         "On an absent marker/ID, record the reason — silent absence hides errors.",
+        "LLM-judge quality is NOT ground truth — treat judge/panel scores as ADVISORY; anchor on deterministic "
+        "checks (store/Ensembl) or a human-expert gold set. Never read 'measured' as 'validated' (ADR-0037/0038).",
+        "Judges must not claim verification they cannot run — hand them the deterministic check; a same-vendor "
+        "panel's divergence is mostly tier noise, not independence (use a cross-provider judge).",
     ]
 
     prepend = []
