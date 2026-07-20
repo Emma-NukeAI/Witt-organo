@@ -9,6 +9,7 @@ Run with the venv python + sourced secrets (so ingest can reach Neo4j + embed):
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 import datetime
@@ -19,12 +20,28 @@ MANIFEST = ROOT / "rag_index" / "corpus_manifest.json"
 INGEST = ROOT / "rag_index" / "graphrag" / "ingest.py"
 
 
+def _load_local_secrets():
+    """Auto-load .secrets/deploy.env (gitignored) so the ingest subprocess reaches Neo4j + the embedder
+    WITHOUT the caller sourcing env vars by hand (the fragile, cross-platform step for non-technical
+    teammates). Same convenience as server.py; setdefault means a real env var always wins."""
+    env_path = ROOT / ".secrets" / "deploy.env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("corpus_record_id")
     ap.add_argument("--by", required=True, help="approver name (the human gate)")
     ap.add_argument("--no-ingest", action="store_true", help="approve only; don't run ingest")
     a = ap.parse_args()
+    _load_local_secrets()   # so the ingest subprocess reaches Neo4j + OpenAI without manual sourcing
 
     man = json.loads(MANIFEST.read_text(encoding="utf-8"))
     rec = next((r for r in man["records"] if r["corpus_record_id"] == a.corpus_record_id), None)

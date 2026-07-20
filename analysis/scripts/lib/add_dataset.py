@@ -18,6 +18,7 @@ Run with a python that can read the file type (anndata for .h5ad).  NO verified 
 """
 import argparse
 import json
+import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -28,6 +29,20 @@ from lib import resolve_id, raw_store, corpus_classifier  # noqa: E402
 
 MANIFEST = ROOT / "rag_index" / "corpus_manifest.json"
 CACHE = ROOT / "mcp_cache"
+
+
+def _load_local_secrets():
+    """Auto-load .secrets/deploy.env (gitignored) so a --private MinIO mirror works without the caller
+    sourcing env by hand. No-op if the file is absent; setdefault means a real env var always wins."""
+    env_path = ROOT / ".secrets" / "deploy.env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip())
 
 
 def _next_id(man):
@@ -97,6 +112,7 @@ def main():
     ap.add_argument("--domain", default=None)
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
+    _load_local_secrets()   # so --private (MinIO mirror) works without manual env sourcing
 
     man = json.loads(MANIFEST.read_text(encoding="utf-8"))
     cid = _next_id(man)

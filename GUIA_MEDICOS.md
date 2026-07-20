@@ -56,6 +56,44 @@ Claude te preguntará una vez si apruebas el conector **`data-inamovible`**. Dil
 
 ---
 
+## Aportar una fuente nueva (opcional) — así crece el conocimiento del equipo
+
+Cuando en tus preguntas encuentres una fuente valiosa (un artículo, un dataset), puedes **agregarla a la DATA INAMOVIBLE** y **queda disponible para todo el equipo al instante** — nadie tiene que volver a bajar ni configurar nada. Tú decides qué se agrega (ese es el control humano); el asistente hace lo técnico.
+
+Abre Claude Code en la carpeta del proyecto y **pega esto tal cual**:
+
+```
+Hola. Soy del equipo de Latido y quiero AGREGAR una fuente nueva a la DATA INAMOVIBLE,
+para que quede disponible para todo el equipo. Hazlo por mí, explícame en lenguaje simple, y
+pídeme confirmación antes de agregar nada. Reglas: YO apruebo (tú no agregas solo); nunca
+inventes IDs de genes. Nota técnica: antes de correr los comandos, asegúrate de que las
+variables de .secrets/deploy.env estén cargadas en el entorno de la forma correcta para este
+sistema operativo (las versiones nuevas de los scripts ya lo hacen solas; si no, cárgalas tú).
+
+1. Confirma que estamos en la carpeta del proyecto (debe existir rag_index/graphrag/ingest.py)
+   y que existe .secrets/deploy.env. Si falta algo, dímelo y detente.
+2. Pregúntame: (a) el enlace (URL público) de la fuente —p. ej. un artículo de Europe PMC /
+   PubMed, o un dataset de GEO—, y (b) un nombre corto para identificarla.
+3. Elige la fuente registrada según el enlace: europepmc/pubmed -> EuropePMC ;
+   ncbi.nlm.nih.gov/geo -> GEO_NCBI ; si no estás seguro, pregúntame.
+4. Prepara el registro (esto todavía NO lo agrega, solo lo propone):
+   uv run --locked python analysis/scripts/lib/add_dataset.py --name "<nombre>" --source-db <FUENTE> --url "<URL>" --download
+   Explícame en simple: qué nicho propuso, cuántos genes verificados encontró, y si hay genes
+   que NO están en el store (esos quedan en cuarentena, no se inventan; anótalos para Emmanuel).
+5. Muéstrame el resumen y pregúntame: "¿lo agrego a la DATA INAMOVIBLE?". Espera mi "sí".
+6. Si digo que sí, apruébalo e ingesta (esto SÍ lo mete a Neo4j, disponible para todos):
+   uv run --locked python analysis/scripts/lib/approve_dataset.py <CORPUS-id> --by "<mi nombre>"
+7. Verifica que ya quedó en vivo:
+   uv run --locked python rag_index/mcp_server/cli.py query "<tema de la fuente>" -k 3
+   Dime si aparece y confírmame "✅ Agregado y disponible para el equipo".
+
+No hagas git push ni borres nada. Si algo falla, cópiame el error para mandárselo a Emmanuel.
+```
+
+Qué esperar: el asistente te enseña un resumen (nicho + genes verificados), tú das el "sí", y en segundos queda en Neo4j para todos. Si un gen del artículo **no está aún en el store**, no se inventa: queda marcado para que Emmanuel lo verifique y lo añada (así el sistema nunca mete datos sin verificar).
+
+---
+
 ## ¿Algo falló?
 Copia lo que te dijo Claude y mándaselo a Emmanuel. Las dos causas más comunes:
 1. **Ruta larga** (Paso 1) → muévela a `C:\dev\Witt-organo`.
