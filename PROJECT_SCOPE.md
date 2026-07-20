@@ -1,12 +1,13 @@
 # Project Organogenesis × Witt — Master Scope Document
 
-**Version:** 1.3  
-**Date:** Jun 18, 2026 (v1.3; original release May 04, 2026 — see changelog)  
+**Version:** 1.4  
+**Date:** Jul 19, 2026 (v1.4; original release May 04, 2026 — see changelog)  
 **Status:** Working document — update as the project evolves  
 **Owner:** Emmanuel  
 **Purpose:** Single source of truth for the integrated Witt substrate × Organogenesis POC project. Use this doc as the persistent reference for analysis, planning, and skill iteration.
 
 **Changelog:**
+- **v1.4 (Jul 19, 2026)** — Executed-state sync (**no change to the five tests, six niches, gates, or phases**). Records the DATA INAMOVIBLE evolution since v1.3: the store grew **51→74** (ADR-0029/0035, human-gated ADD-only); the `data-inamovible` MCP was made portable/reproducible via `uv run --locked` + `uv.lock` (ADR-0039), then **hardened** and given a **`witt-di` CLI** as the robust primary front door — **hybrid, CLI-primary**; the MCP is an optional enhancement, and remains read-only (ADR-0040). Team access is via a local `.secrets/deploy.env` (shared credential) with `GUIA_MEDICOS.md` onboarding for the non-technical Latido team. A **banco de calibración v1** (30 questions for 4 Latido MDs to score) was added as the human gold-set anchor. Executed state remains authoritative in `docs/HANDOFF.md` + `docs/decisions/` (ADR-0030..0040).
 - **v1.3 (Jun 18, 2026)** — Architecture NOTE added to §6: the **MITAD_A** (accountability — this repo) / **MITAD_B** (generation engine — separate, isolated sibling repo `conciencia-universal`) split, from the 2026-06 concept-bridge analysis. ADR-0023–0026 reinforce MITAD_A; MITAD_B is bootstrapped A1-only (no engine built). **No change to the five tests, six niches, gates, or phases** — an architectural lens + an isolation decision (*prueba pequeño*).
 - **v1.2 (May 04, 2026)** — Recalibration of Tests 3, 4, 5 thresholds derived from April 30 stress-test of architecture against 2025+ LLM evidence. Three-tier threshold reporting introduced (defensive / ambitious / per-category). Test 5 explicitly framed as exploratory in Phase I. Reference to companion stress-test brief added. No structural changes to the five tests themselves.
 - **v1.1 (Apr 30, 2026)** — Test 5 partner field changed from TDA (topological data analysis) to TBD adjacent biological domain (cardiology or ophthalmology, decision pending). Added operating principle from Martín's April 29 conversation. Reasoning frameworks integrated as transversal evidence stream within substrate (not a separate hierarchy). Cross-field-bridge-agent updated to be partner-field-agnostic. Glossary updated.
@@ -280,7 +281,7 @@ A few fail outright: informative, not catastrophic. The substrate framing is a l
 
 The architecture is structured around a shared inamovable data foundation that feeds **two parallel methods**. Method choice is a runtime decision, not a fixed pipeline.
 
-> **Implementation-status note (added 2026-06-23).** The diagrams and agent roster in §6–§7 are the *original architectural intent* (April 2026). The **executed** GWT v1.1 state has evolved; where they differ, the executed state (recorded in `docs/HANDOFF.md` + `docs/decisions/` ADRs) is authoritative. Key deltas: (a) the **`DATA GENERAL INAMOVIBLE`** is referred to as **`DATA INAMOVIBLE`** elsewhere in the repo and is now a *hosted Neo4j GraphRAG + hybrid raw store* (ADR-0020/0021), fronted by the `data-inamovible` MCP; (b) the generic **"Auditor Agent (Yes/No filter)"** shown below is **superseded** by `composite-auditor` (Mode 1 split-and-vote, ≥3 parallel auditors) — a single-LLM Yes/No pass is explicitly prohibited as an audit gate (CLAUDE.md §7, ADR-0006); (c) the loop is now DI-first → MCP-fallback → composite-auditor → human-gated re-ingest (ADR-0022). No test, niche, gate, or phase changed.
+> **Implementation-status note (added 2026-06-23).** The diagrams and agent roster in §6–§7 are the *original architectural intent* (April 2026). The **executed** GWT v1.1 state has evolved; where they differ, the executed state (recorded in `docs/HANDOFF.md` + `docs/decisions/` ADRs) is authoritative. Key deltas: (a) the **`DATA GENERAL INAMOVIBLE`** is referred to as **`DATA INAMOVIBLE`** elsewhere in the repo and is now a *hosted Neo4j GraphRAG + hybrid raw store* (ADR-0020/0021), fronted by the `data-inamovible` MCP **and the `witt-di` CLI (hybrid, CLI-primary — ADR-0039/0040; the CLI is the robust front door, the MCP an optional enhancement)**; (b) the generic **"Auditor Agent (Yes/No filter)"** shown below is **superseded** by `composite-auditor` (Mode 1 split-and-vote, ≥3 parallel auditors) — a single-LLM Yes/No pass is explicitly prohibited as an audit gate (CLAUDE.md §7, ADR-0006); (c) the loop is now DI-first → MCP-fallback → composite-auditor → human-gated re-ingest (ADR-0022). No test, niche, gate, or phase changed.
 
 ### The shared foundation
 
@@ -676,4 +677,4 @@ This doc is a **living scope document**. It should be updated when:
 
 **Consistency check before sharing:** When in doubt, ask whether a claim in the document maps to an audit-disciplined characterization in the source thesis or validation tests. If not, temper the claim.
 
-— End of master scope document v1.3 —
+— End of master scope document v1.4 —

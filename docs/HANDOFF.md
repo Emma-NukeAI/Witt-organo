@@ -1,4 +1,4 @@
-# HANDOFF — GWT v1.1 (handoff único estable · al 2026-07-11)
+# HANDOFF — GWT v1.1 (handoff único estable · al 2026-07-19)
 
 > **Siguiente agente:** `CLAUDE.md` se auto-carga (contrato operativo — léelo primero). **Este** es el único
 > handoff vigente: estado del sistema, cómo operarlo, decisiones, y qué sigue. Es la fusión de los dos
@@ -13,13 +13,15 @@ usuario, y es un **sistema que responde preguntas y se refuerza solo**, todo hum
 
 - **Guía:** Neo4j GraphRAG (documents + chunks + embeddings OpenAI 1536-dim + entidades verificadas).
 - **Backing:** raw store híbrido — público = source-pointer (URL+sha256, re-descargable); privado/derivado = MinIO.
-- **Front door:** MCP `data-inamovible` (`query_data_inamovible` semántico · `resolve_identifier` determinista · `fetch_raw` drill-a-crudo).
+- **Front door (híbrido, CLI-primario — ADR-0040):** el **CLI `witt-di`** (`rag_index/mcp_server/cli.py`: `query|resolve|fetch|health`) es el front door **robusto** (mismo backend, sin registro por-sesión); el **MCP `data-inamovible`** (`query_data_inamovible` semántico · `resolve_identifier` determinista · `fetch_raw` drill-a-crudo) es el enhancement agent-native, **read-only**. Ambos hablan al mismo `rag_backend`. Todo resultado lleva un marcador `degraded` — nunca sparse-disfrazado-de-semántico.
 - **Loop auto-reforzante (ADR-0022):** `Path A (DI) → si insuficiente → Path B (EuropePMC / Tool Universe) → composite-auditor ≥3 → propose → GATE HUMANO → re-ingesta`. "No está en la DI" **no es stopper** — es disparador de aprendizaje. El store **crece con el uso**.
 
-**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**sesión 2026-07-11**, commit `7d43c94`; ver §Estado git).
+**Código home:** repo PRIVADO `Emma-NukeAI/Witt-organo` (`origin`). `master` = la última versión (**sesión 2026-07-19**, commit `aa4a61e`; ver §Estado git).
 **Nunca** pushear a `polimat-old` (repo viejo, además caído). Local se trabaja en `feat/gwt-v1.1-cycle1` (== master).
 
-**Última sesión (2026-07-11) — ver la sección nueva abajo:** primer **baseline held-out A1** medido + estudio del **fallback Tool Universe** + loop de re-ingesta + auto-auditoría de cierre. Titulares (todos con disciplina de honestidad — "medido + auditado-y-corregido", NO "validado"): Test 3 scaffold→**medido** (30/30), Test 4 degenerado→**no-degenerado** (n=20 corregido, ECE_raw 0.51); **Level-2 = tool-use estructurado de Tool Universe es el lever** del fallback (no la literatura), señal en n=6 favorable; **DATA INAMOVIBLE 51→74** human-gated (ADR-0035, +23 IDs cascada de inducción re-verificados vs Ensembl); gate `verify_output` gana `reingest_candidate` (ADR-0036); **composite-audit de cierre → 7/7 REVISE** (atrapó un bug real del parser + overclaims sistemáticos, todo corregido, ADR-0037); **paquete de honestidad** (ADR-0038): juez **cross-proveedor OpenAI/gpt-4o**, fix judge-fabrication, deterministic-first. La insuficiencia de la DI se decide por **umbral de confianza** (no estructural, no gate humano; el gate humano vive en la re-ingesta).
+**Última sesión (2026-07-18/19) — ver la sección nueva abajo:** (a) **banco de calibración v1** (07-18): 30 preguntas para que 4 médicos de Latido califiquen DOS ejes — input (objetividad/contexto/especificidad de las *preguntas*) y output (correcta-útil / usarías la *respuesta*); CSV→Google Sheets + `score_calibration.py` determinista, scoring a ciegas. Es el **gold-set humano** (el limitante real que ningún LLM/compute sustituye). (b) **data-inamovible MCP portable/reproducible** (ADR-0039: `uv run --locked` + `uv.lock`, cierra la causa raíz "intérprete sin neo4j") → **auditoría de perfección** (13-agente CoVe/composite-auditor) + **hardening** (ADR-0040): **marcador de degradación in-band** (cierra el sparse-disfrazado-de-semántico — el modo de fallo del incidente), **gate humano ESTRUCTURAL** (`is_approved`), `bge→openai` default en escritura, guardrail anti-contaminación del `.venv`, y **CLI `witt-di`** como front door robusto (**híbrido, CLI-primario**; el MCP sigue read-only, enhancement opcional). (c) **acceso del equipo (Opción A)**: `.secrets/deploy.env` local con **credencial compartida**, distribuido por Drive + `GUIA_MEDICOS.md` (guía + prompt para pegar); Opción B (MCP remoto hosted, bearer por médico — factible sin OAuth) **diferida**. Validado **read-only, 0 mutación**: DI sweep 20/20 · MCP handshake real 5/5 (semantic 0.804) · smoke 6/6. Pusheado a `master` FF (`aa4a61e`).
+
+**Sesión previa (2026-07-11) — ver la sección abajo:** primer **baseline held-out A1** medido + estudio del **fallback Tool Universe** + loop de re-ingesta + auto-auditoría de cierre. Titulares (todos con disciplina de honestidad — "medido + auditado-y-corregido", NO "validado"): Test 3 scaffold→**medido** (30/30), Test 4 degenerado→**no-degenerado** (n=20 corregido, ECE_raw 0.51); **Level-2 = tool-use estructurado de Tool Universe es el lever** del fallback (no la literatura), señal en n=6 favorable; **DATA INAMOVIBLE 51→74** human-gated (ADR-0035, +23 IDs cascada de inducción re-verificados vs Ensembl); gate `verify_output` gana `reingest_candidate` (ADR-0036); **composite-audit de cierre → 7/7 REVISE** (atrapó un bug real del parser + overclaims sistemáticos, todo corregido, ADR-0037); **paquete de honestidad** (ADR-0038): juez **cross-proveedor OpenAI/gpt-4o**, fix judge-fabrication, deterministic-first. La insuficiencia de la DI se decide por **umbral de confianza** (no estructural, no gate humano; el gate humano vive en la re-ingesta).
 
 **Sesión previa (2026-07-04/05) — ver la sección más abajo:** **auditoría de funcionalidad TOTAL** +
 composite-auditor (3 auditores adversariales Opus). Se probó la maquinaria offline + en vivo (Neo4j retrieval,
@@ -37,6 +39,34 @@ del operador — corregidos. **Cero mutación de la DATA INAMOVIBLE** (todo read
 **Sesión previa (2026-06-22/23) — ver las 2 secciones más abajo:** MITAD_A **endurecida** tras validación
 adversarial (ADR-0027: binding símbolo↔ENSDARG, gates §4/§11 reforzados) + **guard de validez-de-lente**
 (ADR-0028) + la **DATA INAMOVIBLE creció 46→51** human-gated (ADR-0029) + **test E2E** (3 rounds, pronefros).
+
+---
+
+## data-inamovible team-ready: MCP portable + auditoría de perfección + acceso del equipo (sesión 2026-07-18/19)
+
+### Banco de calibración v1 (2026-07-18)
+30 preguntas para que **4 médicos de Latido** califiquen DOS ejes a ciegas: **input** (¿la pregunta es objetiva / tiene contexto / es específica?) y **output** (¿la respuesta es correcta-útil? ¿la usarías?). CSV → Google Sheets; scoring **determinista** con `score_calibration.py` (NO LLM). Respuestas híbridas (GoldSet + re-corridas Level-2 + baseline). Es el **ancla de verdad de tierra** que la sesión 07-11 marcó como EL limitante — ningún LLM-juez lo sustituye. (Artefactos en `evaluation/gold_set/`, `evaluation/scripts/`, `evaluation/workflows/banco_reframe.js`; ver memoria `banco-calibracion-v1`.)
+
+### Incidente + recuperación del `.venv` (2026-07-19)
+Tras reiniciar el cliente, el MCP **NO** tomó el `.mcp.json` versionado: un `claude.exe` viejo lo servía por config inline venv-python, y **esta sesión tuvo cero tools `data-inamovible` registradas** (fallo silencioso del registro por-sesión). Un `uv run --locked` diagnóstico chocó con el server vivo (locks del `.venv`) y **rompió el venv**. Causa raíz del drift: alguien hizo **`uv pip install tooluniverse` DENTRO del `.venv`** del server (~143 pkgs ajenos; ToolUniverse debe correr por `uvx`). Recuperado a 69 pkgs pristinos lock-matched (smoke 6/6). → gatilló el guardrail + la auditoría.
+
+### ADR-0039 — MCP portable/reproducible (base, misma fecha)
+Lanzado por `uv run --locked python rag_index/mcp_server/server.py` desde el `.mcp.json` **versionado** + `pyproject.toml`/`uv.lock` (mcp/neo4j/openai/scikit-learn/numpy/fastembed/minio). Cierra estructuralmente "intérprete sin neo4j". Gate `smoke_rag.py` **6/6** (venv vivo Y env limpio `uv run --locked`). Onboarding `rag_index/mcp_server/README.md` + `deploy.env.example`.
+
+### Auditoría de perfección (13-agente CoVe) + hardening (ADR-0040)
+El repo ahora es **compartido con Latido** (médicos no-técnicos) → debe funcionar impecable. Composite-auditor / Chain-of-Verification, **13 agentes** (6 pilares × audit + verify adversarial + síntesis), 0 errores. Hallazgos → fixes shipeados (`b902e1f`+`aa4a61e`):
+- **Marcador de degradación in-band** (`rag_backend.HitList.degraded`; `server._query` + `witt-di` lo surfacean). `HybridRetriever` ya NO traga el fallo del denso con `except: pass`. Cierra el **sparse-disfrazado-de-semántico** — el modo de fallo del incidente 07-18/19.
+- **Gate humano ESTRUCTURAL** (`rag_backend.is_approved()`): `gather_documents()` + el loop de entidades de `ingest.py` saltan records con `approval_chain` no-`approved` (default-deny). Antes era procedural (dependía del orden de comandos); ahora lo impone el código.
+- **`bge→openai` default en las rutas de ESCRITURA** (`ingest.py`/`bootstrap.py`) cuando hay `NEO4J_URI` → un rebuild fresco no puede crear un índice 768-dim contra el query path OpenAI/1536.
+- **Guardrail anti-contaminación del venv**: `skills/external/README.md` (uvx-only) + WARN en `smoke_rag.py`.
+- **CLI `witt-di`** (`rag_index/mcp_server/cli.py`, NUEVO): `query|resolve|fetch|health`, mismo backend + garantía §6 no-hang, exit 3 si degrada. **Decisión MCP-vs-CLI = híbrido, CLI-primario**: el MCP no es hazard de datos (read-only, gate no evadible) sino de **confiabilidad** (registro por-sesión que falla en silencio, staleness del pipe stdio); el transporte es ortogonal a la calidad densa. **El MCP queda read-only** — la mutación NO se expuso como tool MCP (Opción B no se construyó).
+
+Validado **read-only, cero mutación de la DI**: complete DI sweep **20/20** (embedding 1536 query=ingest=índice · query/degraded/sparse · resolve ± · fetch ± · gate estructural · guards de ingest · **índice Neo4j ONLINE 1536, docs=27**) · MCP handshake real por `uv run --locked` **5/5** (semantic 0.804) · `smoke_rag.py` **6/6** · marker unit **4/4** · gate estructural **9/9** · `witt-di` e2e (degradación forzada → exit 3). Reporte `reports/2026-07-19_data-inamovible-mcp-perfection-audit_v1.html`.
+
+### Acceso del equipo de Latido (Opción A — ADR-0040)
+Los médicos son parte del loop (preguntan + califican + **son el gate humano** de la ingesta), así que necesitan **paridad total** con el founder (query/resolve/fetch/ingest), no un portal recortado. Modelo elegido: **`.secrets/deploy.env` local con credencial COMPARTIDA**, distribuido por el Drive del equipo (archivo suelto `deploy.env` + ZIP limpio del repo) + **`GUIA_MEDICOS.md`** (guía de 4 pasos + un prompt para pegar en Claude Code que instala `uv`, coloca las llaves y corre el smoke). Claude Code es el cliente. **Opción B** (MCP remoto hosted, secretos server-side, **bearer token por médico** — verificado factible SIN servidor OAuth, Streamable HTTP) considerada y **DIFERIDA** (sobre-ingeniería para 4 de confianza; backend idéntico → migrar luego sin rehacer). Residual honesto: credencial compartida = sprawl en ≤4 laptops + revocación gruesa (aceptado a esta escala; restringir el Drive a los 4 por correo). Diagrama: `reports/2026-07-19_data-inamovible-acceso-equipo-arquitectura_v1.html`.
+
+**Lecciones para el próximo agente:** (a) el marcador `degraded` es la defensa estructural contra el sparse-silencioso — cualquier consumidor nuevo debe surfacearlo. (b) **NUNCA `uv pip install` en el `.venv` del MCP** (usa `uvx`); el smoke avisa. (c) el MCP puede quedar sin registrar en una sesión **sin error** — por eso el CLI es el front door primario. (d) el **gold-set humano** (banco de calibración) es la próxima inversión de mayor valor, no más instrumentación (ADR-0034 + review Fable-5).
 
 ---
 
@@ -214,7 +244,9 @@ validación MITAD_A: `reports/2026-06-22_mitad-a-{adversarial-validation_retrosp
 |---|---|
 | Resolver determinista de IDs (anti-fabricación) | `analysis/scripts/lib/resolve_id.py` + `analysis/outputs/verified_identifiers.json` (**v2026-06-23.1, 51 records**; +5 señalización ADR-0029); gate `verify_output.py` (binding N1 + regex tolerante N2) |
 | Raw store híbrido (MinIO/source-pointer) | `analysis/scripts/lib/raw_store.py` |
-| Retrieval semántico (sparse Tfidf + Neo4j vector, RRF); **auto-refresh por mtime** | `analysis/scripts/lib/rag_backend.py` |
+| Retrieval semántico (sparse Tfidf + Neo4j vector, RRF); **auto-refresh por mtime**; **`HitList.degraded` (marcador in-band, ADR-0040)** + **`is_approved()` (gate humano estructural)** | `analysis/scripts/lib/rag_backend.py` |
+| **Front door (híbrido, CLI-primario, ADR-0040):** CLI robusto `witt-di` · MCP read-only opcional · gate `smoke_rag.py` 6/6 | `rag_index/mcp_server/{cli.py,server.py,smoke_rag.py}` (lanzado por `uv run --locked`, ADR-0039) |
+| **Onboarding equipo Latido (no-técnico):** guía 4 pasos + prompt para pegar; acceso `.secrets` local credencial compartida (ADR-0040) | `GUIA_MEDICOS.md` (técnico/dev: `ONBOARDING.md`) |
 | Embeddings + carga a Neo4j; **ensure-index + dim-guard + model-halt + freshness stamp + rebuild sparse** | `rag_index/graphrag/{embeddings,bootstrap,ingest}.py` |
 | **Loop (ADR-0022):** drill-a-paper · orquestador con state-machine · propose · prune | `analysis/scripts/lib/{fetch_paper,answer_pipeline,propose_from_external,propose_prune,approve_prune}.py` |
 | **MITAD_A R1–R4 (ADR-0023–0026):** loop-regresión · admisibilidad+pureza · gates §4/§11 · esquema WSTS | `substrate_calibration/tools/{replay_and_regress,governance_prefilter,build_regression_cases,accountability_checks,world_state}.py` + extensiones de `verify_output.py`/`ingest.py`/`answer_pipeline.py` |
@@ -224,7 +256,7 @@ validación MITAD_A: `reports/2026-06-22_mitad-a-{adversarial-validation_retrosp
 | Chunking de papers/PDFs | `analysis/scripts/lib/chunk_document.py` |
 | Liveness NO-SPEND | `rag_index/graphrag/liveness.py` |
 | **Tool Universe (Path B) garantizado para el equipo** | `.mcp.json` (raíz, project-scope, `uvx tooluniverse@1.2.6`) + `mcp-config/README.md` |
-| Decisiones | `docs/decisions/` (ADR-0020 GraphRAG, 0021 raw store, **0022 answer-pipeline loop**, **0023–0026 MITAD_A R1–R4**, **0027 detection-hardening**, **0028 lens-validity guard**, **0029 DI signaling-add**, …) |
+| Decisiones | `docs/decisions/` (ADR-0020 GraphRAG, 0021 raw store, **0022 answer-pipeline loop**, **0023–0026 MITAD_A R1–R4**, **0027 detection-hardening**, **0028 lens-validity guard**, **0029 DI signaling-add**, 0030–0034 (audit total + review externa Fable-5), **0035 DI+23 IDs**, 0036–0038 (gate reingest + closing-audit + honesty bundle), **0039 MCP portable (`uv.lock`)**, **0040 audit de perfección + CLI `witt-di` + acceso equipo**) |
 
 ---
 
@@ -285,11 +317,16 @@ end-to-end; la suficiencia biológica del conjunto-mínimo sigue ABIERTA** (sin 
 
 **Dos repos privados, aislados estructuralmente** (MITAD_A y MITAD_B no comparten `.git` ni código):
 - **MITAD_A** — `witt-organogenesis` → `origin` = `https://github.com/Emma-NukeAI/Witt-organo.git` (PRIVADO).
-  **`master` = la última versión** (= `feat/gwt-v1.1-cycle1`; ambas ramas remotas en **`7d43c94`**). Todo
-  commiteado + **pusheado** (feat + master, FF). Working tree: 3 `reports/*.html` untracked NO pusheados —
-  2 `presentacion-witt-*` pre-existentes + 1 `2026-07-11_chaperone-tissue-interaction-table_v1.html` (byproduct
-  de un subagente Level-2 por el reflejo HTML §7; revisar/borrar sin prisa). **Nunca** pushear a `polimat-old`.
-  Cadena de la sesión **2026-07-11** (held-out + Tool Universe fallback + cierre auto-auditado): `75c11bb`
+  **`master` = la última versión**, ahora en **`aa4a61e`** (sesión 2026-07-19). Se trabaja en la rama
+  `fix/data-inamovible-mcp-venv-portable` y se hizo **FF push a `master`** (`2c81dd4..aa4a61e`). **Nunca** pushear a `polimat-old`.
+  Cadena **2026-07-18/19** (banco calibración + data-inamovible team-ready): `69e49a2` (handoff 07-11) →
+  `2c81dd4` (RIL hygiene A3) → `95c54af` (**ADR-0039** MCP portable `uv run --locked` + `uv.lock`) →
+  `d261a96` (MAX_PATH doc) → `b902e1f` (**ADR-0040** hardening: marcador degradación + `bge→openai` + guardrail venv + CLI `witt-di`) →
+  **`aa4a61e`** (ADR-0040 gate estructural `is_approved` + README autocontenido). Docs al día de esta sesión
+  (ADR-0040, HANDOFF/CLAUDE.md/PROJECT_SCOPE, `GUIA_MEDICOS.md`) commiteadas aparte. **Untracked (NO pusheados),
+  revisar sin prisa:** artefactos del banco `evaluation/{gold_set,scripts,workflows/banco_reframe.js}` +
+  reports `2026-07-{11,18,19}_*.html` (incl. la auditoría de perfección + el diagrama de arquitectura de hoy).
+  Cadena previa **2026-07-11** (held-out + Tool Universe fallback + cierre auto-auditado): `75c11bb`
   (A1 baseline) → `3ed5c83` (DI+TU L1) → `76f3d62` (Level-2) → `50f97ff` (ADR-0035 DI 51→74) → `13910cb`
   (ADR-0036 gate) → `4363b24` (ADR-0037 closing audit + correcciones) → **`7d43c94`** (ADR-0038 honesty bundle).
   Sesión previa **2026-07-04/05** (audit total + review externa): `66e6afc`→`ef0fc43`→`afa2a1a`→`5b919a1`→
