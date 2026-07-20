@@ -15,6 +15,11 @@ from embeddings import get_dim  # noqa: E402
 
 def run():
     from neo4j import GraphDatabase
+    # Match the QUERY path's hard OpenAI/1536 pin when a hosted Neo4j is configured, so bootstrap never
+    # creates a 768-dim 'doc_embeddings' index that the OpenAI query path then silently degrades against
+    # (ADR-0039). 'bge' stays the offline default (no NEO4J_URI); an explicit EMBED_MODEL always wins.
+    os.environ["EMBED_MODEL"] = os.environ.get("EMBED_MODEL") or (
+        "openai" if os.environ.get("NEO4J_URI") else "bge")
     DIM = get_dim()
     uri = os.environ["NEO4J_URI"]
     drv = GraphDatabase.driver(uri, auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))

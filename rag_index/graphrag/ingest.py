@@ -32,7 +32,15 @@ def _load(p):
 def run(confirm_embed_model_change=False):
     from neo4j import GraphDatabase
     import datetime
-    embed_model = os.environ.get("EMBED_MODEL", "bge")
+    # EMBED_MODEL resolution (ADR-0039, 2026-07-19): default to 'openai' (1536-dim) WHENEVER a hosted Neo4j
+    # is configured, so a fresh-clone ingest builds/matches the live 1536-dim 'doc_embeddings' index that the
+    # QUERY path hard-pins to OpenAI (server.py / rag_backend.py). The old blanket 'bge' default (768-dim)
+    # let a hosted re-ingest create a 768-dim index that the OpenAI query path then silently degrades against
+    # (dense fails -> sparse-only). 'bge' remains the zero-dependency default only for genuinely offline use
+    # (no NEO4J_URI). An explicit EMBED_MODEL always wins. We stamp it into the env so get_dim()/get_embedder()
+    # below read the SAME resolved value.
+    embed_model = os.environ.get("EMBED_MODEL") or ("openai" if os.environ.get("NEO4J_URI") else "bge")
+    os.environ["EMBED_MODEL"] = embed_model
     dim = get_dim()
     drv = GraphDatabase.driver(os.environ["NEO4J_URI"],
                                auth=(os.environ["NEO4J_USER"], os.environ["NEO4J_PASSWORD"]))

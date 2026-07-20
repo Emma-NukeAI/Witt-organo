@@ -120,9 +120,16 @@ def _query(query: str, k: int = 5):
     _t0 = _time.perf_counter()
     try:
         hits = _QUERY_POOL.submit(lambda: rag_backend.query(query, k)).result(timeout=_DENSE_TIMEOUT_S)
-        r = _hit_dicts(hits)
-        _log(f"_query OK(semantic) {(_time.perf_counter() - _t0):.2f}s hits={len(r)}"
-             + (f" top={r[0]['doc_id']}:{r[0]['score']}" if r else ""))
+        # A successful RETURN can still be sparse-only: HybridRetriever swallows a dense-half failure
+        # (Neo4j down / dim mismatch / MAX_PATH) and returns sparse hits. Read the marker it travels on the
+        # result and surface it — never label a sparse-only result 'semantic' (ADR-0039, the 07-18/19 trap).
+        degraded = getattr(hits, "degraded", None)
+        r = _hit_dicts(hits, degraded=degraded)
+        _log(f"_query OK({'semantic' if not degraded else 'DEGRADED:' + degraded}) "
+             f"{(_time.perf_counter() - _t0):.2f}s hits={len(r)}"
+             + (f" top={r[0]['doc_id']}:{r[0]['score']}" if r else "")
+             + (f" err={rag_backend.get_backend().last_error}"
+                if degraded and hasattr(rag_backend.get_backend(), 'last_error') else ""))
         return r
     except _futures.TimeoutError:
         _log(f"_query dense TIMEOUT {_DENSE_TIMEOUT_S}s -> sparse fallback (hosted Neo4j slow)")

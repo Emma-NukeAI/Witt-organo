@@ -21,6 +21,16 @@ for m in ("neo4j", "openai", "sklearn", "mcp", "fastembed"):
     try: __import__(m)
     except Exception: missing.append(m)
 check("deps completas", not missing, ("faltan: " + ",".join(missing)) if missing else sys.executable)
+# WARN (no cuenta al 6/6): tooluniverse jamas debe vivir en el .venv del MCP — corre por uvx (env aislado).
+# Si es importable aqui, alguien hizo `uv pip install tooluniverse` en este venv -> drift vs uv.lock ->
+# `uv run --locked` intenta desinstalarlo en cada arranque y puede romper el env (incidente 2026-07-19).
+try:
+    import importlib.util as _u
+    if _u.find_spec("tooluniverse") is not None:
+        print("WARN venv contaminado: 'tooluniverse' esta instalado en este .venv "
+              "(debe correr por uvx). Corre: uv sync --locked  (o rebuild del .venv). Ver skills/external/README.md")
+except Exception:
+    pass
 import server
 from lib import rag_backend, resolve_id
 Q = "transcription factors pronephric mesoderm zebrafish"

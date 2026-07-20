@@ -52,12 +52,21 @@ Exposes ~2,200 individual tools (UniProt, JASPAR, STRING, AlphaFold, IEDB, etc.)
 
 Direct Python imports. `tu.run({"name": "<tool_name>", "arguments": {...}})`.
 
-**Install:**
+**Install — into an ISOLATED environment, NEVER the data-inamovible MCP venv:**
 ```bash
+# Recommended: run the Layer-2 MCP instead (uvx tooluniverse@1.2.6, isolated by uv — no install needed).
+# If you truly need the Layer-3 SDK, install it into a SEPARATE, throwaway venv:
+python -m venv .venv-tooluniverse && . .venv-tooluniverse/bin/activate   # (Windows: .venv-tooluniverse\Scripts\activate)
 pip install tooluniverse
-# or, with uv:
-uv pip install tooluniverse
 ```
+
+> ⚠️ **DO NOT `uv pip install tooluniverse` (or `pip install`) into the project's `.venv`.** That `.venv`
+> is the PINNED runtime of the `data-inamovible` MCP server (`pyproject.toml` + `uv.lock`, ADR-0039).
+> ToolUniverse pulls ~140 transitive packages; installing it there drifts the venv off the lock, so
+> `uv run --locked` then tries to uninstall all of them on every server start and can half-break the env
+> mid-start (the 2026-07-19 incident). ToolUniverse runs via **`uvx`** (its own isolated env) — it never
+> needs to live in the project venv. The gate `rag_index/mcp_server/smoke_rag.py` warns if the MCP venv
+> has been polluted.
 
 **When to use:**
 - Reproducible batch analysis scripts (lives in `scripts/` when those scripts begin to exist — typically Phase I month 3+).

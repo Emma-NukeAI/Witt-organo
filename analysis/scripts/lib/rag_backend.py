@@ -95,6 +95,22 @@ class Hit:
     metadata: dict
 
 
+class HitList(list):
+    """A `list` of Hits that ALSO carries a `degraded` marker, so the degradation signal travels WITH the
+    result (concurrency-safe) rather than via shared retriever state. `degraded` is:
+      - None                     -> a true dense/hybrid semantic result (dense half contributed)
+      - 'sparse-by-config'       -> semantic disabled by configuration (RAG_BACKEND!=neo4j, dev/offline)
+      - 'dense-failed:sparse-only' -> dense was CONFIGURED but failed (Neo4j down / dim mismatch / MAX_PATH);
+                                    the result is sparse-only masquerading as semantic.
+    Consumers (server.py, cli.py) MUST surface a non-None marker: a sparse result presented as "Semantic
+    GraphRAG" with no signal is exactly the 2026-07-18/19 silent-degradation trap (CLAUDE.md §6, ADR-0039).
+    Being a `list` subclass, every existing caller (isinstance(x, list), len, indexing, iteration) is
+    unaffected."""
+    def __init__(self, iterable=(), degraded=None):
+        super().__init__(iterable)
+        self.degraded = degraded
+
+
 class Retriever:
     """Interface. v1 impl = TfidfRetriever. A DenseRetriever (Chroma/LanceDB + embeddings) plugs in later."""
     def query(self, text: str, k: int = 5) -> List[Hit]:
@@ -205,19 +221,34 @@ class HybridRetriever(Retriever):
     then reranked. In production dense = Neo4jGraphRetriever; in dev dense is skipped (sparse only)."""
     def __init__(self, sparse: Retriever, dense: Retriever = None, reranker: Reranker = None):
         self.sparse, self.dense, self.reranker = sparse, dense, reranker or Reranker()
+        self.last_error = None  # last swallowed half-error, for diagnostics (server logs it)
 
     def query(self, text, k=5):
         # Both halves are optional and isolated: a missing sparse half (no sklearn / no documents.jsonl)
         # or a missing dense half (no Neo4j driver / no connection) must NOT crash retrieval. Whichever
         # half is available contributes; if both are present we fuse them.
+        #
+        # 2026-07-19 (ADR-0039): we no longer swallow the dense failure ANONYMOUSLY. A configured-but-failed
+        # dense half means the returned hits are sparse-only — usable (§6 no-hang) but NOT semantic — and the
+        # caller MUST be told so it never presents ~0.2 sparse scores as ~0.8 semantic (the silent-degradation
+        # trap that caused the 2026-07-18/19 incident). We capture the error and stamp a `degraded` marker on
+        # the returned HitList instead of `except Exception: pass`.
         pools = []
-        for r in (self.sparse, self.dense):
-            if r is None:
-                continue
+        self.last_error = None
+        if self.sparse is not None:
             try:
-                pools.append(r.query(text, k * 3))
-            except Exception:
-                pass
+                pools.append(self.sparse.query(text, k * 3))
+            except Exception as e:
+                self.last_error = f"sparse:{type(e).__name__}:{str(e)[:200]}"
+        dense_configured = self.dense is not None
+        dense_ok = False
+        if dense_configured:
+            try:
+                pools.append(self.dense.query(text, k * 3))
+                dense_ok = True
+            except Exception as e:
+                self.last_error = f"dense:{type(e).__name__}:{str(e)[:200]}"
+        degraded = "dense-failed:sparse-only" if (dense_configured and not dense_ok) else None
         # reciprocal rank fusion
         scores, byid = {}, {}
         for pool in pools:
@@ -225,7 +256,7 @@ class HybridRetriever(Retriever):
                 scores[h.doc_id] = scores.get(h.doc_id, 0.0) + 1.0 / (60 + rank)
                 byid[h.doc_id] = h
         fused = sorted(byid.values(), key=lambda h: -scores[h.doc_id])
-        return self.reranker.rerank(text, fused, k)
+        return HitList(self.reranker.rerank(text, fused, k), degraded=degraded)
 
 
 _default = None
@@ -279,20 +310,30 @@ def get_backend():
 
 
 def query(text, k=5):
-    """Semantic-ish lookup over the DATA INAMOVIBLE corpus (the lookup_prior backend)."""
-    return get_backend().query(text, k)
+    """Semantic lookup over the DATA INAMOVIBLE corpus (the lookup_prior backend). Returns a HitList whose
+    `.degraded` marker is None for a true dense/hybrid semantic result and a string when the result is
+    sparse-only (dense unavailable/failed, or semantic disabled by config). NEVER silently presents sparse
+    as semantic — callers surface the marker (ADR-0039, CLAUDE.md §6)."""
+    import os
+    hits = get_backend().query(text, k)
+    if isinstance(hits, HitList):
+        return hits  # HybridRetriever already stamped .degraded (None | 'dense-failed:sparse-only')
+    # bare TfidfRetriever (RAG_BACKEND != neo4j, dev/offline): semantic is disabled BY CONFIGURATION
+    marker = None if os.environ.get("RAG_BACKEND") == "neo4j" else "sparse-by-config"
+    return HitList(hits, degraded=marker)
 
 
 def query_sparse(text, k=5):
     """Sparse-only lookup (TF-IDF over documents.jsonl) that NEVER touches Neo4j or the network — the
     offline fallback for the §6 no-hang rule when the hosted semantic backend is slow/unreachable.
-    Cached separately from get_backend() and auto-refreshed on documents.jsonl change."""
+    Cached separately from get_backend() and auto-refreshed on documents.jsonl change. Always returns a
+    HitList marked degraded='sparse-by-config' (it is, by definition, not the semantic path)."""
     global _sparse_only, _sparse_only_sig
     sig = _index_signature()
     if _sparse_only is None or sig != _sparse_only_sig:
         _sparse_only = TfidfRetriever()
         _sparse_only_sig = sig
-    return _sparse_only.query(text, k)
+    return HitList(_sparse_only.query(text, k), degraded="sparse-by-config")
 
 
 if __name__ == "__main__":

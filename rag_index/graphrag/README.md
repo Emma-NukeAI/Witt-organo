@@ -27,7 +27,11 @@ pip install -r rag_index/graphrag/requirements.txt
 
 # 3. Point at Neo4j (never commit the password)
 export NEO4J_URI=bolt://localhost:7687 NEO4J_USER=neo4j NEO4J_PASSWORD='<secret>'
-export EMBED_MODEL=bge        # or biobert / specter2 for paper-heavy corpora
+export EMBED_MODEL=openai      # MUST match the live 1536-dim index + the query path's OpenAI pin.
+#                                bootstrap.py/ingest.py now default to openai whenever NEO4J_URI is set;
+#                                set it explicitly here so bootstrap + ingest + query all agree (ADR-0039).
+#                                Use 'bge' (768-dim, no API key) ONLY for a fully offline dev index; a bge
+#                                index queried by the OpenAI-pinned path silently degrades to sparse.
 
 # 4. Schema + vector index (once)
 python rag_index/graphrag/bootstrap.py
