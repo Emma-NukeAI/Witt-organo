@@ -10,10 +10,10 @@
   ],
   "read_only": true,
   "human_gate_required_to_modify": true,
-  "n_documents": 27,
+  "n_documents": 28,
   "by_type": {
     "niche": 13,
-    "database": 10,
+    "database": 11,
     "dataset": 3,
     "chunk": 1
   }

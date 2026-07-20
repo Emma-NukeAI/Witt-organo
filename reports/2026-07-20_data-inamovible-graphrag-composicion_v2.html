@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DATA INAMOVIBLE — Composición del GraphRAG · 2026-07-20</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%95%B8%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme: light;
+  --page:#f4f4f1; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --border2:rgba(11,11,11,.06);
+  --c-niche:#c04f7a; --c-db:#2a78d6; --c-doc:#0a7a35; --c-ent:#b47600; --c-meta:#7d7c77;
+  --c-niche-soft:#e87ba4; --c-doc-soft:#008300; --c-ent-soft:#eda100;
+  --e-feeds:#9a9892;
+  --good:#0ca30c; --warning:#c98500; --serious:#c85a2a; --critical:#d03b3b;
+  --blue-100:#cde2fb; --blue-200:#9ec5f4; --blue-300:#6da7ec; --blue-450:#2a78d6; --blue-600:#184f95;
+  --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 24px rgba(11,11,11,.06);
+  --radius:14px;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"SFMono-Regular",ui-monospace,"Cascadia Code","Consolas",monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#222220;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#8f8e88;
+  --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.12); --border2:rgba(255,255,255,.06);
+  --c-niche:#d55181; --c-db:#3987e5; --c-doc:#22a24f; --c-ent:#c98500; --c-meta:#9a998f;
+  --c-niche-soft:#d55181; --c-doc-soft:#22a24f; --c-ent-soft:#c98500;
+  --e-feeds:#6a6a64;
+  --good:#0ca30c; --warning:#e0a020; --serious:#ec835a; --critical:#e35555;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 30px rgba(0,0,0,.5);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface-1:#1a1a19; --surface-2:#222220;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#8f8e88;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.12); --border2:rgba(255,255,255,.06);
+    --c-niche:#d55181; --c-db:#3987e5; --c-doc:#22a24f; --c-ent:#c98500; --c-meta:#9a998f;
+    --c-niche-soft:#d55181; --c-doc-soft:#22a24f; --c-ent-soft:#c98500;
+    --e-feeds:#6a6a64;
+    --good:#0ca30c; --warning:#e0a020; --serious:#ec835a; --critical:#e35555;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 30px rgba(0,0,0,.5);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);line-height:1.55;
+  -webkit-font-smoothing:antialiased;font-size:15px}
+.wrap{max-width:1200px;margin:0 auto;padding:0 20px}
+a{color:var(--c-db);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3{line-height:1.2;margin:0}
+h2{font-size:1.45rem;letter-spacing:-.01em}
+h3{font-size:1.05rem}
+code,.mono{font-family:var(--mono);font-size:.86em}
+.dim{color:var(--ink2)} .mut{color:var(--muted)}
+
+/* top nav */
+.topbar{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+  background:color-mix(in srgb,var(--page) 82%,transparent);border-bottom:1px solid var(--border)}
+.topbar .wrap{display:flex;align-items:center;gap:14px;height:54px}
+.brand{font-weight:700;letter-spacing:-.02em;white-space:nowrap}
+.brand .badge-live{font-size:.62rem;font-weight:700;color:#fff;background:var(--good);
+  padding:2px 6px;border-radius:20px;margin-left:6px;vertical-align:middle;letter-spacing:.03em}
+.navlinks{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{color:var(--ink2);padding:6px 9px;border-radius:8px;font-size:.82rem;white-space:nowrap}
+.navlinks a:hover{background:var(--surface-2);text-decoration:none;color:var(--ink)}
+.tgl{border:1px solid var(--border);background:var(--surface-1);color:var(--ink);border-radius:8px;
+  padding:6px 10px;cursor:pointer;font-size:.85rem;white-space:nowrap}
+.tgl:hover{background:var(--surface-2)}
+
+/* hero */
+.hero{padding:38px 0 8px}
+.eyebrow{color:var(--c-db);font-weight:700;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase}
+.hero h1{font-size:2.15rem;letter-spacing:-.025em;margin:10px 0 6px;max-width:22ch}
+.hero p{color:var(--ink2);max-width:70ch;font-size:1.02rem}
+.hero .meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--surface-1);border:1px solid var(--border);
+  border-radius:20px;padding:5px 11px;font-size:.78rem;color:var(--ink2);box-shadow:var(--shadow)}
+.pill b{color:var(--ink);font-weight:600}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+/* section */
+section{padding:30px 0;border-top:1px solid var(--border2)}
+.sec-h{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.sec-h .n{font-family:var(--mono);color:var(--muted);font-size:.85rem;font-weight:600}
+.lead{color:var(--ink2);max-width:80ch;margin:4px 0 18px}
+
+/* kpi tiles */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow)}
+.kpi .v{font-size:1.9rem;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kpi .l{color:var(--ink2);font-size:.8rem;margin-top:6px}
+.kpi .s{color:var(--muted);font-size:.72rem;margin-top:2px}
+
+/* cards */
+.cards{display:grid;gap:14px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.grid-2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card h3{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.card p{color:var(--ink2);margin:6px 0}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:6px;
+  background:var(--surface-2);color:var(--ink2);border:1px solid var(--border)}
+.chip.solid{color:#fff;border:none}
+
+/* GRAPH */
+.graph-shell{position:relative;background:
+   radial-gradient(1200px 500px at 30% -10%, color-mix(in srgb,var(--c-db) 7%,transparent), transparent 60%),
+   var(--surface-1);
+  border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+#gcanvas{display:block;width:100%;height:600px;cursor:grab;touch-action:none}
+#gcanvas.grabbing{cursor:grabbing}
+.g-controls{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:8px;max-width:230px}
+.g-controls .row{display:flex;gap:6px;flex-wrap:wrap}
+.gbtn{border:1px solid var(--border);background:color-mix(in srgb,var(--surface-1) 80%,transparent);
+  color:var(--ink);border-radius:8px;padding:5px 9px;cursor:pointer;font-size:.76rem;backdrop-filter:blur(6px)}
+.gbtn:hover{background:var(--surface-2)}
+.gbtn.on{background:var(--c-db);color:#fff;border-color:transparent}
+.gsearch{border:1px solid var(--border);background:color-mix(in srgb,var(--surface-1) 85%,transparent);
+  color:var(--ink);border-radius:8px;padding:6px 9px;font-size:.78rem;width:100%;backdrop-filter:blur(6px)}
+.legend{position:absolute;bottom:12px;left:12px;background:color-mix(in srgb,var(--surface-1) 86%,transparent);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;backdrop-filter:blur(8px);max-width:245px}
+.legend h4{margin:0 0 7px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.leg-item{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--ink2);cursor:pointer;
+  padding:2px 4px;border-radius:6px;user-select:none}
+.leg-item:hover{background:var(--surface-2)}
+.leg-item.off{opacity:.38}
+.leg-item .g{font-family:var(--mono);color:var(--muted);margin-left:auto;font-size:.72rem}
+.leg-sym{width:14px;height:14px;flex:none;display:inline-block}
+.g-filters{position:absolute;top:12px;right:12px;background:color-mix(in srgb,var(--surface-1) 86%,transparent);
+  border:1px solid var(--border);border-radius:10px;padding:10px 12px;backdrop-filter:blur(8px);max-width:210px}
+.g-filters h4{margin:0 0 7px;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.g-filters .leg-item .ln{width:20px;height:0;border-top-width:2px;border-top-style:solid;flex:none}
+.g-hint{position:absolute;bottom:12px;right:12px;font-size:.7rem;color:var(--muted);
+  background:color-mix(in srgb,var(--surface-1) 80%,transparent);padding:4px 8px;border-radius:6px;backdrop-filter:blur(6px)}
+#tooltip{position:fixed;z-index:80;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--ink);color:var(--page);border-radius:8px;padding:8px 10px;font-size:.76rem;max-width:260px;
+  box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#tooltip .tt-t{font-weight:700;margin-bottom:2px}
+#tooltip .tt-k{font-family:var(--mono);font-size:.72rem;opacity:.8}
+#detail{margin-top:14px;min-height:56px}
+#detail .d-empty{color:var(--muted);font-size:.85rem}
+.d-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.d-title{font-weight:700;font-size:1.05rem}
+.d-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.83rem}
+.d-grid dt{color:var(--muted)} .d-grid dd{margin:0;color:var(--ink);font-family:var(--mono);font-size:.8rem;word-break:break-word}
+.d-neigh{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+
+/* pipeline */
+.flow{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding-bottom:6px}
+.step{flex:1;min-width:150px;background:var(--surface-1);border:1px solid var(--border);border-radius:12px;
+  padding:13px 14px;position:relative;box-shadow:var(--shadow)}
+.step + .step{margin-left:26px}
+.step::before{content:"";position:absolute;left:-26px;top:50%;width:26px;height:2px;
+  background:linear-gradient(90deg,var(--axis),var(--c-db))}
+.step::after{content:"";position:absolute;left:-8px;top:calc(50% - 4px);width:8px;height:8px;border-radius:50%;
+  background:var(--c-db);animation:pulseflow 2.4s infinite}
+.step:first-child::before,.step:first-child::after{display:none}
+@keyframes pulseflow{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.15)}}
+.step .st-n{font-family:var(--mono);font-size:.68rem;color:var(--muted);font-weight:700}
+.step .st-t{font-weight:600;margin:2px 0 4px}
+.step .st-d{font-size:.77rem;color:var(--ink2)}
+.step.gate{border-color:color-mix(in srgb,var(--critical) 45%,var(--border))}
+.step.gate .st-n{color:var(--critical)}
+
+/* ladder */
+.ladder{display:grid;gap:8px}
+.rung{display:grid;grid-template-columns:170px 1fr;gap:12px;align-items:center;background:var(--surface-1);
+  border:1px solid var(--border);border-left-width:4px;border-radius:10px;padding:10px 14px}
+.rung .marker{font-family:var(--mono);font-size:.76rem;font-weight:700}
+.rung .desc{font-size:.82rem;color:var(--ink2)}
+.rung.ok{border-left-color:var(--good)} .rung.ok .marker{color:var(--good)}
+.rung.warn{border-left-color:var(--warning)} .rung.warn .marker{color:var(--warning)}
+.rung.err{border-left-color:var(--critical)} .rung.err .marker{color:var(--critical)}
+
+/* schema table */
+.tbl{width:100%;border-collapse:collapse;font-size:.85rem}
+.tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border)}
+.tbl th{color:var(--muted);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.tbl td.mono{font-family:var(--mono);font-size:.8rem}
+.tbl tr:hover td{background:var(--surface-2)}
+.scroll-x{overflow-x:auto}
+
+/* crosswalk heatmap */
+.xwrap{overflow-x:auto}
+.xtable{border-collapse:separate;border-spacing:3px;font-size:.75rem}
+.xtable th{font-weight:600;color:var(--ink2);padding:3px}
+.xtable th.col{writing-mode:vertical-rl;transform:rotate(180deg);height:96px;vertical-align:bottom;font-family:var(--mono);color:var(--muted)}
+.xtable td.rowh{text-align:right;white-space:nowrap;padding-right:8px}
+.xtable .cell{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);cursor:default;position:relative}
+.xtable .cell.decl{background:var(--blue-450);border-color:transparent}
+.xtable .cell.prop{background:transparent;border:1.5px dashed var(--blue-300)}
+.xtable .cell.none{background:var(--surface-2);border-color:var(--border2)}
+.prov{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+
+/* callouts */
+.callout{border:1px solid var(--border);border-left-width:4px;border-radius:10px;padding:12px 15px;background:var(--surface-1);margin:10px 0}
+.callout.good{border-left-color:var(--good)}
+.callout.warn{border-left-color:var(--warning)}
+.callout.crit{border-left-color:var(--critical)}
+.callout.info{border-left-color:var(--c-db)}
+.callout .ct{font-weight:700;font-size:.85rem;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.callout p{margin:3px 0;font-size:.85rem;color:var(--ink2)}
+
+/* findings */
+.finding{display:grid;grid-template-columns:26px 1fr;gap:12px;padding:13px 0;border-bottom:1px solid var(--border2)}
+.finding .ic{font-size:1.1rem;line-height:1.4}
+.finding h4{font-size:.95rem;margin-bottom:3px}
+.finding p{margin:0;font-size:.85rem;color:var(--ink2)}
+.finding .tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+
+/* contract */
+.contract{background:linear-gradient(180deg,var(--surface-1),var(--surface-2));border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.contract .field{padding:10px 0;border-bottom:1px solid var(--border2)}
+.contract .field:last-child{border-bottom:none}
+.contract .fl{font-family:var(--mono);font-size:.72rem;color:var(--c-db);font-weight:700;letter-spacing:.03em}
+.contract .fv{margin-top:4px;font-size:.87rem;color:var(--ink)}
+.bar{height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-top:4px;max-width:340px}
+.bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--blue-300),var(--blue-450))}
+.subclaim{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;margin:5px 0;font-size:.83rem}
+.subclaim .cf{font-family:var(--mono);color:var(--ink2);font-size:.78rem}
+ul.tight{margin:6px 0;padding-left:18px}
+ul.tight li{margin:3px 0;font-size:.85rem;color:var(--ink2)}
+
+footer{padding:34px 0 60px;border-top:1px solid var(--border);color:var(--muted);font-size:.8rem}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+@media (max-width:640px){
+  .hero h1{font-size:1.6rem}
+  #gcanvas{height:460px}
+  .g-filters{display:none}
+  .rung{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">🕸️ DATA INAMOVIBLE<span class="badge-live">GraphRAG LIVE</span></span>
+  <nav class="navlinks">
+    <a href="#grafo">Grafo</a><a href="#anatomia">3 stores</a><a href="#esquema">Esquema</a>
+    <a href="#ingesta">Ingesta</a><a href="#retrieval">Retrieval</a><a href="#embedding">Embedding</a>
+    <a href="#crosswalk">Taxonomía</a><a href="#corpus">Corpus</a><a href="#acceso">Acceso</a><a href="#review">Revisión</a>
+  </nav>
+  <button class="tgl" id="themeBtn" title="Cambiar tema">◐ Tema</button>
+</div></div>
+
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Witt × Organogenesis · Revisión del RAG</div>
+  <h1>Cómo está compuesto hoy el GraphRAG de la DATA INAMOVIBLE</h1>
+  <p>Radiografía estructural del back-end de conocimiento: ingesta, chunks, embeddings, grafo y retrieval —
+     con el estado <b>medido en vivo</b> contra el Neo4j hospedado (Dokploy) el 2026-07-20. El grafo de abajo
+     es un espejo fiel de los 97 nodos y 144 aristas que existen ahora mismo en el store.</p>
+  <div class="meta-row">
+    <span class="pill"><span class="dot" style="background:var(--good)"></span> Neo4j <b>LIVE</b> · vector index <b>ONLINE</b></span>
+    <span class="pill">embed <b>OpenAI · 1536-dim</b> · cosine</span>
+    <span class="pill">último re-ingest <b>2026-06-13</b></span>
+    <span class="pill">store verificado <b>74 IDs</b></span>
+    <span class="pill mut">probe read-only · cero mutación (§7)</span>
+  </div>
+</header>
+</div>
+
+<div class="wrap">
+<!-- KPIs -->
+<section id="kpis" style="border-top:none">
+  <div class="kpis">
+    <div class="kpi"><div class="v" style="color:var(--c-db)">97</div><div class="l">Nodos en el grafo</div><div class="s">5 labels</div></div>
+    <div class="kpi"><div class="v" style="color:var(--c-ent)">144</div><div class="l">Aristas</div><div class="s">4 tipos de relación</div></div>
+    <div class="kpi"><div class="v">28</div><div class="l">Documents (vectorizados)</div><div class="s">13 niche · 11 db · 3 dataset · 1 chunk</div></div>
+    <div class="kpi"><div class="v" style="color:var(--c-ent)">44</div><div class="l">Entities (genes)</div><div class="s">21 RAW · 23 DERIVED</div></div>
+    <div class="kpi"><div class="v" style="color:var(--c-niche)">13</div><div class="l">Niches (RN1–RN13)</div><div class="s">eje de dato/artefacto</div></div>
+    <div class="kpi"><div class="v" style="color:var(--c-db)">11</div><div class="l">Databases fuente</div><div class="s">ZFIN · Ensembl · GEO…</div></div>
+    <div class="kpi"><div class="v">88</div><div class="l">Aristas MENTIONS</div><div class="s">doc → gen verificado</div></div>
+    <div class="kpi"><div class="v">1536</div><div class="l">Dim. del embedding</div><div class="s">text-embedding-3-small</div></div>
+  </div>
+</section>
+
+<!-- GRAPH -->
+<section id="grafo">
+  <div class="sec-h"><span class="n">01</span><h2>El grafo, en vivo</h2></div>
+  <p class="lead">Arrastra los nodos, pasa el cursor para ver vecinos, haz clic para inspeccionar. Filtra por tipo de
+     nodo (leyenda, abajo-izq.) o de relación (arriba-der.). Cada nodo y arista existe literalmente en el Neo4j hospedado.
+     Nota la sutileza estructural: cada <b>niche/database aparece dos veces</b> — como <i>nodo de taxonomía</i> (cuadro) y como
+     <i>Document de catálogo</i> vectorizado (círculo) enlazados por <code>IN_NICHE</code>/<code>FROM_DB</code>.</p>
+  <div class="graph-shell">
+    <canvas id="gcanvas"></canvas>
+    <div class="g-controls">
+      <input class="gsearch" id="gsearch" placeholder="🔍 buscar gen / nodo…" autocomplete="off">
+      <div class="row">
+        <button class="gbtn" id="btnReplay">↻ Reanimar</button>
+        <button class="gbtn" id="btnFreeze">⏸ Congelar</button>
+      </div>
+      <div class="row">
+        <button class="gbtn" id="btnReset">⤢ Reset</button>
+        <button class="gbtn" id="btnZin">＋</button>
+        <button class="gbtn" id="btnZout">－</button>
+      </div>
+    </div>
+    <div class="g-filters">
+      <h4>Relaciones</h4>
+      <div class="leg-item" data-edge="MENTIONS"><span class="ln" style="border-color:var(--c-ent)"></span> MENTIONS <span class="g">88</span></div>
+      <div class="leg-item" data-edge="FEEDS"><span class="ln" style="border-color:var(--e-feeds);border-top-style:dashed"></span> FEEDS <span class="g">26</span></div>
+      <div class="leg-item" data-edge="IN_NICHE"><span class="ln" style="border-color:var(--c-niche)"></span> IN_NICHE <span class="g">16</span></div>
+      <div class="leg-item" data-edge="FROM_DB"><span class="ln" style="border-color:var(--c-db)"></span> FROM_DB <span class="g">14</span></div>
+    </div>
+    <div class="legend" id="legend">
+      <h4>Tipos de nodo — clic para filtrar</h4>
+      <div class="leg-item" data-kind="entity"><canvas class="leg-sym" data-sym="entity" width="14" height="14"></canvas> Entity (gen) <span class="g">44</span></div>
+      <div class="leg-item" data-kind="dataset"><canvas class="leg-sym" data-sym="dataset" width="14" height="14"></canvas> Dataset (corpus) <span class="g">3</span></div>
+      <div class="leg-item" data-kind="chunk"><canvas class="leg-sym" data-sym="chunk" width="14" height="14"></canvas> Chunk <span class="g">1</span></div>
+      <div class="leg-item" data-kind="niche"><canvas class="leg-sym" data-sym="niche" width="14" height="14"></canvas> Niche (taxonomía) <span class="g">13</span></div>
+      <div class="leg-item" data-kind="nicheDoc"><canvas class="leg-sym" data-sym="nicheDoc" width="14" height="14"></canvas> Doc·niche (catálogo) <span class="g">13</span></div>
+      <div class="leg-item" data-kind="db"><canvas class="leg-sym" data-sym="db" width="14" height="14"></canvas> Database (taxonomía) <span class="g">11</span></div>
+      <div class="leg-item" data-kind="dbDoc"><canvas class="leg-sym" data-sym="dbDoc" width="14" height="14"></canvas> Doc·database (catálogo) <span class="g">11</span></div>
+      <div class="leg-item" data-kind="meta"><canvas class="leg-sym" data-sym="meta" width="14" height="14"></canvas> Meta (frescura) <span class="g">1</span></div>
+    </div>
+    <div class="g-hint" id="ghint">RAW = relleno + halo · DERIVED = contorno</div>
+  </div>
+  <div id="detail" class="card" style="margin-top:14px">
+    <span class="d-empty">Haz clic en un nodo para ver su ficha (ENSDARG, tier, vecinos…).</span>
+  </div>
+</section>
+
+<!-- ANATOMY -->
+<section id="anatomia">
+  <div class="sec-h"><span class="n">02</span><h2>Tres stores separados — la regla de Emmanuel</h2></div>
+  <p class="lead">La “DATA INAMOVIBLE” no es un solo blob. Son tres capas deliberadamente separadas, con contratos distintos.
+     El GraphRAG de este reporte es la capa 2 (más la 1 embebida como Entities).</p>
+  <div class="cards grid-3">
+    <div class="card" style="border-top:3px solid var(--c-ent)">
+      <h3><span class="dot" style="background:var(--c-ent)"></span> 1 · Identificadores</h3>
+      <p><b>DATA INAMOVIBLE v1</b> — genes/accesiones verificados, <b>determinista</b>. 74 records.</p>
+      <p class="mut mono">analysis/outputs/verified_identifiers.json</p>
+      <p>Acceso: <code>resolve_id.py</code> · <code>resolve()/require()</code>. NUNCA se inventa un ID; <code>NOT_FOUND</code> es una ausencia positiva.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--c-db)">
+      <h3><span class="dot" style="background:var(--c-db)"></span> 2 · Corpus RAG (este)</h3>
+      <p><b>GraphRAG</b> — corpus categorizado en 13 niches × 10 fuentes + embeddings + grafo.</p>
+      <p class="mut mono">rag_index/ · Neo4j (Dokploy)</p>
+      <p>Acceso: <code>rag_backend.query()</code> (semántico) vía MCP <code>query_data_inamovible</code> / CLI <code>witt-di query</code>.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--c-doc)">
+      <h3><span class="dot" style="background:var(--c-doc)"></span> 3 · Outputs / tesis</h3>
+      <p>Resultados y tesis que los agentes producen (no es fuente, es salida).</p>
+      <p class="mut mono">SIMULATION_OUTPUTS_DB/ · reports/</p>
+      <p>Se escriben, se versionan; nunca contaminan las capas 1–2.</p>
+    </div>
+  </div>
+  <div class="callout info"><div class="ct">🔒 Regla inamovible (ADR-0022)</div>
+    <p>Toda mutación de las capas 1–2 (ADD/EDIT/DELETE, a través de embedding + índice Neo4j/vector/sparse + raw)
+       <b>pasa por gate humano y especifica qué cambia</b>. Las <b>lecturas son libres</b> (este reporte es una lectura); las mutaciones no.
+       <code>ingest.py</code> es add/update-only (MERGE, nunca borra).</p></div>
+</section>
+
+<!-- SCHEMA -->
+<section id="esquema">
+  <div class="sec-h"><span class="n">03</span><h2>Esquema del grafo — para que puedas cambiarlo</h2></div>
+  <p class="lead">Lo que existe en Neo4j: 5 labels de nodo, 4 tipos de relación, 5 constraints de unicidad y 1 índice vectorial HNSW.
+     Esta es la referencia si quieres añadir un tipo de nodo o una arista.</p>
+  <div class="cards grid-2">
+    <div class="card">
+      <h3>Nodos y relaciones (medido en vivo)</h3>
+      <div class="scroll-x"><table class="tbl">
+        <tr><th>Label</th><th>#</th><th>Clave / props</th></tr>
+        <tr><td class="mono" style="color:var(--c-doc)">Document</td><td>28</td><td class="mono">doc_id ∗ · type · text · embedding[1536] · meta</td></tr>
+        <tr><td class="mono" style="color:var(--c-niche)">Niche</td><td>13</td><td class="mono">id ∗ · name</td></tr>
+        <tr><td class="mono" style="color:var(--c-db)">Database</td><td>11</td><td class="mono">id ∗ · name · link</td></tr>
+        <tr><td class="mono" style="color:var(--c-ent)">Entity</td><td>44</td><td class="mono">symbol ∗ · ensdarg · tier</td></tr>
+        <tr><td class="mono" style="color:var(--c-meta)">Meta</td><td>1</td><td class="mono">key ∗ · embed_model · embed_dim · refreshed_at · doc_count</td></tr>
+        <tr><td colspan="3" style="height:6px;border:none"></td></tr>
+        <tr><td class="mono">(:Document)-[:IN_NICHE]→(:Niche)</td><td>16</td><td class="dim">catálogo+datasets → niche</td></tr>
+        <tr><td class="mono">(:Document)-[:FROM_DB]→(:Database)</td><td>14</td><td class="dim">catálogo+datasets → fuente</td></tr>
+        <tr><td class="mono">(:Database)-[:FEEDS]→(:Niche)</td><td>26</td><td class="dim">crosswalk declarado</td></tr>
+        <tr><td class="mono">(:Document)-[:MENTIONS]→(:Entity)</td><td>88</td><td class="dim">dataset/chunk → gen verificado</td></tr>
+      </table></div>
+      <p class="mut" style="font-size:.76rem;margin-top:8px">∗ = uniqueness constraint. <code>bootstrap.py</code> / <code>ingest.py</code> los crean idempotentemente.</p>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--good)"></span> Índice vectorial <span class="chip">ONLINE</span></h3>
+      <div class="d-grid" style="margin:8px 0 12px">
+        <dt>nombre</dt><dd>doc_embeddings</dd>
+        <dt>tipo</dt><dd>HNSW (nativo Neo4j)</dd>
+        <dt>dimensiones</dt><dd>1536</dd>
+        <dt>similitud</dt><dd>cosine</dd>
+        <dt>sobre</dt><dd>(:Document).embedding</dd>
+        <dt>docs con vector</dt><dd>28 / 28</dd>
+      </div>
+      <div class="callout warn" style="margin:0">
+        <div class="ct">⚠ Guardas de mutación (§7)</div>
+        <p><b>dim-guard:</b> si el modelo cambia la dimensión ≠ índice → aborta.
+           <b>embed-model-guard:</b> cambiar de modelo re-embebe TODO + invalida el espacio vectorial → halt hasta confirmación humana explícita.</p>
+      </div>
+    </div>
+  </div>
+  <div class="callout info"><div class="ct">💡 La dualidad niche/db (catálogo ⇄ taxonomía)</div>
+    <p>Cada niche y cada database existe como <b>dos nodos</b>: un <code>:Document</code> (texto embebido y recuperable —
+       “<code>niche:RN1</code>”, “<code>db:ZFIN</code>”) y un nodo de taxonomía (<code>:Niche</code>/<code>:Database</code>) que sirve de scaffold del grafo.
+       El primero es buscable semánticamente; el segundo ancla las aristas <code>FEEDS</code>/<code>IN_NICHE</code>. Por eso IN_NICHE=16
+       (13 catálogo→niche + 3 datasets→RN1) y FROM_DB=14 (11 catálogo + 3 datasets).</p></div>
+</section>
+
+<!-- INGEST -->
+<section id="ingesta">
+  <div class="sec-h"><span class="n">04</span><h2>Pipeline de ingesta (WRITE — con gate humano)</h2></div>
+  <p class="lead">Cómo entra un dato al grafo. Es add/update-only (MERGE, idempotente). El gate humano es <b>estructural</b>:
+     un record sin <code>approval_chain</code> aprobado físicamente no entra (<code>is_approved</code> lo filtra en <code>gather_documents</code> y en el loop de entidades).</p>
+  <div class="flow">
+    <div class="step gate"><div class="st-n">GATE HUMANO</div><div class="st-t">approve_dataset.py</div><div class="st-d">is_approved(): todos los gates “approved”, si no → se salta (default-DENY)</div></div>
+    <div class="step"><div class="st-n">01 · REUNIR</div><div class="st-t">gather_documents()</div><div class="st-d">niches + databases + datasets/chunks aprobados → docs {id, text, meta}</div></div>
+    <div class="step"><div class="st-n">02 · EMBED</div><div class="st-t">get_embedder()</div><div class="st-d">OpenAI text-embedding-3-small → vector 1536-dim por doc (timeout 10s, 0 retries)</div></div>
+    <div class="step"><div class="st-n">03 · MERGE nodos</div><div class="st-t">Document/Niche/Database</div><div class="st-d">+ IN_NICHE / FROM_DB / FEEDS. MERGE = nunca duplica, nunca borra</div></div>
+    <div class="step gate"><div class="st-n">04 · ENTIDADES</div><div class="st-t">resolve_id → MENTIONS</div><div class="st-d">cada gen se ata a su ENSDARG+tier verificado; sin verificar NO se acuña</div></div>
+    <div class="step"><div class="st-n">05 · SELLO</div><div class="st-t">(:Meta)</div><div class="st-d">embed_model, dim, refreshed_at, doc_count — introspectable</div></div>
+  </div>
+  <div class="callout good"><div class="ct">✔ Sincronía sparse↔grafo</div>
+    <p><code>ingest.py</code> también corre <code>build_index()</code> para mantener el half sparse (<code>documents.jsonl</code>) en sync con el grafo,
+       si no los chunks recién ingeridos quedarían sub-rankeados por la fusión RRF.</p></div>
+</section>
+
+<!-- RETRIEVAL -->
+<section id="retrieval">
+  <div class="sec-h"><span class="n">05</span><h2>Pipeline de retrieval (READ — híbrido, no-hang)</h2></div>
+  <p class="lead">Una consulta se responde fusionando dos halves: <b>sparse</b> (TF-IDF/BM25 sobre <code>documents.jsonl</code>) y
+     <b>dense</b> (índice vectorial Neo4j + expansión 1-hop del grafo), combinados por <b>Reciprocal Rank Fusion</b> (k=60), y luego rerank.
+     Todo con timeouts acotados: nunca cuelga, nunca devuelve vacío (§6).</p>
+  <div class="flow">
+    <div class="step"><div class="st-n">QUERY</div><div class="st-t">texto → embed</div><div class="st-d">se embebe con el MISMO modelo del índice (OpenAI 1536) — pin duro</div></div>
+    <div class="step"><div class="st-n">A · SPARSE</div><div class="st-t">TfidfRetriever</div><div class="st-d">TF-IDF (1,2)-gram sobre documents.jsonl · instantáneo, sin red</div></div>
+    <div class="step"><div class="st-n">B · DENSE</div><div class="st-t">Neo4jGraphRetriever</div><div class="st-d">db.index.vector.queryNodes + OPTIONAL MATCH 1-hop (vecinos)</div></div>
+    <div class="step"><div class="st-n">FUSIÓN</div><div class="st-t">RRF (k=60)</div><div class="st-d">score += 1/(60+rank) por pool · une ambos halves</div></div>
+    <div class="step"><div class="st-n">RERANK</div><div class="st-t">Reranker</div><div class="st-d">NoOp por defecto · cross-encoder biomédico en el rack (opt-in)</div></div>
+    <div class="step"><div class="st-n">MARCA</div><div class="st-t">HitList.degraded</div><div class="st-d">viaja CON el resultado — nunca un sparse disfrazado de semántico</div></div>
+  </div>
+  <h3 style="margin:20px 0 10px;font-size:1rem">Escalera de degradación — el arreglo del incidente 07-18/19 (ADR-0039)</h3>
+  <div class="ladder">
+    <div class="rung ok"><span class="marker">degraded = None</span><span class="desc">Semántico real: el half dense contribuyó (Neo4j + OpenAI vivos). Score top ~0.80.</span></div>
+    <div class="rung warn"><span class="marker">sparse-by-config</span><span class="desc">Semántico deshabilitado por configuración (dev/offline, <code>RAG_BACKEND≠neo4j</code>). Hits keyword.</span></div>
+    <div class="rung err"><span class="marker">dense-failed:sparse-only</span><span class="desc">El dense estaba configurado pero FALLÓ (Neo4j caído / dim mismatch / MAX_PATH). Sparse enmascarado — se anuncia FUERTE.</span></div>
+    <div class="rung warn"><span class="marker">sparse (fallback)</span><span class="desc">El path hosted excedió 12s → fallback local sparse (§6 no-hang). Útil pero no de alta-recall.</span></div>
+  </div>
+  <div class="callout crit"><div class="ct">🩹 Causa raíz del incidente (resuelto)</div>
+    <p>El MCP corría con un Python <b>sin</b> <code>neo4j</code>/<code>openai</code> (→ siempre sparse) + un <b>deadlock de import de sklearn</b> en thread
+       secundario (→ 1800s). Fix: <code>uv run --locked</code> (intérprete reproducible), preload de sklearn en el main thread, timeout OpenAI 10s, y esta marca de degradación in-band.</p></div>
+</section>
+
+<!-- EMBEDDING -->
+<section id="embedding">
+  <div class="sec-h"><span class="n">06</span><h2>Embeddings — pluggable por <code>EMBED_MODEL</code></h2></div>
+  <p class="lead">El modelo de embedding es intercambiable detrás de <code>get_dim()</code>/<code>get_embedder()</code>, y la dimensión del índice
+     siempre se deriva del modelo elegido. En producción (hay Neo4j) el default se fuerza a OpenAI.</p>
+  <div class="cards grid-3">
+    <div class="card" style="border-top:3px solid var(--good)">
+      <h3>openai <span class="chip solid" style="background:var(--good)">EN VIVO</span></h3>
+      <p class="mono dim">text-embedding-3-small · 1536-dim</p>
+      <p>Default cuando hay <code>NEO4J_URI</code>. Sin infra propia. Timeout 10s / 0 retries (anti-hang).</p>
+      <p class="mut">large → 3072-dim (opt-in)</p>
+    </div>
+    <div class="card">
+      <h3>bge <span class="chip">dev/offline</span></h3>
+      <p class="mono dim">BAAI/bge-base-en-v1.5 · 768-dim</p>
+      <p>Cero dependencia de API/torch (ONNX vía fastembed). Fallback sin red, sin costo.</p>
+    </div>
+    <div class="card">
+      <h3>biobert · specter2 <span class="chip">reserva</span></h3>
+      <p class="mono dim">sentence-transformers · 768-dim</p>
+      <p>Embeddings biomédicos (papers). Requieren torch; para el rack.</p>
+    </div>
+  </div>
+  <div class="callout info"><div class="ct">📌 Decisión (Emmanuel, 2026-06-11)</div>
+    <p>OpenAI en el servidor para mantenerlo simple (no Ollama). Anthropic no tiene API de embeddings; el 2.º proveedor recomendado sería Voyage AI.
+       Costo de un embed de query ≈ $0.0000004 — el meter grande son los agentes, no los embeddings.</p></div>
+</section>
+
+<!-- CROSSWALK -->
+<section id="crosswalk">
+  <div class="sec-h"><span class="n">07</span><h2>Taxonomía: 13 niches × 11 databases</h2></div>
+  <p class="lead">El crosswalk que alimenta las aristas <code>FEEDS</code>. <b>Relleno</b> = declarado (autoritativo, en el grafo).
+     <b>Contorno punteado</b> = propuesto por el corpus-classifier (pendiente de gate humano, NO en el grafo aún).
+     El color del punto de cada fuente marca su <b>procedencia</b> (physical &gt; genetic &gt; curated &gt; computed &gt; predicted).</p>
+  <div class="xwrap"><table class="xtable" id="xtable"></table></div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.76rem;color:var(--ink2)">
+    <span><span class="cell decl" style="display:inline-block;width:14px;height:14px;vertical-align:middle"></span> declarado (en grafo)</span>
+    <span><span class="cell prop" style="display:inline-block;width:14px;height:14px;vertical-align:middle"></span> propuesto (gate pendiente)</span>
+    <span class="mut">|</span>
+    <span><span class="prov" style="background:var(--blue-600)"></span>physical</span>
+    <span><span class="prov" style="background:var(--blue-450)"></span>genetic</span>
+    <span><span class="prov" style="background:var(--blue-300)"></span>curated</span>
+    <span><span class="prov" style="background:var(--blue-200)"></span>computed</span>
+    <span><span class="prov" style="background:var(--blue-100)"></span>predicted</span>
+  </div>
+</section>
+
+<!-- CORPUS -->
+<section id="corpus">
+  <div class="sec-h"><span class="n">08</span><h2>El corpus real — 3 datasets aprobados</h2></div>
+  <p class="lead">Todo lo semántico del grafo son estos 3 records (más los 13 niche + 10 db de catálogo). Las 88 aristas MENTIONS
+     salen de aquí. El namespace de genes de cada dataset (16k–26k) excede al store: sólo los genes verificados se vuelven Entities (ninguno se acuña).</p>
+  <div class="cards grid-3">
+    <div class="card" style="border-top:3px solid var(--c-doc)">
+      <h3>CORPUS-2026-0001 · ZESTA</h3>
+      <div style="margin:6px 0"><span class="chip">RN1→RN9,RN8</span> <span class="chip">N3/N1</span> <span class="chip">CNGB_STOmics</span></div>
+      <p>Atlas espaciotemporal de embriogénesis (Stereo-seq + scRNA). <b>13 h5ad · 4.84 GB · 226,376 células/spots · 3–24 hpf</b>.</p>
+      <p><b>44 entidades</b> verificadas (21 RAW). Raw = source-pointer (URL + sha256, re-descargable).</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--c-doc)">
+      <h3>CORPUS-2026-0002 · GSE218068</h3>
+      <div style="margin:6px 0"><span class="chip">RN1→RN9</span> <span class="chip">N5/N3</span> <span class="chip">GEO_NCBI</span></div>
+      <p>scRNA de segmento anterior ocular (foxc1b:GFP). <b>12,234 células · 16,283 genes · 48–144 hpf</b>.</p>
+      <p><b>40 entidades</b> (namespace RefSeq NM_∗, cross-mapeado a Ensembl). Cierra Nat Witt GAP-5 (córnea).</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--c-doc)">
+      <h3>CORPUS-2026-0003 · Gerlach 2014</h3>
+      <div style="margin:6px 0"><span class="chip">RN1</span> <span class="chip">N3</span> <span class="chip">EuropePMC</span></div>
+      <p>Paper (prkci/prkcζ, identidad del túbulo pronéfrico). <b>1 chunk (abstract)</b> vía answer-pipeline (ADR-0022).</p>
+      <p><b>4 entidades</b> (pax2a, podxl, wt1a, wt1b). prkci/prkcz NO en store (gap declarado, no acuñado).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ACCESO -->
+<section id="acceso">
+  <div class="sec-h"><span class="n">09</span><h2>Cómo se consulta — front doors + hosting</h2></div>
+  <div class="cards grid-2">
+    <div class="card">
+      <h3>Dos front doors, mismo backend</h3>
+      <p><b>CLI <code>witt-di</code></b> (primario, robusto): <code>query · resolve · fetch · health</code>. Sin registro por sesión, sin pipe stdio.
+         Exit codes: 0 ok · 3 degradado · 4 not-found.</p>
+      <p><b>MCP <code>data-inamovible</code></b> (enhancement, read-only): <code>query_data_inamovible · resolve_identifier · fetch_raw</code>.
+         Lanzado por <code>uv run --locked</code> (intérprete pineado). La mutación NO se expone como tool MCP.</p>
+      <div class="callout good" style="margin-top:10px"><div class="ct">✔ Smoke gate 6/6 (<code>smoke_rag.py</code>)</div>
+        <p>deps · score semántico ≥0.7 · resolve pax2a→ENSDARG00000028148 · fallback sparse · 8 usuarios concurrentes · no-hang &lt;20s.</p></div>
+    </div>
+    <div class="card">
+      <h3>Topología hospedada (Dokploy)</h3>
+      <div class="d-grid" style="margin-top:8px">
+        <dt>Grafo + vector</dt><dd>Neo4j (HNSW nativo)</dd>
+        <dt>Raw store</dt><dd>MinIO (privado) + source-pointer (público)</dd>
+        <dt>Embeddings</dt><dd>OpenAI API</dd>
+        <dt>Contribución</dt><dd>ingest service (submit→gate admin→push)</dd>
+        <dt>Secretos</dt><dd>.secrets/deploy.env (gitignored)</dd>
+      </div>
+      <p class="mut" style="font-size:.78rem;margin-top:10px">El grafo es la guía; el raw store es el respaldo. <code>fetch_raw</code> baja del chunk al dato crudo (URL presignada MinIO o source_url+sha256).</p>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEW -->
+<section id="review">
+  <div class="sec-h"><span class="n">10</span><h2>Revisión: qué está sano, qué falta</h2></div>
+  <p class="lead">Lectura crítica del estado, verificada contra el grafo vivo. Ordenado por relevancia operativa.</p>
+  <div class="callout good"><div class="ct">✅ Actualización v2 · 2026-07-20</div><p><b>#1 (tier weights) y #3 (EuropePMC) RESUELTOS</b> vía re-ingest con gate humano (ADR-0041). Este reporte ya refleja el estado post-fix: 97 nodos / 144 aristas, 88/88 MENTIONS con peso, EuropePMC registrado. v1 se conserva como el snapshot pre-fix.</p></div>
+
+  <div class="finding"><div class="ic">🟢</div><div>
+    <h4>La arquitectura está madura y endurecida</h4>
+    <p>Híbrido sparse+dense con RRF, marca de degradación in-band, timeouts acotados en cada capa, gate humano estructural,
+       resolver determinista, índice vectorial ONLINE a 1536-dim. El incidente de silent-degradation de julio está cerrado y con smoke 6/6.</p>
+    <div class="tags"><span class="chip">verificado en vivo</span><span class="chip">ADR-0039</span></div>
+  </div></div>
+
+  <div class="finding"><div class="ic">🟢</div><div>
+    <h4>RESUELTO — tier weights materializados (drift grafo↔código cerrado)</h4>
+    <p>Antes: el grafo (re-ingerido 2026-06-13) tenía <code>verified_tier_weight = None</code> en las 44 Entities pese a que <code>ingest.py</code> ya lo estampaba (ADR-0024/0039).
+       <b>Corregido el 2026-07-20 con un re-ingest con gate humano</b> (ADR-0041): ahora las 44 Entities (21×1.0 RAW / 23×0.7 DERIVED) y <b>88/88 aristas MENTIONS</b> (43×1.0 / 45×0.7) llevan su peso por tier. <code>Meta.refreshed_at = 2026-07-20</code>.</p>
+    <div class="tags"><span class="chip">verificado en vivo</span><span class="chip">ADR-0041</span></div>
+  </div></div>
+
+  <div class="finding"><div class="ic">🟠</div><div>
+    <h4>El corpus está sub-poblado frente al diseño de 13 niches</h4>
+    <p>Sólo <b>3 datasets</b> y <b>44 genes</b> pueblan un grafo diseñado para 13 niches × 10 fuentes. RN1 (transcriptómica) lo acapara: todos los datasets caen en RN1.
+       Niches RN2, RN5–RN7, RN10 no tienen ningún dataset. Es coherente con “prueba pequeño antes de armar bien”, pero el grafo aún es un esqueleto con 3 hojas.</p>
+    <div class="tags"><span class="chip">RN1 = 3/3 datasets</span><span class="chip">10 niches vacíos de corpus</span></div>
+  </div></div>
+
+  <div class="finding"><div class="ic">🟢</div><div>
+    <h4>RESUELTO — EuropePMC registrado como fuente (fuga de scaffold cerrada)</h4>
+    <p>Antes: CORPUS-2026-0003 (<code>source_db: EuropePMC</code>) no tenía arista <code>FROM_DB</code> porque EuropePMC no estaba en <code>databases.json</code>.
+       <b>Corregido el 2026-07-20</b> (ADR-0041): EuropePMC registrado (feeds RN11) → nodo <code>DB::EuropePMC</code> + <code>CORPUS-2026-0003 -[:FROM_DB]-> EuropePMC</code>. Deja listo Path B para futuros papers.</p>
+    <div class="tags"><span class="chip">FROM_DB 12→14</span><span class="chip">Databases 10→11</span></div>
+  </div></div>
+
+  <div class="finding"><div class="ic">🟡</div><div>
+    <h4>Chunking incipiente: 1 solo chunk en todo el grafo</h4>
+    <p>Sólo existe <code>CORPUS-2026-0003#c000</code> (un abstract). Los 2 datasets scRNA/espaciales no se chunkean (son matrices, no prosa).
+       El pipeline de <code>chunk_document.py</code> (secciones Título/Abstract/Métodos/…) está definido pero apenas ejercido. A medida que entren papers (RN11),
+       el chunking y su rerank cross-encoder pasan a ser el cuello de botella real.</p>
+    <div class="tags"><span class="chip">1 chunk</span><span class="chip">cross-encoder = NoOp</span></div>
+  </div></div>
+
+  <div class="finding"><div class="ic">🟡</div><div>
+    <h4>Los 74 IDs verificados &gt; 44 Entities en el grafo</h4>
+    <p>El store determinista tiene 74 identificadores, pero sólo 44 son Entities en el grafo (los que algún dataset menciona). Los 30 restantes
+       (mayormente marcadores de señalización/inducción añadidos en ADR-0029/0035) están verificados pero <b>aún no tienen dato de corpus que los cite</b>.
+       No es un error — es señal de dónde falta corpus.</p>
+    <div class="tags"><span class="chip">74 resolubles</span><span class="chip">44 en grafo</span></div>
+  </div></div>
+
+  <h3 style="margin:22px 0 10px;font-size:1.05rem">Contrato §5 — este output</h3>
+  <div class="contract">
+    <div class="field"><div class="fl">direct_answer</div>
+      <div class="fv">El GraphRAG de la DATA INAMOVIBLE es un RAG híbrido hospedado y en vivo: grafo de 5 labels (95 nodos / 141 aristas) con
+        índice vectorial OpenAI 1536-dim (ONLINE) fusionado con un half sparse TF-IDF por RRF, tras dos front doors (MCP + CLI), con gate humano
+        estructural y resolver determinista. Arquitectónicamente maduro y endurecido; operativamente aún pequeño (3 datasets, 44 genes) y y (post-fix 2026-07-20, ADR-0041) con los tier weights materializados y EuropePMC registrado.</div></div>
+    <div class="field"><div class="fl">confidence_by_subclaim</div><div class="fv">
+      <div class="subclaim"><span>Composición viva medida (95/141, 1536 ONLINE, meta 06-13)</span><span class="cf">0.98</span></div>
+      <div class="bar"><i style="width:98%"></i></div>
+      <div class="subclaim"><span>Mecánica de retrieval (RRF híbrido + escalera degradación + no-hang)</span><span class="cf">0.92</span></div>
+      <div class="bar"><i style="width:92%"></i></div>
+      <div class="subclaim"><span>tier_weight materializado (fix verificado en vivo 2026-07-20)</span><span class="cf">0.98</span></div>
+      <div class="bar"><i style="width:98%"></i></div>
+      <div class="subclaim"><span>“corpus sub-poblado vs diseño” (juicio)</span><span class="cf">0.85</span></div>
+      <div class="bar"><i style="width:85%"></i></div>
+    </div></div>
+    <div class="field"><div class="fl">evidence_cited</div><div class="fv"><ul class="tight">
+      <li>Probe read-only en vivo a Neo4j (2026-07-20): node/edge counts, Meta, índice vectorial, dump de 95 nodos/141 aristas</li>
+      <li><code>rag_index/graphrag/{ingest,embeddings,bootstrap}.py</code> · <code>analysis/scripts/lib/rag_backend.py</code> · <code>resolve_id.py</code></li>
+      <li><code>rag_index/mcp_server/{server,cli,smoke_rag}.py</code> · <code>corpus_manifest.json</code> · <code>niches/databases/crosswalk.json</code></li>
+    </ul></div></div>
+    <div class="field"><div class="fl">alternatives_considered</div><div class="fv"><ul class="tight">
+      <li>“El grafo podría estar stale/inalcanzable” → <b>refutado</b>: LIVE, vector index ONLINE.</li>
+      <li>“Podría estar desplegado sólo sparse” → <b>refutado</b>: dense 1536 ONLINE, 27/27 docs con vector.</li>
+      <li>“Los MENTIONS ya llevan tier weight” → era <b>falso</b> pre-fix (None ×44); <b>corregido</b> 2026-07-20 → 88/88 con peso.</li>
+    </ul></div></div>
+    <div class="field"><div class="fl">gap_flags</div><div class="fv"><ul class="tight">
+      <li>✅ RESUELTOS 2026-07-20 (ADR-0041): tier weights materializados · EuropePMC registrado</li>
+      <li>Abiertos: corpus sub-poblado (10 niches sin dataset — por diseño) · chunking incipiente (1 chunk) · 30/74 IDs sin cita de corpus</li>
+    </ul></div></div>
+    <div class="field"><div class="fl">framework_applied</div><div class="fv">Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8:
+      <i>“Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results.”</i>
+      Cada claim de composición se contrastó contra el grafo vivo (stream independiente) antes de afirmarlo.</div></div>
+    <div class="field"><div class="fl">agents_invoked</div><div class="fv"><ul class="tight">
+      <li><code>composite-auditor</code> — <b>skipped-ad-hoc</b>: revisión de infraestructura + viz sobre estado medido, no un claim de evidencia-substrato que requiera gate de auditoría. Se ofrece como follow-up si quieres tratar la revisión como evidencia auditada.</li>
+      <li><code>causal-pruner</code> — <b>not-applicable</b>: no hay candidatos rankeados ni hipótesis de suficiencia.</li>
+    </ul></div></div>
+  </div>
+</section>
+</div>
+
+<footer><div class="wrap">
+  <p><b>DATA INAMOVIBLE — Composición del GraphRAG.</b> Estado medido en vivo el 2026-07-20 (probe read-only, cero mutación · CLAUDE.md §7).
+     Grafo = espejo fiel del Neo4j hospedado (97 nodos / 144 aristas). Reporte autocontenido; sin dependencias externas.</p>
+  <p class="mut">Witt × Organogenesis · GWT v1.1 · reports/2026-07-20_data-inamovible-graphrag-composicion_v1.html</p>
+</div></footer>
+
+<div id="tooltip"></div>
+
+<script type="application/json" id="gdata">{"nodes":[{"id":"niche:RN1","k":"nicheDoc","name":"Transcriptómica y dinámica de linajes","nid":"RN1"},{"id":"niche:RN2","k":"nicheDoc","name":"Estructura proteica y complejos","nid":"RN2"},{"id":"niche:RN3","k":"nicheDoc","name":"Redes de señalización y parámetros cinéticos","nid":"RN3"},{"id":"niche:RN4","k":"nicheDoc","name":"Microambiente bioquímico","nid":"RN4"},{"id":"niche:RN5","k":"nicheDoc","name":"Bioeléctrica","nid":"RN5"},{"id":"niche:RN6","k":"nicheDoc","name":"Biomecánica pasiva y ECM","nid":"RN6"},{"id":"niche:RN7","k":"nicheDoc","name":"Mecánica activa y dinámica de fluidos","nid":"RN7"},{"id":"niche:RN8","k":"nicheDoc","name":"Cinética celular colectiva","nid":"RN8"},{"id":"niche:RN9","k":"nicheDoc","name":"Morfología emergente y topología","nid":"RN9"},{"id":"niche:RN10","k":"nicheDoc","name":"Tejidos chaperones y boundary conditions","nid":"RN10"},{"id":"niche:RN11","k":"nicheDoc","name":"Claims curados de literatura biológica","nid":"RN11"},{"id":"niche:RN12","k":"nicheDoc","name":"Perturbaciones e intervenciones causales","nid":"RN12"},{"id":"niche:RN13","k":"nicheDoc","name":"Modelos de simulación y código","nid":"RN13"},{"id":"db:ZFIN","k":"dbDoc","name":"ZFIN"},{"id":"db:DanioCODE","k":"dbDoc","name":"DanioCODE"},{"id":"db:Reactome","k":"dbDoc","name":"Reactome"},{"id":"db:GEO_NCBI","k":"dbDoc","name":"GEO_NCBI"},{"id":"db:UCSC_Cell_Browser","k":"dbDoc","name":"UCSC_Cell_Browser"},{"id":"db:STRING_DB","k":"dbDoc","name":"STRING_DB"},{"id":"db:IntAct","k":"dbDoc","name":"IntAct"},{"id":"db:BioGRID","k":"dbDoc","name":"BioGRID"},{"id":"db:Ensembl_DanioRerio","k":"dbDoc","name":"Ensembl_DanioRerio"},{"id":"db:CNGB_STOmics","k":"dbDoc","name":"CNGB_STOmics"},{"id":"CORPUS-2026-0001","k":"dataset","name":"CORPUS-2026-0001","acc":"CNP0002220 / STDS0000057","db":"CNGB_STOmics","dn":"RN1"},{"id":"CORPUS-2026-0002","k":"dataset","name":"CORPUS-2026-0002","acc":"GSE218068","db":"GEO_NCBI","dn":"RN1"},{"id":"CORPUS-2026-0003","k":"dataset","name":"CORPUS-2026-0003","acc":"PMID:25446529 | PMC4261075 | DOI:10.1016/j.ydbio.2014.08.038","db":"EuropePMC","dn":"RN1"},{"id":"CORPUS-2026-0003#c000","k":"chunk","name":"CORPUS-2026-0003#c000","acc":null,"db":null,"dn":null},{"id":"db:EuropePMC","k":"dbDoc","name":"EuropePMC"},{"id":"NICHE::RN1","k":"niche","name":"Transcriptómica y dinámica de linajes","nid":"RN1"},{"id":"NICHE::RN2","k":"niche","name":"Estructura proteica y complejos","nid":"RN2"},{"id":"NICHE::RN3","k":"niche","name":"Redes de señalización y parámetros cinéticos","nid":"RN3"},{"id":"NICHE::RN4","k":"niche","name":"Microambiente bioquímico","nid":"RN4"},{"id":"NICHE::RN5","k":"niche","name":"Bioeléctrica","nid":"RN5"},{"id":"NICHE::RN6","k":"niche","name":"Biomecánica pasiva y ECM","nid":"RN6"},{"id":"NICHE::RN7","k":"niche","name":"Mecánica activa y dinámica de fluidos","nid":"RN7"},{"id":"NICHE::RN8","k":"niche","name":"Cinética celular colectiva","nid":"RN8"},{"id":"NICHE::RN9","k":"niche","name":"Morfología emergente y topología","nid":"RN9"},{"id":"NICHE::RN10","k":"niche","name":"Tejidos chaperones y boundary conditions","nid":"RN10"},{"id":"NICHE::RN11","k":"niche","name":"Claims curados de literatura biológica","nid":"RN11"},{"id":"NICHE::RN12","k":"niche","name":"Perturbaciones e intervenciones causales","nid":"RN12"},{"id":"NICHE::RN13","k":"niche","name":"Modelos de simulación y código","nid":"RN13"},{"id":"DB::ZFIN","k":"db","name":"ZFIN","bid":"ZFIN"},{"id":"DB::DanioCODE","k":"db","name":"DanioCODE","bid":"DanioCODE"},{"id":"DB::Reactome","k":"db","name":"Reactome","bid":"Reactome"},{"id":"DB::GEO_NCBI","k":"db","name":"GEO NCBI","bid":"GEO_NCBI"},{"id":"DB::UCSC_Cell_Browser","k":"db","name":"UCSC Cell Browser","bid":"UCSC_Cell_Browser"},{"id":"DB::STRING_DB","k":"db","name":"STRING DB","bid":"STRING_DB"},{"id":"DB::IntAct","k":"db","name":"IntAct","bid":"IntAct"},{"id":"DB::BioGRID","k":"db","name":"BioGRID","bid":"BioGRID"},{"id":"DB::Ensembl_DanioRerio","k":"db","name":"Ensembl Zebrafish (Danio rerio)","bid":"Ensembl_DanioRerio"},{"id":"DB::CNGB_STOmics","k":"db","name":"CNGB STOmics (ZESTA / spatial atlases)","bid":"CNGB_STOmics"},{"id":"DB::EuropePMC","k":"db","name":"Europe PMC","bid":"EuropePMC"},{"id":"ENT::foxc1a","k":"entity","name":"foxc1a","tier":"DERIVED","g":"ENSDARG00000091481"},{"id":"ENT::foxc1b","k":"entity","name":"foxc1b","tier":"RAW","g":"ENSDARG00000055398"},{"id":"ENT::pitx2","k":"entity","name":"pitx2","tier":"RAW","g":"ENSDARG00000036194"},{"id":"ENT::prox1a","k":"entity","name":"prox1a","tier":"RAW","g":"ENSDARG00000055158"},{"id":"ENT::pax2a","k":"entity","name":"pax2a","tier":"RAW","g":"ENSDARG00000028148"},{"id":"ENT::aldh1a3","k":"entity","name":"aldh1a3","tier":"RAW","g":"ENSDARG00000076933"},{"id":"ENT::aldh3a1","k":"entity","name":"aldh3a1","tier":"RAW","g":"ENSDARG00000074791"},{"id":"ENT::cdh17","k":"entity","name":"cdh17","tier":"RAW","g":"ENSDARG00000005112"},{"id":"ENT::col1a1a","k":"entity","name":"col1a1a","tier":"RAW","g":"ENSDARG00000012405"},{"id":"ENT::col1a2","k":"entity","name":"col1a2","tier":"RAW","g":"ENSDARG00000020007"},{"id":"ENT::emx1","k":"entity","name":"emx1","tier":"DERIVED","g":"ENSDARG00000039569"},{"id":"ENT::gata3","k":"entity","name":"gata3","tier":"RAW","g":"ENSDARG00000016526"},{"id":"ENT::hnf1ba","k":"entity","name":"hnf1ba","tier":"DERIVED","g":"ENSDARG00000006615"},{"id":"ENT::kcnj1a.1","k":"entity","name":"kcnj1a.1","tier":"DERIVED","g":"ENSDARG00000091232"},{"id":"ENT::kera","k":"entity","name":"kera","tier":"RAW","g":"ENSDARG00000056938"},{"id":"ENT::krt4","k":"entity","name":"krt4","tier":"RAW","g":"ENSDARG00000017624"},{"id":"ENT::lhx1a","k":"entity","name":"lhx1a","tier":"RAW","g":"ENSDARG00000014018"},{"id":"ENT::lum","k":"entity","name":"lum","tier":"RAW","g":"ENSDARG00000045580"},{"id":"ENT::nphs1","k":"entity","name":"nphs1","tier":"DERIVED","g":"ENSDARG00000060758"},{"id":"ENT::pax6b","k":"entity","name":"pax6b","tier":"RAW","g":"ENSDARG00000045936"},{"id":"ENT::slc20a1a","k":"entity","name":"slc20a1a","tier":"DERIVED","g":"ENSDARG00000020114"},{"id":"ENT::slc4a4a","k":"entity","name":"slc4a4a","tier":"DERIVED","g":"ENSDARG00000013730"},{"id":"ENT::tbx2b","k":"entity","name":"tbx2b","tier":"DERIVED","g":"ENSDARG00000006120"},{"id":"ENT::tp63","k":"entity","name":"tp63","tier":"RAW","g":"ENSDARG00000044356"},{"id":"ENT::trpm7","k":"entity","name":"trpm7","tier":"DERIVED","g":"ENSDARG00000036232"},{"id":"ENT::atp1a1a.2","k":"entity","name":"atp1a1a.2","tier":"DERIVED","g":"ENSDARG00000007739"},{"id":"ENT::atp1b1b","k":"entity","name":"atp1b1b","tier":"DERIVED","g":"ENSDARG00000076833"},{"id":"ENT::col1a1b","k":"entity","name":"col1a1b","tier":"RAW","g":"ENSDARG00000035809"},{"id":"ENT::hnf1bb","k":"entity","name":"hnf1bb","tier":"DERIVED","g":"ENSDARG00000022295"},{"id":"ENT::irx3b","k":"entity","name":"irx3b","tier":"DERIVED","g":"ENSDARG00000031138"},{"id":"ENT::mafba","k":"entity","name":"mafba","tier":"DERIVED","g":"ENSDARG00000017121"},{"id":"ENT::nphs2","k":"entity","name":"nphs2","tier":"DERIVED","g":"ENSDARG00000042850"},{"id":"ENT::pax6a","k":"entity","name":"pax6a","tier":"RAW","g":"ENSDARG00000103379"},{"id":"ENT::podxl","k":"entity","name":"podxl","tier":"DERIVED","g":"ENSDARG00000031228"},{"id":"ENT::pou3f3a","k":"entity","name":"pou3f3a","tier":"DERIVED","g":"ENSDARG00000042032"},{"id":"ENT::sim1a","k":"entity","name":"sim1a","tier":"DERIVED","g":"ENSDARG00000023316"},{"id":"ENT::slc12a3","k":"entity","name":"slc12a3","tier":"DERIVED","g":"ENSDARG00000013855"},{"id":"ENT::slc13a1","k":"entity","name":"slc13a1","tier":"DERIVED","g":"ENSDARG00000045638"},{"id":"ENT::slc13a3","k":"entity","name":"slc13a3","tier":"DERIVED","g":"ENSDARG00000069478"},{"id":"ENT::wt1a","k":"entity","name":"wt1a","tier":"RAW","g":"ENSDARG00000031420"},{"id":"ENT::wt1b","k":"entity","name":"wt1b","tier":"RAW","g":"ENSDARG00000007990"},{"id":"ENT::mecom","k":"entity","name":"mecom","tier":"DERIVED","g":"ENSDARG00000060808"},{"id":"ENT::pax8","k":"entity","name":"pax8","tier":"RAW","g":"ENSDARG00000015879"},{"id":"ENT::slc12a1","k":"entity","name":"slc12a1","tier":"DERIVED","g":"ENSDARG00000098096"},{"id":"META::data_inamovible","k":"meta","name":"data_inamovible","em":"openai","dim":1536,"ref":"2026-07-20"}],"edges":[{"s":"CORPUS-2026-0003","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"CORPUS-2026-0002","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"CORPUS-2026-0001","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"niche:RN1","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"niche:RN2","t":"NICHE::RN2","y":"IN_NICHE"},{"s":"niche:RN3","t":"NICHE::RN3","y":"IN_NICHE"},{"s":"niche:RN4","t":"NICHE::RN4","y":"IN_NICHE"},{"s":"niche:RN5","t":"NICHE::RN5","y":"IN_NICHE"},{"s":"niche:RN6","t":"NICHE::RN6","y":"IN_NICHE"},{"s":"niche:RN7","t":"NICHE::RN7","y":"IN_NICHE"},{"s":"niche:RN8","t":"NICHE::RN8","y":"IN_NICHE"},{"s":"niche:RN9","t":"NICHE::RN9","y":"IN_NICHE"},{"s":"niche:RN10","t":"NICHE::RN10","y":"IN_NICHE"},{"s":"niche:RN11","t":"NICHE::RN11","y":"IN_NICHE"},{"s":"niche:RN12","t":"NICHE::RN12","y":"IN_NICHE"},{"s":"niche:RN13","t":"NICHE::RN13","y":"IN_NICHE"},{"s":"db:ZFIN","t":"DB::ZFIN","y":"FROM_DB"},{"s":"db:DanioCODE","t":"DB::DanioCODE","y":"FROM_DB"},{"s":"db:Reactome","t":"DB::Reactome","y":"FROM_DB"},{"s":"CORPUS-2026-0002","t":"DB::GEO_NCBI","y":"FROM_DB"},{"s":"db:GEO_NCBI","t":"DB::GEO_NCBI","y":"FROM_DB"},{"s":"db:UCSC_Cell_Browser","t":"DB::UCSC_Cell_Browser","y":"FROM_DB"},{"s":"db:STRING_DB","t":"DB::STRING_DB","y":"FROM_DB"},{"s":"db:IntAct","t":"DB::IntAct","y":"FROM_DB"},{"s":"db:BioGRID","t":"DB::BioGRID","y":"FROM_DB"},{"s":"db:Ensembl_DanioRerio","t":"DB::Ensembl_DanioRerio","y":"FROM_DB"},{"s":"CORPUS-2026-0001","t":"DB::CNGB_STOmics","y":"FROM_DB"},{"s":"db:CNGB_STOmics","t":"DB::CNGB_STOmics","y":"FROM_DB"},{"s":"CORPUS-2026-0003","t":"DB::EuropePMC","y":"FROM_DB"},{"s":"db:EuropePMC","t":"DB::EuropePMC","y":"FROM_DB"},{"s":"DB::ZFIN","t":"NICHE::RN11","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN10","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::DanioCODE","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::DanioCODE","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::Reactome","t":"NICHE::RN4","y":"FEEDS"},{"s":"DB::Reactome","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN9","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::UCSC_Cell_Browser","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::UCSC_Cell_Browser","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::STRING_DB","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::STRING_DB","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::IntAct","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::IntAct","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::BioGRID","t":"NICHE::RN12","y":"FEEDS"},{"s":"DB::BioGRID","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN11","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN9","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::EuropePMC","t":"NICHE::RN11","y":"FEEDS"},{"s":"CORPUS-2026-0001","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc13a3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc13a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc12a3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc12a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::sim1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::prox1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pou3f3a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax8","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax6a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax2a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::nphs2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::mecom","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::mafba","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::irx3b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::hnf1bb","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::foxc1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::atp1b1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::atp1a1a.2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::trpm7","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::tp63","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::tbx2b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc4a4a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc20a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pitx2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax6b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::nphs1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::lum","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::lhx1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::krt4","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::kera","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::kcnj1a.1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::hnf1ba","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::gata3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::foxc1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::emx1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::cdh17","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::aldh3a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::aldh1a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::trpm7","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::tp63","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::tbx2b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc4a4a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc20a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc13a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc13a1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc12a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::sim1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pou3f3a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax6b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax6a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::nphs2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::nphs1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::mafba","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::lum","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::lhx1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::krt4","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::kera","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::kcnj1a.1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::irx3b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::hnf1bb","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::hnf1ba","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::gata3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::emx1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::cdh17","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::atp1b1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::atp1a1a.2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::aldh1a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax2a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::prox1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pitx2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::foxc1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::foxc1a","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::pax2a","y":"MENTIONS"}]}</script>
+<script>
+"use strict";
+const GRAPH = JSON.parse(document.getElementById('gdata').textContent);
+
+/* ---------- theme ---------- */
+const root=document.documentElement;
+function curTheme(){return root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+document.getElementById('themeBtn').onclick=()=>{root.setAttribute('data-theme', curTheme()==='dark'?'light':'dark'); syncColors(); drawLegend();};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{syncColors();drawLegend();});
+
+/* ---------- color roles read from CSS ---------- */
+let COL={};
+function css(v){return getComputedStyle(root).getPropertyValue(v).trim();}
+function syncColors(){
+  COL={
+    niche:css('--c-niche'), db:css('--c-db'), doc:css('--c-doc'), ent:css('--c-ent'), meta:css('--c-meta'),
+    feeds:css('--e-feeds'), ink:css('--ink'), ink2:css('--ink2'), muted:css('--muted'),
+    surface:css('--surface-1'), grid:css('--grid'), page:css('--page')
+  };
+}
+syncColors();
+
+const KIND={
+  niche:   {c:()=>COL.niche, shape:'rrect',  r:9,  soft:0},
+  nicheDoc:{c:()=>COL.niche, shape:'circle', r:6,  soft:1},
+  db:      {c:()=>COL.db,    shape:'rrect',  r:10, soft:0},
+  dbDoc:   {c:()=>COL.db,    shape:'circle', r:6,  soft:1},
+  dataset: {c:()=>COL.doc,   shape:'circle', r:14, soft:0, hub:1},
+  chunk:   {c:()=>COL.doc,   shape:'circle', r:6,  soft:0, hollow:1},
+  entity:  {c:()=>COL.ent,   shape:'circle', r:6,  soft:0},
+  meta:    {c:()=>COL.meta,  shape:'diamond',r:9,  soft:0}
+};
+const EDGE={
+  MENTIONS:{c:()=>COL.ent,   w:0.8, dash:[]},
+  FEEDS:   {c:()=>COL.feeds, w:1.0, dash:[4,4]},
+  IN_NICHE:{c:()=>COL.niche, w:1.2, dash:[]},
+  FROM_DB: {c:()=>COL.db,    w:1.2, dash:[]}
+};
+
+/* ---------- build sim model ---------- */
+const cv=document.getElementById('gcanvas'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
+const byId=new Map();
+const nodes=GRAPH.nodes.map((n,i)=>{const o=Object.assign({},n);o.i=i;o.deg=0;byId.set(n.id,o);return o;});
+const edges=GRAPH.edges.filter(e=>byId.has(e.s)&&byId.has(e.t)).map(e=>({s:byId.get(e.s),t:byId.get(e.t),y:e.y}));
+edges.forEach(e=>{e.s.deg++;e.t.deg++;});
+const adj=new Map(); nodes.forEach(n=>adj.set(n.id,new Set()));
+edges.forEach(e=>{adj.get(e.s.id).add(e.t.id);adj.get(e.t.id).add(e.s.id);});
+
+const hiddenKinds=new Set(), hiddenEdges=new Set();
+function nodeVisible(n){return !hiddenKinds.has(n.k);}
+function edgeVisible(e){return !hiddenEdges.has(e.y)&&nodeVisible(e.s)&&nodeVisible(e.t);}
+
+/* view transform */
+let scale=1,tx=0,ty=0;
+function resize(){
+  const r=cv.getBoundingClientRect(); W=r.width; H=r.height;
+  cv.width=W*DPR; cv.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+function seed(){
+  const cx=W/2,cy=H/2;
+  nodes.forEach((n,i)=>{const a=i*2.399963;const rad=40+Math.sqrt(i)*22;
+    n.x=cx+Math.cos(a)*rad; n.y=cy+Math.sin(a)*rad; n.vx=0; n.vy=0; n.appear=0;});
+}
+let alpha=1;
+function reheat(a){alpha=Math.max(alpha,a||0.7);}
+
+/* forces */
+function tick(){
+  const vis=nodes.filter(nodeVisible);
+  const cx=W/2,cy=H/2;
+  for(let a=0;a<vis.length;a++){
+    const A=vis[a];
+    for(let b=a+1;b<vis.length;b++){
+      const B=vis[b];
+      let dx=A.x-B.x,dy=A.y-B.y,d2=dx*dx+dy*dy;
+      if(d2<0.01){dx=Math.random()-.5;dy=Math.random()-.5;d2=1;}
+      const d=Math.sqrt(d2);
+      const rep=1500/d2*alpha;
+      const fx=dx/d*rep, fy=dy/d*rep;
+      A.vx+=fx;A.vy+=fy;B.vx-=fx;B.vy-=fy;
+      // soft collision
+      const min=(KIND[A.k].r+KIND[B.k].r+6);
+      if(d<min){const push=(min-d)*0.5*alpha/d;A.vx+=dx*push;A.vy+=dy*push;B.vx-=dx*push;B.vy-=dy*push;}
+    }
+    // gravity to center
+    A.vx+=(cx-A.x)*0.012*alpha; A.vy+=(cy-A.y)*0.012*alpha;
+  }
+  edges.forEach(e=>{
+    if(!edgeVisible(e))return;
+    const L=e.y==='MENTIONS'?58:e.y==='FEEDS'?76:46;
+    let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,d=Math.hypot(dx,dy)||1;
+    const f=(d-L)*0.045*alpha;
+    const fx=dx/d*f, fy=dy/d*f;
+    if(!e.s.fixed){e.s.vx+=fx;e.s.vy+=fy;}
+    if(!e.t.fixed){e.t.vx-=fx;e.t.vy-=fy;}
+  });
+  vis.forEach(n=>{
+    if(n.fixed)return;
+    n.vx*=0.85; n.vy*=0.85;
+    n.x+=n.vx; n.y+=n.vy;
+    n.x=Math.max(24,Math.min(W-24,n.x)); n.y=Math.max(24,Math.min(H-24,n.y));
+  });
+  alpha*=0.99; if(alpha<0.02)alpha=0.02;
+}
+
+/* ---------- draw ---------- */
+let hovered=null, selected=null;
+function neighbors(n){return n?adj.get(n.id):null;}
+function isDimmed(n){
+  const focus=hovered||selected; if(!focus)return false;
+  if(n===focus)return false;
+  return !neighbors(focus).has(n.id);
+}
+function edgeActive(e){
+  const focus=hovered||selected; if(!focus)return false;
+  return e.s===focus||e.t===focus;
+}
+function shapePath(n,r){
+  const k=KIND[n.k];
+  if(k.shape==='rrect'){const s=r*1.7;roundRect(n.x-s/2,n.y-s/2,s,s,4);}
+  else if(k.shape==='diamond'){ctx.beginPath();ctx.moveTo(n.x,n.y-r);ctx.lineTo(n.x+r,n.y);ctx.lineTo(n.x,n.y+r);ctx.lineTo(n.x-r,n.y);ctx.closePath();}
+  else{ctx.beginPath();ctx.arc(n.x,n.y,r,0,7);}
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.save(); ctx.translate(tx,ty); ctx.scale(scale,scale);
+  const focus=hovered||selected;
+  // edges
+  edges.forEach(e=>{
+    if(!edgeVisible(e))return;
+    const cfg=EDGE[e.y]; const act=edgeActive(e);
+    let op = focus? (act?0.9:0.05) : 0.22;
+    ctx.globalAlpha=op*Math.min(e.s.appear,e.t.appear);
+    ctx.strokeStyle=cfg.c(); ctx.lineWidth=(act?cfg.w+0.8:cfg.w)/1;
+    ctx.setLineDash(cfg.dash);
+    ctx.beginPath();ctx.moveTo(e.s.x,e.s.y);
+    const mx=(e.s.x+e.t.x)/2, my=(e.s.y+e.t.y)/2-Math.hypot(e.t.x-e.s.x,e.t.y-e.s.y)*0.06;
+    ctx.quadraticCurveTo(mx,my,e.t.x,e.t.y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  // nodes
+  const t=performance.now()/1000;
+  nodes.forEach(n=>{
+    if(!nodeVisible(n))return;
+    const k=KIND[n.k]; const base=k.r+(k.hub?0:Math.min(n.deg*0.35,4));
+    const r=base*(0.4+0.6*n.appear);
+    const dim=isDimmed(n);
+    ctx.globalAlpha=(dim?0.16:1)*n.appear;
+    const col=k.c();
+    // hub pulse (datasets = vectorized hubs) + meta
+    if((k.hub||n.k==='meta') && !dim){
+      const pr=r+4+Math.sin(t*2+n.i)*2.2;
+      ctx.globalAlpha=(0.12)*n.appear; shapePath(n,pr); ctx.fillStyle=col; ctx.fill(); ctx.globalAlpha=n.appear;
+    }
+    // entity tier: RAW solid+halo, DERIVED hollow
+    if(n.k==='entity' && n.tier==='RAW' && !dim){
+      ctx.globalAlpha=0.18*n.appear; ctx.beginPath();ctx.arc(n.x,n.y,r+3.5,0,7);ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=n.appear;
+    }
+    shapePath(n,r);
+    const hollow = k.hollow || (n.k==='entity'&&n.tier==='DERIVED');
+    if(hollow){ ctx.fillStyle=COL.surface; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=col; ctx.stroke(); }
+    else { ctx.fillStyle=col; ctx.globalAlpha=(k.soft?0.62:1)*(dim?0.16:1)*n.appear; ctx.fill(); ctx.globalAlpha=(dim?0.16:1)*n.appear;
+           ctx.lineWidth=1; ctx.strokeStyle=COL.surface; ctx.stroke(); }
+    if(n===focus){ shapePath(n,r+3); ctx.lineWidth=2; ctx.strokeStyle=COL.ink; ctx.globalAlpha=n.appear; ctx.stroke(); }
+    // labels: hubs always; others on focus/zoom
+    const showLabel = k.hub || n===focus || (focus&&neighbors(focus).has(n.id)) || scale>1.7;
+    if(showLabel && !dim && n.appear>0.6){
+      const label = n.k==='entity'?n.name : n.k==='dataset'?n.id.replace('CORPUS-2026-','C') :
+                    n.k==='niche'?n.nid : n.k==='db'?n.bid : n.k==='meta'?'Meta':n.name;
+      ctx.globalAlpha=n.appear; ctx.fillStyle=COL.ink; ctx.font='600 10px '+getComputedStyle(document.body).fontFamily;
+      ctx.textAlign='center'; ctx.fillText(label, n.x, n.y-r-4);
+    }
+  });
+  ctx.restore();
+  ctx.globalAlpha=1;
+}
+
+/* ---------- loop ---------- */
+let frozen=false, t0=0;
+function updateAppear(){const now=performance.now();nodes.forEach(n=>{n.appear=Math.max(0,Math.min(1,(now-t0-n.i*7)/450));});}
+function loop(){
+  try{
+    if(!frozen) tick();
+    updateAppear();
+    draw();
+  }catch(err){ console.error('graph loop error',err); }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- interaction ---------- */
+function toWorld(px,py){return {x:(px-tx)/scale,y:(py-ty)/scale};}
+function pick(px,py){
+  const p=toWorld(px,py); let best=null,bd=1e9;
+  nodes.forEach(n=>{if(!nodeVisible(n)||n.appear<0.3)return;const k=KIND[n.k];const r=(k.r+(k.hub?0:Math.min(n.deg*0.35,4)))+4;
+    const d=Math.hypot(n.x-p.x,n.y-p.y); if(d<r&&d<bd){bd=d;best=n;}});
+  return best;
+}
+let dragging=null,panning=false,last=null,downAt=null;
+cv.addEventListener('pointerdown',ev=>{
+  const rect=cv.getBoundingClientRect(); const px=ev.clientX-rect.left,py=ev.clientY-rect.top;
+  const n=pick(px,py); downAt={px,py,n};
+  if(n){dragging=n;n.fixed=true;cv.classList.add('grabbing');}
+  else{panning=true;last={x:ev.clientX,y:ev.clientY};cv.classList.add('grabbing');}
+  cv.setPointerCapture(ev.pointerId);
+});
+cv.addEventListener('pointermove',ev=>{
+  const rect=cv.getBoundingClientRect(); const px=ev.clientX-rect.left,py=ev.clientY-rect.top;
+  if(dragging){const p=toWorld(px,py);dragging.x=p.x;dragging.y=p.y;dragging.vx=0;dragging.vy=0;reheat(0.5);hideTip();return;}
+  if(panning){tx+=ev.clientX-last.x;ty+=ev.clientY-last.y;last={x:ev.clientX,y:ev.clientY};return;}
+  const n=pick(px,py); hovered=n;
+  if(n)showTip(n,ev.clientX,ev.clientY); else hideTip();
+  cv.style.cursor=n?'pointer':'grab';
+});
+cv.addEventListener('pointerup',ev=>{
+  const rect=cv.getBoundingClientRect(); const px=ev.clientX-rect.left,py=ev.clientY-rect.top;
+  if(dragging){dragging.fixed=false;
+    if(downAt&&Math.hypot(px-downAt.px,py-downAt.py)<4){selectNode(dragging);} dragging=null;}
+  else if(panning&&downAt&&Math.hypot(px-downAt.px,py-downAt.py)<4){selectNode(null);}
+  panning=false;cv.classList.remove('grabbing');
+});
+cv.addEventListener('wheel',ev=>{ev.preventDefault();const rect=cv.getBoundingClientRect();
+  const px=ev.clientX-rect.left,py=ev.clientY-rect.top; const f=ev.deltaY<0?1.12:0.89;
+  const wx=(px-tx)/scale,wy=(py-ty)/scale; scale=Math.max(0.4,Math.min(4,scale*f));
+  tx=px-wx*scale; ty=py-wy*scale;},{passive:false});
+
+const tip=document.getElementById('tooltip');
+function showTip(n,x,y){
+  let extra = n.k==='entity'?`${n.g} · tier ${n.tier}` :
+              n.k==='dataset'?`${n.acc||''} · ${n.db||''}` :
+              n.k==='meta'?`embed ${n.em} · ${n.dim}-dim · ${n.ref}` :
+              (n.name||'');
+  tip.innerHTML=`<div class="tt-t">${escapeHtml(n.name||n.id)}</div><div class="tt-k">${KIND_LABEL[n.k]} · ${n.deg} conex.</div><div class="tt-k">${escapeHtml(extra)}</div>`;
+  tip.style.left=Math.min(x+14,innerWidth-260)+'px'; tip.style.top=(y+14)+'px'; tip.style.opacity=1;
+}
+function hideTip(){tip.style.opacity=0;}
+const KIND_LABEL={niche:'Niche',nicheDoc:'Doc·niche',db:'Database',dbDoc:'Doc·db',dataset:'Dataset',chunk:'Chunk',entity:'Entity (gen)',meta:'Meta'};
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+const detail=document.getElementById('detail');
+function selectNode(n){
+  selected=n;
+  if(!n){detail.innerHTML='<span class="d-empty">Haz clic en un nodo para ver su ficha (ENSDARG, tier, vecinos…).</span>';return;}
+  const col=KIND[n.k].c();
+  const ne=[...neighbors(n)].map(id=>byId.get(id));
+  let rows='';
+  const add=(k,v)=>{if(v!=null&&v!=='')rows+=`<dt>${k}</dt><dd>${escapeHtml(String(v))}</dd>`;};
+  add('label',KIND_LABEL[n.k]); add('id',n.id);
+  if(n.k==='entity'){add('ENSDARG',n.g);add('tier',n.tier);}
+  if(n.k==='dataset'){add('accession',n.acc);add('source_db',n.db);add('niche',n.dn);}
+  if(n.k==='niche'||n.k==='nicheDoc')add('niche',n.nid);
+  if(n.k==='db'||n.k==='dbDoc')add('database',n.bid);
+  if(n.k==='meta'){add('embed',n.em+' · '+n.dim+'-dim');add('refreshed',n.ref);}
+  add('conexiones',n.deg);
+  const chips=ne.slice(0,40).map(m=>`<span class="chip" style="cursor:pointer" data-goto="${escapeHtml(m.id)}">${escapeHtml(m.name||m.id)}</span>`).join('');
+  detail.innerHTML=`<div class="d-head"><span class="dot" style="background:${col};width:12px;height:12px"></span>
+    <span class="d-title">${escapeHtml(n.name||n.id)}</span></div>
+    <dl class="d-grid">${rows}</dl>
+    ${ne.length?`<div class="mut" style="font-size:.74rem;margin-top:10px">Vecinos (${ne.length})</div><div class="d-neigh">${chips}</div>`:''}`;
+  detail.querySelectorAll('[data-goto]').forEach(el=>el.onclick=()=>{const m=byId.get(el.getAttribute('data-goto'));if(m){selectNode(m);focusNode(m);}});
+  reheat(0.3);
+}
+function focusNode(n){scale=Math.max(scale,1.6);tx=W/2-n.x*scale;ty=H/2-n.y*scale;}
+
+/* ---------- controls ---------- */
+document.getElementById('btnReplay').onclick=()=>{seed();t0=performance.now();reheat(1);};
+document.getElementById('btnFreeze').onclick=e=>{frozen=!frozen;e.target.classList.toggle('on',frozen);e.target.textContent=frozen?'▶ Reanudar':'⏸ Congelar';};
+document.getElementById('btnReset').onclick=()=>{scale=1;tx=0;ty=0;selectNode(null);};
+document.getElementById('btnZin').onclick=()=>{scale=Math.min(4,scale*1.2);};
+document.getElementById('btnZout').onclick=()=>{scale=Math.max(0.4,scale*0.83);};
+document.getElementById('gsearch').addEventListener('input',e=>{
+  const q=e.target.value.trim().toLowerCase(); if(!q){selectNode(null);return;}
+  const m=nodes.find(n=>(n.name||'').toLowerCase().includes(q)||n.id.toLowerCase().includes(q));
+  if(m){selectNode(m);focusNode(m);}
+});
+document.querySelectorAll('.leg-item[data-kind]').forEach(el=>{
+  el.onclick=()=>{const k=el.getAttribute('data-kind'); if(hiddenKinds.has(k)){hiddenKinds.delete(k);el.classList.remove('off');}else{hiddenKinds.add(k);el.classList.add('off');} reheat(0.6);};
+});
+document.querySelectorAll('.leg-item[data-edge]').forEach(el=>{
+  el.onclick=()=>{const y=el.getAttribute('data-edge'); if(hiddenEdges.has(y)){hiddenEdges.delete(y);el.classList.remove('off');}else{hiddenEdges.add(y);el.classList.add('off');} reheat(0.4);};
+});
+
+/* legend swatches */
+function drawLegend(){
+  document.querySelectorAll('.leg-sym').forEach(c=>{
+    const g=c.getContext('2d');g.clearRect(0,0,14,14);const k=c.getAttribute('data-sym');const cfg=KIND[k];const col=cfg.c();
+    g.save();g.translate(7,7);
+    if(cfg.shape==='rrect'){g.fillStyle=col;g.beginPath();g.rect(-5,-5,10,10);g.fill();}
+    else if(cfg.shape==='diamond'){g.fillStyle=col;g.beginPath();g.moveTo(0,-6);g.lineTo(6,0);g.lineTo(0,6);g.lineTo(-6,0);g.closePath();g.fill();}
+    else{const hollow=cfg.hollow;g.beginPath();g.arc(0,0,5,0,7);
+      if(hollow){g.fillStyle=COL.surface;g.fill();g.lineWidth=2;g.strokeStyle=col;g.stroke();}
+      else{g.globalAlpha=cfg.soft?0.62:1;g.fillStyle=col;g.fill();}}
+    g.restore();
+  });
+}
+
+/* ---------- crosswalk ---------- */
+const XDBS=[
+ {id:'ZFIN',prov:'curated',d:['RN1','RN2','RN10','RN11'],p:['RN3','RN9','RN12']},
+ {id:'DanioCODE',prov:'curated',d:['RN1','RN3'],p:['RN4','RN11','RN12']},
+ {id:'Reactome',prov:'curated',d:['RN3','RN4'],p:['RN10','RN11','RN12','RN13']},
+ {id:'GEO NCBI',prov:'computed',d:['RN1','RN8','RN9'],p:['RN4','RN5']},
+ {id:'UCSC Cell Browser',prov:'curated',d:['RN1','RN8'],p:['RN9']},
+ {id:'STRING DB',prov:'predicted',d:['RN2','RN3'],p:['RN10','RN12']},
+ {id:'IntAct',prov:'physical',d:['RN2','RN3'],p:['RN10','RN12']},
+ {id:'BioGRID',prov:'genetic',d:['RN3','RN12'],p:['RN10']},
+ {id:'Ensembl (D. rerio)',prov:'curated',d:['RN1','RN2','RN11'],p:['RN12']},
+ {id:'CNGB STOmics',prov:'computed',d:['RN1','RN8','RN9'],p:['RN4']},
+ {id:'Europe PMC',prov:'curated',d:['RN11'],p:['RN1','RN3','RN10']}
+];
+const PROVC={physical:'var(--blue-600)',genetic:'var(--blue-450)',curated:'var(--blue-300)',computed:'var(--blue-200)',predicted:'var(--blue-100)'};
+(function buildX(){
+  const t=document.getElementById('xtable'); const RN=Array.from({length:13},(_,i)=>'RN'+(i+1));
+  let head='<tr><th></th>'+RN.map(r=>`<th class="col">${r}</th>`).join('')+'</tr>';
+  let body=XDBS.map(db=>{
+    let cells=RN.map(r=>{
+      let cls='none',title=`${db.id} · ${r}: sin feed`;
+      if(db.d.includes(r)){cls='decl';title=`${db.id} → ${r}: declarado (en grafo)`;}
+      else if(db.p.includes(r)){cls='prop';title=`${db.id} → ${r}: propuesto (gate pendiente)`;}
+      return `<td><div class="cell ${cls}" title="${title}"></div></td>`;
+    }).join('');
+    return `<tr><td class="rowh"><span class="prov" style="background:${PROVC[db.prov]}"></span>${db.id}</td>${cells}</tr>`;
+  }).join('');
+  t.innerHTML=head+body;
+})();
+
+/* ---------- reveal on scroll ---------- */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('in');}),{threshold:0.08});
+document.querySelectorAll('section').forEach(s=>{s.classList.add('reveal');io.observe(s);});
+
+/* ---------- boot ---------- */
+function boot(){
+  resize(); seed(); drawLegend();
+  // synchronous pre-warm: settle the layout BEFORE the first paint so the graph is populated
+  // instantly (robust to rAF timing / headless capture), then let the live loop breathe.
+  alpha=1; for(let i=0;i<240;i++) tick();
+  // recenter the settled layout on the canvas so the first impression is balanced
+  let mx=0,my=0,c=0; nodes.forEach(n=>{if(nodeVisible(n)){mx+=n.x;my+=n.y;c++;}});
+  if(c){mx=mx/c-W/2; my=my/c-H/2; nodes.forEach(n=>{n.x-=mx;n.y-=my;});}
+  t0=performance.now();
+  loop();
+}
+addEventListener('resize',()=>{resize();reheat(0.3);});
+if(document.readyState==='complete'||document.readyState==='interactive') boot();
+else addEventListener('DOMContentLoaded',boot);
+</script>
+</body>
+</html>

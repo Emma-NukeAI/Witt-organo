@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DATA INAMOVIBLE — GraphRAG 3D · 2026-07-20</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%8C%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  color-scheme:light;
+  --page:#f4f4f1; --surface-1:#fcfcfb; --surface-2:#f0efec;
+  --ink:#0b0b0b; --ink2:#52514e; --muted:#898781; --border:rgba(11,11,11,.12);
+  --c-niche:#c04f7a; --c-db:#2a78d6; --c-doc:#0a7a35; --c-ent:#b47600; --c-meta:#7d7c77;
+  --e-feeds:#9a9892; --good:#0ca30c;
+  --font:system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"Cascadia Code","Consolas",monospace;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#08080a; --surface-1:#15151a; --surface-2:#20202a;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#8f8e88; --border:rgba(255,255,255,.14);
+  --c-niche:#d55181; --c-db:#3987e5; --c-doc:#22a24f; --c-ent:#c98500; --c-meta:#9a998f;
+  --e-feeds:#6a6a64; --good:#0ca30c;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --page:#08080a; --surface-1:#15151a; --surface-2:#20202a;
+  --ink:#ffffff; --ink2:#c3c2b7; --muted:#8f8e88; --border:rgba(255,255,255,.14);
+  --c-niche:#d55181; --c-db:#3987e5; --c-doc:#22a24f; --c-ent:#c98500; --c-meta:#9a998f;
+  --e-feeds:#6a6a64; --good:#0ca30c;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--page);color:var(--ink);font-family:var(--font);overflow:hidden}
+#scene{position:fixed;inset:0;display:block;touch-action:none;cursor:grab}
+#scene.grab{cursor:grabbing}
+.hdr{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;gap:12px;padding:12px 16px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--page) 88%,transparent),transparent);pointer-events:none}
+.hdr .t{font-weight:700;letter-spacing:-.02em;pointer-events:auto}
+.hdr .t .b{font-size:.62rem;font-weight:700;color:#fff;background:var(--good);padding:2px 6px;border-radius:20px;margin-left:6px}
+.hdr .sp{flex:1}
+.hdr a,.hdr button{pointer-events:auto}
+.btn{border:1px solid var(--border);background:color-mix(in srgb,var(--surface-1) 82%,transparent);color:var(--ink);
+  border-radius:9px;padding:7px 11px;cursor:pointer;font-size:.82rem;backdrop-filter:blur(8px);text-decoration:none}
+.btn:hover{background:var(--surface-2)}
+.btn.on{background:var(--c-db);color:#fff;border-color:transparent}
+.panel{position:fixed;z-index:15;background:color-mix(in srgb,var(--surface-1) 80%,transparent);
+  border:1px solid var(--border);border-radius:12px;backdrop-filter:blur(10px);padding:12px 14px}
+#controls{top:64px;left:16px;display:flex;flex-direction:column;gap:8px;max-width:220px}
+#controls .row{display:flex;gap:6px;flex-wrap:wrap}
+#gsearch{border:1px solid var(--border);background:var(--surface-2);color:var(--ink);border-radius:8px;padding:6px 9px;font-size:.78rem;width:100%}
+#legend{bottom:16px;left:16px;max-width:230px}
+#filters{top:64px;right:16px;max-width:200px}
+.panel h4{margin:0 0 8px;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.li{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--ink2);cursor:pointer;padding:2px 4px;border-radius:6px;user-select:none}
+.li:hover{background:var(--surface-2)} .li.off{opacity:.36}
+.li .g{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.li .ln{width:20px;border-top:2px solid;flex:none}
+.sw{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:0 0 0 1px var(--border)}
+#detail{bottom:16px;right:16px;max-width:290px;display:none}
+#detail.show{display:block}
+.dh{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.dt{font-weight:700;font-size:1.02rem}
+.dg{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.8rem}
+.dg dt{color:var(--muted)} .dg dd{margin:0;font-family:var(--mono);font-size:.76rem;word-break:break-word}
+.neigh{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px;max-height:96px;overflow:auto}
+.chip{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--surface-2);color:var(--ink2);border:1px solid var(--border);cursor:pointer}
+#tip{position:fixed;z-index:30;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--ink);color:var(--page);
+  border-radius:8px;padding:7px 10px;font-size:.75rem;max-width:250px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+#tip .k{font-family:var(--mono);font-size:.7rem;opacity:.82}
+#hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:15;font-size:.72rem;color:var(--muted);
+  background:color-mix(in srgb,var(--surface-1) 70%,transparent);padding:5px 12px;border-radius:20px;backdrop-filter:blur(6px)}
+@media (max-width:720px){#filters,#legend{display:none}#detail{max-width:220px}}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div class="hdr">
+  <span class="t">🌌 DATA INAMOVIBLE · GraphRAG <span class="b">3D · LIVE</span></span>
+  <span class="sp"></span>
+  <a class="btn" href="2026-07-20_data-inamovible-graphrag-composicion_v2.html">← Reporte completo</a>
+  <button class="btn" id="themeBtn">◐ Tema</button>
+</div>
+
+<div class="panel" id="controls">
+  <input id="gsearch" placeholder="🔍 buscar gen / nodo…" autocomplete="off">
+  <div class="row">
+    <button class="btn on" id="btnRot">⟳ Auto-rotar</button>
+    <button class="btn" id="btnReset">⤢ Reset</button>
+  </div>
+  <div class="row">
+    <button class="btn" id="btnRelayout">↻ Re-layout</button>
+    <button class="btn" id="btnZin">＋</button>
+    <button class="btn" id="btnZout">－</button>
+  </div>
+</div>
+
+<div class="panel" id="filters">
+  <h4>Relaciones</h4>
+  <div class="li" data-edge="MENTIONS"><span class="ln" style="border-color:var(--c-ent)"></span>MENTIONS<span class="g">88</span></div>
+  <div class="li" data-edge="FEEDS"><span class="ln" style="border-color:var(--e-feeds);border-top-style:dashed"></span>FEEDS<span class="g">26</span></div>
+  <div class="li" data-edge="IN_NICHE"><span class="ln" style="border-color:var(--c-niche)"></span>IN_NICHE<span class="g">16</span></div>
+  <div class="li" data-edge="FROM_DB"><span class="ln" style="border-color:var(--c-db)"></span>FROM_DB<span class="g">14</span></div>
+</div>
+
+<div class="panel" id="legend">
+  <h4>Nodos — clic para filtrar</h4>
+  <div class="li" data-kind="entity"><span class="sw" style="background:var(--c-ent)"></span>Entity (gen)<span class="g">44</span></div>
+  <div class="li" data-kind="dataset"><span class="sw" style="background:var(--c-doc)"></span>Dataset (corpus)<span class="g">3</span></div>
+  <div class="li" data-kind="chunk"><span class="sw" style="background:var(--c-doc);opacity:.5"></span>Chunk<span class="g">1</span></div>
+  <div class="li" data-kind="niche"><span class="sw" style="background:var(--c-niche)"></span>Niche (taxonomía)<span class="g">13</span></div>
+  <div class="li" data-kind="nicheDoc"><span class="sw" style="background:var(--c-niche);opacity:.55"></span>Doc·niche<span class="g">13</span></div>
+  <div class="li" data-kind="db"><span class="sw" style="background:var(--c-db)"></span>Database (taxon.)<span class="g">11</span></div>
+  <div class="li" data-kind="dbDoc"><span class="sw" style="background:var(--c-db);opacity:.55"></span>Doc·database<span class="g">11</span></div>
+  <div class="li" data-kind="meta"><span class="sw" style="background:var(--c-meta)"></span>Meta<span class="g">1</span></div>
+</div>
+
+<div class="panel" id="detail"></div>
+<div id="tip"></div>
+<div id="hint">arrastra para orbitar · rueda para zoom · clic en un nodo para su ficha · RAW = brillante · DERIVED = tenue</div>
+
+<script type="application/json" id="gdata">{"nodes":[{"id":"niche:RN1","k":"nicheDoc","name":"Transcriptómica y dinámica de linajes","nid":"RN1"},{"id":"niche:RN2","k":"nicheDoc","name":"Estructura proteica y complejos","nid":"RN2"},{"id":"niche:RN3","k":"nicheDoc","name":"Redes de señalización y parámetros cinéticos","nid":"RN3"},{"id":"niche:RN4","k":"nicheDoc","name":"Microambiente bioquímico","nid":"RN4"},{"id":"niche:RN5","k":"nicheDoc","name":"Bioeléctrica","nid":"RN5"},{"id":"niche:RN6","k":"nicheDoc","name":"Biomecánica pasiva y ECM","nid":"RN6"},{"id":"niche:RN7","k":"nicheDoc","name":"Mecánica activa y dinámica de fluidos","nid":"RN7"},{"id":"niche:RN8","k":"nicheDoc","name":"Cinética celular colectiva","nid":"RN8"},{"id":"niche:RN9","k":"nicheDoc","name":"Morfología emergente y topología","nid":"RN9"},{"id":"niche:RN10","k":"nicheDoc","name":"Tejidos chaperones y boundary conditions","nid":"RN10"},{"id":"niche:RN11","k":"nicheDoc","name":"Claims curados de literatura biológica","nid":"RN11"},{"id":"niche:RN12","k":"nicheDoc","name":"Perturbaciones e intervenciones causales","nid":"RN12"},{"id":"niche:RN13","k":"nicheDoc","name":"Modelos de simulación y código","nid":"RN13"},{"id":"db:ZFIN","k":"dbDoc","name":"ZFIN"},{"id":"db:DanioCODE","k":"dbDoc","name":"DanioCODE"},{"id":"db:Reactome","k":"dbDoc","name":"Reactome"},{"id":"db:GEO_NCBI","k":"dbDoc","name":"GEO_NCBI"},{"id":"db:UCSC_Cell_Browser","k":"dbDoc","name":"UCSC_Cell_Browser"},{"id":"db:STRING_DB","k":"dbDoc","name":"STRING_DB"},{"id":"db:IntAct","k":"dbDoc","name":"IntAct"},{"id":"db:BioGRID","k":"dbDoc","name":"BioGRID"},{"id":"db:Ensembl_DanioRerio","k":"dbDoc","name":"Ensembl_DanioRerio"},{"id":"db:CNGB_STOmics","k":"dbDoc","name":"CNGB_STOmics"},{"id":"CORPUS-2026-0001","k":"dataset","name":"CORPUS-2026-0001","acc":"CNP0002220 / STDS0000057","db":"CNGB_STOmics","dn":"RN1"},{"id":"CORPUS-2026-0002","k":"dataset","name":"CORPUS-2026-0002","acc":"GSE218068","db":"GEO_NCBI","dn":"RN1"},{"id":"CORPUS-2026-0003","k":"dataset","name":"CORPUS-2026-0003","acc":"PMID:25446529 | PMC4261075 | DOI:10.1016/j.ydbio.2014.08.038","db":"EuropePMC","dn":"RN1"},{"id":"CORPUS-2026-0003#c000","k":"chunk","name":"CORPUS-2026-0003#c000","acc":null,"db":null,"dn":null},{"id":"db:EuropePMC","k":"dbDoc","name":"EuropePMC"},{"id":"NICHE::RN1","k":"niche","name":"Transcriptómica y dinámica de linajes","nid":"RN1"},{"id":"NICHE::RN2","k":"niche","name":"Estructura proteica y complejos","nid":"RN2"},{"id":"NICHE::RN3","k":"niche","name":"Redes de señalización y parámetros cinéticos","nid":"RN3"},{"id":"NICHE::RN4","k":"niche","name":"Microambiente bioquímico","nid":"RN4"},{"id":"NICHE::RN5","k":"niche","name":"Bioeléctrica","nid":"RN5"},{"id":"NICHE::RN6","k":"niche","name":"Biomecánica pasiva y ECM","nid":"RN6"},{"id":"NICHE::RN7","k":"niche","name":"Mecánica activa y dinámica de fluidos","nid":"RN7"},{"id":"NICHE::RN8","k":"niche","name":"Cinética celular colectiva","nid":"RN8"},{"id":"NICHE::RN9","k":"niche","name":"Morfología emergente y topología","nid":"RN9"},{"id":"NICHE::RN10","k":"niche","name":"Tejidos chaperones y boundary conditions","nid":"RN10"},{"id":"NICHE::RN11","k":"niche","name":"Claims curados de literatura biológica","nid":"RN11"},{"id":"NICHE::RN12","k":"niche","name":"Perturbaciones e intervenciones causales","nid":"RN12"},{"id":"NICHE::RN13","k":"niche","name":"Modelos de simulación y código","nid":"RN13"},{"id":"DB::ZFIN","k":"db","name":"ZFIN","bid":"ZFIN"},{"id":"DB::DanioCODE","k":"db","name":"DanioCODE","bid":"DanioCODE"},{"id":"DB::Reactome","k":"db","name":"Reactome","bid":"Reactome"},{"id":"DB::GEO_NCBI","k":"db","name":"GEO NCBI","bid":"GEO_NCBI"},{"id":"DB::UCSC_Cell_Browser","k":"db","name":"UCSC Cell Browser","bid":"UCSC_Cell_Browser"},{"id":"DB::STRING_DB","k":"db","name":"STRING DB","bid":"STRING_DB"},{"id":"DB::IntAct","k":"db","name":"IntAct","bid":"IntAct"},{"id":"DB::BioGRID","k":"db","name":"BioGRID","bid":"BioGRID"},{"id":"DB::Ensembl_DanioRerio","k":"db","name":"Ensembl Zebrafish (Danio rerio)","bid":"Ensembl_DanioRerio"},{"id":"DB::CNGB_STOmics","k":"db","name":"CNGB STOmics (ZESTA / spatial atlases)","bid":"CNGB_STOmics"},{"id":"DB::EuropePMC","k":"db","name":"Europe PMC","bid":"EuropePMC"},{"id":"ENT::foxc1a","k":"entity","name":"foxc1a","tier":"DERIVED","g":"ENSDARG00000091481"},{"id":"ENT::foxc1b","k":"entity","name":"foxc1b","tier":"RAW","g":"ENSDARG00000055398"},{"id":"ENT::pitx2","k":"entity","name":"pitx2","tier":"RAW","g":"ENSDARG00000036194"},{"id":"ENT::prox1a","k":"entity","name":"prox1a","tier":"RAW","g":"ENSDARG00000055158"},{"id":"ENT::pax2a","k":"entity","name":"pax2a","tier":"RAW","g":"ENSDARG00000028148"},{"id":"ENT::aldh1a3","k":"entity","name":"aldh1a3","tier":"RAW","g":"ENSDARG00000076933"},{"id":"ENT::aldh3a1","k":"entity","name":"aldh3a1","tier":"RAW","g":"ENSDARG00000074791"},{"id":"ENT::cdh17","k":"entity","name":"cdh17","tier":"RAW","g":"ENSDARG00000005112"},{"id":"ENT::col1a1a","k":"entity","name":"col1a1a","tier":"RAW","g":"ENSDARG00000012405"},{"id":"ENT::col1a2","k":"entity","name":"col1a2","tier":"RAW","g":"ENSDARG00000020007"},{"id":"ENT::emx1","k":"entity","name":"emx1","tier":"DERIVED","g":"ENSDARG00000039569"},{"id":"ENT::gata3","k":"entity","name":"gata3","tier":"RAW","g":"ENSDARG00000016526"},{"id":"ENT::hnf1ba","k":"entity","name":"hnf1ba","tier":"DERIVED","g":"ENSDARG00000006615"},{"id":"ENT::kcnj1a.1","k":"entity","name":"kcnj1a.1","tier":"DERIVED","g":"ENSDARG00000091232"},{"id":"ENT::kera","k":"entity","name":"kera","tier":"RAW","g":"ENSDARG00000056938"},{"id":"ENT::krt4","k":"entity","name":"krt4","tier":"RAW","g":"ENSDARG00000017624"},{"id":"ENT::lhx1a","k":"entity","name":"lhx1a","tier":"RAW","g":"ENSDARG00000014018"},{"id":"ENT::lum","k":"entity","name":"lum","tier":"RAW","g":"ENSDARG00000045580"},{"id":"ENT::nphs1","k":"entity","name":"nphs1","tier":"DERIVED","g":"ENSDARG00000060758"},{"id":"ENT::pax6b","k":"entity","name":"pax6b","tier":"RAW","g":"ENSDARG00000045936"},{"id":"ENT::slc20a1a","k":"entity","name":"slc20a1a","tier":"DERIVED","g":"ENSDARG00000020114"},{"id":"ENT::slc4a4a","k":"entity","name":"slc4a4a","tier":"DERIVED","g":"ENSDARG00000013730"},{"id":"ENT::tbx2b","k":"entity","name":"tbx2b","tier":"DERIVED","g":"ENSDARG00000006120"},{"id":"ENT::tp63","k":"entity","name":"tp63","tier":"RAW","g":"ENSDARG00000044356"},{"id":"ENT::trpm7","k":"entity","name":"trpm7","tier":"DERIVED","g":"ENSDARG00000036232"},{"id":"ENT::atp1a1a.2","k":"entity","name":"atp1a1a.2","tier":"DERIVED","g":"ENSDARG00000007739"},{"id":"ENT::atp1b1b","k":"entity","name":"atp1b1b","tier":"DERIVED","g":"ENSDARG00000076833"},{"id":"ENT::col1a1b","k":"entity","name":"col1a1b","tier":"RAW","g":"ENSDARG00000035809"},{"id":"ENT::hnf1bb","k":"entity","name":"hnf1bb","tier":"DERIVED","g":"ENSDARG00000022295"},{"id":"ENT::irx3b","k":"entity","name":"irx3b","tier":"DERIVED","g":"ENSDARG00000031138"},{"id":"ENT::mafba","k":"entity","name":"mafba","tier":"DERIVED","g":"ENSDARG00000017121"},{"id":"ENT::nphs2","k":"entity","name":"nphs2","tier":"DERIVED","g":"ENSDARG00000042850"},{"id":"ENT::pax6a","k":"entity","name":"pax6a","tier":"RAW","g":"ENSDARG00000103379"},{"id":"ENT::podxl","k":"entity","name":"podxl","tier":"DERIVED","g":"ENSDARG00000031228"},{"id":"ENT::pou3f3a","k":"entity","name":"pou3f3a","tier":"DERIVED","g":"ENSDARG00000042032"},{"id":"ENT::sim1a","k":"entity","name":"sim1a","tier":"DERIVED","g":"ENSDARG00000023316"},{"id":"ENT::slc12a3","k":"entity","name":"slc12a3","tier":"DERIVED","g":"ENSDARG00000013855"},{"id":"ENT::slc13a1","k":"entity","name":"slc13a1","tier":"DERIVED","g":"ENSDARG00000045638"},{"id":"ENT::slc13a3","k":"entity","name":"slc13a3","tier":"DERIVED","g":"ENSDARG00000069478"},{"id":"ENT::wt1a","k":"entity","name":"wt1a","tier":"RAW","g":"ENSDARG00000031420"},{"id":"ENT::wt1b","k":"entity","name":"wt1b","tier":"RAW","g":"ENSDARG00000007990"},{"id":"ENT::mecom","k":"entity","name":"mecom","tier":"DERIVED","g":"ENSDARG00000060808"},{"id":"ENT::pax8","k":"entity","name":"pax8","tier":"RAW","g":"ENSDARG00000015879"},{"id":"ENT::slc12a1","k":"entity","name":"slc12a1","tier":"DERIVED","g":"ENSDARG00000098096"},{"id":"META::data_inamovible","k":"meta","name":"data_inamovible","em":"openai","dim":1536,"ref":"2026-07-20"}],"edges":[{"s":"CORPUS-2026-0003","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"CORPUS-2026-0002","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"CORPUS-2026-0001","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"niche:RN1","t":"NICHE::RN1","y":"IN_NICHE"},{"s":"niche:RN2","t":"NICHE::RN2","y":"IN_NICHE"},{"s":"niche:RN3","t":"NICHE::RN3","y":"IN_NICHE"},{"s":"niche:RN4","t":"NICHE::RN4","y":"IN_NICHE"},{"s":"niche:RN5","t":"NICHE::RN5","y":"IN_NICHE"},{"s":"niche:RN6","t":"NICHE::RN6","y":"IN_NICHE"},{"s":"niche:RN7","t":"NICHE::RN7","y":"IN_NICHE"},{"s":"niche:RN8","t":"NICHE::RN8","y":"IN_NICHE"},{"s":"niche:RN9","t":"NICHE::RN9","y":"IN_NICHE"},{"s":"niche:RN10","t":"NICHE::RN10","y":"IN_NICHE"},{"s":"niche:RN11","t":"NICHE::RN11","y":"IN_NICHE"},{"s":"niche:RN12","t":"NICHE::RN12","y":"IN_NICHE"},{"s":"niche:RN13","t":"NICHE::RN13","y":"IN_NICHE"},{"s":"db:ZFIN","t":"DB::ZFIN","y":"FROM_DB"},{"s":"db:DanioCODE","t":"DB::DanioCODE","y":"FROM_DB"},{"s":"db:Reactome","t":"DB::Reactome","y":"FROM_DB"},{"s":"CORPUS-2026-0002","t":"DB::GEO_NCBI","y":"FROM_DB"},{"s":"db:GEO_NCBI","t":"DB::GEO_NCBI","y":"FROM_DB"},{"s":"db:UCSC_Cell_Browser","t":"DB::UCSC_Cell_Browser","y":"FROM_DB"},{"s":"db:STRING_DB","t":"DB::STRING_DB","y":"FROM_DB"},{"s":"db:IntAct","t":"DB::IntAct","y":"FROM_DB"},{"s":"db:BioGRID","t":"DB::BioGRID","y":"FROM_DB"},{"s":"db:Ensembl_DanioRerio","t":"DB::Ensembl_DanioRerio","y":"FROM_DB"},{"s":"CORPUS-2026-0001","t":"DB::CNGB_STOmics","y":"FROM_DB"},{"s":"db:CNGB_STOmics","t":"DB::CNGB_STOmics","y":"FROM_DB"},{"s":"CORPUS-2026-0003","t":"DB::EuropePMC","y":"FROM_DB"},{"s":"db:EuropePMC","t":"DB::EuropePMC","y":"FROM_DB"},{"s":"DB::ZFIN","t":"NICHE::RN11","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN10","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::ZFIN","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::DanioCODE","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::DanioCODE","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::Reactome","t":"NICHE::RN4","y":"FEEDS"},{"s":"DB::Reactome","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN9","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::GEO_NCBI","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::UCSC_Cell_Browser","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::UCSC_Cell_Browser","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::STRING_DB","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::STRING_DB","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::IntAct","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::IntAct","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::BioGRID","t":"NICHE::RN12","y":"FEEDS"},{"s":"DB::BioGRID","t":"NICHE::RN3","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN11","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN2","y":"FEEDS"},{"s":"DB::Ensembl_DanioRerio","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN9","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN8","y":"FEEDS"},{"s":"DB::CNGB_STOmics","t":"NICHE::RN1","y":"FEEDS"},{"s":"DB::EuropePMC","t":"NICHE::RN11","y":"FEEDS"},{"s":"CORPUS-2026-0001","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc13a3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc13a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc12a3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc12a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::sim1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::prox1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pou3f3a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax8","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax6a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax2a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::nphs2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::mecom","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::mafba","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::irx3b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::hnf1bb","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::foxc1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::atp1b1b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::atp1a1a.2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::trpm7","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::tp63","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::tbx2b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc4a4a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::slc20a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pitx2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::pax6b","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::nphs1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::lum","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::lhx1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::krt4","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::kera","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::kcnj1a.1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::hnf1ba","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::gata3","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::foxc1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::emx1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a2","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::col1a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::cdh17","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::aldh3a1","y":"MENTIONS"},{"s":"CORPUS-2026-0001","t":"ENT::aldh1a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::trpm7","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::tp63","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::tbx2b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc4a4a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc20a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc13a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc13a1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::slc12a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::sim1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pou3f3a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax6b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax6a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::nphs2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::nphs1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::mafba","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::lum","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::lhx1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::krt4","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::kera","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::kcnj1a.1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::irx3b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::hnf1bb","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::hnf1ba","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::gata3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::emx1","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::col1a1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::cdh17","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::atp1b1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::atp1a1a.2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::aldh1a3","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pax2a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::prox1a","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::pitx2","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::foxc1b","y":"MENTIONS"},{"s":"CORPUS-2026-0002","t":"ENT::foxc1a","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::wt1b","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::wt1a","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::podxl","y":"MENTIONS"},{"s":"CORPUS-2026-0003","t":"ENT::pax2a","y":"MENTIONS"}]}</script>
+<script>
+"use strict";
+const GRAPH=JSON.parse(document.getElementById('gdata').textContent);
+const root=document.documentElement;
+function curTheme(){return root.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}
+document.getElementById('themeBtn').onclick=()=>{root.setAttribute('data-theme',curTheme()==='dark'?'light':'dark');syncColors();};
+let COL={};
+function css(v){return getComputedStyle(root).getPropertyValue(v).trim();}
+function syncColors(){COL={niche:css('--c-niche'),db:css('--c-db'),doc:css('--c-doc'),ent:css('--c-ent'),meta:css('--c-meta'),
+  feeds:css('--e-feeds'),ink:css('--ink'),surface:css('--surface-1'),page:css('--page')};}
+syncColors();
+
+const KIND={
+  niche:{c:()=>COL.niche,r:6,soft:0}, nicheDoc:{c:()=>COL.niche,r:4.2,soft:1},
+  db:{c:()=>COL.db,r:6.4,soft:0}, dbDoc:{c:()=>COL.db,r:4.2,soft:1},
+  dataset:{c:()=>COL.doc,r:9,soft:0,hub:1}, chunk:{c:()=>COL.doc,r:4.2,soft:0,hollow:1},
+  entity:{c:()=>COL.ent,r:4.6,soft:0}, meta:{c:()=>COL.meta,r:6,soft:0,diamond:1}
+};
+const EDGE={MENTIONS:{c:()=>COL.ent,dash:[]},FEEDS:{c:()=>COL.feeds,dash:[4,4]},IN_NICHE:{c:()=>COL.niche,dash:[]},FROM_DB:{c:()=>COL.db,dash:[]}};
+const KLAB={niche:'Niche',nicheDoc:'Doc·niche',db:'Database',dbDoc:'Doc·db',dataset:'Dataset',chunk:'Chunk',entity:'Entity (gen)',meta:'Meta'};
+
+const cv=document.getElementById('scene'),ctx=cv.getContext('2d');
+let W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
+const byId=new Map();
+const nodes=GRAPH.nodes.map((n,i)=>{const o=Object.assign({},n);o.i=i;o.deg=0;byId.set(n.id,o);return o;});
+const edges=GRAPH.edges.filter(e=>byId.has(e.s)&&byId.has(e.t)).map(e=>({s:byId.get(e.s),t:byId.get(e.t),y:e.y}));
+edges.forEach(e=>{e.s.deg++;e.t.deg++;});
+const adj=new Map();nodes.forEach(n=>adj.set(n.id,new Set()));
+edges.forEach(e=>{adj.get(e.s.id).add(e.t.id);adj.get(e.t.id).add(e.s.id);});
+const hiddenKinds=new Set(),hiddenEdges=new Set();
+const vis=n=>!hiddenKinds.has(n.k);
+const evis=e=>!hiddenEdges.has(e.y)&&vis(e.s)&&vis(e.t);
+
+/* ---------- 3D force layout ---------- */
+function seed(){nodes.forEach((n,i)=>{const a=i*2.399963,b=Math.acos(1-2*(i+0.5)/nodes.length),R=90+Math.random()*30;
+  n.x=R*Math.sin(b)*Math.cos(a);n.y=R*Math.sin(b)*Math.sin(a);n.z=R*Math.cos(b);n.vx=n.vy=n.vz=0;});}
+let alpha=1;
+function tick(){
+  const V=nodes.filter(vis);
+  for(let a=0;a<V.length;a++){const A=V[a];
+    for(let b=a+1;b<V.length;b++){const B=V[b];
+      let dx=A.x-B.x,dy=A.y-B.y,dz=A.z-B.z,d2=dx*dx+dy*dy+dz*dz;
+      if(d2<0.01){dx=Math.random()-.5;dy=Math.random()-.5;dz=Math.random()-.5;d2=1;}
+      const d=Math.sqrt(d2),rep=2600/d2*alpha,fx=dx/d*rep,fy=dy/d*rep,fz=dz/d*rep;
+      A.vx+=fx;A.vy+=fy;A.vz+=fz;B.vx-=fx;B.vy-=fy;B.vz-=fz;
+      const mn=KIND[A.k].r+KIND[B.k].r+8;
+      if(d<mn){const p=(mn-d)*0.5*alpha/d;A.vx+=dx*p;A.vy+=dy*p;A.vz+=dz*p;B.vx-=dx*p;B.vy-=dy*p;B.vz-=dz*p;}
+    }
+    A.vx-=A.x*0.008*alpha;A.vy-=A.y*0.008*alpha;A.vz-=A.z*0.008*alpha;
+  }
+  edges.forEach(e=>{if(!evis(e))return;const L=e.y==='MENTIONS'?60:e.y==='FEEDS'?78:48;
+    let dx=e.t.x-e.s.x,dy=e.t.y-e.s.y,dz=e.t.z-e.s.z,d=Math.hypot(dx,dy,dz)||1,f=(d-L)*0.05*alpha;
+    e.s.vx+=dx/d*f;e.s.vy+=dy/d*f;e.s.vz+=dz/d*f;e.t.vx-=dx/d*f;e.t.vy-=dy/d*f;e.t.vz-=dz/d*f;});
+  V.forEach(n=>{n.vx*=0.84;n.vy*=0.84;n.vz*=0.84;n.x+=n.vx;n.y+=n.vy;n.z+=n.vz;});
+  alpha*=0.985;if(alpha<0.02)alpha=0.02;
+}
+
+/* ---------- camera ---------- */
+let az=0.6,el=0.35,dist=430,autoRot=true,settling=0;
+function resize(){W=window.innerWidth;H=window.innerHeight;cv.style.width=W+'px';cv.style.height=H+'px';cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+function project(n){
+  const ca=Math.cos(az),sa=Math.sin(az),ce=Math.cos(el),se=Math.sin(el);
+  let x1=n.x*ca-n.z*sa, z1=n.x*sa+n.z*ca, y1=n.y;
+  let y2=y1*ce-z1*se, z2=y1*se+z1*ce;
+  const zc=dist-z2; const focal=Math.min(W,H)*0.85;
+  const s=focal/Math.max(zc,40);
+  return {sx:W/2+x1*s, sy:H/2-y2*s, s, depth:z2};
+}
+let hovered=null,selected=null,t0=0;
+const neigh=n=>n?adj.get(n.id):null;
+function dimmed(n){const f=hovered||selected;if(!f)return false;if(n===f)return false;return !neigh(f).has(n.id);}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const now=performance.now();
+  nodes.forEach(n=>{n.appear=Math.max(0,Math.min(1,(now-t0-n.i*6)/420));const p=project(n);n.sx=p.sx;n.sy=p.sy;n.ss=p.s;n.depth=p.depth;});
+  // depth range for fog
+  let zmin=1e9,zmax=-1e9;nodes.forEach(n=>{if(vis(n)){zmin=Math.min(zmin,n.depth);zmax=Math.max(zmax,n.depth);}});
+  const fog=z=>{const t=(z-zmin)/((zmax-zmin)||1);return 0.35+0.65*t;};
+  const f=hovered||selected;
+  // edges (draw first, behind)
+  const evisible=edges.filter(evis).sort((a,b)=>(a.s.depth+a.t.depth)-(b.s.depth+b.t.depth));
+  evisible.forEach(e=>{
+    const cfg=EDGE[e.y];const act=f&&(e.s===f||e.t===f);
+    let op=f?(act?0.85:0.04):0.16*Math.min(fog(e.s.depth),fog(e.t.depth));
+    ctx.globalAlpha=op*Math.min(e.s.appear,e.t.appear);
+    ctx.strokeStyle=cfg.c();ctx.lineWidth=act?1.6:0.8;ctx.setLineDash(cfg.dash);
+    ctx.beginPath();ctx.moveTo(e.s.sx,e.s.sy);ctx.lineTo(e.t.sx,e.t.sy);ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  // nodes (painter's: far to near)
+  const order=nodes.filter(vis).sort((a,b)=>a.depth-b.depth);
+  order.forEach(n=>{
+    const k=KIND[n.k];const col=k.c();const dm=dimmed(n);
+    const r=(k.r+(k.hub?0:Math.min(n.deg*0.3,3)))*n.ss*0.75*(0.4+0.6*n.appear);
+    if(r<0.4)return;
+    const fa=(dm?0.12:fog(n.depth))*n.appear;
+    // halo: RAW entities + hubs + meta
+    if(!dm&&((n.k==='entity'&&n.tier==='RAW')||k.hub||n.k==='meta')){
+      ctx.globalAlpha=0.16*n.appear;ctx.beginPath();ctx.arc(n.sx,n.sy,r+3+ (k.hub?Math.sin(now/500+n.i)*1.5:0),0,7);ctx.fillStyle=col;ctx.fill();
+    }
+    ctx.globalAlpha=fa;
+    if(k.diamond){ctx.beginPath();ctx.moveTo(n.sx,n.sy-r);ctx.lineTo(n.sx+r,n.sy);ctx.lineTo(n.sx,n.sy+r);ctx.lineTo(n.sx-r,n.sy);ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+    else{
+      const hollow=k.hollow||(n.k==='entity'&&n.tier==='DERIVED');
+      ctx.beginPath();ctx.arc(n.sx,n.sy,r,0,7);
+      if(hollow){ctx.fillStyle=COL.surface;ctx.fill();ctx.lineWidth=1.6;ctx.strokeStyle=col;ctx.globalAlpha=fa;ctx.stroke();}
+      else{ctx.fillStyle=col;ctx.globalAlpha=(k.soft?0.6:1)*fa;ctx.fill();
+        // spherical highlight
+        ctx.globalAlpha=0.28*fa;ctx.beginPath();ctx.arc(n.sx-r*0.3,n.sy-r*0.3,r*0.45,0,7);ctx.fillStyle='#fff';ctx.fill();}
+    }
+    if(n===f){ctx.globalAlpha=n.appear;ctx.beginPath();ctx.arc(n.sx,n.sy,r+3,0,7);ctx.lineWidth=2;ctx.strokeStyle=COL.ink;ctx.stroke();}
+    // label
+    const showL=k.hub||n===f||(f&&neigh(f).has(n.id))||(r>15);
+    if(showL&&!dm&&n.appear>0.6){
+      const lab=n.k==='entity'?n.name:n.k==='dataset'?n.id.replace('CORPUS-2026-','C'):n.k==='niche'?n.nid:n.k==='db'?n.bid:n.k==='meta'?'Meta':n.name;
+      ctx.globalAlpha=Math.min(1,fog(n.depth)+0.15)*n.appear;ctx.fillStyle=COL.ink;
+      ctx.font='600 '+Math.max(9,Math.min(13,r*1.1))+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+      ctx.fillText(lab,n.sx,n.sy-r-4);
+    }
+  });
+  ctx.globalAlpha=1;
+}
+function loop(){
+  try{
+    if(settling>0){tick();settling--;}
+    if(autoRot&&!dragging){az+=0.0022;}
+    draw();
+  }catch(err){console.error('3d loop',err);}
+  requestAnimationFrame(loop);
+}
+
+/* ---------- interaction ---------- */
+let dragging=false,last=null,downXY=null,moved=false;
+cv.addEventListener('pointerdown',e=>{dragging=true;moved=false;last={x:e.clientX,y:e.clientY};downXY={x:e.clientX,y:e.clientY};cv.classList.add('grab');cv.setPointerCapture(e.pointerId);});
+cv.addEventListener('pointermove',e=>{
+  if(dragging){const dx=e.clientX-last.x,dy=e.clientY-last.y;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;
+    az+=dx*0.007;el=Math.max(-1.45,Math.min(1.45,el+dy*0.007));last={x:e.clientX,y:e.clientY};hideTip();return;}
+  const r=cv.getBoundingClientRect();const n=pick(e.clientX-r.left,e.clientY-r.top);hovered=n;
+  if(n)showTip(n,e.clientX,e.clientY);else hideTip();cv.style.cursor=n?'pointer':'grab';
+});
+cv.addEventListener('pointerup',e=>{dragging=false;cv.classList.remove('grab');
+  if(!moved){const r=cv.getBoundingClientRect();const n=pick(e.clientX-r.left,e.clientY-r.top);select(n);}});
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(120,Math.min(1100,dist*(e.deltaY<0?0.9:1.11)));},{passive:false});
+function pick(px,py){let best=null,bd=1e9;nodes.forEach(n=>{if(!vis(n)||n.appear<0.3)return;
+  const r=Math.max(6,(KIND[n.k].r+(KIND[n.k].hub?0:Math.min(n.deg*0.3,3)))*n.ss*0.75+4);
+  const d=Math.hypot(n.sx-px,n.sy-py);if(d<r&&n.depth>bd*-1&&d<bd){bd=d;best=n;}});return best;}
+
+const tip=document.getElementById('tip');
+function showTip(n,x,y){let ex=n.k==='entity'?`${n.g} · ${n.tier}`:n.k==='dataset'?`${n.acc||''}`:n.k==='meta'?`${n.em} · ${n.dim}-dim · ${n.ref}`:(n.name||'');
+  tip.innerHTML=`<div style="font-weight:700">${esc(n.name||n.id)}</div><div class="k">${KLAB[n.k]} · ${n.deg} conex.</div><div class="k">${esc(ex)}</div>`;
+  tip.style.left=Math.min(x+14,innerWidth-240)+'px';tip.style.top=(y+14)+'px';tip.style.opacity=1;}
+function hideTip(){tip.style.opacity=0;}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+const detail=document.getElementById('detail');
+function select(n){selected=n;if(!n){detail.classList.remove('show');return;}
+  const col=KIND[n.k].c();const ne=[...neigh(n)].map(id=>byId.get(id));let rows='';
+  const add=(k,v)=>{if(v!=null&&v!=='')rows+=`<dt>${k}</dt><dd>${esc(String(v))}</dd>`;};
+  add('label',KLAB[n.k]);add('id',n.id);
+  if(n.k==='entity'){add('ENSDARG',n.g);add('tier',n.tier);}
+  if(n.k==='dataset'){add('accession',n.acc);add('source_db',n.db);add('niche',n.dn);}
+  if(n.k==='niche'||n.k==='nicheDoc')add('niche',n.nid);
+  if(n.k==='db'||n.k==='dbDoc')add('database',n.bid);
+  if(n.k==='meta'){add('embed',n.em+' · '+n.dim+'-dim');add('refreshed',n.ref);}
+  add('conexiones',n.deg);
+  const chips=ne.slice(0,50).map(m=>`<span class="chip" data-go="${esc(m.id)}">${esc(m.name||m.id)}</span>`).join('');
+  detail.innerHTML=`<div class="dh"><span class="sw" style="background:${col};width:12px;height:12px"></span><span class="dt">${esc(n.name||n.id)}</span></div>
+    <dl class="dg">${rows}</dl>${ne.length?`<div style="color:var(--muted);font-size:.72rem;margin-top:9px">Vecinos (${ne.length})</div><div class="neigh">${chips}</div>`:''}`;
+  detail.classList.add('show');
+  detail.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>{const m=byId.get(el.getAttribute('data-go'));if(m)select(m);});
+}
+
+/* ---------- controls ---------- */
+document.getElementById('btnRot').onclick=e=>{autoRot=!autoRot;e.target.classList.toggle('on',autoRot);};
+document.getElementById('btnReset').onclick=()=>{az=0.6;el=0.35;dist=430;select(null);};
+document.getElementById('btnRelayout').onclick=()=>{settleSync();};
+document.getElementById('btnZin').onclick=()=>{dist=Math.max(120,dist*0.85);};
+document.getElementById('btnZout').onclick=()=>{dist=Math.min(1100,dist*1.15);};
+document.getElementById('gsearch').addEventListener('input',e=>{const q=e.target.value.trim().toLowerCase();if(!q){select(null);return;}
+  const m=nodes.find(n=>(n.name||'').toLowerCase().includes(q)||n.id.toLowerCase().includes(q));if(m){select(m);autoRot=false;document.getElementById('btnRot').classList.remove('on');}});
+document.querySelectorAll('.li[data-kind]').forEach(el=>el.onclick=()=>{const k=el.getAttribute('data-kind');
+  if(hiddenKinds.has(k)){hiddenKinds.delete(k);el.classList.remove('off');}else{hiddenKinds.add(k);el.classList.add('off');}alpha=Math.max(alpha,0.5);settling=120;});
+document.querySelectorAll('.li[data-edge]').forEach(el=>el.onclick=()=>{const y=el.getAttribute('data-edge');
+  if(hiddenEdges.has(y)){hiddenEdges.delete(y);el.classList.remove('off');}else{hiddenEdges.add(y);el.classList.add('off');}});
+
+/* ---------- boot ---------- */
+function recenterNormalize(){
+  let mx=0,my=0,mz=0,c=0;nodes.forEach(n=>{if(vis(n)){mx+=n.x;my+=n.y;mz+=n.z;c++;}});
+  if(!c)return;mx/=c;my/=c;mz/=c;let R=1;
+  nodes.forEach(n=>{n.x-=mx;n.y-=my;n.z-=mz;R=Math.max(R,Math.hypot(n.x,n.y,n.z));});
+  const k=118/R;nodes.forEach(n=>{n.x*=k;n.y*=k;n.z*=k;});
+}
+function settleSync(){seed();alpha=1;for(let i=0;i<260;i++)tick();recenterNormalize();t0=performance.now();}
+function boot(){resize();settleSync();loop();}
+addEventListener('resize',resize);
+if(document.readyState!=='loading')boot();else addEventListener('DOMContentLoaded',boot);
+</script>
+</body>
+</html>
