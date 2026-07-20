@@ -22,6 +22,13 @@ interpreter** (`pyproject.toml` + `uv.lock`: neo4j + openai + scikit-learn + the
 structural fix for the 2026-07-18/19 incident where the server ran on a Python **without** `neo4j` and
 silently degraded to sparse / hung (ADR-0039). No hardcoded machine paths; no secrets in git.
 
+> **⚠️ Windows — clona en una ruta CORTA.** Windows trae `LongPathsEnabled=0` por default y el árbol de
+> `openai` es profundo (el archivo más largo mide ~110 chars por sí solo). Si clonas a una ruta muy anidada
+> (base > ~150 chars), `uv sync` instala bien pero Python no puede abrir algunos archivos (MAX_PATH = 260) y
+> el semantic cae a **sparse en silencio** — lo verás como `FAIL semantic score alto` en el gate del paso 4.
+> Clona a algo como `C:\dev\Witt-organo` (no en carpetas TEMP profundas). Alternativa: habilitar long paths
+> (`LongPathsEnabled=1`, requiere admin). mac/Linux no tienen este límite.
+
 1. **Install `uv`** (the project's package manager; Tool Universe uses it too — see `mcp-config/README.md`).
 2. **Materialize the pinned runtime:** `uv sync` (creates `.venv` from `uv.lock`; ~1–2 min the first time).
 3. **Provide your secrets:** copy the template and fill the real values (ask the deploy owner):
