@@ -1,0 +1,32 @@
+# pyproject.toml — reproducible runtime for the `data-inamovible` MCP server (rag_index/mcp_server/server.py).
+#
+# WHY THIS EXISTS (2026-07-19, ADR-0039): the MCP subprocess must run on an interpreter that HAS the query
+# stack (neo4j + openai + scikit-learn + the MCP SDK). The 2026-07-18/19 incident was exactly a missing/
+# mismatched interpreter: the server ran on a Python WITHOUT `neo4j`, so it silently degraded to sparse
+# (scores ~0.2 instead of ~0.8) and, on a cold path, hung. This file + `uv.lock` pin the EXACT set that
+# passes `rag_index/mcp_server/smoke_rag.py` (6/6), so every teammate who clones + `uv sync` gets the same.
+#
+# The versioned `.mcp.json` launches the server via `uv run --locked python rag_index/mcp_server/server.py`
+# (cross-platform, no hardcoded machine paths). Secrets are NOT here and NOT in `.mcp.json` — server.py
+# loads them from each teammate's gitignored `.secrets/deploy.env` (see deploy.env.example + README).
+#
+# `package = false`: this repo is an application, not a distributable package — uv installs the deps into
+# `.venv` but never tries to build the repo itself.
+
+[project]
+name = "witt-organogenesis-mcp"
+version = "0.0.0"
+description = "DATA INAMOVIBLE MCP server (data-inamovible) — reproducible runtime deps. See rag_index/mcp_server/."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "mcp==1.27.2",           # MCP Python SDK (FastMCP) — the piece whose absence caused the incident
+    "neo4j==6.2.0",          # Bolt driver: hosted GraphRAG vector + 1-hop graph
+    "openai==2.41.1",        # EMBED_MODEL=openai: text-embedding-3-small (1536-dim, matches the index)
+    "scikit-learn==1.9.0",   # sparse half (TfidfRetriever) + the §6 no-hang sparse fallback
+    "numpy==2.4.6",          # pinned with scikit-learn for a stable query path
+    "fastembed==0.8.0",      # EMBED_MODEL=bge dev/offline fallback embedder (ONNX, no torch)
+    "minio==7.2.20",         # raw store mirror (fetch_raw / raw_store.py); source-pointer mode needs none
+]
+
+[tool.uv]
+package = false

@@ -23,21 +23,26 @@ sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 
 
 def _load_local_secrets():
-    """Single-host convenience: if NEO4J_URI is not already in the environment, load the deploy vars
-    from the gitignored .secrets/deploy.env so the MCP client config carries NO secrets. A hosted /
-    production deploy sets real env vars (NEO4J_URI, OPENAI_API_KEY, ...) and this becomes a no-op."""
-    if os.environ.get("NEO4J_URI"):
-        return
+    """Single-host convenience: load the deploy vars from the gitignored .secrets/deploy.env so the MCP
+    client config carries NO secrets. Uses setdefault, so a hosted/production deploy's real env vars always
+    win.
+
+    2026-07-18 fix: we do NOT early-return when NEO4J_URI alone is already in the env. That early-return was
+    the trigger for the 1800s query_data_inamovible hang — a half-populated spawn env (NEO4J_URI present but
+    EMBED_MODEL / OPENAI_API_KEY unset) skipped loading the rest, so get_embedder() fell to its bge default,
+    which downloads a model on first call (hang) and mismatches the 1536-dim index. We always load every var
+    the neo4j path needs, then pin RAG_BACKEND=neo4j + EMBED_MODEL=openai whenever a hosted Neo4j is reachable."""
     env_path = ROOT / ".secrets" / "deploy.env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip())
-    os.environ.setdefault("RAG_BACKEND", "neo4j")   # secrets file present -> point at the hosted Neo4j
+    if env_path.exists():
+        for line in env_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+    if os.environ.get("NEO4J_URI"):
+        os.environ.setdefault("RAG_BACKEND", "neo4j")   # hosted Neo4j reachable -> use the GraphRAG backend
+        os.environ["EMBED_MODEL"] = "openai"            # HARD pin: the 1536-dim index; never fall to bge
 
 
 _load_local_secrets()
@@ -46,16 +51,97 @@ from lib import rag_backend, resolve_id, raw_store  # noqa: E402
 
 MANIFEST = ROOT / "rag_index" / "corpus_manifest.json"
 
+# --- lightweight file logging (2026-07-19): the subprocess talks stdio to the MCP client, so stdout is
+# unavailable for diagnostics. Append timestamped lines to a gitignored log so a hang is diagnosable
+# after the fact (which tool, backend, embed model, latency, timeout/error). Never raises.
+import datetime as _dt  # noqa: E402
+_LOG_PATH = ROOT / "mcp_cache" / "mcp_server.log"
+
+
+def _log(msg: str):
+    try:
+        _LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        with _LOG_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(f"{_dt.datetime.now().isoformat(timespec='milliseconds')} pid={os.getpid()} {msg}\n")
+    except Exception:
+        pass
+
+
+_log("server import: RAG_BACKEND={} EMBED_MODEL={} NEO4J_URI_set={} "
+     "HTTP_PROXY={!r} HTTPS_PROXY={!r} NO_PROXY={!r}".format(
+         os.environ.get("RAG_BACKEND"), os.environ.get("EMBED_MODEL"), bool(os.environ.get("NEO4J_URI")),
+         os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy"),
+         os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy"),
+         os.environ.get("NO_PROXY") or os.environ.get("no_proxy")))
+
 try:
     from mcp.server.fastmcp import FastMCP
 except ImportError:  # SDK not installed in dev — the tools below still importable/testable directly
     FastMCP = None
 
 
+import concurrent.futures as _futures  # noqa: E402
+
+import time as _time  # noqa: E402
+
+_QUERY_POOL = _futures.ThreadPoolExecutor(max_workers=4)
+# Per-attempt budget for the hosted semantic path (Neo4j vector+graph + OpenAI embed). If it exceeds this
+# we DO NOT return empty — we fall back to the local sparse index (§6 no-hang). The hosted Neo4j on Dokploy
+# intermittently spikes >30s; a healthy warm query is ~0.6s and a cold one ~4s, so 12s cleanly separates
+# "warming up" from "spiking". Override via DI_QUERY_TIMEOUT_S.
+_DENSE_TIMEOUT_S = int(os.environ.get("DI_QUERY_TIMEOUT_S", "12"))
+
+
+def _hit_dicts(hits, degraded=None):
+    out = []
+    for h in hits:
+        meta = dict(h.metadata) if isinstance(h.metadata, dict) else {"meta": h.metadata}
+        if degraded:
+            meta["degraded"] = degraded
+        out.append({"doc_id": h.doc_id, "score": round(h.score, 4), "type": h.type,
+                    "text": h.text, "metadata": meta})
+    return out
+
+
 def _query(query: str, k: int = 5):
-    """Semantic GraphRAG search over the DATA INAMOVIBLE. Returns ranked corpus docs with provenance."""
-    return [{"doc_id": h.doc_id, "score": round(h.score, 4), "type": h.type,
-             "text": h.text, "metadata": h.metadata} for h in rag_backend.query(query, k)]
+    """Semantic GraphRAG search over the DATA INAMOVIBLE, with a hard no-hang guarantee (CLAUDE.md §6).
+
+    Layered defense (2026-07-18/19) so the tool NEVER hangs the MCP client (the observed 1800s stall) and
+    NEVER returns empty when a local answer exists:
+      1. Try the hosted semantic path (Neo4j vector + 1-hop graph; OpenAI embed) in a worker thread, bounded
+         by _DENSE_TIMEOUT_S. The OpenAI client is itself capped (embeddings.py: 10s, 0 retries — the SDK
+         default 600s x2 retries was the 1800s hang) and Neo4j has bounded connect timeouts.
+      2. On timeout/error, fall back to the LOCAL SPARSE index (TF-IDF over documents.jsonl, instant, no
+         network) and return those hits marked degraded=sparse. The hosted Neo4j on Dokploy intermittently
+         spikes >30s; this keeps the tool useful (lower-precision hits) instead of empty.
+    Every call is logged (start/latency/outcome) to mcp_cache/mcp_server.log for post-hoc diagnosis."""
+    _log(f"_query START dense_timeout={_DENSE_TIMEOUT_S}s backend={os.environ.get('RAG_BACKEND')} "
+         f"embed={os.environ.get('EMBED_MODEL')} k={k} q={query[:80]!r}")
+    _t0 = _time.perf_counter()
+    try:
+        hits = _QUERY_POOL.submit(lambda: rag_backend.query(query, k)).result(timeout=_DENSE_TIMEOUT_S)
+        r = _hit_dicts(hits)
+        _log(f"_query OK(semantic) {(_time.perf_counter() - _t0):.2f}s hits={len(r)}"
+             + (f" top={r[0]['doc_id']}:{r[0]['score']}" if r else ""))
+        return r
+    except _futures.TimeoutError:
+        _log(f"_query dense TIMEOUT {_DENSE_TIMEOUT_S}s -> sparse fallback (hosted Neo4j slow)")
+    except Exception as e:
+        _log(f"_query dense ERROR {(_time.perf_counter() - _t0):.2f}s {type(e).__name__}: "
+             f"{str(e)[:160]} -> sparse fallback")
+    # ---- §6 fallback: local sparse, run DIRECTLY (not via the pool) so a pool saturated with hung dense
+    # workers can never block it. No network, instant. Never empty when the corpus can answer. ----
+    try:
+        hits = rag_backend.query_sparse(query, k)
+        r = _hit_dicts(hits, degraded="sparse")
+        _log(f"_query OK(sparse-fallback) {(_time.perf_counter() - _t0):.2f}s hits={len(r)}")
+        return r
+    except Exception as e:
+        _log(f"_query sparse FAILED {(_time.perf_counter() - _t0):.2f}s {type(e).__name__}: {str(e)[:160]}")
+        return {"error": "query_unavailable",
+                "note": ("hosted semantic backend slow AND local sparse fallback failed; "
+                         "use resolve_identifier or retry (CLAUDE.md §6)."),
+                "query": query, "hits": []}
 
 
 def _resolve(key: str):
@@ -122,6 +208,45 @@ if FastMCP is not None:
         return _fetch_raw(key, filename)
 
 
+def _net_probe():
+    """Raw TCP reachability probe (2026-07-19) — distinguishes 'network hangs from this subprocess' from
+    'backend slow'. Logs connect latency to OpenAI:443 and the Neo4j host:port. If these hang here but are
+    fast from a plain shell, the subprocess env (e.g. an injected proxy) is the culprit, not the backends."""
+    import socket
+    import urllib.parse as _up
+    targets = [("api.openai.com", 443)]
+    try:
+        p = _up.urlparse(os.environ.get("NEO4J_URI", ""))
+        if p.hostname:
+            targets.append((p.hostname, p.port or 7687))
+    except Exception:
+        pass
+    for host, port in targets:
+        t0 = _time.perf_counter()
+        try:
+            socket.create_connection((host, port), timeout=6).close()
+            _log(f"net_probe {host}:{port} OK {(_time.perf_counter() - t0):.2f}s")
+        except Exception as e:
+            _log(f"net_probe {host}:{port} FAIL {(_time.perf_counter() - t0):.2f}s {type(e).__name__}: {str(e)[:100]}")
+
+
+def _warmup():
+    """Pay the cold-start (Neo4j connect + first OpenAI embed) at server startup, in the background, so the
+    user's FIRST query is already warm (~0.5s) instead of paying ~4-6s — or, if the embedder/Neo4j are
+    unreachable, so the failure surfaces here (and queries fall back to sparse) rather than hanging the
+    first live query. Bounded by _query's own timeout; never blocks mcp.run()."""
+    t0 = _time.perf_counter()
+    _log("warmup START")
+    _net_probe()
+    try:
+        r = _query("warmup pronephros zebrafish", 1)
+        ok = not isinstance(r, dict)
+        _log(f"warmup DONE {(_time.perf_counter() - t0):.2f}s ok={ok} "
+             + (f"hits={len(r)}" if ok else f"marker={r.get('error')}"))
+    except Exception as e:
+        _log(f"warmup ERROR {(_time.perf_counter() - t0):.2f}s {type(e).__name__}: {str(e)[:200]}")
+
+
 if __name__ == "__main__":
     if FastMCP is None:
         # Dev smoke test without the SDK.
@@ -132,4 +257,43 @@ if __name__ == "__main__":
         print(json.dumps(_resolve("NM_131729")))
         print(json.dumps(_fetch_raw("GSE218068"), ensure_ascii=False)[:500])
     else:
+        # CRITICAL (2026-07-19): pre-import sklearn + build the sparse index in the MAIN thread BEFORE
+        # mcp.run(). A first-time import of sklearn/numpy/joblib from a NON-main worker thread deadlocks in
+        # this MCP subprocess (VS Code-launched, no console) on the import lock — the true cause of the
+        # 1800s stall: EVERY query path (dense via pool -> get_backend builds TfidfRetriever; sparse
+        # fallback -> TfidfRetriever) triggered that import off the main thread and hung, even though the
+        # network was healthy (net_probe OK). resolve_identifier never touches sklearn, so it worked.
+        # Importing here on the main thread makes the module safe; worker threads then reuse sys.modules.
+        try:
+            _tpre = _time.perf_counter()
+            n = len(rag_backend.query_sparse("startup preload pronephros", 1))
+            _log(f"preload sparse (main thread) OK {(_time.perf_counter() - _tpre):.2f}s hits={n}")
+        except Exception as e:
+            _log(f"preload sparse (main thread) ERROR {type(e).__name__}: {str(e)[:200]}")
+        try:
+            # Also warm the DENSE backend (Neo4j connect + OpenAI embedder) on the MAIN thread and cache it
+            # in get_backend()'s singleton, so worker threads reuse the connected driver/embedder instead of
+            # doing a first-time init off the main thread (which yields empty/degraded semantic results).
+            _tpre = _time.perf_counter()
+            h = rag_backend.query("startup preload pronephros zebrafish", 1)
+            top = f"{h[0].doc_id}:{round(h[0].score, 3)}" if h else "none"
+            _log(f"preload dense (main thread) OK {(_time.perf_counter() - _tpre):.2f}s hits={len(h)} top={top}")
+            # HybridRetriever swallows dense errors (rag_backend.py: except Exception: pass), so probe the
+            # dense half DIRECTLY here to surface WHY semantic returns empty (Neo4j / embed / dim mismatch).
+            be = rag_backend.get_backend()
+            dense = getattr(be, "dense", None)
+            if dense is not None:
+                _td = _time.perf_counter()
+                try:
+                    dh = dense.query("startup preload pronephros zebrafish", 1)
+                    dtop = f"{dh[0].doc_id}:{round(dh[0].score, 3)}" if dh else "none"
+                    _log(f"preload dense-DIRECT OK {(_time.perf_counter() - _td):.2f}s hits={len(dh)} top={dtop}")
+                except Exception as de:
+                    _log(f"preload dense-DIRECT ERROR {(_time.perf_counter() - _td):.2f}s "
+                         f"{type(de).__name__}: {str(de)[:250]}")
+        except Exception as e:
+            _log(f"preload dense (main thread) ERROR {type(e).__name__}: {str(e)[:200]}")
+        import threading as _threading
+        _threading.Thread(target=_warmup, daemon=True).start()  # warm dense in background; never blocks
+        _log("mcp.run() starting")
         mcp.run()

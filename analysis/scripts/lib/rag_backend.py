@@ -168,7 +168,13 @@ class Neo4jGraphRetriever(Retriever):
     def _connect(self):
         if self._driver is None:
             from neo4j import GraphDatabase  # lazy: only on the server where the driver is installed
-            self._driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
+            # Bounded timeouts so a network/server stall fast-fails (HybridRetriever then falls back to
+            # sparse) instead of blocking the caller indefinitely — the MCP client's only backstop was a
+            # 1800s idle timeout (2026-07-18 hardening).
+            self._driver = GraphDatabase.driver(
+                self.uri, auth=(self.user, self.password),
+                connection_timeout=10, connection_acquisition_timeout=15,
+                max_transaction_retry_time=10)
         if self._embed is None:
             import sys as _sys
             _sys.path.insert(0, str(RAG / "graphrag"))
@@ -224,6 +230,8 @@ class HybridRetriever(Retriever):
 
 _default = None
 _default_sig = None  # signature of the sparse index on disk; a change forces a rebuild (auto-refresh)
+_sparse_only = None
+_sparse_only_sig = None  # separate cache for the sparse-only fallback (never touches Neo4j/network)
 
 
 def _index_signature():
@@ -246,6 +254,15 @@ def get_backend():
     if _default is not None and sig == _default_sig:
         return _default
     if os.environ.get("RAG_BACKEND") == "neo4j":
+        # The hosted vector index `doc_embeddings` is 1536-dim (OpenAI text-embedding-3-small). The QUERY
+        # MUST be embedded with the SAME model, else get_embedder() falls to its bge default which (a)
+        # DOWNLOADS an ONNX model from the HF Hub on first call — an unauthenticated fetch that can stall
+        # the long-lived MCP server with no progress (the observed 1800s query_data_inamovible hang), and
+        # (b) yields 768-dim vectors that mismatch the 1536-dim index, so Neo4jGraphRetriever throws and
+        # HybridRetriever silently degrades to sparse-only garbage scores (the Track-B silent-degradation
+        # trap). Pin OpenAI here so the neo4j path is always dimension-consistent and never triggers a
+        # local-model download. (Same guard evaluation/run_held_out.py applies; 2026-07-18 root-cause fix.)
+        os.environ["EMBED_MODEL"] = "openai"
         dense = Neo4jGraphRetriever(uri=os.environ.get("NEO4J_URI"),
                                     user=os.environ.get("NEO4J_USER"),
                                     password=os.environ.get("NEO4J_PASSWORD"))
@@ -264,6 +281,18 @@ def get_backend():
 def query(text, k=5):
     """Semantic-ish lookup over the DATA INAMOVIBLE corpus (the lookup_prior backend)."""
     return get_backend().query(text, k)
+
+
+def query_sparse(text, k=5):
+    """Sparse-only lookup (TF-IDF over documents.jsonl) that NEVER touches Neo4j or the network — the
+    offline fallback for the §6 no-hang rule when the hosted semantic backend is slow/unreachable.
+    Cached separately from get_backend() and auto-refreshed on documents.jsonl change."""
+    global _sparse_only, _sparse_only_sig
+    sig = _index_signature()
+    if _sparse_only is None or sig != _sparse_only_sig:
+        _sparse_only = TfidfRetriever()
+        _sparse_only_sig = sig
+    return _sparse_only.query(text, k)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,11 @@ def get_embedder():
 
     if model == "openai":
         from openai import OpenAI
-        client = OpenAI()  # reads OPENAI_API_KEY from env
+        # BOUNDED (2026-07-19): the SDK default is timeout=600s x max_retries=2 == up to ~1800s of silent
+        # hang if the first embeddings POST cannot connect — the exact 1800s the MCP client aborted on.
+        # Cap it hard so a query fails fast (and HybridRetriever falls back to sparse) instead of hanging.
+        _t = float(os.environ.get("OPENAI_EMBED_TIMEOUT_S", "10"))
+        client = OpenAI(timeout=_t, max_retries=0)  # reads OPENAI_API_KEY from env
         name = os.environ.get("OPENAI_EMBED_MODEL", "text-embedding-3-small")
 
         def embed(texts):

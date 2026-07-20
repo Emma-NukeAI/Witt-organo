@@ -1,5 +1,7 @@
 {
-  "_comment": "Project-scoped MCP servers — committed so EVERY teammate who clones the repo gets Tool Universe automatically (Claude Code auto-detects this file and asks once to approve). Tool Universe is the Path-B external-search source (CLAUDE.md §6, ADR-0022) — without it, answering questions outside the DATA INAMOVIBLE carries more risk, so it is treated as core. NO SECRETS HERE: the 3 API keys are OPTIONAL and read from your shell env via ${VAR:-} (Tool Universe runs without them, just rate-limited). Prereq: uv/uvx installed (see mcp-config/README.md). FIRST run of uvx resolves+caches the pinned package (~30-60s) — if it times out at startup, launch with: MCP_TIMEOUT=120000 claude  (MCP_TIMEOUT is the real startup-timeout lever; a per-server startupTimeout field is ignored). Version is PINNED for team reproducibility — bump deliberately (upstream's own config uses 'uvx --refresh tooluniverse' for always-latest; we pin for robust, identical-across-team startup).",
+  "_comment": "Project-scoped MCP servers — committed so EVERY teammate who clones the repo gets them automatically (Claude Code auto-detects this file and asks once to approve). NO SECRETS HERE. Prereq: uv/uvx installed (see mcp-config/README.md). FIRST run resolves+caches packages (uvx ~30-60s; `uv run` first sync ~1-2 min for the data-inamovible deps) — if startup times out, launch with: MCP_TIMEOUT=120000 claude  (MCP_TIMEOUT is the real startup-timeout lever). Servers are PINNED for team reproducibility — bump deliberately.",
+  "_comment_tooluniverse": "Tool Universe is the Path-B external-search source (CLAUDE.md §6, ADR-0022). The 3 API keys are OPTIONAL, read from your shell env via ${VAR:-} (Tool Universe runs without them, just rate-limited).",
+  "_comment_data_inamovible": "The single front door to the DATA INAMOVIBLE GraphRAG (ADR-0020). Launched via `uv run --locked` so it runs on the REPRODUCIBLE, pinned interpreter defined by pyproject.toml + uv.lock (neo4j + openai + scikit-learn + mcp SDK) — this is the structural fix for the 2026-07-18/19 incident where the server ran on a Python WITHOUT neo4j and silently degraded to sparse / hung (ADR-0039). Cross-platform: `uv run` resolves the right interpreter on Win/mac/Linux, no hardcoded machine path. NO SECRETS + no env vars here: server.py loads NEO4J_*/OPENAI_API_KEY/MINIO_* from your gitignored .secrets/deploy.env (copy rag_index/mcp_server/deploy.env.example). SETUP GATE before first use: `uv run --locked python rag_index/mcp_server/smoke_rag.py` must print '6/6 PASS'. Onboarding: rag_index/mcp_server/README.md.",
   "mcpServers": {
     "tooluniverse": {
       "type": "stdio",
@@ -10,6 +12,14 @@
         "NCBI_API_KEY": "${NCBI_API_KEY:-}",
         "NVIDIA_API_KEY": "${NVIDIA_API_KEY:-}",
         "FDA_API_KEY": "${FDA_API_KEY:-}"
+      }
+    },
+    "data-inamovible": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--locked", "python", "rag_index/mcp_server/server.py"],
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
       }
     }
   }
