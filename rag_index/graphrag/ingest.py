@@ -111,6 +111,8 @@ def run(confirm_embed_model_change=False):
                 s.run("MATCH (doc:Document {doc_id:$id}),(b:Database {id:$db}) MERGE (doc)-[:FROM_DB]->(b)", id=d["doc_id"], db=sdb)
         # entities from corpus records, bound to verified ENSDARG/tier, + MENTIONS edges
         for r in manifest.get("records", []):
+            if not rag_backend.is_approved(r):   # STRUCTURAL gate (ADR-0039): mirror gather_documents —
+                continue                         # never MERGE Entity/MENTIONS for an unapproved proposal
             for e in r.get("entities_extracted", []):
                 sym = e.get("entity")
                 if not sym:

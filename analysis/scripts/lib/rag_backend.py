@@ -32,6 +32,20 @@ INDEX_VERSION = "2026-06-11.1"
 
 
 # ---------------- ingestion: gather the DATA INAMOVIBLE corpus into documents ----------------
+def is_approved(rec):
+    """STRUCTURAL human gate (ADR-0039, 2026-07-19). A corpus record is eligible for the index/graph ONLY
+    if its approval_chain exists AND every gate is 'approved' (none left pending_review/rejected). This turns
+    the human gate from procedural into STRUCTURAL: a proposal from add_dataset.py / propose_from_external.py
+    / the ingest_service (all of which write approval_chain status='pending_review') physically cannot enter
+    the DATA INAMOVIBLE because gather_documents() + ingest.py's entity loop both skip it. Default-DENY: a
+    record with no approval_chain is NOT ingested. Approval is granted only by approve_dataset.py (the gate).
+    Reads are free; only an approved, human-gated record mutates the store (CLAUDE.md §7)."""
+    chain = rec.get("approval_chain")
+    if not chain:
+        return False
+    return all(g.get("status") == "approved" for g in chain)
+
+
 def gather_documents():
     """Build searchable documents from the curated corpus sources. Each doc: {doc_id, text, metadata}."""
     docs = []
@@ -46,7 +60,11 @@ def gather_documents():
                      "text": f"{d['name']}. {d['utility']} Data: {d['data_type']}. Feeds {', '.join(d.get('feeds_niches', []))}.",
                      "metadata": {"db": d["id"], "link": d.get("link"), "feeds_niches": d.get("feeds_niches", [])}})
     manifest = json.loads((RAG / "corpus_manifest.json").read_text(encoding="utf-8"))
+    _skipped = []
     for r in manifest.get("records", []):
+        if not is_approved(r):                       # STRUCTURAL gate: unapproved proposals never enter
+            _skipped.append(r.get("corpus_record_id"))
+            continue
         sd = r.get("source_document", {})
         ents = " ".join(e.get("entity", "") for e in r.get("entities_extracted", []))
         docs.append({"doc_id": r["corpus_record_id"], "type": "dataset",
@@ -62,6 +80,9 @@ def gather_documents():
                          "text": (ch.get("text") or "")[:2000],
                          "metadata": {"section": ch.get("section"), "parent": r["corpus_record_id"],
                                       "raw_ref": ch.get("raw_ref")}})
+    if _skipped:  # transparency (§6 no silent caps): announce what the structural gate held back
+        print(f"[rag_backend] gather_documents: SKIPPED {len(_skipped)} unapproved record(s) pending the "
+              f"human gate: {', '.join(map(str, _skipped))}", file=sys.stderr)
     return docs
 
 
