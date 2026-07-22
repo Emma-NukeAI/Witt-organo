@@ -1,0 +1,224 @@
+{
+ "provenance": {
+  "sweep": "30 OA zebrafish papers (EuropePMC S4-core query)",
+  "date": "2026-07-21",
+  "method": "6 parallel extraction agents; STRICT anti-fabrication (text-only, no figure/ratio/efficiency/survival); MITAD_A curated",
+  "raw_fulltext_cache": "mcp_cache/raw_europepmc_S4sweep_<PMCID>_20260721.xml (per paper, §7.9)"
+ },
+ "values": [
+  {
+   "gene": "fn1a",
+   "pmcid": "PMC12212883",
+   "phenotype": "cardia bifida escaper (WT-like linear heart tube; inverse penetrance)",
+   "fraction": "6/41",
+   "stage": "24 hpf",
+   "q": "6/41 mutant embryos formed a linear heart tube indistinguishable from WT"
+  },
+  {
+   "gene": "fn1a",
+   "pmcid": "PMC12212883",
+   "phenotype": "WT-like escaper fraction across generations (incomplete penetrance)",
+   "value_pct": [
+    1.7,
+    8.9,
+    25.6,
+    38.6
+   ],
+   "note": "F1->F2->F3->F3[32C] natter allele",
+   "q": "increased ... from 1.7% in F1 to 8.9% in F2 ... to 25.6% ... to 38.6%"
+  },
+  {
+   "gene": "fbn3",
+   "pmcid": "PMC13125888",
+   "phenotype": "marked pericardial edema",
+   "value_pct": 40,
+   "stage": "3-5 dpf",
+   "q": "In approximately 40% of fbn3-/- offspring, marked pericardial edema"
+  },
+  {
+   "gene": "fbn3",
+   "pmcid": "PMC13125888",
+   "phenotype": "fin-fold atrophy (triple KO fbn1/2/3)",
+   "value_pct": 100,
+   "q": "TKO mutants exhibited 100% penetrance of fin-fold atrophy"
+  },
+  {
+   "gene": "col4a1",
+   "pmcid": "PMC12835968",
+   "phenotype": "deep intracerebral haemorrhage (morphant)",
+   "value_pct": 10.5,
+   "stage": "72 hpf",
+   "q": "circa 10.5% ... developed spontaneous deep intracerebral brain haemorrhage"
+  },
+  {
+   "gene": "col4a1",
+   "pmcid": "PMC12835968",
+   "phenotype": "haemorrhage any site (morphant)",
+   "value_pct": 30,
+   "q": "nearly 30% ... considering other sites besides the CNS"
+  },
+  {
+   "gene": "ahi1",
+   "pmcid": "PMC13161512",
+   "phenotype": "severity classes (MO+VUS mRNA): cat3/cat2/cat1",
+   "value_pct": [
+    18,
+    23,
+    8
+   ],
+   "stage": "day 1",
+   "q": "18% category 3, 23% category 2, and 8% category 1"
+  },
+  {
+   "gene": "dspb",
+   "pmcid": "PMC13269591",
+   "phenotype": "enlarged yolk sac (homozygous mutant)",
+   "value_pct": 10,
+   "q": "dspb-/- group showed ... 10% larvae with enlarged yolk sacs (n=100)"
+  },
+  {
+   "gene": "grhl3",
+   "pmcid": "PMC12509482",
+   "phenotype": "overall phenotype (variable penetrance, below Mendelian 25%)",
+   "value_pct": 15,
+   "q": "only ~15% of embryos presented with phenotypes (below expected Mendelian 25%)"
+  },
+  {
+   "gene": "grhl3",
+   "pmcid": "PMC12509482",
+   "phenotype": "severity classes (+14bp allele): C1/C2/C3",
+   "value_pct": [
+    9.72,
+    2.69,
+    1.27
+   ],
+   "fraction": "199/2048;55/2048;26/2048",
+   "q": "Class1 199/2048 9.72%; Class2 55/2048 2.69%; Class3 -/- 26/2048 1.27%"
+  },
+  {
+   "gene": "hoxb4a",
+   "pmcid": "PMC12638046",
+   "phenotype": "pectoral fin absence (hoxb4a-b5a;hoxb5b del, low penetrance)",
+   "value_pct": 0.7,
+   "fraction": "3/397",
+   "q": "lack pectoral fins ... low penetrance n=3/397; 0.7%"
+  },
+  {
+   "gene": "nr6a1a",
+   "pmcid": "PMC12226721",
+   "phenotype": "severity (double morphant): severe/moderate",
+   "value_pct": [
+    16,
+    49
+   ],
+   "q": "16% and 49% embryos having severe and moderate phenotypes"
+  },
+  {
+   "gene": "cfap300",
+   "pmcid": "PMC13281305",
+   "phenotype": "increased cdh17 expression (marker penetrance, homozygous)",
+   "value_pct": [
+    53,
+    60,
+    75
+   ],
+   "stage": "30/50/72 hpf",
+   "q": "~53%, 60% and 75% embryos at 30, 50, 72 hpf cfap300-/-"
+  },
+  {
+   "gene": "bmp4",
+   "pmcid": "PMC12010914",
+   "phenotype": "ethanol-induced malformations (bmp4-/-;smad5-/-)",
+   "value_pct": 100,
+   "q": "bmp4-/-;smad5-/- larvae exhibit 100% penetrant ethanol-induced malformations"
+  },
+  {
+   "gene": "smad5",
+   "pmcid": "PMC12010914",
+   "phenotype": "ethanol-induced malformations (bmp4-/-;smad5-/-)",
+   "value_pct": 100,
+   "q": "(same double-mutant, 100% penetrant)"
+  },
+  {
+   "gene": "yap1",
+   "pmcid": "PMC13110368",
+   "phenotype": "'diving' pLLP primordium (WT 1.29% / yap1-/- 16%)",
+   "value_pct": 16,
+   "q": "1.29% of WT and 16% of yap1-/- showed diving primordia"
+  },
+  {
+   "gene": "vgll4b",
+   "pmcid": "PMC13110368",
+   "phenotype": "'diving' pLLP (yap1-/- + vgll4b mRNA)",
+   "value_pct": 68,
+   "q": "increased to 68% in yap1-/- injected with vgll4b mRNA"
+  },
+  {
+   "gene": "vgll4l",
+   "pmcid": "PMC13110368",
+   "phenotype": "'diving' pLLP (yap1-/- overexpr vgll4l)",
+   "value_pct": 25,
+   "q": "25% of embryos showing diving primordia"
+  },
+  {
+   "gene": "pde6c",
+   "pmcid": "PMC13088749",
+   "phenotype": "OKR phenotype (rw76a mutant)",
+   "value_pct": 100,
+   "note": "'almost 100%'",
+   "q": "Penetrance of OKR phenotype in pde6c rw76a was almost 100%"
+  },
+  {
+   "gene": "fbxo32",
+   "pmcid": "PMC12810921",
+   "phenotype": "conditional Atrogin-1 muscle atrophy severity (72h): normal/mild/strong",
+   "value_pct": [
+    32.35,
+    32.35,
+    35.3
+   ],
+   "q": "normal 32.35%; one-site 32.35%; multi-site 35.3% (4-OHT 10uM 72h)"
+  },
+  {
+   "gene": "fbxo32",
+   "pmcid": "PMC12810921",
+   "phenotype": "motoneuron degeneration (72/48/24h)",
+   "value_pct": [
+    19,
+    11,
+    8
+   ],
+   "q": "motoneuron degeneration in 19%, 11%, 8% after 72/48/24h 4-OHT"
+  }
+ ],
+ "quarantined_not_minted": {
+  "genes": [
+   "hoxa4a (>85% craniofacial, PMC13214747)",
+   "par2a/f2rl1 (<1% gastrulation completion, PMC12173237)",
+   "tgds (~13% severe, PMC13080230)"
+  ],
+  "reason": "Ensembl lookup HTTPError (not resolvable under that symbol); NOT minted, NOT store-added. Values retained here as UNVERIFIED claims only."
+ },
+ "excluded_gene_null": [
+  "ZRS/enhancer crispant fin-ray defects 27-39% (PMC12714565)",
+  "EWSR1::FLI1 transgene notochord ~70%/swim-bladder ~60% (PMC13073343)",
+  "elavl3:KalTA4 swim-bladder 50-100% (PMC12606425)"
+ ],
+ "excluded_human": [
+  "DSP variant 83% by age 40 (human clinical, PMC13269591)",
+  "NR6A1 human-mRNA overexpression fractions (GOF, PMC12226721)"
+ ],
+ "papers_zero_yield": [
+  "PMC13241009",
+  "PMC12402270(mef2ca,figure-only)",
+  "PMC12924142",
+  "PMC13225842",
+  "PMC12929123",
+  "PMC13162200",
+  "PMC12965718",
+  "PMC12187536",
+  "PMC13132733",
+  "PMC12797551",
+  "PMC11454699"
+ ]
+}

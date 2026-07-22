@@ -34,6 +34,7 @@ OCULAR_CURATED = ANALYSIS / "outputs" / "ocular_markers_curated.json"
 SIGNALING_CURATED = ANALYSIS / "outputs" / "signaling_markers_curated.json"
 MITADB_CURATED = ANALYSIS / "outputs" / "mitadB_markers_curated.json"
 S4_PENETRANCE_CURATED = ANALYSIS / "outputs" / "s4_penetrance_markers_curated.json"
+S4_SWEEP_CURATED = ANALYSIS / "outputs" / "s4_penetrance_sweep_markers_curated.json"
 
 # The 7 anchors the LBPP (2026-05-31) cross-checked against this map AND for which a raw
 # Ensembl 3-hop response was cached per CLAUDE.md §6/§7.9.
@@ -41,7 +42,7 @@ RAW_ANCHORS = {"cdh17", "gata3", "lhx1a", "pax2a", "pax8", "wt1a", "wt1b"}
 RAW_CACHE = "mcp_cache/raw_ensembl_lookup_genes_20260531.json"
 
 SCHEMA_VERSION = "1.0"
-STORE_VERSION = "2026-07-21.2"   # MITAD_A ZF-S4 penetrance acquisition: +3 ciliary penetrance-anchor IDs (mks1/tmem67/cep290) for the CORPUS-2026-0006 RN11 penetrance record; verified vs Ensembl REST, raw cached §7.9, human-gated ADD 2026-07-21. Prior: 2026-07-21.1 (+19, REQUEST_A_validate_DI); 2026-07-11.1 (ADR-0035, +23).
+STORE_VERSION = "2026-07-21.3"   # MITAD_A ZF-S4 multi-paper penetrance sweep: +17 penetrance-anchor IDs (fn1a/fbn3/col4a1/ahi1/dspb/grhl3/hoxb4a/hoxb5a/hoxb5b/nr6a1a/nr6a1b/cfap300/yap1/vgll4b/vgll4l/pde6c/fbxo32) for CORPUS-2026-0008; verified vs Ensembl REST, raw §7.9, human-gated ADD 2026-07-21. Prior: 2026-07-21.2 (+3 ciliary); 2026-07-21.1 (+19); 2026-07-11.1 (ADR-0035, +23).
 
 
 def build():
@@ -167,6 +168,26 @@ def build():
                           + (f" Role: {c['role']}." if c.get("role") else "")),
             })
 
+    # Merge S4 multi-paper penetrance sweep anchors (30-OA-paper sweep, ZF-S4) — RAW tier (raw Ensembl REST
+    # response cached §7.9 in raw_ensembl_S4-penetrance-sweep_20260721.json). Human-gated ADD. These genes
+    # carry the quantified penetrance values extracted (text-verifiable only) for the CORPUS-2026-0008 record.
+    existing = {r["symbol"] for r in records}
+    if S4_SWEEP_CURATED.exists():
+        curated = json.loads(S4_SWEEP_CURATED.read_text(encoding="utf-8"))
+        for sym, c in sorted(curated.items()):
+            if sym.startswith("_") or sym in existing or not isinstance(c, dict) or not c.get("ensdarg"):
+                continue
+            records.append({
+                "symbol": sym, "ensdarg": c["ensdarg"], "ensdarp": None, "ensdart": None,
+                "uniprot_acc": None, "taxon": 7955, "assembly": "GRCz11", "ensembl_release": None,
+                "source_db": "ensembl", "resolver": "ensembl-rest-lookup",
+                "raw_cache_ref": f"RAW:{c.get('raw_cache_ref')}", "anchor_match": None,
+                "verified_on": c.get("verified_on"), "provenance": "ours", "confidence": 1.0,
+                "notes": ("ZF-S4 multi-paper penetrance-sweep anchor verified via Ensembl REST (raw cached "
+                          "§7.9 2026-07-21); human-gated ADD."
+                          + (f" Role: {c['role']}." if c.get("role") else "")),
+            })
+
     envelope = {
         "schema_version": SCHEMA_VERSION,
         "store_version": STORE_VERSION,
@@ -183,6 +204,8 @@ def build():
             "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
             "analysis/outputs/s4_penetrance_markers_curated.json",
             "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json",
+            "analysis/outputs/s4_penetrance_sweep_markers_curated.json",
+            "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
         ],
         "read_only": True,
         "human_gate_required_to_modify": True,

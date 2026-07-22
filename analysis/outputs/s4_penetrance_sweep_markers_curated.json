@@ -1,0 +1,112 @@
+{
+ "_meta": {
+  "created": "2026-07-21",
+  "by": "MITAD_A S4 multi-paper penetrance sweep (30 OA papers)",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "resolver": "ensembl-rest-lookup",
+  "human_gate": "CLAUDE.md 7 - pending Emmanuel"
+ },
+ "fn1a": {
+  "ensdarg": "ENSDARG00000019815",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "cardia bifida / heart-tube (PMC12212883)"
+ },
+ "fbn3": {
+  "ensdarg": "ENSDARG00000098237",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "fibrillin, pericardial edema/fin-fold (PMC13125888)"
+ },
+ "col4a1": {
+  "ensdarg": "ENSDARG00000055009",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "collagen IV, intracerebral haemorrhage (PMC12835968)"
+ },
+ "ahi1": {
+  "ensdarg": "ENSDARG00000044056",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "ciliary, olfactory/severity (PMC13161512)"
+ },
+ "dspb": {
+  "ensdarg": "ENSDARG00000076673",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "desmoplakin b, yolk-sac/cardiac (PMC13269591)"
+ },
+ "grhl3": {
+  "ensdarg": "ENSDARG00000078552",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "grainyhead-like 3, variable-penetrance body defects (PMC12509482)"
+ },
+ "hoxb4a": {
+  "ensdarg": "ENSDARG00000013533",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "hox, pectoral fin (PMC12638046)"
+ },
+ "hoxb5a": {
+  "ensdarg": "ENSDARG00000013057",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "hox, pectoral fin (PMC12638046)"
+ },
+ "hoxb5b": {
+  "ensdarg": "ENSDARG00000054030",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "hox, pectoral fin (PMC12638046)"
+ },
+ "nr6a1a": {
+  "ensdarg": "ENSDARG00000101508",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "nuclear receptor, oculo-vertebral (PMC12226721)"
+ },
+ "nr6a1b": {
+  "ensdarg": "ENSDARG00000014480",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "nuclear receptor, oculo-vertebral (PMC12226721)"
+ },
+ "cfap300": {
+  "ensdarg": "ENSDARG00000000349",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "cilia, Corpuscle of Stannius marker penetrance (PMC13281305)"
+ },
+ "yap1": {
+  "ensdarg": "ENSDARG00000068401",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "Hippo, pLLP migration (PMC13110368)"
+ },
+ "vgll4b": {
+  "ensdarg": "ENSDARG00000103730",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "Vgll4, pLLP migration (PMC13110368)"
+ },
+ "vgll4l": {
+  "ensdarg": "ENSDARG00000068409",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "Vgll4-like, pLLP migration (PMC13110368)"
+ },
+ "pde6c": {
+  "ensdarg": "ENSDARG00000100397",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "phosphodiesterase, OKR/retina (PMC13088749)"
+ },
+ "fbxo32": {
+  "ensdarg": "ENSDARG00000040277",
+  "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-sweep_20260721.json",
+  "verified_on": "2026-07-21",
+  "role": "Atrogin-1, conditional muscle atrophy (PMC12810921)"
+ }
+}

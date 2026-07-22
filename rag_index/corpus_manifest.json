@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "manifest_version": "2026-06-12.4",
-  "status": "CORPUS-2026-0007 APPROVED by Emmanuel. Ingesting.",
+  "status": "CORPUS-2026-0008 APPROVED by Emmanuel. Ingesting.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -3012,6 +3012,250 @@
       "substrate_evidence": [
         "test_1",
         "test_3"
+      ]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0008",
+      "version": "v1.0",
+      "created_at": "2026-07-22T03:49:18.858151+00:00",
+      "source_document": {
+        "name": "Zebrafish quantified penetrance — multi-paper sweep (ZF-S4)",
+        "source_db": "EuropePMC",
+        "pmids_pmcids": [
+          "PMC12212883",
+          "PMC13125888",
+          "PMC12835968",
+          "PMC13161512",
+          "PMC13269591",
+          "PMC12509482",
+          "PMC12638046",
+          "PMC12226721",
+          "PMC13281305",
+          "PMC12010914",
+          "PMC13110368",
+          "PMC13088749",
+          "PMC12810921"
+        ],
+        "raw_cache_path": "mcp_cache/raw_europepmc_S4sweep_<PMCID>_20260721.xml (per paper, §7.9) + analysis/outputs/S4_penetrance_sweep_extracted_20260721.json (curated values + verbatim quotes)",
+        "parse_method": "30-OA-paper EuropePMC sweep -> 6 parallel extraction agents (text-verifiable penetrance only) -> MITAD_A curation; genes verified vs Ensembl REST + bound via resolve_id (store 2026-07-21.3). Anti-fabrication §7: excluded ratios/survival/efficiency/identity/methods/figure-only/human/GOF-human-mRNA."
+      },
+      "axis_data_niche": {
+        "primary": "RN11",
+        "secondary": [
+          "RN12"
+        ],
+        "relevance_by_niche": {
+          "RN11": 0.9,
+          "RN12": 0.3
+        },
+        "note": "Multi-paper penetrance-QUANTIFIED layer for S4 variance decomposition (ADR-0042 RN11). Complements CORPUS-0005 (associations scaffold) + 0006 (ciliary pilot)."
+      },
+      "axis_scientific_domain": {
+        "primary": "N3",
+        "secondary": [
+          "N1"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "EuropePMC",
+          "provenance": "curated",
+          "role": "primary_source"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".json",
+        "valid_for_niche": true,
+        "modality": "curated literature claims (quantified penetrance, multi-paper)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          0,
+          2160
+        ],
+        "tissue": [
+          "whole_organism_curated"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "assembly": "GRCz11"
+      },
+      "metabolic_role": null,
+      "penetrance_dataset_ref": "analysis/outputs/S4_penetrance_sweep_extracted_20260721.json",
+      "n_value_entries": 21,
+      "n_genes_bound": 19,
+      "entities_extracted": [
+        {
+          "entity": "ahi1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ahi1",
+          "store_ensdarg": "ENSDARG00000044056",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "bmp4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp4",
+          "store_ensdarg": "ENSDARG00000019995",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "cfap300",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cfap300",
+          "store_ensdarg": "ENSDARG00000000349",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "col4a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col4a1",
+          "store_ensdarg": "ENSDARG00000055009",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "dspb",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#dspb",
+          "store_ensdarg": "ENSDARG00000076673",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "fbn3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#fbn3",
+          "store_ensdarg": "ENSDARG00000098237",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "fbxo32",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#fbxo32",
+          "store_ensdarg": "ENSDARG00000040277",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "fn1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#fn1a",
+          "store_ensdarg": "ENSDARG00000019815",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "grhl3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#grhl3",
+          "store_ensdarg": "ENSDARG00000078552",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hoxb4a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hoxb4a",
+          "store_ensdarg": "ENSDARG00000013533",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hoxb5a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hoxb5a",
+          "store_ensdarg": "ENSDARG00000013057",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hoxb5b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hoxb5b",
+          "store_ensdarg": "ENSDARG00000054030",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "nr6a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nr6a1a",
+          "store_ensdarg": "ENSDARG00000101508",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "nr6a1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nr6a1b",
+          "store_ensdarg": "ENSDARG00000014480",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pde6c",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pde6c",
+          "store_ensdarg": "ENSDARG00000100397",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "smad5",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad5",
+          "store_ensdarg": "ENSDARG00000037238",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "vgll4b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#vgll4b",
+          "store_ensdarg": "ENSDARG00000103730",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "vgll4l",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#vgll4l",
+          "store_ensdarg": "ENSDARG00000068409",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "yap1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#yap1",
+          "store_ensdarg": "ENSDARG00000068401",
+          "verification_tier": "RAW"
+        }
+      ],
+      "quarantine": {
+        "genes_not_minted": [
+          "hoxa4a",
+          "par2a",
+          "f2rl1",
+          "tgds"
+        ],
+        "reason": "Ensembl lookup HTTPError under that symbol -> NOT minted, NOT store-added; values kept as UNVERIFIED claims in the dataset only."
+      },
+      "proposed_placement": {
+        "data_niche": "RN11",
+        "relevance": 0.9,
+        "reasoning": "Multi-gene quantified penetrance from 13 OA papers; the substantive penetrance layer S4's variance decomposition needs."
+      },
+      "feeds_databases": [
+        "EuropePMC",
+        "ZFIN"
+      ],
+      "completeness_note": "Sweep of 30 OA papers; ~19 zero-yield (penetrance qualitative/figure-only/human/off-domain). 21 text-verifiable value-entries across ~16 zebrafish genes bound. Together with 0005 (associations) + 0006 (ciliary) + 0007 (variance floor), S4 now has a real multi-gene penetrance layer — nearer a clean generation commission, though still literature-curated (not exhaustive).",
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-07-22T03:49:18.998255+00:00"
+        }
+      ],
+      "gap_flags": [
+        "literature-curated, not exhaustive — penetrance grows per-paper",
+        "4 genes quarantined (Ensembl HTTPError)",
+        "some values are severity-class fractions or approximate ('~','<1%') — flagged in the dataset",
+        "gene-null transgene/enhancer values + human/GOF values excluded (in dataset for provenance)"
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3",
+        "test_4"
       ]
     }
   ]
