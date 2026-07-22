@@ -1,0 +1,33 @@
+{
+  "artifact": "S4_source_resolution (closes the two S4 content gaps: penetrance-quantified + isogenic variance)",
+  "status": "DRAFT — verified sources found; acquisition is human-gated (add_dataset -> review -> approve -> ingest). Nothing ingested.",
+  "from": "MITAD_A (witt-organogenesis)",
+  "date": "2026-07-21",
+  "method": "2 parallel acquisition scouts (web-verified) + MITAD_A re-verification of every anchor against EuropePMC/GEO with raw-cache (§7.9). Anchors NOT taken on the scouts' word.",
+  "gap_1_penetrance_quantified": {
+    "finding": "NO bulk table or API anywhere exposes zebrafish penetrance. Verified: ZFIN phenotype files (incl. the ingested phenotype_fish.txt) carry associations + abnormal-flag only; Alliance re-ingests ZFIN verbatim; Monarch's frequency_qualifier is populated for HUMAN disease->HPO only, not zebrafish. Penetrance is a per-paper quantity.",
+    "verdict": "literature-extraction-only (Path B, same mechanism as CORPUS-2026-0003)",
+    "verified_anchors": [
+      {"pmid": "22039502", "pmcid": "PMC3198425", "isOpenAccess": "Y", "year": "2011", "title": "Molecular-genetic mapping of zebrafish mutants with variable phenotypic penetrance", "raw_cache": "mcp_cache/raw_europepmc_S4-penetrance_pmid22039502_20260721.json", "note": "CANONICAL anchor — literally about variable penetrance in ZF mutants; OA full text extractable now."},
+      {"pmid": "36533556", "pmcid": "PMC9844136", "isOpenAccess": "Y", "year": "2022", "title": "Variable phenotypes and penetrance ... zebrafish ciliary transition zone mutants", "raw_cache": "mcp_cache/raw_europepmc_S4-penetrance_pmid36533556_20260721.json", "note": "OA; reports numeric penetrance between/within mutants."},
+      {"pmid": "28892034", "pmcid": "PMC5614404", "isOpenAccess": "N", "year": "2017", "title": "Shifting Zebrafish Lethal Skeletal Mutant Penetrance by Progeny Testing", "note": "full-text in EPMC but NOT OA — use only if OA-licensable; do not mine restricted text."}
+    ],
+    "acquisition_path": "add_dataset (Path-B literature extract: parse 'N/M (X%)' penetrance per genotype from the 2 OA papers) -> gene symbols bound via resolve_id (NEVER mint) -> cite + §7.9 raw-cache -> human review -> approve_dataset -> ingest as RN11 penetrance-annotated claims (tier=literature). Cheap, small, no wet-lab.",
+    "target_niche": "RN11 (curated claims; extends the CORPUS-2026-0005 scaffold with the missing penetrance PROBABILITY)"
+  },
+  "gap_2_isogenic_variance_floor": {
+    "finding": "Purpose-built CLONAL-line variance data is sparse for zebrafish (C32 gynogenetic line exists — PMID 32315581 — but its data is not public). Same-genetic-background developmental-variance data IS quantified and freely downloadable.",
+    "verdict": "sparse-but-exists",
+    "verified_anchors": [
+      {"pmid": "33440143", "pmcid": "PMC7809618", "geo": "GSE153621", "isOpenAccess": "Y", "geo_accessible": true, "year": "2021", "title": "Variability of an Early Developmental Cell Population Underlies Stochastic Laterality Defects (Tavares et al., Cell Reports)", "raw_cache": ["mcp_cache/raw_europepmc_S4-isogenic_variance_pmid33440143_20260721.json", "mcp_cache/raw_geo_GSE153621_20260721.txt"], "note": "BEST direct hit: dorsal-forerunner-cell count CV 78.7% vs 4.8% total endoderm among same-background AB/TL embryos; supp morphometric tables + public GEO (48 samples, per-embryo RNA-seq)."},
+      {"pmc": "PMC4572358", "year": "2012", "title": "How Variable Clones Build an Invariant Retina (He et al., Neuron)", "note": "PURER irreducible-noise floor: variance across clones from single progenitors in a FIXED genome; supp count tables downloadable. Complement, not primary."},
+      {"analog_only": "MIKK medaka inbred panel (Nat Commun 2022)", "note": "DIFFERENT species — methodological reference for isogenic morphometric-variance only; do NOT ingest as a zebrafish floor."}
+    ],
+    "acquisition_path": "add_dataset (download Cell Reports 2021 supp morphometric CV table [+ optionally GSE153621 per-embryo counts]) -> genes via resolve_id -> §7.9 cache -> human review -> approve_dataset -> ingest as the stochastic-floor dataset.",
+    "target_niche": "RN9 (morphology/morphometric variance) primary + RN1 (per-embryo expression variance, GSE153621)",
+    "honest_caveat": "AB/TL are inbred lab strains with RESIDUAL HETEROZYGOSITY, not strictly clonal — the study attributes the variance to a stochastic component 'among fish of the same genetic background'. The Neuron 2012 within-animal clones are the more rigorous fixed-genome floor. C32 is the only truly-isogenic line found but its data is not public. State this limitation in any variance-decomposition that uses this floor."
+  },
+  "recommendation": "Both gaps are now CLOSED as VERIFIED, ACCESSIBLE, human-gated acquisition paths (zero wet-lab, public, small). Sequencing per 'prueba pequeño': (1) penetrance via Path-B extract from PMID 22039502 (canonical) — highest value, extends CORPUS-0005 with the missing probability; (2) isogenic floor via PMID 33440143 supp + Neuron 2012. Each is a separate human-gated ingest. Once both land, S4 becomes a clean generation commission for B (variance decomposition + GRN-vs-additive held-out test).",
+  "no_di_mutation_yet": true,
+  "gate_needed": "human selection of which to acquire first + the ingest gate per record (ADR-0022)."
+}

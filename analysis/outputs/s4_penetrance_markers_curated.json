@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "created": "2026-07-21",
+    "by": "MITAD_A S4 penetrance acquisition (ZF-S4); genes verified vs Ensembl REST for the CORPUS-2026-0006 penetrance record",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json",
+    "verified_on": "2026-07-21",
+    "resolver": "ensembl-rest-lookup",
+    "human_gate": "CLAUDE.md 7 - pending Emmanuel approval 2026-07-21"
+  },
+  "mks1": {"ensdarg": "ENSDARG00000059657", "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json", "verified_on": "2026-07-21", "role": "ciliary transition-zone (Meckel); S4 penetrance anchor (PMC9844136: 57.7% HTA @5dpf)"},
+  "tmem67": {"ensdarg": "ENSDARG00000076752", "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json", "verified_on": "2026-07-21", "role": "ciliary transition-zone (Meckel/Joubert); S4 penetrance anchor (PMC9844136: 92.3% CDT @2dpf)"},
+  "cep290": {"ensdarg": "ENSDARG00000062727", "raw_cache_ref": "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json", "verified_on": "2026-07-21", "role": "ciliary transition-zone; S4 penetrance anchor (PMC9844136: 99.7% CDT @2dpf, 100% curved body @3mo)"}
+}

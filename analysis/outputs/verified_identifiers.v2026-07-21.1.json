@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "store_version": "2026-07-21.2",
+  "store_version": "2026-07-21.1",
   "generated_by": "analysis/scripts/lib/build_verified_store.py",
   "source_artifacts": [
     "analysis/outputs/ensembl_symbol_map.json",
@@ -11,13 +11,11 @@
     "mcp_cache/raw_ensembl_signaling-genes_20260623.json",
     "mcp_cache/raw_ensembl_l2-candidates_20260711.json",
     "analysis/outputs/mitadB_markers_curated.json",
-    "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
-    "analysis/outputs/s4_penetrance_markers_curated.json",
-    "mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json"
+    "mcp_cache/raw_ensembl_mitadB-validate_20260721.json"
   ],
   "read_only": true,
   "human_gate_required_to_modify": true,
-  "n_records": 96,
+  "n_records": 93,
   "tier_legend": {
     "RAW:<file>": "raw \u00a77.9 external response on disk (raw_cache_ref points to it)",
     "DERIVED:ensembl_symbol_map.json": "verified via 02_schoels_phase2.py symbol-lookup; raw response not retained",
@@ -1725,60 +1723,6 @@
       "provenance": "ours",
       "confidence": 1.0,
       "notes": "MITAD_B question-bank marker verified via Ensembl REST (raw cached \u00a77.9 2026-07-21); human-gated ADD (REQUEST_A_validate_DI_20260711). Role: non-canonical Wnt (silberblick); CE / gastrulation."
-    },
-    {
-      "symbol": "cep290",
-      "ensdarg": "ENSDARG00000062727",
-      "ensdarp": null,
-      "ensdart": null,
-      "uniprot_acc": null,
-      "taxon": 7955,
-      "assembly": "GRCz11",
-      "ensembl_release": null,
-      "source_db": "ensembl",
-      "resolver": "ensembl-rest-lookup",
-      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json",
-      "anchor_match": null,
-      "verified_on": "2026-07-21",
-      "provenance": "ours",
-      "confidence": 1.0,
-      "notes": "ZF-S4 penetrance ciliary anchor verified via Ensembl REST (raw cached \u00a77.9 2026-07-21); human-gated ADD. Role: ciliary transition-zone; S4 penetrance anchor (PMC9844136: 99.7% CDT @2dpf, 100% curved body @3mo)."
-    },
-    {
-      "symbol": "mks1",
-      "ensdarg": "ENSDARG00000059657",
-      "ensdarp": null,
-      "ensdart": null,
-      "uniprot_acc": null,
-      "taxon": 7955,
-      "assembly": "GRCz11",
-      "ensembl_release": null,
-      "source_db": "ensembl",
-      "resolver": "ensembl-rest-lookup",
-      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json",
-      "anchor_match": null,
-      "verified_on": "2026-07-21",
-      "provenance": "ours",
-      "confidence": 1.0,
-      "notes": "ZF-S4 penetrance ciliary anchor verified via Ensembl REST (raw cached \u00a77.9 2026-07-21); human-gated ADD. Role: ciliary transition-zone (Meckel); S4 penetrance anchor (PMC9844136: 57.7% HTA @5dpf)."
-    },
-    {
-      "symbol": "tmem67",
-      "ensdarg": "ENSDARG00000076752",
-      "ensdarp": null,
-      "ensdart": null,
-      "uniprot_acc": null,
-      "taxon": 7955,
-      "assembly": "GRCz11",
-      "ensembl_release": null,
-      "source_db": "ensembl",
-      "resolver": "ensembl-rest-lookup",
-      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_S4-penetrance-ciliary_20260721.json",
-      "anchor_match": null,
-      "verified_on": "2026-07-21",
-      "provenance": "ours",
-      "confidence": 1.0,
-      "notes": "ZF-S4 penetrance ciliary anchor verified via Ensembl REST (raw cached \u00a77.9 2026-07-21); human-gated ADD. Role: ciliary transition-zone (Meckel/Joubert); S4 penetrance anchor (PMC9844136: 92.3% CDT @2dpf)."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "manifest_version": "2026-06-12.4",
-  "status": "CORPUS-2026-0005 APPROVED by Emmanuel. Ingesting.",
+  "status": "CORPUS-2026-0007 APPROVED by Emmanuel. Ingesting.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -2730,6 +2730,284 @@
         "no isogenic-line variance dataset (the stochastic floor) — still to acquire",
         "4544 parsed genes quarantined (NOT_FOUND, not minted); only 69 store-verified genes bind as entities",
         "RN11 placement represents relational edges as entity mentions + source-pointer, not a native relational schema (accepted per ADR-0042)"
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0006",
+      "version": "v1.0",
+      "created_at": "2026-07-22T03:17:50.494883+00:00",
+      "source_document": {
+        "name": "Zebrafish ciliary-mutant phenotype penetrance (quantified, ZF-S4)",
+        "source_db": "EuropePMC",
+        "pmid": "36533556",
+        "pmcid": "PMC9844136",
+        "doi": null,
+        "isOpenAccess": "Y",
+        "raw_cache_path": "mcp_cache/raw_europepmc_S4-penetrance_PMC9844136_fulltext_20260721.xml (OA full text, §7.9)",
+        "parse_method": "Numeric phenotype penetrance extracted from OA full text; each value traceable to a source sentence (mcp_cache/S4_penetrance_candidate_sentences_20260721.json). Genes bound via resolve_id (verified vs Ensembl, store 2026-07-21.2). NO number fabricated; survival ratios / maternal-RNA / methods percentages excluded."
+      },
+      "axis_data_niche": {
+        "primary": "RN11",
+        "secondary": [
+          "RN12"
+        ],
+        "relevance_by_niche": {
+          "RN11": 0.9,
+          "RN12": 0.3
+        },
+        "note": "Penetrance-quantified genotype->phenotype claims — adds the PROBABILITY layer the CORPUS-2026-0005 ZFIN scaffold lacked. Placement per ADR-0042 (RN11)."
+      },
+      "axis_scientific_domain": {
+        "primary": "N3",
+        "secondary": [
+          "N1"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "EuropePMC",
+          "provenance": "curated",
+          "role": "primary_source"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".xml",
+        "valid_for_niche": true,
+        "modality": "curated literature claims (quantified penetrance)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          48,
+          2160
+        ],
+        "tissue": [
+          "whole_organism_curated"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "assembly": "GRCz11"
+      },
+      "metabolic_role": null,
+      "penetrance_claims": [
+        {
+          "gene": "mks1",
+          "phenotype": "head-trunk-angled defect (HTA)",
+          "stage": "5 dpf",
+          "penetrance_pct": 57.7,
+          "metric": "penetrance"
+        },
+        {
+          "gene": "tmem67",
+          "phenotype": "curved-down-tail (CDT)",
+          "stage": "2 dpf",
+          "penetrance_pct": 92.3,
+          "metric": "penetrance"
+        },
+        {
+          "gene": "cep290",
+          "phenotype": "curved-down-tail (CDT)",
+          "stage": "2 dpf",
+          "penetrance_pct": 99.7,
+          "metric": "penetrance"
+        },
+        {
+          "gene": "cep290",
+          "phenotype": "wavy spine",
+          "stage": "3 weeks",
+          "penetrance_pct": 22.0,
+          "metric": "penetrance (approx, '~22%')"
+        },
+        {
+          "gene": "cep290",
+          "phenotype": "curved body",
+          "stage": "3 months",
+          "penetrance_pct": 100.0,
+          "metric": "penetrance"
+        }
+      ],
+      "entities_extracted": [
+        {
+          "entity": "mks1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mks1",
+          "store_ensdarg": "ENSDARG00000059657",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tmem67",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tmem67",
+          "store_ensdarg": "ENSDARG00000076752",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "cep290",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cep290",
+          "store_ensdarg": "ENSDARG00000062727",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "ift88",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ift88",
+          "store_ensdarg": "ENSDARG00000027234",
+          "verification_tier": "RAW"
+        }
+      ],
+      "proposed_placement": {
+        "data_niche": "RN11",
+        "relevance": 0.9,
+        "reasoning": "First penetrance-QUANTIFIED record; supplies the probability S4's variance decomposition needs."
+      },
+      "feeds_databases": [
+        "EuropePMC",
+        "ZFIN"
+      ],
+      "completeness_note": "PILOT: 5 penetrance values from ONE OA paper (PMC9844136), 3 genotypes. Penetrance is per-paper; this establishes the pattern and grows incrementally. Together with CORPUS-2026-0005 (associations scaffold) it gives S4 a starter penetrance layer; a broader multi-paper sweep + the isogenic-variance floor (CORPUS-0007) are the remaining pieces.",
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-07-22T03:17:50.648433+00:00"
+        }
+      ],
+      "gap_flags": [
+        "pilot yield: 5 values / 1 paper — not a comprehensive penetrance table",
+        "excluded non-penetrance percentages (survival ratios, maternal-RNA, methods) — only phenotype-frequency kept",
+        "expressivity/correction-rate values in the paper not captured (penetrance only)"
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3",
+        "test_4"
+      ]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0007",
+      "version": "v1.0",
+      "created_at": "2026-07-22T03:20:30.587208+00:00",
+      "source_document": {
+        "name": "Zebrafish same-background developmental cell-number variance (stochastic floor, ZF-S4)",
+        "source_db": "EuropePMC",
+        "pmid": "33440143",
+        "pmcid": "PMC7809618",
+        "geo": "GSE153621",
+        "isOpenAccess": "Y",
+        "raw_cache_path": "mcp_cache/raw_europepmc_S4-isogenic_PMC7809618_fulltext_20260721.xml (OA full text, §7.9); mcp_cache/raw_geo_GSE153621_20260721.txt",
+        "parse_method": "Variance metrics extracted from OA full text (Moreno-Ayala et al., Cell Reports 2021). Only text-verifiable values kept; figure-only values NOT asserted."
+      },
+      "axis_data_niche": {
+        "primary": "RN9",
+        "secondary": [
+          "RN1"
+        ],
+        "relevance_by_niche": {
+          "RN9": 0.8,
+          "RN1": 0.4
+        },
+        "note": "Morphometric inter-individual variance (stochastic floor) among SAME-genetic-background embryos — the irreducible-noise term for S4's penetrance variance decomposition."
+      },
+      "axis_scientific_domain": {
+        "primary": "N3",
+        "secondary": [
+          "N1"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "EuropePMC",
+          "provenance": "curated",
+          "role": "primary_source"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".xml",
+        "valid_for_niche": true,
+        "modality": "morphometric variance (cell counts)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          8,
+          12
+        ],
+        "tissue": [
+          "endoderm",
+          "dorsal_forerunner_cells",
+          "Kupffers_vesicle"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "strain": "AB/TL (Tg[sox17:GFP])",
+        "assembly": "GRCz11"
+      },
+      "metabolic_role": null,
+      "variance_floor_data": {
+        "text_verified": [
+          {
+            "population": "endoderm / total cell number",
+            "metric": "coefficient of variation (CV)",
+            "value_pct": 4.8,
+            "n": 49,
+            "stage": "75% epiboly",
+            "source": "main text + Fig 1C/D"
+          },
+          {
+            "population": "dorsal forerunner cells (DFC)",
+            "metric": "range",
+            "value": "~10-50 cells per embryo",
+            "n": 49,
+            "qualitative": "'even more variable'; variation persists to KV stage (no corrective mechanism)",
+            "stage": "75% epiboly",
+            "source": "main text + Fig 1D"
+          },
+          {
+            "population": "Kupffer's vesicle (KV)",
+            "metric": "n only",
+            "n": 37,
+            "source": "main text"
+          }
+        ],
+        "NOT_asserted": "The DFC coefficient-of-variation value (~78.7%) reported by an upstream scout is FIGURE-ONLY (Fig 1D) and NOT present in the fetched full-text XML — NOT asserted here (anti-fabrication §7). Only the DFC count RANGE (~10-50) is text-verifiable."
+      },
+      "entities_extracted": [
+        {
+          "entity": "sox17",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#sox17",
+          "store_ensdarg": "ENSDARG00000101717",
+          "verification_tier": "RAW",
+          "role": "Tg[sox17:GFP] endoderm/DFC reporter line"
+        }
+      ],
+      "proposed_placement": {
+        "data_niche": "RN9",
+        "relevance": 0.8,
+        "reasoning": "Inter-individual morphometric variance on a fixed background = the stochastic-floor dataset S4 needs to bound irreducible noise."
+      },
+      "feeds_databases": [
+        "EuropePMC",
+        "GEO_NCBI"
+      ],
+      "completeness_note": "Stochastic-floor PILOT. Text-verifiable: endoderm CV 4.8%, DFC range ~10-50 cells (n=49). GEO GSE153621 (per-embryo RNA-seq, 48 samples) available as a transcriptomic-variance complement (not yet ingested).",
+      "honest_caveat": "AB/TL are INBRED lab strains with RESIDUAL HETEROZYGOSITY, not strictly clonal — variance attributed to a stochastic component among same-background fish. The purer within-fixed-genome floor is He et al. 2012 (PMC4572358, retinal clones), noted as a complement, NOT ingested. C32 is the only truly-isogenic ZF line found but its data is not public.",
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-07-22T03:21:58.418558+00:00"
+        }
+      ],
+      "gap_flags": [
+        "DFC exact CV is figure-only, not text-extractable — not asserted",
+        "single-study pilot; GSE153621 transcriptomic-variance complement not ingested",
+        "strain not strictly clonal (residual heterozygosity)"
       ],
       "substrate_evidence": [
         "test_1",
