@@ -1,0 +1,232 @@
+<meta charset="utf-8">
+<title>Auditoría DATA INAMOVIBLE MCP + ToolUniverse — 2026-07-19</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#fff; --ink:#1a1a17; --mut:#5c5c54; --line:#e3e1da;
+    --pass:#1b7f4b; --passbg:#e7f4ec; --warn:#a66a00; --warnbg:#fbf1dd;
+    --fail:#b3261e; --failbg:#fbe6e4; --accent:#2f5c8f; --accentbg:#e8eef6;
+    --chip:#efeee9;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#16160f;--panel:#201f18;--ink:#ece9df;--mut:#a5a191;--line:#34332a;
+      --pass:#5fce93;--passbg:#16301f;--warn:#e6b25a;--warnbg:#332818;
+      --fail:#f2837b;--failbg:#361a18;--accent:#8fb3e0;--accentbg:#1a2536;--chip:#2a2920;}
+  }
+  :root[data-theme="dark"]{--bg:#16160f;--panel:#201f18;--ink:#ece9df;--mut:#a5a191;--line:#34332a;
+    --pass:#5fce93;--passbg:#16301f;--warn:#e6b25a;--warnbg:#332818;--fail:#f2837b;--failbg:#361a18;
+    --accent:#8fb3e0;--accentbg:#1a2536;--chip:#2a2920;}
+  :root[data-theme="light"]{--bg:#f7f7f5;--panel:#fff;--ink:#1a1a17;--mut:#5c5c54;--line:#e3e1da;
+    --pass:#1b7f4b;--passbg:#e7f4ec;--warn:#a66a00;--warnbg:#fbf1dd;--fail:#b3261e;--failbg:#fbe6e4;
+    --accent:#2f5c8f;--accentbg:#e8eef6;--chip:#efeee9;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:26px;line-height:1.25;margin:0 0 6px}
+  h2{font-size:19px;margin:38px 0 14px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  h3{font-size:15px;margin:20px 0 8px}
+  .sub{color:var(--mut);font-size:13.5px;margin:0 0 22px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap}
+  .b-pass{background:var(--passbg);color:var(--pass)}
+  .b-warn{background:var(--warnbg);color:var(--warn)}
+  .b-fail{background:var(--failbg);color:var(--fail)}
+  .b-acc{background:var(--accentbg);color:var(--accent)}
+  .grid{display:grid;gap:12px}
+  @media(min-width:720px){.grid-3{grid-template-columns:1fr 1fr 1fr}}
+  .verdict{border-left:5px solid var(--fail);background:var(--failbg)}
+  .kpi{font-size:34px;font-weight:700;line-height:1}
+  .kpi-l{color:var(--mut);font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  .tw{overflow-x:auto}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  code{background:var(--chip);padding:1px 5px;border-radius:5px;font-size:12.5px;
+    font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace}
+  .mono{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  ul{margin:6px 0 6px 0;padding-left:20px}li{margin:3px 0}
+  .sev{font-weight:700;font-size:11px;padding:2px 7px;border-radius:5px;white-space:nowrap}
+  .s-block{background:var(--fail);color:#fff}.s-high{background:var(--failbg);color:var(--fail)}
+  .s-med{background:var(--warnbg);color:var(--warn)}.s-low{background:var(--chip);color:var(--mut)}
+  .contract dt{font-weight:600;color:var(--accent);margin-top:10px;font-size:13px}
+  .contract dd{margin:2px 0 0;color:var(--ink);font-size:13.5px}
+  .foot{color:var(--mut);font-size:12px;margin-top:40px;border-top:1px solid var(--line);padding-top:14px}
+  .tag{display:inline-block;background:var(--chip);color:var(--mut);border-radius:6px;padding:2px 8px;font-size:11.5px;margin:2px 4px 2px 0}
+</style>
+
+<div class="wrap">
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+    <span class="badge b-acc">TYPE D · Auditoría formal</span>
+    <span class="badge b-acc">composite-auditor · CoVe multi-familia</span>
+    <span class="badge b-acc">Method 2</span>
+  </div>
+  <h1>Auditoría de perfección — proceso DATA INAMOVIBLE + los dos MCPs</h1>
+  <p class="sub">Repo público <span class="mono">Emma-NukeAI/Witt-organo</span> · uso por el equipo de Latido Médico · 2026-07-19 · 13 agentes (6 auditoría + 6 verificación adversarial + 1 síntesis), 0 errores</p>
+
+  <!-- VERDICT -->
+  <div class="panel verdict">
+    <div class="grid grid-3">
+      <div><div class="kpi-l">Veredicto teammate-ready</div><div class="kpi" style="color:var(--fail)">NO</div><div style="font-size:12.5px;color:var(--mut)">por 1 bloqueador de distribución, no de código</div></div>
+      <div><div class="kpi-l">Ruta local configurada</div><div class="kpi" style="color:var(--pass)">FUNCIONA</div><div style="font-size:12.5px;color:var(--mut)">query semántico 0.80 · smoke 6/6 · en vivo</div></div>
+      <div><div class="kpi-l">Confianza global</div><div class="kpi" style="color:var(--accent)">0.80</div><div style="font-size:12.5px;color:var(--mut)">medido + auditado adversarialmente</div></div>
+    </div>
+    <p style="margin:14px 0 0"><b>El proceso funciona en la máquina bien configurada</b> — se probó en vivo, no en papel: un handshake MCP real por stdio (esta sesión ni siquiera tenía las tools registradas) devolvió recuperación semántica densa (top <b>0.80</b>, embebido por OpenAI, sin marcadores de fallback), <code>resolve_identifier(pax2a)→ENSDARG00000028148</code>, <code>fetch_raw</code> baja al crudo (URL+sha256), y el gate <code>smoke_rag.py</code> dio <b>6/6</b>. <b>Pero NO está listo para un teammate</b> por un bloqueador y dos hazards HIGH abajo.</p>
+  </div>
+
+  <!-- §5 CONTRACT -->
+  <h2>Contrato de salida (§5) — visible</h2>
+  <div class="panel contract">
+    <dl>
+      <dt>direct_answer</dt>
+      <dd>El proceso DATA INAMOVIBLE (embedding + ingesta + consulta) es <b>correcto en la ruta configurada</b> y se demostró en vivo. <b>No es distribuible al equipo tal como está</b> porque (a) todo el fix ADR-0039 vive en una rama local sin push — el <code>master</code> canónico no lo tiene — y (b) la ruta de consulta <b>degrada a sparse (~0.24) en silencio, sin marcador</b>, en un clon fresco mal configurado, bajo un tool llamado "Semantic GraphRAG". ToolUniverse MCP funciona (2223 tools, lookups reales). Transporte recomendado: <b>híbrido, CLI-primario</b>.</dd>
+      <dt>confidence_by_subclaim</dt>
+      <dd class="mono">query=0.93 (CONFIRMED) · security=0.90 (CONFIRMED) · embedding=0.85 (REVISE) · tooluniverse=0.85 (REVISE) · hazard/CLI=0.85 (REVISE) · ingestion=0.75 (REVISE, static-only) · «no-teammate-ready»=0.90</dd>
+      <dt>evidence_cited</dt>
+      <dd>Handshake MCP en vivo (init 3.75s, top 0.8041/0.8329, sin markers degraded); <code>smoke_rag.py → 6/6</code> por <code>uv run --locked</code>; git: <code>95c54af</code>/<code>d261a96</code> NO en <code>origin/master</code>, rama no en origin; Neo4j Meta <code>embed_dim=1536</code> + índice ONLINE; probe OpenAI <code>len==1536</code>; ingest.py MERGE-only (0 DELETE, test de regresión); <code>rag_backend.py:217-219 except Exception: pass</code>; <code>ingest.py:35 EMBED_MODEL default 'bge'</code>; <code>skills/external/README.md:55-60 uv pip install tooluniverse</code>.</dd>
+      <dt>alternatives_considered</dt>
+      <dd>(A) MCP como único front door — <b>rechazado</b> (registro por-sesión falla en silencio; ya pasó hoy). (B) Borrar MCP, solo CLI — <b>rechazado</b> (se pierde el descubrimiento agent-native, y la paridad de calidad densa es independiente del transporte). (C) Híbrido CLI-primario — <b>elegido</b>.</dd>
+      <dt>gap_flags</dt>
+      <dd>Ingesta NO ejercida en vivo (correcto: mutación humano-gated → auditoría estática); deps transitivas de tooluniverse sin lock; el bloque de verify de embedding se truncó del input del agente sintetizador (mitigado: leí el journal crudo directamente); puertos Neo4j/MinIO públicos (ADR-0033 diferido por el founder) fuera de alcance de acción.</dd>
+      <dt>framework_applied</dt>
+      <dd>Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: <i>"High-stakes outputs that will be acted on … Cases where confident hallucination is the worst failure mode."</i> El workflow implementó CoVe literal: draft (6 auditorías) → preguntas de escéptico (6 verificadores adversariales que re-corrieron los chequeos decisivos) → veredicto revisado. Aplica porque el peor modo de fallo aquí <b>es</b> la alucinación confiada (sparse disfrazado de semántico).</dd>
+      <dt>agents_invoked</dt>
+      <dd><b>composite-auditor</b> (Mode 1 split-and-vote, satisface el gate §7): 6 auditores de pilar + 6 verificadores adversariales + 1 sintetizador = 13 agentes, 0 errores, ~1.14M tokens. Orquestación determinista vía Workflow. Self-audit por el agente productor NO usado como gate.</dd>
+    </dl>
+  </div>
+
+  <!-- THREE PILLARS -->
+  <h2>Los tres pilares que pediste: embedding · ingesta · consulta</h2>
+  <div class="grid grid-3">
+    <div class="panel">
+      <span class="badge b-pass">EMBEDDING · PASS (medido)</span>
+      <p style="margin:10px 0 0;font-size:13.5px">Query, ingesta y el índice vectorial de Neo4j <b>coinciden</b>: OpenAI <code>text-embedding-3-small</code> @ <b>1536-dim / COSINE</b>. Probe en vivo <code>len==1536</code>; Meta node <code>embed_dim=1536</code>; índice ONLINE; embedder <b>hard-pinned</b> (server.py:45, rag_backend.py:265) → el fallback bge/768 no alcanza la ruta viva. Fix de anti-hang presente (<code>timeout=10, max_retries=0</code>).</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--warn)">⚠ Deriva a bge por default en la ruta de <i>rebuild</i> (ingest.py:35).</p>
+    </div>
+    <div class="panel">
+      <span class="badge b-warn">INGESTA · PASS estático</span>
+      <p style="margin:10px 0 0;font-size:13.5px">Espina de seguridad real: <b>MERGE-only</b> (0 DELETE verificado en vivo + test de regresión), humano-gated, <b>resolve_id-bound</b> (IDs nunca acuñados), con dim-guard A2 (SystemExit si mismatch) + halt A3 por cambio de modelo. Concuerda con ADR-0022. <b>No se ejecutó ningún ingest</b> (cero mutaciones — correcto).</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--warn)">⚠ El gate repo-side es <b>procedural, no estructural</b>: el código no filtra por <code>approval_chain</code>.</p>
+    </div>
+    <div class="panel">
+      <span class="badge b-pass">CONSULTA · PASS (2× confirmado)</span>
+      <p style="margin:10px 0 0;font-size:13.5px">Handshake MCP real por la ruta exacta del teammate, reproducido por <b>dos procesos independientes</b>: init ~3.5s, hits densos semánticos (top <b>0.80</b>, embebido OpenAI, metadata de grafo, cero markers de fallback), <code>resolve(pax2a)→ENSDARG00000028148</code>, <code>fetch_raw</code> baja al crudo, <code>smoke 6/6</code>. Sparse-fallback en 0.01s bajo fallo forzado; concurrencia 8 max 1.25s; no-hang.</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--fail)">⚠ Degradación sparse silenciosa en clon mal configurado.</p>
+    </div>
+  </div>
+
+  <!-- BOTH MCPs -->
+  <h2>Los dos MCPs</h2>
+  <div class="grid" style="gap:12px">
+    <div class="panel">
+      <span class="badge b-pass">data-inamovible · funciona en vivo (ruta configurada)</span>
+      <p style="margin:10px 0 0;font-size:13.5px"><code>.mcp.json</code> lanza <code>server.py</code> por <code>uv run --locked</code> sobre el intérprete pineado (el fix estructural ADR-0039 del incidente 07-18/19). Front door <b>read-only</b> — no expone ninguna tool de escritura/ingesta; el gate humano <b>no es evadible</b> vía MCP. Cero secretos en git (carga <code>.secrets/deploy.env</code>). Lo único que lo aleja de "certified-ready" es el bloqueador de distribución + la degradación silenciosa + la fragilidad del registro por-sesión.</p>
+    </div>
+    <div class="panel">
+      <span class="badge b-warn">tooluniverse · funciona, framing "perfecto" atemperado</span>
+      <p style="margin:10px 0 0;font-size:13.5px"><code>uvx tooluniverse@1.2.6</code> — <b>2223 tools / 520 categorías</b>; 4 lookups reales sobre <code>pax2a</code> devolvieron datos genuinos (Ensembl, UniProt, etc.). Corre sin secretos (3 API keys opcionales <code>${VAR:-}</code>, solo rate-limit). No bloquea la ruta DI (§6 no-hang, fallback offline).</p>
+      <p style="margin:8px 0 0;font-size:12.5px;color:var(--warn)">⚠ Deps transitivas <b>sin lock</b> ("pinned/reproducible" es media verdad) · <code>ZFIN_get_gene_expression</code> da 404 · cold-start puede exceder timeout en clon fresco · gaps de nicho N2/N5/N6.</p>
+    </div>
+  </div>
+
+  <!-- HAZARDS -->
+  <h2>Hazards priorizados (con fix y evidencia)</h2>
+  <div class="tw panel" style="padding:6px 10px">
+  <table>
+    <tr><th>Sev</th><th>Hazard</th><th>Impacto para un teammate</th><th>Fix</th></tr>
+    <tr>
+      <td><span class="sev s-block">BLOCKER</span></td>
+      <td><b>El fix ADR-0039 está en una rama local sin push.</b> <span class="mono">95c54af</span>/<span class="mono">d261a96</span> NO están en <code>origin/master</code>; la rama no existe en origin.</td>
+      <td>Quien clone <code>Emma-NukeAI/Witt-organo</code> recibe el <code>master</code> viejo — sin <code>.mcp.json</code> portable, sin <code>pyproject/uv.lock</code>, sin el hardening de server.py. <b>Recibe el setup roto.</b></td>
+      <td>Push de la rama + PR a <code>master</code>. <b>Gate del founder</b> (es una acción hacia afuera + estaba en revisión).</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-high">HIGH</span></td>
+      <td><b>Degradación silenciosa sparse-como-semántico.</b> <code>HybridRetriever.query</code> traga el error de la mitad densa (<code>rag_backend.py:217-219 except Exception: pass</code>) y devuelve sparse (~0.24) <b>sin flag <code>degraded</code></b>, bajo un tool "Semantic GraphRAG".</td>
+      <td>Mismo modo de fallo del incidente 07-18/19. Un teammate no distingue 0.80 real de 0.24 degradado — y actúa sobre datos malos creyendo que son buenos. Transporte-independiente (vive en el core).</td>
+      <td>Emitir marcador in-band <code>degraded='sparse-by-config'</code> en <b>todo</b> resultado sparse (cuando <code>RAG_BACKEND≠neo4j</code> o el embedder denso no está), no solo en el timeout.</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-high">HIGH</span></td>
+      <td><b>MCP es el único front door documentado + su registro por-sesión falla en silencio.</b> Esta sesión tiene cero tools de data-inamovible registradas mientras tooluniverse sí cargó.</td>
+      <td>El agente cree que "no hay data-inamovible" y opera sin la fuente de verdad, sin señal de error.</td>
+      <td>Enviar CLI <code>witt-di</code> como front door robusto (Opción C). El transporte CLI no depende de registro por-sesión.</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-high">HIGH</span></td>
+      <td><b>Sin guardrail contra contaminar el <code>.venv</code> pineado.</b> <code>skills/external/README.md:55-60</code> documenta <code>uv pip install tooluniverse</code> sin advertir env aislado.</td>
+      <td>Es exactamente lo que rompió el venv hoy (drift de 143 pkgs → <code>uv run --locked</code> chocaba en cada arranque). Un teammate que siga ese doc se auto-rompe.</td>
+      <td>Cambiar el doc a <b>uvx-only / env aislado</b>; opcional: check en <code>smoke_rag.py</code> que avise si el venv tiene paquetes fuera del lock.</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-med">MED</span></td>
+      <td><b>Deriva a bge por default en ingesta.</b> <code>ingest.py:35 EMBED_MODEL default 'bge'</code> (768-dim) mientras query pinnea openai/1536; README paso 3 dice bge.</td>
+      <td>Un re-ingest con el default corrompe el índice en silencio (768 vs 1536) → toda la recuperación semántica degrada.</td>
+      <td>Default a <code>openai</code> en ingest.py:35 y bootstrap.py (o bge solo si <code>NEO4J_URI</code> ausente); README paso 3 → <code>EMBED_MODEL=openai</code>.</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-med">MED</span></td>
+      <td><b>Gate humano repo-side procedural, no estructural.</b> <code>ingest.py</code>/<code>gather_documents()</code> no filtran por <code>approval_chain</code>. Cobertura de test = 0.</td>
+      <td>La seguridad depende de que el humano corra los comandos en orden, no de que el código lo imponga. Regresión posible sin que ningún test lo note.</td>
+      <td>Filtro de aprobación a nivel código + test. (La espina MERGE-only/no-delete sí es estructural y sólida.)</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-med">MED</span></td>
+      <td><b>README no autocontenido</b> — dice <code>uv sync</code> (no <code>--locked</code>), difiere la instalación de uv; 6/6 es condicional a infra+credenciales+ruta-corta, no propiedad de clon-desnudo.</td>
+      <td>Un no-experto se atora o cree que "falló" cuando en realidad le falta un secreto o clonó en ruta profunda (MAX_PATH).</td>
+      <td>README standalone con <code>uv sync --locked</code> + precondiciones explícitas (deploy.env, ruta corta) + qué significa cada FAIL del smoke.</td>
+    </tr>
+    <tr>
+      <td><span class="sev s-med">MED</span></td>
+      <td><b><code>ingest_service /submit</code></b>: escribe con el filename crudo del cliente (path-traversal), lee <code>.h5ad</code> no confiable; token compare no constant-time; sin TLS propio.</td>
+      <td>Superficie de ataque en el servicio hosted de ingesta si se expone sin Traefik.</td>
+      <td>Sanear filename, comparación constant-time, mantener detrás de Traefik TLS.</td>
+    </tr>
+  </table>
+  </div>
+  <p style="font-size:12.5px;color:var(--mut)">LOW (documentar/pulir): <code>fetch_raw</code> no acepta las formas de doc_id que emite el query (<code>db:*</code>, sufijo <code>#cNNN</code>) · orden RRF ≠ campo <code>score</code> · puertos Neo4j/MinIO abiertos (ADR-0033 diferido) · log incluye hostname/proxy · deps transitivas tooluniverse sin lock.</p>
+
+  <!-- DECISION -->
+  <h2>Decisión: ¿MCP, o CLI directo?</h2>
+  <div class="panel" style="border-left:5px solid var(--accent)">
+    <p style="margin:0"><b>Recomendación: Opción C — Híbrido, CLI-primario.</b> Enviar un CLI delgado <code>witt-di query|resolve|fetch</code> como front door robusto y siempre-disponible, y <b>degradar el MCP a enhancement opcional</b> (descubrimiento agent-native). <b>No</b> dejar el MCP como único front door (A); <b>no</b> borrarlo (B).</p>
+    <p style="margin:12px 0 0"><b>Por qué funciona sin perder calidad:</b> el transporte es <b>ortogonal</b> a qué RAG se consulta — <code>rag_backend.query()</code> es la única llamada compartida y el env elige backend (re-verificado en vivo). Un CLI llama al MISMO backend denso contra el MISMO Neo4j hosted → misma calidad 0.80. Lo que el CLI elimina son los dos hazards operativos que están mordiendo ahora mismo: <b>el registro por-sesión que falla en silencio</b> (esta sesión: cero tools DI) y la <b>staleness del pipe stdio</b>. Costo de migración bajo: envuelve <code>rag_backend.py</code> + <code>resolve_id.py</code> que ya existen.</p>
+    <p style="margin:12px 0 0;font-size:13.5px"><b>Matiz importante:</b> el MCP <b>no</b> es un hazard de integridad de datos (front door read-only, gate humano no evadible, secretos a salvo). Es un hazard de <b>confiabilidad</b>: fallos silenciosos. Por eso, sea cual sea el transporte, lo <b>no-negociable</b> es (1) el marcador de degradación in-band y (2) gatear el primer arranque en <code>smoke_rag.py → 6/6</code>. <code>resolve_id.py</code> debe seguir siendo el resolver determinista autoritativo dentro de scripts — nunca rutear un lookup determinable por una red.</p>
+  </div>
+
+  <!-- WHAT I DID -->
+  <h2>Qué se arregló hoy y qué queda</h2>
+  <div class="grid" style="gap:12px">
+    <div class="panel" style="border-left:4px solid var(--pass)">
+      <h3 style="margin-top:0;color:var(--pass)">✔ Cerrado y verificado esta sesión</h3>
+      <ul style="font-size:13.5px">
+        <li>Recuperado el <code>.venv</code> (limpiado el árbol ToolUniverse de 143 pkgs + <code>dist-info</code> huérfanos sin RECORD que causaban oscilación).</li>
+        <li><code>.venv</code> pristino: 69 pkgs exactos al <code>uv.lock</code>; <code>uv run --locked</code> estable, sin warnings, converge.</li>
+        <li>Ruta versionada validada: <code>uv run --locked python smoke_rag.py</code> → <b>6/6</b>, y handshake MCP real end-to-end.</li>
+        <li>Causa raíz del incidente de hoy identificada: <code>uv pip install tooluniverse</code> dentro del venv del server.</li>
+      </ul>
+    </div>
+    <div class="panel" style="border-left:4px solid var(--fail)">
+      <h3 style="margin-top:0;color:var(--fail)">◻ Queda (en orden) — tu decisión</h3>
+      <ul style="font-size:13.5px">
+        <li><b>1. Push de la rama + PR a master</b> (gate founder) — sin esto, nada de lo demás llega al equipo.</li>
+        <li><b>2. Marcador de degradación in-band</b> en <code>rag_backend.py</code> (el fix de más alto valor).</li>
+        <li><b>3. Guardrail anti-contaminación del venv</b> (doc uvx-only + check opcional).</li>
+        <li><b>4. bge→openai</b> default en ingest/bootstrap/README.</li>
+        <li><b>5. CLI <code>witt-di</code></b> como front door primario (Opción C).</li>
+        <li>6. README autocontenido · gate estructural de aprobación · hardening ingest_service · normalizar <code>fetch_raw</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">
+    Auditoría composite-auditor (CoVe multi-familia, §7) · Method 2 · framework_applied: Chain-of-Verification §8 · GWT v1.1 · Reporte generado 2026-07-19 · versión inmutable v1 (no sobrescribir; bump al iterar).
+    <div style="margin-top:8px">
+      <span class="tag">query 0.93 CONFIRMED</span><span class="tag">security 0.90 CONFIRMED</span><span class="tag">embedding 0.85 REVISE</span><span class="tag">tooluniverse 0.85 REVISE</span><span class="tag">hazard 0.85 REVISE</span><span class="tag">ingestion 0.75 REVISE</span>
+    </div>
+  </div>
+
+</div>
+<script>
+  (function(){var r=document.documentElement;try{var t=localStorage.getItem('theme');if(t)r.setAttribute('data-theme',t);}catch(e){}})();
+</script>

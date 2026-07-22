@@ -1,0 +1,1630 @@
+{
+  "set_version": "banco_calibracion_v1",
+  "source": "held_out_v1 + month_0 + GoldSet v1",
+  "buckets": {
+    "rich_reuse": [
+      "Q07",
+      "Q08",
+      "Q16",
+      "Q24",
+      "Q26"
+    ],
+    "rerun": [
+      "Q01",
+      "Q02",
+      "Q05",
+      "Q06",
+      "Q09",
+      "Q12",
+      "Q17",
+      "Q18",
+      "Q19",
+      "Q23",
+      "Q25"
+    ],
+    "baseline_reuse": [
+      "Q03",
+      "Q04",
+      "Q10",
+      "Q11",
+      "Q13",
+      "Q14",
+      "Q15",
+      "Q20",
+      "Q21",
+      "Q22",
+      "Q27",
+      "Q28",
+      "Q29",
+      "Q30"
+    ]
+  },
+  "questions": [
+    {
+      "id": "Q01",
+      "technical_q": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?",
+      "type": "marker_identification",
+      "niche": [
+        "RN1"
+      ],
+      "system": "pronephros",
+      "difficulty": "medium",
+      "expected_evidence": "ordered TF set (pax2a, pax8, lhx1a, wt1a) with per-cluster/per-hpf expression from a scRNA atlas; lineage-restriction note.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "At 12-24 hpf the zebrafish pronephros arises directly from the trunk intermediate mesoderm (IM), so \"pronephric vs IM\" is a distinction of nested, time-refined TF domains rather than two disjoint codes. Ordered by onset: (1) osr1 (ENSDARG00000014091) = earliest IM induction marker (~tailbud-early somitogenesis, ~10-13 hpf); broadest domain, marks IM generally including non-renal derivatives, least pronephros-specific. (2) pax2a (ENSDARG00000028148) + pax8 (ENSDARG00000015879) = the pan-pronephric field TFs, on from ~5-10 somites (~11.5-14 hpf) throughout the bilateral nephric primordium; act redundantly to specify the pronephric subset within the IM. (3) lhx1a/lim1 (ENSDARG00000014018) = early nephric/IM TF, broad along the pronephric field, overlapping pax2a/pax8. (4) hnf1ba (ENSDARG00000006615) = broad tubular identity, refining later (~20-24 hpf onward) as tubule segmentation begins. (5) wt1a (ENSDARG00000031420) / wt1b (ENSDARG00000007990) = anterior/glomerular-restricted (podocyte) TFs, appearing later (~24 hpf onward), confined to the proximal-most pronephros, NOT pan-IM. LINEAGE CONSTRAINT: broad early TFs (osr1 -> pax2a/pax8 -> lhx1a) define a competent nephric field first; segment-restricted TFs (wt1a/wt1b anterior/glomerular; distal-tubule/duct TFs posterior) resolve within that field later. Because pax2a/pax8 mark the whole pronephric primordium before segmental restriction, the pronephric mesoderm is a molecularly NESTED SUBSET of the IM, and anterior-posterior segment fate is decided after the field is set. Testable ordering hypothesis (causal-pruner-class, HUMAN GATE required before wet-lab/design use per CLAUDE.md 7): broad-field TF loss (pax2a+pax8 double) should collapse the entire pronephros, whereas segment-TF loss (wt1a) should ablate only the glomerular/podocyte compartment. EVIDENCE TIERING (honest, per-subclaim): [verified-ID, conf ~0.95] all seven symbols resolve to ENSDARG in the DATA INAMOVIBLE store via resolve_id (source_db ensembl, GRCz11, release 111). [native-expression, conf ~0.80 but STAGE-SHIFTED] the in-repo scRNA anchor is Schoels GSE162031 (analysis/outputs/schoels_markers_canonical.csv, schoels_segment_annotation.json, schoels_TFs_cluster_restricted.csv) with day1/day2/day3 staging ~= 24/48/72 hpf: pax2a rises 15.9%->27.0%->20.3% of cells (day1->2->3), pax8 5.4%->18.5%->5.6%, hnf1ba 14.6%->33.7%->23.0%, wt1a 3.4%->4.0%->9.2% (increasing, consistent with late glomerular restriction); wt1a+wt1b+pax2a co-mark cluster 17, pax2a marks cluster 15 (cluster-restricted TF calls). CAVEAT: this dataset's earliest point (day1 ~= 24 hpf) sits at the LATE EDGE of the 12-24 hpf window, so it corroborates the field/segment structure at >=24 hpf but does NOT directly measure the 12-14 hpf onset ordering. [established-literature/ortholog-inferred, conf ~0.55] the pax2a/pax8 redundancy (double-morphant abolishes pronephros; Wingert/Davidson-line zebrafish work) and the ~11.5-14 hpf onset timing and osr1-before-pax2a/pax8 ordering are from established zebrafish developmental biology, NOT re-measured natively in this repo. [gap] no in-repo perturbation record confirms necessity/sufficiency of pax2a/pax8 in-store; the 12-hpf induction window is literature-tiered only. Net: the marker SET and its nested field->segment logic are well grounded (verified IDs + late in-repo scRNA + textbook); the precise 12-14 hpf temporal ORDER and the necessity claim are literature-inferred and carry the lower confidence.",
+        "confidence": 0.72,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No in-repo scRNA at 12-14 hpf: earliest available anchor (Schoels GSE162031 day1 ~= 24 hpf) sits at the LATE edge of the 12-24 hpf window; the early induction-onset ordering is literature-tiered, not repo-measured",
+          "pax2a/pax8 necessity/redundancy and wt1a->podocyte restriction are established-literature (morphant) claims, NOT natively perturbation-verified in the DATA INAMOVIBLE store (no EVIDENCE_TIER native_perturbation record found)",
+          "lhx1b NOT_FOUND in the verified store (unresolved lim1 paralog) - excluded from asserted set",
+          "Exact osr1-vs-pax2a/pax8 temporal ordering and the ~11.5-14 hpf onset are literature-inferred; no in-repo timepoint disambiguates them",
+          "Isoform/ENSDART-level and per-hpf continuous timing not resolved; only day-binned (24/48/72 hpf) in-repo data available",
+          "HTML report per CLAUDE.md 5/7 not emitted in this held-out-eval harness context (StructuredOutput-only workflow); flagged as a contract deferral for the parent session"
+        ],
+        "framework": "Chain-of-Verification (CoVe) - per reasoning-frameworks-catalog.md 8 Chain-of-Verification: \"Outputs that cite specific facts or numbers ... Cases where confident hallucination is the worst failure mode\". Applied: each asserted gene symbol was drafted from established biology, then independently verified against the resolve_id store (retrieval), then cross-checked against in-repo Schoels scRNA expression, and the draft was revised to demote wt1a to a late/restricted role and to stage-flag the 12-14 hpf onset as literature-only. Fits a marker_identification output whose worst failure mode is a confidently-wrong ENSDARG.",
+        "identifier_bindings": [
+          {
+            "symbol": "osr1",
+            "ensdarg": "ENSDARG00000014091",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax8",
+            "ensdarg": "ENSDARG00000015879",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lhx1a",
+            "ensdarg": "ENSDARG00000014018",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hnf1ba",
+            "ensdarg": "ENSDARG00000006615",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1b",
+            "ensdarg": "ENSDARG00000007990",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lhx1b",
+            "verified_via": "NOT_FOUND"
+          }
+        ],
+        "causal_pruner_flag": true,
+        "improved_over_baseline": "Baseline abstained entirely; this answer names the ordered TF set (osr1 -> pax2a/pax8 -> lhx1a -> hnf1ba -> wt1a/wt1b) with 7 store-verified ENSDARG IDs, an in-repo scRNA expression anchor (Schoels GSE162031), and an explicit stage caveat that the empirical data starts at ~24 hpf.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.72
+    },
+    {
+      "id": "Q02",
+      "technical_q": "What markers distinguish periocular neural crest from optic-cup and lens-placode lineages at 14–24 hpf in zebrafish?",
+      "type": "marker_identification",
+      "niche": [
+        "RN1"
+      ],
+      "system": "cornea/eye",
+      "difficulty": "hard",
+      "expected_evidence": "per-cluster % positive (hoxb8a NC, prox1a lens, tbx2b optic cup) with the caveat that 14–24 hpf is pre-corneal.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "Project-state preflight: the repo already contains a directly relevant native artifact — analysis/outputs/mafba_design/ (mafba_pleiotropy_wagner.csv + _summary.json), a re-analysis of the Wagner et al. 2018 atlas (GSM3067193-95, 18,932 cells) whose clusters are annotated at exactly 14/18/24 hpf and include separable \"14hpf/18hpf-neural crest - crestin\", \"18hpf/24hpf-lens placode/lens\", and \"18hpf/24hpf-optic cup\" clusters. This confirms the three lineages are transcriptionally resolvable in this window, but that file quantifies mafba positivity, NOT the discriminating markers below, so no per-cluster % positive for these markers is computed in-repo (gap). Verified-ID grounding via resolve_id + live Ensembl REST (raw cached). Framework: Chain-of-Verification — each marker claim verified independently against the store/Ensembl/atlas before assertion.\n\nDISCRIMINATING LOGIC (14–24 hpf). The key is that pax6a/pax6b are SHARED by optic cup (retina) and lens placode and therefore cannot separate them alone; the discrimination comes from lineage-private transcription factors.\n\n1) Periocular / cranial neural crest — pan-NC TFs foxd3 (ENSDARG00000021032), sox10 (ENSDARG00000077467), tfap2a (ENSDARG00000059279); periocular-mesenchyme identity added by foxc1a (ENSDARG00000091481), foxc1b (ENSDARG00000055398) and pitx2 (ENSDARG00000036194). CAVEAT (honest refinement over a naive NC call): periocular NC is ANTERIOR/cranial and is Hox-NEGATIVE. hoxb8a (ENSDARG00000056027) marks trunk/posterior NC (it is curated in our store as a posteriorizing/pronephros-AP marker), so it separates the NC cluster generally but is NOT a periocular-NC-specific marker — use it to flag posterior NC, not to call periocular NC. The Wagner atlas annotates NC by crestin, consistent with sox10/foxd3-class identity.\n\n2) Optic cup (neuroretina + RPE) — eye-field/optic TFs rx3 (ENSDARG00000052893) and vsx2 (ENSDARG00000005574, neuroretinal progenitors); tbx2b (ENSDARG00000006120) marks the dorsal optic cup / dorsal retina; RPE adds mitfa (ENSDARG00000003732) — note mitfa is also active in NC-derived melanophores, so it is RPE-specific only in the optic-cup spatial context. pax6a/pax6b positive but shared with lens.\n\n3) Lens placode — foxe3 (ENSDARG00000062892) and prox1a (ENSDARG00000055158) are the discriminating lens markers in this window (prox1a drives lens-fiber differentiation); pax6a/pax6b positive but shared with retina; crystallins (cryaa etc.) come up slightly later. This matches the atlas's separate \"lens placode\"→\"lens\" clusters at 18→24 hpf.\n\nMINIMAL DISCRIMINATING PANEL: NC = foxd3/sox10/foxc1a; optic cup = rx3/vsx2/tbx2b; lens = foxe3/prox1a; with pax6a/b as the shared optic+lens anchor and hoxb8a reserved as the posterior-vs-cranial NC axis marker. PRE-CORNEAL CAVEAT: at 14–24 hpf there is no differentiated cornea — corneal epithelium (krt-class) and corneal stroma/endothelium (the foxc1/pitx2 periocular-NC derivatives) have NOT yet formed; these markers report lineage IDENTITY/precursor state, not corneal fate. This is an N5/Test-5 EXPLORATORY item in Phase I: modest evidence is success, and the analogy to mammalian anterior-segment markers breaks in two places — zebrafish has duplicated paralogs (foxc1a/b, pax6a/b) with partitioned expression, and the zebrafish lens is a solid delamination (not a hollow vesicle), so lens-placode timing/marker onset is not 1:1 with amniotes.",
+        "confidence": 0.72,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "Per-cluster % positive for hoxb8a/prox1a/tbx2b (the exact quantitative form the gold answer expects) is NOT computed in-repo — the Wagner/mafba file quantifies mafba, not these markers; producing it requires re-querying the Wagner atlas .h5ad per cluster (deterministic scanpy job, not done here)",
+          "tbx2b (ENSDARG00000006120) and foxc1a (ENSDARG00000091481) resolve as DERIVED in the store (raw external response not retained) — RAW re-verification pending to promote to RAW tier",
+          "No native zebrafish perturbation/lineage-tracing evidence retrieved this session confirming these markers are lineage-EXCLUSIVE (vs merely enriched) at 14–24 hpf; assignment rests on textbook + atlas cluster annotation, not native role-evidence (ADR-0028 lens-validity caveat)",
+          "N5/ocular is EXPLORATORY in Phase I — no ocular-specific Tool Universe skill exists (CURATED.md gap); DATA INAMOVIBLE semantic query was unavailable this session (MCP down), so DI corpus (ZESTA anterior-segment atlas CORPUS-2026-0002) was not semantically searched",
+          "HTML report (§5/§7 conclusion reflex) not emitted — this run is an eval-harness single-answer context whose deliverable is the StructuredOutput; report emission deferred"
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"High-stakes outputs that will be acted on ... Outputs that cite specific facts or numbers\" — each asserted gene ID and lineage-marker call was drafted then independently verified against resolve_id / live Ensembl REST / the native Wagner atlas annotation before inclusion, and over-claims (hoxb8a as periocular marker; mitfa as unambiguous RPE) were walked back.",
+        "identifier_bindings": [
+          {
+            "symbol": "hoxb8a",
+            "ensdarg": "ENSDARG00000056027",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "prox1a",
+            "ensdarg": "ENSDARG00000055158",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "tbx2b",
+            "ensdarg": "ENSDARG00000006120",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1a",
+            "ensdarg": "ENSDARG00000091481",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1b",
+            "ensdarg": "ENSDARG00000055398",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pitx2",
+            "ensdarg": "ENSDARG00000036194",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6a",
+            "ensdarg": "ENSDARG00000103379",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6b",
+            "ensdarg": "ENSDARG00000045936",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxd3",
+            "ensdarg": "ENSDARG00000021032",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "sox10",
+            "ensdarg": "ENSDARG00000077467",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "tfap2a",
+            "ensdarg": "ENSDARG00000059279",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "foxe3",
+            "ensdarg": "ENSDARG00000062892",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "vsx2",
+            "ensdarg": "ENSDARG00000005574",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "rx3",
+            "ensdarg": "ENSDARG00000052893",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "mitfa",
+            "ensdarg": "ENSDARG00000003732",
+            "verified_via": "ensembl_rest"
+          }
+        ],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Converts the baseline's total abstention into a grounded, tiered marker panel: 15 ENSDARGs verified (resolve_id + live Ensembl, raw-cached), an in-repo native atlas (Wagner/mafba_design) cited as lineage-separability evidence, the pax6a/b shared-anchor logic made explicit, and two biology corrections over the naive gold caption (hoxb8a is trunk/Hox-negative not periocular; mitfa is RPE-specific only in context) — all while honestly flagging that per-cluster %positive is uncomputed and the item is pre-corneal/N5-exploratory.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.72
+    },
+    {
+      "id": "Q03",
+      "technical_q": "For a candidate gene co-expressed in the pronephros, how do you assemble evidence that it is a true regulator vs. a co-expressed bystander? Name the framework, confidence (0-1), and gap flags at each step.",
+      "type": "regulator_vs_bystander",
+      "niche": [
+        "RN1",
+        "RN12"
+      ],
+      "system": "pronephros",
+      "difficulty": "hard",
+      "expected_evidence": "Pearl-hierarchy evidence ladder (L1..L3c), a scored rubric with a confirmed/candidate/bystander threshold, a worked example.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "To distinguish a true pronephros regulator from a co-expressed bystander, assemble evidence as a causal-inference ladder, moving from correlation to intervention. Name the framework at each rung and track confidence and gaps:\n\nSTEP 1 — Establish co-expression (correlational baseline). Confidence in \"regulator\" claim from this alone: ~0.1. Use the pronephros scRNA/spatial evidence (CORPUS-2026-0003) to show the candidate is expressed in the right cells/segment (niche RN1) at the right stage of tubulogenesis. Co-expression is necessary but NOT sufficient — many bystanders ride along with a shared program. Gap flag: co-expression ≠ causation; no temporal ordering yet.\n\nSTEP 2 — Temporal precedence / dynamics. Confidence: ~0.2. Show that the candidate's expression precedes or tracks the developmental event it is proposed to regulate (\"when and how renal cells commit,\" CORPUS-2026-0003#c000). A regulator should be expressed before/at the decision point, not merely as a downstream differentiation marker. Gap flag: the bundle gives a tubulogenesis dataset but I have no explicit pseudotime/temporal trajectory for the candidate — cannot verify precedence from evidence provided.\n\nSTEP 3 — Network / interaction context (mechanistic plausibility). Confidence: ~0.35. Query interaction databases (BioGRID for genetic/physical interactions; Reactome for pathway membership via orthology) to test whether the candidate sits in a plausible regulatory module (e.g., polarity/signaling pathways implicated in nephron epithelial identity). Placement in a known regulatory pathway raises prior odds it is a regulator. Gap flag: Reactome zebrafish data is computational-orthology-inferred, so pathway calls are indirect; BioGRID interactions do not by themselves establish direction of causation in the pronephros.\n\nSTEP 4 — Causal perturbation (the decisive rung). Confidence if a clean loss-of-function phenotype is obtained: ~0.7-0.85. Use RN12 (perturbation/intervention design) to build a knockdown/knockout (CRISPR F0/stable, MO with controls) and score pronephros phenotypes — tubulogenesis defects, loss of epithelial/polarity identity, segment-marker changes. The published exemplar in this niche (prkci/prkcz polarity proteins required for tubulogenesis and epithelial identity, CORPUS-2026-0003) is the phenotypic template: a true regulator produces a specific developmental defect when removed; a bystander does not. Gap flag: need proper controls/confounders (RN12: candidate sets, controls, confounders), off-target checks, and rescue.\n\nSTEP 5 — Epistasis / rescue (direction & specificity). Confidence: ~0.85-0.9. Rescue with wild-type mRNA, and use double perturbations / genetic interactions (BioGRID-style two-gene experiments) to place the candidate up- or downstream of known regulators. Rescue plus epistasis converts \"associated with phenotype\" into \"regulator with a defined position in the hierarchy.\" Gap flag: interaction-database data here is generic, not candidate-specific.\n\nBottom line: co-expression → temporal precedence → network plausibility → perturbation phenotype → rescue/epistasis. Only after a controlled loss-of-function phenotype (RN12) plus rescue can you assert \"true regulator\" with high confidence; anything short of perturbation leaves the bystander hypothesis open.",
+        "confidence": 0.6,
+        "outcome": "positive",
+        "gap_flags": [
+          "No candidate gene was named in the question; framework is generic and cannot be verified against a specific ENSDARG.",
+          "I did NOT resolve ENSDARG IDs for prkci/prkcz — cited only as the published phenotypic exemplar, not verified from the store.",
+          "Bundle lacks explicit pseudotime/temporal-precedence data for any candidate.",
+          "BioGRID/Reactome entries in the bundle are generic database descriptions, not candidate-specific interaction records.",
+          "No Path B literature retrieved; perturbation-design details (controls, off-target, rescue) are inferred from RN12's stated scope, not from a concrete protocol in the bundle."
+        ],
+        "framework": "Causal-inference ladder (correlation → temporal precedence → mechanistic/network plausibility → perturbation → epistasis/rescue), chosen because 'regulator vs. bystander' is fundamentally a causal-discrimination problem; each rung maps onto an available evidence source in the bundle (scRNA co-expression, interaction DBs, RN12 perturbation niche).",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.6
+    },
+    {
+      "id": "Q04",
+      "technical_q": "Given a marker's expression across all clusters in a whole-embryo atlas, compute its tissue specificity ratio and assign a Tier (1/2/3) for a global-KO perturbation. Why is the broadest reference dataset mandatory before the Tier label?",
+      "type": "specificity_ratio",
+      "niche": [
+        "RN1",
+        "RN12"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "SR = target-mean / max-nontarget-mean; the mafba lens-contamination lesson (SR≈0.145 → Tier 3).",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "Method (procedure, since no marker-specific expression values were provided in the bundle):\n\n1. Tissue specificity ratio. From the whole-embryo atlas, take the marker's mean expression in its top (peak) cluster and divide by the mean expression averaged across all clusters (or, equivalently, top-cluster / second-highest cluster, or a tau/entropy-based index depending on convention). Higher ratio = more tissue-restricted.\n   - specificity_ratio = E_peak / mean(E_all_clusters)\n\n2. Tier assignment for a global (whole-embryo) knockout:\n   - Tier 1 (high ratio, e.g. expression concentrated in ≤1–2 clusters): highly tissue-restricted marker — a global KO phenotype can be attributed with reasonable confidence to that restricted tissue; cleanest interpretation.\n   - Tier 2 (moderate ratio, expression in a handful of clusters): partially restricted — global KO effects are plausibly but not unambiguously localized; needs corroboration.\n   - Tier 3 (low ratio, broad/ubiquitous expression): pleiotropic marker — a global KO's phenotype cannot be assigned to a single tissue; confounded readout.\n\nThe exact numeric cutoffs are NOT specified in this evidence bundle, so the Tier boundaries above are a schema, not a validated threshold set.\n\nWhy the broadest reference dataset is mandatory BEFORE labeling the Tier: the specificity ratio's denominator is \"expression across ALL clusters.\" If your reference atlas is missing cell types, time points, or tissues, the denominator is systematically underestimated, so the ratio is inflated and a broadly-expressed gene can be mislabeled Tier 1 (falsely specific). A whole-embryo, all-timepoint atlas (e.g. ZESTA, CORPUS-2026-0001, spanning the 3–24 hpf window and Stereo-seq spatial coverage) minimizes this \"hidden cluster\" bias so the ratio — and therefore the Tier — reflects true organism-wide specificity rather than the sampling limits of a narrow dataset. In short: you cannot certify tissue-specificity from a dataset that never observed the tissues where the gene might also be on.",
+        "confidence": 0.42,
+        "outcome": "unfalsifiable_in_phase_I",
+        "gap_flags": [
+          "No specific marker/gene name or ENSDARG was provided, so no actual ratio or Tier could be computed.",
+          "No per-cluster expression matrix values are in the bundle — only dataset/database descriptors.",
+          "Tier cutoff thresholds (numeric boundaries for 1/2/3) are not defined in the evidence; schema is inferred.",
+          "Bundle does not confirm ZESTA covers ALL developmental windows relevant to an arbitrary marker (it is described for the 3-24 hpf pre-corneal window), so 'broadest' is relative to available atlases."
+        ],
+        "framework": "Denominator-integrity / sampling-bias reasoning for specificity metrics: the specificity ratio is only as valid as the completeness of the reference set defining its denominator; applied because the question hinges on why reference breadth precedes the Tier label.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q05",
+      "technical_q": "Which pronephros/eye transcription factors lack an experimentally resolved structure in zebrafish and would require an AlphaFold prediction (with PAE) before any docking?",
+      "type": "marker_identification",
+      "niche": [
+        "RN2"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "list of TFs (foxc1a, pax2a, wt1a) with structure-availability status; .pdb vs AlphaFold-.json/.pae distinction.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "Structure-availability audit of pronephros/eye transcription factors in Danio rerio. Corrected finding: NONE of the core pronephros/eye TFs has an experimentally resolved 3D structure in zebrafish — all of them would require an AlphaFold model (with its PAE matrix) before any docking. This directly reverses the thin-bundle baseline, which asserted that tfap2a, foxc1a, pax2a and wt1a \"DO have experimentally resolved structures.\" A live UniProtKB query (organism_id:7955) returns an EMPTY PDB cross-reference column for every accession of foxc1a (Q9DE25), pax2a (Q90268), wt1a (multiple isoforms, e.g. A0AB32TC13) and tfap2a (e.g. F1QUT4) — i.e. zero deposited experimental structures — while AlphaFoldDB models exist for most accessions. This is the norm, not the exception: zebrafish TFs are almost entirely absent from the RCSB PDB; the experimental structures that inform their fold (paired domain for pax2a/pax8/pax6a-b, forkhead for foxc1a/b, C2H2 zinc-finger for wt1a/b, AT-hook/bHLH-PAS for tfap2a/sim1a) are solved in human/mouse orthologs or on isolated domains, not on the zebrafish full-length proteins.\n\nRoster requiring an AlphaFold prediction + PAE before docking (all IDs verified — see identifier_bindings):\n- Pronephros: pax2a, wt1a, wt1b, pax8, lhx1a, sim1a, mecom (and tfap2a, which also patterns pronephros/skin). All resolve to ENSDARG; all lack a zebrafish PDB entry (pax2a/wt1a/tfap2a confirmed empty by live UniProt; pax8/lhx1a/wt1b/sim1a/mecom inferred from the same PDB-absence pattern — see gap_flags).\n- Eye/periocular: pax6a, pax6b, foxc1a, foxc1b (foxc1a is shared pronephros+periocular; foxc1a confirmed empty PDB).\n\nOperational .pdb vs AlphaFold .json/.pae distinction (the crux for a docking pipeline):\n1. An EXPERIMENTAL structure arrives from RCSB PDB as coordinates only (.pdb/.cif); confidence is implicit in resolution/B-factors and it is directly dockable. For these TFs that file does not exist.\n2. An ALPHAFOLD model arrives as coordinates (.pdb/.cif, with per-residue pLDDT written into the B-factor column) PLUS a Predicted Aligned Error matrix (.json, often the *_predicted_aligned_error_v4.json / .pae file) that RCSB structures never carry. The PAE is load-bearing here because all of these TFs are multidomain with long disordered linkers: pLDDT will be high inside each DNA-binding domain but the INTER-domain PAE will be large, meaning the relative orientation of, e.g., the wt1a zinc fingers to its rest, or the two tfap2a domains, is NOT reliable. Practical consequence: dock the high-confidence DNA-binding domain (crop by pLDDT>70 and low intra-domain PAE), do NOT dock the full-length model as a rigid body, and treat low-pLDDT linkers/termini as flexible. AlphaFold DB already hosts proteome-wide monomer models for zebrafish, so a model+PAE is retrievable for every gene above; a bespoke run is only needed for multimer/DNA-bound complexes (AlphaFold-Multimer / AF3), which additionally emit an inter-chain PAE that gates whether the predicted interface is trustworthy.\n\nThis is a structure-availability roster, not a ranked candidate set or a sufficiency hypothesis, so it is not causal-pruner-class; it is a deterministic availability audit. Note (Phase I): the eye/periocular members (pax6a/b, foxc1b) fall under N5, which is EXPLORATORY in Phase I — they are included for completeness of the roster, and the pronephros↔eye grouping is a niche-scope convenience, not a biological claim.",
+        "confidence": 0.88,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "PDB-absence confirmed by live UniProt only for pax2a/wt1a/foxc1a/tfap2a; for pax8/lhx1a/wt1b/sim1a/mecom/pax6a/pax6b/foxc1b it is INFERRED from the same proteome-wide pattern, not individually queried this session — a per-gene UniProt xref_pdb check would promote these from established/inferred to native-verified",
+          "AlphaFold DB entry existence stated at proteome level; exact AFDB accession + per-model pLDDT/PAE distributions not pulled per gene this session",
+          "No HTML report emitted (CLAUDE.md §5/§7): this output is a sub-task within a workflow that consumes only the structured contract; report emission deferred to the calling workflow",
+          "Roster is not guaranteed exhaustive of all pronephros/eye TFs (e.g. hnf1ba/hnf1bb, six-family, emx2, rx-family, vsx2, crx, mitfa were NOT_FOUND in the store and not resolved live this session)"
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results. Anti-hallucination by construction\" and invoked for \"Cases where confident hallucination is the worst failure mode.\" I took the baseline draft (\"these TFs have experimental structures\"), posed the verification question (do foxc1a/pax2a/wt1a/tfap2a actually carry a PDB xref?), answered it independently via live UniProtKB, and revised the claim to its opposite.",
+        "identifier_bindings": [
+          {
+            "symbol": "foxc1a",
+            "ensdarg": "ENSDARG00000091481",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "tfap2a",
+            "ensdarg": "ENSDARG00000059279",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "pax8",
+            "ensdarg": "ENSDARG00000015879",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lhx1a",
+            "ensdarg": "ENSDARG00000014018",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1b",
+            "ensdarg": "ENSDARG00000007990",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "sim1a",
+            "ensdarg": "ENSDARG00000023316",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "mecom",
+            "ensdarg": "ENSDARG00000060808",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6a",
+            "ensdarg": "ENSDARG00000103379",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6b",
+            "ensdarg": "ENSDARG00000045936",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1b",
+            "ensdarg": "ENSDARG00000055398",
+            "verified_via": "resolve_id"
+          }
+        ],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Reversed the baseline's confident hallucination (verified via live UniProt that all four named TFs have EMPTY PDB — none is experimentally resolved), supplied a verified-ID pronephros/eye TF roster, and gave the operational .pdb-vs-AlphaFold/.pae docking distinction with the inter-domain-PAE caveat the baseline lacked.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.88
+    },
+    {
+      "id": "Q06",
+      "technical_q": "Describe the Jagged2a–Notch and Foxc1a–Pitx2 complexes relevant to anterior-segment/eye development and how their interaction evidence would be assembled.",
+      "type": "pathway_assembly",
+      "niche": [
+        "RN2",
+        "RN3"
+      ],
+      "system": "signaling",
+      "difficulty": "hard",
+      "expected_evidence": "physical vs predicted interaction provenance (IntAct physical, STRING predictive); complex PAE note.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "Two anterior-segment/eye-relevant complexes, described honestly by molecular class and — critically — by the provenance tiers that would supply interaction evidence. Niche N5 (ocular) is EXPLORATORY in Phase I; modest evidence is success.\n\n(1) Jagged2–Notch is a LIGAND–RECEPTOR trans-signaling pair (not a TF complex). The Jagged N-terminal MNNL/C2 + DSL domain engages the Ca2+-binding EGF repeats (~8–12) of the Notch ectodomain on an adjacent cell; ADAM10/17 (S2) then gamma-secretase (S3) cleavage releases NICD, which activates RBPJ/CSL+MAML targets. Zebrafish Jagged2 exists as two teleost co-orthologs — jag2a (ENSDARG00000014246) and jag2b (ENSDARG00000021389; ambiguous Ensembl xref, also returns ENSDARG00000112465) — with receptors notch1a/1b/2/3. HONEST CAVEAT (drives the low subclaim confidence): the canonical human anterior-segment Notch axis is JAG1–NOTCH2 (Alagille syndrome; posterior embryotoxon, Axenfeld-Rieger-like), whereas JAG2 is more classically craniofacial/otic/limb/thymus. Pairing Jagged2 with the anterior segment is plausible on periocular neural-crest grounds but is NOT the established axis — flag before any design use.\n\n(2) Foxc1a–Pitx2 is a TRANSCRIPTION-FACTOR complex / regulatory antagonism (not receptor–ligand). FOXC1 (forkhead) and PITX2 (paired-like homeodomain) are the two dosage-sensitive Axenfeld-Rieger / anterior-segment-dysgenesis genes; in mammals PITX2 physically binds FOXC1 and represses its transcriptional activity (Berry et al., Hum Mol Genet 2006). Zebrafish maps FOXC1 to non-redundant co-orthologs foxc1a (ENSDARG00000091481) + foxc1b (ENSDARG00000055398) with a single pitx2 (ENSDARG00000036194), acting in periocular neural-crest-derived mesenchyme.\n\nHOW INTERACTION EVIDENCE WOULD BE ASSEMBLED — provenance-tiered (the core of the answer, matching the expected physical-vs-predictive distinction):\n- PHYSICAL / curated (IntAct, BioGRID, MINT, Reactome): experimentally-determined physical interactions carrying detection-method PSI-MI codes + PMID. FOXC1<->PITX2 physical evidence is mammalian (Berry 2006) -> mapped onto foxc1a/foxc1b+pitx2 as ORTHOLOG-INFERRED, NOT native zebrafish. Jagged–Notch is a physical ligand–receptor engagement plus a real structure (below).\n- PREDICTIVE / association (STRING): a combined score decomposed into channels (experiments / databases / textmining / coexpression / neighborhood / fusion / cooccurrence). STRING edges are PROBABILISTIC, not physical — report the channel: a textmining-only edge is weak; an experiments-channel edge backed by IntAct is strong. Never present a STRING edge as a physical assertion.\n- STRUCTURAL (PDB real vs AlphaFold-Multimer/AF3 predicted): Jagged–Notch has a real co-crystal (human JAG1–NOTCH1, PDB 5UK5, Luca 2017) giving a confident, Ca2+-dependent DSL/EGF interface. FOXC1–PITX2 has NO experimental complex, so any interface is a predicted model whose inter-chain PAE at the interface must be reported and gated (low interface PAE = trust the contact; high PAE = discard the interface). This is the required complex-PAE note.\n\nNET: for both complexes native zebrafish provenance is largely absent; the assembled evidence is dominated by the ortholog-inference tier (human/mouse physical + structural, mapped down). Confidence in a NATIVE zebrafish interaction claim must therefore stay low even where the mammalian evidence is strong. This is a descriptive pathway-assembly plan, not a ranked/minimal-set hypothesis (no causal-pruner human gate triggered), but the Jagged2-vs-Jagged1 relevance question and the absent native evidence should be resolved before any wet-lab design.",
+        "confidence": 0.72,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No native zebrafish physical-interaction record for either complex in-store; provenance is ortholog-mapped."
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"Outputs that cite specific facts or numbers\" — every ENSDARG was independently verified (resolve_id or live Ensembl REST) before assertion, and each interaction claim was tiered by provenance rather than asserted; this is anti-hallucination-by-construction, the exact §8 use case, over Self-Consistency (no majority-vote across runs here) and Logic-LM (criteria are not fully formalizable).",
+        "identifier_bindings": [
+          {
+            "symbol": "foxc1a",
+            "ensdarg": "ENSDARG00000091481",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1b",
+            "ensdarg": "ENSDARG00000055398",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pitx2",
+            "ensdarg": "ENSDARG00000036194",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "jag2a",
+            "ensdarg": "ENSDARG00000014246",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "jag2b",
+            "ensdarg": "ENSDARG00000021389",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "notch1a",
+            "ensdarg": "ENSDARG00000103554",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "notch1b",
+            "ensdarg": "ENSDARG00000052094",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "notch2",
+            "ensdarg": "ENSDARG00000043130",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "notch3",
+            "ensdarg": "ENSDARG00000052139",
+            "verified_via": "ensembl_rest"
+          }
+        ],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Grounds all 9 gene IDs (3 in-store + 6 live-verified vs Ensembl, raw-cached) instead of the baseline's zero resolved IDs, and replaces the baseline's flat 'plan for assembly' with a provenance-tiered assembly (physical IntAct/BioGRID vs predictive STRING-channel vs structural PDB-real/AF-Multimer-PAE) plus the honest Jagged2-vs-JAG1 anterior-segment caveat the baseline missed.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.72
+    },
+    {
+      "id": "Q07",
+      "technical_q": "Reconstruct the BMP/Nodal/retinoic-acid cascade for pronephros induction as a rule-based signaling network suitable for BioNetGen → Morpheus. What kinetic parameters are needed?",
+      "type": "pathway_assembly",
+      "niche": [
+        "RN3"
+      ],
+      "system": "pronephros",
+      "difficulty": "hard",
+      "expected_evidence": ".bngl rule sketch; cited cascade edges; the kinetic constants/.csv that would calibrate it; gap flags where rates are unknown.",
+      "bucket": "rich_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "RECONSTRUCTION OF THE BMP / NODAL / RA CASCADE FOR ZEBRAFISH PRONEPHROS INDUCTION AS A BioNetGen (BNGL) RULE-BASED MODEL — plus the kinetic-parameter requirement.\n\nProject-state preflight: the verified store (analysis/outputs/verified_identifiers.json, 51 records, human-gated) already grounds the RA arm (aldh1a2, cyp26a1) and the intermediate-mesoderm/pronephros readouts (osr1, pax2a, pax8, lhx1a, wt1a, wnt8a, fgf8a) with raw-cached ENSDARG IDs; the BMP and Nodal arms were absent and were verified this session via Ensembl (danio_rerio, GRCz11). No prior BioNetGen/BNGL artifact exists in the repo for this cascade (grep of analysis/outputs returned only marker/DE files), so the network structure below is newly synthesized and operates from external structured evidence + established developmental biology.\n\n--- BIOLOGICAL LOGIC (what the network must encode) ---\nPronephros derives from intermediate mesoderm (IM). Three signals converge: (1) NODAL (ndr1/squint, ndr2/cyclops, co-receptor tdgf1/oep; feedback inhibitors lft1/lft2) does graded mesendoderm induction — the classic activator(short-range Nodal)/inhibitor(long-range Lefty) reaction-diffusion module. (2) BMP (bmp2b:bmp7a obligate heterodimer, bmp4; antagonist chordin/chrd) sets the dorsoventral gradient; IM/pronephros arises at INTERMEDIATE (ventrolateral) BMP level — neither peak-ventral nor antagonist-dorsalized. (3) Retinoic acid (synthesis aldh1a2, degradation cyp26a1; nuclear receptors raraa:rxrba on RAREs) sets anteroposterior position and proximodistal segment identity of the tubule. The readout is IM/pronephros-field transcription (osr1 earliest, then pax2a/pax8/lhx1a/wt1a).\n\n--- BNGL MOLECULE TYPES (species with components/states) ---\nLigands: Bmp2b, Bmp7a (dimer Bmp2b:Bmp7a), Bmp4; Ndr1, Ndr2; RA (small molecule). Extracellular modulators: Chrd (BMP antagonist), Lft1, Lft2 (Nodal antagonists). Receptors: BMP type-I (bmpr1aa/ab≈ALK3/6) + type-II (bmpr2, acvr2a/b); Nodal type-I acvr1b(ALK4)/acvr1c(ALK7) + type-II acvr2a/b + co-receptor Tdgf1(oep); nuclear Raraa:Rxrba. Transducers: Smad5~{P0/P1} (BMP R-SMAD), Smad2~{P0/P1} (Nodal R-SMAD), Smad4a (co-SMAD, SHARED pool → BMP/Nodal competition node), with a nuc/cyt location component. Enzymes: Aldh1a2, Cyp26a1. Target-gene nodes: osr1, pax2a, pax8, lhx1a, wt1a.\n\n--- BNGL RULE CLASSES (reactions) ---\nR1 Ligand/enzyme synthesis (spatially gated source): 0 -> L, k_prod. R2 Ligand degradation/clearance: L -> 0, k_deg. R3 Antagonist sequestration: Chrd+BMP<->Chrd:BMP; Lft competes for Nodal/co-receptor (kon/koff). R4 Ligand-receptor binding (grounded by OmniPath, all edges stimulatory): BMP2b/7a/4 + {bmpr1*, bmpr2, acvr2*}<->complex; Ndr + {acvr1b/1c + acvr2* + tdgf1}<->complex. R5 Receptor-kinase → R-SMAD phosphorylation (catalytic): active BMP-receptor: Smad5~P0->Smad5~P1; active Nodal-receptor: Smad2~P0->Smad2~P1 (kcat, Km). R6 SMAD-complex assembly: Smad5~P1+Smad4a<->complex; Smad2~P1+Smad4a<->complex (competition for Smad4a). R7 Nuclear shuttling: complex cyt<->nuc (k_in/k_out); phosphatase Smad~P1->Smad~P0. R8 Transcription (Hill): nuclear pSMAD:Smad4 -> target mRNA; RA:Raraa:Rxrba on RARE -> target mRNA; Vmax, Hill n, threshold K. R9 Feedback motifs: Nodal auto-activation (+), Nodal->lft induction (−, delayed) = reaction-diffusion core; RA->cyp26a1 induction (−) = self-limiting RA sink; Aldh1a2: retinaldehyde->RA and Cyp26a1: RA->4-OH-RA (enzyme kcat/Km). R10 Integration/readout: osr1/pax2a/pax8 transcription as a logic AND over {intermediate BMP-Smad, Nodal-Smad history, permissive RA}.\n\n--- KINETIC PARAMETERS NEEDED (the explicit ask; by class) ---\n(a) Production/secretion rates k_prod per ligand+enzyme; (b) Diffusion coefficients D per diffusible morphogen — the DIFFERENTIAL Nodal-vs-Lefty diffusivity is the load-bearing parameter for the reaction-diffusion behavior, plus effective D for BMP and RA; (c) Degradation constants k_deg for ligands, Smads, mRNAs (sets gradient length scale λ=√(D/k_deg)); (d) Binding kon/koff (or Kd) for every ligand-receptor and antagonist-ligand pair; (e) Total receptor/co-receptor abundances + Smad4a pool size (the BMP/Nodal competition parameter); (f) Receptor-kinase kcat/Km for R-SMAD phosphorylation and phosphatase rate; (g) SMAD complex assoc/dissoc + nuclear import/export rates; (h) Transcription Vmax, Hill coefficient n, activation threshold K for Smad-binding-elements and RAREs; (i) RA-metabolism enzyme kcat/Km (Aldh1a2, Cyp26a1) + retinaldehyde supply; (j) Feedback gains (Nodal autoactivation, Nodal→Lefty, RA→cyp26a1); (k) Initial conditions + compartment geometry (cell count/spacing) for the spatial version.\n\n--- HONEST CAVEATS ---\nBioNetGen suitability: BNGL is well-suited to the INTRACELLULAR combinatorics (BMP binding many type-I/type-II receptor combinations — OmniPath returned dozens of distinct BMP2/BMP7→receptor-complex edges; rules avoid enumerating every species). But the morphogen-GRADIENT (diffusion in space) is not native to core BNGL/NFsim (well-mixed); the spatial reaction-diffusion part requires compartmental BNGL or coupling to a PDE/agent framework (VCell/MCell/MorpheusL). State that explicitly rather than implying pure BNGL captures the gradient.\nEvidence-lens: OmniPath receptor edges and Reactome reaction sets are HUMAN orthologs (ortholog_regulatory tier ≈0.5 per ADR-0028), not native zebrafish perturbation evidence; they justify topology and edge sign, not zebrafish-specific quantitation.\nKinetic VALUES are essentially a gap: none of the structured databases queried return rate constants. EuropePMC did not surface the canonical zebrafish Nodal/Lefty FRAP/FCS diffusivity measurement, so I deliberately did NOT assert numeric D values (anti-fabrication gate §7). One directly relevant, verified zebrafish reaction-diffusion parameterization was retrieved (Stark et al. 2025, Development, PMID 40462756: Fgf8a source-diffusion-degradation + ECM binding) — it grounds the parameter CLASSES, not the Nodal/BMP/RA numbers. Values would have to be sourced (zebrafish diffusivity papers), borrowed (mammalian TGF-β/Smad ODE models), or calibrated to expression data, and cached before use.\n\n--- CONFIDENCE BY SUBCLAIM (asymmetric per §5) ---\nGene identities/ENSDARG bindings ≈0.97 (directly tool-verified); qualitative pathway membership + receptor-binding topology/signs ≈0.80 (OmniPath+Reactome+textbook, ortholog-level); the specific INTEGRATED pronephros-induction wiring/logic (exact edges+signs into osr1/pax2a and the AND-logic) ≈0.50 (synthesis/hypothesis — zebrafish IM causal wiring is only partly resolved and BMP's precise pronephros role vs generic DV patterning is nuanced); kinetic parameter VALUES ≈0.15 (not retrieved). Aggregate reported 0.55.\n\n--- GOVERNANCE (agent-invocation + closing reflexes) ---\nThe integrated induction wiring in R10/R9 is a causal/sufficiency hypothesis = causal-pruner work; per §7 it is hypothesis-generation and REQUIRES a human gate before any downstream (wet-lab/design) use — flagged, not invoked here (subagent scope). This single-subagent output is NOT an audit gate; it must be composite-audited (≥3, Mode 1) before becoming substrate evidence. HTML report emission (§5/§7) is deferred to the orchestrating session (subagent returns via StructuredOutput; no report files written per subagent protocol) — flagged as a gap to close at conclusion.",
+        "confidence": null,
+        "outcome": "rich_goldset",
+        "gap_flags": [],
+        "framework": null,
+        "provenance": "GoldSet v1 (corrida agéntica dedicada, ya presentada)"
+      },
+      "ia_confidence": 0.55
+    },
+    {
+      "id": "Q08",
+      "technical_q": "Map a set of zebrafish pronephros TFs to their human orthologs and flag any that are 1:many (ohnologs) where paralog compensation could confound a single-gene KO.",
+      "type": "ortholog_mapping",
+      "niche": [
+        "RN3",
+        "RN1"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "verified ENSDARG↔human-ortholog table; paralog/compensation flags (e.g., hnf1ba/hnf1bb, foxc1a/foxc1b).",
+      "bucket": "rich_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "MAPPING + KO-CONFOUND FLAGS:\n1) pax2a (ENSDARG00000028148) → human PAX2 (ENSG00000075891). Ensembl call ortholog_ONE2MANY, both directions. Co-ortholog pax2b (ENSDARG00000032578, symbol-verified via lookup). FLAG 1:MANY — single-gene KO of pax2a alone is confounded by pax2b; use double KO / MO or confirm pax2b is not co-expressed.\n2) pax8 (ENSDARG00000015879) → human PAX8 (ENSG00000125618). ortholog_ONE2ONE both directions. NO FLAG — clean single-gene KO target (no retained teleost duplicate).\n3) wt1a (ENSDARG00000031420) → human WT1 (ENSG00000184937). Ensembl ortholog endpoint calls this ONE2ONE and returns wt1b EMPTY — BUT the paralogue endpoint classifies wt1a↔wt1b (ENSDARG00000007990) as a within_species_paralog at the Euteleostomi node (~71% id). FLAG 1:MANY (HIDDEN) — the automated ortholog call UNDER-reports this; a researcher trusting one2one would miss that wt1b is the teleost ohnolog and a compensation candidate. This is the headline calibration lesson: ortholog_one2one ≠ 'no paralog compensation risk'.\n4) hnf1ba (ENSDARG00000006615) → human HNF1B (ENSG00000275410). ortholog_ONE2MANY both directions. Co-ortholog hnf1bb (ENSDARG00000022295; matches our own marker file). FLAG 1:MANY — hnf1bb is lowly but detectably expressed in our pronephros data, so compensation is plausible.\n5) sim1a (ENSDARG00000023316) → human SIM1 (ENSG00000112246). ortholog_ONE2MANY. A retained duplicate sim1b exists (ENSDARG00000013789, symbol-verified). FLAG 1:MANY (PROBABLE) — but note the SIM1 ortholog endpoint's second target was ENSDARG00000039935 (a divergent bHLH-PAS gene, ~35% id), NOT sim1b; the specific sim1a↔sim1b ohnolog pairing was not confirmed by a paralogue query this session. Moderate confidence.\n6) lhx1a (ENSDARG00000014018) → human LHX1 (ENSG00000273706): UNRESOLVED. Ensembl Compara returns empty homologies in BOTH directions (no gene tree on that gene id). Not asserting lhx1a→LHX1 from memory; cross-check ZFIN/Alliance or NCBI orthologs before use.\n\nCONFIDENCE BY SUBCLAIM (aggregated to 0.82 for the schema): verified ENSDARG bindings + Ensembl calls ~0.90; PAX2/HNF1B 1:many flags ~0.90; WT1 hidden-ohnolog flag ~0.85; SIM1 probable ohnolog ~0.60; the functional inference 'paralog COULD compensate in a KO' ~0.70 (teleost-redundancy prior, not measured for these pairs). LHX1 is reported as a gap, not a claim.\n\nBOTTOM LINE for wet-lab design: pax8 is the only clean single-gene KO target here. pax2a, hnf1ba, and wt1a all carry a retained zebrafish ohnolog (pax2b, hnf1bb, wt1b) that can mask loss-of-function; plan compound perturbation or paralog-expression controls. wt1a is the trap — it looks 1:1 in a naive ortholog lookup. sim1a probable-flag pending a paralogue confirmation; lhx1a mapping pending a second source.",
+        "confidence": null,
+        "outcome": "rich_goldset",
+        "gap_flags": [],
+        "framework": null,
+        "provenance": "GoldSet v1 (corrida agéntica dedicada, ya presentada)"
+      },
+      "ia_confidence": 0.82
+    },
+    {
+      "id": "Q09",
+      "technical_q": "What metabolic pathways (lipid/ion) shape the biochemical microenvironment during tubulogenesis, and which database layers (KEGG/MetaCyc) would feed a gradient model?",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN4"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "named pathways; the .mzML→.csv wrapper need; O2/pH gradient geometry as Morpheus input; gap flags.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "PROJECT-STATE PREFLIGHT: grep of analysis/outputs/ returned only ID/DE tables (ens_to_symbol_descriptions.json, schoels_DE_per_cluster_with_symbols.csv); no mcp_cache Q09/KEGG/lipid entry; no docs/findings on tubulogenesis metabolism; no metabolic run in SIMULATION_OUTPUTS_DB. So no repo artifact answers this question — the answer operates from verified-ID grounding (resolve_id + Ensembl REST, this session) PLUS established vertebrate-nephron biology, tiered explicitly. RIL prepend read; standing lessons applied (resolve every ID, cite framework by section, record absent IDs).\n\nThis is a modeling-infrastructure literature-synthesis question in three parts: (1) which lipid/ion pathways shape the tubulogenic microenvironment, (2) which database layers (KEGG/MetaCyc) feed a gradient model, (3) the data pipeline (.mzML->.csv) and the Morpheus gradient geometry. The DI-only baseline (conf 0.28) correctly refused to invent pathway names from a thin bundle but was structurally starved: it could only report RN4=lipidomics, RN5=bioelectric, and that only Reactome (not KEGG/MetaCyc) was retrieved. I answer the substance, honestly tiered.\n\n=== ION-TRANSPORT PATHWAYS (tier: verified-ID + ortholog-inferred physiology) ===\nThe microenvironment is shaped primarily by vectorial transepithelial transport, all downstream of the basolateral Na+/K+-ATPase atp1a1a.2 (ENSDARG00000007739), which sets the Na+ electrochemical gradient powering every secondary transporter and is the dominant O2 sink of the epithelium — this physically couples the O2 field to the transport machinery. Segment-resolved carriers, identities deterministically grounded: apical Na-K-2Cl NKCC2 slc12a1 (ENSDARG00000098096; distal-early / TAL-analog salt reabsorption), Na-Cl NCC slc12a3 (ENSDARG00000013855; distal-late), apical Na+/H+ exchanger NHE3 slc9a3.2 (ENSDARG00000036722, Ensembl-verified today) coupling Na+ reabsorption to H+ secretion — a direct luminal-pH driver; basolateral electrogenic Na-bicarbonate cotransporter NBCe1 slc4a4a (ENSDARG00000013730) plus cytosolic carbonic anhydrase ca2 (ENSDARG00000014488, Ensembl-verified today) constitute the CO2/HCO3-/H+ buffering module that sets the pH gradient; K+-recycling inward-rectifier ROMK/Kir1.1 kcnj1a.1 (ENSDARG00000091232); Na-coupled solute carriers setting luminal composition — phosphate slc20a1a (ENSDARG00000020114), sulfate slc13a1 (ENSDARG00000045638), dicarboxylate slc13a3 (ENSDARG00000069478); divalent-cation channel trpm7 (ENSDARG00000036232). In KEGG these map onto the mineral-absorption map (ko/dre04978) and the proximal/collecting-duct acid-base maps; the proton/bicarbonate handling is the mechanistic origin of the pH scalar field.\n\n=== LIPID METABOLIC PATHWAYS (tier: ortholog-inferred / established-textbook; one representative ID verified) ===\nRenal epithelium is a canonical fatty-acid-oxidation (FAO) tissue: the proximal tubule derives most of its ATP from mitochondrial beta-oxidation, whose rate-limiting step is carnitine-palmitoyltransferase-1 cpt1aa (ENSDARG00000059770, Ensembl-verified today) — KEGG map00071 (fatty-acid degradation). Parallel arms that shape the lipid microenvironment: de novo lipogenesis / fatty-acid biosynthesis (fasn; KEGG map00061 — NOT_FOUND in store, asserted at pathway level only), supplying membrane lipid for rapid epithelial expansion; glycerophospholipid metabolism (KEGG map00564) and sphingolipid metabolism (map00600) governing apicobasal membrane remodeling and lipid-raft platforms that underlie the Prkc-iota/zeta polarity axis (prkci, prkcz — both NOT_FOUND in store, not asserted with ENSDARG); and arachidonic-acid / eicosanoid metabolism (map00590) producing prostaglandins as diffusible paracrine signals. These are exactly the species classes an RN4 lipidomics/imaging-MS layer (.mzML / .imzML) measures — the data modality and the named pathways line up.\n\n=== THE TWO SCALAR FIELDS TO MODEL (causal-pruner-class prioritization hypothesis — HUMAN GATE) ===\nPrioritization: the two diffusible scalar fields that dominate the biochemical microenvironment and are best supported are O2 and pH/[H+], with the driving source/sink terms being (i) Na+/K+-ATPase transport workload (O2 consumption) and (ii) the NHE3 + CA2 + NBCe1 acid-base module (H+/HCO3-). Secondary diffusible species: CO2, lactate, and specific lipid mediators. This shortlist is a sufficiency/prioritization hypothesis (causal-pruner work-type). Per CLAUDE.md §7 it is hypothesis-generation and REQUIRES A HUMAN GATE before any wet-lab or model-commitment use. I did not invoke the causal-pruner agent in this eval-harness context (status: skipped-ad-hoc — single-answer harness, agent-tool overhead disproportionate); the flag below records it.\n\n=== DATABASE LAYERS FOR A GRADIENT MODEL ===\nKEGG: provides machine-readable reaction topology via KGML (XML), the zebrafish-specific organism code 'dre' with dre-prefixed pathway maps, and KEGG REACTION stoichiometry + KEGG COMPOUND nodes for the diffusible metabolites (O2, CO2, HCO3-, fatty acids, lactate). This is the layer that converts measured abundances into reaction-network source/sink terms — the reaction scaffold of a reaction-diffusion model. MetaCyc/BioCyc: curated reaction directionality and EC-linked enzyme annotation complementary to KEGG; useful for pathway boundaries and (partially) kinetics, BUT zebrafish-specific PGDB coverage (a confirmed ZebrafishCyc/DanioCyc) is a GAP I flag — MetaCyc is the reference/curation layer, not a guaranteed dre-resolved one. Reactome (what the baseline had): orthology-inferred zebrafish, strong for signaling/reaction participants, weak for reaction-diffusion kinetics. Kinetic parameters (Km, kcat) for source-term parameterization come from BRENDA / SABIO-RK (the RN3 kinetic layer), not from KEGG/MetaCyc. Recommended stack: KEGG dre KGML = network topology + metabolite nodes; MetaCyc = reaction curation/direction (flag zebrafish coverage); BRENDA/SABIO-RK = kinetics; Reactome = signaling cross-reference.\n\n=== DATA PIPELINE (.mzML->.csv wrapper) + MORPHEUS GEOMETRY ===\nWrapper need (matches the Emmanuel-constitution rule that parsing/counting goes to a deterministic CLI tool, never the model): raw metabolomics is vendor .mzML/.mzXML (non-imaging) or .imzML (imaging MS, spatially resolved). A deterministic wrapper (pyOpenMS/matchms for .mzML; pyimzML for .imzML) extracts a feature table [m/z, retention_time, intensity, and x/y(/z) for imaging], annotates m/z to KEGG COMPOUND / LIPID MAPS IDs, and emits CSV columns compound_id, x, y, (z), intensity, sample. That CSV is the initial spatial field for the model. Morpheus input geometry: build a reaction-diffusion model with one <Field> (PDE) per diffusible species (O2, H+/pH, HCO3-, key lipid mediators) over a compartmentalized tubule domain (lumen / epithelium / interstitium), in 2D cross-section first (prueba pequeno antes de armar bien) then 3D. Initial/boundary conditions: the imaging-MS CSV supplies initial field values; O2 is supplied at the vascular/interstitial boundary (Dirichlet), no-flux at the outer boundary. Per-cell <System> ODE source/sink terms = transporter/enzyme reaction rates built from KEGG stoichiometry x BRENDA kinetics x cell-type-resolved expression of the transporter genes above (from scRNA). Diffusion constants: literature D for O2, H+, CO2. Output: steady-state O2 and pH gradient geometry across the tubule wall.\n\n=== HONEST CONFIDENCE BREAKDOWN (subclaims are asymmetric) ===\n- Ion-transporter identity + verified ENSDARGs: ~0.90 (deterministic resolve_id + live Ensembl).\n- Which pathways shape the microenvironment (FAO dominance, acid-base, lipogenesis, glycerophospholipid): ~0.70 — canonical mammalian-nephron physiology, ortholog-inferred for the zebrafish pronephros specifically; native zebrafish pronephros metabolic-flux data are sparse.\n- KEGG/MetaCyc/Morpheus modeling-stack design: ~0.60 — sound engineering, but MetaCyc zebrafish coverage unconfirmed and no data run.\n- O2+pH-as-the-two-dominant-fields prioritization: ~0.50 (hypothesis, human gate).\nAggregate ~0.60. improved_over_baseline: named the actual pathways + verified transporter IDs the baseline could not, specified the KEGG dre / MetaCyc / BRENDA layered roles, and detailed the .mzML->.csv wrapper and Morpheus field geometry the baseline lacked.",
+        "confidence": 0.6,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "MetaCyc/BioCyc zebrafish-specific PGDB (a confirmed ZebrafishCyc/DanioCyc with dre resolution) was NOT verified this session — MetaCyc is asserted as a reference/curation layer, not a guaranteed organism-resolved one.",
+          "No native zebrafish pronephros metabolomics/lipidomics dataset is confirmed in-repo (RN4 is a modality placeholder, not populated data); the .mzML->.csv + Morpheus pipeline is a validated-by-design proposal, not an executed run.",
+          "Pathway-role claims (FAO dominance, acid-base pH control) are mammalian-nephron canonical, ortholog-inferred to the zebrafish pronephros; direct zebrafish pronephros metabolic-flux measurement is sparse.",
+          "fasn, prkci, prkcz, clcnkb are NOT_FOUND in the verified store and were named only at pathway level — no ENSDARG asserted; promote to verified-ID before any script use.",
+          "aqp8a.1 returned two Ensembl gene IDs (paralog ambiguity) — not disambiguated; primary binding shown is the first hit, needs anchor resolution before use.",
+          "KEGG map IDs (map00071/00061/00564/00600/00590, dre04978) are cited from established KEGG structure but were not fetched/verified live this session — treat as pointers, verify KGML availability at build time.",
+          "Diffusion constants and BRENDA/SABIO-RK kinetic parameters for the Morpheus source terms were not retrieved — parameterization is unspecified (RN3 gap).",
+          "HTML report (CLAUDE.md §5/§7 mandatory-at-conclusion) NOT emitted: this runs inside an eval-harness that reads only the StructuredOutput call and forbids writing report files; report emission deferred to the calling interactive session."
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"Outputs that cite specific facts or numbers\" and \"Cases where confident hallucination is the worst failure mode\"; every gene ID in the draft was independently re-verified via resolve_id or a live Ensembl fetch (with raw caching) before inclusion, and unresolved symbols were demoted to pathway-level rather than asserted. Decomposition of the three-part question drew on Self-Discover (§3) meta-structuring, but the dominant, output-shaping dynamic is verification-against-external-evidence-streams, so CoVe is the elected framework.",
+        "identifier_bindings": [
+          {
+            "symbol": "atp1a1a.2",
+            "ensdarg": "ENSDARG00000007739",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc12a1",
+            "ensdarg": "ENSDARG00000098096",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc12a3",
+            "ensdarg": "ENSDARG00000013855",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc4a4a",
+            "ensdarg": "ENSDARG00000013730",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc13a1",
+            "ensdarg": "ENSDARG00000045638",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc13a3",
+            "ensdarg": "ENSDARG00000069478",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc20a1a",
+            "ensdarg": "ENSDARG00000020114",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "kcnj1a.1",
+            "ensdarg": "ENSDARG00000091232",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "trpm7",
+            "ensdarg": "ENSDARG00000036232",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hnf1ba",
+            "ensdarg": "ENSDARG00000006615",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "cpt1aa",
+            "ensdarg": "ENSDARG00000059770",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "ca2",
+            "ensdarg": "ENSDARG00000014488",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "slc9a3.2",
+            "ensdarg": "ENSDARG00000036722",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "aqp8a.1",
+            "ensdarg": "ENSDARG00000045141",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "fasn",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "prkci",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "prkcz",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "clcnkb",
+            "verified_via": "NOT_FOUND"
+          }
+        ],
+        "causal_pruner_flag": true,
+        "improved_over_baseline": "Named the actual lipid/ion pathways (FAO/cpt1aa, acid-base NHE3+CA2+NBCe1, lipogenesis, glycero/sphingolipid) with verified transporter ENSDARGs the DI-only baseline could not, and specified the KEGG-dre/MetaCyc/BRENDA database roles + the .mzML->.csv wrapper and Morpheus O2/pH field geometry the baseline left empty.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.6
+    },
+    {
+      "id": "Q10",
+      "technical_q": "What bioelectric readouts (membrane potential maps, ion-channel configs) are relevant to early tubule/eye morphogenesis, and how would voltage-imaging data (.ome/.tiff, .mat) be ingested?",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN5"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "ion-channel set; Vmem matrix concept; honest gap (sparse zebrafish bioelectric data).",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "Based on the retrieved bundle, the RN5 \"Bioeléctrica\" niche is the primary source for bioelectric readouts relevant to early morphogenesis. RN5 provides two classes of readout: (1) spatial coordinates paired with absolute membrane potential values stored as .csv (i.e., voltage/Vmem maps registered to position), and (2) high-density temporal matrices derived from fluorescence/voltage sensors stored as .mat. These map directly onto the two data types your question asks about — membrane-potential maps and, by extension, ion-channel configurations that would parameterize those potentials.\n\nFor early tubule (pronephros) morphogenesis, the corpus chunk CORPUS-2026-0003#c000 confirms the zebrafish pronephros is an established in vivo model for nephron development, which is the tissue context in which such Vmem maps and channel configs would be interpreted. However, the bundle does NOT contain any evidence explicitly linking specific membrane-potential patterns or named ion channels to eye morphogenesis, nor does it name which ion channels (e.g., specific ENSDARG-backed genes) are involved — so I cannot assert channel identities.\n\nIngestion pathway (inferred from the DI file-format signals, not from an explicit ingestion protocol in the bundle): voltage-sensor outputs arrive as raw imaging stacks (.ome/.tiff) and as processed temporal matrices (.mat). The natural pipeline is: (a) load .ome/.tiff volumetric/time-series stacks — the same .ome/.tiff family handled by the RN9 \"Morfología emergente\" niche (raw volumetric confocal time-series + segmentation) — so voltage imaging can be co-registered against RN9 morphology masks; (b) parse .mat high-density temporal matrices from RN5 as the per-pixel/per-cell voltage time-courses; (c) reduce these to the RN5 .csv product of spatial coords + absolute membrane potential, which is the analysis-ready, registerable form. This lets Vmem maps be aligned to segmented morphology (RN9) and, if desired, to biochemical/mechanical niches (RN4/RN6).\n\nThis ingestion sequence is a reasonable reconstruction from the file-format metadata, but the bundle gives no formal ETL/MCP-wrapper spec for RN5 voltage imaging (unlike RN4, which explicitly mentions an MCP wrapper → .csv). Treat the pipeline as inferred.",
+        "confidence": 0.42,
+        "outcome": "positive",
+        "gap_flags": [
+          "No specific ion channels or their ENSDARG identifiers present in the bundle — channel 'configs' named only as a data category, not as genes.",
+          "No direct evidence connecting membrane-potential maps to eye morphogenesis; only pronephros/tubule context (CORPUS-2026-0003) is supported.",
+          "No formal RN5 ingestion/ETL protocol in the bundle; the .ome/.tiff + .mat → .csv pipeline is reconstructed from format metadata and RN9 overlap, not stated.",
+          "Path B (external literature) not triggered, so no primary-literature grounding for bioelectric mechanisms.",
+          "Co-registration between RN5 voltage imaging and RN9 morphology is plausible but not evidenced as an implemented workflow."
+        ],
+        "framework": "Literature synthesis via source-triangulation across DI niche cards (RN5 primary; RN9/RN4 for format/pipeline overlap) plus the single supporting corpus chunk; format-driven inference for the ingestion path with explicit gap-flagging where the bundle is silent, per the honest-confidence requirement.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q11",
+      "technical_q": "Given cell-dynamics, geometry, cell adhesion and diffusive fields for zebrafish cornea, how do you assemble a Morpheus model matching early embryonic formation? Name the framework, confidence, and gap flags at each step.",
+      "type": "model_assembly_morpheus",
+      "niche": [
+        "RN6"
+      ],
+      "system": "cornea/eye",
+      "difficulty": "hard",
+      "expected_evidence": "step ladder (geometry → adhesion → diffusive fields → CIL); affinity/cortical-tension .json; scaffold .xml; gap flags (e.g., TGF-β2 GOF bead).",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "Assembling a Morpheus CPM (Cellular Potts Model) for early zebrafish cornea/anterior-segment formation can be staged against the retrieved niches as follows, though the bundle is only partially matched to the cornea system:\n\nSTEP 0 — Scope & schema. Build the Morpheus XML skeleton (CPM lattice, MonteCarloSampler, time/space units). Source: RN13 (Modelos de simulación y código; Morpheus .xml templates). Framework: model-assembly / template instantiation. Confidence ~0.6. Gap: RN13 is a generic simulation-code niche — no cornea-specific XML is confirmed in the bundle.\n\nSTEP 1 — Geometry & initial condition. Define the domain, cell field, and the anterior-segment tissue layout. Best available anchor is CORPUS-2026-0002, the temporal scRNA atlas of zebrafish anterior segment development (trabecular meshwork / annular ligament), which closes the Nat Witt cornea GAP-5. This gives cell-type identities and staging, NOT explicit spatial geometry. Framework: data-to-geometry mapping. Confidence ~0.4. Gap: atlas is transcriptomic, not morphometric — actual corneal geometry/coordinates are absent.\n\nSTEP 2 — Cell dynamics (motility, proliferation, apoptosis). Parameterize CellMotility, proliferation and death rules from RN8 (Cinética celular colectiva: per-region/per-stage mean migration velocity, apoptosis %/hr, raw trajectories). Framework: kinetic parameter fitting. Confidence ~0.55. Gap: RN8 regions may not include cornea specifically; need to confirm a cornea/eye region exists in that statistics file.\n\nSTEP 3 — Cell adhesion & passive biomechanics. Set Morpheus Contact/adhesion energies, basal cortical tension, cell-friction, and regional stiffness from RN6 (Biomecánica pasiva y ECM; affinity matrices, basal cortical tension, cell-friction coefficients as .json, regional stiffness). This is the strongest-matched niche (score 0.766) and maps directly onto Morpheus SurfaceConstraint / Contact interaction terms. Framework: biomechanics parameter binding. Confidence ~0.65. Gap: confirm the affinity matrix covers the corneal cell types named in CORPUS-2026-0002.\n\nSTEP 4 — Diffusive fields. Add Morpheus Field + Diffusion/reaction plugins for morphogen/secreted-factor gradients. NO diffusion-coefficient or ligand-field dataset is present in this bundle. Framework: reaction-diffusion coupling. Confidence ~0.15. Gap: diffusive-field parameters are entirely UNSUPPORTED by the retrieved evidence — a hard blocker.\n\nSTEP 5 — Validation. Compare simulated morphology/dynamics against RN8 trajectories and RN13 analysis scripts. Confidence ~0.4. Gap: no ground-truth cornea morphometrics for validation.\n\nOverall: RN6 (adhesion/biomechanics) and RN8 (cell kinetics) are usable and well-matched; RN13 provides tooling; CORPUS-2026-0002 anchors cell identity/staging. The diffusive-field step and explicit corneal geometry are NOT supported by this bundle. Note that CORPUS-2026-0003 (pronephros/prkci) is retrieved but is off-system (kidney) and should be excluded.",
+        "confidence": 0.42,
+        "outcome": "positive",
+        "gap_flags": [
+          "No diffusive-field / morphogen diffusion-coefficient dataset in bundle — Step 4 (diffusive fields) is unsupported.",
+          "No explicit corneal geometry/morphometry; CORPUS-2026-0002 is transcriptomic, not spatial.",
+          "Unconfirmed whether RN6 affinity matrices and RN8 per-region kinetics include a cornea/eye region specifically (both are cross-tissue niches).",
+          "No cornea-specific Morpheus XML confirmed in RN13 — only generic templates.",
+          "No gene IDs verified; none asserted. Any cornea marker genes from CORPUS-2026-0002 would need ENSDARG verification before use.",
+          "CORPUS-2026-0003 (pronephros) is off-system and excluded; its high retrieval score reflects morphogenesis-topic overlap, not cornea relevance."
+        ],
+        "framework": null,
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q12",
+      "technical_q": "How do you import a basal-membrane geometry and an AFM stiffness map as boundary conditions for a Morpheus tissue simulation?",
+      "type": "model_assembly_morpheus",
+      "niche": [
+        "RN6",
+        "RN9"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": ".xml scaffold + .vtk/.vtu FEA mesh as B.C.; Young's modulus .csv; what is static vs dynamic.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "PROJECT-STATE PREFLIGHT (§10): grep of analysis/outputs/, mcp_cache/, checkpoints/ returned no prior Morpheus import artifact; SIMULATION_OUTPUTS_DB/ holds pronephros_contractility_* runs (Morpheus-adjacent cascade-sim outputs) but no documented import protocol; docs/findings/ has no Morpheus entry. This output operates from Morpheus tool-documentation + established CPM modeling knowledge, with the framework paradigm verified live at morpheus.gitlab.io (2026-07-18). No gene identifiers are asserted (N/A for a model-assembly question).\n\nCORE CORRECTION THE BASELINE MISSED — the paradigm mismatch. Morpheus is a lattice-based Cellular Potts Model (CPM / Glazier–Graner–Hogeweg) engine driven by a single declarative MorpheusML XML file (verified live). It is NOT a continuum finite-element (FEA) elasticity solver. Two consequences dominate the entire import question:\n\n(1) Morpheus consumes raster/voxel IMAGES (TIFF), not unstructured meshes. An FEA basal-membrane geometry delivered as .vtk/.vtu (triangular/tetrahedral mesh) CANNOT be imported directly. It must first be rasterized/voxelized to a labeled TIFF mask on the SAME regular lattice Morpheus will simulate on (e.g. meshio/PyVista -> pyvista.voxelize or scan-conversion; one integer label per region; a 2D stack for a 3D <Lattice>). That TIFF is then referenced by <Space><Lattice><Domain><Image path=\"basal.tif\"/> to carve the simulation domain, or by <CellPopulations>/<InitCellLattice> to seed cells. So the .vtu FEA mesh is a SOURCE boundary condition, but the INGESTED B.C. is always the rasterized image.\n\n(2) AFM Young's modulus (a continuum stiffness in Pa) has NO direct CPM parameter. The CPM Hamiltonian is energy-based (adhesion/contact energies, <VolumeConstraint>, <SurfaceConstraint> with a rigidity strength lambda), not stress–strain. A spatial modulus map imported as a Morpheus scalar <Field> (initialized from a TIFF via a TIFF reader, or from a per-node value table) is only EVIDENCE; you then need a calibration mapping E(x) -> effective CPM parameters — typically a monotone map E-up -> higher SurfaceConstraint/VolumeConstraint strength and/or higher contact energy in the stiff region, tuned so a known deformation (indentation or passive relaxation) reproduces the AFM response. If instead you run Morpheus's continuum PDE layer (poroelastic / reaction–diffusion–mechanics), E can enter a PDE coefficient field directly — but stock CPM does not read Pa.\n\nCONCRETE IMPORT RECIPE (the .xml scaffold):\n- <Space> -> <Lattice class=\"cubic\"> with <Size> matching the voxelized TIFF; <NodeLength> sets physical voxel size (um/px) — this is how the AFM map's spatial calibration is honored.\n- Geometry B.C.: <Domain boundary-type=\"noflux\"><Image path=\"basal_membrane_mask.tif\"/></Domain>; the basal-membrane outline becomes the fixed domain boundary, and <BoundaryConditions><Condition boundary=\"...\" type=\"noflux\"/> fixes the basal surface as an impermeable wall (a static geometric B.C.).\n- Stiffness map: <Global><Field symbol=\"Emap\"><TIFF reader filename=\"afm_stiffness.tif\"/></Field>; reference Emap inside the mechanical terms (contact-energy expression, or lambda of Volume/SurfaceConstraint) so rigidity varies by region.\n- Store the assembled model + post-processing under the RN13 \"Morpheus .xml\" slot the baseline correctly identified.\n\nSTATIC vs DYNAMIC (the expected_evidence axis the baseline never addressed):\n- STATIC B.C. = imported once at t=0 and frozen: the domain image defines a fixed lattice geometry and the stiffness Field is read once and held constant (nothing updates it). Correct DEFAULT when the basal membrane and AFM map are a single measured configuration and you study cell behavior WITHIN that fixed landscape.\n- DYNAMIC B.C. = geometry or field co-evolves: the boundary moves because CPM cells push/remodel it (Morpheus does not remesh an imported surface — the boundary can only move through cell occupancy), or the stiffness Field is coupled to a <System>/PDE (ECM remodeling: Emap updated each Monte-Carlo sweep). Morpheus's lattice extent is fixed; a truly moving external basal membrane (large-deformation FEA style) is OUTSIDE stock Morpheus and needs an external FEM<->Morpheus co-simulation with re-rasterization each exchange step.\n\nCONFIDENCE ASYMMETRY (honest tiering, single aggregate reported per tool schema): the load-bearing conceptual claims are strong — Morpheus=lattice CPM not FEA (~0.95, verified live); raster-TIFF-not-mesh so rasterize (~0.85); AFM-E-needs-calibration (~0.85); static/dynamic framing (~0.8). The WEAK part is exact MorpheusML element/attribute spellings (~0.55): the docs page requires login, so element names (e.g. cubic vs linear Lattice class, exact TIFF-reader element) are version-sensitive and were NOT live-verified — check them against your Morpheus build's model editor.\n\nWHERE THIS IS EXPLORATORY / LIMITS: this is niche N2 (tissue biophysics/biomechanics), flagged in CLAUDE.md §3 + skills/external/CURATED.md as a Tool-Universe coverage GAP (no tissue-mechanics skill) and a Phase-II niche, not Phase I. So this is tool-documentation + established-CPM tier, NOT a repo-validated protocol. No native VTK/VTU importer is a Morpheus feature I could cite — the rasterization requirement is the honest engineering consequence of the lattice paradigm.\n\nAGENTS_INVOKED (§11): causal-pruner not-applicable (this is a procedure, not a ranked/minimal/sufficient set — causal_pruner_flag=false); composite-auditor not-applicable (single eval answer, not an audit gate); reasoning-exposer skipped-ad-hoc (reasoning exposed inline). HTML §5/§7 report deferred — this eval harness reads only the StructuredOutput call and prohibits writing report files.",
+        "confidence": 0.72,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "Exact MorpheusML element/attribute names (Lattice class, TIFF-reader element, Domain/BoundaryConditions attributes) NOT live-verified — morpheus.gitlab.io docs are behind login; names are version-sensitive across Morpheus 2.x builds",
+          "No native VTK/VTU importer is a citable Morpheus feature; the rasterization-to-TIFF requirement is inferred from the lattice paradigm, not a documented import path",
+          "N2 (tissue biophysics/biomechanics) is a Tool-Universe coverage gap (no tissue-mechanics skill) and a Phase-II niche — this answer is documentation/established-knowledge tier, not a repo-validated protocol",
+          "Starruss et al. 2014 citation given from memory, not live-fetched/verified this session (PMID not resolved — no literature store)",
+          "The E(x) -> CPM-parameter calibration is model-specific and left unspecified beyond 'monotone, fit to a known deformation'",
+          "HTML §5/§7 conclusion report not emitted (eval-harness reads only the StructuredOutput tool call and prohibits report files)"
+        ],
+        "framework": "Self-Discover — per reasoning-frameworks-catalog.md §3 Self-Discover: \"Novel problem types the agent hasn't seen before / Problems where the right reasoning shape isn't pre-known\". Composed decompose (split the import into geometry vs stiffness vs static/dynamic) + invert (what would have to be true to import a .vtu directly -> nothing does, so rasterize) + analogize (map FEA continuum concepts onto CPM energy terms). Fits because the cross-paradigm FEA/AFM -> lattice-CPM import has no pre-known reasoning template.",
+        "identifier_bindings": [],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Names the paradigm mismatch the baseline missed — Morpheus is a lattice CPM, so .vtk/.vtu FEA meshes must be rasterized to TIFF and AFM Young's modulus must be calibrated to CPM energy terms — and adds a concrete MorpheusML scaffold plus the static-vs-dynamic B.C. distinction the expected_evidence explicitly asked for.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.72
+    },
+    {
+      "id": "Q13",
+      "technical_q": "What fluid-dynamic readouts (flow velocity, shear) matter for pronephric filtration onset, and what mesh formats (.vtu/.cgns) carry them?",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN7"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "flow/shear fields; mesh format note; gap flags (sparse zebrafish flow data at this stage).",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "For pronephric filtration onset, the fluid-dynamic readouts that matter are: (1) flow velocity — cell/segment/node-indexed flow vectors quantifying the magnitude and direction of fluid movement through the developing nephron; (2) pressure fields, which set up the filtration gradient across the glomerular/tubular wall; and (3) wall shear stress, which is derived from the velocity field near tubular/glomerular surfaces and is a mechanically relevant cue for filtration and epithelial maturation. In the RN7 niche (\"Mecánica activa y dinámica de fluidos\"), these scalar/vector fields — flow vectors, velocity, and pressure — are carried as cell/segment/node-indexed tabular data in .csv/.tsv format, while the spatial domain on which they are defined is provided as high-density 3D meshes. NOTE: the retrieved RN7 description is truncated and does NOT explicitly confirm .vtu or .cgns as the mesh container formats, nor does it explicitly list \"shear\" as a stored field — those specifics are not verifiable from the evidence provided. The CORPUS-2026-0003 chunk confirms the zebrafish pronephros as an in vivo model for studying when/how the nephron develops but does not itself specify fluid-dynamic quantities or mesh formats.</parameter>\n<parameter name=\"confidence\">0.4",
+        "confidence": null,
+        "outcome": "positive",
+        "gap_flags": [
+          "RN7 niche description is truncated ('high-density 3D meshes wi...') — the actual mesh file format (.vtu/.cgns) is not confirmed in the retrieved text.",
+          "Explicit 'shear stress' as a stored readout is not stated in the evidence; it is inferred as velocity-derived.",
+          "No evidence bundle document specifically ties fluid-dynamic thresholds to the timing/onset of pronephric filtration — CORPUS-2026-0003 establishes the model but not the fluid readouts.",
+          "No gene identifiers were involved or verifiable."
+        ],
+        "framework": "Evidence-mapping / source-attribution synthesis: map each element of the question (velocity, shear, mesh format) to the most relevant retrieved niche/corpus item, and flag where the evidence is truncated or silent rather than extrapolating. Chosen because this is a literature_synthesis task requiring honest gap disclosure over confident completion.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": null
+    },
+    {
+      "id": "Q14",
+      "technical_q": "How would collective cell-migration kinetics (velocity, apoptosis rate) be summarized per tissue region and stage to calibrate a simulation?",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN8"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "per-region/per-hpf stats schema (.json); ImageJ/Fiji tracking (.xml) provenance.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "To calibrate a simulation, collective cell-migration kinetics should be summarized as per-region × per-stage aggregate statistics, which is exactly the format the RN8 niche (\"Cinética celular colectiva\") provides. Concretely:\n\n1. **Aggregation scheme.** Bin cells by (tissue region, developmental stage). For zebrafish this means spatial regions (e.g., anatomical/tissue-domain labels) crossed with staged time windows (hpf). RN8 stores exactly these \"per-region/per-stage statistics.\"\n\n2. **Metrics per bin.**\n   - **Mean migration velocity** — computed from the raw cell trajectories that RN8 also retains (individual trajectories → per-cell displacement/time → averaged within each region×stage bin). Report mean and, ideally, dispersion (SD/IQR) to capture heterogeneity that the simulation must reproduce.\n   - **Apoptosis rate** — expressed as % per hour (apoptosis %/hr), i.e., fraction of cells in the bin undergoing apoptosis normalized to a per-hour rate, so it can be plugged directly into a rate parameter in a simulator.\n\n3. **Calibration use.** These summary tables (velocity, apoptosis %/hr keyed by region and stage) become the target/ground-truth parameters that a simulation environment (e.g., an agent-based/cellular Morpheus-style model from RN13, or an active-mechanics flow model informed by RN7) is tuned to match. The raw trajectories underlying RN8 allow recomputation or validation of the aggregates if bin definitions change.\n\nIn short: build a region × stage matrix whose cells contain {mean velocity (+ spread), apoptosis %/hr}, derived from the retained raw trajectories, and feed those as calibration targets to the simulator.",
+        "confidence": 0.62,
+        "outcome": "unfalsifiable_in_phase_I",
+        "gap_flags": [
+          "The bundle only gives niche-level descriptions; no concrete file schema, units convention, or example table for RN8 was retrieved, so exact column definitions (e.g., how regions are labeled, velocity units, apoptosis denominator) are inferred, not verified.",
+          "No specification of which staging convention (hpf windows vs. named stages) or spatial region ontology is used.",
+          "No detail on statistical dispersion measures actually stored (only 'mean velocity' and 'apoptosis %/hr' are named).",
+          "No gene identifiers are relevant to this methodological question; identifier_bindings intentionally empty.",
+          "Path B literature not triggered, so no external methodological references support the aggregation choices."
+        ],
+        "framework": "Data-schema mapping / requirements-to-source matching: mapped the question's requested quantities (velocity, apoptosis rate, per-region, per-stage) onto the retrieved niche capabilities, selecting RN8 as the primary substrate and situating adjacent niches (RN7 flow, RN13 simulation, RN3 kinetics) as complementary. Chosen because the task is a literature/data-synthesis calibration workflow, not a mechanistic gene inference.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.62
+    },
+    {
+      "id": "Q15",
+      "technical_q": "Which morphometric/topological descriptors distinguish a correctly tubulated pronephros from teratogenic mesoderm, and what imaging formats supply them?",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN9"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "morphometric features; confocal .ome/.tiff → mesh .ply/.stl; persistence pairs (topology) concept.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "Based on the RN9 niche (\"Morfología emergente y topología\") and the pronephros tubulogenesis corpus, the descriptors that would distinguish a correctly tubulated pronephros from teratogenic (disorganized) mesoderm are morphometric and topological ones derived from segmented volumetric imaging:\n\n- **Topological continuity / lumen connectivity** — a correct pronephros forms a single continuous, patent tubule lumen, whereas teratogenic mesoderm shows fragmented, discontinuous, or absent lumina.\n- **Epithelial polarity organization** — apical/basal axis coherence (the corpus explicitly ties tubulogenesis and epithelial-identity maintenance to the polarity proteins Prkci and Prkcz; loss of polarity is a hallmark of failed tubulation).\n- **Tube geometry / morphometrics** — lumen diameter/cross-sectional area, tube length, wall thickness, and curvature/straightness of the nephron axis.\n- **Voxel-level continuity in time** — the RN9 descriptor set is built on \"continuous voxel\" time-series, so temporal persistence and progressive convergence-extension of the tube (vs. mesodermal mass that fails to elongate) is a distinguishing feature.\n\nThese come from **raw volumetric confocal time-series plus segmentation masks**, supplied in the imaging formats named in the RN9 niche: **.ome/.tiff, .czi, .ims, and .nd2**.\n\nI cannot, from this bundle, give a validated quantitative threshold list (e.g., specific diameter cut-offs or named topological metrics like Betti numbers/branch counts); the niche description only names the raw/segmented data types and formats, not a benchmarked descriptor panel.",
+        "confidence": 0.42,
+        "outcome": "unfalsifiable_in_phase_I",
+        "gap_flags": [
+          "The RN9 niche description lists data types and imaging FORMATS but does not enumerate specific named morphometric/topological metrics or their diagnostic thresholds.",
+          "No ENSDARG identifiers were provided/verified for prkci or prkcz in this bundle — symbols asserted without verified gene IDs.",
+          "No direct evidence in the bundle characterizing 'teratogenic mesoderm' morphometrics as a contrast class; contrast is inferred, not documented.",
+          "No Path B literature retrieved to corroborate descriptor definitions."
+        ],
+        "framework": "Evidence-grounded literature synthesis with source-typing: separated niche metadata (data format layer) from corpus biology (mechanistic layer), and flagged inferred vs. documented claims to keep confidence calibrated to a thin bundle.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q16",
+      "technical_q": "Build the master chaperone-tissue interaction table (Source → Target → Signal → Temporal window) for inducing pronephric program in adjacent competent tissue.",
+      "type": "perturbation_design",
+      "niche": [
+        "RN10"
+      ],
+      "system": "pronephros",
+      "difficulty": "hard",
+      "expected_evidence": "indexed interaction rows; cited embryology; temporal windows in hpf; gap flags.",
+      "bucket": "rich_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "MASTER CHAPERONE-TISSUE INTERACTION TABLE — inducing the pronephric program in adjacent competent tissue (zebrafish, GRCz11). Target throughout = intermediate mesoderm (IM)/posterior lateral plate mesoderm, the competent field forming the bilateral pronephros. Rows [Source → Signal (verified gene) → Target → Window → role]: (1) Anterior paraxial mesoderm/somites → Retinoic acid synthesis, aldh1a2 (ENSDARG00000053493) → IM anterior/proximal → ~8-18 hpf → proximo-distal patterning, sets proximal segment identity — STRONGEST/best-validated input. (2) Posterior mesoderm/tailbud → RA degradation (counter-gradient), cyp26a1 (ENSDARG00000033999) + cyp26b1 (ENSDARG00000077121) → IM posterior/distal → ~8-18 hpf → clears RA posteriorly for distal identity. (3) Tailbud/posterior paraxial mesoderm → posteriorizing Wnt, wnt8a (ENSDARG00000052910) + wnt2ba (ENSDARG00000005050) → posterior LPM/IM → ~6-12 hpf → posteriorizes mesoderm, establishes posterior competence field. (4) Tailbud/posterior mesoderm → FGF, fgf8a (ENSDARG00000003399) + fgf24 (ENSDARG00000037677) → posterior LPM/IM → ~8-16 hpf → posterior mesoderm/IM specification. (5) Ventral/ventrolateral mesoderm → BMP, bmp2b (ENSDARG00000041430) → prospective IM → ~5-10 hpf → competence-establishing DV patterning (earliest). (6) Notochord/floor plate → Hedgehog, shha (ENSDARG00000068567) → medial IM → ~10-18 hpf → modest midline patterning input (exploratory, weakest). COMPANION READOUT MODULE (target-intrinsic response TFs = what 'competent' means, not source signals): osr1 (ENSDARG00000014091, earliest IM ~8-10 hpf), pax2a (ENSDARG00000028148, master specifier ~10-12 hpf), pax8 (ENSDARG00000015879), lhx1a (ENSDARG00000014018), wt1a/wt1b (ENSDARG00000031420/ENSDARG00000007990, podocyte ~14-24 hpf), hnf1ba (ENSDARG00000006615, tubule ~18-24 hpf). This is a DESIGN SCAFFOLD: all gene IDs are tool-verified, but the induction-SUFFICIENCY claim (that these signals reconstitute the program in competent tissue) is a causal-pruner-class hypothesis requiring a human gate + wet-lab GOF (Phase II) — not a validated protocol. HTML report: reports/2026-07-11_chaperone-tissue-interaction-table_v1.html.",
+        "confidence": null,
+        "outcome": "rich_goldset",
+        "gap_flags": [],
+        "framework": null,
+        "provenance": "GoldSet v1 (corrida agéntica dedicada, ya presentada)"
+      },
+      "ia_confidence": 0.55
+    },
+    {
+      "id": "Q17",
+      "technical_q": "Summarize the curated literature on whether zebrafish have a histologically distinct corneal endothelium, and grade the evidence.",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN11",
+        "RN1"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "graded synthesis; the debate flagged (GAP-3 analog); endothelium marker panel caveat.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "GRADED SYNTHESIS — Does the zebrafish have a histologically distinct corneal endothelium?\n\nBOTTOM LINE (honest grade). The claim decomposes into three sub-claims of asymmetric evidence strength (reported as confidence_by_subclaim per CLAUDE.md §5, because a single aggregate would obscure audit signal):\n(a) The adult zebrafish cornea is a layered structure with a stratified outer EPITHELIUM over a collagenous STROMA — WELL-SUPPORTED / established-textbook tier (~0.88).\n(b) A histologically DISTINCT posterior ENDOTHELIUM (a discrete monolayer homologous to the mammalian neural-crest-derived corneal endothelium, with a Descemet-like basement membrane and pump/barrier function) — MODERATE / CONTESTED (~0.5). This is the live debate and the GAP-3 analog the question asks to flag.\n(c) A validated zebrafish-specific corneal-ENDOTHELIUM marker panel — NOT SUPPORTED / GAP (~0.15). This is the marker-panel caveat.\n\nWHAT THE LITERATURE SUPPORTS (tiered by evidence class):\n- Established-textbook tier: classic descriptive morphology (Soules & Link 2005, 'Morphogenesis of the anterior segment in the zebrafish eye'; Zhao et al., mid-2000s IOVS on adult zebrafish corneal structure) describes an epithelium + a Bowman's-like/stromal arrangement and a thin posterior mesenchymal lining. HONESTY FLAG: the deterministic EuropePMC searches run THIS session did NOT surface these foundational histology papers, so their PMIDs are NOT verified here — they are cited author-year only and their PMIDs are in gap_flags. Do not treat those PMIDs as grounded.\n- Live-verified this session (PMIDs confirmed against EuropePMC raw JSON, cached at mcp_cache/raw_europepmc_Q17_*_20260718.json): PMID 39273043 (Williams AL, 2024, Cells) — keratin 8/18a.1 in NEURAL-CREST-derived zebrafish ocular tissue and postnatal corneal regeneration; this supports the neural-crest origin of the posterior corneal compartment (the same lineage that yields the mammalian corneal endothelium), which is the strongest developmental argument that a homologous endothelial layer COULD exist. PMID 39642091 (Basol M, 2024, FEBS J) — loss of CHST6 (carbohydrate sulfotransferase 6) produces macular-corneal-dystrophy phenotypes in zebrafish; this establishes that zebrafish model human corneal STROMAL disease, but says nothing about a distinct endothelium.\n\nTHE DEBATE (GAP-3 analog, stated explicitly). Teleost corneas classically are described as epithelium + stroma with a poorly-characterized inner surface. Whether the posterior surface is (i) a bona fide endothelium — a continuous polarized monolayer with tight junctions, Na/K-ATPase-driven deturgescence pump, and a Descemet-like basement membrane, homologous to the mammalian corneal endothelium — versus (ii) a simpler squamous mesenchymal lining continuous with periocular/annular-ligament mesenchyme, is NOT settled by the curated literature. The mammalian endothelium is a defining feature (single posterior neural-crest-derived layer maintaining stromal transparency); its unambiguous teleost homolog is not established. Reviews describe a thin posterior cellular layer in adult zebrafish but rigorous ultrastructural (EM) + functional (pump/barrier) demonstration of endothelial IDENTITY is thin. Grade for existence of a histologically-distinct-and-functionally-endothelial layer: MODERATE-CONTESTED, not confirmed.\n\nMARKER-PANEL CAVEAT (auditable, deterministic). There is no validated zebrafish corneal-endothelium marker panel. Concretely, the canonical mammalian corneal-endothelium / Descemet markers do NOT resolve in the project DATA INAMOVIBLE store (resolve_id => NOT_FOUND): col8a1a, col8a2 (Descemet's collagen VIII), atp1a1a.1 (Na/K-ATPase pump), cdh2 (N-cadherin), tfap2a (NC). By contrast, the anterior-segment TRANSCRIPTION-FACTOR / epithelial context IS covered and verified in-store: foxc1a (ENSDARG00000091481), foxc1b (ENSDARG00000055398), pitx2 (ENSDARG00000036194) — the canonical foxc1/pitx2 anterior-segment-dysgenesis module (periocular mesenchyme → anterior segment incl. endothelium/annular ligament); pax6a/pax6b (ENSDARG00000103379 / ENSDARG00000045936); and epithelial markers krt4 (ENSDARG00000017624), tp63 (ENSDARG00000044356). So the substrate can name the upstream anterior-segment regulators but CANNOT deterministically mark an endothelial monolayer as a distinct cell state — which is exactly why a histological/identity claim cannot be closed. This asymmetry (TFs present, terminal-endothelial effectors absent) is itself the evidence-grading signal.\n\nPROJECT-STATE PREFLIGHT. Ran grep over analysis/outputs/, mcp_cache/, docs/findings/, and PROJECT_SCOPE.md. Directly relevant prior artifact: analysis/outputs/poc_crossfield_test5_20260613.json (Test-5 N3↔N5 cross-field POC). Its own verdict is instructive: the pronephros↔ocular MENTIONS overlap there was ruled an ANNOTATION ARTIFACT (shared curated marker panel), and only_ocular=0 was flagged as the tell that the graph cannot adjudicate ocular-specific biology from MENTIONS alone. That reinforces this answer's caveat: the substrate currently lacks ocular-specific, endothelium-resolving expression evidence. No prior finding contradicts this synthesis.\n\nN5 EXPLORATORY STATUS (Phase I). Ocular biology (N5) is a Test-5 CANDIDATE partner field, EXPLORATORY in Phase I (PROJECT_SCOPE §11); there is no ocular-specific curated Tool Universe skill (CURATED.md documented gap). Modest, honestly-tiered evidence is the success criterion here — I am NOT forcing a conclusion. WHERE THE MAMMALIAN ANALOGY BREAKS: (1) zebrafish retain robust lifelong corneal/anterior-segment regenerative capacity (PMID 39273043), unlike the near-non-proliferative adult human corneal endothelium — so even a homologous layer would not be functionally equivalent; (2) teleost corneas face a fundamentally different refractive/osmotic environment (the lens does most refraction underwater), relaxing the selective pressure for a mammalian-grade deturgescence pump, so absence of a strong pump phenotype is NOT evidence against homology, it is expected; (3) Descemet's membrane maturity is reported to be reduced/absent in fish. Absence-of-evidence here is data, not a negative verdict.\n\nWHAT WOULD CLOSE THE GAP (not done here; would need a human gate if formalized as a design): EM ultrastructure of the posterior corneal surface at adult stages + a lineage/marker demonstration (e.g., neural-crest lineage trace intersected with a barrier/junction and Na/K-ATPase readout) + a single-cell atlas resolving a posterior-endothelial cell state distinct from annular-ligament/TM mesenchyme. The existing anterior-segment scRNA atlas (GSE218068, foxc1b) is the nearest asset but its snippet provides no endothelial-layer resolution.\n\nIMPROVEMENT OVER BASELINE. The thin DI-only baseline correctly abstained (its retrieval bundle had no histology) but stopped there. This answer (i) actually answers from established zebrafish developmental biology with EXPLICIT evidence tiering; (ii) live-grounds two real native-zebrafish PMIDs against EuropePMC (raw cached) instead of abstaining; (iii) makes the marker-panel caveat DETERMINISTIC by showing the canonical endothelium markers are NOT_FOUND in-store while the anterior-segment TFs ARE verified; (iv) states the debate as a genuine MODERATE-CONTESTED grade rather than 'unanswerable'; and (v) names where the mammalian analogy breaks under N5 exploratory rules.",
+        "confidence": 0.62,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No curated histology/EM literature in the DI store on the zebrafish corneal posterior surface — the core histological question rests on external/established knowledge, not substrate-verified sources.",
+          "PMIDs for the foundational histology papers (Soules & Link 2005; Zhao et al.) are NOT verified this session (live EuropePMC queries did not surface them) — cited author-year only; flagged, not asserted (no literature store per GWT v1.1 verify_output).",
+          "No validated zebrafish corneal-ENDOTHELIUM marker panel; canonical mammalian endothelium/Descemet markers (col8a1a, col8a2, atp1a1a.1, cdh2, tfap2a) are NOT_FOUND in DATA INAMOVIBLE — cannot deterministically resolve an endothelial cell-state.",
+          "No functional evidence (Na/K-ATPase deturgescence pump, tight-junction barrier) or EM ultrastructure available in-substrate to confirm endothelial IDENTITY vs a squamous mesenchymal lining.",
+          "N5 ocular is Phase-I EXPLORATORY (Test-5 candidate) with no ocular-specific Tool Universe skill (CURATED.md gap); depth is intentionally modest.",
+          "MCP query_data_inamovible was DOWN this session (per task constraint); semantic corpus retrieval on 'cornea endothelium' not exercised — only deterministic resolve_id + live EuropePMC REST used.",
+          "HTML report (§5/§7) not emitted: this is an eval-harness claim record feeding run_held_out.py (one of 30 questions), exempt as a within-workflow sub-task per prueba-pequeno; the interactive session conclusion is where the report would fire."
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: \"Cases where confident hallucination is the worst failure mode\" and \"Outputs that cite specific facts or numbers\". I drafted the graded synthesis, then generated verification questions (do the cited PMIDs exist? do the gene IDs resolve? is there a prior project artifact?) and answered them independently against EuropePMC raw JSON and resolve_id before finalizing. Tier-1 frameworks did not match: Self-Consistency (§4) needs majority-vote across runs (single synthesis here); Logic-LM (§5) needs formalizable criteria (histological identity is not symbolically decidable) — though the identifier gate (resolve_id/verify_output) IS the Logic-LM-class deterministic check applied to the ID sub-layer.",
+        "identifier_bindings": [
+          {
+            "symbol": "foxc1a",
+            "ensdarg": "ENSDARG00000091481",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1b",
+            "ensdarg": "ENSDARG00000055398",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pitx2",
+            "ensdarg": "ENSDARG00000036194",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6a",
+            "ensdarg": "ENSDARG00000103379",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6b",
+            "ensdarg": "ENSDARG00000045936",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "krt4",
+            "ensdarg": "ENSDARG00000017624",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "tp63",
+            "ensdarg": "ENSDARG00000044356",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "col8a1a",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "col8a2",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "atp1a1a.1",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "cdh2",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "tfap2a",
+            "verified_via": "NOT_FOUND"
+          }
+        ],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Turns the baseline's flat abstention into a MODERATE-CONTESTED graded synthesis: two live-verified native-zebrafish PMIDs (raw cached), a deterministic marker-panel caveat (endothelium markers NOT_FOUND while anterior-segment TFs verified in-store), the debate flagged as the GAP-3 analog, and explicit N5-exploratory boundaries — without fabricating any ID.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.62
+    },
+    {
+      "id": "Q18",
+      "technical_q": "Propose a minimal perturbation set to test sufficiency of a pronephric program, with required controls and possible confounders. (Ranked-candidate work → must route through causal-pruner + human gate.)",
+      "type": "perturbation_design",
+      "niche": [
+        "RN12"
+      ],
+      "system": "pronephros",
+      "difficulty": "hard",
+      "expected_evidence": "candidate set + controls + confounders in gap_flags; explicit causal-pruner + HUMAN GATE routing.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "MINIMAL PERTURBATION SET — sufficiency test for a zebrafish pronephric program (RANKED CANDIDATES + SUFFICIENCY HYPOTHESIS; causal-pruner-class output → HUMAN GATE required before any wet-lab/design commitment, CLAUDE.md §7).\n\nFRAMING. \"Sufficiency\" = driving pronephric fate ECTOPICALLY (gain-of-function) in competent tissue where it would not otherwise arise, as distinct from necessity (LOF). Critically, single-signal ectopic induction of the pronephros is UNTESTED in the project's own three-round E2E work (memory: e2e-pipeline-test-and-adjustments-20260623; reports/2026-06-23_pronephros-induction-GOF_e2e-round3.html) and in the literature surveyed there — so this whole design targets a genuine open gap, not settled ground.\n\nWHAT THIS ADDS OVER THE THIN BASELINE. The baseline (conf 0.28) refused to verify IDs and guessed a generic \"pax2a + wt1a + RA + Notch\" cocktail. Two of its moves are wrong or under-specified given the project's standing evidence: (i) it made pax2a the \"master regulator\" and omitted osr1, which the project's own causal-pruner hypothesis places as the proximate TF node downstream of RA (cascade RA → osr1 → pax2a/pax8, lhx1a → wt1a/wt1b; PMID:22129829, 36359386 per project records — literature-store-unverified, flagged); (ii) it omitted pax8, so it cannot address the pax2a/pax8 paralog redundancy that is the single most likely reason a naive pax2a-only GOF returns a false-negative. It also floated Notch/Jagged as an inducer, which has no native induction-role evidence in the project's lenses. All gene IDs below are resolved deterministically through resolve_id over DATA INAMOVIBLE v1 (no memory IDs).\n\nRANKED CANDIDATE PERTURBATIONS (gain-of-function; additive-escalation for minimality — each tier adds only what the prior failed to achieve):\n\nTier A — proximate intrinsic node (test first, single factor):\n  1. osr1 (ENSDARG00000014091; RAW-tier, role = earliest intermediate-mesoderm induction marker) — heat-shock / Gal4-UAS forced expression in competent posterior/lateral mesoderm. Rationale: project hypothesis makes osr1 the proximate TF node; if any single factor is ectopically sufficient, this is the leading a priori candidate.\n\nTier B — IM-specification TFs, tested as a REDUNDANT PAIR (paralog compensation is expected, so pair-test, do not single-test):\n  2. pax2a (ENSDARG00000028148) + pax8 (ENSDARG00000015879) co-expression. Native double-LOF pax2a;pax8 ablates the pronephros; the reciprocal GOF pair is the correct sufficiency probe. Single pax2a GOF is retained only as a redundancy control (expected weaker/negative).\n  3. + lhx1a (ENSDARG00000014018) as a co-factor added to (2).\n\nTier C — podocyte/nephron identity layer (only if A/B induce tubule but not corpuscle/podocyte):\n  4. + wt1a (ENSDARG00000031420) ± wt1b (ENSDARG00000007990).\n\nTier D — permissive positional signal (co-applied, not stand-alone inducer):\n  5. Retinoic-acid axis: aldh1a2 (ENSDARG00000053493, RA synthesis) manipulation / exogenous RA titration + cyp26a1 (ENSDARG00000033999, RA degradation) — RA is the strongest-evidence, zebrafish-native PROXIMODISTAL PATTERNING input (not an inducer of the TF set). Include to test whether the TF cocktail is only sufficient in an RA-permissive posterior positional context.\n  6. FGF (fgf8a ENSDARG00000003399 + fgf24 ENSDARG00000037677, redundant pair) — instructive fate-allocation within the posterior-mesoderm field (dose-dependent pronephric-vs-blood/endothelial; PMID:12925590, 24008197 — project records, literature-store-unverified). Layer as a field-competence modifier, NOT as an ectopic inducer.\n  wnt8a (ENSDARG00000052910) is permissive/posteriorizing only — include as a background-competence condition, not a ranked inducer. Notch/Jagged is NOT included (no native induction-role evidence).\n\nCONFIDENCE BY SUB-CLAIM (asymmetric; CLAUDE.md §5). (a) GRN landscape / cascade ordering RA→osr1→pax2a·pax8·lhx1a→wt1a: ~0.75 (project-native LOF + literature). (b) The specific claim that this SET is *sufficient* for ectopic induction: ~0.20 (untested hypothesis — the point of the experiment). (c) Controls/confounders adequacy: ~0.80. Aggregate scalar reported = 0.42, dominated by the low sufficiency sub-claim.\n\nREQUIRED CONTROLS.\n  - Heat-shock-only / empty-UAS sibling controls; dosage titration + inducible-timing windows to bound the minimal sufficient dose/window.\n  - COMPETENCE mapping: assay in a defined competent IM-adjacent domain vs. a non-competent domain, to separate true ectopic induction from mere expansion of the endogenous field (lineage tracing mandatory).\n  - Multi-marker specificity panel — independent pronephric readouts: tubule (slc20a1a ENSDARG00000020114, cdh17 ENSDARG00000005112), duct, podocyte (nphs1 ENSDARG00000060758, nphs2 ENSDARG00000042850, wt1a), corpuscle-of-Stannius — PLUS ≥1 non-pronephric fate marker to test exclusivity. (nphs1/nphs2/slc20a1a and hnf1ba ENSDARG00000006615 are DERIVED-tier IDs — backlog for raw re-verification.)\n  - Positive control: a known pronephric-inducing/expansion condition to calibrate assay sensitivity.\n  - Paralog-completeness control: pax2b (ENSDARG00000032578) status, since pax2a/pax2b co-orthology can mask a single-paralog result.\n\nPOSSIBLE CONFOUNDERS (into gap_flags).\n  - Paralog redundancy (pax2a/pax8; fgf8a/fgf24) producing false-negative single-factor sufficiency — the dominant confounder; drives the pair-testing design.\n  - Competence gating: a negative result may reflect an incompetent host, not factor insufficiency (needs competence-window map).\n  - Endogenous-field expansion misread as ectopic induction (lineage tracing).\n  - Partial-program induction (marker without morphogenesis) misread as full sufficiency.\n  - Positional-signal dependency (RA) confounding TF-only interpretation.\n  - Overexpression toxicity / heat-shock stress artifacts.\n  - \"Absence-from-a-lens ≠ evidence-against\" (project's recurrent lesson): the untested-sufficiency status is a genuine gap, not evidence that the set is insufficient.\n  - Identifier confounder: wnt2b, tbx16, osr2, foxj1a, notch1a/jag2b are NOT_FOUND in the store and are NOT asserted here (no memory ENSDARGs).\n\nROUTING. Ranked-candidate + minimal/sufficient-set + sufficiency-hypothesis → MUST pass causal-pruner (prune redundant/non-identifiable interventions, enforce additive minimality) then a HUMAN GATE before any wet-lab commitment. Phase note: ectopic-GOF sufficiency is Phase II wet-lab work; Phase I can only stage the design.",
+        "confidence": 0.42,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "Ectopic-GOF sufficiency of any pronephric factor/set is UNTESTED (project + literature) — this design targets that gap; not evidence the set is insufficient (absence-from-lens != evidence-against)",
+          "PMIDs (22129829/36359386/12925590/24008197/17953490/21761484/27406002) are from project records but LITERATURE-STORE-UNVERIFIED — no PMID store in DATA INAMOVIBLE yet; flagged per verify_output, not resolved",
+          "wnt2b, tbx16, osr2, foxj1a, notch1a, jag2b NOT_FOUND in DI store — named as symbols only, no ENSDARG asserted",
+          "hnf1ba, nphs1, nphs2, slc20a1a resolved at DERIVED tier (raw external response not retained) — backlog for raw re-verification to promote to RAW",
+          "Competence map for the host domain (where is IM-adjacent mesoderm ectopically competent?) not established — required before GOF interpretation",
+          "No zebrafish baseline-expression lens available (project DEFERRED gap — no friction-free public JSON API) to confirm ectopic-context specificity",
+          "causal-pruner not invoked as a sub-process this run (workflow harness constraint) — routed as skipped-ad-hoc; ranked/minimal-set output MUST pass causal-pruner + human gate before wet-lab",
+          "HTML report (§5/§7 mandate) not emitted this run — deliverable is the structured record inside the eval harness; report emission deferred to the harness report step"
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification (CoVe): \"High-stakes outputs that will be acted on (lab dispatch, ... commitment)\" and \"Cases where confident hallucination is the worst failure mode\" — the draft minimal set was verified against project-native LOF evidence, the standing role-split hypothesis, and evidence-tier validity, revising away the baseline's pax2a-master / Notch-inducer over-claims and adding the pax8 redundancy the draft missed.",
+        "identifier_bindings": [
+          {
+            "symbol": "osr1",
+            "ensdarg": "ENSDARG00000014091",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax8",
+            "ensdarg": "ENSDARG00000015879",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2b",
+            "ensdarg": "ENSDARG00000032578",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lhx1a",
+            "ensdarg": "ENSDARG00000014018",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1b",
+            "ensdarg": "ENSDARG00000007990",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "aldh1a2",
+            "ensdarg": "ENSDARG00000053493",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "cyp26a1",
+            "ensdarg": "ENSDARG00000033999",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wnt8a",
+            "ensdarg": "ENSDARG00000052910",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "fgf8a",
+            "ensdarg": "ENSDARG00000003399",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "fgf24",
+            "ensdarg": "ENSDARG00000037677",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hnf1ba",
+            "ensdarg": "ENSDARG00000006615",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "nphs1",
+            "ensdarg": "ENSDARG00000060758",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "nphs2",
+            "ensdarg": "ENSDARG00000042850",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "slc20a1a",
+            "ensdarg": "ENSDARG00000020114",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "cdh17",
+            "ensdarg": "ENSDARG00000005112",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wnt2b",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "tbx16",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "osr2",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "foxj1a",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "notch1a",
+            "verified_via": "NOT_FOUND"
+          },
+          {
+            "symbol": "jag2b",
+            "verified_via": "NOT_FOUND"
+          }
+        ],
+        "causal_pruner_flag": true,
+        "improved_over_baseline": "Grounds all 17 asserted ENSDARGs via resolve_id (baseline verified none), and replaces the baseline's generic pax2a+Notch guess with the project's own verified RA->osr1->pax2a/pax8->wt1a cascade — adding osr1 (proximate node) and the pax2a/pax8 paralog-redundancy pair-test the baseline omitted.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q19",
+      "technical_q": "Using genetic-interaction data, predict the embryonic phenotype of a double-gene perturbation and whether redundancy would mask a single-KO.",
+      "type": "perturbation_design",
+      "niche": [
+        "RN12"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "double-KO inference from BioGRID genetic interactions; paralog-redundancy reasoning.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "The question is generic (no gene pair is supplied). Rather than abstain like the DI-only baseline, I instantiate it on the best-characterized paralog-redundancy pairs of the pronephros — the POC domain — and give three ID-grounded, honestly tiered predictions.\n\nDECODER (methodology, same frame the baseline gave, now instantiated). In a genetic-interaction schema, a synthetic-lethal / synthetic-enhancement pair predicts a double-perturbation phenotype MORE severe than either single KO; an epistatic/suppression pair predicts the double resembles one single-KO (or is rescued). Redundancy masks a single-KO iff single-KO A ≈ WT AND single-KO B ≈ WT AND double A;B = phenotype. Zebrafish whole-genome-duplication ohnolog pairs are the prime masking candidates because paralog retention buffers loss; whether masking actually occurs is set by the degree of sub-/neofunctionalization.\n\nCASE 1 (primary) — pax2a (ENSDARG00000028148) x pax8 (ENSDARG00000015879), pronephric field specification. pax2a, pax8 and the third paralog pax2b (ENSDARG00000032578) are co-expressed in intermediate mesoderm and act redundantly to specify pronephric fate. Single pax2a loss (noi / no-isthmus allele) gives a PARTIAL pronephric phenotype (disrupted tubule/duct and podocyte differentiation) plus its own non-renal midbrain-hindbrain-boundary and optic defects; single pax8 loss is NEAR-WT for the pronephros. Combined pax2a;pax8 loss (with/without pax2b) collapses the pronephric primordium — near-complete failure to specify nephron progenitors. PREDICTED DOUBLE PHENOTYPE: loss/severe reduction of the pronephric anlage, absent/rudimentary tubules and podocytes, far exceeding either single. REDUNDANCY VERDICT: YES-masks for pax8 (and pax2b) — a pax8 single-KO is buffered by pax2a/pax2b and reads near-WT; the phenotype emerges only in combination (canonical synthetic-enhancement signature). ASYMMETRIC for pax2a — NOT fully masked, because pax2a carries non-redundant functions and its single-KO is already penetrant. So 'redundancy masks the single-KO' is TRUE for pax8/pax2b, PARTIAL for pax2a. (The store's own pax2b note reads: 'Role: pax2a co-ortholog (paralog compensation)'.)\n\nCASE 2 (informative contrast) — wt1a (ENSDARG00000031420) x wt1b (ENSDARG00000007990), podocyte differentiation. wt1a is the dominant podocyte determinant: single loss reduces/blocks podocyte differentiation (down nphs1 / nphs2 / podxl); wt1b is later and more restricted, its single loss milder. Double loss is more severe. REDUNDANCY VERDICT: NO/partial masking of wt1a — subfunctionalization/dosage leaves the wt1a single-KO already penetrant, so redundancy does NOT silence it. This is the deliberate contrast to CASE 1: an ohnolog pair where the single KO is NOT masked.\n\nCASE 3 — hnf1ba (ENSDARG00000006615) x hnf1bb (ENSDARG00000022295), proximo-distal segmentation. hnf1ba (vhnf1) single loss disrupts proximal pronephric segment identity; hnf1bb is a weak paralog. Double loss enhances the segmentation defect. VERDICT: mostly non-masking (hnf1ba single already penetrant); hnf1bb acts as a buffer.\n\nBOTTOM LINE. A double-KO does not universally 'unmask' a phenotype — it depends on the paralogs' functional overlap. The clean 'redundancy hides the single-KO' case here is pax8/pax2b (silent alone, severe with pax2a); the wt1a/wt1b and hnf1ba/hnf1bb pairs show the more common asymmetric case where the dominant paralog's single-KO is already visible and the partner only worsens it. This is a causal-pruner-class redundancy/sufficiency hypothesis (ranked pairs + which single-KO is masked) and REQUIRES A HUMAN GATE before any wet-lab or perturbation-design use (CLAUDE.md §7).",
+        "confidence": 0.6,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No BioGRID genetic-interaction record was retrieved (the expected_evidence source; MCP down this session) — phenotypes are supplied from published developmental genetics, not from a queried interaction table with type + evidence code",
+          "The strongest pax2a/pax8 combinatorial pronephros-loss evidence is partly morpholino-based; the MO-vs-mutant reproducibility caveat (Kok et al. 2015) is unresolved without CRISPR double-mutant confirmation",
+          "Literature attributions are given by author/year at established-textbook tier only; specific PMIDs/DOIs are NOT verified against a store (no literature store yet) and are deliberately NOT emitted per CLAUDE.md §7.9",
+          "Quantitative penetrance/expressivity of each double-KO is not specified (qualitative severity ranking only)",
+          "Causal-pruner-class redundancy/sufficiency hypothesis — human gate pending before wet-lab/perturbation-design use (CLAUDE.md §7)",
+          "HTML report per §5/§7 deferred: eval-runner context (single held-out Q); emitting a per-question HTML would risk the over-generation anti-pattern flagged in the 2026-05-14 composite audit — flagged rather than emitted"
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: \"Outputs that cite specific facts or numbers\" and \"Cases where confident hallucination is the worst failure mode\". Each asserted gene ID and phenotype claim was drafted, then independently verified before inclusion — gene IDs against the DATA INAMOVIBLE store via resolve_id (deterministic, all 8 resolved, none from memory), phenotype/redundancy direction against established zebrafish genetics — and evidence-tiered (verified-ID / native-perturbation / established-textbook / gap).",
+        "identifier_bindings": [
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax8",
+            "ensdarg": "ENSDARG00000015879",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2b",
+            "ensdarg": "ENSDARG00000032578",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1b",
+            "ensdarg": "ENSDARG00000007990",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hnf1ba",
+            "ensdarg": "ENSDARG00000006615",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hnf1bb",
+            "ensdarg": "ENSDARG00000022295",
+            "verified_via": "resolve_id"
+          }
+        ],
+        "causal_pruner_flag": true,
+        "improved_over_baseline": "Turns the baseline's 0.15 abstention into three ID-grounded, evidence-tiered worked predictions on canonical pronephros ohnolog pairs (pax2a/pax8/pax2b, wt1a/wt1b, hnf1ba/hnf1bb) with an explicit asymmetric per-pair masking verdict — a calibrated, falsifiable answer instead of methodology-only framing.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.6
+    },
+    {
+      "id": "Q20",
+      "technical_q": "A Morpheus run fails: 'Cell population NCC: Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)'. Diagnose and fix.",
+      "type": "simulation_debug",
+      "niche": [
+        "RN13"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "diagnosis (initializer vs domain size mismatch / population size XMLPath); concrete fix; framework note.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "This is a Morpheus initialization error, not a biology error. The message \"Spatial initializers created fewer cells than requested under CellPopulation/size (40 < 1)\" means the geometric/spatial initializer(s) you defined for the NCC (neural crest cell) population only succeeded in placing ~40 cells into the lattice, but you (or the model) requested at least the number implied by CellPopulation/size. The clause \"(40 < 1)\" is the initializer's own accounting: it placed 40 cells but the per-initializer target it was checking against evaluated to a value it treats as unmet (the parenthetical is Morpheus reporting placed < still-requested for that initializer pass). The core problem is a mismatch between the requested population size and the space actually available/reachable to the spatial initializers.\n\nDIAGNOSIS — most likely causes, in order:\n1. Not enough room / overlap rejection: The InitCircle / InitRectangle / InitCellObjects region is too small (or cell volume too large) so the initializer hits the lattice boundary or existing cells and rejects placements after 40. Morpheus stops when it can't find non-overlapping positions.\n2. Requested count exceeds region capacity: CellPopulation/size (or the initializer's 'number-of-cells' / 'mode=\"regular\"' spacing) asks for more cells than fit in the specified geometry given cell target volume and lattice size.\n3. Initializer region lies partly (or mostly) outside the Lattice/Domain, or the Domain boundary conditions clip it, so valid seed points are scarce.\n4. Multiple initializers competing for the same region, so the second-and-later ones can seed only the leftover space.\n\nFIX (choose per your intent):\n- If you want exactly the requested number: enlarge the initializer region (increase InitCircle radius / InitRectangle extent) and/or shrink cell target volume (VolumeConstraint target), and/or enlarge the Lattice Size so there is room for all requested cells without overlap.\n- If 40 cells is actually acceptable for the NCC population: set CellPopulation/size to match what the initializer produces (or remove the hard size requirement) so the requested and placed counts agree.\n- Check that the initializer region coordinates are fully inside the Domain; move/resize it so it does not extend past the lattice bounds.\n- If using 'regular' (lattice) placement, adjust the spacing/displacement so the requested count fits the region; if using 'random', increase the region area or reduce cell size to lower rejection.\n- Ensure only one initializer targets the NCC region, or that their combined requested counts fit the available space.\n\nThen re-run; the error clears when placed cells == requested for every initializer pass.\n\nThe concrete offending values (exact requested size, region geometry, lattice size, cell target volume) are in the Morpheus .xml for this run — retrievable from RN13 (Modelos de simulación y código; Morpheus .xml). I could not inspect that file here, so the specific numeric fix cannot be given.",
+        "confidence": 0.45,
+        "outcome": "positive",
+        "gap_flags": [
+          "The actual Morpheus .xml (RN13) was not retrieved/inspected, so exact requested size, initializer type, region geometry, lattice size, and cell target volume are unknown.",
+          "The precise semantics of Morpheus's '(40 < 1)' parenthetical (placed vs. still-requested vs. per-pass) are inferred, not confirmed from a Morpheus version log in the bundle.",
+          "No error/console log doc was provided beyond the quoted line, so I cannot confirm which initializer element failed."
+        ],
+        "framework": "Fault-isolation / differential diagnosis: map the tool's error string to candidate root causes, rank by likelihood, and give the corresponding minimal fix for each — appropriate for a simulation_debug task where the artifact (Morpheus .xml) lives in the RN13 niche but was not directly available.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.45
+    },
+    {
+      "id": "Q21",
+      "technical_q": "Walk the pipeline from a curated signaling network to optimized ODEs to a Morpheus-ready model. Which files at each hop (.bngl → equations → .xml)?",
+      "type": "model_assembly_morpheus",
+      "niche": [
+        "RN3",
+        "RN13"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "BioNetGen → .xml hop chain; what the substrate packages vs what BioNetGen/Morpheus do.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "The pipeline spans two niches — RN3 (curated signaling network + kinetics) and RN13 (generated simulation models/code) — with the file handoffs as follows:\n\nHOP 1 — Curated signaling network → rule-based model (.bngl):\n- Inputs live in RN3: \"Redes de señalización y parámetros cinéticos\" — signaling/state-transition trees plus kinetic parameters and simulation environment variables (.json), together with expression data.\n- These are encoded as a BioNetGen rule-based model file: a .bngl (housed/generated in RN13, \"Modelos de simulación y código\").\n\nHOP 2 — .bngl → optimized ODEs (equations):\n- BioNetGen expands the .bngl rules into a system of ODEs (the \"equations\" stage). Parameter optimization/fitting is driven by the kinetic parameters from RN3. In the bundle this intermediate is described only generically as part of RN13's \"simulation models + code\" (generated docs + analysis scripts); no distinct equation-file extension is named in the evidence.\n\nHOP 3 — equations → Morpheus-ready model (.xml):\n- The optimized model is exported as a Morpheus model file: a .xml (RN13). Spatial/biomechanical parameters that Morpheus also consumes (affinity matrices, cortical tension, friction, regional stiffness as .json) come from RN6, though those are a separate input rather than a pipeline hop.\n\nSo the concrete file trail is: RN3 (.json signaling trees + kinetic params) → RN13 .bngl → (BioNetGen-generated ODE equations, no explicit extension named) → RN13 Morpheus .xml.",
+        "confidence": 0.62,
+        "outcome": "positive",
+        "gap_flags": [
+          "No explicit filename/extension for the intermediate 'optimized ODE equations' stage appears in the bundle — only .bngl and .xml are named; the equations hop is inferred from BioNetGen's standard behavior.",
+          "The bundle does not state which niche performs the optimization step or what tool/scripts (analysis scripts in RN13) implement it.",
+          "No gene identifiers were provided or resolved; none asserted.",
+          "Whether SBML is the export format between BioNetGen and Morpheus is not stated in the evidence."
+        ],
+        "framework": "Pipeline/dataflow tracing across niches (data-provenance mapping): identified source niche (RN3), model-generation niche (RN13), and auxiliary input (RN6), then mapped named file artifacts to each hop while flagging the unnamed intermediate. Chosen because the question asks explicitly for the file at each hop.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.62
+    },
+    {
+      "id": "Q22",
+      "technical_q": "Resolve a list of gene symbols to verified ENSDARG IDs and flag any that do not resolve (positive NOT_FOUND). Why must IDs never come from memory?",
+      "type": "ortholog_mapping",
+      "niche": [
+        "RN1"
+      ],
+      "system": "any",
+      "difficulty": "easy",
+      "expected_evidence": "resolve_id round-trip; NOT_FOUND handling; CLAUDE.md §7/§7.9 rationale; verify_output gate.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "To resolve a list of gene symbols to verified ENSDARG IDs, each symbol must be looked up against the authoritative identifier resolver — Ensembl Zebrafish (Danio rerio), which the evidence bundle names as \"the authoritative identifier resolver behind the DATA INAMOVIBLE\" (with ZFIN as the zebrafish-specific gene/marker nomenclature source). The procedure is: (1) submit each symbol to Ensembl_DanioRerio / ZFIN, (2) retrieve the ENSDARG for exact-match resolutions, and (3) for any symbol with no match, emit a POSITIVE NOT_FOUND flag rather than guessing a plausible ID.\n\nHowever, the bundle here contains NO actual gene symbols to resolve (the question gives no list) and NO resolved entities — \"Key entities resolved in DI: (none checked).\" Therefore I cannot return any concrete ENSDARG bindings or NOT_FOUND flags for specific genes; I can only describe the correct procedure.\n\nWhy IDs must never come from memory: Gene-symbol→ENSDARG mappings are not stable knowledge. Symbols are ambiguous (aliases, paralog pairs like a/b duplicates in zebrafish, deprecated names), ENSDARG accessions are updated/retired across Ensembl releases, and a memorized string can be subtly wrong yet look valid (correct prefix, wrong digits) — a hallucinated ID that silently corrupts every downstream interaction/expression lookup (BioGRID, IntAct, GEO, etc.). Only a live query against the verified store (Ensembl/ZFIN) guarantees the accession is current and actually corresponds to the intended locus. Under this contract, an unresolved symbol must be surfaced as an honest NOT_FOUND, never patched over with a fabricated identifier.</parameter>\n<parameter name=\"confidence\">0.55",
+        "confidence": null,
+        "outcome": "unfalsifiable_in_phase_I",
+        "gap_flags": [
+          "No gene symbols were actually provided in the question, so no resolutions or NOT_FOUND flags could be produced.",
+          "No entities were resolved in the DI store (none checked), so no verified ENSDARG bindings are available.",
+          "Path B literature not triggered; answer rests solely on database descriptors, not on a completed resolution run."
+        ],
+        "framework": "Identifier-resolution / provenance-integrity framework: separate the resolution procedure (query authoritative store, positive NOT_FOUND on miss) from asserted results, and refuse memory-sourced accessions per the substrate contract. Chosen because the task is ortholog/ID mapping where accession correctness and honest gap-flagging dominate over inference.</parameter>\n</invoke>\n",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": null
+    },
+    {
+      "id": "Q23",
+      "technical_q": "EXPLORATORY-NOT-TEST-5: What from ocular anterior-segment development could inform a pronephros chaperone-tissue strategy, and where does the analogy break?",
+      "type": "cross_field_bridge",
+      "niche": [
+        "RN5",
+        "RN9"
+      ],
+      "system": "cornea/eye",
+      "difficulty": "hard",
+      "expected_evidence": "modest cross-field linkage; explicit EXPLORATORY flag; where the analogy fails; Method 2 only.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "source_answer": {
+        "answer": "EXPLORATORY (Phase I, N5 candidate partner field; Method 2 only — this is a cross-field-bridge HYPOTHESIS, not a decision, and any wet-lab/design use requires a human gate per CLAUDE.md §7).\n\nTRANSFERABLE CONCEPT — the anterior-segment precedent is a genuine \"mesenchyme-chaperones-epithelium\" system. In zebrafish (and conserved to human), neural-crest-derived periocular mesenchyme (POM) migrates into the anterior eye and instructs the formation/maturation of adjacent epithelial and endothelial structures (corneal endothelium, trabecular-meshwork/annular-ligament lineage). The POM regulatory program is anchored by foxc1a/foxc1b, pitx2, and lmx1bb — the same genes whose loss causes Axenfeld-Rieger / anterior-segment dysgenesis. This is the strongest, most concrete version of the baseline's \"chaperone tissue\" idea: a transient, specialized mesenchymal population supplies ECM, apicobasal-polarity, and positional cues to a neighbouring epithelium during a defined window. For a pronephros chaperone strategy the transferable design principle is: recruit/engineer a resident interstitial-mesenchyme compartment (the intermediate-mesoderm-derived renal interstitium) to deliver polarity/ECM/positional cues that reinforce nephron-tubule epithelial identity, rather than relying only on the epithelium's cell-autonomous polarity machinery (prkci; prkcz).\n\nA REAL, VERIFIED MOLECULAR BRIDGE EXISTS (improves on the baseline, which claimed none): the two organs share a developmental transcription-factor toolkit. pax2a, lhx1a, osr1, and wt1a pattern the pronephros/intermediate mesoderm, while foxc1a/foxc1b and pitx2 pattern POM — and pax2, lhx1, foxc1, pitx2 are co-deployed (with pax6 as the eye master and hnf1b in kidney) across both lineages. This is evidence of a SHARED, RE-USED developmental toolkit (gene co-option), which is exactly what one would exploit to reason about a mesenchyme-instructs-epithelium chaperone in a second organ.\n\nEVIDENCE TIERING (honest):\n• native-expression / established-textbook (high): foxc1a/b, pitx2, lmx1bb drive POM→anterior-segment (Axenfeld-Rieger biology); pax2a, lhx1a, osr1, wt1a pattern pronephros — well established.\n• verified-ID (high): every gene symbol above is bound to an ENSDARG via resolve_id (DATA INAMOVIBLE store) or a live-cached Ensembl REST lookup (see identifier_bindings; raw JSON cached §7.9).\n• ortholog-inferred / shared-toolkit (medium): the pax2/lhx1/foxc1/pitx2 co-deployment across eye and kidney is a toolkit-sharing observation, NOT demonstrated co-regulation and NOT a demonstrated chaperone relationship in either organ.\n• gap (the chaperone-transfer itself, low ~0.25): no experimental cross-tissue result shows POM-type cues rescue or reinforce nephron epithelial identity.\n\nWHERE THE ANALOGY BREAKS (this is the substantive value):\n(1) The project's OWN Test 5 POC already tested this bridge and found no convergence: analysis/outputs/poc_crossfield_test5_round2_20260705.json ran a Reactome enrichment (Tool Universe Path B) on the shared TF set {PAX2,PAX6,FOXC1,PITX2,LHX1,HNF1B} and got 0 ocular pathways in the top-8 — all hits were renal/mesoderm. The earlier round (poc_crossfield_test5_20260613.json) flagged a 40-entity graph overlap as an ANNOTATION ARTIFACT, not co-regulation. Interpretation carried forward: the shared-toolkit signal is real at the gene level but the knowledge base is asymmetrically annotated (rich kidney, sparse eye), so a demonstrable cross-field convergence is NOT available from current lenses. Absence-of-evidence here is data, not success.\n(2) Tissue geometry/function mismatch (from baseline, still holds): anterior segment is an avascular, non-transporting, optically-constrained surface; the pronephros is a lumenized, fluid-transporting, vascularized filtration tubule. The chaperone cues that matter (transport/barrier polarity, flow-responsiveness) differ from optical-clarity/ECM cues.\n(3) Mechanistic layer mismatch: the pronephros identity-maintenance driver on record is intrinsic apicobasal-polarity machinery (prkci/prkcz), i.e. cell-autonomous — an external-chaperone frame may not map onto the actual rate-limiting step.\n(4) Mechanics/flow, plausibly central to tubule maturation, are essentially absent from anterior-segment biology, so mechanical-chaperone cues do not transfer.\n(5) Lineage mismatch: POM is neural-crest-derived; the renal interstitium is intermediate-mesoderm-derived — \"recruit a chaperone mesenchyme\" is an analogy of ROLE, not of lineage or shared inductive molecules proven in kidney.\n\nBOTTOM LINE: The transferable, defensible import is the design PRINCIPLE (a dedicated interstitial-mesenchyme compartment as an epithelial-identity chaperone) plus a concrete, ID-verified shared TF toolkit to instrument it — but the project's own cross-field lens shows the eye→kidney convergence is not yet demonstrable (annotation asymmetry), and four independent structural mismatches (geometry/function, cell-autonomous vs external mechanism, flow/mechanics, lineage) bound how far the analogy carries. Modest linkage = success at this exploratory stage.",
+        "confidence": 0.34,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No experimental cross-tissue result demonstrates POM-type cues rescue/reinforce nephron epithelial identity — the chaperone-transfer claim is hypothesis-only (~0.25).",
+          "prkcz resolves to two Ensembl gene IDs (ENSDARG00000043332, ENSDARG00000114720); paralog assignment unresolved this session — not bound to a single ID.",
+          "The eye→kidney convergence is not demonstrable via current lenses due to asymmetric annotation (rich kidney, sparse eye), per the project's own Test 5 POC — a knowledge-base limitation, not resolved.",
+          "Shared TF toolkit (pax2/lhx1/foxc1/pitx2) is a co-option/expression observation, NOT demonstrated co-regulation or a proven chaperone relationship in either organ.",
+          "prkci/prkcz are live-Ensembl-verified but out-of-store — re-ingest candidates (ADR-0036), pending the human-gated DI ADD, not treated as fabrication.",
+          "HTML report per §5/§7 deferred to the eval harness — this run emits the structured record only."
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification: \"Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft\" — chosen because the output cites specific facts (gene IDs) where confident hallucination is the worst failure mode; each ID was verified independently against resolve_id / live Ensembl, and the cross-field claim was verified against the project's own Test 5 POC (which walked back the naive-overlap draft).",
+        "identifier_bindings": [
+          {
+            "symbol": "foxc1a",
+            "ensdarg": "ENSDARG00000091481",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "foxc1b",
+            "ensdarg": "ENSDARG00000055398",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pitx2",
+            "ensdarg": "ENSDARG00000036194",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lmx1bb",
+            "ensdarg": "ENSDARG00000068365",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax8",
+            "ensdarg": "ENSDARG00000015879",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "lhx1a",
+            "ensdarg": "ENSDARG00000014018",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "osr1",
+            "ensdarg": "ENSDARG00000014091",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax6a",
+            "ensdarg": "ENSDARG00000103379",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "prkci",
+            "ensdarg": "ENSDARG00000021225",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "prkcz",
+            "ensdarg": "AMBIGUOUS:ENSDARG00000043332|ENSDARG00000114720",
+            "verified_via": "ensembl_rest"
+          }
+        ],
+        "causal_pruner_flag": true,
+        "improved_over_baseline": "Replaces the baseline's \"NO shared molecular effectors\" (conf 0.2) with a concrete, ID-verified shared TF toolkit (foxc1a/b, pitx2, pax2a, lhx1a, osr1, wt1a) AND the real POM→anterior-segment chaperone precedent, while grounding the honest analogy-break on the project's OWN Test 5 POC (Reactome found 0 ocular convergence = annotation asymmetry) rather than on dataset-metadata inference.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.34
+    },
+    {
+      "id": "Q24",
+      "technical_q": "Which regulatory elements respond to RA signaling during pronephros patterning, and how would DanioCODE functional-genomics data confirm responsiveness?",
+      "type": "pathway_assembly",
+      "niche": [
+        "RN1",
+        "RN3"
+      ],
+      "system": "pronephros",
+      "difficulty": "hard",
+      "expected_evidence": "RA-responsive elements; DanioCODE evidence type; timing; gap flags.",
+      "bucket": "rich_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "RA-responsive regulatory elements in pronephros patterning are RAREs (retinoic-acid response elements — DR2/DR5 direct-repeat motifs) bound by RAR/RXR heterodimers. In the pronephros the operative logic is a proximodistal RA gradient: aldh1a2 (RALDH2) is the RA SOURCE in adjacent somitic/trunk mesoderm, and cyp26a1/cyp26b1 are the SINKS that degrade RA distally, so RAREs near proximodistal segment-identity genes switch state along that gradient. High RA promotes proximal segment fates (proximal tubule); RA clearance permits distal fates. The RAREs sit near RA-target loci — canonically the hox cluster genes (hoxb1b has a classic characterized RARE; hoxb8a is a bona-fide RA target) which set the anteroposterior register the pronephros segments read out. Receptors verified: raraa and rarga. All identifiers below verified LIVE via Ensembl REST (danio_rerio, GRCz11), not memory.\n\nHOW DanioCODE-style functional genomics confirms responsiveness (grounded in retrieved GEO datasets, the deposition path for DanioCODE): the confirmation is a gain/loss-of-signal design. GEO GSE233698 (\"Rewiring of the epigenome and chromatin architecture by exogenously induced retinoic acid signaling during zebrafish embryonic development\") is exactly this and provides four orthogonal readouts on RA-manipulated (exogenous-RA vs control) embryos: (1) ATAC-seq [GSE233691] — a candidate element is RA-responsive if chromatin accessibility opens/closes upon RA perturbation; (2) RAR ChIP-seq [GSE233695] — direct receptor occupancy at the element demonstrates it is a genuine RARE, not a bystander; (3) Hi-ChIP [GSE233697] / 4C-seq [GSE249369] — physical enhancer-promoter looping to the target gene links the element to its RA-target; (4) H3K27ac ChIP delta marks activation. Pronephros-cell-type specificity is then obtained by intersecting these bulk-embryo signals with single-cell chromatin accessibility of zebrafish embryogenesis (SPATAC-seq, GSE243256, 535 samples) to isolate the pronephric-lineage accessible peaks, and conserved cis-regulatory-module calls (GSE294761) add orthology support. An element passes as RA-responsive when accessibility change + RAR occupancy + differential H3K27ac + looping to a pronephros gene co-localize and reverse under RA loss (e.g., DEAB/aldh1a2 knockdown).\n\nCalibrated confidence_by_subclaim (the §5 schema here only exposes a single confidence, so breakdown is stated in prose): (A) verified gene identities/machinery ~0.92; (B) RAREs bound by RAR/RXR ARE the responsive elements ~0.85; (C) pronephros-specific proximodistal RA-gradient patterning model ~0.72 (partly domain knowledge; no pronephros-dissected primary source retrieved this run); (D) the DanioCODE/GEO confirmation design ~0.85 (directly grounded by GSE233698 series). Aggregate is tempered to ~0.6 because the question asks specifically WHICH elements in PRONEPHROS, and the pronephros-specific RARE coordinate catalog was not retrieved — the machinery, mechanism, and confirmation assay are grounded; the pronephros-element enumeration is a gap.",
+        "confidence": null,
+        "outcome": "rich_goldset",
+        "gap_flags": [],
+        "framework": null,
+        "provenance": "GoldSet v1 (corrida agéntica dedicada, ya presentada)"
+      },
+      "ia_confidence": 0.6
+    },
+    {
+      "id": "Q25",
+      "technical_q": "For a claimed regulator, retrieve supporting AND contradicting literature and state the residual uncertainty without overclaiming.",
+      "type": "literature_synthesis",
+      "niche": [
+        "RN11"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": "balanced synthesis with obligatory contradictory evidence; uncertainty stated; citations.",
+      "bucket": "rerun",
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "The question is template-shaped: it asks for the METHOD of balanced regulator synthesis but names no regulator, target, or system. The thin baseline stopped there (total abstention). I instead execute the method on a concrete, project-relevant claimed regulator so the balanced-synthesis, contradiction, and residual-uncertainty requirements are actually demonstrated rather than described.\n\nCLAIM UNDER TEST: \"osr1 (odd-skipped related transcription factor 1; ENSDARG00000014091, resolve_id-verified) is a required upstream regulator of zebrafish pronephros / renal-progenitor (intermediate-mesoderm) specification.\"\n\nSUPPORTING EVIDENCE (tiered):\n- [verified-PMID, literature-store-absent] Drummond BE, Chambers BE, Wesselman HM et al., Biomedicines 2022 (PMID 36359386, live-verified via EuropePMC, raw cached): osr1 maintains renal progenitors and regulates podocyte development by promoting wnt2ba (ENSDARG00000005050) via antagonism of hand2 (ENSDARG00000008305). Direct mechanistic support for osr1 as a renal-progenitor regulator.\n- [established-textbook, PMID NOT grounded through project store] Classic loss-of-function work (Tena et al. 2007; Mudumana et al. 2008) reports that osr1 knockdown reduces intermediate mesoderm and pronephric progenitors, with osr1 acting near the top of the intermediate-mesoderm program alongside pax2a (ENSDARG00000028148) / pax8 and wt1a/wt1b (ENSDARG00000031420 / ENSDARG00000007990).\n\nCONTRADICTING / TENSION EVIDENCE (obligatory, and it materially qualifies the claim):\n- [verified-PMID, literature-store-absent] Perens EA & Yelon D, Dev Biol 2025 (PMID 39307382, live-verified, raw cached): intermediate-mesoderm dimensions are set by vessel-progenitor fate INHIBITING kidney-progenitor specification. The size/identity of the renal field is governed by a fate competition with the vascular lineage. Consequence: a phenotype after osr1 perturbation can reflect altered kidney-vs-vessel fate PARTITIONING, not a pure induction failure — so a clean \"osr1 -> pronephros induction\" arrow overstates the causal type.\n- [mechanistic tension, same supporting paper] Drummond's own model has osr1 acting as an antagonistic/bistable node (promotes wnt2ba, antagonizes hand2), i.e. its effect sign and magnitude are dose- and context-dependent, not a linear activator. Its verb is \"maintains,\" which is a maintenance/permissive role, not necessarily an instructive/inductive one.\n- [methodological caveat, established] The zebrafish morpholino-vs-mutant reproducibility problem (Kok et al. 2015; Stainier-lab genetic-compensation work) means MO-era osr1 conclusions carry residual risk until confirmed in stable mutants; paralog redundancy (e.g. osr2) is a further unmodeled confound.\n\nRESIDUAL UNCERTAINTY (stated without overclaiming):\nosr1 being A genuine regulator of renal-progenitor biology is well supported (multiple independent studies plus a mechanism). What remains genuinely uncertain: (a) causal TYPE — inductive/instructive vs maintenance/permissive (the supporting paper says \"maintains\"); (b) tissue boundary — how much of the phenotype is renal specification vs kidney/vessel fate partitioning (Perens & Yelon); (c) quantitative robustness of older MO-based effects pending clean mutant replication; (d) paralog redundancy, not resolved here. I therefore do NOT claim osr1 is a sufficient inductive switch for pronephros fate; I claim it is a supported, dose-dependent regulator/maintainer of the renal-progenitor pool whose inductive-vs-maintenance character is unresolved.\n\nGROUNDING HONESTY: every gene symbol asserted is ID-grounded (osr1/wnt2ba/wt1a/wt1b/pax2a/aldh1a2 via resolve_id over DATA INAMOVIBLE v1; hand2 was NOT_FOUND in-store, live-verified via Ensembl REST and raw-cached — an ADR-0036 reingest_candidate, not a fabrication). The two PMIDs resolve live through EuropePMC (raw cached) but NOT through a project literature store (none exists yet); they are flagged accordingly, not presented as store-verified. This same procedure (name the claim, tier supporting + obligatory contradicting evidence, separate causal-type from existence, state residual uncertainty) is the reusable template the question actually asks for.",
+        "confidence": 0.72,
+        "outcome": "rerun_agentic",
+        "gap_flags": [
+          "No project literature store exists yet: the two cited PMIDs (36359386, 39307382) are live-verified via EuropePMC and raw-cached but are NOT resolvable through DATA INAMOVIBLE; verify_output would FLAG (not FAIL) them.",
+          "Tena 2007 / Mudumana 2008 / Kok 2015 are cited at established-textbook tier with NO grounded PMID — not §7.9-verified; treat as directional context only.",
+          "hand2 ENSDARG is out-of-store (ADR-0036 reingest_candidate); a human-gated DI ADD would be required to promote it into DATA INAMOVIBLE.",
+          "Causal TYPE unresolved: inductive/instructive vs maintenance/permissive role of osr1 not decidable from retrieved evidence.",
+          "Kidney-vs-vessel fate-partition confound (Perens 2025) not quantitatively deconvolved from a pure specification effect for osr1 specifically.",
+          "osr1 paralog redundancy (osr2) and MO-vs-mutant quantitative reconciliation not assessed.",
+          "HTML report (CLAUDE.md §5/§7) not emitted: this is an eval-harness single-question answer consumed as StructuredOutput, not an interactive session conclusion; report emission deferred to the calling workflow."
+        ],
+        "framework": "Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8 Chain-of-Verification (CoVe): \"High-stakes outputs that ... cite specific facts or numbers\" and \"Cases where confident hallucination is the worst failure mode\". A literature synthesis that cites PMIDs and gene IDs is exactly this case: draft the claim, generate skeptic verification questions (Is osr1 inductive or maintenance? Is the phenotype specification or fate-partition? Are the PMIDs real? Are the IDs from memory?), answer each with retrieval (EuropePMC live, resolve_id, Ensembl REST), and revise (walked 'inductive switch' back to 'dose-dependent regulator/maintainer'). Not Self-Consistency (§4): no multi-run majority vote applies to a single balanced synthesis; the verification-against-independent-evidence-streams dynamic is CoVe.\"",
+        "identifier_bindings": [
+          {
+            "symbol": "osr1",
+            "ensdarg": "ENSDARG00000014091",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wnt2ba",
+            "ensdarg": "ENSDARG00000005050",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "hand2",
+            "ensdarg": "ENSDARG00000008305",
+            "verified_via": "ensembl_rest"
+          },
+          {
+            "symbol": "wt1a",
+            "ensdarg": "ENSDARG00000031420",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "wt1b",
+            "ensdarg": "ENSDARG00000007990",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "pax2a",
+            "ensdarg": "ENSDARG00000028148",
+            "verified_via": "resolve_id"
+          },
+          {
+            "symbol": "aldh1a2",
+            "ensdarg": "ENSDARG00000053493",
+            "verified_via": "resolve_id"
+          }
+        ],
+        "causal_pruner_flag": false,
+        "improved_over_baseline": "Replaced total abstention with a grounded worked synthesis: one live-verified supporting PMID + one live-verified contradicting PMID for a concrete regulator (osr1), every gene ID resolve_id/Ensembl-grounded and raw-cached, evidence honestly tiered (verified-PMID / established-textbook / methodological caveat), and causal TYPE (inductive vs maintenance) explicitly left open instead of overclaimed.",
+        "provenance": "re-corrida agéntica Level-2 (18-jul): resolve_id + Ensembl REST, honesty-gated"
+      },
+      "ia_confidence": 0.72
+    },
+    {
+      "id": "Q26",
+      "technical_q": "Which segment-specific markers separate proximal tubule, distal early, distal late, and duct in the zebrafish pronephros, and what are their verified IDs?",
+      "type": "marker_identification",
+      "niche": [
+        "RN1"
+      ],
+      "system": "pronephros",
+      "difficulty": "medium",
+      "expected_evidence": "segment→marker map (slc20a1a/slc4a4a PT; slc12a1/kcnj1a.1 DE; slc12a3 DL; cdh17/gata3 duct) with verified ENSDARG.",
+      "bucket": "rich_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "ANSWER — segment-specific discriminators along the zebrafish pronephros proximodistal axis (canonical Wingert et al. 2007 model; IDs verified this run):\n\nPROXIMAL TUBULE\n- PCT (proximal convoluted): slc20a1a = ENSDARG00000020114; slc4a4a = ENSDARG00000013730\n- PST (proximal straight): trpm7 = ENSDARG00000036232; slc13a1 = ENSDARG00000045638\n\nDISTAL EARLY (DE)\n- slc12a1 (NKCC2-type Na-K-2Cl cotransporter) = ENSDARG00000098096 — the DE-specific discriminator\n- kcnj1a.1 (romk) = ENSDARG00000091232 — expressed across DE and DL; supporting, not DE-exclusive\n\nDISTAL LATE (DL)\n- slc12a3 (NCC-type Na-Cl cotransporter) = ENSDARG00000013855 — the DL-specific discriminator\n\nPRONEPHRIC DUCT (PD)\n- gata3 = ENSDARG00000016526\n\nCleanest four-way separation: slc20a1a/trpm7 (proximal) | slc12a1 (DE) | slc12a3 (DL) | gata3 (duct). The slc12a1→slc12a3 switch is the textbook DE/DL boundary discriminator.\n\nCONFIDENCE BREAKDOWN (§5 — asymmetric subclaims; schema forces one scalar, so stated here): (a) verified IDs ~0.99 (every ENSDARG confirmed live vs Ensembl GRCz11, matches store, raw cached); (b) marker→segment biological mapping ~0.87 (canonical, well-established, but Wingert 2007 PMID not re-verified via a literature tool this run, and the in-repo atlas is anterior-biased — slc12a1 returned id_not_in_var_names, so distal assignments are not corroborated by in-repo expression). Aggregate reported below reflects the composite, weighted toward the ID subclaim the question centers on.",
+        "confidence": null,
+        "outcome": "rich_goldset",
+        "gap_flags": [],
+        "framework": null,
+        "provenance": "GoldSet v1 (corrida agéntica dedicada, ya presentada)"
+      },
+      "ia_confidence": 0.87
+    },
+    {
+      "id": "Q27",
+      "technical_q": "Which small molecules (e.g., DEAB, endogenous RA) would perturb RA signaling for a docking/perturbation study, and what file formats feed docking?",
+      "type": "perturbation_design",
+      "niche": [
+        "RN2",
+        "RN12"
+      ],
+      "system": "any",
+      "difficulty": "medium",
+      "expected_evidence": ".mol2/.sdf for small molecules; receptor structure need; perturbation rationale; safety/ethics check.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "source_answer": {
+        "answer": "For an RA-signaling perturbation/docking study, candidate small molecules span both agonists/substrates and antagonists/inhibitors of the pathway:\n\nPERTURBAGENS (small molecules):\n- DEAB (N,N-diethylaminobenzaldehyde) — inhibitor of aldehyde dehydrogenase (Aldh1a/Raldh), blocks endogenous RA synthesis (loss-of-function).\n- all-trans retinoic acid (endogenous RA) — the natural agonist ligand for RA receptors (gain-of-function / competitive docking reference).\n- Additional plausible candidates (analogous mechanism, NOT explicitly in the bundle): citral (another Raldh/Aldh inhibitor), BMS-493 (pan-RAR inverse agonist), AGN 193109 (RAR antagonist), TTNPB / Am580 (synthetic RAR agonists), and CYP26 inhibitors such as R115866/talarozole (which raise endogenous RA by blocking degradation). These are mechanistic suggestions, not evidence-backed items from the retrieved documents.\n\nDOCKING TARGET & FILE FORMATS:\n- The receptor/target structures come from niche RN2 (\"Estructura proteica y complejos\"), which holds 3D coordinates of experimentally resolved structures including RA receptors. Docking of the above ligands would be performed against those RA-receptor structures.\n- Standard file formats feeding a docking pipeline: receptor/protein 3D coordinates as PDB (.pdb) or mmCIF (.cif) from RN2; docking-prepared receptor/ligand as PDBQT (.pdbqt, e.g., for AutoDock/Vina); and small-molecule ligands as SDF/MOL/MOL2 or SMILES. Note: the retrieved bundle only confirms RN2 supplies \"3D coords\" of resolved structures — it does NOT explicitly name the file extensions, so the specific formats (PDB/PDBQT/SDF/etc.) are standard-practice inference, not stated in the evidence.\n\nDesign note (RN12, perturbation design): a candidate set could be {DEAB (synthesis block), exogenous atRA (agonist)} with controls (vehicle/DMSO, untreated) and confounders (off-target ALDH isoforms, RA degradation via CYP26) to be tracked.",
+        "confidence": 0.42,
+        "outcome": "positive",
+        "gap_flags": [
+          "The bundle names RN2 as holding 3D coords of RA receptors but does NOT specify file extensions (PDB/mmCIF/PDBQT/SDF); those formats are standard-practice inference, not evidence.",
+          "No document in the bundle explicitly lists DEAB or RA as validated perturbagens — DEAB/RA mechanisms are stated in the question and general knowledge, not confirmed by retrieved docs.",
+          "No gene/ENSDARG identifiers were resolved (e.g., aldh1a2, rara/rarga, cyp26 genes), so no identifier bindings can be asserted from the verified store.",
+          "Additional candidate molecules (citral, BMS-493, TTNPB, CYP26 inhibitors) are extrapolations beyond the evidence and should be verified.",
+          "No ligand library / prepared-structure file was actually retrieved; only niche descriptions were returned."
+        ],
+        "framework": "Perturbation-design reasoning (RN12): enumerate perturbagens by mechanism (synthesis block vs. receptor agonism) with controls/confounders, then map to structural docking substrate (RN2). Kept confidence low because file formats and specific molecule endorsements are inferred rather than stated in the bundle.",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": 0.42
+    },
+    {
+      "id": "Q28",
+      "technical_q": "Given an scRNA finding that a gene is highly expressed in a target cluster, what additional evidence layers raise it from 'expressed' to 'regulator', and what is the minimum to avoid a false-positive?",
+      "type": "regulator_vs_bystander",
+      "niche": [
+        "RN1",
+        "RN11"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "evidence-layer ladder; the false-positive trap (expression ≠ regulation); minimum bar.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "To promote a gene from \"expressed\" (an scRNA correlation) to \"regulator\" (a causal driver of the target cluster's identity/function), layer evidence along a correlation → mechanism → causation ladder using the databases in this bundle:\n\n1) Expression confirmation & specificity (still correlational). Confirm the scRNA signal is real and enriched, not just detected. Cross-check bulk/count data in GEO_NCBI and, critically, add SPATIAL confirmation via CNGB_STOmics/ZESTA (Stereo-seq) so you know the gene is expressed in the right cells in situ, not a dissociation/ambient-RNA artifact. Confirm the gene is annotated in the correct cell type and, if a TF, that it is a bona fide transcription factor in ZFIN.\n\n2) Regulatory-role plausibility (mechanistic). Is the gene the kind of thing that can regulate a program? ZFIN's TF mapping tells you if it's a transcription factor / signaling regulator rather than a passive effector. Reactome (via orthology) situates it in a pathway/signaling context, giving candidate downstream targets and a mechanism.\n\n3) Interaction/network evidence (mechanistic). BioGRID genetic + protein interactions place the gene in a regulatory network — genetic interactions (double-perturbation phenotypes) are especially informative because they show the gene alters an outcome in combination with others.\n\n4) Causal perturbation (the decisive layer, largely OUTSIDE this bundle). \"Regulator\" status ultimately requires loss/gain-of-function evidence: knockout/knockdown/mutant → does the target cluster's marker program, abundance, or differentiation change? ZFIN catalogs mutants/markers that can support this; BioGRID genetic-interaction phenotypes can corroborate; but the primary causal experiment itself is not delivered by these annotation databases.\n\nMINIMUM to avoid a false-positive (regulator vs. bystander): do not call a highly-expressed gene a regulator on expression alone. The floor is (a) specificity/artifact control — the gene must be specifically enriched in the target cluster AND spatially confirmed in situ (CNGB_STOmics/ZESTA) rather than an ambient/doublet artifact, and (b) at least one causal or quasi-causal line beyond co-expression — ideally a perturbation phenotype showing the cluster's identity/marker program depends on the gene, or failing direct perturbation data, convergent TF-status (ZFIN) + network/genetic-interaction evidence (BioGRID) that the gene sits upstream of the cluster's program. Co-expression + \"it's a TF\" alone is suggestive, not sufficient.</parameter>\n<parameter name=\"confidence\">0.55",
+        "confidence": null,
+        "outcome": "positive",
+        "gap_flags": [
+          "This is a methodological/heuristic question; the bundle provides database capabilities, not a validated protocol or benchmark for regulator calling.",
+          "No Path B literature was retrieved, so no published criteria or effect sizes support the specific 'minimum evidence' threshold — it is reasoned from database roles.",
+          "The decisive causal layer (loss/gain-of-function perturbation on the target cluster) is largely outside these annotation databases; ZFIN/BioGRID index some mutant/genetic-interaction data but do not themselves provide the primary perturbation-scRNA experiment.",
+          "No niche-specific (RN1/RN11) evidence was provided; answer is generic across systems.",
+          "No specific gene was named, so no ENSDARG identifiers could be bound or verified."
+        ],
+        "framework": "Correlation-to-causation evidence ladder (Bradford-Hill-style triangulation adapted to functional genomics): specificity/artifact control → mechanistic plausibility (TF status, pathway) → network/interaction → causal perturbation. Chosen because 'regulator vs bystander' is fundamentally a causal-inference problem layered on a correlational scRNA observation.</parameter>\n</invoke>\n",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": null
+    },
+    {
+      "id": "Q29",
+      "technical_q": "What is the smallest validating Morpheus step ('prueba pequeño') to test a single morphogen gradient before building a full multi-field model?",
+      "type": "model_assembly_morpheus",
+      "niche": [
+        "RN13"
+      ],
+      "system": "any",
+      "difficulty": "easy",
+      "expected_evidence": "minimal single-field step; what it validates; how it ladders up; founder-principle alignment.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "source_answer": {
+        "answer": "The smallest validating Morpheus step ('prueba pequeño') is a single-field, single-morphogen reaction–diffusion model on a small 1D or 2D lattice: define ONE diffusible species with a localized source (a fixed boundary/production zone at one edge), a uniform diffusion coefficient, and a first-order linear degradation term, then run it to steady state and check that the concentration profile matches the analytic exponential gradient c(x) = c0·exp(−x/λ), where the decay length λ = sqrt(D/k). Concretely: (1) build a Morpheus .xml with a single Field (the morphogen) plus a Diffusion, a constant source term, and a degradation reaction; (2) run on a small domain with reflecting/zero-flux boundaries except the source; (3) validate by comparing the simulated steady-state gradient against the closed-form exp solution and confirming λ responds correctly when you vary D or k. Passing this analytic-gradient check confirms the diffusion, source, and degradation modules are wired correctly BEFORE you add additional fields, cell populations, or coupled signaling — i.e., before building the full multi-field model. NOTE: this recommendation is inferred from the repository's stated tooling (RN13 hosts Morpheus .xml simulation models/code; RN3 holds kinetic parameters; RN6 holds Morpheus biomechanics inputs); the evidence bundle does NOT contain an explicit documented 'prueba pequeño' protocol, so the specific steps above are a standard-practice reconstruction rather than a cited procedure.</parameter>\n<parameter name=\"confidence\">0.42",
+        "confidence": null,
+        "outcome": "positive",
+        "gap_flags": [
+          "No document in the bundle explicitly defines a 'prueba pequeño' / minimal-validation protocol; the answer is a standard-practice reconstruction.",
+          "No concrete Morpheus .xml example, parameter values, domain size, or boundary spec is provided in the retrieved evidence.",
+          "RN13 is described only at the niche level (contains Morpheus .xml + code) with no file-level contents retrieved, so I cannot confirm whether a validated single-gradient template already exists in the repo.",
+          "No system-specific coupling (e.g., anterior segment morphogen) is specified, so parameters (D, k, λ) would need to come from RN3/RN6, which were not retrieved at file level."
+        ],
+        "framework": "Minimal-viable-model / incremental verification framework: isolate the smallest testable unit (one field, one gradient) and validate against a closed-form analytic solution before adding complexity. Chosen because the question asks for the smallest validating step prior to full multi-field assembly, which maps to unit-testing a single reaction–diffusion component.</parameter>\n</invoke>\n",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": null
+    },
+    {
+      "id": "Q30",
+      "technical_q": "The team biomedic argued ocular biology should not be a niche separate from biophysics/biomechanics (systems modeling is governed by those laws). Re-evaluate the niche taxonomy: should N4/N5/N6 be reorganized, and what is the evidence for/against?",
+      "type": "cross_field_bridge",
+      "niche": [
+        "RN1",
+        "RN4",
+        "RN6"
+      ],
+      "system": "any",
+      "difficulty": "hard",
+      "expected_evidence": "taxonomy critique; argument that modeling is law-governed; recommendation + uncertainty; this informs the RAG niche index (Cycle 4) and may trigger a governance-proposal.",
+      "bucket": "baseline_reuse",
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "source_answer": {
+        "answer": "The evidence bundle does not contain enough to properly adjudicate a reorganization of N4/N5/N6 — and notably, the retrieved niche descriptors are labeled RN3, RN6 (and query-scoped RN1/RN4/RN6), NOT the \"N4/N5/N6\" the question asks about. So the first honest finding is a taxonomy/label mismatch: I cannot confirm what N4 and N5 even are from this bundle. What I CAN say about the biomedic's specific claim:\n\n1) The claim's premise — that ocular systems modeling is \"governed by\" biophysics/biomechanics — is partially supported by the structure of the niche taxonomy itself. RN6 (\"Biomecánica pasiva y ECM\") holds the affinity matrices, basal cortical tension, cell-friction coefficients (for Morpheus) and regional stiffness parameters. These are exactly the passive-mechanics/ECM inputs any ocular anterior-segment model would need. So there is genuine dependency of ocular modeling on the RN6 (biomechanics) niche.\n\n2) HOWEVER, the taxonomy appears deliberately factored by data-type / modeling-layer, not by anatomical system. RN3 holds signaling networks + kinetic parameters + simulation env variables; RN6 holds passive biomechanics + ECM. An ocular dataset (e.g. CORPUS-2026-0002, the anterior-segment / trabecular-meshwork / annular-ligament scRNA atlas) is a *system-specific data source* that would draw on BOTH RN3 (signaling) and RN6 (biomechanics) — it is a consumer of the niches, not a peer of them. This argues AGAINST collapsing an \"ocular biology\" niche into biophysics: the niches are orthogonal modeling layers, so folding a system-defined niche into a mechanism-defined one would conflate two different axes of the taxonomy.\n\n3) Evidence FOR the biomedic's push: ocular anterior-segment development (TM/annular ligament, CORPUS-2026-0002) is strongly mechanics-driven (outflow, stiffness, ECM), so its modeling parameters legitimately live in RN6; there may be little justification for a self-contained ocular biophysics niche if all its parameters are already RN6-type. Evidence AGAINST: a system atlas also needs signaling (RN3) and other inputs, so it doesn't reduce cleanly to biomechanics alone.\n\nRecommendation: Do NOT reorganize on the strength of this bundle. First resolve the N4/N5/N6-vs-RN naming, then decide whether the taxonomy axis is 'modeling layer' (keep RN3/RN6 split; treat ocular as a cross-cutting system tag) or 'anatomical system' (then an ocular niche is justified). The retrieved evidence favors keeping mechanism-layer niches and tagging ocular datasets across them rather than merging.</parameter>\n<parameter name=\"confidence\">0.28",
+        "confidence": null,
+        "outcome": "positive",
+        "gap_flags": [
+          "Label mismatch: question references N4/N5/N6 but bundle only exposes RN1/RN3/RN6 (and query-scoped RN4); N4 and N5 are undefined in the evidence",
+          "No descriptor retrieved for RN1 or RN4 content, so their relation to ocular/biomechanics cannot be assessed",
+          "No explicit statement in the bundle of the taxonomy's organizing axis (modeling-layer vs anatomical system)",
+          "Path B (external literature) not triggered — no independent biomechanics/ocular modeling references to weigh the biomedic's governing-laws claim",
+          "No evidence quantifying how much of ocular anterior-segment modeling reduces to RN6-type parameters vs RN3 signaling"
+        ],
+        "framework": "Cross-field bridge / taxonomy-axis disambiguation: separate the 'system' axis (ocular) from the 'mechanism/modeling-layer' axis (signaling RN3 vs biomechanics RN6), then test whether the proposed merge respects a single axis. Chosen because the question is a classification-schema critique, not a mechanistic biology claim.</parameter>\n</invoke>\n",
+        "provenance": "month_0 baseline DI-only (11-jul)"
+      },
+      "ia_confidence": null
+    }
+  ]
+}

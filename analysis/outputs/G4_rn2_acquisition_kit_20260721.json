@@ -1,0 +1,67 @@
+{
+  "artifact": "G4_RN2_acquisition_kit",
+  "question": "ZF-G4 foxc1a-pitx2-complex-structure",
+  "date": "2026-07-21",
+  "status": "ACQUISITION-STAGED \u2014 first RN2 dataset candidate; NOT ingested (GATE 2 pending)",
+  "gate_1": "APPROVED by Emmanuel 2026-07-21 (acquire G4)",
+  "builds_on": "reports/2026-07-18_Q06_jag2-notch_foxc1a-pitx2_v1.html (identity + evidence-tier landscape; flagged AF-Multimer/PAE as the missing structural piece)",
+  "chains": [
+    {
+      "gene": "foxc1a",
+      "ensdarg": "ENSDARG00000091481",
+      "uniprot": "Q9DE25",
+      "length_aa": 476,
+      "alphafold_monomer": {
+        "mode": "source-pointer",
+        "url": "https://alphafold.ebi.ac.uk/files/AF-Q9DE25-F1-model_v6.pdb",
+        "mean_plddt": 55.16
+      }
+    },
+    {
+      "gene": "pitx2",
+      "ensdarg": "ENSDARG00000036194",
+      "uniprot": "Q9W5Z2",
+      "length_aa": 314,
+      "alphafold_monomer": {
+        "mode": "source-pointer",
+        "url": "https://alphafold.ebi.ac.uk/files/AF-Q9W5Z2-F1-model_v6.pdb",
+        "mean_plddt": 61.0
+      }
+    }
+  ],
+  "prediction_job_spec": {
+    "target": "Foxc1a\u2013Pitx2 heterodimer (zebrafish)",
+    "method": "AlphaFold-Multimer / AlphaFold3",
+    "primary_stoichiometry": "1:1 heterodimer",
+    "secondary_test": "2:2 (Foxc1a forkhead can multimerize; test if PAE supports)",
+    "inputs_ready": "both UniProt sequences verified + raw-cached (\u00a77.9); monomer AF models available as source-pointers",
+    "readouts": [
+      "complex .pdb/.cif",
+      "PAE matrix (.json/.npy) at the forkhead(Foxc1a)\u00d7homeodomain(Pitx2) interface",
+      "ipTM (interface confidence; >0.5 = plausible real interface)",
+      "pTM"
+    ],
+    "interface_hypothesis": "cooperative co-binding on shared anterior-segment cis-elements (forkhead + homeodomain); low GLOBAL pLDDT (55/61) is expected (TF disordered regions) \u2014 judge the INTERFACE PAE, not global pLDDT",
+    "falsifier": "interface-disrupting mutations predicted to abolish cooperativity do not change target-gene output (per acquisition_trigger)"
+  },
+  "compute_commitment_SURFACED": {
+    "what": "the AlphaFold-Multimer / AF3 run itself (A cannot run it in-session \u2014 no GPU)",
+    "cheapest_path": "AlphaFold3 server (alphafoldserver.com) FREE tier (~20 jobs/day, manual web submit) \u2014 no paid GPU order needed",
+    "alt": "ColabFold AlphaFold-Multimer (free Colab GPU or ~$10 Colab Pro); local AF needs a GPU",
+    "cost_class": "LOW \u2014 free AF3 server covers it; this is why G4 is the cheapest acquisition. Surfaced per founder directive, not incurred.",
+    "next": "on your OK: submit the 1:1 job to AF3 server \u2192 cache PDB+PAE \u2192 GATE 2 to ingest as first RN2 record"
+  },
+  "staged_store_edit_GATE2_pending": {
+    "note": "foxc1a/pitx2 store records have uniprot_acc=null; now live-verified (raw \u00a77.9). Proposed EDIT (human-gated, NOT executed):",
+    "edits": [
+      {
+        "symbol": "foxc1a",
+        "add_uniprot_acc": "Q9DE25"
+      },
+      {
+        "symbol": "pitx2",
+        "add_uniprot_acc": "Q9W5Z2"
+      }
+    ]
+  }
+}

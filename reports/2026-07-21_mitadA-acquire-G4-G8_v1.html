@@ -1,0 +1,96 @@
+<title>MITAD_A · Adquisición G4 + G8 (RN2/RN3) — checkpoint 2026-07-21</title>
+<style>*{box-sizing:border-box}:root{--bg:#f7f8fa;--card:#fff;--ink:#1a1d24;--mut:#5b6472;--line:#e3e7ee;--brand:#3b5bdb;
+--ok:#2b8a3e;--okbg:#ebfbee;--warn:#e8590c;--warnbg:#fff4e6;--acc:#e7f5ff;--accln:#a5d8ff;--hold:#9c6f00;--holdbg:#fff9db}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#171b22;--ink:#e8ecf2;--mut:#9aa4b2;--line:#262c37;--brand:#748ffc;
+--ok:#69db7c;--okbg:#12321c;--warn:#ffa94d;--warnbg:#3a2510;--acc:#122436;--accln:#1c3a52;--hold:#ffe066;--holdbg:#332b09}}
+:root[data-theme=dark]{--bg:#0f1216;--card:#171b22;--ink:#e8ecf2;--mut:#9aa4b2;--line:#262c37;--brand:#748ffc;--ok:#69db7c;--okbg:#12321c;--warn:#ffa94d;--warnbg:#3a2510;--acc:#122436;--accln:#1c3a52;--hold:#ffe066;--holdbg:#332b09}
+:root[data-theme=light]{--bg:#f7f8fa;--card:#fff;--ink:#1a1d24;--mut:#5b6472;--line:#e3e7ee;--brand:#3b5bdb;--ok:#2b8a3e;--okbg:#ebfbee;--warn:#e8590c;--warnbg:#fff4e6;--acc:#e7f5ff;--accln:#a5d8ff;--hold:#9c6f00;--holdbg:#fff9db}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:26px 20px 70px}h1{font-size:24px;margin:.2em 0}h2{font-size:19px;margin:1.6em 0 .5em;border-top:2px solid var(--line);padding-top:.5em}
+h3{font-size:15px;margin:1em 0 .3em}.sub{color:var(--mut);font-size:13px}code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:color-mix(in srgb,var(--brand) 12%,transparent);padding:.06em .36em;border-radius:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:1fr 1fr}@media(max-width:680px){.g2{grid-template-columns:1fr}}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid;margin:2px 3px 2px 0}
+.b-ok{color:var(--ok);border-color:var(--ok);background:var(--okbg)}.b-brand{color:var(--brand);border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
+.b-warn{color:var(--warn);border-color:var(--warn);background:var(--warnbg)}.b-hold{color:var(--hold);border-color:var(--hold);background:var(--holdbg)}
+.callout{border-radius:10px;padding:12px 16px;margin:12px 0;border:1px solid}.co-ok{background:var(--okbg);border-color:var(--ok)}.co-warn{background:var(--warnbg);border-color:var(--warn)}.co-acc{background:var(--acc);border-color:var(--accln)}.co-hold{background:var(--holdbg);border-color:var(--hold)}
+.kv{display:flex;gap:8px;flex-wrap:wrap;margin:3px 0}.kv b{color:var(--mut);min-width:140px;font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}th{font-size:11px;text-transform:uppercase;color:var(--mut)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}ul{margin:.3em 0;padding-left:1.15em}li{margin:.2em 0}.small{font-size:12.5px}
+.tog{position:fixed;top:12px;right:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+</style>
+<button class=tog onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme=='dark'?'light':'dark'">◑ tema</button>
+<div class=wrap>
+<div class=sub>MITAD_A · <span class=mono>witt-organogenesis</span> · GATE 1 ejecutado (G4, G8) → adquisición staged</div>
+<h1>Adquisición G4 + G8 — checkpoint</h1>
+<div class=sub>Siguiendo la recomendación del scope gate · 2026-07-21 · framework: Logic-LM (§5) · <b>cero mutación de la DI</b> (GATE 2 pendiente)</div>
+
+<div class="callout co-acc"><b>TL;DR.</b> Ejecuté el trabajo de A en las dos adquisiciones que recomendé (y aprobaste vía GATE 1), usando solo APIs gratis y reuso — <b>sin GPU, sin escritura a la DI</b>:
+<ul>
+<li><b>G4 (RN2, estructura Foxc1a-Pitx2):</b> UniProt verificado (<code>foxc1a→Q9DE25</code>, <code>pitx2→Q9W5Z2</code>, raw §7.9) · monómeros AlphaFold disponibles · <b>spec de multímero listo</b>. El run = <b>servidor AF3 GRATIS</b> (surfaceado, no incurrido).</li>
+<li><b>G8 (RN3, cinética Nodal/BMP):</b> <b>12/12 marcadores ya en store</b> · ventana ZESTA <b>3–10 hpf ya en corpus</b> · inputs para el fit ensamblados. El fit/BNGL = siguiente paso de cómputo/generación.</li>
+</ul>
+<div class=small>Ambos son las adquisiciones <b>más baratas</b> del banco: ninguna compra datos externos. Nada ingerido — <b>GATE 2</b> te espera para el primer record RN2/RN3.</div></div>
+
+<h2>Contrato §5 (UI visible)</h2>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">confidence_by_subclaim</h3>
+<div class=kv><b>uniprot_resolution</b> <span class='badge b-ok'>0.97</span> <span class=small>determinista · raw §7.9</span></div>
+<div class=kv><b>af_availability</b> <span class='badge b-ok'>0.98</span> <span class=small>AlphaFold DB API confirmado</span></div>
+<div class=kv><b>g8_grounding</b> <span class='badge b-ok'>0.95</span> <span class=small>12/12 marcadores + ZESTA held</span></div>
+<div class=kv><b>acq_plan_soundness</b> <span class='badge b-brand'>0.80</span> <span class=small>juicio de diseño</span></div></div>
+<div class=card><h3 style="margin-top:0">framework_applied</h3>
+<p class=small><b>Logic-LM (§5)</b> — per <code>reasoning-frameworks-catalog.md §5</code>: <i>"Problems where the answer must be provably correct, not just plausible."</i> La resolución UniProt + chequeo de disponibilidad AlphaFold + verificación de marcadores en store son simbólicos/deterministas. (Nivel-sesión sigue siendo CoVe §8.)</p></div></div>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">agents_invoked</h3>
+<div class=kv><b>causal-pruner</b> <span class='badge b-brand'>not-applicable</span></div>
+<p class=small>Adquisición de datos estructurales/expresión, no candidatos biológicos rankeados ni minimal-set.</p>
+<div class=kv><b>composite-auditor</b> <span class='badge b-warn'>skipped-ad-hoc</span></div>
+<p class=small>Prep de adquisición deterministic-dominant; todo aguas abajo es human-gated (GATE 2 ingest + run de cómputo).</p></div>
+<div class=card><h3 style="margin-top:0">gap_flags</h3>
+<ul class=small>
+<li>Multímero AÚN no corrido (compromiso de cómputo surfaceado — servidor AF3 gratis).</li>
+<li>pLDDT global bajo (foxc1a 55 · pitx2 61): TFs con regiones desordenadas → juzgar el <b>PAE de la interfaz</b>, no el pLDDT global.</li>
+<li>Fit reacción-difusión de G8 aún no corrido (lectura ZESTA 4.8GB on-demand + fit).</li>
+<li>Edit del store (uniprot_acc a foxc1a/pitx2) staged pero <b>NO ejecutado</b> (GATE 2).</li>
+</ul></div></div>
+<div class=card><h3 style="margin-top:0">alternatives_considered</h3><ul class=small>
+<li><b>Correr el multímero ahora</b> → rechazado: sin GPU en sesión + el founder pide surfacear compromisos de cómputo.</li>
+<li><b>Ingerir los monómeros como el record RN2 ya</b> → rechazado: el target de G4 es el <i>multímero</i> + PAE, no monómeros; y sería GATE 2.</li>
+<li><b>Usar un multímero de AlphaFold DB</b> → rechazado: la DB solo tiene monómeros por-UniProt; el complejo requiere AF-Multimer/AF3.</li>
+<li><b>Escribir el uniprot_acc al store directo</b> → rechazado: es mutación de la DI (EDIT), gate humano irreducible.</li>
+</ul></div>
+
+<h2>G4 · RN2 — kit de adquisición Foxc1a–Pitx2</h2>
+<div class=scroll><table><tr><th>cadena</th><th>ENSDARG</th><th>UniProt</th><th>largo</th><th>monómero AlphaFold</th></tr>
+<tr><td class=mono><b>foxc1a</b></td><td class=mono>ENSDARG00000091481</td><td class=mono>Q9DE25</td><td>476 aa</td><td class=small>disponible · pLDDT 55.16</td></tr>
+<tr><td class=mono><b>pitx2</b></td><td class=mono>ENSDARG00000036194</td><td class=mono>Q9W5Z2</td><td>314 aa</td><td class=small>disponible · pLDDT 61.0</td></tr></table></div>
+<div class=card><h3 style="margin-top:0">Spec del job de predicción</h3>
+<div class=kv><b>target</b> Foxc1a–Pitx2 heterodimer (zebrafish)</div>
+<div class=kv><b>método · estequiometría</b> AlphaFold-Multimer / AlphaFold3 · 1:1 heterodimer (2ª prueba: 2:2 (Foxc1a forkhead can multimerize; test if PAE supports))</div>
+<div class=kv><b>readouts</b> <span class=small>complex .pdb/.cif · PAE matrix (.json/.npy) at the forkhead(Foxc1a)×homeodomain(Pitx2) interface · ipTM (interface confidence; &gt;0.5 = plausible real interface) · pTM</span></div>
+<div class=kv><b>hipótesis de interfaz</b> <span class=small>cooperative co-binding on shared anterior-segment cis-elements (forkhead + homeodomain); low GLOBAL pLDDT (55/61) is expected (TF disordered regions) — judge the INTERFACE PAE, not global pLDDT</span></div>
+<div class=kv><b>construye sobre</b> <span class=small>Q06 (2026-07-18) dejó AF-Multimer/PAE como la pieza estructural faltante — G4 la produce.</span></div></div>
+<div class="callout co-warn"><b>⚠ Compromiso de cómputo (surfaceado, NO incurrido):</b> el run AF-Multimer/AF3.
+<div class=small style="margin-top:4px">Ruta más barata: <b>servidor AlphaFold3 (alphafoldserver.com), tier GRATIS</b> (~20 jobs/día, submit web manual) — sin orden de GPU pagada. Alt: ColabFold (~$10 Colab Pro) o AF local (GPU). <b>Costo LOW</b> — por eso G4 es la adquisición más barata. <b>Siguiente con tu OK:</b> submit del job 1:1 → cachear PDB+PAE → GATE 2 para ingerir el primer record RN2.</div></div>
+
+<h2>G8 · RN3 — inputs anclados Nodal/BMP</h2>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">Marcadores verificados (12/12 en store)</h3>
+<div class=small><b>Nodal:</b> ndr1, ndr2, tdgf1, lft1, lft2, smad2<br>
+<b>BMP:</b> bmp2b, bmp4, bmp7a, chrd, smad5, smad4a<br>
+<b>RA cross-talk:</b> aldh1a2, cyp26a1, cyp26b1</div></div>
+<div class=card><h3 style="margin-top:0">Grounding de expresión</h3>
+<div class=kv><b>atlas</b> ZESTA (CORPUS-2026-0001)</div>
+<div class=kv><b>ventana del fit</b> 3–10 hpf <span class=small>(la ventana del gradiente Nodal/BMP está DENTRO del atlas que ya tenemos)</span></div>
+<div class=kv><b>red cacheada</b> <span class=mono>raw_ensembl_bmp-nodal-ra-network_20260711.json</span></div></div></div>
+<div class="callout co-warn"><b>⚠ Siguiente paso (surfaceado):</b> extraer trayectorias de los marcadores desde ZESTA 3–10 hpf → ajustar D/k (Müller 2012 + Reactome) → generar reglas BioNetGen (esto es <b>generación = lado MITAD_B</b>) → GATE 2 para ingerir el primer record RN3. <b>Costo LOW–MED</b>, sin compra de datos.</div>
+
+<h2 style="border:none">Estado</h2>
+<div class=card>
+<div class=kv><b>Hecho (A, en-lane)</b> <span class=small>UniProt verificado (raw §7.9) · disponibilidad AF · 12/12 marcadores G8 · 2 kits staged</span></div>
+<div class=kv><b>Cero mutación</b> <span class=small>DATA INAMOVIBLE en 93 records (sin cambio esta fase). GATE 2 pendiente para ambos records + el edit uniprot_acc.</span></div>
+<div class=kv><b>Pendiente de ti</b> <span class='badge b-warn'>2 runs de cómputo</span> <span class=small>AF3 (G4, gratis) · fit ZESTA (G8) — ambos surfaceados, ninguno incurrido</span></div>
+<div class=kv><b>Artefactos</b> <span class=small mono>analysis/outputs/G4_rn2_acquisition_kit_20260721.json · G8_rn3_grounded_inputs_20260721.json · mcp_cache/raw_uniprot_alphafold_g4-*.json</span></div></div>
+<div class=sub style="margin-top:18px">MITAD_A · Witt × Organogenesis · GWT v1.1 · Logic-LM (§5) · 2026-07-21</div>
+</div>

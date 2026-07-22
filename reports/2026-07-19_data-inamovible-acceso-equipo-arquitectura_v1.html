@@ -1,0 +1,131 @@
+<meta charset="utf-8">
+<title>DATA INAMOVIBLE — acceso para el equipo (arquitectura)</title>
+<style>
+  :root{--bg:#f7f7f5;--panel:#fff;--ink:#1a1a17;--mut:#5c5c54;--line:#e3e1da;
+    --read:#1b7f4b;--readbg:#e7f4ec;--gate:#b3261e;--gatebg:#fbe6e4;--core:#2f5c8f;--corebg:#e8eef6;
+    --new:#7a3ea6;--newbg:#f0e8f7;--chip:#efeee9;}
+  @media(prefers-color-scheme:dark){:root{--bg:#16160f;--panel:#201f18;--ink:#ece9df;--mut:#a5a191;--line:#34332a;
+    --read:#5fce93;--readbg:#16301f;--gate:#f2837b;--gatebg:#361a18;--core:#8fb3e0;--corebg:#1a2536;
+    --new:#c79be6;--newbg:#271a33;--chip:#2a2920;}}
+  :root[data-theme="dark"]{--bg:#16160f;--panel:#201f18;--ink:#ece9df;--mut:#a5a191;--line:#34332a;
+    --read:#5fce93;--readbg:#16301f;--gate:#f2837b;--gatebg:#361a18;--core:#8fb3e0;--corebg:#1a2536;--new:#c79be6;--newbg:#271a33;--chip:#2a2920;}
+  :root[data-theme="light"]{--bg:#f7f7f5;--panel:#fff;--ink:#1a1a17;--mut:#5c5c54;--line:#e3e1da;
+    --read:#1b7f4b;--readbg:#e7f4ec;--gate:#b3261e;--gatebg:#fbe6e4;--core:#2f5c8f;--corebg:#e8eef6;--new:#7a3ea6;--newbg:#f0e8f7;--chip:#efeee9;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:25px;margin:0 0 4px}h2{font-size:18px;margin:34px 0 12px;border-bottom:2px solid var(--line);padding-bottom:6px}
+  .sub{color:var(--mut);font-size:13.5px;margin:0 0 8px}
+  .lead{background:var(--corebg);border-left:5px solid var(--core);border-radius:10px;padding:14px 18px;margin:16px 0;font-size:14.5px}
+  .diagram{display:flex;flex-direction:column;gap:14px;align-items:stretch;margin:18px 0}
+  .row{display:grid;gap:12px}
+  @media(min-width:760px){.doors{grid-template-columns:repeat(4,1fr)}}
+  .box{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel)}
+  .box h3{margin:0 0 6px;font-size:14px}
+  .box p{margin:0;font-size:12.5px;color:var(--mut)}
+  .door{border-top:4px solid var(--core)}
+  .door.doctors{border-top-color:var(--new);background:var(--newbg)}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px}
+  .b-new{background:var(--newbg);color:var(--new)} .b-dev{background:var(--corebg);color:var(--core)}
+  .arrows{text-align:center;color:var(--mut);font-size:22px;line-height:1;margin:-4px 0}
+  .core{border:2px solid var(--core);background:var(--corebg)}
+  .surfaces{grid-template-columns:1fr 1fr}
+  .read{border:1px solid var(--read);background:var(--readbg)} .read h3{color:var(--read)}
+  .gate{border:1px solid var(--gate);background:var(--gatebg)} .gate h3{color:var(--gate)}
+  code{background:var(--chip);padding:1px 5px;border-radius:5px;font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  table{border-collapse:collapse;width:100%;font-size:13px}.tw{overflow-x:auto}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--mut)}
+  ul{margin:6px 0;padding-left:18px}li{margin:3px 0;font-size:13.5px}
+  .foot{color:var(--mut);font-size:12px;margin-top:34px;border-top:1px solid var(--line);padding-top:12px}
+  .pill{display:inline-block;background:var(--chip);color:var(--mut);border-radius:6px;padding:2px 8px;font-size:11.5px;margin:2px 4px 2px 0}
+</style>
+<div class="wrap">
+  <h1>DATA INAMOVIBLE — acceso para el equipo de Latido</h1>
+  <p class="sub">Una sola verdad · varias puertas · la mutación SIEMPRE pasa por gate humano · 2026-07-19</p>
+
+  <div class="lead"><b>La idea en una línea:</b> no se crea una web app "aparte". Se agrega <b>una puerta read-only más</b> a la <b>misma</b> DATA INAMOVIBLE (mismo backend, mismo Neo4j/MinIO, mismo repo). Los médicos <b>consultan y revisan todo</b>; nadie <b>muta</b> sin gate humano. Los secretos viven en el servidor — jamás se reparten.</p>
+
+  <h2>El mapa</h2>
+  <div class="diagram">
+
+    <!-- DOORS -->
+    <div class="row doors">
+      <div class="box door doctors">
+        <span class="badge b-new">NUEVO</span>
+        <h3>Web console (médicos)</h3>
+        <p>Link + magic-link por email. Preguntan, navegan el corpus, bajan al crudo. <b>Read-only.</b> Sin instalar nada, sin claves.</p>
+      </div>
+      <div class="box door doctors">
+        <span class="badge b-new">opcional</span>
+        <h3>WhatsApp (médicos)</h3>
+        <p>Mandan un mensaje. Misma API. Vía n8n. Máxima adopción MX.</p>
+      </div>
+      <div class="box door">
+        <span class="badge b-dev">devs / tú</span>
+        <h3>Claude Code · MCP</h3>
+        <p>Las 3 tools. Puede <i>correr</i> la ingesta — pero pasa por gate humano. No es "uso libre".</p>
+      </div>
+      <div class="box door">
+        <span class="badge b-dev">devs / shells</span>
+        <h3>CLI <code>witt-di</code></h3>
+        <p>query · resolve · fetch · health. Robusto, sin registro por-sesión.</p>
+      </div>
+    </div>
+
+    <div class="arrows">▼ &nbsp; todas hablan con el MISMO backend &nbsp; ▼</div>
+
+    <!-- SURFACES -->
+    <div class="row surfaces">
+      <div class="box read">
+        <h3>Superficie READ-ONLY (para todos, "en su totalidad")</h3>
+        <ul>
+          <li><code>query</code> — búsqueda semántica GraphRAG</li>
+          <li><code>resolve</code> — identificadores verificados</li>
+          <li><code>fetch_raw</code> — bajar al dato crudo (URLs + sha256)</li>
+          <li><code>browse</code> — recorrer corpus / niches / DBs / entidades / frescura</li>
+        </ul>
+      </div>
+      <div class="box gate">
+        <h3>Superficie de MUTACIÓN (SIEMPRE human-gated)</h3>
+        <ul>
+          <li><code>add_dataset</code> → propuesta <code>pending_review</code></li>
+          <li>gate estructural <code>is_approved()</code> — lo no-aprobado NO entra</li>
+          <li><code>approve_dataset</code> / ingest_service admin → <code>ingest</code> (embed + MERGE)</li>
+          <li><b>No expuesta a los médicos. Nunca automática.</b></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrows">▼</div>
+
+    <!-- CORE -->
+    <div class="box core">
+      <h3 style="margin:0 0 4px;color:var(--core)">CORE compartido — <code>rag_backend</code> + hosted (Dokploy)</h3>
+      <p style="font-size:13px;color:var(--ink)">Neo4j GraphRAG (vector 1536 + grafo) · MinIO (crudo) · secretos en el <b>env del servidor</b> (NEO4J / OPENAI / MINIO) — <b>nunca en la máquina de un médico</b>. Es el mismo <code>rag_backend.py</code> del repo que ya usan MCP y CLI.</p>
+    </div>
+  </div>
+
+  <h2>Quién puede qué</h2>
+  <div class="tw">
+  <table>
+    <tr><th>Audiencia</th><th>Puerta</th><th>Puede</th><th>NO puede</th><th>Auth / secretos</th></tr>
+    <tr><td><b>Médicos Latido</b> (no técnicos)</td><td>Web console / WhatsApp</td><td>Consultar + revisar TODO (query, resolve, drill-to-raw, browse)</td><td>Ingerir / mutar / embeber</td><td>Magic-link por email. <b>Cero secretos.</b></td></tr>
+    <tr><td><b>Devs / tú</b></td><td>Claude Code (MCP) / CLI</td><td>Lo anterior + <i>proponer</i> y <i>aprobar</i> ingesta (gate humano)</td><td>Mutar sin gate</td><td><code>.secrets/deploy.env</code> local (o el servicio hosted)</td></tr>
+    <tr><td><b>Agentes</b> (Claude Code)</td><td>MCP / CLI</td><td>query · resolve · fetch (read-only)</td><td>Ingerir (bloqueado por diseño)</td><td>Vía el server (secretos server-side)</td></tr>
+  </table>
+  </div>
+
+  <h2>Rollout — prueba pequeño antes de armar bien</h2>
+  <ul>
+    <li><b>Fase 1 (MVP):</b> <code>rag_index/query_service/</code> (FastAPI read-only, hermano del <code>ingest_service</code>) que envuelve <code>rag_backend</code> → <code>/query /resolve /fetch /browse</code>. Auth simple (magic-link o password compartido para empezar). Página web mínima. Deploy al mismo Dokploy. Validar con 1–2 médicos.</li>
+    <li><b>Fase 2:</b> respuesta redactada por Claude desde las fuentes + citas (lenguaje natural, lo que un médico espera) · UI de revisión del corpus completo · WhatsApp.</li>
+    <li><b>Invariante:</b> read-only siempre; ingesta/embedding intactos y human-gated; un solo backend.</li>
+  </ul>
+
+  <div class="foot">
+    Propuesta de arquitectura · no se construyó nada aún (servicio hosted nuevo = commit de infra, requiere tu OK) · GWT v1.1 · 2026-07-19 · versión inmutable v1.
+    <div style="margin-top:8px"><span class="pill">1 backend</span><span class="pill">N puertas</span><span class="pill">mutación siempre gated</span><span class="pill">cero secretos a médicos</span><span class="pill">read-only = totalidad</span></div>
+  </div>
+</div>
+<script>(function(){var r=document.documentElement;try{var t=localStorage.getItem('theme');if(t)r.setAttribute('data-theme',t);}catch(e){}})();</script>

@@ -1,0 +1,565 @@
+{
+  "set_version": "banco_calibracion_v1",
+  "generated": "2026-07-18",
+  "note": "LLAVE OCULTA — no compartir con los revisores. Etiquetas intencionales (hipótesis de diseño) + confianza declarada por la IA. La consume score_calibration.py.",
+  "label_scales": {
+    "objetividad": "objetiva | parcial | abierta",
+    "contexto": "en_foco | exploratoria | fuera_de_alcance",
+    "especificidad": "generica | intermedia | especifica"
+  },
+  "questions": [
+    {
+      "id": "Q01",
+      "tema": "Factores de transcripción del mesodermo pronéfrico",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.72,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": true,
+      "niche": [
+        "RN1"
+      ],
+      "type": "marker_identification",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q02",
+      "tema": "Marcadores: cresta neural vs. copa óptica y cristalino",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.72,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1"
+      ],
+      "type": "marker_identification",
+      "system": "cornea/eye"
+    },
+    {
+      "id": "Q03",
+      "tema": "Regulador verdadero vs. gen acompañante",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.6,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1",
+        "RN12"
+      ],
+      "type": "regulator_vs_bystander",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q04",
+      "tema": "Especificidad tisular y asignación de Tier para KO",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1",
+        "RN12"
+      ],
+      "type": "specificity_ratio",
+      "system": "any"
+    },
+    {
+      "id": "Q05",
+      "tema": "Estructuras 3D de TFs para docking",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.88,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN2"
+      ],
+      "type": "marker_identification",
+      "system": "any"
+    },
+    {
+      "id": "Q06",
+      "tema": "Complejos de interacción en desarrollo del ojo",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.72,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN2",
+        "RN3"
+      ],
+      "type": "pathway_assembly",
+      "system": "signaling"
+    },
+    {
+      "id": "Q07",
+      "tema": "Modelo de señalización de la inducción del pronephros",
+      "origen": "GoldSet (rica)",
+      "bucket": "rich_reuse",
+      "ia_confidence": 0.55,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN3"
+      ],
+      "type": "pathway_assembly",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q08",
+      "tema": "Ortólogos humanos y ohnólogos que confunden un KO",
+      "origen": "GoldSet (rica)",
+      "bucket": "rich_reuse",
+      "ia_confidence": 0.82,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN3",
+        "RN1"
+      ],
+      "type": "ortholog_mapping",
+      "system": "any"
+    },
+    {
+      "id": "Q09",
+      "tema": "Metabolismo y gradientes en tubulogénesis",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.6,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": true,
+      "niche": [
+        "RN4"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q10",
+      "tema": "Lecturas bioeléctricas e ingesta de datos de voltaje",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN5"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q11",
+      "tema": "Ensamblaje de modelo Morpheus de córnea",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN6"
+      ],
+      "type": "model_assembly_morpheus",
+      "system": "cornea/eye"
+    },
+    {
+      "id": "Q12",
+      "tema": "Condiciones de frontera en Morpheus",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.72,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN6",
+        "RN9"
+      ],
+      "type": "model_assembly_morpheus",
+      "system": "any"
+    },
+    {
+      "id": "Q13",
+      "tema": "Lecturas de fluidos y formatos de malla en el pronefros",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": null,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN7"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q14",
+      "tema": "Calibrar simulación con cinética de migración celular",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.62,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN8"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q15",
+      "tema": "Morfometría del pronephros vs mesodermo teratogénico",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN9"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q16",
+      "tema": "Tabla maestra de inducción del pronephros",
+      "origen": "GoldSet (rica)",
+      "bucket": "rich_reuse",
+      "ia_confidence": 0.55,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN10"
+      ],
+      "type": "perturbation_design",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q17",
+      "tema": "Endotelio corneal en pez cebra",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.62,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN11",
+        "RN1"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q18",
+      "tema": "Set mínimo de perturbación — suficiencia GOF del programa pronéfrico",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": true,
+      "niche": [
+        "RN12"
+      ],
+      "type": "perturbation_design",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q19",
+      "tema": "Doble KO y enmascaramiento por redundancia de paralogos",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.6,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": true,
+      "niche": [
+        "RN12"
+      ],
+      "type": "perturbation_design",
+      "system": "any"
+    },
+    {
+      "id": "Q20",
+      "tema": "Error de inicialización en Morpheus",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.45,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN13"
+      ],
+      "type": "simulation_debug",
+      "system": "any"
+    },
+    {
+      "id": "Q21",
+      "tema": "Pipeline de red de señalización a modelo Morpheus",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.62,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN3",
+        "RN13"
+      ],
+      "type": "model_assembly_morpheus",
+      "system": "any"
+    },
+    {
+      "id": "Q22",
+      "tema": "Resolver símbolos de gen a ENSDARG verificados",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": null,
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1"
+      ],
+      "type": "ortholog_mapping",
+      "system": "any"
+    },
+    {
+      "id": "Q23",
+      "tema": "Puente ojo→riñón: tejido chaperón",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.34,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "causal_pruner_flag": true,
+      "niche": [
+        "RN5",
+        "RN9"
+      ],
+      "type": "cross_field_bridge",
+      "system": "cornea/eye"
+    },
+    {
+      "id": "Q24",
+      "tema": "Elementos regulatorios de respuesta a RA en pronephros",
+      "origen": "GoldSet (rica)",
+      "bucket": "rich_reuse",
+      "ia_confidence": 0.6,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1",
+        "RN3"
+      ],
+      "type": "pathway_assembly",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q25",
+      "tema": "Síntesis balanceada de literatura: osr1",
+      "origen": "re-corrida agéntica",
+      "bucket": "rerun",
+      "ia_confidence": 0.72,
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN11"
+      ],
+      "type": "literature_synthesis",
+      "system": "any"
+    },
+    {
+      "id": "Q26",
+      "tema": "Marcadores de segmentos del pronephros",
+      "origen": "GoldSet (rica)",
+      "bucket": "rich_reuse",
+      "ia_confidence": 0.87,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1"
+      ],
+      "type": "marker_identification",
+      "system": "pronephros"
+    },
+    {
+      "id": "Q27",
+      "tema": "Perturbagenos de RA y formatos de docking",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": 0.42,
+      "intended_labels": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN2",
+        "RN12"
+      ],
+      "type": "perturbation_design",
+      "system": "any"
+    },
+    {
+      "id": "Q28",
+      "tema": "Regulador vs. acompañante en scRNA",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": null,
+      "intended_labels": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1",
+        "RN11"
+      ],
+      "type": "regulator_vs_bystander",
+      "system": "any"
+    },
+    {
+      "id": "Q29",
+      "tema": "Prueba mínima de gradiente en Morpheus",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": null,
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN13"
+      ],
+      "type": "model_assembly_morpheus",
+      "system": "any"
+    },
+    {
+      "id": "Q30",
+      "tema": "Taxonomía de nichos: ¿biología ocular como nicho propio?",
+      "origen": "baseline DI-only",
+      "bucket": "baseline_reuse",
+      "ia_confidence": null,
+      "intended_labels": {
+        "especificidad": "generica",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "causal_pruner_flag": false,
+      "niche": [
+        "RN1",
+        "RN4",
+        "RN6"
+      ],
+      "type": "cross_field_bridge",
+      "system": "any"
+    }
+  ]
+}

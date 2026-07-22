@@ -1,0 +1,628 @@
+<title>Witt × Organogénesis — el sistema actual (workflow)</title>
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0e1830; --panel:#16223a; --panel2:#1b2942; --line:#27365230; --edge:#2b3b59;
+    --ink:#eef3fa; --dim:#93a3bd; --faint:#62728d;
+    --bio:#33d6c2; --bio-deep:#0f3b39; --graph:#8b8cff; --graph-deep:#2a2c5e;
+    --gate:#f4b740; --gate-deep:#4a3712; --good:#35c98d; --bad:#e5604d;
+    --mono:'Cascadia Code','JetBrains Mono','SFMono-Regular','Consolas',monospace;
+    --sans:'Segoe UI Variable','Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;font-variant-numeric:tabular-nums}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #13223e 0, transparent 55%),
+      radial-gradient(1px 1px at 24px 24px, #1c2c49 1px, transparent 0);
+    background-size:auto, 48px 48px;}
+
+  .deck{position:relative;z-index:1;height:100vh;width:100vw}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:clamp(28px,5vw,80px) clamp(28px,7vw,120px);opacity:0;transition:opacity .45s ease}
+  .slide.active{display:flex;opacity:1}
+  @media (prefers-reduced-motion:reduce){.slide{transition:none}}
+  .inner{width:100%;max-width:1180px;margin:0 auto}
+
+  .eyebrow{font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);letter-spacing:.22em;
+    text-transform:uppercase;color:var(--bio);display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .eyebrow .step{color:var(--faint)}
+  .eyebrow .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--edge),transparent);max-width:120px}
+  h1{font-size:clamp(30px,5vw,58px);font-weight:800;letter-spacing:-.025em;line-height:1.04;text-wrap:balance}
+  h2{font-size:clamp(26px,3.6vw,44px);font-weight:800;letter-spacing:-.022em;line-height:1.06;text-wrap:balance}
+  .stand{margin-top:16px;color:var(--dim);font-size:clamp(15px,1.5vw,20px);line-height:1.5;max-width:62ch;font-weight:400}
+  .stand b{color:var(--ink);font-weight:600}
+  .accent{color:var(--bio)} .ind{color:var(--graph)} .amb{color:var(--gate)}
+  code,.m{font-family:var(--mono);font-size:.86em;background:#0a1426;border:1px solid var(--edge);
+    padding:1px 6px;border-radius:5px;color:#bcd}
+
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:30px}
+  .node{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 18px;
+    min-width:0;flex:1;border-top:3px solid var(--edge)}
+  .node .t{font-weight:700;font-size:clamp(15px,1.5vw,18px);letter-spacing:-.01em}
+  .node .d{font-family:var(--mono);font-size:12.5px;color:var(--dim);margin-top:7px;line-height:1.5}
+  .node.bio{border-top-color:var(--bio)} .node.graph{border-top-color:var(--graph)}
+  .node.gate{border:1px solid var(--gate);border-top-width:3px;background:linear-gradient(180deg,#1e1805,var(--panel))}
+  .node .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:6px}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--bio);font-size:24px;padding:0 10px;flex:0 0 auto}
+  .arrow.down{width:100%;padding:8px 0;transform:rotate(90deg)}
+
+  .grid{display:grid;gap:14px;margin-top:28px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:18px 20px}
+  .card h3{font-size:clamp(16px,1.7vw,20px);font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  .card p{color:var(--dim);font-size:14.5px;line-height:1.55;margin-top:9px}
+  .card .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--bio)}
+  ul.ticks{margin-top:14px;list-style:none;display:flex;flex-direction:column;gap:10px}
+  ul.ticks li{position:relative;padding-left:26px;color:var(--dim);font-size:clamp(14px,1.45vw,17px);line-height:1.5}
+  ul.ticks li::before{content:"\2192";position:absolute;left:0;color:var(--bio);font-family:var(--mono)}
+  ul.ticks li b{color:var(--ink);font-weight:650}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+    padding:4px 11px;border-radius:30px;border:1px solid;white-space:nowrap}
+  .pill.bio{color:var(--bio);border-color:#2a6d66;background:#0c2926}
+  .pill.gate{color:var(--gate);border-color:#6a521b;background:#241b07}
+  .pill.ind{color:var(--graph);border-color:#3f4196;background:#181a3a}
+  .pill.good{color:var(--good);border-color:#1f6e50;background:#0c2418}
+  .pill.bad{color:var(--bad);border-color:#7a3329;background:#2a120e}
+  .gatechip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:700;font-size:12.5px;
+    letter-spacing:.06em;color:#1a1304;background:var(--gate);padding:5px 13px;border-radius:6px}
+  .note{font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:22px;line-height:1.6}
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:center;margin-top:18px}
+  .stat{display:flex;gap:30px;flex-wrap:wrap;margin-top:26px}
+  .stat .s .n{font-size:clamp(26px,3.2vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1}
+  .stat .s .l{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:7px}
+
+  /* charts + roster + matrix (added) */
+  .chart{display:flex;flex-direction:column;gap:11px;margin-top:22px}
+  .crow{display:grid;grid-template-columns:clamp(130px,18vw,230px) 1fr auto;gap:16px;align-items:center}
+  .crow .k{font-family:var(--mono);font-size:12.5px;color:var(--dim);text-align:right;line-height:1.3}
+  .crow .v{font-family:var(--mono);font-size:13px;font-weight:700;min-width:48px;text-align:right}
+  .track{height:20px;background:#0b1730;border:1px solid var(--edge);border-radius:30px;overflow:hidden}
+  .track i{display:block;height:100%;border-radius:30px}
+  .dual{display:flex;flex-direction:column;gap:4px}
+  .dual .mini{height:11px;background:#0b1730;border:1px solid var(--edge);border-radius:30px;overflow:hidden}
+  .dual .mini i{display:block;height:100%;border-radius:30px}
+  .dual .lab{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);min-width:30px}
+  .dual .ln{display:flex;align-items:center;gap:8px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:16px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .stack{display:flex;height:30px;border-radius:8px;overflow:hidden;border:1px solid var(--edge);margin-top:14px}
+  .stack i{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#06121f;font-weight:700;min-width:0}
+  .roster{display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin-top:24px}
+  .rgrp{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:15px 17px}
+  .rgrp .h{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:6px}
+  .ag{display:flex;gap:9px;align-items:baseline;margin-top:9px;line-height:1.35}
+  .ag .n{font-weight:700;font-size:14px;white-space:nowrap;font-family:var(--mono)}
+  .ag .d{color:var(--dim);font-size:12.5px}
+  table.mx{width:100%;border-collapse:collapse;margin-top:18px;font-size:13.5px}
+  table.mx th,table.mx td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--edge);vertical-align:top}
+  table.mx th{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  table.mx td.a{font-weight:700;color:var(--bio);font-family:var(--mono);white-space:nowrap}
+  table.mx td.g{color:var(--gate);font-family:var(--mono);font-size:12px}
+  table.mx tr:last-child td{border-bottom:none}
+
+  .hud{position:fixed;z-index:5;bottom:0;left:0;right:0;height:46px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 clamp(20px,4vw,64px);font-family:var(--mono);font-size:11.5px;
+    letter-spacing:.08em;color:var(--faint);border-top:1px solid var(--line);background:#0a111fcc;backdrop-filter:blur(6px)}
+  .hud .sec{color:var(--dim);text-transform:uppercase}
+  .hud .who{color:var(--bio)}
+  .progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--bio);z-index:6;transition:width .4s ease}
+  .ctrl{position:fixed;z-index:6;bottom:54px;right:clamp(18px,4vw,40px);display:flex;gap:8px}
+  .ctrl button{font-family:var(--mono);font-size:16px;width:38px;height:38px;border-radius:9px;cursor:pointer;
+    background:var(--panel);color:var(--ink);border:1px solid var(--edge)}
+  .ctrl button:hover{border-color:var(--bio);color:var(--bio)}
+  .ctrl button:focus-visible{outline:2px solid var(--bio);outline-offset:2px}
+
+  #s0 .inner{max-width:980px}
+  .cover-mark{font-family:var(--mono);font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--bio)}
+  .cover-title{font-size:clamp(40px,7.2vw,86px);font-weight:800;letter-spacing:-.035em;line-height:.98;margin-top:20px}
+  .cover-title .u{background:linear-gradient(transparent 66%, #16544f 66%)}
+  .cover-sub{margin-top:26px;font-size:clamp(17px,1.9vw,23px);color:var(--dim);max-width:60ch;line-height:1.5}
+  .cover-meta{margin-top:40px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+
+  @media (max-width:820px){.g3,.g4,.two,.g2{grid-template-columns:1fr}.flow{flex-direction:column}.arrow{transform:rotate(90deg);padding:6px 0}}
+
+  @media print{
+    body{overflow:visible;background:#fff;color:#0b1220}
+    body::before,.hud,.ctrl,.progress{display:none}
+    .deck{height:auto}
+    .slide{display:flex !important;opacity:1 !important;position:relative;inset:auto;min-height:96vh;
+      page-break-after:always;border-bottom:1px solid #ccc}
+  }
+</style>
+
+<div class="progress" id="prog"></div>
+<div class="deck" id="deck">
+
+  <section class="slide active" id="s0"><div class="inner">
+    <div class="cover-mark">Witt × Organogénesis · Latido Médico Mexicano</div>
+    <div class="cover-title">La <span class="u">DATA INAMOVIBLE</span><br>y cómo el sistema<br>se refuerza solo.</div>
+    <p class="cover-sub">Cómo funciona el proyecto actual, paso por paso: la fuente de verdad, su RAG,
+      cuándo y cómo crece, y las cláusulas de verificación que hacen confiable cada respuesta.</p>
+    <div class="cover-meta">
+      <span class="pill bio">workflow técnico</span>
+      <span class="gatechip">&#9670; todo lo que muta pasa por un gate humano</span>
+      <span class="pill ind">Team Máximo Esfuerzo</span>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s1"><div class="inner">
+    <div class="eyebrow"><span class="step">01</span> El mapa <span class="rule"></span></div>
+    <h2>Witt son <span class="accent">dos mitades</span>. Hoy recorremos la que está viva.</h2>
+    <p class="stand">Witt es una máquina epistémica recursiva. Esta presentación es <b>la mitad de rendición de cuentas</b> —
+      desplegada, endurecida y validada esta semana. La mitad de generación es un motor aparte, naciente.</p>
+    <div class="grid g2">
+      <div class="card" style="border-color:#2a6d66">
+        <span class="lbl">Mitad A · rendición de cuentas</span>
+        <h3 style="margin-top:8px">La que exponemos hoy <span class="pill good">desplegada</span></h3>
+        <p>La DATA INAMOVIBLE (fuente de verdad), el RAG, el loop que la hace crecer, los gates deterministas
+          y los auditores. Su trabajo: que ninguna respuesta se invente nada y que todo sea trazable.</p>
+      </div>
+      <div class="card">
+        <span class="lbl" style="color:var(--graph)">Mitad B · generación</span>
+        <h3 style="margin-top:8px">«Conciencia Universal» <span class="pill ind">repo aparte · naciente</span></h3>
+        <p>El motor que propone (energy layer, RL epistémica, búsqueda de programas). Vive aislado, lee la
+          DATA INAMOVIBLE <b>solo-lectura</b> y nunca la muta. No es el tema de hoy.</p>
+      </div>
+    </div>
+    <p class="note">La regla que une ambas: el conocimiento solo entra a la fuente de verdad por <span class="amb">un camino human-gated</span>.</p>
+  </div></section>
+
+  <section class="slide" id="s2"><div class="inner">
+    <div class="eyebrow"><span class="step">02</span> La tesis <span class="rule"></span></div>
+    <h2>Capturar juicio experto, <span class="accent">exponer el razonamiento</span>, crecer con el uso.</h2>
+    <p class="stand">La <b>DATA INAMOVIBLE</b> es la fuente de verdad compartida. Es "inamovible" no porque no cambie,
+      sino porque <b>cada cambio pasa por un gate humano y queda especificado</b>. Lecturas libres; mutaciones, jamás solas.</p>
+    <div class="grid g3">
+      <div class="card"><span class="lbl">El problema</span><h3 style="margin-top:8px">Los LLM inventan IDs</h3>
+        <p>Genes, accesiones, PMIDs salidos de la memoria del modelo. Documentado: 45% de error en IDs en una sesión.</p></div>
+      <div class="card"><span class="lbl">La respuesta</span><h3 style="margin-top:8px">Verificar, no confiar</h3>
+        <p>Todo identificador externo resuelve contra la fuente de verdad o se marca como hueco. Determinista, no un LLM.</p></div>
+      <div class="card"><span class="lbl">El resultado</span><h3 style="margin-top:8px">Respuestas con trail</h3>
+        <p>Cada respuesta lleva su evidencia, su confianza por sub-afirmación, y sus huecos conocidos. Auditable.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s3"><div class="inner">
+    <div class="eyebrow"><span class="step">03</span> Cómo se compone <span class="rule"></span></div>
+    <h2>La DATA INAMOVIBLE = <span class="accent">tres capas</span> + una puerta.</h2>
+    <div class="flow">
+      <div class="node graph"><span class="tag">capa 1 · guía</span><div class="t">Índice + embeddings</div>
+        <div class="d">Neo4j GraphRAG: documentos &#8594; chunks &#8594; embeddings + entidades verificadas. El mapa para encontrar.</div></div>
+      <div class="arrow">+</div>
+      <div class="node bio"><span class="tag">capa 2 · respaldo</span><div class="t">Raw store híbrido</div>
+        <div class="d">Público = source-pointer (URL+sha256, re-descargable). Privado/derivado = MinIO. El dato crudo real.</div></div>
+      <div class="arrow">+</div>
+      <div class="node"><span class="tag">capa 3 · catálogo</span><div class="t">Método en git</div>
+        <div class="d">corpus_manifest.json · verified_identifiers.json (51 records) · el código. Versionado, revisable.</div></div>
+    </div>
+    <div class="flow" style="margin-top:14px">
+      <div class="node gate" style="flex:1"><span class="tag">puerta única (MCP <code>data-inamovible</code>)</span>
+        <div class="t">3 herramientas para consultar — sin tocar nada</div>
+        <div class="d"><span class="accent">query_data_inamovible</span> (semántico) · <span class="accent">resolve_identifier</span> (determinista) · <span class="accent">fetch_raw</span> (drill del chunk al crudo)</div></div>
+    </div>
+    <p class="note">El grafo es <b style="color:var(--graph)">la guía</b>; el raw store es <b style="color:var(--bio)">el respaldo</b>. Si un chunk no basta, <code>fetch_raw</code> baja al dato original.</p>
+  </div></section>
+
+  <section class="slide" id="s4"><div class="inner">
+    <div class="eyebrow"><span class="step">04</span> Dónde vive <span class="rule"></span></div>
+    <h2>Desplegada y viva en <span class="accent">Dokploy</span> — tres stacks.</h2>
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--graph)"><span class="lbl" style="color:var(--graph)">grafo + vector</span>
+        <h3 style="margin-top:8px">Neo4j</h3>
+        <p><code>:7474</code> browser · <code>:7687</code> bolt. Documentos, entidades, MENTIONS, e índice HNSW <code>doc_embeddings</code> ONLINE.</p></div>
+      <div class="card" style="border-top:3px solid var(--bio)"><span class="lbl">raw S3</span>
+        <h3 style="margin-top:8px">MinIO</h3>
+        <p><code>:9100</code> API · <code>:9101</code> consola. Bucket <code>data-inamovible-raw</code>. Vacío = correcto: lo público vive en su fuente.</p></div>
+      <div class="card" style="border-top:3px solid var(--gate)"><span class="lbl" style="color:var(--gate)">contribución</span>
+        <h3 style="margin-top:8px">Ingest service</h3>
+        <p><code>:8077</code> FastAPI. submit token &#8594; <span class="amb">admin /approve (gate)</span> &#8594; ingesta + push-back a git.</p></div>
+    </div>
+    <p class="note">Consultable <b>sin agente</b>: Neo4j Browser para el grafo, MinIO para el raw privado, git para el catálogo y el método.
+      Cache de trabajo (descargas, papers crudos) &#8594; <code>mcp_cache/</code>, local, fuera de git.</p>
+  </div></section>
+
+  <section class="slide" id="s5"><div class="inner">
+    <div class="eyebrow"><span class="step">05</span> El RAG <span class="rule"></span></div>
+    <h2>Retrieval <span class="accent">híbrido</span> — léxico exacto <span style="color:var(--faint)">+</span> semántico.</h2>
+    <div class="two">
+      <div class="flow" style="margin-top:0;flex-direction:column;gap:12px">
+        <div class="node"><span class="tag">señal léxica</span><div class="t">Sparse · TF-IDF</div>
+          <div class="d">Captura el match EXACTO: símbolos génicos, IDs, términos raros (pax2a, ENSDARG…).</div></div>
+        <div class="node graph"><span class="tag">señal semántica</span><div class="t">Vector · Neo4j HNSW</div>
+          <div class="d">Captura el CONCEPTO: "qué induce el riñón" encuentra el doc aunque no diga esas palabras.</div></div>
+        <div class="arrow down">&#8595;</div>
+        <div class="node bio"><span class="tag">fusión</span><div class="t">RRF (Reciprocal Rank Fusion)</div>
+          <div class="d">Combina ambos rankings en uno. Auto-refresh por mtime: si el índice cambió, se recarga solo.</div></div>
+      </div>
+      <div>
+        <h3 style="font-size:21px;font-weight:700">¿Por qué híbrido?</h3>
+        <ul class="ticks" style="margin-top:14px">
+          <li>Lo semántico solo <b>pierde los IDs exactos</b> — y este dominio ES identificadores.</li>
+          <li>Lo léxico solo <b>pierde el concepto</b> — sinónimos, paráfrasis, cross-tejido.</li>
+          <li>Juntos: precisión en lo que importa, recall en lo que se parece.</li>
+        </ul>
+        <p class="note" style="margin-top:24px"><code>rag_backend.py</code> · dev = sparse local · prod = Neo4j vector.
+          La metodología vive en git; se cambia ahí + re-ingesta, nunca editando el servidor.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s6"><div class="inner">
+    <div class="eyebrow"><span class="step">06</span> La indexación <span class="rule"></span></div>
+    <h2>De documento a grafo consultable.</h2>
+    <div class="flow">
+      <div class="node"><span class="tag">paso 1</span><div class="t">Documento</div><div class="d">paper, dataset, h5ad, abstract</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">paso 2</span><div class="t">Chunks</div><div class="d">chunk_document.py — fragmentos con contexto</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node graph"><span class="tag">paso 3</span><div class="t">Embeddings</div><div class="d">OpenAI text-embedding-3-small · 1536-dim</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">paso 4</span><div class="t">Grafo Neo4j</div><div class="d">(:Document)-[:MENTIONS]&#8594;(:Entity) + índice HNSW</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:24px">
+      <div class="card"><span class="lbl">entidades verificadas</span><h3 style="margin-top:8px">Cada (:Entity) resuelve en el store</h3>
+        <p>Las entidades no son texto suelto: se anclan a IDs verificados (<code>resolve_id</code>). Un nodo sin verificar es un hueco explícito, no un dato.</p></div>
+      <div class="card"><span class="lbl">por qué grafo + raw</span><h3 style="margin-top:8px">El grafo guía; el raw respalda</h3>
+        <p>El embedding te lleva al chunk; <code>fetch_raw</code> te lleva del chunk al dato original (URL+sha256 o MinIO). Nunca confías solo en el resumen.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s7"><div class="inner">
+    <div class="eyebrow"><span class="step">07</span> El embedding · dominios y categorías <span class="rule"></span></div>
+    <h2>El corpus se clasifica por <span class="ind">dominio</span> y por <span class="accent">tier de verificación</span>.</h2>
+    <p class="stand">No metemos todo en un saco. Cada documento se categoriza por nicho (<code>corpus_classifier.py</code>, human-gated)
+      y cada identificador lleva su tier de confianza. Eso hace el retrieval domain-aware y la calibración honesta.</p>
+    <div class="two" style="margin-top:8px">
+      <div>
+        <span class="lbl" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--graph)">LOS 6 NICHOS DEL SCOPE</span>
+        <div class="grid g2" style="margin-top:12px;gap:9px">
+          <span class="pill ind">N1 · modelado de sistemas</span>
+          <span class="pill ind">N2 · biofísica de tejidos</span>
+          <span class="pill ind">N3 · embriología / genómica</span>
+          <span class="pill ind">N4 · señalización celular</span>
+          <span class="pill ind">N5 · biología ocular</span>
+          <span class="pill ind">N6 · ing. de tejidos</span>
+        </div>
+        <p class="note" style="margin-top:16px">13 nichos operativos + 9 DBs en el manifest. Fase I activa N1/N3/N4.</p>
+      </div>
+      <div>
+        <span class="lbl" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--bio)">TIERS DE VERIFICACIÓN</span>
+        <ul class="ticks" style="margin-top:12px">
+          <li><b style="color:var(--good)">RAW</b> — respuesta cruda externa en disco (§7.9). Peso pleno en calibración.</li>
+          <li><b class="amb">DERIVED</b> — resuelto, pero sin retener el crudo. Peso parcial.</li>
+          <li><b style="color:var(--bad)">NOT_FOUND</b> — "se buscó, no resuelve". Ausencia positiva, peso cero.</li>
+        </ul>
+        <p class="note" style="margin-top:16px">Por qué: solo lo RAW pesa en la calibración (pureza de Bayes) — un dato débil no contamina la confianza.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s8"><div class="inner">
+    <div class="eyebrow"><span class="step">08</span> El refuerzo · cuándo entra <span class="rule"></span></div>
+    <h2>El corpus crece por <span class="accent">tres puertas</span> — todas terminan en el gate.</h2>
+    <div class="flow">
+      <div class="node bio"><span class="tag">puerta 1</span><div class="t">Búsqueda con intención humana</div>
+        <div class="d">Alguien hace una pregunta; el sistema detecta que falta evidencia y la trae.</div></div>
+      <div class="node bio"><span class="tag">puerta 2</span><div class="t">Gente que sube datos</div>
+        <div class="d">Contribución directa: add_dataset &#8594; propuesta (CONTRIBUTING.md).</div></div>
+      <div class="node bio"><span class="tag">puerta 3</span><div class="t">Investigado en los MCP</div>
+        <div class="d">El loop trae literatura/Tool Universe cuando la DI no alcanza.</div></div>
+    </div>
+    <div class="arrow down" style="color:var(--gate)">&#8595;</div>
+    <div class="flow" style="margin-top:4px">
+      <div class="node gate" style="flex:1;text-align:center"><span class="tag">convergen aquí</span>
+        <div class="t" style="font-size:20px">&#9670; GATE HUMANO + validación &#8594; se indexa</div>
+        <div class="d">composite-auditor ≥3 &#8594; propose &#8594; un humano aprueba &#8594; re-ingesta. Solo entonces es parte de la verdad.</div></div>
+    </div>
+    <p class="note">El corpus <b>solo crece con iteraciones + gates de validación</b>. Cada vuelta lo deja más completo y más auditado.</p>
+  </div></section>
+
+  <section class="slide" id="s9"><div class="inner">
+    <div class="eyebrow"><span class="step">09</span> El loop auto-reforzante · ADR-0022 <span class="rule"></span></div>
+    <h2>"No está en la DI" <span class="accent">no es un stopper</span> — es un disparador de aprendizaje.</h2>
+    <div class="flow" style="margin-top:26px;align-items:stretch">
+      <div class="node bio"><span class="tag">Path A</span><div class="t">Consulta la DI</div><div class="d">retrieval híbrido semántico</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--gate)"><span class="tag">¿suficiente?</span><div class="t">decisión</div>
+        <div class="d"><span class="pill good" style="font-size:10.5px">SÍ &#8594; responde</span> &nbsp; <span class="pill bad" style="font-size:10.5px">NO &#8595;</span></div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">Path B</span><div class="t">Trae evidencia externa</div><div class="d">EuropePMC · Tool Universe (MCP)</div></div>
+    </div>
+    <div class="flow" style="margin-top:14px">
+      <div class="node" style="border-top-color:var(--bad)"><span class="tag">filtro</span><div class="t">composite-auditor ≥3</div><div class="d">3+ auditores adversariales revisan</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">propuesta</span><div class="t">propose_from_external</div><div class="d">no decide — propone</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node gate"><span class="tag">obligatorio</span><div class="t">&#9670; GATE HUMANO</div><div class="d">un humano aprueba o rechaza</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">cierre del loop</span><div class="t">Re-ingesta</div><div class="d">re-embed + rebuild sparse + Meta &#8594; la DI creció</div></div>
+    </div>
+    <p class="note">El store <b>crece con el uso</b>. Cada pregunta que la DI no podía responder, tras el gate, la deja capaz de responderla — para siempre.</p>
+  </div></section>
+
+  <section class="slide" id="s10"><div class="inner">
+    <div class="eyebrow"><span class="step">10</span> Cláusulas de verificación · gates deterministas <span class="rule"></span></div>
+    <h2>Antes de creerle a un agente: <span class="accent">gates que no son un LLM</span>.</h2>
+    <p class="stand">Logic-LM-class — predicados deterministas, re-ejecutables. Baratos, corren primero, bloquean la fabricación temprano.
+      Es la mitad que endurecimos esta semana.</p>
+    <div class="grid g2">
+      <div class="card"><h3><span class="pill bio">resolve_id + verify_output</span></h3>
+        <p>Todo ENSDARG/UniProt/PMID/GEO resuelve en el store o se marca en <code>gap_flags</code>. <code>admissible()</code> = H(c) &#8712; {0,1}: ningún score blando rescata un claim inadmisible.</p></div>
+      <div class="card"><h3><span class="pill bio">N1 · binding símbolo&#8596;ID</span></h3>
+        <p>No basta que el ENSDARG exista: debe estar <b>ligado al símbolo correcto</b>. Atrapa el "ID que colisionó con un gen no relacionado" — la corrupción real que lo motivó.</p></div>
+      <div class="card"><h3><span class="pill ind">§4 + §11</span></h3>
+        <p>El framework se cita por <b>§sección específica</b> (no "Tier N"), validado contra el catálogo (N6); el agente correcto se invoca para cada tipo de trabajo, o se justifica el salto.</p></div>
+      <div class="card"><h3><span class="pill ind">W5 · do vs observe</span></h3>
+        <p><code>causal_admissible</code> solo con una intervención explícita (Pearl). Condicionar ≠ causar: una correlación no se cuela como afirmación causal.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s11"><div class="inner">
+    <div class="eyebrow"><span class="step">11</span> Los auditores · composite-auditor <span class="rule"></span></div>
+    <h2>Cuando se hace un fetch del gate, entran <span class="accent">≥3 auditores adversariales</span>.</h2>
+    <div class="two">
+      <div class="flow" style="margin-top:0;flex-direction:column;gap:10px">
+        <div class="flow" style="margin-top:0">
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:15px">Auditor 1</div><div class="d">falso-negativo</div></div>
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:15px">Auditor 2</div><div class="d">validez de evidencia</div></div>
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:15px">Auditor 3</div><div class="d">framing / integridad</div></div>
+        </div>
+        <div class="arrow down">&#8595;</div>
+        <div class="node bio"><div class="t">Voto (split-and-vote)</div><div class="d">cada uno intenta REFUTAR, independiente. Reemplaza el SÍ/NO de un solo LLM.</div></div>
+      </div>
+      <div>
+        <ul class="ticks">
+          <li><b>Auto-auditoría del productor PROHIBIDA</b> (§7) — quien produjo no se audita a sí mismo.</li>
+          <li>Corren en el <b>fetch del gate</b> y al <b>cierre</b> de cada respuesta.</li>
+          <li>Mejores modelos siempre (Opus 4.8) — la calidad de la respuesta no se sacrifica por costo.</li>
+        </ul>
+        <div class="card" style="margin-top:20px;border-color:#7a3329">
+          <span class="lbl" style="color:var(--bad)">prueba real · test E2E</span>
+          <p style="color:var(--ink);font-size:15px;margin-top:8px">En 3 rondas, el auditor atrapó un over-claim <b>cada vez</b> — incluido el del propio operador, dos veces. <b>El sistema se defiende incluso de quien lo opera.</b></p>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s12"><div class="inner">
+    <div class="eyebrow"><span class="step">12</span> Cláusulas de confianza en las respuestas · contrato §5 <span class="rule"></span></div>
+    <h2>Toda respuesta del substrato lleva su <span class="accent">trail de confianza</span>.</h2>
+    <div class="grid g3">
+      <div class="card"><span class="lbl">qué</span><h3 style="margin-top:6px">direct_answer</h3><p>La respuesta, sin rodeos.</p></div>
+      <div class="card"><span class="lbl">cuánto confía</span><h3 style="margin-top:6px">confidence_by_subclaim</h3><p>Confianza desglosada por sub-afirmación — no un número global que oculte lo débil.</p></div>
+      <div class="card"><span class="lbl">con qué</span><h3 style="margin-top:6px">evidence_cited</h3><p>Las fuentes, con su tier (RAW/DERIVED).</p></div>
+      <div class="card"><span class="lbl">qué descartó</span><h3 style="margin-top:6px">alternatives_considered</h3><p>Hipótesis rechazadas — obligatorio, no opcional.</p></div>
+      <div class="card"><span class="lbl">qué falta</span><h3 style="margin-top:6px">gap_flags</h3><p>Los known-unknowns declarados explícitamente.</p></div>
+      <div class="card"><span class="lbl">cómo razonó</span><h3 style="margin-top:6px">framework_applied + agents_invoked</h3><p>El método (citando §sección) y qué agentes corrieron.</p></div>
+    </div>
+    <p class="note">+ calibración real (ECE, isotónica post-hoc · Test 4) y un <b>reporte HTML al cierre</b>: la evidencia visible ES el trail de auditoría.</p>
+  </div></section>
+
+  <section class="slide" id="s13"><div class="inner">
+    <div class="eyebrow"><span class="step">13</span> La revisión total · el loop de auto-mejora <span class="rule"></span></div>
+    <h2>El sistema <span class="accent">aprende de cada error</span> y se refuerza otra vez.</h2>
+    <div class="flow">
+      <div class="node" style="border-top-color:var(--bad)"><span class="tag">error</span><div class="t">failure_log</div><div class="d">cada fallo queda registrado</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">se vuelve guard</span><div class="t">regression_cases</div><div class="d">build_regression_cases — guard permanente</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">se replaya</span><div class="t">replay-as-regression</div><div class="d">&#916;v&lt;0 atrapa si el error reaparece</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node gate"><span class="tag">pre-gate advisory</span><div class="t">governance_prefilter</div><div class="d">&#8594; queue &#8594; gate humano</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card"><span class="lbl">validez de lente (ADR-0028)</span><h3 style="margin-top:6px">evidence_weighting</h3>
+        <p>Pesa la evidencia por su tier: <b>nativo &gt; ortólogo &gt; membresía</b>. Si la respuesta top descansa en evidencia débil mientras otra tiene nativa, lo <b>marca como over-claim</b>. Convirtió un catch del auditor en código determinista.</p></div>
+      <div class="card"><span class="lbl">la lección que no se repite</span><h3 style="margin-top:6px">next_session_prepend</h3>
+        <p>La próxima sesión lee los errores recurrentes antes de empezar. El más persistente: <b>no leer "ausente de una lente" como "evidencia en contra"</b>.</p></div>
+    </div>
+  </div></section>
+
+  <!-- DEEP DIVE: AGENTS -->
+  <section class="slide" id="sa1"><div class="inner">
+    <div class="eyebrow"><span class="step">14</span> Profundización · los agentes <span class="rule"></span></div>
+    <h2>Quién hace qué — y <span class="accent">quién no decide solo</span>.</h2>
+    <p class="stand">El substrato no es "un LLM". Es un catálogo de agentes especializados, cada uno con un rol, su evidencia,
+      y su límite. Los que <b>generan</b> nunca deciden: proponen, y un humano cierra.</p>
+    <div class="roster">
+      <div class="rgrp"><div class="h" style="color:var(--bio)">generación &middot; proponen, no deciden</div>
+        <div class="ag"><span class="n">causal-pruner</span><span class="d">candidatos / minimal-sets rankeados &#8594; Logic-LM &#8594; <span class="amb">SIEMPRE human gate</span>. Es hipótesis, jamás decisión.</span></div>
+        <div class="ag"><span class="n">hypothesis-generator</span><span class="d">hipótesis grounded en priors + literatura; contradictory_evidence obligatorio.</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--bad)">auditoría &middot; exposición</div>
+        <div class="ag"><span class="n">composite-auditor</span><span class="d">&#8805;3 auditores adversariales (split-and-vote). Reemplaza el SÍ/NO de un solo LLM.</span></div>
+        <div class="ag"><span class="n">reasoning-exposer</span><span class="d">envuelve toda salida §5; fuerza el razonamiento visible.</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--gate)">calibración</div>
+        <div class="ag"><span class="n">calibration-tracker</span><span class="d">registra el claim + aplica isotónica post-hoc (Test 4).</span></div>
+        <div class="ag"><span class="n">evaluation-runner</span><span class="d">corre con perturbaciones vs held-out; mide robustez (Test 3).</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--graph)">dominio &middot; conocimiento</div>
+        <div class="ag"><span class="n">cross-field-bridge</span><span class="d">puentes entre nichos (Método 2 only en Fase I).</span></div>
+        <div class="ag"><span class="n">domain-knowledge-curator</span><span class="d">mantiene la fuente de verdad; analistas scRNA / spatial / marker-validator.</span></div>
+      </div>
+    </div>
+    <p class="note">Regla dura (§7): la <b>auto-auditoría del productor está prohibida</b>; un agente nunca se aprueba a sí mismo.</p>
+  </div></section>
+
+  <section class="slide" id="sa2"><div class="inner">
+    <div class="eyebrow"><span class="step">15</span> Profundización · la matriz de invocación (§11) <span class="rule"></span></div>
+    <h2>El trabajo decide <span class="accent">qué agente</span> entra — es un reflejo, no opcional.</h2>
+    <div class="scroll"><table class="mx">
+      <tr><th>Tipo de trabajo</th><th>Agente requerido</th><th>Patrón compuesto</th></tr>
+      <tr><td>Generar candidatos / minimal-set / suficiencia</td><td class="a">causal-pruner</td><td class="g">&#8594; Logic-LM &#8594; &#9670; HUMAN GATE</td></tr>
+      <tr><td>Auditar una salida de evidencia-substrato</td><td class="a">composite-auditor</td><td class="g">&#8805;3 adversariales &#8594; voto</td></tr>
+      <tr><td>Cualquier salida con confidence + framework (§5)</td><td class="a">reasoning-exposer</td><td class="g">envuelve al productor</td></tr>
+      <tr><td>Claim con confidence &lt; 0.95 y outcome checkable</td><td class="a">calibration-tracker</td><td class="g">registra + isotónica</td></tr>
+      <tr><td>Cross-field en Fase I</td><td class="a">cross-field-bridge</td><td class="g">Método 2 + invocación humana</td></tr>
+      <tr><td>Cualquier output con ID externo</td><td class="a">resolve_id + verify_output</td><td class="g">Logic-LM-class (no LLM)</td></tr>
+    </table></div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card"><span class="lbl">Método 2 · por defecto</span><h3 style="margin-top:6px">El humano dirige; el sistema instrumenta</h3>
+        <p>Razonamiento paso a paso, cada salida con su contrato. Es el modo de todo lo que toca biología, presupuesto o wet-lab.</p></div>
+      <div class="card"><span class="lbl" style="color:var(--graph)">Método 1 · enjambre orquestado</span><h3 style="margin-top:6px">Solo low-risk, reversible, repetible</h3>
+        <p>Monitoreo de literatura, triage, re-runs de pipelines validados. Nunca decide compliance/budget/wet-lab sin gate humano.</p></div>
+    </div>
+  </div></section>
+
+  <!-- CHART 1: lens-validity guard -->
+  <section class="slide" id="sa3"><div class="inner">
+    <div class="eyebrow"><span class="step">16</span> Gráfica · el guard de validez-de-lente en acción <span class="rule"></span></div>
+    <h2>Cómo se ve un <span class="accent">over-claim atrapado</span> (datos reales, round 3).</h2>
+    <p class="stand">El panel votó "Wnt" como top. Al pesar cada candidato por la <b>validez de su evidencia</b>
+      (nativo 1.0 &gt; ortólogo 0.5 &gt; ausencia 0.0), Wnt (solo ortólogo) <b>cae por debajo</b> de RA (nativo) &#8594; <code>overclaim_flag = TRUE</code>.</p>
+    <div class="chart">
+      <div class="crow"><div class="k">RA <span style="color:var(--faint)">· nativo</span></div>
+        <div class="dual">
+          <div class="ln"><span class="lab">crudo</span><div class="mini" style="flex:1"><i style="width:80%;background:#3a4a66"></i></div></div>
+          <div class="ln"><span class="lab" style="color:var(--bio)">pesado</span><div class="mini" style="flex:1"><i style="width:80%;background:var(--bio)"></i></div></div>
+        </div><div class="v">0.40</div></div>
+      <div class="crow"><div class="k">Wnt <span style="color:var(--faint)">· ortólogo</span></div>
+        <div class="dual">
+          <div class="ln"><span class="lab">crudo</span><div class="mini" style="flex:1"><i style="width:84%;background:#3a4a66"></i></div></div>
+          <div class="ln"><span class="lab" style="color:var(--gate)">pesado</span><div class="mini" style="flex:1"><i style="width:42%;background:var(--gate)"></i></div></div>
+        </div><div class="v">0.21 &#8595;</div></div>
+      <div class="crow"><div class="k">Notch <span style="color:var(--faint)">· ortólogo</span></div>
+        <div class="dual">
+          <div class="ln"><span class="lab">crudo</span><div class="mini" style="flex:1"><i style="width:14%;background:#3a4a66"></i></div></div>
+          <div class="ln"><span class="lab" style="color:var(--gate)">pesado</span><div class="mini" style="flex:1"><i style="width:7%;background:var(--gate)"></i></div></div>
+        </div><div class="v">0.04</div></div>
+      <div class="crow"><div class="k">FGF8a <span style="color:var(--faint)">· ausencia</span></div>
+        <div class="dual">
+          <div class="ln"><span class="lab">crudo</span><div class="mini" style="flex:1"><i style="width:16%;background:#3a4a66"></i></div></div>
+          <div class="ln"><span class="lab" style="color:var(--bad)">pesado</span><div class="mini" style="flex:1"><i style="width:0%;background:var(--bad)"></i></div></div>
+        </div><div class="v">0.00</div></div>
+    </div>
+    <div class="legend"><span><i style="background:#3a4a66"></i> probabilidad cruda</span><span><i style="background:var(--bio)"></i> nativo ×1.0</span><span><i style="background:var(--gate)"></i> ortólogo ×0.5</span><span><i style="background:var(--bad)"></i> ausencia ×0.0</span></div>
+    <p class="note">El catch del auditor se volvió <b>código determinista</b> (ADR-0028): si el top descansa en evidencia débil, el sistema reporta el role-split, no un ganador.</p>
+  </div></section>
+
+  <!-- CHART 2: trust trail + store -->
+  <section class="slide" id="sa4"><div class="inner">
+    <div class="eyebrow"><span class="step">17</span> Gráfica · el trail de confianza + la fuente de verdad <span class="rule"></span></div>
+    <div class="two" style="align-items:start">
+      <div>
+        <h2 style="font-size:clamp(22px,2.6vw,30px)">Confianza <span class="accent">por sub-afirmación</span></h2>
+        <p class="note" style="margin-top:10px;margin-bottom:6px">La respuesta de inducción (round 3) — honesta sobre lo que NO sabe:</p>
+        <div class="chart" style="gap:9px">
+          <div class="crow" style="grid-template-columns:1fr auto"><div class="track"><i style="width:85%;background:var(--bio)"></i></div><div class="v">0.85</div></div>
+          <div class="k" style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:-4px">FGF promueve fate pronéfrico</div>
+          <div class="crow" style="grid-template-columns:1fr auto"><div class="track"><i style="width:72%;background:var(--bio)"></i></div><div class="v">0.72</div></div>
+          <div class="k" style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:-4px">cascada RA&#8594;osr1&#8594;wnt2b</div>
+          <div class="crow" style="grid-template-columns:1fr auto"><div class="track"><i style="width:40%;background:var(--gate)"></i></div><div class="v">0.40</div></div>
+          <div class="k" style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:-4px">FGF = "top inducer" (acotado)</div>
+          <div class="crow" style="grid-template-columns:1fr auto"><div class="track"><i style="width:12%;background:var(--bad)"></i></div><div class="v">0.12</div></div>
+          <div class="k" style="font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:-4px">suficiencia resuelta &#8594; <span style="color:var(--bad)">NO testeada</span></div>
+        </div>
+      </div>
+      <div>
+        <h2 style="font-size:clamp(22px,2.6vw,30px)">La fuente de verdad <span class="accent">crece</span></h2>
+        <p class="note" style="margin-top:10px;margin-bottom:6px">verified_identifiers.json &#8594; 46&#8594;51 records esta semana (ADR-0029, human-gated):</p>
+        <div class="stack">
+          <i style="width:51%;background:var(--bio)" title="RAW">26 RAW</i>
+          <i style="width:45%;background:var(--gate)" title="DERIVED">23 DERIVED</i>
+          <i style="width:4%;background:#3a4a66;color:#cdd" title="NOT_FOUND">2</i>
+        </div>
+        <ul class="ticks" style="margin-top:18px">
+          <li><b style="color:var(--bio)">RAW</b> — crudo en disco. Peso pleno en calibración.</li>
+          <li><b class="amb">DERIVED</b> — resuelto sin crudo. Peso parcial.</li>
+          <li><b style="color:var(--faint)">NOT_FOUND</b> — ausencia positiva. Peso cero.</li>
+        </ul>
+        <p class="note" style="margin-top:14px">Solo lo RAW pesa: un dato débil <b>no contamina</b> la confianza.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- CHART 3: self-defense across episodes -->
+  <section class="slide" id="sa5"><div class="inner">
+    <div class="eyebrow"><span class="step">18</span> Gráfica · el sistema se defiende <span class="rule"></span></div>
+    <h2>El auditor atrapó algo en <span class="accent">cada episodio</span> — incluso del operador.</h2>
+    <p class="stand">No es teoría. Estos son los over-claims que el composite-auditor (&#8805;3 adversarial) detuvo esta semana,
+      antes de que entraran a la fuente de verdad. <b>Dos de ellos eran míos.</b></p>
+    <div class="chart" style="margin-top:24px">
+      <div class="crow"><div class="k">Validación MITAD_A</div><div class="track"><i style="width:100%;background:linear-gradient(90deg,var(--bio),#1f8f84)"></i></div><div class="v">4 fix</div></div>
+      <div class="crow"><div class="k">E2E round 1 <span style="color:var(--faint)">· panel</span></div><div class="track"><i style="width:25%;background:var(--gate)"></i></div><div class="v">1</div></div>
+      <div class="crow"><div class="k">E2E round 2 <span style="color:var(--bad)">· operador</span></div><div class="track"><i style="width:50%;background:var(--bad)"></i></div><div class="v">2</div></div>
+      <div class="crow"><div class="k">E2E round 3 <span style="color:var(--bad)">· operador</span></div><div class="track"><i style="width:50%;background:var(--bad)"></i></div><div class="v">2</div></div>
+    </div>
+    <div class="legend"><span><i style="background:var(--bio)"></i> bypasses cerrados (N1/W2/N3/N6)</span><span><i style="background:var(--gate)"></i> over-claim del panel</span><span><i style="background:var(--bad)"></i> over-claim / violación del operador</span></div>
+    <p class="note">El patrón recurrente que el loop ya "aprendió a no repetir": <b>leer "ausente de una lente" como "evidencia en contra"</b>.
+      Para un sistema de rendición de cuentas, defenderse de su propio operador es la prueba más fuerte.</p>
+  </div></section>
+
+  <section class="slide" id="s14"><div class="inner">
+    <div class="eyebrow"><span class="step">19</span> El workflow completo <span class="rule"></span></div>
+    <h2>De la pregunta a la verdad — <span class="accent">todo en una imagen</span>.</h2>
+    <div class="flow" style="margin-top:22px">
+      <div class="node"><div class="t" style="font-size:15px">Pregunta</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><div class="t" style="font-size:15px">Gates deterministas</div><div class="d">resolve_id · verify · §4/§11</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><div class="t" style="font-size:15px">Path A &#8594; B</div><div class="d">DI · luego MCP si falta</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:15px">Auditores ≥3</div><div class="d">adversariales</div></div>
+    </div>
+    <div class="flow" style="margin-top:12px">
+      <div class="node gate"><div class="t" style="font-size:15px">&#9670; GATE HUMANO</div><div class="d">toda mutación</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><div class="t" style="font-size:15px">Re-ingesta</div><div class="d">la DI crece</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><div class="t" style="font-size:15px">Respuesta + contrato §5</div><div class="d">confianza + huecos + reporte</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--gate)"><div class="t" style="font-size:15px">RIL refuerza</div><div class="d">error &#8594; guard &#8594; próxima sesión</div></div>
+    </div>
+    <div class="stat">
+      <div class="s"><div class="n accent">3 capas</div><div class="l">guía · respaldo · catálogo</div></div>
+      <div class="s"><div class="n amb">1 gate</div><div class="l">humano, en toda mutación</div></div>
+      <div class="s"><div class="n" style="color:var(--bad)">≥3</div><div class="l">auditores por fetch/cierre</div></div>
+      <div class="s"><div class="n good">crece</div><div class="l">con cada iteración validada</div></div>
+    </div>
+    <p class="note">Lo único que <b>resolvería</b> la suficiencia biológica del pronefros ya es wet-lab (Fase II). In-silico, el sistema quedó listo: fuente de verdad, lentes, gates y loop — todo human-gated.</p>
+  </div></section>
+
+</div>
+
+<div class="ctrl"><button id="prev" aria-label="Anterior">&#8249;</button><button id="next" aria-label="Siguiente">&#8250;</button></div>
+<div class="hud"><span class="sec" id="hud-sec">Portada</span><span><span class="who">Witt × Organogénesis</span> · <span id="hud-num">01 / 20</span></span></div>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var secs = ["Portada","El mapa","La tesis","Composición","Dónde vive","El RAG","Indexación",
+      "Embedding · dominios","Refuerzo · 3 puertas","El loop · ADR-0022","Verificación","Auditores",
+      "Confianza · §5","Auto-mejora","Agentes · catálogo","Agentes · matriz §11","Gráfica · validez de lente",
+      "Gráfica · confianza + store","Gráfica · auto-defensa","Workflow completo"];
+    var i = 0;
+    var prog = document.getElementById('prog');
+    var hudNum = document.getElementById('hud-num');
+    var hudSec = document.getElementById('hud-sec');
+    function pad(n){ return (n < 10 ? '0' : '') + n; }
+    function show(n){
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      for (var k = 0; k < slides.length; k++){ slides[k].classList.toggle('active', k === i); }
+      hudNum.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+      hudSec.textContent = secs[i] || '';
+      prog.style.width = (i / (slides.length - 1) * 100) + '%';
+    }
+    function nx(){ show(i + 1); }
+    function pv(){ show(i - 1); }
+    document.getElementById('next').onclick = nx;
+    document.getElementById('prev').onclick = pv;
+    document.addEventListener('keydown', function(e){
+      var k = e.key;
+      if (k === 'ArrowRight' || k === 'PageDown' || k === ' '){ e.preventDefault(); nx(); }
+      else if (k === 'ArrowLeft' || k === 'PageUp'){ e.preventDefault(); pv(); }
+      else if (k === 'Home'){ show(0); }
+      else if (k === 'End'){ show(slides.length - 1); }
+    });
+    document.getElementById('deck').addEventListener('click', function(e){
+      if (e.target.closest('button')) return;
+      if (e.clientX > window.innerWidth * 0.62) nx();
+      else if (e.clientX < window.innerWidth * 0.38) pv();
+    });
+    show(0);
+  })();
+</script>

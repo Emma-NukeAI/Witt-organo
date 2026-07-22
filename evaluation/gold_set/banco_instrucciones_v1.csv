@@ -1,0 +1,22 @@
+INSTRUCCIONES — Banco de calibración (LATIMED × Witt),,,
+,,,
+Estamos desarrollando un asistente de IA para la investigación del riñón embrionario del pez cebra. Queremos tu criterio de experto sobre DOS cosas distintas:,,,
+1) la PREGUNTA en sí (¿es buena pregunta?) y 2) la RESPUESTA de la IA (¿sirve?). Son juicios SEPARADOS.,,,
+Una pregunta puede ser excelente aunque la IA la conteste mal — y una pregunta vaga puede tener una respuesta correcta. No los mezcles.,,,
+,,,
+Cómo trabajar: lee la 'pregunta' y el 'resumen_respuesta_ia'. Si quieres el detalle completo abre 'respuesta_completa'. Luego llena tu pestaña. No edites las columnas grises (id/tema/pregunta/resúmenes). Pon tu nombre en 'revisor'. Califica las 30. ~1–2 min c/u.,,,
+NO ves la confianza que declaró la IA — es a propósito. Solo juzga con tu criterio.,,,
+,,,
+BLOQUE 1 — CALIFICAR LA PREGUNTA (el 'input'),,,
+Columna,Qué te preguntamos,Opciones (elige una),Cómo decidir (regla + ejemplo)
+P_objetiva,¿La pregunta admite una respuesta verificable o es abierta/de opinión?,Objetiva / Parcial / Vaga,"¿Dos expertos que saben del tema llegarían a la MISMA respuesta? Sí = Objetiva (ej. 'qué genes marcan cada segmento'). Casi, pero hay síntesis/criterio de por medio = Parcial (ej. 'cómo se arma la evidencia de que un gen es regulador'). No, depende del criterio/opinión = Vaga (ej. 'deberíamos reorganizar la taxonomía')."
+P_en_contexto,¿Es relevante al desarrollo del proyecto (riñón del pez cebra / estrategia de inducción)?,En foco / Exploratoria / Fuera de alcance,"¿Ayuda a avanzar el POC del riñón? Directamente = En foco (pronephros, marcadores, cascada de inducción). De refilón u otro órgano/campo = Exploratoria (ojo/córnea, cruces de campo). No aporta = Fuera de alcance."
+P_especificidad,¿Qué tan específica es la pregunta? (es una escala, NO es bueno/malo),Genérica / Intermedia / Muy específica,"Genérica = amplia, de método o concepto (ej. 'cuál es el paso mínimo para validar un gradiente'). Intermedia = acotada a un proceso pero sin pedir un dato puntual (ej. 'qué factores marcan el mesodermo pronéfrico a 12–24 hpf'). Muy específica = pide un dato/entidad concreto (genes, IDs, ventana exacta; ej. 'qué marcador discrimina el distal temprano y su ENSDARG'). OJO: una pregunta genérica NO es peor — solo es más amplia."
+P_comentario,¿Cómo reformularías la pregunta para que el sistema la responda mejor? (opcional),texto libre,Escribe una versión mejorada de la pregunta o qué le falta para ser clara/objetiva/en foco. Déjalo en blanco si está bien.
+,,,
+BLOQUE 2 — CALIFICAR LA RESPUESTA (el 'output'),,,
+Columna,Qué te preguntamos,Opciones (elige una),Cómo decidir (regla + ejemplo)
+R_correcta_util,¿La respuesta de la IA es correcta y útil?,Sí sólida / Más o menos / No,"Sí sólida = correcta y la tomarías tal cual. Más o menos = parcialmente correcta, le falta, o con reservas. No = incorrecta o inútil. Si la IA se ABSTUVO honestamente ('no puedo confirmarlo con esta evidencia') y hacía bien en abstenerse, eso puede ser 'Más o menos', no 'No'."
+R_que_falta,¿Qué le falta o qué corregirías? (opcional),texto libre,Lo que agregarías, corregirías o el error que viste. Ayuda muchísimo aunque sea una línea.
+R_la_usarias,¿La usarías para planear un experimento real?,Sí / No,"Filtro más duro que 'correcta': algo puede ser correcto en teoría pero no accionable en la mesa. Si lo llevarías al banco de trabajo = Sí; si no confiarías en ello para diseñar = No."
+revisor,Tu nombre / rol,texto,"Ej. 'Dra. Ana Pérez / nefrología'. Ponlo en la primera fila de tu pestaña y arrástralo hacia abajo, o en cada fila."

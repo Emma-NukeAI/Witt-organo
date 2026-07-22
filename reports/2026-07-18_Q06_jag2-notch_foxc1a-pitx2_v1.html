@@ -1,0 +1,108 @@
+<title>Q06 — Jagged2–Notch & Foxc1a–Pitx2 anterior-segment complexes (v1)</title>
+<style>
+  :root{--bg:#0f1115;--fg:#e8eaed;--mut:#9aa0a6;--card:#171a21;--bd:#2a2f3a;--acc:#6ea8fe;--ok:#5bd0a0;--warn:#f2c14e;--bad:#ef6f6c;}
+  @media (prefers-color-scheme: light){:root{--bg:#f7f8fa;--fg:#1a1c20;--mut:#5a6069;--card:#fff;--bd:#e2e5ea;--acc:#2f6fed;}}
+  :root[data-theme="dark"]{--bg:#0f1115;--fg:#e8eaed;--mut:#9aa0a6;--card:#171a21;--bd:#2a2f3a;}
+  :root[data-theme="light"]{--bg:#f7f8fa;--fg:#1a1c20;--mut:#5a6069;--card:#fff;--bd:#e2e5ea;}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 -apple-system,Segoe UI,Roboto,sans-serif}
+  .wrap{max-width:940px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:23px;margin:0 0 4px}h2{font-size:17px;margin:30px 0 10px;border-bottom:1px solid var(--bd);padding-bottom:6px}
+  .sub{color:var(--mut);font-size:13px}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px 16px;margin:12px 0}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid var(--bd)}
+  .b-ok{color:var(--ok);border-color:var(--ok)}.b-warn{color:var(--warn);border-color:var(--warn)}.b-bad{color:var(--bad);border-color:var(--bad)}.b-acc{color:var(--acc);border-color:var(--acc)}
+  table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--bd);padding:7px 9px;text-align:left;vertical-align:top}
+  th{color:var(--mut);font-weight:600}code{background:rgba(128,128,128,.15);padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .scroll{overflow-x:auto}.mut{color:var(--mut)}.pill{font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--bd);margin-right:4px}
+  ul{margin:6px 0 6px 0;padding-left:20px}li{margin:3px 0}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:680px){.grid{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <h1>Q06 — Jagged2–Notch & Foxc1a–Pitx2: anterior-segment/eye complexes and interaction-evidence assembly</h1>
+  <div class="sub">Held-out gold-set item · type <code>pathway_assembly</code> · niche N5 (ocular biology) — <b>EXPLORATORY in Phase I</b> · TYPE A analytical report · 2026-07-18 · v1</div>
+
+  <div class="card">
+    <span class="badge b-acc">framework: Chain-of-Verification (CoVe) §8</span>
+    <span class="badge b-warn">causal_pruner_flag: false</span>
+    <span class="badge b-ok">9/9 gene IDs grounded</span>
+    <span class="badge b-warn">N5 exploratory — analogy has explicit break-points</span>
+  </div>
+
+  <h2>Project-state preflight</h2>
+  <div class="card mut">
+    <code>grep analysis/outputs/</code> → <b>foxc1a / foxc1b / pitx2 already curated</b> (in DATA INAMOVIBLE store v2026-07-11.1 and in <code>ocular_markers_curated.json</code>, N5/Test-5 work). No prior artifact on jag2/notch or on the two named complexes. Test-5 cross-field artifacts (<code>poc_crossfield_test5_*.json</code>) frame pronephros(N3)↔ocular(N5) but do not touch these complexes. No <code>docs/findings</code> or <code>docs/decisions</code> hit on eye/notch/anterior-segment. Notch-pathway ligands/receptors (jag2a, jag2b, notch1a/1b/2/3) were <code>NOT_FOUND</code> in-store → verified live vs Ensembl REST and raw-cached (§7.9). This output references project artifacts for the 3 TFs and operates from established developmental biology + live-verified IDs for the Notch pathway.
+  </div>
+
+  <h2>Confidence by subclaim</h2>
+  <div class="scroll"><table>
+    <tr><th>Subclaim</th><th>Confidence</th><th>Tier</th></tr>
+    <tr><td>Gene identities & ENSDARG bindings (all 9)</td><td><b>0.97</b></td><td>verified-ID (resolve_id + Ensembl REST)</td></tr>
+    <tr><td>foxc1a/foxc1b + pitx2 are the canonical anterior-segment-dysgenesis TFs with a documented mammalian FOXC1↔PITX2 physical/regulatory interaction</td><td><b>0.85</b></td><td>established-textbook + ortholog-inferred</td></tr>
+    <tr><td>The evidence-assembly provenance framing (IntAct/BioGRID physical vs STRING predictive vs structural PDB / AF-Multimer interface-PAE)</td><td><b>0.90</b></td><td>methodological</td></tr>
+    <tr><td>Jagged<b>2</b> specifically (not JAG1) being the anterior-segment-relevant Notch ligand</td><td class="b-bad"><b>0.40</b></td><td>ortholog-inferred — <b>weak</b>; JAG1–NOTCH2 (Alagille) is the canonical anterior-segment Notch axis</td></tr>
+    <tr><td>Native zebrafish physical-interaction evidence for either complex</td><td class="b-bad"><b>0.15</b></td><td>gap — provenance is ortholog-mapped, not native</td></tr>
+  </table></div>
+
+  <h2>Identifier bindings (all grounded — no ID from memory)</h2>
+  <div class="scroll"><table>
+    <tr><th>Symbol</th><th>ENSDARG</th><th>verified_via</th><th>note</th></tr>
+    <tr><td>foxc1a</td><td>ENSDARG00000091481</td><td>resolve_id (in-store)</td><td class="mut">store record is <b>DERIVED</b> (raw not retained); backlog to re-verify with raw cache</td></tr>
+    <tr><td>foxc1b</td><td>ENSDARG00000055398</td><td>resolve_id (in-store, RAW)</td><td class="mut">2nd FOXC1 co-ortholog</td></tr>
+    <tr><td>pitx2</td><td>ENSDARG00000036194</td><td>resolve_id (in-store, RAW)</td><td class="mut">—</td></tr>
+    <tr><td>jag2a</td><td>ENSDARG00000014246</td><td>ensembl_rest</td><td class="mut">raw cached Q06</td></tr>
+    <tr><td>jag2b</td><td>ENSDARG00000021389</td><td>ensembl_rest</td><td class="b-warn">ambiguous xref: also returns ENSDARG00000112465</td></tr>
+    <tr><td>notch1a</td><td>ENSDARG00000103554</td><td>ensembl_rest</td><td class="mut">raw cached Q06</td></tr>
+    <tr><td>notch1b</td><td>ENSDARG00000052094</td><td>ensembl_rest</td><td class="mut">raw cached Q06</td></tr>
+    <tr><td>notch2</td><td>ENSDARG00000043130</td><td>ensembl_rest</td><td class="mut">the Alagille-axis receptor ortholog</td></tr>
+    <tr><td>notch3</td><td>ENSDARG00000052139</td><td>ensembl_rest</td><td class="mut">raw cached Q06</td></tr>
+  </table></div>
+
+  <h2>(1) Jagged2–Notch complex</h2>
+  <div class="card">
+    A <b>ligand–receptor trans-signaling</b> pair, not a TF complex. The Jagged N-terminal <b>MNNL/C2</b> + <b>DSL</b> domain engages the Ca²⁺-binding <b>EGF repeats 8–12</b> of the Notch ectodomain on an adjacent cell → ADAM10/17 (S2) then γ-secretase (S3) cleavage → <b>NICD</b> release → RBPJ/CSL + MAML target activation. Zebrafish Jagged2 exists as two co-orthologs (<code>jag2a</code>, <code>jag2b</code>) from the teleost genome duplication; receptors <code>notch1a/1b/2/3</code>.
+    <div style="margin-top:8px" class="b-warn"><b>Honest caveat (drives the low subclaim confidence):</b> the strongest human anterior-segment Notch genetics is <b>JAG1–NOTCH2</b> (Alagille syndrome; posterior embryotoxon, Axenfeld-Rieger-like). JAG<b>2</b> is more classically craniofacial/otic/limb/thymus. Pairing "Jagged2" with anterior-segment is plausible on periocular neural-crest grounds but is not the canonical axis — flag before any design use.</div>
+  </div>
+
+  <h2>(2) Foxc1a–Pitx2 complex</h2>
+  <div class="card">
+    A <b>transcription-factor complex / regulatory antagonism</b>, not receptor–ligand. FOXC1 (forkhead) and PITX2 (paired-like homeodomain) are the two dosage-sensitive <b>Axenfeld-Rieger / anterior-segment-dysgenesis</b> genes. In mammals PITX2 <b>physically binds FOXC1 and represses its transcriptional activity</b> (Berry et al., <i>Hum Mol Genet</i> 2006) — a direct protein–protein interaction with functional feedback. Zebrafish maps FOXC1 to co-orthologs <code>foxc1a</code> (dominant periocular) + <code>foxc1b</code>, with a single <code>pitx2</code>. The complex acts in periocular neural-crest-derived mesenchyme patterning the anterior segment.
+  </div>
+
+  <h2>How the interaction evidence would be assembled — provenance-tiered</h2>
+  <div class="scroll"><table>
+    <tr><th>Layer</th><th>Resource</th><th>What it asserts</th><th>Provenance discipline</th></tr>
+    <tr><td><b>Physical / curated</b></td><td>IntAct, BioGRID, MINT, Reactome</td><td>Experimentally-determined physical interactions with detection method (PSI-MI codes) + PMID</td><td>FOXC1↔PITX2 = <b>mammalian ortholog</b> physical evidence (Berry 2006) → map to <code>foxc1a/foxc1b</code>+<code>pitx2</code> as <b>ortholog-inferred</b>, NOT native zebrafish</td></tr>
+    <tr><td><b>Predictive / association</b></td><td>STRING</td><td>Combined score decomposed into channels (experiments / databases / textmining / coexpression / neighborhood / fusion / cooccurrence)</td><td>STRING edges are <b>probabilistic, not physical</b>. Report the channel: a textmining-only edge ≠ an experiments-channel edge backed by IntAct. Never present a STRING edge as a physical assertion.</td></tr>
+    <tr><td><b>Structural</b></td><td>PDB (real) vs AlphaFold-Multimer / AF3 (predicted)</td><td>The physical binding interface</td><td>Jagged–Notch has a <b>real co-crystal</b> (human JAG1–NOTCH1, PDB 5UK5, Luca 2017) → confident interface. FOXC1–PITX2 has <b>no experimental complex</b> → any interface is a predicted model whose <b>inter-chain PAE at the interface</b> must be reported and gated (low PAE = trust contact; high PAE = discard interface). <i>This is the required "complex PAE note".</i></td></tr>
+  </table></div>
+  <div class="card mut">Net: for both complexes the native zebrafish provenance is largely <b>absent</b>; the assembled evidence is dominated by the <b>ortholog-inference tier</b> (human/mouse physical + structural, mapped down), so aggregate confidence in a <i>native</i> interaction claim must stay low even where the mammalian evidence is strong.</div>
+
+  <div class="grid">
+    <div class="card"><b>Alternatives considered</b>
+      <ul>
+        <li>Presenting STRING combined-score as "the interaction evidence" — rejected: conflates predictive with physical.</li>
+        <li>Asserting a single Notch receptor — rejected: 4 zebrafish receptors, no native data selects one.</li>
+        <li>Collapsing foxc1a/foxc1b to one gene — rejected: they are non-redundant co-orthologs.</li>
+        <li>Accepting Jagged2 as the anterior-segment ligand uncritically — rejected: JAG1–NOTCH2 is the canonical axis; flagged.</li>
+      </ul>
+    </div>
+    <div class="card"><b>Gap flags</b>
+      <ul>
+        <li>No native zebrafish physical-interaction record for either complex in-store.</li>
+        <li>foxc1a store record is DERIVED (raw not retained) — soft verification.</li>
+        <li>jag2b Ensembl xref is ambiguous (two gene IDs).</li>
+        <li>Jagged2-vs-Jagged1 anterior-segment relevance unresolved (needs human genetics review).</li>
+        <li>No PDB/AF-Multimer model actually retrieved here — the assembly is a recipe, not executed lookups.</li>
+        <li>N5 is exploratory in Phase I; modest evidence is success (CLAUDE.md §7).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Agents invoked</h2>
+  <div class="card mut">
+    <span class="pill">causal-pruner — not-applicable</span> no ranked candidates / minimal set / sufficiency hypothesis produced (descriptive pathway assembly).<br>
+    <span class="pill">composite-auditor — skipped-ad-hoc</span> single held-out answer under a workflow harness; closing composite-audit is a session-level gate, disproportionate here. Not claimed as audit evidence.
+  </div>
+
+  <div class="sub" style="margin-top:24px">framework_applied: Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: "Outputs that cite specific facts or numbers" (each ENSDARG independently verified vs Ensembl before assertion). Raw caches: <code>mcp_cache/raw_ensembl_Q06_*_20260718.json</code>.</div>
+</div>

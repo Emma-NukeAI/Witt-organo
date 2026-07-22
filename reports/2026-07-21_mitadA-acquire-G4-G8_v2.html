@@ -1,0 +1,113 @@
+<title>MITAD_A · Adquisición G4 + G8 (RN2/RN3) — checkpoint 2026-07-21</title>
+<style>*{box-sizing:border-box}:root{--bg:#f7f8fa;--card:#fff;--ink:#1a1d24;--mut:#5b6472;--line:#e3e7ee;--brand:#3b5bdb;
+--ok:#2b8a3e;--okbg:#ebfbee;--warn:#e8590c;--warnbg:#fff4e6;--acc:#e7f5ff;--accln:#a5d8ff;--hold:#9c6f00;--holdbg:#fff9db}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#171b22;--ink:#e8ecf2;--mut:#9aa4b2;--line:#262c37;--brand:#748ffc;
+--ok:#69db7c;--okbg:#12321c;--warn:#ffa94d;--warnbg:#3a2510;--acc:#122436;--accln:#1c3a52;--hold:#ffe066;--holdbg:#332b09}}
+:root[data-theme=dark]{--bg:#0f1216;--card:#171b22;--ink:#e8ecf2;--mut:#9aa4b2;--line:#262c37;--brand:#748ffc;--ok:#69db7c;--okbg:#12321c;--warn:#ffa94d;--warnbg:#3a2510;--acc:#122436;--accln:#1c3a52;--hold:#ffe066;--holdbg:#332b09}
+:root[data-theme=light]{--bg:#f7f8fa;--card:#fff;--ink:#1a1d24;--mut:#5b6472;--line:#e3e7ee;--brand:#3b5bdb;--ok:#2b8a3e;--okbg:#ebfbee;--warn:#e8590c;--warnbg:#fff4e6;--acc:#e7f5ff;--accln:#a5d8ff;--hold:#9c6f00;--holdbg:#fff9db}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:26px 20px 70px}h1{font-size:24px;margin:.2em 0}h2{font-size:19px;margin:1.6em 0 .5em;border-top:2px solid var(--line);padding-top:.5em}
+h3{font-size:15px;margin:1em 0 .3em}.sub{color:var(--mut);font-size:13px}code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;background:color-mix(in srgb,var(--brand) 12%,transparent);padding:.06em .36em;border-radius:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:12px 0}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:1fr 1fr}@media(max-width:680px){.g2{grid-template-columns:1fr}}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid;margin:2px 3px 2px 0}
+.b-ok{color:var(--ok);border-color:var(--ok);background:var(--okbg)}.b-brand{color:var(--brand);border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
+.b-warn{color:var(--warn);border-color:var(--warn);background:var(--warnbg)}.b-hold{color:var(--hold);border-color:var(--hold);background:var(--holdbg)}
+.callout{border-radius:10px;padding:12px 16px;margin:12px 0;border:1px solid}.co-ok{background:var(--okbg);border-color:var(--ok)}.co-warn{background:var(--warnbg);border-color:var(--warn)}.co-acc{background:var(--acc);border-color:var(--accln)}.co-hold{background:var(--holdbg);border-color:var(--hold)}
+.kv{display:flex;gap:8px;flex-wrap:wrap;margin:3px 0}.kv b{color:var(--mut);min-width:140px;font-size:12.5px}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line)}th{font-size:11px;text-transform:uppercase;color:var(--mut)}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}ul{margin:.3em 0;padding-left:1.15em}li{margin:.2em 0}.small{font-size:12.5px}
+.tog{position:fixed;top:12px;right:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px}
+</style>
+<button class=tog onclick="var r=document.documentElement;r.dataset.theme=r.dataset.theme=='dark'?'light':'dark'">◑ tema</button>
+<div class=wrap>
+<div class=sub>MITAD_A · <span class=mono>witt-organogenesis</span> · GATE 1 ejecutado (G4, G8) → adquisición staged</div>
+<h1>Adquisición G4 + G8 — checkpoint</h1>
+<div class=sub>Siguiendo la recomendación del scope gate · 2026-07-21 · framework: Logic-LM (§5) · <b>cero mutación de la DI</b> (GATE 2 pendiente)</div>
+<div class=sub style="margin-top:4px"><span class='badge b-ok'>v2 · G8 EJECUTADO</span> <span class=small>v1 preservó el estado «staged»; v2 añade las trayectorias MEDIDAS de ZESTA + el record RN3.</span></div>
+
+<div class="callout co-acc"><b>TL;DR.</b> Ejecuté el trabajo de A en las dos adquisiciones que recomendé (y aprobaste vía GATE 1), usando solo APIs gratis y reuso — <b>sin GPU, sin escritura a la DI</b>:
+<ul>
+<li><b>G4 (RN2, estructura Foxc1a-Pitx2):</b> UniProt verificado (<code>foxc1a→Q9DE25</code>, <code>pitx2→Q9W5Z2</code>, raw §7.9) · monómeros AlphaFold disponibles · <b>spec de multímero listo</b>. El run = <b>servidor AF3 GRATIS</b> (surfaceado, no incurrido).</li>
+<li><b>G8 (RN3, cinética Nodal/BMP): EJECUTADO.</b> Extraje las <b>trayectorias MEDIDAS de 15 marcadores desde ZESTA</b> (3/5/10 hpf, spatial) — todas bajo símbolo canónico. Dinámica biológicamente coherente → <b>record candidato RN3</b> ensamblado (medido + constantes citadas + topología BNGL para B).</li>
+</ul>
+<div class=small>Ambos son las adquisiciones <b>más baratas</b> del banco: ninguna compra datos externos. Nada ingerido — <b>GATE 2</b> te espera para el primer record RN2/RN3.</div></div>
+
+<h2>Contrato §5 (UI visible)</h2>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">confidence_by_subclaim</h3>
+<div class=kv><b>uniprot_resolution</b> <span class='badge b-ok'>0.97</span> <span class=small>determinista · raw §7.9</span></div>
+<div class=kv><b>af_availability</b> <span class='badge b-ok'>0.98</span> <span class=small>AlphaFold DB API confirmado</span></div>
+<div class=kv><b>g8_measured_extract</b> <span class='badge b-ok'>0.96</span> <span class=small>15/15 marcadores medidos de ZESTA (canónicos)</span></div>
+<div class=kv><b>acq_plan_soundness</b> <span class='badge b-brand'>0.80</span> <span class=small>juicio de diseño</span></div></div>
+<div class=card><h3 style="margin-top:0">framework_applied</h3>
+<p class=small><b>Logic-LM (§5)</b> — per <code>reasoning-frameworks-catalog.md §5</code>: <i>"Problems where the answer must be provably correct, not just plausible."</i> La resolución UniProt + chequeo de disponibilidad AlphaFold + verificación de marcadores en store son simbólicos/deterministas. (Nivel-sesión sigue siendo CoVe §8.)</p></div></div>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">agents_invoked</h3>
+<div class=kv><b>causal-pruner</b> <span class='badge b-brand'>not-applicable</span></div>
+<p class=small>Adquisición de datos estructurales/expresión, no candidatos biológicos rankeados ni minimal-set.</p>
+<div class=kv><b>composite-auditor</b> <span class='badge b-warn'>skipped-ad-hoc</span></div>
+<p class=small>Prep de adquisición deterministic-dominant; todo aguas abajo es human-gated (GATE 2 ingest + run de cómputo).</p></div>
+<div class=card><h3 style="margin-top:0">gap_flags</h3>
+<ul class=small>
+<li>Multímero AÚN no corrido (compromiso de cómputo surfaceado — servidor AF3 gratis).</li>
+<li>pLDDT global bajo (foxc1a 55 · pitx2 61): TFs con regiones desordenadas → juzgar el <b>PAE de la interfaz</b>, no el pLDDT global.</li>
+<li>Fit reacción-difusión de G8 aún no corrido (lectura ZESTA 4.8GB on-demand + fit).</li>
+<li>Edit del store (uniprot_acc a foxc1a/pitx2) staged pero <b>NO ejecutado</b> (GATE 2).</li>
+</ul></div></div>
+<div class=card><h3 style="margin-top:0">alternatives_considered</h3><ul class=small>
+<li><b>Correr el multímero ahora</b> → rechazado: sin GPU en sesión + el founder pide surfacear compromisos de cómputo.</li>
+<li><b>Ingerir los monómeros como el record RN2 ya</b> → rechazado: el target de G4 es el <i>multímero</i> + PAE, no monómeros; y sería GATE 2.</li>
+<li><b>Usar un multímero de AlphaFold DB</b> → rechazado: la DB solo tiene monómeros por-UniProt; el complejo requiere AF-Multimer/AF3.</li>
+<li><b>Escribir el uniprot_acc al store directo</b> → rechazado: es mutación de la DI (EDIT), gate humano irreducible.</li>
+</ul></div>
+
+<h2>G4 · RN2 — kit de adquisición Foxc1a–Pitx2</h2>
+<div class=scroll><table><tr><th>cadena</th><th>ENSDARG</th><th>UniProt</th><th>largo</th><th>monómero AlphaFold</th></tr>
+<tr><td class=mono><b>foxc1a</b></td><td class=mono>ENSDARG00000091481</td><td class=mono>Q9DE25</td><td>476 aa</td><td class=small>disponible · pLDDT 55.16</td></tr>
+<tr><td class=mono><b>pitx2</b></td><td class=mono>ENSDARG00000036194</td><td class=mono>Q9W5Z2</td><td>314 aa</td><td class=small>disponible · pLDDT 61.0</td></tr></table></div>
+<div class=card><h3 style="margin-top:0">Spec del job de predicción</h3>
+<div class=kv><b>target</b> Foxc1a–Pitx2 heterodimer (zebrafish)</div>
+<div class=kv><b>método · estequiometría</b> AlphaFold-Multimer / AlphaFold3 · 1:1 heterodimer (2ª prueba: 2:2 (Foxc1a forkhead can multimerize; test if PAE supports))</div>
+<div class=kv><b>readouts</b> <span class=small>complex .pdb/.cif · PAE matrix (.json/.npy) at the forkhead(Foxc1a)×homeodomain(Pitx2) interface · ipTM (interface confidence; &gt;0.5 = plausible real interface) · pTM</span></div>
+<div class=kv><b>hipótesis de interfaz</b> <span class=small>cooperative co-binding on shared anterior-segment cis-elements (forkhead + homeodomain); low GLOBAL pLDDT (55/61) is expected (TF disordered regions) — judge the INTERFACE PAE, not global pLDDT</span></div>
+<div class=kv><b>construye sobre</b> <span class=small>Q06 (2026-07-18) dejó AF-Multimer/PAE como la pieza estructural faltante — G4 la produce.</span></div></div>
+<div class="callout co-warn"><b>⚠ Compromiso de cómputo (surfaceado, NO incurrido):</b> el run AF-Multimer/AF3.
+<div class=small style="margin-top:4px">Ruta más barata: <b>servidor AlphaFold3 (alphafoldserver.com), tier GRATIS</b> (~20 jobs/día, submit web manual) — sin orden de GPU pagada. Alt: ColabFold (~$10 Colab Pro) o AF local (GPU). <b>Costo LOW</b> — por eso G4 es la adquisición más barata. <b>Siguiente con tu OK:</b> submit del job 1:1 → cachear PDB+PAE → GATE 2 para ingerir el primer record RN2.</div></div>
+
+<h2>G8 · RN3 — cinética Nodal/BMP <span class='badge b-ok'>EJECUTADO</span></h2>
+<p class=small>Extraje la <b>expresión MEDIDA</b> de 15 marcadores desde ZESTA (stereoseq spatial, local backed, sin descarga). <b>15/15 encontrados bajo símbolo canónico</b> (el atlas no usa aliases legacy — refuerza el feedback a B). Valor = media de expresión / % spots.</p>
+<div class=scroll><table>
+<tr><th>marcador</th><th>grupo</th><th>3 hpf</th><th>5 hpf</th><th>10 hpf</th></tr>
+<tr><td class=mono><b>ndr1</b></td><td class=small>nodal</td><td class=small>0.0082<br><span class=sub>0.29%</span></td><td class=small>0.0086<br><span class=sub>0.28%</span></td><td class=small style='color:var(--mut)'>—</td></tr><tr><td class=mono><b>ndr2</b></td><td class=small>nodal</td><td class=small>0.0027<br><span class=sub>0.09%</span></td><td class=small>0.016<br><span class=sub>0.48%</span></td><td class=small>0.0043<br><span class=sub>0.14%</span></td></tr><tr><td class=mono><b>tdgf1</b></td><td class=small>nodal</td><td class=small>0.1738<br><span class=sub>6.29%</span></td><td class=small>0.3411<br><span class=sub>10.65%</span></td><td class=small>0.0278<br><span class=sub>0.89%</span></td></tr><tr><td class=mono><b>lft1</b></td><td class=small>nodal</td><td class=small>0.0105<br><span class=sub>0.36%</span></td><td class=small>0.0507<br><span class=sub>1.55%</span></td><td class=small>0.0337<br><span class=sub>1.06%</span></td></tr><tr><td class=mono><b>lft2</b></td><td class=small>nodal</td><td class=small>0.0275<br><span class=sub>1.01%</span></td><td class=small>0.0267<br><span class=sub>0.84%</span></td><td class=small>0.0106<br><span class=sub>0.33%</span></td></tr><tr><td class=mono><b>smad2</b></td><td class=small>nodal</td><td class=small>0.1728<br><span class=sub>6.19%</span></td><td class=small>0.0168<br><span class=sub>0.56%</span></td><td class=small>0.0118<br><span class=sub>0.39%</span></td></tr><tr><td class=mono><b>bmp2b</b></td><td class=small>bmp</td><td class=small>0.0411<br><span class=sub>1.51%</span></td><td class=small>0.0499<br><span class=sub>1.57%</span></td><td class=small>0.0202<br><span class=sub>0.66%</span></td></tr><tr><td class=mono><b>bmp4</b></td><td class=small>bmp</td><td class=small>0.003<br><span class=sub>0.11%</span></td><td class=small>0.0294<br><span class=sub>0.96%</span></td><td class=small>0.0149<br><span class=sub>0.48%</span></td></tr><tr><td class=mono><b>bmp7a</b></td><td class=small>bmp</td><td class=small>0.0073<br><span class=sub>0.26%</span></td><td class=small>0.0882<br><span class=sub>2.75%</span></td><td class=small>0.0126<br><span class=sub>0.4%</span></td></tr><tr><td class=mono><b>chrd</b></td><td class=small>bmp</td><td class=small>0.0013<br><span class=sub>0.05%</span></td><td class=small>0.0952<br><span class=sub>2.72%</span></td><td class=small>0.2203<br><span class=sub>7.03%</span></td></tr><tr><td class=mono><b>smad5</b></td><td class=small>bmp</td><td class=small>0.71<br><span class=sub>24.85%</span></td><td class=small>0.3441<br><span class=sub>10.64%</span></td><td class=small>0.1354<br><span class=sub>4.47%</span></td></tr><tr><td class=mono><b>smad4a</b></td><td class=small>bmp</td><td class=small>0.0218<br><span class=sub>0.78%</span></td><td class=small>0.0152<br><span class=sub>0.46%</span></td><td class=small>0.0075<br><span class=sub>0.25%</span></td></tr><tr><td class=mono><b>aldh1a2</b></td><td class=small>ra_crosstalk</td><td class=small>0.001<br><span class=sub>0.04%</span></td><td class=small>0.0389<br><span class=sub>1.22%</span></td><td class=small>0.1256<br><span class=sub>4.05%</span></td></tr><tr><td class=mono><b>cyp26a1</b></td><td class=small>ra_crosstalk</td><td class=small>0.1196<br><span class=sub>4.25%</span></td><td class=small>0.0756<br><span class=sub>2.39%</span></td><td class=small>0.1414<br><span class=sub>4.6%</span></td></tr><tr><td class=mono><b>cyp26b1</b></td><td class=small>ra_crosstalk</td><td class=small>0.0085<br><span class=sub>0.3%</span></td><td class=small>0.0011<br><span class=sub>0.03%</span></td><td class=small>0.0119<br><span class=sub>0.38%</span></td></tr>
+</table></div>
+<div class="callout co-ok"><b>Lectura biológica (dato medido, no modelo):</b>
+<ul class=small>
+<li><b>Nodal (ndr1/ndr2):</b> bajo + transiente, pico 3–5 hpf — Nodal temprano de blástula/gástrula.</li>
+<li><b>Oep (tdgf1):</b> pico 5 hpf (10.6%) — ventana de recepción Nodal.</li>
+<li><b>Lefty (lft1) SUBE</b> 3→5 hpf como feedback inducido por Nodal.</li>
+<li><b>Chordin (chrd) RAMPA</b> 3→5→10 hpf (0.001→0.22; 7%) — organizador dorsal fortaleciéndose.</li>
+<li><b>Smad5</b> alto a 3 hpf (25%), decae; <b>RA (aldh1a2)</b> rampa tardía.</li>
+</ul>
+<div class=small>Estas dinámicas son el <b>target empírico</b> que el modelo cinético debe reproducir.</div></div>
+<div class="grid g2">
+<div class=card><h3 style="margin-top:0">Record candidato RN3 (staged, GATE 2 pendiente)</h3>
+<div class=kv><b>Parte 1</b> <span class=small>trayectorias medidas ✔ (arriba)</span></div>
+<div class=kv><b>Parte 2</b> <span class=small>constantes D/k <b>CITADAS</b> (Müller 2012 Science: D<sub>Lefty</sub> ≫ D<sub>Nodal</sub>) — valores específicos <b>flagged para extracción, NO inventados</b> (§7)</span></div>
+<div class=kv><b>Parte 3</b> <span class=small>topología BNGL (7 reglas) <b>entregada a MITAD_B</b> (frontera A/B: A ancla, B genera)</span></div></div>
+<div class=card><h3 style="margin-top:0">Antes de ingerir (GATE 2)</h3>
+<ul class=small>
+<li>extraer + raw-cachear las constantes de Müller 2012 (o Reactome)</li>
+<li>verificar + cachear el PMID (§7.9)</li>
+<li>MITAD_B genera el <code>.bngl</code> ajustado</li>
+</ul>
+<div class=small>Artefacto: <span class=mono>G8_rn3_record_candidate_20260721.json</span></div></div></div>
+
+<h2 style="border:none">Estado</h2>
+<div class=card>
+<div class=kv><b>Hecho (A, en-lane)</b> <span class=small>G4: UniProt+AF verificado, spec multímero · G8: <b>trayectorias MEDIDAS de ZESTA</b> + record RN3 candidato</span></div>
+<div class=kv><b>Cero mutación</b> <span class=small>DATA INAMOVIBLE en 93 records (sin cambio esta fase). GATE 2 pendiente para ambos records + el edit uniprot_acc.</span></div>
+<div class=kv><b>Pendiente de ti</b> <span class='badge b-warn'>G4 · run AF3</span> <span class=small>(gratis)</span> &nbsp; <span class='badge b-warn'>G8 · GATE 2</span> <span class=small>(extraer constantes Müller + B genera BNGL → ingerir RN3)</span></div>
+<div class=kv><b>Artefactos</b> <span class=small mono>G4_rn2_acquisition_kit · G8_{rn3_grounded_inputs,zesta_nodal_bmp_trajectories,rn3_record_candidate} · raw_uniprot_alphafold_g4-*.json</span></div></div>
+<div class=sub style="margin-top:18px">MITAD_A · Witt × Organogenesis · GWT v1.1 · Logic-LM (§5) · 2026-07-21</div>
+</div>

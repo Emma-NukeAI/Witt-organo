@@ -1,0 +1,800 @@
+<title>Witt × Organogénesis — Onboarding: el proyecto completo</title>
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0e1830; --panel:#16223a; --panel2:#1b2942; --line:#27365230; --edge:#2b3b59;
+    --ink:#eef3fa; --dim:#93a3bd; --faint:#62728d;
+    --bio:#33d6c2; --bio-deep:#0f3b39; --graph:#8b8cff; --graph-deep:#2a2c5e;
+    --gate:#f4b740; --gate-deep:#4a3712; --good:#35c98d; --bad:#e5604d;
+    --mono:'Cascadia Code','JetBrains Mono','SFMono-Regular','Consolas',monospace;
+    --sans:'Segoe UI Variable','Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;font-variant-numeric:tabular-nums}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55;
+    background:
+      radial-gradient(120% 80% at 50% -8%, #13223e 0, transparent 55%),
+      radial-gradient(1px 1px at 24px 24px, #1c2c49 1px, transparent 0);
+    background-size:auto, 48px 48px;}
+
+  .deck{position:relative;z-index:1;height:100vh;width:100vw}
+  .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+    padding:clamp(24px,4.4vw,72px) clamp(28px,7vw,120px);opacity:0;transition:opacity .45s ease}
+  .slide.active{display:flex;opacity:1}
+  @media (prefers-reduced-motion:reduce){.slide{transition:none}}
+  .inner{width:100%;max-width:1180px;margin:0 auto}
+
+  .eyebrow{font-family:var(--mono);font-size:clamp(11px,1.1vw,13px);letter-spacing:.22em;
+    text-transform:uppercase;color:var(--bio);display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .eyebrow .step{color:var(--faint)}
+  .eyebrow .part{color:var(--graph);font-weight:700}
+  .eyebrow .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--edge),transparent);max-width:120px}
+  h1{font-size:clamp(30px,5vw,58px);font-weight:800;letter-spacing:-.025em;line-height:1.04;text-wrap:balance}
+  h2{font-size:clamp(24px,3.3vw,42px);font-weight:800;letter-spacing:-.022em;line-height:1.07;text-wrap:balance}
+  .stand{margin-top:15px;color:var(--dim);font-size:clamp(14px,1.45vw,19px);line-height:1.5;max-width:64ch;font-weight:400}
+  .stand b{color:var(--ink);font-weight:600}
+  .accent{color:var(--bio)} .ind{color:var(--graph)} .amb{color:var(--gate)}
+  code,.m{font-family:var(--mono);font-size:.84em;background:#0a1426;border:1px solid var(--edge);
+    padding:1px 6px;border-radius:5px;color:#bcd}
+
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin-top:26px}
+  .node{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:15px 17px;
+    min-width:0;flex:1;border-top:3px solid var(--edge)}
+  .node .t{font-weight:700;font-size:clamp(14px,1.45vw,18px);letter-spacing:-.01em}
+  .node .d{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:7px;line-height:1.5}
+  .node.bio{border-top-color:var(--bio)} .node.graph{border-top-color:var(--graph)}
+  .node.gate{border:1px solid var(--gate);border-top-width:3px;background:linear-gradient(180deg,#1e1805,var(--panel))}
+  .node .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:6px}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--bio);font-size:22px;padding:0 9px;flex:0 0 auto}
+  .arrow.down{width:100%;padding:7px 0;transform:rotate(90deg)}
+
+  .grid{display:grid;gap:13px;margin-top:24px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:16px 18px}
+  .card h3{font-size:clamp(15px,1.6vw,20px);font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  .card p{color:var(--dim);font-size:14px;line-height:1.55;margin-top:8px}
+  .card p b{color:var(--ink)}
+  .card .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--bio)}
+  ul.ticks{margin-top:13px;list-style:none;display:flex;flex-direction:column;gap:9px}
+  ul.ticks li{position:relative;padding-left:26px;color:var(--dim);font-size:clamp(13.5px,1.4vw,16.5px);line-height:1.5}
+  ul.ticks li::before{content:"\2192";position:absolute;left:0;color:var(--bio);font-family:var(--mono)}
+  ul.ticks li b{color:var(--ink);font-weight:650}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+    padding:4px 11px;border-radius:30px;border:1px solid;white-space:nowrap}
+  .pill.bio{color:var(--bio);border-color:#2a6d66;background:#0c2926}
+  .pill.gate{color:var(--gate);border-color:#6a521b;background:#241b07}
+  .pill.ind{color:var(--graph);border-color:#3f4196;background:#181a3a}
+  .pill.good{color:var(--good);border-color:#1f6e50;background:#0c2418}
+  .pill.bad{color:var(--bad);border-color:#7a3329;background:#2a120e}
+  .gatechip{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:700;font-size:12px;
+    letter-spacing:.06em;color:#1a1304;background:var(--gate);padding:5px 13px;border-radius:6px}
+  .note{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:20px;line-height:1.6}
+  .note b{color:var(--dim)}
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;margin-top:16px}
+  .stat{display:flex;gap:28px;flex-wrap:wrap;margin-top:24px}
+  .stat .s .n{font-size:clamp(24px,3vw,38px);font-weight:800;letter-spacing:-.02em;line-height:1}
+  .stat .s .l{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-top:7px}
+
+  .chart{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+  .crow{display:grid;grid-template-columns:clamp(130px,20vw,260px) 1fr auto;gap:16px;align-items:center}
+  .crow .k{font-family:var(--mono);font-size:12px;color:var(--dim);text-align:right;line-height:1.3}
+  .crow .v{font-family:var(--mono);font-size:13px;font-weight:700;min-width:52px;text-align:right}
+  .track{height:19px;background:#0b1730;border:1px solid var(--edge);border-radius:30px;overflow:hidden}
+  .track i{display:block;height:100%;border-radius:30px}
+  .stack{display:flex;height:30px;border-radius:8px;overflow:hidden;border:1px solid var(--edge);margin-top:14px}
+  .stack i{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#06121f;font-weight:700;min-width:0}
+  .roster{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+  .rgrp{background:var(--panel);border:1px solid var(--edge);border-radius:12px;padding:14px 16px}
+  .rgrp .h{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;margin-bottom:6px}
+  .ag{display:flex;gap:9px;align-items:baseline;margin-top:8px;line-height:1.35}
+  .ag .n{font-weight:700;font-size:13.5px;white-space:nowrap;font-family:var(--mono)}
+  .ag .d{color:var(--dim);font-size:12px}
+  table.mx{width:100%;border-collapse:collapse;margin-top:16px;font-size:13px}
+  table.mx th,table.mx td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--edge);vertical-align:top}
+  table.mx th{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  table.mx td.a{font-weight:700;color:var(--bio);font-family:var(--mono);white-space:nowrap}
+  table.mx td.g{color:var(--gate);font-family:var(--mono);font-size:12px}
+  table.mx tr:last-child td{border-bottom:none}
+  .scroll{overflow-x:auto}
+
+  .hud{position:fixed;z-index:5;bottom:0;left:0;right:0;height:44px;display:flex;align-items:center;
+    justify-content:space-between;padding:0 clamp(20px,4vw,64px);font-family:var(--mono);font-size:11px;
+    letter-spacing:.08em;color:var(--faint);border-top:1px solid var(--line);background:#0a111fcc;backdrop-filter:blur(6px)}
+  .hud .sec{color:var(--dim);text-transform:uppercase}
+  .hud .who{color:var(--bio)}
+  .progress{position:fixed;top:0;left:0;height:2px;width:0;background:var(--bio);z-index:6;transition:width .4s ease}
+  .ctrl{position:fixed;z-index:6;bottom:52px;right:clamp(18px,4vw,40px);display:flex;gap:8px}
+  .ctrl button{font-family:var(--mono);font-size:16px;width:36px;height:36px;border-radius:9px;cursor:pointer;
+    background:var(--panel);color:var(--ink);border:1px solid var(--edge)}
+  .ctrl button:hover{border-color:var(--bio);color:var(--bio)}
+  .ctrl button:focus-visible{outline:2px solid var(--bio);outline-offset:2px}
+
+  #s0 .inner{max-width:1000px}
+  .cover-mark{font-family:var(--mono);font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--bio)}
+  .cover-title{font-size:clamp(38px,6.6vw,80px);font-weight:800;letter-spacing:-.035em;line-height:.99;margin-top:18px}
+  .cover-title .u{background:linear-gradient(transparent 66%, #16544f 66%)}
+  .cover-sub{margin-top:24px;font-size:clamp(16px,1.8vw,22px);color:var(--dim);max-width:62ch;line-height:1.5}
+  .cover-meta{margin-top:34px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .toc{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:26px}
+  .toc .tcol{border-left:2px solid var(--edge);padding-left:14px}
+  .toc .tcol.p1{border-left-color:var(--graph)} .toc .tcol.p2{border-left-color:var(--bio)} .toc .tcol.p3{border-left-color:var(--gate)}
+  .toc .th{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .toc .ti{font-size:13.5px;color:var(--dim);line-height:1.7}
+
+  @media (max-width:820px){.g3,.g4,.two,.g2,.toc{grid-template-columns:1fr}.flow{flex-direction:column}.arrow{transform:rotate(90deg);padding:6px 0}.roster{grid-template-columns:1fr}}
+
+  @media print{
+    body{overflow:visible;background:#fff;color:#0b1220}
+    body::before,.hud,.ctrl,.progress{display:none}
+    .deck{height:auto}
+    .slide{display:flex !important;opacity:1 !important;position:relative;inset:auto;min-height:96vh;
+      page-break-after:always;border-bottom:1px solid #ccc}
+  }
+</style>
+
+<div class="progress" id="prog"></div>
+<div class="deck" id="deck">
+
+  <!-- ============ PORTADA ============ -->
+  <section class="slide active" id="s0"><div class="inner">
+    <div class="cover-mark">Witt × Organogénesis · Latido Médico Mexicano</div>
+    <div class="cover-title">El proyecto completo,<br>y cómo funciona <span class="u">hoy</span>.</div>
+    <p class="cover-sub">Onboarding para el equipo. Primero: qué es Witt, la ciencia que ataca, y cómo se valida.
+      Después: cómo funciona por dentro la mitad que ya está viva — la de rendición de cuentas.</p>
+    <div class="toc">
+      <div class="tcol p1"><div class="th">Parte I · El proyecto</div>
+        <div class="ti">La tesis · la ciencia del pronefros · los gates · las fases · las 5 pruebas · las dos mitades</div></div>
+      <div class="tcol p2"><div class="th">Parte II · MITAD_A a fondo</div>
+        <div class="ti">La fuente de verdad · el RAG · el loop · los gates deterministas · los auditores · los agentes</div></div>
+      <div class="tcol p3"><div class="th">Parte III · Estado honesto</div>
+        <div class="ti">Qué está medido vs. validado vs. hipótesis · qué falta · el flujo completo</div></div>
+    </div>
+    <div class="cover-meta">
+      <span class="pill bio">perfil técnico / científico</span>
+      <span class="gatechip">&#9670; todo lo que muta la verdad pasa por un gate humano</span>
+    </div>
+  </div></section>
+
+  <!-- ============ PARTE I — EL PROYECTO ============ -->
+
+  <section class="slide" id="s1"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">01</span> Las dos capas <span class="rule"></span></div>
+    <h2>Witt es un <span class="accent">substrato</span>; Organogénesis es su <span class="ind">primer dominio</span>.</h2>
+    <p class="stand">Es la distinción más importante del proyecto — y la que más se confunde. Hay dos cosas ocurriendo a la vez,
+      con horizontes y métricas distintos. Todo lo demás se ordena a partir de aquí.</p>
+    <div class="grid g2">
+      <div class="card" style="border-top:3px solid var(--bio)">
+        <span class="lbl">La capa substrato · Witt</span>
+        <h3 style="margin-top:6px">Infraestructura de IA reutilizable</h3>
+        <p>Captura el <b>juicio experto calibrado</b> de una comunidad, expone su razonamiento en cada paso, y crece con el uso.
+          Produce datos de calibración, evidencia de aprendizaje y de operación cross-campo. Horizonte: <b>5–10 años</b>.
+          Su métrica de año 1 son las <b>5 pruebas de validación</b>.</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--graph)">
+        <span class="lbl" style="color:var(--graph)">La capa dominio · Organogénesis</span>
+        <h3 style="margin-top:6px">Un programa de investigación real</h3>
+        <p>Modelos causales que <b>podan</b> redes de señalización del desarrollo para producir vías de formación de órganos.
+          POC: el <b>pronefros</b> (riñón temprano) del pez cebra. Horizonte: <b>8 meses a POC</b>.
+          Su métrica son los <b>4 gates biológicos</b>.</p>
+      </div>
+    </div>
+    <p class="note">La jugada no-obvia: la mayoría construye agentes para <b>entregar la biología</b>. Witt construye agentes que
+      entregan la biología <b>y</b> generan evidencia de calidad-substrato en cada paso. Los agentes no son el entregable — son instrumentación.</p>
+  </div></section>
+
+  <section class="slide" id="s2"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">02</span> La tesis del substrato <span class="rule"></span></div>
+    <h2>Capturar juicio experto, <span class="accent">exponer el razonamiento</span>, acumular foso defensivo.</h2>
+    <p class="stand">Un <b>producto</b> elegiría un pilar y construiría una herramienta vertical. Un <b>substrato</b> construye la capacidad
+      subyacente de la que los cuatro pilares emergen con los años. Witt se compromete al substrato.</p>
+    <div class="grid g4">
+      <div class="card"><span class="lbl">pilar 1</span><h3 style="margin-top:6px">Amplificar</h3><p>potenciar al experto en tiempo real.</p></div>
+      <div class="card"><span class="lbl">pilar 2</span><h3 style="margin-top:6px">Transferir</h3><p>pasar expertise a practicantes junior.</p></div>
+      <div class="card"><span class="lbl">pilar 3</span><h3 style="margin-top:6px">Generar</h3><p>nuevos insights en colaboración humano-sistema.</p></div>
+      <div class="card"><span class="lbl">pilar 4</span><h3 style="margin-top:6px">Actuar</h3><p>sobre decisiones rutinarias, cuando la calibración lo respalde.</p></div>
+    </div>
+    <div class="grid g3" style="margin-top:13px">
+      <div class="card" style="border-color:#2a6d66"><h3><span class="pill bio">crece con el uso</span></h3><p>cada interacción extiende el substrato; el feedback calibrado compone.</p></div>
+      <div class="card" style="border-color:#2a6d66"><h3><span class="pill bio">expone su razonamiento</span></h3><p>sin cajas negras: cada salida lleva confianza, evidencia y alternativas.</p></div>
+      <div class="card" style="border-color:#2a6d66"><h3><span class="pill bio">acumula moat</span></h3><p>la defensibilidad viene del historial acumulado, no de features.</p></div>
+    </div>
+    <p class="note">Qué <b>NO</b> es: no es una base de conocimiento (captura juicio bajo incertidumbre, no hechos) · no es un chatbot ·
+      no es una herramienta vertical (medicina es el primer dominio, no el definitorio) · no genera ciencia desde cero.</p>
+  </div></section>
+
+  <section class="slide" id="s3"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">03</span> Las cinco capas técnicas <span class="rule"></span></div>
+    <h2>De todas las capas, la <span class="amb">calibración</span> es la más difícil — y la más importante.</h2>
+    <p class="stand">Los modelos de fundación están mal calibrados por defecto (su confianza no corresponde a su acierto).
+      Corregirlo es la inversión de investigación más exigente del substrato — y define el perfil de contratación.</p>
+    <div class="chart">
+      <div class="crow"><div class="k">Captura</div><div class="track"><i style="width:70%;background:var(--gate)"></i></div><div class="v">parcial</div></div>
+      <div class="crow"><div class="k">Razonamiento</div><div class="track"><i style="width:92%;background:var(--bio)"></i></div><div class="v">viable</div></div>
+      <div class="crow"><div class="k">Calibración</div><div class="track"><i style="width:38%;background:var(--bad)"></i></div><div class="v">lo más duro</div></div>
+      <div class="crow"><div class="k">Compone-con-uso</div><div class="track"><i style="width:66%;background:var(--gate)"></i></div><div class="v">parcial</div></div>
+      <div class="crow"><div class="k">Operación cross-campo</div><div class="track"><i style="width:30%;background:var(--bad)"></i></div><div class="v">a pequeña escala</div></div>
+    </div>
+    <p class="note"><b>Calibración</b> = que cuando el sistema dice "80% de confianza", acierte ~80% de las veces. La biomedicina parte
+      ~30% descalibrada (Vega et al. 2025). Se corrige post-hoc (regresión isotónica, histogram binning) — no de fábrica.
+      Por eso el primer hire senior es de calibración / cuantificación de incertidumbre.</p>
+  </div></section>
+
+  <section class="slide" id="s4"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">04</span> La ciencia · el pronefros <span class="rule"></span></div>
+    <h2>El dominio POC: inducir un <span class="ind">riñón temprano</span> en pez cebra, con la <span class="accent">receta mínima</span>.</h2>
+    <div class="two">
+      <div>
+        <ul class="ticks">
+          <li><b>Organogénesis causal</b> — modelos que <b>podan</b> redes de señalización sobre-conectadas hasta la vía coherente de formación del órgano.</li>
+          <li><b>Pronefros</b> — el riñón embrionario del pez cebra; cascadas bien caracterizadas (BMP, Nodal, ácido retinoico).</li>
+          <li><b>Chaperone tissue</b> — un parche de tejido transitorio que emite las <b>señales mínimas, en los tiempos correctos</b>, para inducir el programa del órgano en tejido competente vecino.</li>
+        </ul>
+      </div>
+      <div class="card" style="border-top:3px solid var(--graph)">
+        <span class="lbl" style="color:var(--graph)">¿por qué pez cebra?</span>
+        <h3 style="margin-top:6px">Barato, rápido, transparente</h3>
+        <p>Embriones externos y translúcidos, desarrollo en días, genética manipulable. Es el modelo ideal para
+          <b>"probar pequeño antes de armar bien"</b> — el principio operativo del proyecto (Martín, abril 2026).</p>
+        <p style="margin-top:10px"><b>Nunca</b> experimentación con embriones humanos — regla dura, ISSCR 2025.</p>
+      </div>
+    </div>
+    <p class="note">La pregunta científica central de la sesión E2E: <b>¿qué señal upstream induce el set mínimo de factores de transcripción del pronefros?</b>
+      Estado in-silico: cascada <code>RA&#8594;osr1&#8594;wnt2b/pax2a</code> afinada; la <b>suficiencia</b> (inducción ectópica) solo la cierra wet-lab (Fase II).</p>
+  </div></section>
+
+  <section class="slide" id="s5"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">05</span> Los cuatro gates biológicos <span class="rule"></span></div>
+    <h2>Qué cuenta como <span class="accent">éxito</span> en la biología — cuatro compuertas medibles.</h2>
+    <div class="grid g2">
+      <div class="card"><span class="lbl">gate 1</span><h3 style="margin-top:6px">Inducción</h3>
+        <p>Estructuras renales ectópicas reproducibles <b>por encima de controles negativos</b>, en lotes independientes.</p></div>
+      <div class="card"><span class="lbl">gate 2</span><h3 style="margin-top:6px">Especificidad</h3>
+        <p>Las estructuras se <b>localizan</b> en el chaperone tissue y siguen el timeline planeado — no teratogénesis inespecífica.</p></div>
+      <div class="card"><span class="lbl">gate 3</span><h3 style="margin-top:6px">Identidad</h3>
+        <p>Marcadores + transcriptómica confirman <b>identidad renal</b> (<code>wt1a, pax2a, pax8, hnf1b</code>) — no mesodermo genérico.</p></div>
+      <div class="card"><span class="lbl">gate 4</span><h3 style="margin-top:6px">Parsimonia</h3>
+        <p>El programa podado <b>iguala o supera</b> al de más señales, con menos pistas, timing más ajustado y contexto más simple.</p></div>
+    </div>
+    <p class="note">Los cuatro juntos responden: ¿el modelo causal produce desarrollo renal <b>coherente</b>, y con una receta <b>más simple</b>
+      que la fuerza bruta? Parsimonia es la firma del enfoque causal — que menos, bien elegido, baste.</p>
+  </div></section>
+
+  <section class="slide" id="s6"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">06</span> La escalera de validación + fases <span class="rule"></span></div>
+    <h2>Pez cebra <span style="color:var(--faint)">&#8594;</span> ratón <span style="color:var(--faint)">&#8594;</span> organoides humanos PSC.</h2>
+    <div class="flow">
+      <div class="node bio"><span class="tag">Fase I · 0–8 meses</span><div class="t">Pez cebra (POC)</div>
+        <div class="d">$297k. Simulación &#8594; embriones &#8594; omics confirmatorios. Partners: BWH Aquatics, Morizane Lab (MGH), SeqMatic, Runpod.</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node graph"><span class="tag">Fase II · año 2</span><div class="t">Ratón + piloto cath lab</div>
+        <div class="d">Traslación a riñón de ratón. Primera evidencia cross-dominio (organogénesis &#8596; cardiología). Ronda Seed.</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">Fase III · año 3+</span><div class="t">Organoides humanos</div>
+        <div class="d">Organoides renales de PSC (Morizane + UCSD HUMANOID + iXCells). Hacia medicina regenerativa. Series A.</div></div>
+    </div>
+    <div class="grid g4" style="margin-top:16px">
+      <div class="card"><span class="lbl">nichos activos Fase I</span><h3 style="margin-top:4px;font-size:16px">N1 · N3 · N4</h3><p>modelado, embriología/genómica, señalización. N2/N6 activan en Fase II/III.</p></div>
+      <div class="card"><span class="lbl">timeline Fase I</span><h3 style="margin-top:4px;font-size:16px">4 ventanas</h3><p>sim &#8594; pilotos &#8594; panel completo + cohortes &#8594; omics + paquete de datos.</p></div>
+      <div class="card"><span class="lbl">regla dura</span><h3 style="margin-top:4px;font-size:16px">Sin embriones humanos</h3><p>jamás. Zebrafish es investigación, no desarrollo terapéutico.</p></div>
+      <div class="card"><span class="lbl">parent org</span><h3 style="margin-top:4px;font-size:16px">Latido Médico</h3><p>da acceso operativo: equipo R&amp;D + presencia en cath lab (red hospitalaria MX).</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s7"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">07</span> Las cinco pruebas del substrato <span class="rule"></span></div>
+    <h2>Corren <span class="accent">en paralelo</span> a la biología — ¿el substrato es real y construible?</h2>
+    <div class="scroll"><table class="mx">
+      <tr><th>Prueba</th><th>Qué pregunta</th><th>Umbral defensivo (compromiso)</th><th>Estado hoy</th></tr>
+      <tr><td class="a">1 · Orquestación</td><td>¿el razonamiento produce salidas que un investigador accionaría?</td><td class="g">&#8805;70% high-conf correcto; r&gt;0.5</td><td><span class="pill bio">case-capture</span></td></tr>
+      <tr><td class="a">2 · Agencia</td><td>¿ejecuta workflows acotados con checkpoints humanos?</td><td class="g">&#8805;70% completa; 0 decisiones irreversibles sin gate</td><td><span class="pill bio">case-capture</span></td></tr>
+      <tr><td class="a">3 · Iteración</td><td>¿mejora mediblemente con el feedback a lo largo del año?</td><td class="g">&#8805;5 pp de mejora; robustez a perturbaciones</td><td><span class="pill good">medido (baseline)</span></td></tr>
+      <tr><td class="a">4 · Calibración</td><td>¿la confianza está bien calibrada y mejora?</td><td class="g">ECE &lt; 0.20; high-conf &#8805;85%</td><td><span class="pill gate">no-degenerado (n=20)</span></td></tr>
+      <tr><td class="a">5 · Cross-campo</td><td>¿integra un campo biológico distinto? (exploratorio)</td><td class="g">evidencia modesta = éxito en Fase I</td><td><span class="pill bad">exploratorio</span></td></tr>
+    </table></div>
+    <p class="note">Disciplina de auditoría: siempre citamos el <b>umbral defensivo</b> como compromiso; los umbrales ambiciosos se reportan aparte, nunca como promesa.
+      La prueba más incómoda es la 3: <b>no mejorar en el año</b> sería el resultado más informativo de las cinco.</p>
+  </div></section>
+
+  <section class="slide" id="s8"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I</span> <span class="step">08</span> Los dos métodos de operación <span class="rule"></span></div>
+    <h2>Quién dirige el razonamiento es una <span class="accent">decisión de runtime</span> — la toma el humano.</h2>
+    <div class="two">
+      <div class="card" style="border-top:3px solid var(--bio)">
+        <span class="lbl">Método 2 · por defecto</span>
+        <h3 style="margin-top:6px">El humano dirige; el sistema instrumenta</h3>
+        <p>Razonamiento paso a paso; cada salida lleva su contrato de evidencia. Alto tacto, baja latencia de juicio.
+          Es el modo de <b>todo lo que toca biología, presupuesto, compliance o wet-lab</b>. Genera evidencia de Pruebas 1, 3, 5.</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--graph)">
+        <span class="lbl" style="color:var(--graph)">Método 1 · enjambre orquestado</span>
+        <h3 style="margin-top:6px">El sistema dirige, con gates humanos</h3>
+        <p>Solo para tareas <b>low-risk, reversibles y repetibles</b>: monitoreo de literatura, triage, síntesis programadas,
+          re-runs de pipelines validados. <b>Nunca</b> decide compliance/budget/wet-lab sin gate humano. Evidencia de Pruebas 1, 2, 4.</p>
+      </div>
+    </div>
+    <p class="note">Ambos métodos escriben a la misma base, así que el substrato acumula evidencia sin importar quién condujo.
+      Si no se especificó el método, <b>se pregunta</b> — no se infiere.</p>
+  </div></section>
+
+  <section class="slide" id="s9"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte I &#8594; II</span> <span class="step">09</span> Las dos mitades <span class="rule"></span></div>
+    <h2>Witt es una máquina epistémica de <span class="accent">dos mitades</span>. Hoy vive la de rendición de cuentas.</h2>
+    <div class="grid g2">
+      <div class="card" style="border-color:#2a6d66">
+        <span class="lbl">MITAD_A · rendición de cuentas</span>
+        <h3 style="margin-top:6px">Este repo <span class="pill good">desplegada · viva</span></h3>
+        <p>La maquinaria que convierte contenido generado en conocimiento <b>accountable</b>: la fuente de verdad,
+          los gates de admisibilidad, la separación generador&#8800;verificador, el ledger de calibración, el contrato de claims causales.
+          <b>Es el tema del resto de esta presentación.</b></p>
+      </div>
+      <div class="card">
+        <span class="lbl" style="color:var(--graph)">MITAD_B · generación</span>
+        <h3 style="margin-top:6px">«Conciencia Universal» <span class="pill ind">repo aparte · naciente</span></h3>
+        <p>El motor que <b>propone</b> (energy layer, RL epistémica aprendida, búsqueda de programas). Vive <b>aislado</b> en un repo hermano
+          porque puede arriesgar la estructura de A. Lee la fuente de verdad <b>solo-lectura</b>, nunca la muta, y corre en modo
+          <b>proposal-only</b>. El motor todavía no está construido.</p>
+      </div>
+    </div>
+    <p class="note">Por qué separadas (<i>prueba pequeño</i>): el diferenciador de Witt es <b>la capa de rendición de cuentas</b> —
+      la que hace la inteligencia accountable. B se explora aparte para que no desestabilice A. La regla que las une: el conocimiento
+      solo entra a la verdad por <span class="amb">un camino human-gated</span>.</p>
+  </div></section>
+
+  <!-- ============ PARTE II — MITAD_A A FONDO ============ -->
+
+  <section class="slide" id="s10"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">10</span> La DATA INAMOVIBLE <span class="rule"></span></div>
+    <h2>La fuente de verdad = <span class="accent">tres capas</span> + una puerta de consulta.</h2>
+    <p class="stand">Se llama "inamovible" no porque no cambie, sino porque <b>cada cambio pasa por un gate humano y queda especificado</b>.
+      Lecturas libres; mutaciones, jamás solas. Eso es lo que la hace confiable como cimiento.</p>
+    <div class="flow">
+      <div class="node graph"><span class="tag">capa 1 · guía</span><div class="t">Índice + embeddings</div>
+        <div class="d">Neo4j GraphRAG: documentos &#8594; chunks &#8594; embeddings + entidades verificadas. El mapa para encontrar.</div></div>
+      <div class="arrow">+</div>
+      <div class="node bio"><span class="tag">capa 2 · respaldo</span><div class="t">Raw store híbrido</div>
+        <div class="d">Público = source-pointer (URL+sha256, re-descargable). Privado/derivado = MinIO. El dato crudo real.</div></div>
+      <div class="arrow">+</div>
+      <div class="node"><span class="tag">capa 3 · catálogo</span><div class="t">Método en git</div>
+        <div class="d"><code>corpus_manifest.json</code> · <code>verified_identifiers.json</code> · el código. Versionado, revisable.</div></div>
+    </div>
+    <div class="flow" style="margin-top:12px">
+      <div class="node gate" style="flex:1"><span class="tag">puerta única · MCP <code>data-inamovible</code></span>
+        <div class="t">3 herramientas para consultar — sin tocar nada</div>
+        <div class="d"><span class="accent">query_data_inamovible</span> (semántico) · <span class="accent">resolve_identifier</span> (determinista) · <span class="accent">fetch_raw</span> (drill del chunk al crudo)</div></div>
+    </div>
+    <p class="note">El grafo es <b style="color:var(--graph)">la guía</b>; el raw store es <b style="color:var(--bio)">el respaldo</b>.
+      Si un chunk no basta, <code>fetch_raw</code> baja al dato original — nunca confías solo en el resumen.</p>
+  </div></section>
+
+  <section class="slide" id="s11"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">11</span> Dónde vive <span class="rule"></span></div>
+    <h2>Desplegada y viva en <span class="accent">Dokploy</span> — tres stacks independientes.</h2>
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--graph)"><span class="lbl" style="color:var(--graph)">grafo + vector</span>
+        <h3 style="margin-top:6px">Neo4j</h3>
+        <p><code>:7474</code> browser · <code>:7687</code> bolt. ~27 documentos, ~44 entidades, MENTIONS, e índice HNSW <code>doc_embeddings</code> ONLINE (1536-dim).</p></div>
+      <div class="card" style="border-top:3px solid var(--bio)"><span class="lbl">raw S3</span>
+        <h3 style="margin-top:6px">MinIO</h3>
+        <p><code>:9100</code> API · <code>:9101</code> consola. Bucket <code>data-inamovible-raw</code>. <b>Vacío = correcto</b>: lo público vive en su fuente; MinIO solo guarda privado/derivado.</p></div>
+      <div class="card" style="border-top:3px solid var(--gate)"><span class="lbl" style="color:var(--gate)">contribución</span>
+        <h3 style="margin-top:6px">Ingest service</h3>
+        <p><code>:8077</code> FastAPI. submit token &#8594; <span class="amb">admin /approve (gate)</span> &#8594; ingesta + push-back a git.</p></div>
+    </div>
+    <p class="note">Consultable <b>sin agente</b>: Neo4j Browser para el grafo, MinIO para el raw privado, git para el catálogo y el método.
+      Los embeddings se computan client-side (la metodología vive en git; se cambia ahí + re-ingesta, nunca editando el servidor).
+      Cache de trabajo (descargas, papers crudos) &#8594; <code>mcp_cache/</code>, local, fuera de git.</p>
+  </div></section>
+
+  <section class="slide" id="s12"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">12</span> El RAG <span class="rule"></span></div>
+    <h2>Retrieval <span class="accent">híbrido</span> — léxico exacto <span style="color:var(--faint)">+</span> semántico.</h2>
+    <div class="two">
+      <div class="flow" style="margin-top:0;flex-direction:column;gap:11px">
+        <div class="node"><span class="tag">señal léxica</span><div class="t">Sparse · TF-IDF</div>
+          <div class="d">Captura el match EXACTO: símbolos génicos, IDs, términos raros (<code>pax2a</code>, <code>ENSDARG…</code>).</div></div>
+        <div class="node graph"><span class="tag">señal semántica</span><div class="t">Vector · Neo4j HNSW</div>
+          <div class="d">Captura el CONCEPTO: "qué induce el riñón" encuentra el doc aunque no diga esas palabras.</div></div>
+        <div class="arrow down">&#8595;</div>
+        <div class="node bio"><span class="tag">fusión</span><div class="t">RRF · Reciprocal Rank Fusion</div>
+          <div class="d">Combina ambos rankings en uno. Auto-refresh por mtime: si el índice cambió, se recarga solo.</div></div>
+      </div>
+      <div>
+        <h3 style="font-size:20px;font-weight:700">¿Por qué híbrido?</h3>
+        <ul class="ticks" style="margin-top:12px">
+          <li>Lo semántico solo <b>pierde los IDs exactos</b> — y este dominio ES identificadores.</li>
+          <li>Lo léxico solo <b>pierde el concepto</b> — sinónimos, paráfrasis, cross-tejido.</li>
+          <li>Juntos: precisión en lo que importa, recall en lo que se parece.</li>
+        </ul>
+        <p class="note" style="margin-top:22px"><code>rag_backend.py</code> · dev = sparse local · prod = Neo4j vector.
+          <code>EMBED_MODEL=openai</code> es obligatorio en prod (índice 1536-dim; si no, degrada silenciosamente a sparse).</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s13"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">13</span> La indexación <span class="rule"></span></div>
+    <h2>De documento a grafo consultable.</h2>
+    <div class="flow">
+      <div class="node"><span class="tag">paso 1</span><div class="t">Documento</div><div class="d">paper, dataset, h5ad, abstract</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">paso 2</span><div class="t">Chunks</div><div class="d"><code>chunk_document.py</code> — fragmentos con contexto</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node graph"><span class="tag">paso 3</span><div class="t">Embeddings</div><div class="d">OpenAI <code>text-embedding-3-small</code> · 1536-dim</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">paso 4</span><div class="t">Grafo Neo4j</div><div class="d"><code>(:Document)-[:MENTIONS]&#8594;(:Entity)</code> + índice HNSW</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:22px">
+      <div class="card"><span class="lbl">entidades verificadas</span><h3 style="margin-top:6px">Cada <code>(:Entity)</code> resuelve en el store</h3>
+        <p>Las entidades no son texto suelto: se anclan a IDs verificados (<code>resolve_id</code>). Un nodo sin verificar es un <b>hueco explícito</b>, no un dato.</p></div>
+      <div class="card"><span class="lbl">por qué grafo + raw</span><h3 style="margin-top:6px">El grafo guía; el raw respalda</h3>
+        <p>El embedding te lleva al chunk; <code>fetch_raw</code> te lleva del chunk al dato original (URL+sha256 o MinIO). El resumen nunca es la última palabra.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s14"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">14</span> Dominios y tiers de verificación <span class="rule"></span></div>
+    <h2>El corpus se clasifica por <span class="ind">dominio</span> y por <span class="accent">tier de verificación</span>.</h2>
+    <p class="stand">No metemos todo en un saco. Cada documento se categoriza por nicho (human-gated) y cada identificador lleva su tier de confianza.
+      Eso hace el retrieval domain-aware y la calibración honesta.</p>
+    <div class="two" style="margin-top:6px">
+      <div>
+        <span class="lbl" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--graph)">LOS 6 NICHOS DEL SCOPE</span>
+        <div class="grid g2" style="margin-top:12px;gap:8px">
+          <span class="pill ind">N1 · modelado de sistemas</span>
+          <span class="pill ind">N2 · biofísica de tejidos</span>
+          <span class="pill ind">N3 · embriología / genómica</span>
+          <span class="pill ind">N4 · señalización celular</span>
+          <span class="pill ind">N5 · biología ocular</span>
+          <span class="pill ind">N6 · ing. de tejidos</span>
+        </div>
+        <p class="note" style="margin-top:14px">Fase I activa <b>N1 / N3 / N4</b>. N5 es exploratorio (candidato Prueba 5); N2/N6 activan en Fase II/III.</p>
+      </div>
+      <div>
+        <span class="lbl" style="font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--bio)">TIERS DE VERIFICACIÓN</span>
+        <ul class="ticks" style="margin-top:12px">
+          <li><b style="color:var(--good)">RAW</b> — respuesta cruda externa guardada en disco. Peso pleno en calibración.</li>
+          <li><b class="amb">DERIVED</b> — resuelto, pero sin retener el crudo. Peso parcial.</li>
+          <li><b style="color:var(--bad)">NOT_FOUND</b> — "se buscó, no resuelve". Ausencia positiva, peso cero.</li>
+        </ul>
+        <p class="note" style="margin-top:14px">Por qué: solo lo RAW pesa en la calibración (pureza de Bayes) — un dato débil <b>no contamina</b> la confianza.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s15"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">15</span> El refuerzo · por dónde crece <span class="rule"></span></div>
+    <h2>El corpus crece por <span class="accent">tres puertas</span> — todas terminan en el gate.</h2>
+    <div class="flow">
+      <div class="node bio"><span class="tag">puerta 1</span><div class="t">Búsqueda con intención humana</div>
+        <div class="d">Alguien pregunta; el sistema detecta que falta evidencia y la trae.</div></div>
+      <div class="node bio"><span class="tag">puerta 2</span><div class="t">Gente que sube datos</div>
+        <div class="d">Contribución directa: <code>add_dataset</code> &#8594; propuesta (<code>CONTRIBUTING.md</code>).</div></div>
+      <div class="node bio"><span class="tag">puerta 3</span><div class="t">Investigado en los MCP</div>
+        <div class="d">El loop trae literatura / Tool Universe cuando la DI no alcanza.</div></div>
+    </div>
+    <div class="arrow down" style="color:var(--gate)">&#8595;</div>
+    <div class="flow" style="margin-top:4px">
+      <div class="node gate" style="flex:1;text-align:center"><span class="tag">convergen aquí</span>
+        <div class="t" style="font-size:19px">&#9670; GATE HUMANO + validación &#8594; se indexa</div>
+        <div class="d">composite-auditor &#8805;3 &#8594; propose &#8594; un humano aprueba &#8594; re-ingesta. Solo entonces es parte de la verdad.</div></div>
+    </div>
+    <p class="note">El corpus <b>solo crece con iteraciones + gates de validación</b>. Trayectoria real del registro verificado:
+      <b>32 &#8594; 46 &#8594; 51 &#8594; 74</b> records, cada salto human-gated (ADR-0029, ADR-0035). Cada vuelta lo deja más completo y más auditado.</p>
+  </div></section>
+
+  <section class="slide" id="s16"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">16</span> El loop auto-reforzante · ADR-0022 <span class="rule"></span></div>
+    <h2>"No está en la DI" <span class="accent">no es un stopper</span> — es un disparador de aprendizaje.</h2>
+    <div class="flow" style="margin-top:22px;align-items:stretch">
+      <div class="node bio"><span class="tag">Path A</span><div class="t">Consulta la DI</div><div class="d">retrieval híbrido semántico</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--gate)"><span class="tag">¿suficiente?</span><div class="t">decisión por confianza</div>
+        <div class="d"><span class="pill good" style="font-size:10px">SÍ &#8594; responde</span> &nbsp; <span class="pill bad" style="font-size:10px">NO &#8595;</span></div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">Path B</span><div class="t">Trae evidencia externa</div><div class="d">EuropePMC · Tool Universe (MCP, 2223 tools)</div></div>
+    </div>
+    <div class="flow" style="margin-top:12px">
+      <div class="node" style="border-top-color:var(--bad)"><span class="tag">filtro</span><div class="t">composite-auditor &#8805;3</div><div class="d">3+ auditores adversariales</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">propuesta</span><div class="t">propose_from_external</div><div class="d">no decide — propone</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node gate"><span class="tag">obligatorio</span><div class="t">&#9670; GATE HUMANO</div><div class="d">un humano aprueba o rechaza</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">cierre del loop</span><div class="t">Re-ingesta</div><div class="d">re-embed + rebuild sparse &#8594; la DI creció</div></div>
+    </div>
+    <p class="note">La insuficiencia se decide por <b>umbral de confianza del propio modelo</b> (no por una regla estructural, que se engaña — Q07).
+      El gate humano vive en la <b>re-ingesta</b>, no en la decisión de buscar. El store crece con el uso: cada pregunta que la DI no podía responder,
+      tras el gate, la deja capaz de responderla — para siempre.</p>
+  </div></section>
+
+  <section class="slide" id="s16b"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">17</span> El loop, en movimiento <span class="rule"></span></div>
+    <h2>Cada vuelta que la DI no podía cerrar, <span class="accent">la deja capaz de cerrarla</span> — y el gate nunca se salta.</h2>
+    <style>
+      .loopviz{width:100%;max-width:1000px;margin:18px auto 0;display:block}
+      .loopviz-box{fill:#16223a;stroke-width:2}
+      .loopviz-gate .loopviz-box{fill:#221a06}
+      .loopviz-lbl{fill:#eef3fa;font-family:var(--sans);font-size:15px;font-weight:700;text-anchor:middle}
+      .loopviz-sub{fill:#93a3bd;font-family:var(--mono);font-size:10.5px;text-anchor:middle}
+      .loopviz-edge{stroke:#2b3b59;stroke-width:2;fill:none}
+      .loopviz-flow{stroke:#33d6c2;stroke-width:2.5;fill:none;stroke-dasharray:9 11;opacity:.5;animation:loopdash 1.1s linear infinite}
+      @keyframes loopdash{to{stroke-dashoffset:-40}}
+      .loopviz-elab{font-family:var(--mono);font-size:12px;font-weight:700;text-anchor:middle}
+      .loopviz-dot{fill:#7ff0e2;filter:url(#lvglow)}
+      .loopviz-gate .loopviz-box{animation:gatepulse 1.8s ease-in-out infinite}
+      @keyframes gatepulse{0%,100%{stroke-opacity:.55}50%{stroke-opacity:1}}
+      @media (prefers-reduced-motion:reduce){.loopviz-flow,.loopviz-gate .loopviz-box,.loopviz-dot{animation:none}}
+    </style>
+    <svg class="loopviz" viewBox="0 0 1000 460" role="img" aria-label="Diagrama animado del loop auto-reforzante: la pregunta consulta la DI; si es suficiente responde; si no, trae evidencia externa, la auditan tres o más auditores, se propone, un humano aprueba en el gate, se re-ingesta y la DI crece.">
+      <defs>
+        <filter id="lvglow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <marker id="lvA" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#33d6c2"/></marker>
+        <marker id="lvR" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e5604d"/></marker>
+        <marker id="lvG" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f4b740"/></marker>
+      </defs>
+
+      <!-- static entry + exit edges -->
+      <path class="loopviz-edge" d="M192,70 L254,70" marker-end="url(#lvA)"/>
+      <path class="loopviz-edge" d="M657,70 L769,70" marker-end="url(#lvA)"/>
+      <text class="loopviz-elab" x="713" y="56" fill="#35c98d">SÍ</text>
+      <text class="loopviz-elab" x="596" y="145" fill="#e5604d">NO</text>
+      <text class="loopviz-elab" x="238" y="150" fill="#33d6c2">la DI creció</text>
+
+      <!-- static track underneath, with directional arrowheads on each cycle segment -->
+      <path class="loopviz-edge" d="M422,70 L491,70" marker-end="url(#lvA)"/>
+      <path class="loopviz-edge" d="M575,99 L575,182" marker-end="url(#lvR)"/>
+      <path class="loopviz-edge" d="M575,244 L575,329" marker-end="url(#lvA)"/>
+      <path class="loopviz-edge" d="M493,360 L446,360" marker-end="url(#lvA)"/>
+      <path class="loopviz-edge" d="M278,360 L226,360" marker-end="url(#lvG)"/>
+      <path class="loopviz-edge" d="M140,331 L140,248" marker-end="url(#lvA)"/>
+      <path class="loopviz-edge" d="M140,186 C140,120 240,80 300,72" marker-end="url(#lvA)"/>
+      <!-- animated flow line drawn on top of the track -->
+      <path class="loopviz-flow" d="M340,70 L575,70 L575,360 L140,360 L140,215 C140,120 240,80 340,70"/>
+
+      <!-- travelling dots -->
+      <circle class="loopviz-dot" r="6.5"><animateMotion dur="8s" repeatCount="indefinite" calcMode="linear" path="M340,70 L575,70 L575,360 L140,360 L140,215 C140,120 240,80 340,70"/></circle>
+      <circle class="loopviz-dot" r="6.5" opacity=".8"><animateMotion dur="8s" begin="2.7s" repeatCount="indefinite" calcMode="linear" path="M340,70 L575,70 L575,360 L140,360 L140,215 C140,120 240,80 340,70"/></circle>
+      <circle class="loopviz-dot" r="6.5" opacity=".6"><animateMotion dur="8s" begin="5.3s" repeatCount="indefinite" calcMode="linear" path="M340,70 L575,70 L575,360 L140,360 L140,215 C140,120 240,80 340,70"/></circle>
+
+      <!-- nodes -->
+      <g><rect class="loopviz-box" x="28" y="41" width="164" height="58" rx="11" stroke="#2b3b59"/><text class="loopviz-lbl" x="110" y="66">Pregunta</text><text class="loopviz-sub" x="110" y="84">entra una vez</text></g>
+      <g><rect class="loopviz-box" x="258" y="41" width="164" height="58" rx="11" stroke="#8b8cff"/><text class="loopviz-lbl" x="340" y="66">DI · Path A</text><text class="loopviz-sub" x="340" y="84">retrieval híbrido</text></g>
+      <g><rect class="loopviz-box" x="493" y="41" width="164" height="58" rx="11" stroke="#f4b740"/><text class="loopviz-lbl" x="575" y="66">¿suficiente?</text><text class="loopviz-sub" x="575" y="84">umbral de confianza</text></g>
+      <g><rect class="loopviz-box" x="773" y="41" width="164" height="58" rx="11" stroke="#35c98d"/><text class="loopviz-lbl" x="855" y="66">Responde + §5</text><text class="loopviz-sub" x="855" y="84">con su trail</text></g>
+      <g><rect class="loopviz-box" x="493" y="186" width="164" height="58" rx="11" stroke="#33d6c2"/><text class="loopviz-lbl" x="575" y="211">Path B · externa</text><text class="loopviz-sub" x="575" y="229">EuropePMC · Tool Universe</text></g>
+      <g><rect class="loopviz-box" x="493" y="331" width="164" height="58" rx="11" stroke="#e5604d"/><text class="loopviz-lbl" x="575" y="356">auditores ≥3</text><text class="loopviz-sub" x="575" y="374">adversariales</text></g>
+      <g><rect class="loopviz-box" x="278" y="331" width="164" height="58" rx="11" stroke="#2b3b59"/><text class="loopviz-lbl" x="360" y="356">propose</text><text class="loopviz-sub" x="360" y="374">no decide — propone</text></g>
+      <g class="loopviz-gate"><rect class="loopviz-box" x="58" y="331" width="164" height="58" rx="11" stroke="#f4b740"/><text class="loopviz-lbl" x="140" y="356" fill="#f4b740">◆ GATE HUMANO</text><text class="loopviz-sub" x="140" y="374">toda mutación</text></g>
+      <g><rect class="loopviz-box" x="58" y="186" width="164" height="58" rx="11" stroke="#33d6c2"/><text class="loopviz-lbl" x="140" y="211">Re-ingesta</text><text class="loopviz-sub" x="140" y="229">re-embed + sparse</text></g>
+    </svg>
+    <p class="note">El punto que circula es una respuesta viajando por el ciclo. La rama <b style="color:#35c98d">SÍ</b> sale con su contrato §5;
+      la rama <b style="color:#e5604d">NO</b> dispara el aprendizaje. Nada entra a la verdad sin pasar por el <b class="amb">◆ gate humano</b> — y cada vuelta engorda la DI.</p>
+  </div></section>
+
+  <section class="slide" id="s17"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">18</span> Los gates deterministas <span class="rule"></span></div>
+    <h2>Antes de creerle a un agente: <span class="accent">gates que no son un LLM</span>.</h2>
+    <p class="stand">Clase Logic-LM — predicados deterministas, re-ejecutables. Baratos, corren primero, bloquean la fabricación temprano.
+      Nacieron de una corrupción real: 15 de 16 IDs de marcadores estaban mal (generados desde la memoria del modelo).</p>
+    <div class="grid g2">
+      <div class="card"><h3><span class="pill bio">resolve_id + verify_output</span></h3>
+        <p>Todo <code>ENSDARG</code>/UniProt/PMID/GEO resuelve en el store o se marca en <code>gap_flags</code>. <code>admissible()</code> = H(c) &#8712; {0,1}: ningún score blando rescata un claim inadmisible.</p></div>
+      <div class="card"><h3><span class="pill bio">N1 · binding símbolo&#8596;ID</span></h3>
+        <p>No basta que el <code>ENSDARG</code> exista: debe estar <b>ligado al símbolo correcto</b>. Atrapa el "ID que colisionó con un gen no relacionado" — la corrupción real que lo motivó.</p></div>
+      <div class="card"><h3><span class="pill ind">§4 + §11 · cita y agente</span></h3>
+        <p>El framework se cita por <b>§sección específica</b> (no "Tier N"), validado contra el catálogo; el agente correcto se invoca para cada tipo de trabajo, o se justifica el salto.</p></div>
+      <div class="card"><h3><span class="pill ind">W5 · do vs observe</span></h3>
+        <p><code>causal_admissible</code> solo con una intervención explícita (Pearl). Condicionar &#8800; causar: una correlación no se cuela como afirmación causal.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s18"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">19</span> Los auditores · composite-auditor <span class="rule"></span></div>
+    <h2>Cuando entra evidencia nueva: <span class="accent">≥3 auditores adversariales, independientes</span>.</h2>
+    <div class="two">
+      <div class="flow" style="margin-top:0;flex-direction:column;gap:9px">
+        <div class="flow" style="margin-top:0">
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:14px">Auditor 1</div><div class="d">falso-negativo</div></div>
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:14px">Auditor 2</div><div class="d">validez de evidencia</div></div>
+          <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:14px">Auditor 3</div><div class="d">framing / integridad</div></div>
+        </div>
+        <div class="arrow down">&#8595;</div>
+        <div class="node bio"><div class="t">Voto · split-and-vote</div><div class="d">cada uno intenta REFUTAR, independiente. Reemplaza el SÍ/NO de un solo LLM.</div></div>
+      </div>
+      <div>
+        <ul class="ticks">
+          <li><b>Auto-auditoría del productor PROHIBIDA</b> — quien produjo no se audita a sí mismo (regla dura).</li>
+          <li><b>Multi-familia + cross-proveedor</b>: Claude Opus/Sonnet/Haiku + juez OpenAI <code>gpt-4o</code> — independencia real.</li>
+          <li>Siempre los mejores modelos — la calidad de la respuesta no se sacrifica por costo.</li>
+        </ul>
+        <div class="card" style="margin-top:18px;border-color:#7a3329">
+          <span class="lbl" style="color:var(--bad)">prueba real · auditoría de cierre</span>
+          <p style="color:var(--ink);font-size:14.5px;margin-top:8px">La última auditoría de cierre votó <b>7/7 REVISE</b> — atrapó un bug real de parser y sobre-afirmaciones sistemáticas,
+            <b>incluidas las del propio operador</b>. El sistema se defiende incluso de quien lo opera.</p>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s19"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">20</span> El contrato de confianza · §5 <span class="rule"></span></div>
+    <h2>Toda respuesta del substrato lleva su <span class="accent">trail de confianza</span>.</h2>
+    <div class="grid g3">
+      <div class="card"><span class="lbl">qué</span><h3 style="margin-top:6px">direct_answer</h3><p>La respuesta, sin rodeos.</p></div>
+      <div class="card"><span class="lbl">cuánto confía</span><h3 style="margin-top:6px">confidence_by_subclaim</h3><p>Confianza desglosada por sub-afirmación — no un número global que oculte lo débil.</p></div>
+      <div class="card"><span class="lbl">con qué</span><h3 style="margin-top:6px">evidence_cited</h3><p>Las fuentes, con su tier (RAW/DERIVED).</p></div>
+      <div class="card"><span class="lbl">qué descartó</span><h3 style="margin-top:6px">alternatives_considered</h3><p>Hipótesis rechazadas — obligatorio, no opcional.</p></div>
+      <div class="card"><span class="lbl">qué falta</span><h3 style="margin-top:6px">gap_flags</h3><p>Los known-unknowns declarados explícitamente.</p></div>
+      <div class="card"><span class="lbl">cómo razonó</span><h3 style="margin-top:6px">framework_applied + agents_invoked</h3><p>El método (citando §sección) y qué agentes corrieron.</p></div>
+    </div>
+    <p class="note">+ calibración real (ECE, isotónica post-hoc · Prueba 4) y un <b>reporte HTML al cierre</b>: la evidencia visible ES el trail de auditoría.
+      Advertencia honesta: <code>framework_applied</code> es <b>auto-reporte, no introspección fiel</b> — es un tag para analytics, no una prueba de qué razonamiento ocurrió por dentro.</p>
+  </div></section>
+
+  <section class="slide" id="s20"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">21</span> El loop de auto-mejora · RIL <span class="rule"></span></div>
+    <h2>El sistema <span class="accent">aprende de cada error</span> y se refuerza otra vez.</h2>
+    <div class="flow">
+      <div class="node" style="border-top-color:var(--bad)"><span class="tag">error</span><div class="t">failure_log</div><div class="d">cada fallo queda registrado</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><span class="tag">se vuelve guard</span><div class="t">regression_cases</div><div class="d"><code>build_regression_cases</code> — guard permanente</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><span class="tag">se replaya</span><div class="t">replay-as-regression</div><div class="d">&#916;v&lt;0 atrapa si el error reaparece</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node gate"><span class="tag">pre-gate advisory</span><div class="t">governance_prefilter</div><div class="d">&#8594; queue &#8594; gate humano</div></div>
+    </div>
+    <div class="grid g2" style="margin-top:20px">
+      <div class="card"><span class="lbl">validez de lente · ADR-0028</span><h3 style="margin-top:6px">evidence_weighting</h3>
+        <p>Pesa la evidencia por su tier: <b>nativo &gt; ortólogo &gt; membresía en vía &gt; ausencia</b>. Si la respuesta top descansa en evidencia débil
+          mientras otra tiene nativa, la <b>marca como over-claim</b>. Convirtió un catch del auditor en código determinista.</p></div>
+      <div class="card"><span class="lbl">la lección que no se repite</span><h3 style="margin-top:6px">next_session_prepend</h3>
+        <p>La próxima sesión lee los errores recurrentes antes de empezar. El más persistente: <b>no leer "ausente de una lente" como "evidencia en contra"</b>.</p></div>
+    </div>
+  </div></section>
+
+  <section class="slide" id="s21"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte II</span> <span class="step">22</span> Los agentes + la matriz de invocación <span class="rule"></span></div>
+    <h2>Quién hace qué — y <span class="accent">quién no decide solo</span>.</h2>
+    <div class="roster">
+      <div class="rgrp"><div class="h" style="color:var(--bio)">generación &middot; proponen, no deciden</div>
+        <div class="ag"><span class="n">causal-pruner</span><span class="d">candidatos / minimal-sets rankeados &#8594; Logic-LM &#8594; <span class="amb">SIEMPRE human gate</span>. Es hipótesis, jamás decisión.</span></div>
+        <div class="ag"><span class="n">hypothesis-generator</span><span class="d">hipótesis grounded en priors + literatura; contradictory_evidence obligatorio.</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--bad)">auditoría &middot; exposición</div>
+        <div class="ag"><span class="n">composite-auditor</span><span class="d">&#8805;3 adversariales (split-and-vote). Reemplaza el SÍ/NO de un solo LLM.</span></div>
+        <div class="ag"><span class="n">reasoning-exposer</span><span class="d">envuelve toda salida §5; fuerza el razonamiento visible.</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--gate)">calibración</div>
+        <div class="ag"><span class="n">calibration-tracker</span><span class="d">registra el claim + aplica isotónica post-hoc (Prueba 4).</span></div>
+        <div class="ag"><span class="n">evaluation-runner</span><span class="d">corre con perturbaciones vs held-out; mide robustez (Prueba 3).</span></div>
+      </div>
+      <div class="rgrp"><div class="h" style="color:var(--graph)">dominio &middot; conocimiento</div>
+        <div class="ag"><span class="n">cross-field-bridge</span><span class="d">puentes entre nichos (Método 2 only en Fase I).</span></div>
+        <div class="ag"><span class="n">retrospector</span><span class="d">corre el RIL; regenera las lecciones de la próxima sesión.</span></div>
+      </div>
+    </div>
+    <p class="note">Regla dura (§11): asignar el agente correcto es un <b>reflejo, no opcional</b> — o se invoca, o se registra el skip con justificación.
+      Generar candidatos / minimal-sets ES trabajo de <code>causal-pruner</code> y debe marcarse como tal. Auditar ES trabajo de <code>composite-auditor</code>, nunca un self-audit de un solo LLM.</p>
+  </div></section>
+
+  <!-- ============ PARTE III — ESTADO HONESTO ============ -->
+
+  <section class="slide" id="s22"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte III</span> <span class="step">23</span> Estado honesto <span class="rule"></span></div>
+    <h2>La disciplina del proyecto: separar <span class="good">medido</span>, <span class="amb">afinado</span> y <span style="color:var(--bad)">no probado</span>.</h2>
+    <div class="grid g3">
+      <div class="card" style="border-top:3px solid var(--good)"><span class="lbl" style="color:var(--good)">medido (con matices)</span>
+        <h3 style="margin-top:6px">La maquinaria corre</h3>
+        <p>Prueba 3: baseline held-out <b>30/30</b> respondidas. Prueba 4: de degenerado a <b>no-degenerado</b> (n=20, ECE_raw 0.51, sub-confiado).
+          Store <b>74 records</b>, íntegro (CLEAN). Loop DI&#8594;MCP&#8594;gate ejercido end-to-end.</p></div>
+      <div class="card" style="border-top:3px solid var(--gate)"><span class="lbl" style="color:var(--gate)">afinado, no resuelto</span>
+        <h3 style="margin-top:6px">La biología</h3>
+        <p>Cascada de inducción <code>RA&#8594;osr1&#8594;wnt2b/pax2a</code> sustancialmente anclada in-silico. FGF promueve fate pronéfrico (dosis-dependiente).
+          Pero la <b>suficiencia</b> (inducción ectópica por señal sola) <b>NO está testeada</b>.</p></div>
+      <div class="card" style="border-top:3px solid var(--bad)"><span class="lbl" style="color:var(--bad)">NO validado</span>
+        <h3 style="margin-top:6px">El límite honesto</h3>
+        <p>Toda métrica de "calidad" es de <b>LLM-juez</b>, n chico, single-snapshot. <b>LLM-juez &#8800; verdad de tierra.</b>
+          Nada aquí es "validado" — es "medido + auditado-y-corregido".</p></div>
+    </div>
+    <p class="note">Lo dice la propia auditoría de cierre (7/7 REVISE) y un <b>auditor externo Fable 5</b> sin contexto del proyecto:
+      es un diseño disciplinado, pero es <i>"una capa de rendición de cuentas alrededor de un resultado científico que aún no existe"</i>.
+      El reto real es <b>proporcionalidad</b> y <b>demostrar que la maquinaria mejora respuestas</b> — no más instrumentación.</p>
+  </div></section>
+
+  <section class="slide" id="s23"><div class="inner">
+    <div class="eyebrow"><span class="part">Parte III</span> <span class="step">24</span> Qué falta · el roadmap <span class="rule"></span></div>
+    <h2>La próxima inversión grande va a la <span class="accent">biología</span> y al <span class="amb">ancla humana</span>, no a más substrato.</h2>
+    <div class="grid g2">
+      <div class="card"><span class="lbl">el limitante real</span><h3 style="margin-top:6px">Gold set calificado por experto (Martín)</h3>
+        <p>Preguntas de razonamiento abierto, calificadas por un humano experto. Es el ancla de verdad de tierra que <b>ningún LLM ni compute sustituye</b>.
+          Es EL cuello de botella de toda medición de calidad.</p></div>
+      <div class="card"><span class="lbl">lo único que cierra la biología</span><h3 style="margin-top:6px">Wet-lab GOF · Fase II</h3>
+        <p>Ganancia de función: Wnt/FGF ectópico en tejido no-IM &#8594; ¿aparece <code>osr1</code>/<code>pax2a</code> ectópico? La suficiencia
+          <b>no es in-silico</b> — solo la resuelve el experimento.</p></div>
+      <div class="card"><span class="lbl">freeze del substrato · ADR-0034</span><h3 style="margin-top:6px">Ningún subsistema nuevo…</h3>
+        <p>…hasta que cada control demuestre haber atrapado un error real. La safety spine está exenta; el esfuerzo va a <b>medir + biología</b>.</p></div>
+      <div class="card"><span class="lbl">diferidos técnicos</span><h3 style="margin-top:6px">Escala + hardening</h3>
+        <p>Escalar el fallback Level-2 a las 30 preguntas · hardening de seguridad de puertos Dokploy (diferido por decisión del founder) · la viz "universe".</p></div>
+    </div>
+    <p class="note">Principio que gobierna todo: <b>"prueba pequeño antes de armar bien"</b>. Ante la duda entre una validación más pequeña
+      y una arquitectura más elegante, se elige la validación pequeña.</p>
+  </div></section>
+
+  <section class="slide" id="s24"><div class="inner">
+    <div class="eyebrow"><span class="part">Cierre</span> <span class="step">25</span> El workflow completo <span class="rule"></span></div>
+    <h2>De la pregunta a la verdad — <span class="accent">todo en una imagen</span>.</h2>
+    <div class="flow" style="margin-top:20px">
+      <div class="node"><div class="t" style="font-size:14px">Pregunta</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><div class="t" style="font-size:14px">Gates deterministas</div><div class="d">resolve_id · verify · §4/§11</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><div class="t" style="font-size:14px">Path A &#8594; B</div><div class="d">DI · luego MCP si falta</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--bad)"><div class="t" style="font-size:14px">Auditores ≥3</div><div class="d">adversariales, cross-proveedor</div></div>
+    </div>
+    <div class="flow" style="margin-top:11px">
+      <div class="node gate"><div class="t" style="font-size:14px">&#9670; GATE HUMANO</div><div class="d">toda mutación</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node bio"><div class="t" style="font-size:14px">Re-ingesta</div><div class="d">la DI crece</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node"><div class="t" style="font-size:14px">Respuesta + contrato §5</div><div class="d">confianza + huecos + reporte</div></div>
+      <div class="arrow">&#8594;</div>
+      <div class="node" style="border-top-color:var(--gate)"><div class="t" style="font-size:14px">RIL refuerza</div><div class="d">error &#8594; guard &#8594; próxima sesión</div></div>
+    </div>
+    <div class="stat">
+      <div class="s"><div class="n accent">2 mitades</div><div class="l">accountability (viva) · generación (naciente)</div></div>
+      <div class="s"><div class="n amb">1 gate</div><div class="l">humano, en toda mutación</div></div>
+      <div class="s"><div class="n" style="color:var(--bad)">≥3</div><div class="l">auditores por fetch/cierre</div></div>
+      <div class="s"><div class="n good">74</div><div class="l">records en la fuente de verdad, y creciendo</div></div>
+    </div>
+    <p class="note">La MITAD_A está lista in-silico: fuente de verdad, lentes, gates y loop — todo human-gated. Lo que falta para "inductor"
+      del pronefros ya es <b>wet-lab</b> (Fase II); lo que falta para "validado" es el <b>gold set humano</b>. El resto de esta presentación fue el <i>cómo</i>.</p>
+  </div></section>
+
+</div>
+
+<div class="ctrl"><button id="prev" aria-label="Anterior">&#8249;</button><button id="next" aria-label="Siguiente">&#8250;</button></div>
+<div class="hud"><span class="sec" id="hud-sec">Portada</span><span><span class="who">Witt × Organogénesis · Onboarding</span> · <span id="hud-num">01 / 26</span></span></div>
+
+<script>
+  (function(){
+    var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+    var secs = ["Portada",
+      "I · Las dos capas","I · La tesis","I · Capas técnicas","I · La ciencia · pronefros","I · Los 4 gates",
+      "I · Escalera + fases","I · Las 5 pruebas","I · Los 2 métodos","I·II · Las dos mitades",
+      "II · La DATA INAMOVIBLE","II · Dónde vive","II · El RAG","II · Indexación","II · Dominios + tiers",
+      "II · El refuerzo","II · El loop · ADR-0022","II · El loop en movimiento","II · Gates deterministas","II · Los auditores",
+      "II · Contrato §5","II · Auto-mejora · RIL","II · Agentes + matriz",
+      "III · Estado honesto","III · Qué falta","Cierre · Workflow completo"];
+    var i = 0;
+    var prog = document.getElementById('prog');
+    var hudNum = document.getElementById('hud-num');
+    var hudSec = document.getElementById('hud-sec');
+    function pad(n){ return (n < 10 ? '0' : '') + n; }
+    function show(n){
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      for (var k = 0; k < slides.length; k++){ slides[k].classList.toggle('active', k === i); }
+      hudNum.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+      hudSec.textContent = secs[i] || '';
+      prog.style.width = (i / (slides.length - 1) * 100) + '%';
+    }
+    function nx(){ show(i + 1); }
+    function pv(){ show(i - 1); }
+    document.getElementById('next').onclick = nx;
+    document.getElementById('prev').onclick = pv;
+    document.addEventListener('keydown', function(e){
+      var k = e.key;
+      if (k === 'ArrowRight' || k === 'PageDown' || k === ' '){ e.preventDefault(); nx(); }
+      else if (k === 'ArrowLeft' || k === 'PageUp'){ e.preventDefault(); pv(); }
+      else if (k === 'Home'){ show(0); }
+      else if (k === 'End'){ show(slides.length - 1); }
+    });
+    document.getElementById('deck').addEventListener('click', function(e){
+      if (e.target.closest('button')) return;
+      if (e.clientX > window.innerWidth * 0.62) nx();
+      else if (e.clientX < window.innerWidth * 0.38) pv();
+    });
+    show(0);
+  })();
+</script>

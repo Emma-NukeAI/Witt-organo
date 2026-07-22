@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chaperone-Tissue Interaction Table — Pronephros Induction (v1)</title>
+<style>
+  :root{
+    --bg:#f7f8fa; --panel:#fff; --ink:#16181d; --muted:#5b6472; --line:#e2e6ec;
+    --accent:#2f6df6; --ok:#178a5a; --warn:#b8860b; --bad:#c0392b;
+    --chip:#eef2f9; --hi:#eaf1ff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#0f1216;--panel:#171b21;--ink:#e8ebf0;--muted:#9aa4b2;--line:#272d36;
+    --accent:#6ea0ff;--ok:#4cc38a;--warn:#e0b64a;--bad:#e57373;--chip:#1e242c;--hi:#1a2331;}
+  }
+  :root[data-theme="dark"]{--bg:#0f1216;--panel:#171b21;--ink:#e8ebf0;--muted:#9aa4b2;--line:#272d36;--accent:#6ea0ff;--ok:#4cc38a;--warn:#e0b64a;--bad:#e57373;--chip:#1e242c;--hi:#1a2331;}
+  :root[data-theme="light"]{--bg:#f7f8fa;--panel:#fff;--ink:#16181d;--muted:#5b6472;--line:#e2e6ec;--accent:#2f6df6;--ok:#178a5a;--warn:#b8860b;--bad:#c0392b;--chip:#eef2f9;--hi:#eaf1ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 80px;}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.01em}
+  h2{font-size:18px;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+  .badge{display:inline-flex;align-items:center;gap:6px;background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;color:var(--ink)}
+  .badge b{font-weight:650}
+  .dot{width:8px;height:8px;border-radius:50%}
+  .ok{background:var(--ok)} .warn{background:var(--warn)} .bad{background:var(--bad)} .acc{background:var(--accent)}
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:8px 0}
+  table{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--chip);font-weight:650;position:sticky;top:0}
+  tr:last-child td{border-bottom:none}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;background:var(--chip);padding:1px 5px;border-radius:5px}
+  .gene{white-space:nowrap}
+  .win{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .conf{font-variant-numeric:tabular-nums;font-weight:650}
+  .tag{font-size:11px;padding:1px 7px;border-radius:5px;border:1px solid var(--line);white-space:nowrap}
+  .t-strong{color:var(--ok);border-color:var(--ok)}
+  .t-mod{color:var(--warn);border-color:var(--warn)}
+  .t-weak{color:var(--bad);border-color:var(--bad)}
+  ul{margin:6px 0 6px 0;padding-left:20px} li{margin:3px 0}
+  .kv{display:grid;grid-template-columns:190px 1fr;gap:6px 16px;font-size:13.5px}
+  .kv div:nth-child(odd){color:var(--muted)}
+  .foot{color:var(--muted);font-size:12.5px;margin-top:10px}
+  .callout{border-left:3px solid var(--accent);background:var(--hi);padding:10px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+  .callout.warn{border-left-color:var(--warn)}
+  .callout.gate{border-left-color:var(--bad)}
+  .barwrap{background:var(--chip);border-radius:6px;height:8px;overflow:hidden;min-width:90px}
+  .bar{height:100%;background:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Master Chaperone-Tissue Interaction Table</h1>
+  <p class="sub">Inducing the pronephric program in adjacent competent tissue · zebrafish (<i>Danio rerio</i>, GRCz11) · Phase I POC · v1 · 2026-07-11</p>
+
+  <div class="badges">
+    <span class="badge"><span class="dot acc"></span><b>Type</b> perturbation_design / TYPE B grid</span>
+    <span class="badge"><span class="dot ok"></span><b>IDs tool-verified</b> 11 / 11</span>
+    <span class="badge"><span class="dot warn"></span><b>Overall confidence</b> 0.42 (design scaffold)</span>
+    <span class="badge"><span class="dot bad"></span><b>Human gate</b> required (causal-pruner-class + wet-lab GOF)</span>
+  </div>
+
+  <div class="callout">
+    <b>What this is.</b> A design scaffold that maps candidate <b>source (chaperone) tissues → competent target → inducing signal → temporal window</b> for reconstituting the pronephric program. Every gene identifier is verified live against Ensembl / cross-checked to the DATA INAMOVIBLE. Signal roles and windows are grounded in the zebrafish developmental literature and ZFIN phenotype existence — <b>they are NOT native perturbation-sufficiency evidence.</b> The "can this signal <i>induce</i> pronephros in competent tissue" claim is a hypothesis for a human gate, not a validated protocol.
+  </div>
+
+  <h2>Preflight (§10)</h2>
+  <div class="card foot">
+    Project-state preflight found prior artifacts: <code>analysis/outputs/verified_identifiers.json</code> (51-record DATA INAMOVIBLE, incl. osr1/wnt8a/fgf8a/aldh1a2/cyp26a1/pax2a/pax8/lhx1a/wt1a/wt1b/hnf1ba), <code>analysis/outputs/signaling_markers_curated.json</code> (ADR-0029 induction markers), and the Schoels/Wagner pronephros marker sets. DI Path-A retrieval was thin (niche RN10 + ZESTA/tubulogenesis datasets, 0 resolved entities), so structured evidence was gathered via Tool Universe (Ensembl + ZFIN). Gaps: no native perturbation-sufficiency data for induction; temporal windows are literature-derived, not tool-retrieved this session (ZESTA atlas is source-pointer only).
+  </div>
+
+  <h2>Interaction table — inducing signals (source → target)</h2>
+  <p class="sub">Target throughout Phase I = intermediate mesoderm (IM) / posterior lateral plate mesoderm, the competent field that forms the bilateral pronephros. hpf windows are approximate developmental-stage brackets.</p>
+  <div class="scroll">
+  <table>
+    <thead>
+      <tr><th>Source (chaperone tissue)</th><th>Signal (ligand / morphogen)</th><th class="gene">Verified gene · ENSDARG</th><th>Target competent tissue</th><th class="win">Temporal window</th><th>Role in pronephros program</th><th>Evidence tier</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Anterior paraxial mesoderm / somites</td>
+        <td><b>Retinoic acid</b> (synthesis)</td>
+        <td class="gene"><code>aldh1a2</code><br><code>ENSDARG00000053493</code></td>
+        <td>IM (anterior/proximal)</td>
+        <td class="win">~8–18 hpf</td>
+        <td>Proximo-distal patterning; specifies proximal segment identity (proximal tubule). Strongest-validated inducing input.</td>
+        <td><span class="tag t-strong">strong</span></td>
+      </tr>
+      <tr>
+        <td>Posterior mesoderm / tailbud</td>
+        <td><b>RA degradation</b> (counter-gradient)</td>
+        <td class="gene"><code>cyp26a1</code><br><code>ENSDARG00000033999</code><br><code>cyp26b1</code><br><code>ENSDARG00000077121</code></td>
+        <td>IM (posterior/distal)</td>
+        <td class="win">~8–18 hpf</td>
+        <td>Clears RA posteriorly → distal segment identity; sharpens the proximo-distal boundary set by aldh1a2.</td>
+        <td><span class="tag t-mod">moderate</span></td>
+      </tr>
+      <tr>
+        <td>Tailbud / posterior paraxial mesoderm</td>
+        <td><b>Wnt</b> (posteriorizing)</td>
+        <td class="gene"><code>wnt8a</code><br><code>ENSDARG00000052910</code><br><code>wnt2ba</code><br><code>ENSDARG00000005050</code></td>
+        <td>Posterior LPM / IM</td>
+        <td class="win">~6–12 hpf</td>
+        <td>Posteriorizes mesoderm; establishes the posterior competence field from which trunk IM/pronephros arises.</td>
+        <td><span class="tag t-mod">moderate</span></td>
+      </tr>
+      <tr>
+        <td>Tailbud / posterior mesoderm</td>
+        <td><b>FGF</b></td>
+        <td class="gene"><code>fgf8a</code><br><code>ENSDARG00000003399</code><br><code>fgf24</code><br><code>ENSDARG00000037677</code></td>
+        <td>Posterior LPM / IM</td>
+        <td class="win">~8–16 hpf</td>
+        <td>Posterior mesoderm specification; permissive/instructive for IM fate alongside Wnt.</td>
+        <td><span class="tag t-mod">moderate</span></td>
+      </tr>
+      <tr>
+        <td>Ventral / ventrolateral mesoderm (BMP high)</td>
+        <td><b>BMP</b> (dorsoventral)</td>
+        <td class="gene"><code>bmp2b</code><br><code>ENSDARG00000041430</code></td>
+        <td>Ventrolateral mesoderm → prospective IM</td>
+        <td class="win">~5–10 hpf</td>
+        <td>Competence-establishing: DV patterning positions the ventrolateral mesoderm domain that later yields IM. Upstream/earlier than the patterning signals above.</td>
+        <td><span class="tag t-mod">moderate</span></td>
+      </tr>
+      <tr>
+        <td>Notochord / floor plate (midline)</td>
+        <td><b>Hedgehog</b></td>
+        <td class="gene"><code>shha</code><br><code>ENSDARG00000068567</code></td>
+        <td>Adjacent IM (medial)</td>
+        <td class="win">~10–18 hpf</td>
+        <td>Midline-derived patterning input; contributes to podocyte/proximal fate refinement. Most modest / least-specific role — include as exploratory.</td>
+        <td><span class="tag t-weak">weak</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="foot">Evidence tier reflects strength of the <i>causal/instructive</i> role in pronephros, not identifier confidence (all IDs are tool-verified). RA (aldh1a2) is the single best-characterized inducing/patterning input in this system; Hedgehog is included for completeness at low weight.</p>
+
+  <h2>Companion module — target competence / readout (what "competent" means)</h2>
+  <p class="sub">These are the target-intrinsic TFs whose activation is the readout of successful induction — the response module, not signals from a source. Reconstituting the program means driving these ON in the competent field.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Gene</th><th class="gene">ENSDARG (verified)</th><th>Role in the competent field</th><th class="win">Onset (approx.)</th></tr></thead>
+    <tbody>
+      <tr><td><code>osr1</code></td><td class="gene"><code>ENSDARG00000014091</code></td><td>Earliest intermediate-mesoderm / competence marker</td><td class="win">~8–10 hpf</td></tr>
+      <tr><td><code>pax2a</code></td><td class="gene"><code>ENSDARG00000028148</code></td><td>Master pronephros specification TF (renal phenotype on loss)</td><td class="win">~10–12 hpf</td></tr>
+      <tr><td><code>pax8</code></td><td class="gene"><code>ENSDARG00000015879</code></td><td>Co-specifier with pax2a (redundant/parallel)</td><td class="win">~10–12 hpf</td></tr>
+      <tr><td><code>lhx1a</code> (lim1)</td><td class="gene"><code>ENSDARG00000014018</code></td><td>IM/nephron progenitor specification</td><td class="win">~10–14 hpf</td></tr>
+      <tr><td><code>wt1a</code> / <code>wt1b</code></td><td class="gene"><code>ENSDARG00000031420</code> / <code>ENSDARG00000007990</code></td><td>Podocyte / proximal (glomerular) fate</td><td class="win">~14–24 hpf</td></tr>
+      <tr><td><code>hnf1ba</code></td><td class="gene"><code>ENSDARG00000006615</code></td><td>Tubule segment differentiation</td><td class="win">~18–24 hpf</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Confidence by sub-claim (§5)</h2>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr auto 110px;gap:8px 14px;align-items:center;font-size:13.5px">
+      <div>Gene identifier bindings (symbol ↔ ENSDARG)</div><div class="conf">0.97</div><div class="barwrap"><div class="bar" style="width:97%"></div></div>
+      <div>RA (aldh1a2) as proximo-distal inducing/patterning input</div><div class="conf">0.72</div><div class="barwrap"><div class="bar" style="width:72%;background:var(--ok)"></div></div>
+      <div>Wnt / FGF / BMP directional roles (source→competence)</div><div class="conf">0.55</div><div class="barwrap"><div class="bar" style="width:55%;background:var(--warn)"></div></div>
+      <div>Source-tissue → signal assignments</div><div class="conf">0.55</div><div class="barwrap"><div class="bar" style="width:55%;background:var(--warn)"></div></div>
+      <div>Temporal windows (hpf brackets)</div><div class="conf">0.40</div><div class="barwrap"><div class="bar" style="width:40%;background:var(--warn)"></div></div>
+      <div>Hedgehog (shha) role in pronephros proper</div><div class="conf">0.35</div><div class="barwrap"><div class="bar" style="width:35%;background:var(--bad)"></div></div>
+      <div><b>Induction SUFFICIENCY</b> (signals reconstitute program in competent tissue)</div><div class="conf">0.25</div><div class="barwrap"><div class="bar" style="width:25%;background:var(--bad)"></div></div>
+    </div>
+    <p class="foot">Overall 0.42 is deliberately not a single-number roll-up of the strong ID column — it is dominated by the weakest load-bearing claims (windows + sufficiency), per the confidence_by_subclaim discipline (CLAUDE.md §5).</p>
+  </div>
+
+  <h2>Evidence cited</h2>
+  <div class="card">
+    <ul>
+      <li><b>Ensembl REST</b> (live, 2026-07-11, <code>ensembl_lookup_gene</code>, danio_rerio/GRCz11): bmp2b, shha, wnt2ba, fgf24, cyp26b1, wt1a. Raw cached at <code>mcp_cache/raw_ensembl_lookup_gene_chaperone-ligands_20260711.json</code>.</li>
+      <li><b>DATA INAMOVIBLE v2026-06-23.1</b> (<code>analysis/outputs/verified_identifiers.json</code>, raw-cached ADR-0029): osr1, wnt8a, fgf8a, aldh1a2, cyp26a1, pax2a, pax8, lhx1a, wt1b, hnf1ba.</li>
+      <li><b>ZFIN / Alliance</b> (<code>ZFIN_get_gene_phenotypes</code>): pax2a (ZDB-GENE-990415-8) — 189 phenotypes incl. renal system; aldh1a2 (ZDB-GENE-011010-3) — 125 phenotypes incl. anterior-posterior axis defects, consistent with RA as an A-P/patterning signal.</li>
+    </ul>
+  </div>
+
+  <h2>Alternatives considered · Gaps · Agents</h2>
+  <div class="card">
+    <div class="kv">
+      <div>Alternatives considered</div>
+      <div>
+        <ul style="margin-top:0">
+          <li><b>Single-signal model (RA only):</b> rejected as incomplete — RA patterns proximo-distal identity but does not establish the posterior competence field (Wnt/FGF) or the DV origin (BMP).</li>
+          <li><b>Notch as an inducing source signal:</b> rejected for this table — Notch (e.g. jag2b/deltaC) acts <i>within</i> the pronephros for multiciliated-vs-epithelial cell-type patterning, not as a source→competent-tissue inducer; belongs to a later cell-fate table.</li>
+          <li><b>Treating pax2a/osr1/wt1 as "signals":</b> rejected — these are target-intrinsic response TFs (readout of competence), separated into the companion module.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout gate">
+      <b>Human gate (Hard Rule §7).</b> The sufficiency column and the source→signal→window structure are a <b>causal-pruner-class induction hypothesis</b>. It must pass a human gate and wet-lab gain-of-function (Phase II) before any downstream decision. This report is hypothesis generation, never a decision.
+    </div>
+    <div class="kv" style="margin-top:6px">
+      <div>Gap flags</div>
+      <div>
+        <ul style="margin-top:0">
+          <li>No native perturbation-sufficiency evidence in the DI that any listed signal <i>induces</i> pronephros in ectopic competent tissue.</li>
+          <li>Temporal windows are literature/domain-derived, not retrieved from a structured tool this session (ZESTA atlas is source-pointer only, not queried).</li>
+          <li>ZFIN expression-ribbon endpoint returned HTTP 404 for osr1/aldh1a2 (not retried, per §6 no-hang); phenotype endpoint succeeded.</li>
+          <li>Source-tissue assignments are canonical-model attributions, not spatially resolved from the ZESTA atlas in this pass.</li>
+          <li>Lens-validity (ADR-0028): evidence here is identifier + expression/phenotype existence (tiers ≤ native_expression), not native_perturbation — no overclaim of role-sufficiency.</li>
+        </ul>
+      </div>
+      <div>Framework applied</div>
+      <div>Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: <i>"High-stakes outputs that will be acted on … Outputs that cite specific facts or numbers"</i>. Draft table → verify each ID/role against retrieved Ensembl/ZFIN → revise. (Re-elected from Self-Discover once the dominant dynamic became verification-against-retrieved-evidence.)</div>
+      <div>Agents invoked</div>
+      <div><code>causal-pruner</code> — skipped-ad-hoc (single subagent turn cannot spawn sub-agents; the induction-sufficiency hypothesis is explicitly flagged for the required human gate above). <code>composite-auditor</code> — skipped-ad-hoc (single-turn synthesis; not claimed as an audit gate).</div>
+    </div>
+  </div>
+
+  <p class="foot" style="margin-top:26px">Witt × Organogenesis · Latido Médico Mexicano · GWT v1.1 · substrate-instrumented output (§5). Version-preserved: v1 — do not overwrite on revision, bump instead.</p>
+
+</div>
+</body>
+</html>
