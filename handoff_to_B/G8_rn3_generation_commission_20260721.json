@@ -1,0 +1,187 @@
+{
+  "artifact": "A_to_B_generation_commission",
+  "channel": "handoff_to_B/ (A->B pull; B reads read-only, A never writes B's repo)",
+  "from": "MITAD_A (witt-organogenesis)",
+  "to": "MITAD_B (conciencia-universal)",
+  "date": "2026-07-21",
+  "question": "ZF-G8 nodal-bmp-kinetics-from-zesta",
+  "gate_1": "APPROVED by Emmanuel 2026-07-21 (acquire G8)",
+  "contract": {
+    "per": "docs/A_B_CONTRACT.md (B side)",
+    "B_autonomy": "A1 proposal-only",
+    "flow": "A grounds -> B generates a Proposal -> A scope-gate + human selection -> A GATE 2 ingest",
+    "invariants_B_must_honor": [
+      "#1 every claim has an observable",
+      "#2 every experiment has a comparison",
+      "#6 no external ID from memory (resolve via A resolve_identifier)",
+      "#7 no draft is source of truth",
+      "#8 no self-approval",
+      "B never writes the DI; returns a Proposal only"
+    ]
+  },
+  "grounding_A_provides": {
+    "verified_markers": {
+      "note": "all resolve in the DI (store 2026-07-21.1, 93 records); B cross-checks each via the read-only MCP resolve_identifier",
+      "markers": [
+        {
+          "symbol": "ndr1",
+          "ensdarg": "ENSDARG00000057096",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "ndr2",
+          "ensdarg": "ENSDARG00000101279",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "tdgf1",
+          "ensdarg": "ENSDARG00000035095",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "lft1",
+          "ensdarg": "ENSDARG00000019920",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "lft2",
+          "ensdarg": "ENSDARG00000044059",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "smad2",
+          "ensdarg": "ENSDARG00000006389",
+          "group": "nodal",
+          "in_DI": true
+        },
+        {
+          "symbol": "bmp2b",
+          "ensdarg": "ENSDARG00000041430",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "bmp4",
+          "ensdarg": "ENSDARG00000019995",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "bmp7a",
+          "ensdarg": "ENSDARG00000018260",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "chrd",
+          "ensdarg": "ENSDARG00000006110",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "smad5",
+          "ensdarg": "ENSDARG00000037238",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "smad4a",
+          "ensdarg": "ENSDARG00000075226",
+          "group": "bmp",
+          "in_DI": true
+        },
+        {
+          "symbol": "aldh1a2",
+          "ensdarg": "ENSDARG00000053493",
+          "group": "ra_crosstalk",
+          "in_DI": true
+        },
+        {
+          "symbol": "cyp26a1",
+          "ensdarg": "ENSDARG00000033999",
+          "group": "ra_crosstalk",
+          "in_DI": true
+        },
+        {
+          "symbol": "cyp26b1",
+          "ensdarg": "ENSDARG00000077121",
+          "group": "ra_crosstalk",
+          "in_DI": true
+        }
+      ]
+    },
+    "measured_fit_target": {
+      "source": "ZESTA CORPUS-2026-0001 (stereoseq 3/5/10 hpf, MEASURED)",
+      "read_via": "A-repo read-only path: analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json",
+      "summary": "15 markers x 3 timepoints (mean expr + %spots). Nodal transient 3-5hpf; Lefty(lft1) rises as feedback; chrd ramps to 7%; smad5 high early; aldh1a2 late."
+    },
+    "mechanism_and_prior": {
+      "policy": "atestiguada/literature — citation VERIFIED via EuropePMC + raw-cached (§7.9); specific numeric constants NOT fabricated (§7).",
+      "verified_citation": {
+        "pmid": "22499809",
+        "pmcid": "PMC3525670",
+        "doi": "10.1126/science.1221920",
+        "title": "Differential diffusivity of Nodal and Lefty underlies a reaction-diffusion patterning system.",
+        "year": "2012",
+        "raw_cache": "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json",
+        "verified_on": "2026-07-21",
+        "verifier": "EuropePMC REST"
+      },
+      "mechanism_from_abstract_RETRIEVED": "Measured (Muller 2012, from the authoritative abstract): Nodals have SHORTER range than Lefty; Nodal & Lefty have SIMILAR clearance kinetics -> the range difference is driven by DIFFERENTIAL DIFFUSIVITY, NOT differential clearance. (FRAP: Lefty diffuses faster than Nodal.)",
+      "fit_constraint": "D(Lefty) > D(Nodal); clearance k similar across the two -> the reaction-diffusion prior is a fast long-range inhibitor (Lefty) + slow short-range activator (Nodal).",
+      "approach_RESOLVES_the_gap": "Per the acquisition_trigger (\"fit against the ZESTA atlas\"): fit D/k to OUR measured ZESTA gradients (Part 1) using Muller 2012 differential-diffusivity as the STRUCTURAL PRIOR + qualitative constraint. This avoids importing another assay constants and is the methodologically-correct \"fit against ZESTA\".",
+      "gap_flags": [
+        "Muller 2012 specific numeric D values are behind Science access (not OA via EuropePMC; PMC3525670 fullTextXML 404; BioModels 0 hits) — NOT fabricated. Only needed as an optional sanity prior; the operative constants are FIT to ZESTA."
+      ]
+    },
+    "bngl_topology": {
+      "note": "Rule TOPOLOGY (species + reactions) — a SPEC, not a fitted model. The .bngl generation + fit is MITAD_B's side (A/B contract: A grounds, B generates). Handed off as input.",
+      "species": [
+        "Nodal(ndr1,ndr2)",
+        "Oep(tdgf1)",
+        "Lefty(lft1,lft2)",
+        "Smad2",
+        "BMP(bmp2b,bmp4,bmp7a)",
+        "Chordin(chrd)",
+        "Smad5"
+      ],
+      "rules": [
+        "Nodal + Oep <-> Nodal:Oep            # reception complex",
+        "Nodal:Oep -> Nodal:Oep + pSmad2      # signal transduction",
+        "pSmad2 -> pSmad2 + Lefty             # Nodal-induced Lefty feedback (matches measured lft1 rise)",
+        "Lefty + Oep -> Lefty:Oep            # competitive inhibition of Nodal reception (fast diffuser)",
+        "BMP -> BMP + pSmad5                  # BMP transduction",
+        "Chordin + BMP -> Chordin:BMP         # BMP sequestration (matches measured chrd ramp)",
+        "@diffusion: D(Lefty) >> D(Nodal); D(Chordin) intermediate"
+      ],
+      "falsifier": "a Lefty perturbation (MO/mutant) does not move the Nodal-domain boundary as the fitted model predicts (per acquisition_trigger candidate_falsifier)."
+    }
+  },
+  "generation_task_for_B": {
+    "goal": "Instantiate the BNGL topology + FIT diffusion/degradation (D,k) to the measured ZESTA gradients, with the structural prior D(Lefty) > D(Nodal) (Muller 2012, PMID 22499809).",
+    "produce": [
+      "fitted Nodal/BMP reaction-diffusion .bngl (RN3)",
+      "kinetic constant table (fit to ZESTA)",
+      "gradient->segment-identity state-transition mapping (.json)"
+    ],
+    "must_carry": [
+      "observable (per invariant #1)",
+      "candidate_falsifier: a Lefty perturbation does not move the Nodal-domain boundary as the fitted model predicts",
+      "confidence (claim-like, uncalibrated until A observes outcome)"
+    ]
+  },
+  "expected_return_from_B": {
+    "as": "a Proposal in conciencia-universal/proposals/ (B side, A1)",
+    "then": "A scope-gate + human selection -> if selected, A GATE 2 ingest as CORPUS-2026-0004 (first RN3 record). Confidence is NOT calibration until A observes an outcome (invariant #3)."
+  },
+  "A_artifacts_referenced": [
+    "analysis/outputs/G8_rn3_record_candidate_20260721.json",
+    "analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json",
+    "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json (verified citation)"
+  ]
+}

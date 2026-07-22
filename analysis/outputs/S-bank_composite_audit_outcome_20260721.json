@@ -1,0 +1,45 @@
+{
+  "artifact": "composite_auditor_outcome + corrected_§5_contract",
+  "date": "2026-07-21",
+  "subject": "MITAD_A scope-gate of MITAD_B stress bank ZF-S1..S12 (report v1 + 2 DRAFT commissions)",
+  "mode": "composite-auditor Mode 1 (split-and-vote), 3 independent adversarial auditors, distinct lenses, refute-by-default. NOT a single-LLM self-audit (CLAUDE.md §7).",
+  "panel": [
+    {"auditor": "grounding/fabrication (invariant 6)", "verdict": "CONFIRMED", "key": "Re-ran resolve_id.py independently over 39 symbols. 9 UNIQUE resolved_via_mcp IDs B tagged are all concordant (0 discordances). Every ENSDARG A stated matches. 10 NOT_FOUND genuine, 0 minting. hif1a paralog claim real."},
+    {"auditor": "scope/phase/taxonomy (§3)", "verdict": "REVISE", "key": "Coverage claim (3 datasets all RN1, RN2-RN13 empty) verified. S4 niche-correction correct (real RN10-13 names confirmed). DEFER S3/S5/S10 sound. FINDING: S7 ADMIT is classified inconsistently with S5/S10 DEFER — same empty-biophysical-modality data-niche status; needs explicit N4-vs-N2 adjudication."},
+    {"auditor": "over-claiming/ranking/contract (§4/§5/§7/§11)", "verdict": "REVISE", "key": "Framework quotes exact + section-specific. Commissions well-formed (S2 real observable+comparison; S4 correctly human-gated, no asserted ingest). No 'validated' over-claim. FINDINGS: causal-pruner should be skipped-ad-hoc not not-applicable; coverage confidence over-stated; 'B no fabricó' too broad; S2 TOP-1 prose over-attributes; ranking subclaim needs explicit Tier-3 declaration."}
+  ],
+  "tally": {"CONFIRMED": 1, "REVISE": 2, "REFUTED": 0},
+  "gate_result": "PASS-WITH-CORRECTIONS. No hard-wrong finding; grounding is deterministic and clean. 5 corrections applied below. This gate must be re-run (or SendMessage-continued) before any GATE-2 ingest of S2/S4 outputs.",
+  "corrections_applied": [
+    {"id": "C1", "from": "agents_invoked: causal-pruner status = not-applicable", "to": "skipped-ad-hoc", "why": "Ranking 12 acquisition candidates surface-matches the invocation-matrix 'ranked candidates' work-type verbatim; not-applicable denies the match. skipped-ad-hoc + the portfolio-prioritization justification is the tracked safety valve. (Auditor 3, load-bearing.)"},
+    {"id": "C2", "from": "confidence_by_subclaim: coverage-map = 0.92", "to": "0.85", "why": "The map's load-bearing statements are STRONG-ABSENCE assertions (RN2-RN13 empty; RN3 0 ingested) + an open taxonomy gap. ADR-0028 lens-validity discipline: never high-confidence on absent-from-a-lens. (Auditor 3.)"},
+    {"id": "C3", "from": "'B no fabricó' (unscoped)", "to": "'B did not fabricate any of the IDs it tagged resolved_via_mcp (9/9 concordant)'", "why": "The deterministic check only covers the tagged subset; B left the majority unverified. (Auditors 1+3.)"},
+    {"id": "C4", "from": "prose '6 concordant'", "to": "'9/9 unique resolved_via_mcp symbols concordant'", "why": "B tagged 9 unique symbols (S2:6 + S9:2 + S11:1), not 6. Undercount was safe-direction but imprecise. (Auditor 1.)"},
+    {"id": "C5", "from": "S7 ADMIT (asserted N4 without justification)", "to": "ADMIT-marginal WITH explicit adjudication", "why": "Bioelectric Vmem->fate is admitted as N4 (cellular signaling: the claim is about information for FATE SPECIFICATION, and the value is the low-cost PAIRING to the EXISTING RN1 transcriptome) — BUT the Vmem measurement modality is N2-biophysics-adjacent, so S7 is the MARGINAL ADMIT of the six, one reclassification away from the S5/S10 DEFER line. Made explicit per Auditor 2."},
+    {"id": "C6", "from": "S2 TOP-1 prose 'attacks the open D-non-identifiability gap'", "to": "'runs the compute model-selection (does the free D-ratio earn its parameter under E_sparse on spatial ZESTA) NOW; the discriminating gap-closer (FRAP + Lefty-KO) is deferred to Phase II'", "why": "Aligns ranking rationale with the gap_flags already in the commission. (Auditor 3.)"},
+    {"id": "C7", "from": "framework_applied covered only grounding", "to": "+ explicit §4 Tier-3 declaration for the ranking subclaim", "why": "The ranking is heuristic judgment; no Tier-1/2 framework matched it. §4 requires declaring this. (Auditor 3.)"}
+  ],
+  "corrected_5_contract": {
+    "direct_answer": "Of 12: 6 ADMIT Phase-I (S2, S4, S8, S9, S11, and S7 as the MARGINAL ADMIT), 3 ADMIT-low far-frontier (S1, S6, S12), 3 DEFER by phase (S3=N6 Phase III, S5/S10=N2 Phase II). Grounding deterministic: B did not fabricate any of the 9 IDs it tagged resolved_via_mcp (9/9 concordant). TOP-2 = S2 (generation commission) + S4 (human-gated acquisition path). Nothing promoted to canonical without human selection.",
+    "confidence_by_subclaim": {"scope_gate_phase_niche": 0.90, "id_grounding_logic_lm": 0.98, "coverage_map_RN": 0.85, "ranking_value_cost_eig": 0.66},
+    "framework_applied": [
+      "Logic-LM — reasoning-frameworks-catalog.md §5: 'Problems where the answer must be provably correct, not just plausible' (resolve_id gate).",
+      "Chain-of-Verification — §8: 'Outputs that cite specific facts or numbers' (cross-check of B's resolved_via_mcp ENSDARGs; 9/9 concordant).",
+      "Ranking subclaim: NO Tier-1/2 framework matched — Tier-3 heuristic (portfolio prioritization by value×cost×EIG-proxy). Declared per §4."
+    ],
+    "agents_invoked": [
+      {"agent": "causal-pruner", "status": "skipped-ad-hoc", "reason": "Output includes a ranking of 12 acquisition candidates, which surface-matches the invocation-matrix 'ranked candidates' work-type. Skipped because this is PORTFOLIO prioritization (value×cost×EIG over data-acquisition targets), NOT generation of biological causal candidates / minimal sets / sufficiency hypotheses over signaling networks (the matrix qualifier). A real downstream human gate exists (human selection + GATE-2)."},
+      {"agent": "composite-auditor", "status": "invoked", "invocation_id": "3-auditor Mode-1 panel 2026-07-21 (grounding/scope/overclaim)", "evidence_generated": ["test_1", "test_2"]},
+      {"agent": "reasoning-fragility-skeptic", "status": "not-applicable", "reason": "B-side agent; its coherence_traps were carried into the A->B commissions for B to honor."}
+    ],
+    "gap_flags": [
+      "EIG uncalculated (qualitative proxy; no outcomes -> no calibration, inv 3/9).",
+      "S4 relational/claims layer is a taxonomy gap (no first-class ingested niche) -> human decision.",
+      "10 IDs NOT_FOUND need Ensembl verify + raw-cache (§7.9) + GATE-2 before use.",
+      "hif1a ambiguous (hif1aa/hif1ab) -> B picks the paralog.",
+      "S2/S1/S12 discriminating falsifiers (FRAP, Lefty-KO, optogenetics, GOF wet-lab) are Phase II.",
+      "S7 is the marginal ADMIT (N4-vs-N2 boundary)."
+    ]
+  },
+  "note_on_report": "report v1 (2026-07-21_mitadA-scope-gate-stress-bank_v1.html) is preserved as the pre-audit artifact. A v2 (audited-and-corrected) can be rendered on request; the corrected contract above is the durable audit trail meanwhile."
+}

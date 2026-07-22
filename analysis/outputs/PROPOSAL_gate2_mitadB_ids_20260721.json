@@ -1,0 +1,203 @@
+{
+  "artifact": "GATE-2_ADD_proposal",
+  "status": "EXECUTED \u2014 human-gated ADD approved by Emmanuel 2026-07-21 (17 markers + both hif1a paralogs = 19)",
+  "raised_by": "MITAD_A (this session) on MITAD_B REQUEST_A_validate_DI_20260711",
+  "date": "2026-07-21",
+  "human_gate_rule": "CLAUDE.md \u00a77 \u2014 DATA INAMOVIBLE mutations ALWAYS human-gated + specified. ADD-only (MERGE).",
+  "current_store_version": "2026-07-11.1",
+  "current_n_records": 74,
+  "proposed_store_version": "2026-07-21.1",
+  "proposed_n_records_after": 91,
+  "n_add": 17,
+  "write_mechanism": "stage add_records into a curated-markers file + merge block in build_verified_store.py (mirror the signaling_markers_curated.json pattern), snapshot prior store to verified_identifiers.v2026-07-11.1.json (ADR-0002), bump STORE_VERSION, run the single writer.",
+  "records_to_add": [
+    {
+      "symbol": "her1",
+      "ensdarg": "ENSDARG00000014722",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "her7",
+      "ensdarg": "ENSDARG00000017917",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "dlc",
+      "ensdarg": "ENSDARG00000002336",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "alias of deltaC; 'deltaC' resolves to canonical 'dlc' (ENSDARG00000002336); raw-cached, not yet in store."
+    },
+    {
+      "symbol": "notch1a",
+      "ensdarg": "ENSDARG00000103554",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "sox17",
+      "ensdarg": "ENSDARG00000101717",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "gata4",
+      "ensdarg": "ENSDARG00000098952",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "hand2",
+      "ensdarg": "ENSDARG00000008305",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "tnfa",
+      "ensdarg": "ENSDARG00000009511",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "il6",
+      "ensdarg": "ENSDARG00000102318",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "il10",
+      "ensdarg": "ENSDARG00000078147",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "tbxta",
+      "ensdarg": "ENSDARG00000101576",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "vangl2",
+      "ensdarg": "ENSDARG00000027397",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "wnt11",
+      "ensdarg": "ENSDARG00000014796",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "prkci",
+      "ensdarg": "ENSDARG00000021225",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "prkcz",
+      "ensdarg": "ENSDARG00000043332",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "ift88",
+      "ensdarg": "ENSDARG00000027234",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    },
+    {
+      "symbol": "tnnt2a",
+      "ensdarg": "ENSDARG00000020610",
+      "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+      "verified_on": "2026-07-21",
+      "resolver": "ensembl-rest-lookup+xrefs",
+      "why": "new verified marker from MITAD_B question bank"
+    }
+  ],
+  "hold_for_disambiguation": [
+    {
+      "symbol_as_given": "hif1a",
+      "canonical": "hif1aa|hif1ab",
+      "ensdarg": null,
+      "verdict": "AMBIGUOUS",
+      "category": "HOLD_human_disambiguation",
+      "group": "sec1_21",
+      "note": "'hif1a' maps to TWO paralogs: hif1aa (ENSDARG00000006181) + hif1ab (ENSDARG00000034293). B must specify which (or both). NOT auto-added."
+    }
+  ],
+  "already_covered_no_action": [
+    "lefty1",
+    "lefty2",
+    "bmp2b",
+    "ndr1",
+    "ndr2",
+    "squint",
+    "cyclops"
+  ],
+  "alias_normalization_for_B": {
+    "deltaC": {
+      "canonical": "dlc",
+      "ensdarg": "ENSDARG00000002336"
+    },
+    "lefty1": {
+      "canonical": "lft1",
+      "ensdarg": "ENSDARG00000019920"
+    },
+    "lefty2": {
+      "canonical": "lft2",
+      "ensdarg": "ENSDARG00000044059"
+    },
+    "squint": {
+      "canonical": "ndr1",
+      "ensdarg": "ENSDARG00000057096"
+    },
+    "cyclops": {
+      "canonical": "ndr2",
+      "ensdarg": "ENSDARG00000101279"
+    }
+  },
+  "executed": {
+    "approved_by": "Emmanuel",
+    "decision": "17 + both hif1a paralogs (hif1aa+hif1ab)",
+    "n_added": 19,
+    "store_version_after": "2026-07-21.1",
+    "n_records_after": 93,
+    "writer": "build_verified_store.py",
+    "curated_file": "analysis/outputs/mitadB_markers_curated.json",
+    "prior_snapshot": "analysis/outputs/verified_identifiers.v2026-07-11.1.json"
+  }
+}

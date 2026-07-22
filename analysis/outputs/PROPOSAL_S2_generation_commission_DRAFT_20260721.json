@@ -1,0 +1,75 @@
+{
+  "artifact": "A_to_B_generation_commission",
+  "status": "DRAFT — pending A scope-gate HUMAN SELECTION; NOT yet published to handoff_to_B/. A decides, the human gates.",
+  "channel_when_approved": "handoff_to_B/ (A->B pull; B reads read-only, A never writes B's repo)",
+  "from": "MITAD_A (witt-organogenesis)",
+  "to": "MITAD_B (conciencia-universal)",
+  "date": "2026-07-21",
+  "question": "ZF-S2 nodal-lefty-D-identifiability-vs-null (stress-test tier)",
+  "why_top_1": "NEAR frontier. Attacks the EXACT open gap that the G8 grounding left standing: 'la no-identificabilidad de D desde datos temporales sigue en pie'. Model-selection (RD vs null) runs on the ZESTA SPATIAL layer A ALREADY holds (compute-only, zero new data). All 6 markers resolve concordantly in the DI. Highest anchoring x lowest incremental cost of the 12.",
+  "gate_1": "PENDING — Emmanuel to approve promoting ZF-S2 to a generation commission.",
+  "contract": {
+    "per": "docs/A_B_CONTRACT.md (B side)",
+    "B_autonomy": "A1 proposal-only",
+    "flow": "A grounds -> B generates a Proposal -> A scope-gate + human selection -> A GATE 2 ingest",
+    "invariants_B_must_honor": [
+      "#1 every claim has an observable",
+      "#2 every experiment has a comparison (RD model vs null temporal-threshold model)",
+      "#6 no external ID from memory (resolve via A resolve_identifier)",
+      "#7 no draft is source of truth",
+      "#8 no self-approval",
+      "B never writes the DI; returns a Proposal only"
+    ]
+  },
+  "grounding_A_provides": {
+    "verified_markers": {
+      "note": "A ran resolve_id.py (Logic-LM-class deterministic gate) over the store 2026-07-21.1 (93 records). All 6 ids_used resolve; each ENSDARG is CONCORDANT with the value B tagged resolved_via_mcp. 0 discordances. B cross-checks each via the read-only MCP resolve_identifier.",
+      "markers": [
+        {"symbol": "ndr1", "ensdarg": "ENSDARG00000057096", "group": "nodal", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "ndr2", "ensdarg": "ENSDARG00000101279", "group": "nodal", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "lft1", "ensdarg": "ENSDARG00000019920", "group": "lefty", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "lft2", "ensdarg": "ENSDARG00000044059", "group": "lefty", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "sox17", "ensdarg": "ENSDARG00000101717", "group": "endoderm_readout (pSmad2 high)", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "tbxta", "ensdarg": "ENSDARG00000101576", "group": "mesoderm_readout", "in_DI": true, "concordant_with_B": true}
+      ],
+      "also_available_from_G8": "smad2 (ENSDARG00000006389), tdgf1 (ENSDARG00000035095), chrd (ENSDARG00000006110), bmp2b (ENSDARG00000041430), smad5 (ENSDARG00000037238) — the full G8 Nodal/BMP set is in-store if B wants the coupled system."
+    },
+    "measured_fit_target": {
+      "source": "ZESTA CORPUS-2026-0001 (Stereo-seq, MEASURED, in DI). THE NEW MOVE vs G8: extract the SPATIAL gradient (per-spot spatial_x/spatial_y expression), not just the temporal means G8 used.",
+      "read_via": "A-repo read-only path. A can produce a spatial-profile extract from mcp_cache/zesta/ (zf3/zf5/zf10_stereoseq.h5ad carry spatial_x/spatial_y + layer_annotation).",
+      "why_this_closes_part_of_the_gap": "The RD-vs-null model comparison is a fit against EXISTING spatial data — compute only, no acquisition. This is the fraction of ZF-S2 that is actionable NOW."
+    },
+    "mechanism_and_prior": {
+      "policy": "atestiguada/literature — citation VERIFIED + raw-cached in G8 (§7.9). Reused, not re-fetched.",
+      "verified_citation": {
+        "pmid": "22499809", "pmcid": "PMC3525670", "doi": "10.1126/science.1221920",
+        "title": "Differential diffusivity of Nodal and Lefty underlies a reaction-diffusion patterning system.",
+        "raw_cache": "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json", "verifier": "EuropePMC REST"
+      },
+      "structural_prior": "D(Lefty) > D(Nodal); clearance k SIMILAR across the two (the range difference is diffusivity-driven, NOT clearance-driven). Use as the STRUCTURAL prior for the RD model."
+    }
+  },
+  "generation_task_for_B": {
+    "goal": "Model selection under non-identifiability: fit (a) a differential-diffusivity reaction-diffusion model [D(Lefty)>D(Nodal) prior] AND (b) a null temporal-threshold model with NO spatial diffusion asymmetry, both to the measured ZESTA SPATIAL gradients, then compare energies after an E_sparse penalty on the RD model's free D-ratio degree of freedom.",
+    "produce": [
+      "fitted RD .bngl + fitted null model, both scored on the SAME spatial ZESTA data",
+      "energy comparison table with the E_sparse penalty made explicit (does the free D-ratio earn its parameter?)",
+      "a PRE-REGISTERED framing declaration: report boundary position in BOTH relative (fraction-of-axis) AND absolute frame (guards the frame-circularity trap)"
+    ],
+    "coherence_trap_to_honor (from B's own bank)": "'Differential diffusivity explains scaling' is Muller-2012-true AND coherent — but that is borrowed authority, not evidence THIS parameterization fits OUR data. reasoning-fragility-skeptic must refuse to promote an established-mechanism citation to a fit result; energy-ebm must guard against energy collapse when D is unconstrained.",
+    "must_carry": [
+      "observable (per invariant #1): spatial pSmad2 / marker gradient boundary position",
+      "candidate_falsifier: the null temporal-threshold model matches boundary positions within noise at EQUAL-or-LOWER parameter cost (refutes the RD model earning its D-ratio)",
+      "confidence (claim-like, Mode-0 / uncalibrated until A observes an outcome)"
+    ]
+  },
+  "gap_flags": [
+    "Muller 2012 absolute D values behind Science paywall (not OA; PMC XML 404; BioModels 0 hits) — NOT fabricated. Only a sanity prior; operative constants FIT to ZESTA.",
+    "The DISCRIMINATING wet-lab falsifier — FRAP/photoconversion diffusion length-scales + a Lefty-KO boundary-displacement assay — is NEW acquisition (N2-biophysics-adjacent / wet-lab, Phase II). NOT available now. The compute model-selection is what B can do this cycle; the wet-lab discriminator is a Phase-II gap.",
+    "D remains non-identifiable from temporal-only data; the spatial extraction narrows but does not fully close this without the diffusion measurement."
+  ],
+  "expected_return_from_B": {
+    "as": "a Proposal in conciencia-universal/proposals/ (B side, A1)",
+    "then": "A scope-gate + human selection -> if selected, A GATE 2 ingest (extends the RN3 record family; candidate CORPUS-2026-0004+ once G8 lands). Confidence is NOT calibration until A observes an outcome (invariant #3)."
+  }
+}

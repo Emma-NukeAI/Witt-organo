@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MITAD_A · Scope-gate + grounding + adquisición — banco stress ZF-S1..S12 (B, A1)</title>
+<style>
+  :root{
+    --bg:#0d1117;--panel:#161b22;--panel2:#1c2430;--ink:#e6edf3;--dim:#9aa7b4;--line:#2b3441;
+    --admit:#2ea043;--admitlo:#9e7b16;--defer:#c94b4b;--near:#2f81f7;--mid:#8957e5;--far:#6e7681;
+    --ok:#2ea043;--nf:#c94b4b;--warn:#d29922;--chip:#21262d;
+  }
+  @media (prefers-color-scheme:light){
+    :root{--bg:#f6f8fa;--panel:#fff;--panel2:#f0f3f6;--ink:#1f2328;--dim:#57606a;--line:#d0d7de;--chip:#eaeef2;}
+  }
+  :root[data-theme="dark"]{--bg:#0d1117;--panel:#161b22;--panel2:#1c2430;--ink:#e6edf3;--dim:#9aa7b4;--line:#2b3441;--chip:#21262d;}
+  :root[data-theme="light"]{--bg:#f6f8fa;--panel:#fff;--panel2:#f0f3f6;--ink:#1f2328;--dim:#57606a;--line:#d0d7de;--chip:#eaeef2;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;padding:28px 20px 80px}
+  .wrap{max-width:1120px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px;letter-spacing:-.2px}
+  h2{font-size:17px;margin:32px 0 12px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .sub{color:var(--dim);font-size:13.5px;margin:0 0 18px}
+  .grid{display:grid;gap:14px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .kpis{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;min-width:120px}
+  .kpi b{display:block;font-size:22px}
+  .kpi span{color:var(--dim);font-size:12px}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:13px;min-width:720px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--panel2);color:var(--dim);font-weight:600;position:sticky;top:0}
+  td code{background:var(--chip);padding:1px 5px;border-radius:4px;font-size:12px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap}
+  .b-admit{background:rgba(46,160,67,.16);color:var(--admit);border:1px solid var(--admit)}
+  .b-admitlo{background:rgba(158,123,22,.16);color:var(--admitlo);border:1px solid var(--admitlo)}
+  .b-defer{background:rgba(201,75,75,.16);color:var(--defer);border:1px solid var(--defer)}
+  .b-near{background:rgba(47,129,247,.16);color:var(--near);border:1px solid var(--near)}
+  .b-mid{background:rgba(137,87,229,.16);color:var(--mid);border:1px solid var(--mid)}
+  .b-far{background:rgba(110,118,129,.18);color:var(--far);border:1px solid var(--far)}
+  .ok{color:var(--ok);font-weight:700}
+  .nf{color:var(--nf);font-weight:700}
+  .warn{color:var(--warn);font-weight:700}
+  .callout{border-left:3px solid var(--near);background:var(--panel2);padding:12px 14px;border-radius:0 8px 8px 0;margin:12px 0}
+  .callout.warn{border-left-color:var(--warn)}
+  .callout.defer{border-left-color:var(--defer)}
+  ul{margin:6px 0 6px 0;padding-left:20px}
+  li{margin:3px 0}
+  .conf{display:flex;align-items:center;gap:10px;margin:6px 0}
+  .bar{flex:1;height:8px;background:var(--chip);border-radius:6px;overflow:hidden;max-width:260px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--near),var(--admit))}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.two{grid-template-columns:1fr}}
+  .tag{font-size:11px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-right:4px}
+  footer{color:var(--dim);font-size:12px;margin-top:36px;border-top:1px solid var(--line);padding-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>MITAD_A — scope-gate · grounding · plan de adquisición</h1>
+  <p class="sub">Verificador de baja varianza sobre el candidato <b>A1</b> de MITAD_B: banco stress-test <b>ZF-S1..S12</b> (zebrafish). Read-only sobre el repo hermano · cero mutación de la DATA INAMOVIBLE · A decide, el humano gatea. Fecha 2026-07-21 · store <code>2026-07-21.1</code> (93 records).</p>
+
+  <div class="kpis">
+    <div class="kpi"><b>6</b><span>ADMIT (Fase-I accionables)</span></div>
+    <div class="kpi"><b>3</b><span>ADMIT-bajo (frontera lejana)</span></div>
+    <div class="kpi"><b>3</b><span>DEFER (N2/N6 Fase II–III)</span></div>
+    <div class="kpi"><b>0</b><span>ID discordantes vs B</span></div>
+    <div class="kpi"><b>10</b><span>IDs NOT_FOUND (no minteados)</span></div>
+    <div class="kpi"><b>1</b><span>error de nichos corregido (S4)</span></div>
+  </div>
+
+  <div class="panel">
+    <b>Preflight (§10) —</b> consultado antes de emitir: <code>verified_identifiers.json</code> (93 rec, v2026-07-21.1) · <code>rag_index/niches.json</code> (RN1–RN13 autoritativo) · <code>corpus_manifest.json</code> (3 datasets, <b>todos primary RN1</b>; RN2–RN13 sin corpus ingerido) · <code>handoff_to_B/G8_rn3_generation_commission</code> · memoria <code>mitadA-validate-DI-for-mitadB-20260721</code>. Grounding corrido con <code>resolve_id.py</code> (fuente-de-verdad determinista, offline; MCP no requerido — regla no-hang §6). Gaps → <code>gap_flags</code>.
+  </div>
+
+  <h2>1 · Veredicto de scope-gate (12 preguntas)</h2>
+  <p class="sub">Contra el contrato A↔B + §3 (nichos/fase) + §7. <b>Fase I activa: N1, N3, N4.</b> N2 = Fase II · N5 exploratorio · N6 = Fase III.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Q</th><th>Tema</th><th>Nicho científico</th><th>Observable</th><th>Falsador muerde</th><th>Veredicto</th><th>Regla</th></tr></thead>
+    <tbody>
+      <tr><td><b>S2</b></td><td>Nodal/Lefty difusividad diferencial vs null</td><td>N4+N1</td><td class="ok">alta</td><td class="ok">sí (null ≤ RD a menor costo; Lefty-KO)</td><td><span class="badge b-admit">ADMIT · TOP-1</span></td><td>§3 N4; sobre G8</td></tr>
+      <tr><td><b>S4</b></td><td>Penetrancia: descomposición de varianza</td><td>N1+N3</td><td class="ok">alta</td><td class="ok">sí (GRN falla CV held-out)</td><td><span class="badge b-admit">ADMIT · TOP-2</span></td><td>§3 N1/N3; calibración</td></tr>
+      <tr><td><b>S8</b></td><td>Escalamiento global vs órgano-autónomo</td><td>N1+N3</td><td class="ok">alta</td><td class="ok">sí (órgano held-out)</td><td><span class="badge b-admit">ADMIT</span></td><td>§3; sobre ZESTA existente</td></tr>
+      <tr><td><b>S9</b></td><td>Ventana de competencia gated por cromatina</td><td>N3+N4</td><td class="ok">alta</td><td class="ok">sí (ATAC no aporta poder)</td><td><span class="badge b-admit">ADMIT</span></td><td>§3; feeder DanioCODE</td></tr>
+      <tr><td><b>S11</b></td><td>Adjudicación de frontera cross-modal</td><td>N1+N3 + gobernanza</td><td class="ok">alta</td><td class="ok">sí (desacuerdo sin criterio = info)</td><td><span class="badge b-admit">ADMIT</span></td><td>§5 E_consistency</td></tr>
+      <tr><td><b>S7</b></td><td>Bioeléctrica: info sobre el transcriptoma</td><td>N1+N4</td><td class="warn">media</td><td class="ok">sí (MI condicional ~0)</td><td><span class="badge b-admit">ADMIT</span></td><td>§3 N4; modalidad pareada</td></tr>
+      <tr><td><b>S1</b></td><td>Reloj de segmentación: período/tamaño</td><td>N1+N3</td><td class="ok">alta</td><td class="ok">sí (clamp wavefront)</td><td><span class="badge b-admitlo">ADMIT-bajo</span> <span class="badge b-mid">media</span></td><td>§3; requiere optogenética+imaging</td></tr>
+      <tr><td><b>S12</b></td><td>Inducción ectópica: señal mínima</td><td>N3+N4</td><td class="warn">media-alta</td><td class="ok">sí</td><td><span class="badge b-admitlo">ADMIT-bajo</span> <span class="badge b-far">lejana</span></td><td>GOF wet-lab = Fase II; sox2 NF</td></tr>
+      <tr><td><b>S6</b></td><td>Turing pigmento: ¿movimiento requerido?</td><td>N1</td><td class="ok">alta</td><td class="ok">sí (permite indistinguible)</td><td><span class="badge b-admitlo">ADMIT-bajo</span> <span class="badge b-far">lejana</span></td><td>adulto (fuera 3–24hpf); IDs ausentes</td></tr>
+      <tr><td><b>S3</b></td><td>Regen cardíaca: biestable vs monotónica</td><td>N1/(N6)</td><td class="ok">alta</td><td class="ok">sí</td><td><span class="badge b-defer">DEFER</span></td><td>§3 N6 = Fase III; dominio nuevo</td></tr>
+      <tr><td><b>S5</b></td><td>Flujo de Kupffer: instructivo vs permisivo</td><td>N1/(N2)</td><td class="warn">media</td><td class="ok">sí</td><td><span class="badge b-defer">DEFER</span></td><td>§3 N2 fluidos = Fase II; spaw NF</td></tr>
+      <tr><td><b>S10</b></td><td>Notocorda: mecánica vs reloj</td><td>N1/(N2)</td><td class="warn">media-alta</td><td class="ok">sí</td><td><span class="badge b-defer">DEFER</span></td><td>§3 N2 biomecánica = Fase II; IDs ausentes</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout defer"><b>DEFER (no rechazo — aplazamiento por fase):</b> S3/S5/S10 son biológicamente válidas y sus falsadores muerden, pero caen en nichos <b>N2 (biofísica/fluidos) y N6 (regenerativa)</b> que no se activan hasta Fase II/III (§3). No se adquieren ahora; se re-evalúan al migrar de fase. Ninguna de las 12 es out-of-scope duro.</div>
+
+  <h2>2 · Grounding — tabla determinista (invariante 6)</h2>
+  <p class="sub"><code>resolve_id.py</code> sobre store 2026-07-21.1. Los 6 que B marcó <code>resolved_via_mcp:true</code> son <b>concordantes 100%</b> (0 fabricaciones). Los que B dejó sin verificar y hoy resuelven fue por el <b>GATE-2 del 2026-07-21</b> (store 74→93). Los NOT_FOUND se registran tal cual — <b>no se mintean</b>.</p>
+  <div class="tblwrap"><table>
+    <thead><tr><th>Q</th><th>Símbolo</th><th>B decía</th><th>A (resolve_id)</th><th>Acción de A</th></tr></thead>
+    <tbody>
+      <tr><td>S1</td><td class="mono">her1</td><td>unverified</td><td class="ok">ENSDARG00000014722</td><td>CONFIRMA (GATE-2 07-21)</td></tr>
+      <tr><td>S1</td><td class="mono">her7</td><td>unverified</td><td class="ok">ENSDARG00000017917</td><td>CONFIRMA</td></tr>
+      <tr><td>S1</td><td class="mono">dlc</td><td>unverified (deltaC)</td><td class="ok">ENSDARG00000002336</td><td>CONFIRMA · usar canónico <b>dlc</b> (deltaC = NOT_FOUND)</td></tr>
+      <tr><td>S1</td><td class="mono">notch1a</td><td>unverified</td><td class="ok">ENSDARG00000103554</td><td>CONFIRMA</td></tr>
+      <tr><td>S2</td><td class="mono">ndr1/ndr2/lft1/lft2/sox17/tbxta</td><td>resolved_via_mcp ✓</td><td class="ok">6/6 concordantes</td><td>CONFIRMA · 0 discordancias</td></tr>
+      <tr><td>S3</td><td class="mono">gata4</td><td>unverified</td><td class="ok">ENSDARG00000098952</td><td>CONFIRMA</td></tr>
+      <tr><td>S3</td><td class="mono">hand2</td><td>unverified</td><td class="ok">ENSDARG00000008305</td><td>CONFIRMA</td></tr>
+      <tr><td>S3</td><td class="mono">hif1a</td><td>unverified</td><td class="warn">AMBIGUO</td><td>CORRIGE → hif1a<b>a</b> (…06181) / hif1a<b>b</b> (…34293); B debe elegir paralogo</td></tr>
+      <tr><td>S3</td><td class="mono">tnfa/il6/il10</td><td>unverified</td><td class="ok">…09511 / …02318 / …78147</td><td>CONFIRMA</td></tr>
+      <tr><td>S5</td><td class="mono">spaw</td><td>unverified</td><td class="nf">NOT_FOUND</td><td>verificar vs Ensembl + raw-cache → GATE-2</td></tr>
+      <tr><td>S5</td><td class="mono">pitx2</td><td>unverified</td><td class="ok">ENSDARG00000036194</td><td>CONFIRMA</td></tr>
+      <tr><td>S6</td><td class="mono">mitfa / csf1ra / kita</td><td>unverified</td><td class="nf">NOT_FOUND ×3</td><td>verificar+ingerir antes de usar (pigmento ausente)</td></tr>
+      <tr><td>S7</td><td class="mono">kcnj1a.1 / trpm7 / atp1b1b</td><td>unverified</td><td class="ok">EN DI (de ZESTA)</td><td>CONFIRMA — ya estaban (B no lo sabía)</td></tr>
+      <tr><td>S9</td><td class="mono">bmp2b / smad5</td><td>resolved_via_mcp ✓</td><td class="ok">2/2 concordantes</td><td>CONFIRMA</td></tr>
+      <tr><td>S10</td><td class="mono">entpd5a / col9a2 / yap1</td><td>unverified</td><td class="nf">NOT_FOUND ×3</td><td>verificar+ingerir (mecánica ausente)</td></tr>
+      <tr><td>S11</td><td class="mono">sox17 / tbxta / smad2</td><td>resolved_via_mcp ✓</td><td class="ok">3/3 concordantes</td><td>CONFIRMA</td></tr>
+      <tr><td>S12</td><td class="mono">fgf8a / pax2a</td><td>unverified</td><td class="ok">…03399 / …28148</td><td>CONFIRMA</td></tr>
+      <tr><td>S12</td><td class="mono">sox2</td><td>NOT_FOUND (B lo marcó)</td><td class="nf">NOT_FOUND</td><td>B correcto — verificar+ingerir; otx2 también NF</td></tr>
+    </tbody>
+  </table></div>
+
+  <h2>3 · Cobertura real de la DI vs di_gap de B</h2>
+  <div class="callout warn"><b>Corrección de nichos (S4) —</b> B repitió el error ya marcado en ZF-G12: infirió <code>RN10/RN11/RN12</code> de los nombres de las feeder DBs. El mapa autoritativo (<code>niches.json</code>) es: <b>RN10</b> = Tejidos chaperones/boundary conditions · <b>RN11</b> = Claims curados de literatura · <b>RN12</b> = Perturbaciones/intervenciones causales (docs generados, vía causal-pruner + gate) · y existe <b>RN13</b> = Modelos de simulación/código. El dato relacional mutante→fenotipo / ortólogo / interacción-génica <b>no mapea limpio a ningún nicho ingerido</b>: es un hueco de taxonomía (capa relacional/claims ausente). Decisión humana: colocar bajo RN11 o abrir propuesta de gobernanza para un nicho relacional.</div>
+  <p class="sub">El resto de los <code>di_gap</code> de B <b>cuadran</b> con mi mapa: corpus ingerido = 3 datasets, <b>todos primary RN1</b> (ZESTA whole-embryo · GSE218068 ocular · pronephros tubulogenesis). RN2–RN13 sin corpus denso; las feeder DBs están registradas pero no ingeridas. Matices: S2 dice RN3 "partial (1 record)" → en realidad RN3 tiene <b>0 corpus ingerido</b> (G8 es candidato PENDING GATE-2). S1 "new_domain" sobrestima levemente: la ventana somitogénesis (10–24hpf) existe en ZESTA (RN1), lo nuevo es la matriz de perturbación temp×dosis + imaging (RN9).</p>
+
+  <h2>4 · Ranking de adquisición (valor-DI × costo⁻¹ × EIG)</h2>
+  <div class="two">
+    <div class="panel">
+      <span class="badge b-near">FRONTERA CERCANA</span> <span class="tag">bajo costo · alto valor</span>
+      <ol>
+        <li><b>S2</b> — sobre G8 (ya grounded); ataca el hueco abierto de D-no-identificable; 6/6 markers en DI; extracción espacial de ZESTA = solo cómputo. <b>→ COMISIÓN DE GENERACIÓN (TOP-1).</b></li>
+        <li><b>S4</b> — <b>ingest relacional</b> de feeders YA declaradas (ZFIN/Ensembl/BioGRID); cero wet-lab; abre la capa relacional vacía; es la pregunta de calibración (Test-4). <b>→ CAMINO DE ADQUISICIÓN (TOP-2).</b></li>
+        <li><b>S9</b> — <b>modalidad pareada</b> (scATAC) sobre RN1 existente vía feeder DanioCODE declarada; test E_sparse limpio.</li>
+        <li><b>S8</b> — serie de tamaño sobre ZESTA existente; test de órgano held-out.</li>
+        <li><b>S11</b> — acopla modalidades ZESTA existentes + 1 IHC; stress-test de gobernanza (E_consistency).</li>
+        <li><b>S7</b> — Vmem pareado a RN1 existente; test de MI condicional (imaging de voltaje = medio).</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <span class="badge b-mid">MEDIA</span>
+      <ul><li><b>S1</b> — reloj/wavefront: serie de perturbación + imaging + optogenética.</li></ul>
+      <span class="badge b-far">LEJANA</span> <span class="tag">abre dominio nuevo · costo alto</span>
+      <ul>
+        <li><b>S12</b> — atlas GOF combinatorio (wet-lab, Fase II); sox2 NOT_FOUND.</li>
+        <li><b>S6</b> — Turing pigmento adulto; dominio nuevo, 3 IDs ausentes, fuera de ventana.</li>
+      </ul>
+      <span class="badge b-defer">DEFERIDAS (Fase II–III)</span>
+      <ul>
+        <li><b>S3</b> N6 regenerativa (Fase III) · <b>S5</b> N2 fluidos (Fase II) · <b>S10</b> N2 biomecánica (Fase II).</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>5 · TOP-2 — comisiones redactadas</h2>
+  <div class="two">
+    <div class="panel">
+      <span class="badge b-admit">TOP-1</span> <b>ZF-S2 · comisión de generación</b>
+      <p class="sub">A entrega: 6 markers verificados-concordantes + ZESTA <b>espacial</b> como fit-target (cómputo, dato existente) + prior Müller 2012 (PMID 22499809, ya raw-cacheado). B genera: modelo RD [D(Lefty)>D(Nodal)] <b>vs</b> null temporal-threshold, ambos sobre los mismos gradientes espaciales, comparados con penalización E_sparse sobre el D-ratio. Falsador: el null iguala la frontera a costo ≤. <b>Gap:</b> FRAP + Lefty-KO = wet-lab Fase II (marcado, no bloquea el model-selection por cómputo).</p>
+      <div class="mono">→ analysis/outputs/PROPOSAL_S2_generation_commission_DRAFT_20260721.json</div>
+    </div>
+    <div class="panel">
+      <span class="badge b-admit">TOP-2</span> <b>ZF-S4 · camino de adquisición</b>
+      <p class="sub">Requiere DATO NUEVO (capa relacional no ingerida) → no es comisión aún. Ruta: <code>add_dataset.py</code> (propone tablas ZFIN/Ensembl/BioGRID + dataset de varianza isogénica) → <b>revisión humana</b> (taxonomía + provenance) → <code>approve_dataset.py</code> → <code>ingest.py</code> (MERGE-only). Gate de entidades: cada gen vía <code>resolve()</code>, nunca minteado. Tras ingerir → se vuelve comisión de generación limpia (descomposición de varianza + GRN vs baseline aditivo con holdout).</p>
+      <div class="mono">→ analysis/outputs/PROPOSAL_S4_acquisition_path_DRAFT_20260721.json</div>
+    </div>
+  </div>
+
+  <h2>6 · Contrato de salida §5 (evidencia de sustrato)</h2>
+  <div class="panel grid">
+    <div><b>direct_answer:</b> De las 12, <b>6 ADMIT</b> Fase-I (S2, S4, S7, S8, S9, S11), <b>3 ADMIT-bajo</b> frontera lejana (S1, S6, S12), <b>3 DEFER</b> por fase (S3=N6, S5/S10=N2). Grounding determinista: <b>0 discordancias</b> vs los IDs que B verificó; B no fabricó. TOP-2 = S2 (comisión de generación) + S4 (camino de adquisición). Nada se promueve a canónico sin selección humana.</div>
+
+    <div>
+      <b>confidence_by_subclaim:</b>
+      <div class="conf"><span class="mono" style="min-width:290px">scope-gate (fase/nicho, contra §3)</span><span class="bar"><i style="width:90%"></i></span><span class="mono">0.90</span></div>
+      <div class="conf"><span class="mono" style="min-width:290px">grounding de IDs (Logic-LM, determinista)</span><span class="bar"><i style="width:98%"></i></span><span class="mono">0.98</span></div>
+      <div class="conf"><span class="mono" style="min-width:290px">mapa de cobertura DI (RN1..RN13 + corpus)</span><span class="bar"><i style="width:92%"></i></span><span class="mono">0.92</span></div>
+      <div class="conf"><span class="mono" style="min-width:290px">ranking valor×costo×EIG (juicio, proxy)</span><span class="bar"><i style="width:66%"></i></span><span class="mono">0.66</span></div>
+      <p class="sub">EIG aquí es proxy cualitativo, no calculado (sin outcomes → sin calibración, inv 3/9). El ranking es la subclaim más blanda por diseño.</p>
+    </div>
+
+    <div><b>evidence_cited:</b>
+      <ul class="mono">
+        <li>analysis/outputs/verified_identifiers.json (store 2026-07-21.1, 93 rec) vía resolve_id.py</li>
+        <li>rag_index/niches.json (RN1–RN13 autoritativo) · rag_index/corpus_manifest.json (3 rec, todos RN1)</li>
+        <li>conciencia-universal/docs/question_bank_stress_20260721.json (B, A1) · outputs/grounded_probe_rn3_20260721.json</li>
+        <li>handoff_to_B/G8_rn3_generation_commission_20260721.json · mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json</li>
+      </ul>
+    </div>
+
+    <div><b>alternatives_considered:</b>
+      <ul>
+        <li><b>S9 como TOP-1</b> en vez de S2 — descartado: S2 tiene mayor anclaje (sobre G8 en vuelo) y menor costo incremental (extracción espacial = cómputo). S9 necesita hallar+ingerir scATAC.</li>
+        <li><b>Rechazar S3/S5/S10 como out-of-scope duro</b> — descartado: son válidas, solo fuera de fase. DEFER ≠ rechazo (§3 activación progresiva).</li>
+        <li><b>Confiar en los ENSDARG de B (resolved_via_mcp)</b> sin re-resolver — descartado: inv 6 exige la fuente-de-verdad de A; re-resolví los 6 (concordantes) en vez de asumirlos.</li>
+        <li><b>Mintear los NOT_FOUND</b> (spaw, mitfa/csf1ra/kita, entpd5a/col9a2/yap1, sox2/otx2) desde memoria — prohibido (§7). Marcados para verificación+GATE-2.</li>
+      </ul>
+    </div>
+
+    <div><b>gap_flags:</b>
+      <ul>
+        <li>EIG no calculado (proxy cualitativo; sin outcomes).</li>
+        <li>Taxonomía: la capa relacional/claims de S4 no es un nicho ingerido de primera clase — decisión humana pendiente.</li>
+        <li>10 IDs NOT_FOUND requieren verificación vs Ensembl + raw-cache (§7.9) + GATE-2 antes de uso.</li>
+        <li>hif1a ambiguo (2 paralogos) — B debe elegir hif1aa/hif1ab.</li>
+        <li>Falsadores discriminantes de S2 (FRAP, Lefty-KO) y S1/S12 (wet-lab, optogenética) = Fase II — fuera de este ciclo.</li>
+      </ul>
+    </div>
+
+    <div><b>framework_applied:</b>
+      <p class="mono">Logic-LM — per reasoning-frameworks-catalog.md §5: "Problems where the answer must be provably correct, not just plausible" (el gate resolve_id.py: un ENSDARG resuelve o es NOT_FOUND, sin ambigüedad).</p>
+      <p class="mono">Chain-of-Verification (CoVe) — per reasoning-frameworks-catalog.md §8: "Outputs that cite specific facts or numbers" (cross-check de los ENSDARG que B marcó resolved_via_mcp contra la fuente-de-verdad de A; 6/6 concordantes).</p>
+    </div>
+
+    <div><b>agents_invoked:</b>
+      <ul class="mono">
+        <li>causal-pruner — status: <b>not-applicable</b>. El ranking es priorización de portafolio (valor×costo×EIG), no un set de candidatos causales/biológicos ni una hipótesis de suficiencia. No dispara la regla §7 de causal-pruner.</li>
+        <li>composite-auditor — status: <b>skipped-ad-hoc</b>. Este es un brief de scope-gate; nada se promovió a canónico. La compuerta real = selección humana + GATE-2. Recomendado invocar composite-auditor (Mode 1, ≥3) ANTES de cualquier ingest de S4 o de aceptar el Proposal de S2.</li>
+        <li>reasoning-fragility-skeptic — status: not-applicable (agente de B; sus coherence_traps se trasladaron a las comisiones para que B los honre).</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    MITAD_A · witt-organogenesis · 2026-07-21 · Method 2 (humano conduce, A instrumenta) · read-only, cero mutación DI ·
+    reports/2026-07-21_mitadA-scope-gate-stress-bank_v1.html · TYPE A (analítico comprehensivo). A decide, el humano gatea.
+  </footer>
+</div>
+</body>
+</html>

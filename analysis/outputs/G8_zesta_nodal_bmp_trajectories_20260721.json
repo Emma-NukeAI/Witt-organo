@@ -1,0 +1,523 @@
+{
+  "artifact": "G8_zesta_nodal_bmp_trajectories",
+  "date": "2026-07-21",
+  "status": "MEASURED from corpus (ZESTA) \u2014 RN3 grounded input; NOT ingested (GATE 2 pending)",
+  "meta": {
+    "source": "ZESTA CORPUS-2026-0001 (local h5ad, backed)",
+    "modality": "stereoseq spatial",
+    "window_hpf": [
+      3,
+      5,
+      10
+    ],
+    "measure": "X as stored (log-norm); pct = fraction spots X>0",
+    "files": {
+      "zf3_stereoseq.h5ad": {
+        "hpf": 3,
+        "n_obs": 8055,
+        "n_vars": 17706
+      },
+      "zf5_stereoseq.h5ad": {
+        "hpf": 5,
+        "n_obs": 6064,
+        "n_vars": 16153
+      },
+      "zf10_stereoseq.h5ad": {
+        "hpf": 10,
+        "n_obs": 19102,
+        "n_vars": 18698
+      }
+    }
+  },
+  "trajectories": {
+    "ndr1": {
+      "group": "nodal",
+      "matched_symbol": "ndr1",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "ndr1",
+          "mean_expr": 0.0082,
+          "pct_spots_expressing": 0.29,
+          "n_spots_expressing": 23,
+          "n_spots_total": 8055,
+          "max_expr": 3.651
+        },
+        "5": {
+          "present": true,
+          "matched": "ndr1",
+          "mean_expr": 0.0086,
+          "pct_spots_expressing": 0.28,
+          "n_spots_expressing": 17,
+          "n_spots_total": 6064,
+          "max_expr": 3.766
+        },
+        "10": {
+          "present": false
+        }
+      }
+    },
+    "ndr2": {
+      "group": "nodal",
+      "matched_symbol": "ndr2",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "ndr2",
+          "mean_expr": 0.0027,
+          "pct_spots_expressing": 0.09,
+          "n_spots_expressing": 7,
+          "n_spots_total": 8055,
+          "max_expr": 3.986
+        },
+        "5": {
+          "present": true,
+          "matched": "ndr2",
+          "mean_expr": 0.016,
+          "pct_spots_expressing": 0.48,
+          "n_spots_expressing": 29,
+          "n_spots_total": 6064,
+          "max_expr": 4.311
+        },
+        "10": {
+          "present": true,
+          "matched": "ndr2",
+          "mean_expr": 0.0043,
+          "pct_spots_expressing": 0.14,
+          "n_spots_expressing": 26,
+          "n_spots_total": 19102,
+          "max_expr": 4.46
+        }
+      }
+    },
+    "tdgf1": {
+      "group": "nodal",
+      "matched_symbol": "tdgf1",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "tdgf1",
+          "mean_expr": 0.1738,
+          "pct_spots_expressing": 6.29,
+          "n_spots_expressing": 507,
+          "n_spots_total": 8055,
+          "max_expr": 4.283
+        },
+        "5": {
+          "present": true,
+          "matched": "tdgf1",
+          "mean_expr": 0.3411,
+          "pct_spots_expressing": 10.65,
+          "n_spots_expressing": 646,
+          "n_spots_total": 6064,
+          "max_expr": 4.759
+        },
+        "10": {
+          "present": true,
+          "matched": "tdgf1",
+          "mean_expr": 0.0278,
+          "pct_spots_expressing": 0.89,
+          "n_spots_expressing": 170,
+          "n_spots_total": 19102,
+          "max_expr": 4.966
+        }
+      }
+    },
+    "lft1": {
+      "group": "nodal",
+      "matched_symbol": "lft1",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "lft1",
+          "mean_expr": 0.0105,
+          "pct_spots_expressing": 0.36,
+          "n_spots_expressing": 29,
+          "n_spots_total": 8055,
+          "max_expr": 3.827
+        },
+        "5": {
+          "present": true,
+          "matched": "lft1",
+          "mean_expr": 0.0507,
+          "pct_spots_expressing": 1.55,
+          "n_spots_expressing": 94,
+          "n_spots_total": 6064,
+          "max_expr": 4.868
+        },
+        "10": {
+          "present": true,
+          "matched": "lft1",
+          "mean_expr": 0.0337,
+          "pct_spots_expressing": 1.06,
+          "n_spots_expressing": 202,
+          "n_spots_total": 19102,
+          "max_expr": 4.653
+        }
+      }
+    },
+    "lft2": {
+      "group": "nodal",
+      "matched_symbol": "lft2",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "lft2",
+          "mean_expr": 0.0275,
+          "pct_spots_expressing": 1.01,
+          "n_spots_expressing": 81,
+          "n_spots_total": 8055,
+          "max_expr": 4.362
+        },
+        "5": {
+          "present": true,
+          "matched": "lft2",
+          "mean_expr": 0.0267,
+          "pct_spots_expressing": 0.84,
+          "n_spots_expressing": 51,
+          "n_spots_total": 6064,
+          "max_expr": 4.488
+        },
+        "10": {
+          "present": true,
+          "matched": "lft2",
+          "mean_expr": 0.0106,
+          "pct_spots_expressing": 0.33,
+          "n_spots_expressing": 63,
+          "n_spots_total": 19102,
+          "max_expr": 4.46
+        }
+      }
+    },
+    "smad2": {
+      "group": "nodal",
+      "matched_symbol": "smad2",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "smad2",
+          "mean_expr": 0.1728,
+          "pct_spots_expressing": 6.19,
+          "n_spots_expressing": 499,
+          "n_spots_total": 8055,
+          "max_expr": 4.439
+        },
+        "5": {
+          "present": true,
+          "matched": "smad2",
+          "mean_expr": 0.0168,
+          "pct_spots_expressing": 0.56,
+          "n_spots_expressing": 34,
+          "n_spots_total": 6064,
+          "max_expr": 3.46
+        },
+        "10": {
+          "present": true,
+          "matched": "smad2",
+          "mean_expr": 0.0118,
+          "pct_spots_expressing": 0.39,
+          "n_spots_expressing": 75,
+          "n_spots_total": 19102,
+          "max_expr": 4.231
+        }
+      }
+    },
+    "bmp2b": {
+      "group": "bmp",
+      "matched_symbol": "bmp2b",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "bmp2b",
+          "mean_expr": 0.0411,
+          "pct_spots_expressing": 1.51,
+          "n_spots_expressing": 122,
+          "n_spots_total": 8055,
+          "max_expr": 4.159
+        },
+        "5": {
+          "present": true,
+          "matched": "bmp2b",
+          "mean_expr": 0.0499,
+          "pct_spots_expressing": 1.57,
+          "n_spots_expressing": 95,
+          "n_spots_total": 6064,
+          "max_expr": 4.44
+        },
+        "10": {
+          "present": true,
+          "matched": "bmp2b",
+          "mean_expr": 0.0202,
+          "pct_spots_expressing": 0.66,
+          "n_spots_expressing": 126,
+          "n_spots_total": 19102,
+          "max_expr": 4.258
+        }
+      }
+    },
+    "bmp4": {
+      "group": "bmp",
+      "matched_symbol": "bmp4",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "bmp4",
+          "mean_expr": 0.003,
+          "pct_spots_expressing": 0.11,
+          "n_spots_expressing": 9,
+          "n_spots_total": 8055,
+          "max_expr": 3.182
+        },
+        "5": {
+          "present": true,
+          "matched": "bmp4",
+          "mean_expr": 0.0294,
+          "pct_spots_expressing": 0.96,
+          "n_spots_expressing": 58,
+          "n_spots_total": 6064,
+          "max_expr": 4.187
+        },
+        "10": {
+          "present": true,
+          "matched": "bmp4",
+          "mean_expr": 0.0149,
+          "pct_spots_expressing": 0.48,
+          "n_spots_expressing": 91,
+          "n_spots_total": 19102,
+          "max_expr": 4.652
+        }
+      }
+    },
+    "bmp7a": {
+      "group": "bmp",
+      "matched_symbol": "bmp7a",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "bmp7a",
+          "mean_expr": 0.0073,
+          "pct_spots_expressing": 0.26,
+          "n_spots_expressing": 21,
+          "n_spots_total": 8055,
+          "max_expr": 3.591
+        },
+        "5": {
+          "present": true,
+          "matched": "bmp7a",
+          "mean_expr": 0.0882,
+          "pct_spots_expressing": 2.75,
+          "n_spots_expressing": 167,
+          "n_spots_total": 6064,
+          "max_expr": 4.804
+        },
+        "10": {
+          "present": true,
+          "matched": "bmp7a",
+          "mean_expr": 0.0126,
+          "pct_spots_expressing": 0.4,
+          "n_spots_expressing": 77,
+          "n_spots_total": 19102,
+          "max_expr": 4.405
+        }
+      }
+    },
+    "chrd": {
+      "group": "bmp",
+      "matched_symbol": "chrd",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "chrd",
+          "mean_expr": 0.0013,
+          "pct_spots_expressing": 0.05,
+          "n_spots_expressing": 4,
+          "n_spots_total": 8055,
+          "max_expr": 3.204
+        },
+        "5": {
+          "present": true,
+          "matched": "chrd",
+          "mean_expr": 0.0952,
+          "pct_spots_expressing": 2.72,
+          "n_spots_expressing": 165,
+          "n_spots_total": 6064,
+          "max_expr": 5.248
+        },
+        "10": {
+          "present": true,
+          "matched": "chrd",
+          "mean_expr": 0.2203,
+          "pct_spots_expressing": 7.03,
+          "n_spots_expressing": 1342,
+          "n_spots_total": 19102,
+          "max_expr": 4.81
+        }
+      }
+    },
+    "smad5": {
+      "group": "bmp",
+      "matched_symbol": "smad5",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "smad5",
+          "mean_expr": 0.71,
+          "pct_spots_expressing": 24.85,
+          "n_spots_expressing": 2002,
+          "n_spots_total": 8055,
+          "max_expr": 4.482
+        },
+        "5": {
+          "present": true,
+          "matched": "smad5",
+          "mean_expr": 0.3441,
+          "pct_spots_expressing": 10.64,
+          "n_spots_expressing": 645,
+          "n_spots_total": 6064,
+          "max_expr": 4.79
+        },
+        "10": {
+          "present": true,
+          "matched": "smad5",
+          "mean_expr": 0.1354,
+          "pct_spots_expressing": 4.47,
+          "n_spots_expressing": 853,
+          "n_spots_total": 19102,
+          "max_expr": 4.821
+        }
+      }
+    },
+    "smad4a": {
+      "group": "bmp",
+      "matched_symbol": "smad4a",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "smad4a",
+          "mean_expr": 0.0218,
+          "pct_spots_expressing": 0.78,
+          "n_spots_expressing": 63,
+          "n_spots_total": 8055,
+          "max_expr": 4.007
+        },
+        "5": {
+          "present": true,
+          "matched": "smad4a",
+          "mean_expr": 0.0152,
+          "pct_spots_expressing": 0.46,
+          "n_spots_expressing": 28,
+          "n_spots_total": 6064,
+          "max_expr": 4.189
+        },
+        "10": {
+          "present": true,
+          "matched": "smad4a",
+          "mean_expr": 0.0075,
+          "pct_spots_expressing": 0.25,
+          "n_spots_expressing": 47,
+          "n_spots_total": 19102,
+          "max_expr": 4.257
+        }
+      }
+    },
+    "aldh1a2": {
+      "group": "ra_crosstalk",
+      "matched_symbol": "aldh1a2",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "aldh1a2",
+          "mean_expr": 0.001,
+          "pct_spots_expressing": 0.04,
+          "n_spots_expressing": 3,
+          "n_spots_total": 8055,
+          "max_expr": 2.817
+        },
+        "5": {
+          "present": true,
+          "matched": "aldh1a2",
+          "mean_expr": 0.0389,
+          "pct_spots_expressing": 1.22,
+          "n_spots_expressing": 74,
+          "n_spots_total": 6064,
+          "max_expr": 4.4
+        },
+        "10": {
+          "present": true,
+          "matched": "aldh1a2",
+          "mean_expr": 0.1256,
+          "pct_spots_expressing": 4.05,
+          "n_spots_expressing": 774,
+          "n_spots_total": 19102,
+          "max_expr": 4.834
+        }
+      }
+    },
+    "cyp26a1": {
+      "group": "ra_crosstalk",
+      "matched_symbol": "cyp26a1",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "cyp26a1",
+          "mean_expr": 0.1196,
+          "pct_spots_expressing": 4.25,
+          "n_spots_expressing": 342,
+          "n_spots_total": 8055,
+          "max_expr": 4.547
+        },
+        "5": {
+          "present": true,
+          "matched": "cyp26a1",
+          "mean_expr": 0.0756,
+          "pct_spots_expressing": 2.39,
+          "n_spots_expressing": 145,
+          "n_spots_total": 6064,
+          "max_expr": 4.384
+        },
+        "10": {
+          "present": true,
+          "matched": "cyp26a1",
+          "mean_expr": 0.1414,
+          "pct_spots_expressing": 4.6,
+          "n_spots_expressing": 879,
+          "n_spots_total": 19102,
+          "max_expr": 4.788
+        }
+      }
+    },
+    "cyp26b1": {
+      "group": "ra_crosstalk",
+      "matched_symbol": "cyp26b1",
+      "by_hpf": {
+        "3": {
+          "present": true,
+          "matched": "cyp26b1",
+          "mean_expr": 0.0085,
+          "pct_spots_expressing": 0.3,
+          "n_spots_expressing": 24,
+          "n_spots_total": 8055,
+          "max_expr": 3.841
+        },
+        "5": {
+          "present": true,
+          "matched": "cyp26b1",
+          "mean_expr": 0.0011,
+          "pct_spots_expressing": 0.03,
+          "n_spots_expressing": 2,
+          "n_spots_total": 6064,
+          "max_expr": 3.404
+        },
+        "10": {
+          "present": true,
+          "matched": "cyp26b1",
+          "mean_expr": 0.0119,
+          "pct_spots_expressing": 0.38,
+          "n_spots_expressing": 73,
+          "n_spots_total": 19102,
+          "max_expr": 4.231
+        }
+      }
+    }
+  }
+}

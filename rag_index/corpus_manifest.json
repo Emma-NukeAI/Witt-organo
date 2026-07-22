@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "manifest_version": "2026-06-12.4",
-  "status": "CORPUS-2026-0003 APPROVED by Emmanuel. Ingesting.",
+  "status": "CORPUS-2026-0005 APPROVED by Emmanuel. Ingesting.",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -1918,6 +1918,818 @@
         "subject gene 'prkci' NOT in verified store — to index it as an entity, verify + add via the store builder + human gate (ADR-0008/0010); NOT minted here",
         "subject gene 'prkcz' NOT in verified store — to index it as an entity, verify + add via the store builder + human gate (ADR-0008/0010); NOT minted here",
         "not Open Access — raw is a source-pointer (abstract cached); full text not mirrored (publisher paywall). Promote to a MinIO mirror only with a legally-held PDF."
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0004",
+      "version": "v1.0-measured",
+      "created_at": "2026-07-22T02:30:20.367973+00:00",
+      "source_document": {
+        "name": "Nodal/BMP signaling kinetics grounded in ZESTA (RN3 measured input, ZF-G8)",
+        "doi": "10.1126/science.1221920",
+        "pmid": "22499809",
+        "pmcid": "PMC3525670",
+        "source_db": "CNGB_STOmics (measured atlas) + EuropePMC (verified mechanism citation)",
+        "derived_from": "CORPUS-2026-0001 (ZESTA stereoseq 3/5/10 hpf)",
+        "raw_cache_path": "analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json (derived, measured) ; mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json (verified citation, §7.9)",
+        "parse_method": "15 markers x 3 timepoints (mean expr + %spots) extracted from ZESTA stereoseq with anndata (analysis/.venv); citation verified via EuropePMC REST"
+      },
+      "axis_data_niche": {
+        "primary": "RN3",
+        "secondary": [
+          "RN1"
+        ],
+        "relevance_by_niche": {
+          "RN3": 0.9,
+          "RN1": 0.5
+        },
+        "note": "First RN3 (signaling networks + kinetic parameters) corpus record. Payload = measured Nodal/BMP trajectories (the empirical fit-target) + verified differential-diffusivity mechanism/constraint."
+      },
+      "axis_scientific_domain": {
+        "primary": "N4",
+        "secondary": [
+          "N3"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "CNGB_STOmics",
+          "provenance": "computed",
+          "role": "primary_source (measured trajectories)"
+        },
+        {
+          "db": "EuropePMC",
+          "provenance": "curated",
+          "role": "corroborating (verified mechanism citation, Muller 2012)"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".json",
+        "valid_for_niche": true,
+        "modality": "sim/curated (measured signaling trajectories + kinetic-model spec)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          3,
+          10
+        ],
+        "tissue": [
+          "whole_embryo"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "assembly": "GRCz11"
+      },
+      "metabolic_role": "signaling-scaffold",
+      "measured_grounding": {
+        "n_markers": 15,
+        "timepoints_hpf": [
+          3,
+          5,
+          10
+        ],
+        "modality": "stereoseq spatial",
+        "biological_read": "Nodal(ndr1/ndr2) transient 3-5hpf; Oep(tdgf1) peak 5hpf; Lefty(lft1) rises as feedback; chordin ramps 0.001->0.22; smad5 high early; aldh1a2 late.",
+        "trajectories_ref": "analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json"
+      },
+      "mechanism_constraint_CITED": {
+        "verified_citation": {
+          "pmid": "22499809",
+          "verified_on": "2026-07-21",
+          "verifier": "EuropePMC REST",
+          "raw_cache": "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json"
+        },
+        "constraint": "D(Lefty) > D(Nodal); similar clearance k -> range difference is differential-diffusivity-driven.",
+        "numeric_constants": "NOT fabricated; specific D values behind Science paywall (§7). Operative constants to be FIT to ZESTA — that fit is MITAD_B's .bngl (pending)."
+      },
+      "entities_extracted": [
+        {
+          "entity": "ndr1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ndr1",
+          "store_ensdarg": "ENSDARG00000057096",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "ndr2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ndr2",
+          "store_ensdarg": "ENSDARG00000101279",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "tdgf1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tdgf1",
+          "store_ensdarg": "ENSDARG00000035095",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "lft1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lft1",
+          "store_ensdarg": "ENSDARG00000019920",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "lft2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lft2",
+          "store_ensdarg": "ENSDARG00000044059",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "smad2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad2",
+          "store_ensdarg": "ENSDARG00000006389",
+          "verification_tier": "RAW",
+          "group": "nodal"
+        },
+        {
+          "entity": "bmp2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp2b",
+          "store_ensdarg": "ENSDARG00000041430",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "bmp4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp4",
+          "store_ensdarg": "ENSDARG00000019995",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "bmp7a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp7a",
+          "store_ensdarg": "ENSDARG00000018260",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "chrd",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#chrd",
+          "store_ensdarg": "ENSDARG00000006110",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "smad5",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad5",
+          "store_ensdarg": "ENSDARG00000037238",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "smad4a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad4a",
+          "store_ensdarg": "ENSDARG00000075226",
+          "verification_tier": "RAW",
+          "group": "bmp"
+        },
+        {
+          "entity": "aldh1a2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh1a2",
+          "store_ensdarg": "ENSDARG00000053493",
+          "verification_tier": "RAW",
+          "group": "ra_crosstalk"
+        },
+        {
+          "entity": "cyp26a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cyp26a1",
+          "store_ensdarg": "ENSDARG00000033999",
+          "verification_tier": "RAW",
+          "group": "ra_crosstalk"
+        },
+        {
+          "entity": "cyp26b1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cyp26b1",
+          "store_ensdarg": "ENSDARG00000077121",
+          "verification_tier": "RAW",
+          "group": "ra_crosstalk"
+        }
+      ],
+      "proposed_placement": {
+        "data_niche": "RN3",
+        "relevance": 0.9,
+        "reasoning": "Signaling-network kinetic-input record: measured Nodal/BMP trajectories (fit-target) + verified differential-diffusivity constraint. Grows RN3 from 0 to 1 record."
+      },
+      "feeds_databases": [
+        "CNGB_STOmics",
+        "EuropePMC",
+        "Reactome",
+        "BioGRID"
+      ],
+      "completeness_note": "MEASURED (P1) + VERIFIED-CITATION (P2) are complete and ingestable now. The FITTED .bngl kinetic model (P3) is MITAD_B's generation deliverable and will enter as a MERGE UPDATE (idempotent) once B returns a Proposal that re-enters A's scope-gate + GATE-2. This record does NOT claim a validated model.",
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-07-22T02:32:50.347827+00:00"
+        }
+      ],
+      "gap_flags": [
+        "fitted kinetic constants pending MITAD_B .bngl fit (enters as MERGE update)",
+        "Muller 2012 absolute D values not OA (not fabricated); optional sanity prior only"
+      ],
+      "substrate_evidence": [
+        "test_1",
+        "test_3"
+      ]
+    },
+    {
+      "corpus_record_id": "CORPUS-2026-0005",
+      "version": "v1.0",
+      "created_at": "2026-07-22T02:48:21.789777+00:00",
+      "source_document": {
+        "name": "ZFIN genotype->phenotype relational claims (Danio rerio, phenotype_fish)",
+        "source_db": "ZFIN",
+        "url": "https://zfin.org/downloads/phenotype_fish.txt",
+        "sha256": "653ba1c87bfc31421c394ceef158bfd536cbd51a10ecbbd6fbe029ef7aa0d0c7",
+        "bytes": 54656845,
+        "raw_cache_path": "mcp_cache/raw_zfin_phenotype_fish_20260721.txt (downloaded + hashed, §7.9)",
+        "raw_policy": "hybrid: public source-pointer (URL + sha256, re-download on demand; not mirrored) — same policy as ZESTA CORPUS-2026-0001",
+        "parse_method": "TSV; gene symbol parsed from genotype column (allele <sup> stripped); each symbol bound via resolve_id (the entity gate). NO ID minted."
+      },
+      "axis_data_niche": {
+        "primary": "RN11",
+        "secondary": [
+          "RN1"
+        ],
+        "relevance_by_niche": {
+          "RN11": 0.9,
+          "RN1": 0.4
+        },
+        "note": "First RN11 (curated literature claims) relational record — genotype->phenotype associations. Placement per ADR-0042 (RN11 primary; NO new relational niche)."
+      },
+      "axis_scientific_domain": {
+        "primary": "N3",
+        "secondary": [
+          "N1"
+        ]
+      },
+      "axis_source_db": [
+        {
+          "db": "ZFIN",
+          "provenance": "curated",
+          "role": "primary_source"
+        }
+      ],
+      "axis_file_type": {
+        "ext": ".txt",
+        "valid_for_niche": true,
+        "modality": "curated relational claims (genotype x phenotype)"
+      },
+      "axis_bio_context": {
+        "stage_hpf": [
+          0,
+          999
+        ],
+        "tissue": [
+          "whole_organism_curated"
+        ],
+        "species": "Danio rerio",
+        "taxon": 7955,
+        "assembly": "GRCz11"
+      },
+      "metabolic_role": null,
+      "relational_payload": {
+        "n_rows_fish_x_phenotype": 227526,
+        "n_unique_gene_symbols_parsed": 4613,
+        "schema": "Fish -> genotype(gene+allele) -> stage -> ZFA anatomy -> PATO quality -> abnormal-flag -> publication",
+        "note": "genotype->phenotype ASSOCIATIONS (the claims layer). Represented in-graph as Document MENTIONS the store-verified genes; the full 227k-row relational table is source-pointer (re-download by sha256)."
+      },
+      "entities_extracted": [
+        {
+          "entity": "aldh1a2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh1a2",
+          "store_ensdarg": "ENSDARG00000053493",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "aldh1a3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh1a3",
+          "store_ensdarg": "ENSDARG00000076933",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "aldh3a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#aldh3a1",
+          "store_ensdarg": "ENSDARG00000074791",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "bmp2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp2b",
+          "store_ensdarg": "ENSDARG00000041430",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "bmp4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp4",
+          "store_ensdarg": "ENSDARG00000019995",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "bmp7a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#bmp7a",
+          "store_ensdarg": "ENSDARG00000018260",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "chrd",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#chrd",
+          "store_ensdarg": "ENSDARG00000006110",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "col1a1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1a",
+          "store_ensdarg": "ENSDARG00000012405",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "col1a1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a1b",
+          "store_ensdarg": "ENSDARG00000035809",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "col1a2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#col1a2",
+          "store_ensdarg": "ENSDARG00000020007",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "cyp26a1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cyp26a1",
+          "store_ensdarg": "ENSDARG00000033999",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "cyp26b1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#cyp26b1",
+          "store_ensdarg": "ENSDARG00000077121",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "dlc",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#dlc",
+          "store_ensdarg": "ENSDARG00000002336",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "fgf24",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#fgf24",
+          "store_ensdarg": "ENSDARG00000037677",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "fgf8a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#fgf8a",
+          "store_ensdarg": "ENSDARG00000003399",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "foxc1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1a",
+          "store_ensdarg": "ENSDARG00000091481",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "foxc1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#foxc1b",
+          "store_ensdarg": "ENSDARG00000055398",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "gata3",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#gata3",
+          "store_ensdarg": "ENSDARG00000016526",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "gata4",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#gata4",
+          "store_ensdarg": "ENSDARG00000098952",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hand2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hand2",
+          "store_ensdarg": "ENSDARG00000008305",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "her1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#her1",
+          "store_ensdarg": "ENSDARG00000014722",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "her7",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#her7",
+          "store_ensdarg": "ENSDARG00000017917",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hif1aa",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hif1aa",
+          "store_ensdarg": "ENSDARG00000006181",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hif1ab",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hif1ab",
+          "store_ensdarg": "ENSDARG00000034293",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hnf1ba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1ba",
+          "store_ensdarg": "ENSDARG00000006615",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hnf1bb",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hnf1bb",
+          "store_ensdarg": "ENSDARG00000022295",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hoxb1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hoxb1b",
+          "store_ensdarg": "ENSDARG00000054033",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "hoxb8a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#hoxb8a",
+          "store_ensdarg": "ENSDARG00000056027",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "ift88",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ift88",
+          "store_ensdarg": "ENSDARG00000027234",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "il10",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#il10",
+          "store_ensdarg": "ENSDARG00000078147",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "il6",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#il6",
+          "store_ensdarg": "ENSDARG00000102318",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "irx3b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#irx3b",
+          "store_ensdarg": "ENSDARG00000031138",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "lft1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lft1",
+          "store_ensdarg": "ENSDARG00000019920",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "lft2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#lft2",
+          "store_ensdarg": "ENSDARG00000044059",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "mafba",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mafba",
+          "store_ensdarg": "ENSDARG00000017121",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "mecom",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#mecom",
+          "store_ensdarg": "ENSDARG00000060808",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "ndr1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ndr1",
+          "store_ensdarg": "ENSDARG00000057096",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "ndr2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#ndr2",
+          "store_ensdarg": "ENSDARG00000101279",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "notch1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#notch1a",
+          "store_ensdarg": "ENSDARG00000103554",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "nphs1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#nphs1",
+          "store_ensdarg": "ENSDARG00000060758",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "osr1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#osr1",
+          "store_ensdarg": "ENSDARG00000014091",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pax2a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax2a",
+          "store_ensdarg": "ENSDARG00000028148",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pax2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax2b",
+          "store_ensdarg": "ENSDARG00000032578",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pax6a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6a",
+          "store_ensdarg": "ENSDARG00000103379",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pax6b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax6b",
+          "store_ensdarg": "ENSDARG00000045936",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pax8",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pax8",
+          "store_ensdarg": "ENSDARG00000015879",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pitx2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pitx2",
+          "store_ensdarg": "ENSDARG00000036194",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "pou3f3a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#pou3f3a",
+          "store_ensdarg": "ENSDARG00000042032",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "prkci",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#prkci",
+          "store_ensdarg": "ENSDARG00000021225",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "prkcz",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#prkcz",
+          "store_ensdarg": "ENSDARG00000043332",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "prox1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#prox1a",
+          "store_ensdarg": "ENSDARG00000055158",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "shha",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#shha",
+          "store_ensdarg": "ENSDARG00000068567",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "sim1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#sim1a",
+          "store_ensdarg": "ENSDARG00000023316",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "smad2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad2",
+          "store_ensdarg": "ENSDARG00000006389",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "smad4a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad4a",
+          "store_ensdarg": "ENSDARG00000075226",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "smad5",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#smad5",
+          "store_ensdarg": "ENSDARG00000037238",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "sox17",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#sox17",
+          "store_ensdarg": "ENSDARG00000101717",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tbx2b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tbx2b",
+          "store_ensdarg": "ENSDARG00000006120",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tbxta",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tbxta",
+          "store_ensdarg": "ENSDARG00000101576",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tdgf1",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tdgf1",
+          "store_ensdarg": "ENSDARG00000035095",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tnfa",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tnfa",
+          "store_ensdarg": "ENSDARG00000009511",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tnnt2a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tnnt2a",
+          "store_ensdarg": "ENSDARG00000020610",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "tp63",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#tp63",
+          "store_ensdarg": "ENSDARG00000044356",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "trpm7",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#trpm7",
+          "store_ensdarg": "ENSDARG00000036232",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "vangl2",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#vangl2",
+          "store_ensdarg": "ENSDARG00000027397",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "wnt11",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wnt11",
+          "store_ensdarg": "ENSDARG00000014796",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "wnt8a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wnt8a",
+          "store_ensdarg": "ENSDARG00000052910",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "wt1a",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1a",
+          "store_ensdarg": "ENSDARG00000031420",
+          "verification_tier": "RAW"
+        },
+        {
+          "entity": "wt1b",
+          "type": "gene_symbol",
+          "verified_store_ref": "verified_identifiers.json#wt1b",
+          "store_ensdarg": "ENSDARG00000007990",
+          "verification_tier": "RAW"
+        }
+      ],
+      "quarantine": {
+        "n_not_found": 4544,
+        "policy": "the 4544 parsed symbols NOT in the verified store are NOT minted and NOT bound as entities (entity gate). To ever become entities they need Ensembl verify + raw-cache (§7.9) + a human-gated store ADD (GATE-2). Recorded as absent, never fabricated."
+      },
+      "proposed_placement": {
+        "data_niche": "RN11",
+        "relevance": 0.9,
+        "reasoning": "Curated genotype->phenotype claims from ZFIN. Grows RN11 from 0 to 1 record; first relational substrate in the DI (per ADR-0042)."
+      },
+      "feeds_databases": [
+        "ZFIN"
+      ],
+      "completeness_note": "This is the genotype->phenotype CLAIMS scaffold (RN11). It does NOT by itself substrate S4's variance decomposition: phenotype_fish.txt carries associations + abnormal-flag, NOT a penetrance PROBABILITY column, and carries no isogenic-line variance. Those remain S4 gaps (a penetrance-quantified slice + an isogenic-variance dataset).",
+      "approval_chain": [
+        {
+          "gate": "categorization",
+          "status": "approved",
+          "approved_by": "Emmanuel",
+          "approved_at": "2026-07-22T02:53:30.628845+00:00"
+        }
+      ],
+      "gap_flags": [
+        "no penetrance-probability column in this file (associations + abnormal-flag only) — S4's variance decomposition needs a penetrance-quantified source",
+        "no isogenic-line variance dataset (the stochastic floor) — still to acquire",
+        "4544 parsed genes quarantined (NOT_FOUND, not minted); only 69 store-verified genes bind as entities",
+        "RN11 placement represents relational edges as entity mentions + source-pointer, not a native relational schema (accepted per ADR-0042)"
       ],
       "substrate_evidence": [
         "test_1",

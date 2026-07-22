@@ -1,0 +1,53 @@
+{
+  "artifact": "A_acquisition_path (NOT a generation commission — this one requires DATO NUEVO)",
+  "status": "DRAFT — pending A scope-gate HUMAN SELECTION + GATE-1 acquisition approval. A decides, the human gates.",
+  "from": "MITAD_A (witt-organogenesis)",
+  "date": "2026-07-21",
+  "question": "ZF-S4 penetrance-genetic-vs-stochastic (variance decomposition; the CALIBRATION question)",
+  "why_top_2": "NEAR frontier, LOWEST acquisition cost of the 12: it is a RELATIONAL INGEST from feeder DBs A ALREADY has registered (ZFIN, Ensembl, BioGRID) — zero new wet-lab, zero new DB registration. Opens the currently-EMPTY relational layer, and penetrance IS a probability, so it feeds Test-4 (calibration) directly. ids_used is empty -> no ID grounding blocks it.",
+  "why_acquisition_path_not_commission": "The substrate does NOT exist yet: no relational mutant->phenotype / ortholog-variant / genetic-interaction dataset is INGESTED (only the feeder DBs are declared). B cannot 'reason over' data that is not in the DI. So A traces the human-gated acquisition path FIRST; a generation commission can follow once the relational layer is ingested.",
+  "niche_label_CORRECTION_to_B": {
+    "B_claimed": "di_gap.target_niche = 'RN10 + RN11 + RN12' with RN10=mutant->phenotype(ZFIN), RN11=ortholog/variant(Ensembl), RN12=genetic-interaction(BioGRID)",
+    "authoritative_map (rag_index/niches.json)": {
+      "RN10": "Tejidos chaperones y boundary conditions (NOT mutant-phenotype)",
+      "RN11": "Claims curados de literatura biologica (NOT ortholog/variant)",
+      "RN12": "Perturbaciones e intervenciones causales — GENERATED intervention designs, routes through causal-pruner + HUMAN GATE (NOT genetic-interaction data)",
+      "RN13": "Modelos de simulacion y codigo (B's map stopped at RN12; RN13 exists)"
+    },
+    "verdict": "B repeated the SAME niche-inference error already flagged on ZF-G12: it reverse-engineered RN-labels from feeder-DB names. The relational data type ZF-S4 needs does NOT map cleanly onto any single existing data-niche.",
+    "RESOLVED_2026-07-21": "HUMAN GATE (Emmanuel: 'RN11 primario') -> ADR-0042. Placement: mutant->phenotype table = RN11 primary (curated claims; each row is a genotype->phenotype penetrance claim; ZFIN is a curated DB); genetic-interaction edges (BioGRID, already-registered feeder of RN3/RN12) = corroborating edges/entities, NOT a separate niche; isogenic variance = RN1/RN9. RN12 does NOT apply (generated perturbation designs only). NO new niche opened; a first-class relational niche (RN14) is DEFERRED until S4 is selected AND the relational structure proves load-bearing (would then need its own ADR + composite-audit per the ADR-0018 bar). Relational-structure limitation carried as a gap_flag."
+  },
+  "acquisition_path": {
+    "step_1_propose": {
+      "tool": "rag_index/... add_dataset.py (repo-side propose) OR the hosted ingest service",
+      "datasets": [
+        "mutant->phenotype relational table (ZFIN) — penetrance/expressivity per genotype",
+        "ortholog/variant table (Ensembl) — modifier candidates",
+        "genetic-interaction table (BioGRID) — GRN topology edges",
+        "an ISOGENIC-LINE phenotype-variance dataset — bounds the irreducible developmental-stochastic floor (the term that separates 'predictable' from 'noise')"
+      ],
+      "placement_proposed": "RN11 (curated relational claims) primary — RESOLVED per ADR-0042; no new niche.",
+      "entity_gate": "EVERY gene symbol in every table binds via resolve_id.py. hit -> ENSDARG+tier; positive NOT_FOUND -> keep confidence 0 + gap_flag; absent-from-store -> QUARANTINE (UNVERIFIED) until Ensembl lookup + raw-cache (§7.9). NEVER mint an ID from memory. (This is where B's 'no ids_used' becomes A's ingest-time binding job.)"
+    },
+    "step_2_human_review": "Emmanuel reviews the proposal: taxonomy placement, feeder provenance (STRING predictive vs BioGRID/IntAct physical — tag per axis_source_db), and the isogenic-variance source. DATA INAMOVIBLE mutation = ALWAYS human-gated + specified (ADR-0022).",
+    "step_3_approve": "approve_dataset.py (the gate) — records approved_by + approved_at.",
+    "step_4_ingest": "ingest.py — ADD/UPDATE-only (MERGE, never deletes). Neo4j grows as a UNION. New CORPUS-2026-NNNN record(s) for the relational layer."
+  },
+  "generation_commission_AFTER_ingest": {
+    "note": "Once the relational layer is ingested, THIS becomes a clean generation commission for B:",
+    "task": "Decompose penetrance variance into genetic (hidden modifiers) / developmental-stochastic (isogenic floor) / micro-environmental components; test whether adding GRN topology beats an additive-genetics baseline on OUT-OF-SAMPLE (held-out) prediction under an E_sparse penalty.",
+    "must_carry": [
+      "observable: penetrance/expressivity as a PROBABILITY (not a point phenotype)",
+      "comparison (#2): GRN-topology model vs additive-genetics baseline, on a real HELDOUT split",
+      "candidate_falsifier: GRN-topology fails held-out CV against additive genetics, OR isogenic variance shows the 'predictable' component is irreducible noise",
+      "external-verifier enforces the holdout (guards published-phenotype leakage); calibration owns the ECE/Test-4 scoring"
+    ],
+    "coherence_trap_to_honor (from B's own bank)": "A point-prediction counted as a hit when the true target is a PROBABILITY; and fitting to PUBLISHED phenotypes leaks the answer (data contamination). The holdout is mandatory."
+  },
+  "gap_flags": [
+    "relational/claims layer taxonomy: RESOLVED -> RN11 primary (ADR-0042); no new niche opened",
+    "isogenic-line variance dataset may need to be sourced/acquired (not guaranteed in the declared feeders) — the one piece that may not be pure relational-ingest",
+    "RefSeq<->Ensembl / ortholog cross-maps may be needed at the entity gate (cf. CORPUS-2026-0002 RefSeq caveat)",
+    "RN11 placement loses some pure relational structure (edges represented as entities/corroborating, not a native relational schema) — acceptable per ADR-0042; revisit only if S4 selected."
+  ]
+}

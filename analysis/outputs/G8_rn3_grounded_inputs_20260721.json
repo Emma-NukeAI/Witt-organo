@@ -1,0 +1,126 @@
+{
+  "artifact": "G8_RN3_grounded_inputs",
+  "question": "ZF-G8 nodal-bmp-kinetics-from-zesta",
+  "date": "2026-07-21",
+  "status": "GROUNDED-INPUTS-STAGED \u2014 RN3 model-fit inputs assembled; the fit itself is generation (MITAD_B) / a compute step; NOT ingested (GATE 2 pending)",
+  "gate_1": "APPROVED by Emmanuel 2026-07-21 (acquire G8)",
+  "grounding": {
+    "expression_atlas": {
+      "corpus_record": "CORPUS-2026-0001 (ZESTA)",
+      "window_hpf": [
+        3,
+        10
+      ],
+      "note": "Nodal/BMP gradient window is 3\u201310 hpf (blastula/gastrula); ZESTA covers 3,5,10,12,18,24 hpf whole-embryo spatial+scRNA \u2014 the fit window is IN the atlas we already hold."
+    },
+    "verified_markers": {
+      "nodal": [
+        {
+          "symbol": "ndr1",
+          "ensdarg": "ENSDARG00000057096",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "ndr2",
+          "ensdarg": "ENSDARG00000101279",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "tdgf1",
+          "ensdarg": "ENSDARG00000035095",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "lft1",
+          "ensdarg": "ENSDARG00000019920",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "lft2",
+          "ensdarg": "ENSDARG00000044059",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "smad2",
+          "ensdarg": "ENSDARG00000006389",
+          "in_store": true,
+          "tier": "RAW"
+        }
+      ],
+      "bmp": [
+        {
+          "symbol": "bmp2b",
+          "ensdarg": "ENSDARG00000041430",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "bmp4",
+          "ensdarg": "ENSDARG00000019995",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "bmp7a",
+          "ensdarg": "ENSDARG00000018260",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "chrd",
+          "ensdarg": "ENSDARG00000006110",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "smad5",
+          "ensdarg": "ENSDARG00000037238",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "smad4a",
+          "ensdarg": "ENSDARG00000075226",
+          "in_store": true,
+          "tier": "RAW"
+        }
+      ],
+      "ra_crosstalk": [
+        {
+          "symbol": "aldh1a2",
+          "ensdarg": "ENSDARG00000053493",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "cyp26a1",
+          "ensdarg": "ENSDARG00000033999",
+          "in_store": true,
+          "tier": "RAW"
+        },
+        {
+          "symbol": "cyp26b1",
+          "ensdarg": "ENSDARG00000077121",
+          "in_store": true,
+          "tier": "RAW"
+        }
+      ]
+    },
+    "cached_network": "mcp_cache/raw_ensembl_bmp-nodal-ra-network_20260711.json (already on disk)"
+  },
+  "acquisition_targets_RN3": {
+    "kinetic_constants_csv": "diffusion D + degradation k for Nodal (ndr1/ndr2) & Lefty (lft1/lft2) \u2014 source: M\u00fcller et al. 2012 Science (Nodal/Lefty differential diffusivity) + Reactome (declared RN3 feeder)",
+    "bionetgen_rules_bngl": "Nodal\u2192Smad2, BMP\u2192Smad5, Lefty feedback antagonism, chordin BMP-antagonism \u2014 GENERATION artifact (routes to MITAD_B / substrate)",
+    "state_transition_json": "gradient\u2192segment-identity mapping fit against ZESTA expression"
+  },
+  "compute_commitment_SURFACED": {
+    "what": "the reaction-diffusion fit against ZESTA (read 4.8GB h5ad on-demand + fit) + BioNetGen rule generation",
+    "cost_class": "LOW\u2013MED \u2014 no external data purchase (ZESTA already held; markers verified). Compute = local anndata read + a fit; BNGL generation is B's side.",
+    "next": "on your OK: extract Nodal/BMP marker trajectories from ZESTA 3\u201310 hpf \u2192 fit D/k \u2192 hand BNGL spec to MITAD_B generation \u2192 GATE 2 to ingest first RN3 record"
+  }
+}

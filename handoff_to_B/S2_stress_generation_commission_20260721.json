@@ -1,0 +1,74 @@
+{
+  "artifact": "A_to_B_generation_commission",
+  "status": "PUBLISHED — human-selected by Emmanuel 2026-07-21 (TOP-1 of the stress-bank scope-gate). B may pull read-only.",
+  "channel": "handoff_to_B/ (A->B pull; B reads read-only, A never writes B's repo)",
+  "from": "MITAD_A (witt-organogenesis)",
+  "to": "MITAD_B (conciencia-universal)",
+  "date": "2026-07-21",
+  "question": "ZF-S2 nodal-lefty-D-identifiability-vs-null (stress-test tier)",
+  "gate_1": "APPROVED by Emmanuel 2026-07-21 (S2 selected as the TOP-1 generation commission from the ZF-S1..S12 stress bank).",
+  "provenance": "Scope-gated + grounded by MITAD_A; passed a 3-auditor composite gate (analysis/outputs/S-bank_composite_audit_outcome_20260721.json). Supersedes analysis/outputs/PROPOSAL_S2_generation_commission_DRAFT_20260721.json (the pre-selection DRAFT).",
+  "contract": {
+    "per": "docs/A_B_CONTRACT.md (B side)",
+    "B_autonomy": "A1 proposal-only",
+    "flow": "A grounds -> B generates a Proposal -> A scope-gate + human selection -> A GATE 2 ingest",
+    "invariants_B_must_honor": [
+      "#1 every claim has an observable",
+      "#2 every experiment has a comparison (RD model vs null temporal-threshold model)",
+      "#6 no external ID from memory (resolve via A resolve_identifier)",
+      "#7 no draft is source of truth",
+      "#8 no self-approval",
+      "B never writes the DI; returns a Proposal only"
+    ]
+  },
+  "grounding_A_provides": {
+    "verified_markers": {
+      "note": "A ran resolve_id.py (Logic-LM-class deterministic gate) over store 2026-07-21.1 (93 records). All 6 ids_used resolve; each ENSDARG is CONCORDANT with the value B tagged resolved_via_mcp. 0 discordances. B cross-checks each via the read-only MCP resolve_identifier.",
+      "markers": [
+        {"symbol": "ndr1", "ensdarg": "ENSDARG00000057096", "group": "nodal", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "ndr2", "ensdarg": "ENSDARG00000101279", "group": "nodal", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "lft1", "ensdarg": "ENSDARG00000019920", "group": "lefty", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "lft2", "ensdarg": "ENSDARG00000044059", "group": "lefty", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "sox17", "ensdarg": "ENSDARG00000101717", "group": "endoderm_readout (pSmad2 high)", "in_DI": true, "concordant_with_B": true},
+        {"symbol": "tbxta", "ensdarg": "ENSDARG00000101576", "group": "mesoderm_readout", "in_DI": true, "concordant_with_B": true}
+      ],
+      "also_available_from_G8": "smad2 (ENSDARG00000006389), tdgf1 (ENSDARG00000035095), chrd (ENSDARG00000006110), bmp2b (ENSDARG00000041430), smad5 (ENSDARG00000037238) — the full G8 Nodal/BMP set is in-store if B wants the coupled system. NOW ALSO IN THE GRAPH (CORPUS-2026-0004 ingested 2026-07-21)."
+    },
+    "measured_fit_target": {
+      "source": "ZESTA CORPUS-2026-0001 (Stereo-seq, MEASURED). NEW MOVE vs G8: extract the SPATIAL gradient (per-spot spatial_x/spatial_y expression), not just temporal means.",
+      "A_deliverable": "On B's pull, A produces a spatial-profile extract from mcp_cache/zesta/ (zf3/zf5/zf10_stereoseq.h5ad carry spatial_x/spatial_y + layer_annotation). The temporal trajectories already exist: analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json (measured, ingested as CORPUS-2026-0004).",
+      "why_this_is_the_near_frontier": "The RD-vs-null model comparison is a fit against EXISTING spatial data — compute only, no acquisition. That is the fraction of ZF-S2 actionable NOW."
+    },
+    "mechanism_and_prior": {
+      "policy": "atestiguada/literature — citation VERIFIED + raw-cached (§7.9). Reused from G8, not re-fetched.",
+      "verified_citation": {"pmid": "22499809", "pmcid": "PMC3525670", "doi": "10.1126/science.1221920",
+        "title": "Differential diffusivity of Nodal and Lefty underlies a reaction-diffusion patterning system.",
+        "raw_cache": "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json", "verifier": "EuropePMC REST"},
+      "structural_prior": "D(Lefty) > D(Nodal); clearance k SIMILAR across the two (range difference is diffusivity-driven, NOT clearance-driven)."
+    }
+  },
+  "generation_task_for_B": {
+    "goal": "Model selection under non-identifiability: fit (a) a differential-diffusivity reaction-diffusion model [D(Lefty)>D(Nodal) prior] AND (b) a null temporal-threshold model with NO spatial diffusion asymmetry, both to the measured ZESTA SPATIAL gradients, then compare energies after an E_sparse penalty on the RD model's free D-ratio degree of freedom.",
+    "produce": [
+      "fitted RD .bngl + fitted null model, both scored on the SAME spatial ZESTA data",
+      "energy comparison table with the E_sparse penalty explicit (does the free D-ratio earn its parameter?)",
+      "a PRE-REGISTERED framing declaration: boundary position in BOTH relative (fraction-of-axis) AND absolute frame (guards frame-circularity)"
+    ],
+    "coherence_trap_to_honor": "'Differential diffusivity explains scaling' is Muller-2012-true AND coherent — but that is borrowed authority, not evidence THIS parameterization fits OUR data. reasoning-fragility-skeptic must refuse to promote an established-mechanism citation to a fit result; energy-ebm must guard against energy collapse when D is unconstrained.",
+    "must_carry": [
+      "observable (#1): spatial pSmad2 / marker gradient boundary position",
+      "candidate_falsifier: the null temporal-threshold model matches boundary positions within noise at EQUAL-or-LOWER parameter cost (refutes the RD model earning its D-ratio)",
+      "confidence (claim-like, Mode-0 / uncalibrated until A observes an outcome)"
+    ]
+  },
+  "scope_note_honest": "The COMPUTE model-selection (does the free D-ratio earn its parameter under E_sparse on spatial ZESTA) runs NOW. The DISCRIMINATING gap-closer (FRAP diffusion length-scales + a Lefty-KO boundary-displacement assay) is NEW wet-lab acquisition (Phase II) and is NOT available this cycle. This commission does NOT close D-non-identifiability; it runs the parsimony-scored model comparison the current data supports.",
+  "gap_flags": [
+    "Muller 2012 absolute D values behind Science paywall (not fabricated); optional sanity prior only.",
+    "FRAP + Lefty-KO discriminating falsifier = Phase II wet-lab.",
+    "D remains non-identifiable from temporal-only data; spatial extraction narrows but does not fully close it."
+  ],
+  "expected_return_from_B": {
+    "as": "a Proposal in conciencia-universal/proposals/ (B side, A1)",
+    "then": "A scope-gate + human selection -> if selected, A GATE 2 ingest (MERGE-update to the RN3 record family / CORPUS-2026-0004). Confidence is NOT calibration until A observes an outcome (invariant #3)."
+  }
+}

@@ -33,6 +33,16 @@ import json
 import argparse
 import pathlib
 
+# cp1252 hardening (extends ADR-0026's cp1252 sweep to the CLI, 2026-07-21). On a Windows console whose
+# default codec is cp1252, printing the status glyphs this CLI emits (e.g. the semantic-OK "✓") raised
+# UnicodeEncodeError and crashed AFTER a successful retrieval — the query worked, only the print failed.
+# Force UTF-8 on stdout/stderr at the root so every downstream print is safe, regardless of console locale.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")  # py3.7+; TextIOWrapper only
+    except (AttributeError, ValueError):
+        pass  # already UTF-8, or a non-reconfigurable stream (pipe/redirect) — nothing to do
+
 # Import the server module (same directory). Importing it loads .secrets/deploy.env and wires the backend
 # EXACTLY as the MCP server does, but does NOT start mcp.run() (that is under server.py's __main__ guard).
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))

@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "created": "2026-07-21",
+    "by": "MITAD_A A2 on REQUEST_A_validate_DI_20260711 (GATE-2 human-approved by Emmanuel: 17 + both hif1a paralogs)",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "resolver": "ensembl-rest-lookup+xrefs",
+    "human_gate": "CLAUDE.md \u00a77 \u2014 approved 2026-07-21"
+  },
+  "her1": {
+    "ensdarg": "ENSDARG00000014722",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "segmentation-clock bHLH (hairy/E(spl)); somitogenesis \u2014 serves ZF-G9"
+  },
+  "her7": {
+    "ensdarg": "ENSDARG00000017917",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "segmentation-clock bHLH; somitogenesis \u2014 serves ZF-G9"
+  },
+  "dlc": {
+    "ensdarg": "ENSDARG00000002336",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "Notch ligand DeltaC (alias deltaC/DeltaC); somitogenesis oscillator \u2014 serves ZF-G9"
+  },
+  "notch1a": {
+    "ensdarg": "ENSDARG00000103554",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "Notch receptor 1a; lateral inhibition / somitogenesis"
+  },
+  "sox17": {
+    "ensdarg": "ENSDARG00000101717",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "endoderm & dorsal-forerunner-cell specifier (Nodal target)"
+  },
+  "gata4": {
+    "ensdarg": "ENSDARG00000098952",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "cardiac/endoderm GATA TF \u2014 serves heart-regen ZF-G10"
+  },
+  "hand2": {
+    "ensdarg": "ENSDARG00000008305",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "bHLH TF; cardiac & fin mesenchyme"
+  },
+  "tnfa": {
+    "ensdarg": "ENSDARG00000009511",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "inflammatory cytokine (TNF-alpha); regen inflammation RN4 \u2014 ZF-G10/11"
+  },
+  "il6": {
+    "ensdarg": "ENSDARG00000102318",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "inflammatory cytokine (IL-6); regen inflammation RN4 \u2014 ZF-G10/11"
+  },
+  "il10": {
+    "ensdarg": "ENSDARG00000078147",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "anti-inflammatory cytokine (IL-10); regen inflammation RN4 \u2014 ZF-G10/11"
+  },
+  "tbxta": {
+    "ensdarg": "ENSDARG00000101576",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "T-box brachyury (no tail/ntl); axial mesoderm & gastrulation"
+  },
+  "vangl2": {
+    "ensdarg": "ENSDARG00000027397",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "PCP core (trilobite); convergent extension"
+  },
+  "wnt11": {
+    "ensdarg": "ENSDARG00000014796",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "non-canonical Wnt (silberblick); CE / gastrulation"
+  },
+  "prkci": {
+    "ensdarg": "ENSDARG00000021225",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "atypical PKC-iota; apical polarity \u2014 CORPUS-2026-0003 pronephros tubulogenesis"
+  },
+  "prkcz": {
+    "ensdarg": "ENSDARG00000043332",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "atypical PKC-zeta; apical polarity \u2014 CORPUS-2026-0003 pronephros tubulogenesis"
+  },
+  "ift88": {
+    "ensdarg": "ENSDARG00000027234",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "intraflagellar transport 88 (oval/polaris); cilia; pronephros flow"
+  },
+  "tnnt2a": {
+    "ensdarg": "ENSDARG00000020610",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "cardiac troponin T2a; myocardium contractility"
+  },
+  "hif1aa": {
+    "ensdarg": "ENSDARG00000006181",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "hypoxia-inducible factor 1a-a paralog (hif1a ambiguity resolved) \u2014 hypoxia/regen"
+  },
+  "hif1ab": {
+    "ensdarg": "ENSDARG00000034293",
+    "raw_cache_ref": "mcp_cache/raw_ensembl_mitadB-validate_20260721.json",
+    "verified_on": "2026-07-21",
+    "role": "hypoxia-inducible factor 1a-b paralog (hif1a ambiguity resolved) \u2014 hypoxia/regen"
+  }
+}

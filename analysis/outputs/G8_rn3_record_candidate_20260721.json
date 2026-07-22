@@ -1,0 +1,73 @@
+{
+  "artifact": "RN3_record_candidate_nodal_bmp",
+  "corpus_record_id_proposed": "CORPUS-2026-0004 (RN3) — PENDING human gate (add_dataset -> review -> approve)",
+  "question": "ZF-G8 nodal-bmp-kinetics-from-zesta",
+  "date": "2026-07-21",
+  "status": "READY for GATE 2 review — measured grounding (P1) + VERIFIED-citation mechanism/constraint (P2) + BNGL topology handoff (P3). Numeric constants to be FIT to ZESTA (not imported). NOT ingested.",
+  "data_niche": "RN3 (Redes de señalización y parámetros cinéticos)",
+  "scientific_domain": "N4 (+N3)",
+  "part_1_measured_grounding": {
+    "source": "ZESTA CORPUS-2026-0001 (stereoseq spatial, 3/5/10 hpf) — MEASURED, read locally",
+    "n_markers": 15,
+    "all_found_under_canonical_symbol": true,
+    "trajectories_ref": "analysis/outputs/G8_zesta_nodal_bmp_trajectories_20260721.json",
+    "biological_read": [
+      "Nodal ligands (ndr1/ndr2): low + transient, peak 3-5 hpf then decay — consistent with early blastula/gastrula Nodal.",
+      "Oep co-receptor (tdgf1): peaks 5 hpf (10.6% spots) — Nodal-reception window.",
+      "Lefty antagonists (lft1) RISE 3->5 hpf as Nodal-induced feedback; lft2 present early.",
+      "Chordin (chrd, BMP antagonist) RAMPS 3->5->10 hpf (0.001->0.22; 7% spots) — dorsal organizer strengthening.",
+      "Smad5 (BMP transducer) high at 3 hpf (25% spots), decays — early BMP competence.",
+      "RA cross-talk: aldh1a2 (synthesis) ramps late (3->10 hpf); cyp26a1 (degradation) present throughout."
+    ],
+    "note": "This is the empirical target the kinetic model must reproduce. Measured, not modeled."
+  },
+  "part_2_kinetic_parameters_CITED": {
+    "policy": "atestiguada/literature — citation VERIFIED via EuropePMC + raw-cached (§7.9); specific numeric constants NOT fabricated (§7).",
+    "verified_citation": {
+      "pmid": "22499809",
+      "pmcid": "PMC3525670",
+      "doi": "10.1126/science.1221920",
+      "title": "Differential diffusivity of Nodal and Lefty underlies a reaction-diffusion patterning system.",
+      "year": "2012",
+      "raw_cache": "mcp_cache/raw_europepmc_muller2012_nodal-lefty_20260721.json",
+      "verified_on": "2026-07-21",
+      "verifier": "EuropePMC REST"
+    },
+    "mechanism_from_abstract_RETRIEVED": "Measured (Muller 2012, from the authoritative abstract): Nodals have SHORTER range than Lefty; Nodal & Lefty have SIMILAR clearance kinetics -> the range difference is driven by DIFFERENTIAL DIFFUSIVITY, NOT differential clearance. (FRAP: Lefty diffuses faster than Nodal.)",
+    "fit_constraint": "D(Lefty) > D(Nodal); clearance k similar across the two -> the reaction-diffusion prior is a fast long-range inhibitor (Lefty) + slow short-range activator (Nodal).",
+    "approach_RESOLVES_the_gap": "Per the acquisition_trigger (\"fit against the ZESTA atlas\"): fit D/k to OUR measured ZESTA gradients (Part 1) using Muller 2012 differential-diffusivity as the STRUCTURAL PRIOR + qualitative constraint. This avoids importing another assay constants and is the methodologically-correct \"fit against ZESTA\".",
+    "gap_flags": [
+      "Muller 2012 specific numeric D values are behind Science access (not OA via EuropePMC; PMC3525670 fullTextXML 404; BioModels 0 hits) — NOT fabricated. Only needed as an optional sanity prior; the operative constants are FIT to ZESTA."
+    ]
+  },
+  "part_3_bngl_topology_HANDOFF_to_B": {
+    "note": "Rule TOPOLOGY (species + reactions) — a SPEC, not a fitted model. The .bngl generation + fit is MITAD_B's side (A/B contract: A grounds, B generates). Handed off as input.",
+    "species": [
+      "Nodal(ndr1,ndr2)",
+      "Oep(tdgf1)",
+      "Lefty(lft1,lft2)",
+      "Smad2",
+      "BMP(bmp2b,bmp4,bmp7a)",
+      "Chordin(chrd)",
+      "Smad5"
+    ],
+    "rules": [
+      "Nodal + Oep <-> Nodal:Oep            # reception complex",
+      "Nodal:Oep -> Nodal:Oep + pSmad2      # signal transduction",
+      "pSmad2 -> pSmad2 + Lefty             # Nodal-induced Lefty feedback (matches measured lft1 rise)",
+      "Lefty + Oep -> Lefty:Oep            # competitive inhibition of Nodal reception (fast diffuser)",
+      "BMP -> BMP + pSmad5                  # BMP transduction",
+      "Chordin + BMP -> Chordin:BMP         # BMP sequestration (matches measured chrd ramp)",
+      "@diffusion: D(Lefty) >> D(Nodal); D(Chordin) intermediate"
+    ],
+    "falsifier": "a Lefty perturbation (MO/mutant) does not move the Nodal-domain boundary as the fitted model predicts (per acquisition_trigger candidate_falsifier)."
+  },
+  "gate_2_pending": {
+    "what_would_ingest": "CORPUS-2026-0004 (RN3): measured trajectory table + parameter spec (once constants extracted+cached) + BNGL topology",
+    "blockers_before_ingest": [
+      "MITAD_B generates + fits the .bngl to the ZESTA gradients (D_Lefty>D_Nodal prior)",
+      "optional: extract Muller specific D values from full-text as a sanity prior"
+    ],
+    "no_di_mutation_yet": true
+  }
+}
