@@ -163,8 +163,12 @@ ok("SCOPE §6 (ADR-0006)", "accountability audit runs as a deterministic gate ov
 # ---------------------------------------------------------------------------
 _section("docs/HANDOFF.md — current operational state")
 
-ok("HANDOFF", "store holds 51 records at store_version 2026-06-23.1",
-   store.get("n_records") == 51 and store.get("store_version") == "2026-06-23.1",
+# 2026-08-09: was a frozen snapshot ("51 @ 2026-06-23.1") that rotted on every human-gated ADD (the store
+# grew 51->74->113). A hardcoded count in a test is the same drift class doc_coherence_check.py exists to
+# catch — so assert store-INTERNAL consistency here and leave doc<->store agreement to that gate (invoked
+# below as its own check).
+ok("HANDOFF", "store is internally consistent (n_records == len(records), versioned)",
+   store.get("n_records") == len(store.get("records", [])) and bool(store.get("store_version")),
    f"n={store.get('n_records')} v={store.get('store_version')}")
 
 # ADR-0029: the 5 signaling/induction markers resolve
