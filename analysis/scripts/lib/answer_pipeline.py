@@ -13,7 +13,14 @@ As the human-gated re-ingest loop (slice 1d) adds papers, chunk hits appear and 
 sufficient on its own — the store reinforces itself.
 
 Spend: Path A embeds the query (OpenAI, authorized 2026-06-13); Path B (Europe PMC) is free.
-Bundle cached to mcp_cache/answer_bundle_<slug>_<YYYYMMDD>.json.
+Bundle cached to mcp_cache/answer_bundle_<run_id>.json — named by run_id, NEVER by question-slug+date
+(ADR-0044: a hardcoded date + 40-char slug silently overwrote bundles across users/days; the collision
+rendered as a perfectly-instrumented sheet showing someone else's data).
+
+Epistemic state travels with the bundle (ADR-0043): path_a carries `retrieval` {mode, raw_marker, n_hits,
+k_requested} where `mode` is a 4-literal enum (RETRIEVAL_MODES) and NEVER None/nullable — `null` cannot
+distinguish "measured clean" from "not measured". The run-level aggregate is `retrieval_summary`
+(worst-of-n, declared).
 
 Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent):
   RETRIEVE -> Path A (DI)
@@ -29,11 +36,14 @@ CLI:
   python analysis/scripts/lib/answer_pipeline.py "Is osr1 required for zebrafish pronephros?" --entities osr1,prkci,pax2a
 """
 import argparse
+import datetime
+import hashlib
 import json
 import os
 import re
 import sys
 import pathlib
+import uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[2].parent
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
@@ -49,16 +59,51 @@ os.environ.setdefault("RAG_BACKEND", "neo4j")
 from lib import rag_backend, resolve_id, fetch_paper  # noqa: E402
 
 CACHE = ROOT / "mcp_cache"
-DATE = "20260613"
+
+# --- retrieval-mode enum (ADR-0043) -----------------------------------------------------------
+# Four EXPLICIT literals, never None/nullable: `null` cannot distinguish "measured clean" from
+# "not measured", which forces any consumer (the webapp UI in particular) to paint the worst case.
+RETRIEVAL_MODES = ("semantic", "degraded-dense-failed", "reduced-by-config", "not-measured")
+_MODE_SEVERITY = {"semantic": 0, "reduced-by-config": 1, "not-measured": 2, "degraded-dense-failed": 3}
+_MARKER_MISSING = object()   # sentinel: the result carried NO `degraded` attribute at all
+
+
+def _mode_of(marker):
+    """Map a raw HitList.degraded marker to the 4-literal enum. Unknown truthy markers (including the
+    server-level 'sparse' timeout-fallback stamp) map to 'degraded-dense-failed' — degraded-somehow must
+    never render as clean; `raw_marker` preserves the original literal untranslated."""
+    if marker is _MARKER_MISSING:
+        return "not-measured"
+    if marker is None:
+        return "semantic"
+    if marker == "sparse-by-config":
+        return "reduced-by-config"
+    return "degraded-dense-failed"   # 'dense-failed:sparse-only', 'sparse', any unknown degradation
+
+
+def _identity(bundle):
+    """bundle_identity (ADR-0044): sha256 over the canonical payload (bundle minus bundle_identity), so a
+    consumer can re-verify that the sheet it renders is the run it claims to be. Recomputed on every
+    mutation of the bundle (record_audit re-stamps it)."""
+    payload = {k: v for k, v in bundle.items() if k != "bundle_identity"}
+    sha = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+    return {"sha256": sha, "run_id": bundle.get("run_id"), "question": bundle.get("question")}
 
 
 def path_a(question, k=6):
-    """DATA INAMOVIBLE first: live semantic retrieval + a literature-presence signal."""
+    """DATA INAMOVIBLE first: live semantic retrieval + a literature-presence signal. The degradation
+    marker travels ON the returned dict as `retrieval` (envelope-level, ADR-0043) — serializing only the
+    hits dropped HitList.degraded silently, and with 0 hits there was nothing to stamp it on at all."""
     hits = rag_backend.query(question, k)
+    marker = getattr(hits, "degraded", _MARKER_MISSING)
     serial = [{"doc_id": h.doc_id, "type": h.type, "score": round(h.score, 4),
                "text": (h.text or "")[:140]} for h in hits]
     return {"n_hits": len(serial), "top_score": serial[0]["score"] if serial else 0.0,
-            "has_literature_chunks": any(h.type == "chunk" for h in hits), "hits": serial}
+            "has_literature_chunks": any(h.type == "chunk" for h in hits),
+            "retrieval": {"mode": _mode_of(marker),
+                          "raw_marker": None if marker is _MARKER_MISSING else marker,
+                          "n_hits": len(serial), "k_requested": k},
+            "hits": serial}
 
 
 def check_entities(entities):
@@ -141,7 +186,11 @@ def retrieve(question, entities=None, n_papers=2):
     a = path_a(question)
     ent = check_entities(entities)
     suf = assess_sufficiency(a, ent)
-    bundle = {"question": question, "stamp": DATE, "entities_checked": ent, "path_a": a, "sufficiency": suf}
+    bundle = {"question": question,
+              "run_id": uuid.uuid4().hex,
+              "stamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+              "question_slug": re.sub(r"[^a-z0-9]+", "-", question.lower())[:40].strip("-"),
+              "entities_checked": ent, "path_a": a, "sufficiency": suf}
     if suf["sufficient"]:
         bundle["path_b"] = {"triggered": False, "reason": "DI sufficient (literature present + entities resolved)"}
         bundle["decision_state"] = _state(
@@ -158,6 +207,12 @@ def retrieve(question, entities=None, n_papers=2):
                           "unaudited external evidence (CLAUDE.md §7). For full breadth ALSO run "
                           "path_b.tool_universe_directive via the connected tooluniverse MCP and audit those "
                           "hits the SAME way. Feed all verdicts to record_audit().")
+    # Run-level epistemic aggregate (ADR-0043): one run may hold several retrievals; the band is ONE.
+    # worst-of-n, declared — aggregating by "first" or "majority" paints a half-degraded run clean.
+    modes = [a["retrieval"]["mode"]]
+    bundle["retrieval_summary"] = {"mode": max(modes, key=_MODE_SEVERITY.__getitem__),
+                                   "retrievals": len(modes), "aggregation": "worst-of-n"}
+    bundle["bundle_identity"] = _identity(bundle)
     return bundle
 
 
@@ -176,6 +231,7 @@ def record_audit(bundle, approved, rejected, note=""):
             "AUDIT_REJECTED", may_answer=True, may_propose=False,
             required_next="ANSWER with the gap EXPLICIT (no on-target evidence passed audit) + record a gap_flag; "
                           "optionally REFINE (e.g. follow an auditor-surfaced lead) and re-run retrieve().")
+    bundle["bundle_identity"] = _identity(bundle)   # the audit mutated the bundle -> re-stamp (ADR-0044)
     return bundle
 
 
@@ -187,8 +243,8 @@ def main():
     a = ap.parse_args()
     ents = [e.strip() for e in a.entities.split(",") if e.strip()]
     bundle = retrieve(a.question, entities=ents, n_papers=a.papers)
-    slug = re.sub(r"[^a-z0-9]+", "-", a.question.lower())[:40].strip("-")
-    (CACHE / f"answer_bundle_{slug}_{DATE}.json").write_text(
+    # ADR-0044: filename by run_id — a slug+date name silently overwrote bundles across users/days.
+    (CACHE / f"answer_bundle_{bundle['run_id']}.json").write_text(
         json.dumps(bundle, ensure_ascii=False, indent=2), encoding="utf-8")
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
