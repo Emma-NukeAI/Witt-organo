@@ -122,3 +122,9 @@ analysis/outputs/cache/
 # committed HTML report + the tool code, not these outputs)
 substrate_calibration/reports/_smoke_ece.json
 reports/smoke_contract_*.json
+
+# Ingest service runtime state (queue/rejection archive/action log live where the service runs;
+# durability beyond the host is the block-5 DI-change registry — ADR-0045)
+rag_index/ingest_service/queue/
+rag_index/ingest_service/rejected/
+rag_index/ingest_service/actions_log.jsonl
