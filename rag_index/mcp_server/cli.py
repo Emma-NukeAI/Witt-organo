@@ -57,38 +57,30 @@ _DEGRADED_HELP = {
 }
 
 
-def _degraded_of(hits):
-    """Return the degradation marker carried by the query result (None if true semantic)."""
-    if isinstance(hits, list):
-        for h in hits:
-            d = (h.get("metadata") or {}).get("degraded")
-            if d:
-                return d
-    return None
-
-
 def _cmd_query(args):
     res = server._query(" ".join(args.text), args.k)
-    if isinstance(res, dict):  # {"error": "query_unavailable", ...}
+    if "error" in res:  # {"error": "query_unavailable", "degraded": "unavailable", ...}
         if args.json:
             print(json.dumps(res, ensure_ascii=False, indent=2))
         else:
             print(f"UNAVAILABLE: {res.get('note', res.get('error'))}")
         return 4
-    degraded = _degraded_of(res)
+    # ADR-0043: the marker comes from the ENVELOPE, never re-derived from per-hit metadata — deriving it
+    # from hits silently lost the marker on an empty result (degraded+empty looked identical to healthy+empty).
+    degraded, hits = res.get("degraded"), res.get("hits", [])
     if args.json:
-        print(json.dumps({"degraded": degraded, "hits": res}, ensure_ascii=False, indent=2))
+        print(json.dumps(res, ensure_ascii=False, indent=2))
     else:
         if degraded:
             print(f"⚠ DEGRADED [{degraded}] — {_DEGRADED_HELP.get(degraded, 'sparse-only, NOT semantic')}")
             print("  These are sparse/keyword hits, NOT semantic GraphRAG results. Do not treat as high-recall.\n")
         else:
             print("semantic (dense GraphRAG) ✓\n")
-        for h in res:
+        for h in hits:
             print(f"  [{h['score']:.3f}] {h['type']:9s} {h['doc_id'][:26]:26s} {h['text'][:80]}")
-        if not res:
+        if not hits:
             print("  (no hits)")
-    return 3 if degraded else (0 if res else 4)
+    return 3 if degraded else (0 if hits else 4)
 
 
 def _cmd_resolve(args):
@@ -122,14 +114,15 @@ def _cmd_health(args):
     """One-shot liveness + degradation probe — the pre-flight a teammate runs before trusting results."""
     import os
     res = server._query("pronephros zebrafish", 1)
-    degraded = _degraded_of(res) if isinstance(res, list) else "unavailable"
+    degraded = "unavailable" if "error" in res else res.get("degraded")
+    hits = res.get("hits", [])
     info = {
         "backend": os.environ.get("RAG_BACKEND") or "sparse(dev)",
         "embed_model": os.environ.get("EMBED_MODEL"),
         "neo4j_uri_set": bool(os.environ.get("NEO4J_URI")),
         "degraded": degraded,
-        "semantic_ok": degraded is None and isinstance(res, list) and bool(res),
-        "top": (f"{res[0]['doc_id']}:{res[0]['score']}" if isinstance(res, list) and res else None),
+        "semantic_ok": degraded is None and bool(hits),
+        "top": (f"{hits[0]['doc_id']}:{hits[0]['score']}" if hits else None),
     }
     if args.json:
         print(json.dumps(info, ensure_ascii=False, indent=2))

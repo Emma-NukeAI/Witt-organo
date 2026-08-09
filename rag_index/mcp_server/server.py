@@ -103,6 +103,16 @@ def _hit_dicts(hits, degraded=None):
     return out
 
 
+def _envelope(hit_dicts, degraded):
+    """The uniform query ENVELOPE (ADR-0043): the degradation marker lives ON the envelope, sourced from
+    `HitList.degraded` — never derived from per-hit metadata. Stamping only per-hit loses the marker the
+    moment the hit list is empty (the for-loop never runs), which made "degraded and empty" byte-identical
+    to "healthy and empty" — opposite conclusions (a real DI gap vs. a broken retriever), and the
+    2026-07-18/19 silent-degradation trap reintroduced at the empty-result edge. Per-hit stamps are KEPT
+    for backward compatibility, but the envelope is the source of truth for consumers (CLI, MCP, HTTP)."""
+    return {"degraded": degraded, "n_hits": len(hit_dicts), "hits": hit_dicts}
+
+
 def _query(query: str, k: int = 5):
     """Semantic GraphRAG search over the DATA INAMOVIBLE, with a hard no-hang guarantee (CLAUDE.md §6).
 
@@ -114,7 +124,11 @@ def _query(query: str, k: int = 5):
       2. On timeout/error, fall back to the LOCAL SPARSE index (TF-IDF over documents.jsonl, instant, no
          network) and return those hits marked degraded=sparse. The hosted Neo4j on Dokploy intermittently
          spikes >30s; this keeps the tool useful (lower-precision hits) instead of empty.
-    Every call is logged (start/latency/outcome) to mcp_cache/mcp_server.log for post-hoc diagnosis."""
+    Every call is logged (start/latency/outcome) to mcp_cache/mcp_server.log for post-hoc diagnosis.
+
+    RETURN SHAPE (ADR-0043): always a dict envelope {degraded, n_hits, hits} — degraded is
+    None | 'dense-failed:sparse-only' | 'sparse-by-config' | 'sparse' | 'unavailable' (error path, which
+    additionally carries an 'error' key). The marker survives n_hits == 0 by construction."""
     _log(f"_query START dense_timeout={_DENSE_TIMEOUT_S}s backend={os.environ.get('RAG_BACKEND')} "
          f"embed={os.environ.get('EMBED_MODEL')} k={k} q={query[:80]!r}")
     _t0 = _time.perf_counter()
@@ -130,7 +144,7 @@ def _query(query: str, k: int = 5):
              + (f" top={r[0]['doc_id']}:{r[0]['score']}" if r else "")
              + (f" err={rag_backend.get_backend().last_error}"
                 if degraded and hasattr(rag_backend.get_backend(), 'last_error') else ""))
-        return r
+        return _envelope(r, degraded)
     except _futures.TimeoutError:
         _log(f"_query dense TIMEOUT {_DENSE_TIMEOUT_S}s -> sparse fallback (hosted Neo4j slow)")
     except Exception as e:
@@ -142,13 +156,13 @@ def _query(query: str, k: int = 5):
         hits = rag_backend.query_sparse(query, k)
         r = _hit_dicts(hits, degraded="sparse")
         _log(f"_query OK(sparse-fallback) {(_time.perf_counter() - _t0):.2f}s hits={len(r)}")
-        return r
+        return _envelope(r, "sparse")
     except Exception as e:
         _log(f"_query sparse FAILED {(_time.perf_counter() - _t0):.2f}s {type(e).__name__}: {str(e)[:160]}")
-        return {"error": "query_unavailable",
+        return {"error": "query_unavailable", "degraded": "unavailable", "n_hits": 0, "hits": [],
                 "note": ("hosted semantic backend slow AND local sparse fallback failed; "
                          "use resolve_identifier or retry (CLAUDE.md §6)."),
-                "query": query, "hits": []}
+                "query": query}
 
 
 def _resolve(key: str):
@@ -197,7 +211,10 @@ if FastMCP is not None:
     @mcp.tool()
     def query_data_inamovible(query: str, k: int = 5):
         """Semantic GraphRAG search over the shared DATA INAMOVIBLE. Use to retrieve the best related
-        information (niches, databases, datasets, curated knowledge) for a research question."""
+        information (niches, databases, datasets, curated knowledge) for a research question.
+        Returns an envelope {degraded, n_hits, hits} (ADR-0043): `degraded` is None for a true semantic
+        result and a string marker when the result is sparse-only/unavailable — surface it ALWAYS,
+        including (especially) when hits is empty."""
         return _query(query, k)
 
     @mcp.tool()
@@ -247,9 +264,9 @@ def _warmup():
     _net_probe()
     try:
         r = _query("warmup pronephros zebrafish", 1)
-        ok = not isinstance(r, dict)
+        ok = isinstance(r, dict) and "error" not in r
         _log(f"warmup DONE {(_time.perf_counter() - t0):.2f}s ok={ok} "
-             + (f"hits={len(r)}" if ok else f"marker={r.get('error')}"))
+             + (f"hits={r.get('n_hits')} degraded={r.get('degraded')}" if ok else f"marker={r.get('error')}"))
     except Exception as e:
         _log(f"warmup ERROR {(_time.perf_counter() - t0):.2f}s {type(e).__name__}: {str(e)[:200]}")
 

@@ -46,12 +46,16 @@ check("resolve pax2a -> ENSDARG00000028148",
 _old = server._DENSE_TIMEOUT_S; server._DENSE_TIMEOUT_S = 0
 t = time.perf_counter(); rf = server._query(Q, 3); dt = time.perf_counter() - t
 server._DENSE_TIMEOUT_S = _old
-check("sparse fallback (Neo4j caido -> hits, no vacio)",
-      isinstance(rf, list) and bool(rf) and dt < 3 and rf[0]["metadata"].get("degraded") == "sparse",
-      "%.2fs hits=%d" % (dt, len(rf) if isinstance(rf, list) else 0))
+# ADR-0043: _query devuelve SIEMPRE el sobre {degraded, n_hits, hits}; el marcador vive en el sobre
+# (sobrevive n_hits==0), y el estampado por-hit se conserva por compatibilidad.
+check("sparse fallback (Neo4j caido -> sobre degradado, no vacio)",
+      isinstance(rf, dict) and "error" not in rf and rf.get("degraded") == "sparse"
+      and rf.get("n_hits", 0) > 0 and dt < 3
+      and rf["hits"][0]["metadata"].get("degraded") == "sparse",
+      "%.2fs hits=%s" % (dt, rf.get("n_hits") if isinstance(rf, dict) else "-"))
 def _one(i):
     t = time.perf_counter(); x = server._query(Q, 3)
-    return time.perf_counter() - t, isinstance(x, list) and len(x) > 0
+    return time.perf_counter() - t, isinstance(x, dict) and "error" not in x and x.get("n_hits", 0) > 0
 with cf.ThreadPoolExecutor(max_workers=8) as ex:
     res = list(ex.map(_one, range(8)))
 allok = all(ok for _, ok in res); maxdt = max(dt for dt, _ in res)
