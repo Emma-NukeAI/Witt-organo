@@ -38,7 +38,7 @@ witt-organogenesis/
 │   ├── HANDOFF.md                     ← the single live hand-off: current system state, how to operate, what's next
 │   ├── stress-test-completo.md/.pdf   ← evidence base for v2.2 architectural decisions
 │   ├── v2.2-changelog.md              ← what changed v2.1 → v2.2 and why
-│   ├── decisions/                     ← Architecture Decision Records (ADRs); 45 records as of 2026-08 (0001–0045)
+│   ├── decisions/                     ← Architecture Decision Records (ADRs); 46 records as of 2026-08 (0001–0046)
 │   ├── findings/                      ← negative findings / corrections (substrate iteration evidence)
 │   └── autoresearch-handoff/          ← imported autoresearch discipline (STRATEGY_FINAL, INTEGRATION_PROPOSAL, guide) + proposals/ + prerequisites/
 ├── rag_index/                        ← DATA INAMOVIBLE GraphRAG (Neo4j) + ingest service + deploy recipes (ADR-0020/0021)
