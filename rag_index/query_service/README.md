@@ -50,7 +50,9 @@ inventadas.
    (`rag-wittbackenddb-qxzrgu`).
 2. **Create → Compose**, conectado a este repo (branch `master`), compose path
    `rag_index/query_service/docker-compose.query.yml`. En **Environment**: las mismas variables que ya
-   usa el ingest service (`NEO4J_*`, `OPENAI_API_KEY`, `MINIO_*`) + `WITT_BACKEND_DB_URL`.
+   usa el ingest service (`OPENAI_API_KEY`, `MINIO_*`, `NEO4J_USER/PASSWORD`) + `WITT_BACKEND_DB_URL`,
+   **PERO** `NEO4J_URI=bolt://data-inamovible-neo4j:7687` (el nombre interno del contenedor — la IP
+   pública del host da timeout desde dentro del contenedor; verificado en el deploy 2026-08-10).
    **Sin puertos públicos**: la webapp le hablará por la red interna.
 3. Desde la **Terminal** del servicio en Dokploy: `python seed_users.py init` (una vez) — imprime las 5
    contraseñas UNA vez; distribúyelas por canal directo, no al Drive compartido, no a git.

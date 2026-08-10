@@ -14,7 +14,9 @@ services:
     restart: unless-stopped
     networks: [default, neo4j_net, minio_net, dokploy-network]
     environment:
-      - NEO4J_URI=${NEO4J_URI}                         # same values the ingest service already uses
+      - NEO4J_URI=${NEO4J_URI}                         # bolt://data-inamovible-neo4j:7687 (nombre INTERNO;
+                                                       # la IP publica del host NO es alcanzable desde este
+                                                       # contenedor — hairpin timeout, verificado 2026-08-10)
       - NEO4J_USER=${NEO4J_USER}
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}
       - RAG_BACKEND=neo4j
