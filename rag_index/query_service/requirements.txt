@@ -1,0 +1,12 @@
+# Webapp read-only query service deps (block 2, ADR-0048). Install in the service container —
+# NEVER in the MCP .venv (pinned by uv.lock; contaminating it caused the 2026-07-19 incident, ADR-0039).
+fastapi>=0.110
+uvicorn[standard]>=0.29
+sqlalchemy>=2.0
+psycopg[binary]>=3.1        # Postgres driver (ADR-0047 decision 1); SQLite needs nothing extra
+# --- reused DATA INAMOVIBLE libs (same as rag_index/graphrag/requirements.txt) ---
+neo4j>=5.20
+openai>=1.40
+minio>=7.2
+scikit-learn
+numpy

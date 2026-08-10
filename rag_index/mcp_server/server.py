@@ -84,7 +84,9 @@ import concurrent.futures as _futures  # noqa: E402
 
 import time as _time  # noqa: E402
 
-_QUERY_POOL = _futures.ThreadPoolExecutor(max_workers=4)
+# Pool sizing (block 2 / ADR-0048): 4 was hardcoded — with 5 concurrent users the 5th queued behind a
+# slow dense attempt. Deploys size it via DI_QUERY_POOL_SIZE (query_service README recommends 8).
+_QUERY_POOL = _futures.ThreadPoolExecutor(max_workers=int(os.environ.get("DI_QUERY_POOL_SIZE", "4")))
 # Per-attempt budget for the hosted semantic path (Neo4j vector+graph + OpenAI embed). If it exceeds this
 # we DO NOT return empty — we fall back to the local sparse index (§6 no-hang). The hosted Neo4j on Dokploy
 # intermittently spikes >30s; a healthy warm query is ~0.6s and a cold one ~4s, so 12s cleanly separates
