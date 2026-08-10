@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "manifest_version": "2026-06-12.4",
-  "status": "CORPUS-2026-0010 approved by Emmanuel via ingest_service.",
+  "status": "CORPUS-2026-0010 pruned (human gate: Emmanuel, 2026-08-10) — duplicate of CORPUS-2026-0009 (same PMID:17651719).",
   "human_gate_required_to_commit": true,
   "cataloged_corpus_record_schema": {
     "corpus_record_id": "CORPUS-YYYY-NNNN",
@@ -3305,54 +3305,6 @@
         "test_3"
       ],
       "created_at": "2026-08-10T19:29:34+00:00"
-    },
-    {
-      "corpus_record_id": "CORPUS-2026-0010",
-      "source_document": {
-        "name": "Perner 2007 - wt1a/wt1b control zebrafish pronephros formation (PMID:17651719)",
-        "accession": "PMID:17651719",
-        "source_db": "europepmc"
-      },
-      "axis_data_niche": {
-        "primary": "RN11"
-      },
-      "axis_scientific_domain": {
-        "primary": "N1"
-      },
-      "entities_extracted": [],
-      "proposed_placement": {
-        "data_niche": "RN11",
-        "confidence": 0.55,
-        "reasoning": "corpus_classifier v1; human gate required"
-      },
-      "raw_provenance": {
-        "policy": "hybrid",
-        "files": [
-          {
-            "mode": "source-pointer",
-            "store": null,
-            "source_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/article/MED/17651719?resultType=core&format=json",
-            "sha256": null,
-            "bytes": null,
-            "content_type": null,
-            "recorded_on": "2026-08-10",
-            "filename": "17651719?resultType=core&format=json"
-          }
-        ]
-      },
-      "approval_chain": [
-        {
-          "gate": "categorization",
-          "status": "approved",
-          "approved_by": "Emmanuel",
-          "approved_at": "2026-08-10T19:36:24+00:00"
-        }
-      ],
-      "substrate_evidence": [
-        "test_1",
-        "test_3"
-      ],
-      "created_at": "2026-08-10T19:36:24+00:00"
     }
   ]
 }
