@@ -17,6 +17,12 @@ services:
     environment:
       - INGEST_SUBMIT_TOKEN=${INGEST_SUBMIT_TOKEN}    # teammates (submit)
       - INGEST_ADMIN_TOKEN=${INGEST_ADMIN_TOKEN}      # the approver (human gate)
+      # ADR-0054: ALL gate state on the volume — the 2026-08-10 e2e found queue/rejections/actions_log
+      # living in container FS: a redeploy mid-operation wiped the queue AND the rejection archive.
+      - INGEST_QUEUE_DIR=/data/queue
+      - INGEST_REJECTED_DIR=/data/rejected
+      - INGEST_ACTIONS_LOG=/data/actions_log.jsonl
+      - INGEST_LOCK_FILE=/data/write.lock
       - NEO4J_URI=${NEO4J_URI}                        # Neo4j + MinIO are SEPARATE Dokploy stacks -> reach
       - NEO4J_USER=${NEO4J_USER}                      # them via the host IP + published ports, e.g.
       - NEO4J_PASSWORD=${NEO4J_PASSWORD}              # NEO4J_URI=bolt://<host-ip>:7687 (not a service name)
@@ -31,7 +37,9 @@ services:
       - GITHUB_REPO=Emma-NukeAI/Witt-organo           # leave GITHUB_TOKEN empty to disable push-back (maintainer syncs)
       - GITHUB_BRANCH=master
     volumes:
-      - ingest_queue:/data/queue                      # pending submissions survive restarts
+      - ingest_queue:/data                            # ADR-0054: queue + rejected/ + actions_log + lock —
+                                                      # ALL gate state survives redeploys (was /data/queue
+                                                      # only; the archive and history were container-local)
 networks:
   default: {}
   neo4j_net:
