@@ -197,7 +197,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                          "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
                          "correction_applied": verdict.get("correction_applied", ""),
                          "confidence": verdict.get("confidence"),
-                         "reasons": verdict.get("reasons", [])})
+                         "reasons": verdict.get("reasons", []),
+                         "usage": usage or {}})   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):
                     usage_total[k] = usage_total.get(k, 0) + v

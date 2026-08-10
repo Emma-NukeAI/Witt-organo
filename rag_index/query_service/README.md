@@ -94,9 +94,18 @@ registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
 en el Environment del servicio. Gate: `smoke_run_pipeline.py` (19/19 offline).
 
+### Dos pasadas + decisor por confianza (bloque 4, ADR-0051)
+
+Pass 1 es SIEMPRE DI-only (mide "¿mi store alcanza?"); si `pass1 < τ` (`WITT_FALLBACK_CONF_TAU`,
+default 0.5) o la confianza viene ausente, dispara la Ruta B y corre pass 2 con la evidencia externa —
+ambas confianzas + el **delta** quedan en el registro (`confidence {pass1, pass2, delta, by_subclaim,
+state}`), junto con `fallback.trigger` (structural|confidence), `absence_kind`, citas tipadas
+(`citations[{n, kind, id}]`) y `token_usage` (by_model medido, embeddings incluidos, costo etiquetado
+como proyección). `render_contract_version: 1.1`.
+
 ## Pendiente (bloques siguientes)
 
-- Dos pasadas con delta de confianza (`pass1/pass2`), `confidence_by_subclaim`, `TokenUsage` formal,
-  citas estructuradas, el `Plan` condicional de M3 (bloque 4).
+- `Plan` condicional de M3 (planner) · serializador de series disjuntas + `PrecedentItem` (bloque 6).
+- Bloque 5: cola de escritura cross-proceso, endpoint de detalle de propuesta, PAT del push-back.
 - `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
 - Normalización de metadata entre ruta densa y sparse (residual §5.9, notado en ADR-0047).

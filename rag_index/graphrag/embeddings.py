@@ -19,6 +19,21 @@ import os
 _DIMS = {"openai": 1536, "openai-large": 3072, "bge": 768, "biobert": 768, "specter2": 768}
 
 
+# --- embedding-usage accounting (block 4, ADR-0051) -------------------------------------------------
+# Process-wide cumulative counter fed by ACTUAL OpenAI API usage responses (a measurement, never an
+# estimate). Readers snapshot before/after a window and diff; with concurrent runs the window may
+# include a neighbor's embeds — callers must label the attribution accordingly.
+import threading as _threading  # noqa: E402
+
+CUMULATIVE_USAGE = {"total_tokens": 0, "calls": 0}
+_USAGE_LOCK = _threading.Lock()
+
+
+def usage_snapshot():
+    with _USAGE_LOCK:
+        return dict(CUMULATIVE_USAGE)
+
+
 def get_dim():
     model = os.environ.get("EMBED_MODEL", "bge").lower()
     if model == "openai":
@@ -42,6 +57,12 @@ def get_embedder():
         def embed(texts):
             texts = [t if t.strip() else " " for t in texts]
             resp = client.embeddings.create(model=name, input=list(texts))
+            try:  # block 4 (ADR-0051): embedding spend was INVISIBLE — measure it from the API response
+                with _USAGE_LOCK:
+                    CUMULATIVE_USAGE["total_tokens"] += int(resp.usage.total_tokens or 0)
+                    CUMULATIVE_USAGE["calls"] += 1
+            except Exception:
+                pass
             return [d.embedding for d in resp.data]
         return embed
 

@@ -65,10 +65,19 @@ def _stub_caller_factory(verdicts):
     return _caller
 
 
-def _stub_synth(question, bundle):
-    return {"direct_answer": "wt1a (ENSDARG00000031420) marks the zebrafish pronephros.",
-            "stated_confidence": 0.8, "gap_flags": [], "evidence_cited": ["CORPUS-2026-0001"],
-            "model": "stub-synth", "usage": {"input_tokens": 100, "output_tokens": 50}}
+def _mk_synth(conf_by_pass):
+    """Sintetizador stub de dos pasadas: conf_by_pass = {'pass1': x, 'pass2': y}."""
+    def _synth(question, evidence, pass_label):
+        return {"direct_answer": "wt1a (ENSDARG00000031420) marks the zebrafish pronephros.",
+                "stated_confidence": conf_by_pass.get(pass_label, 0.8),
+                "confidence_by_subclaim": {"marker-expression": 0.9, "functional-requirement": 0.3},
+                "absence_kind": "not-applicable",
+                "gap_flags": [], "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}],
+                "model": "stub-synth", "usage": {"input_tokens": 100, "output_tokens": 50}}
+    return _synth
+
+
+_stub_synth = _mk_synth({"pass1": 0.8, "pass2": 0.85})
 
 
 _chunk = Hit(doc_id="CORPUS-2026-0003#c000", type="chunk", score=0.9, text="pronephros evidence",
@@ -145,16 +154,76 @@ types = [e["type"] for e in ev]
 check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       [e["seq"] for e in ev] == list(range(1, len(ev) + 1))
       and "stage.path_a" in types and "stage.assess_sufficiency" in types
-      and "stage.synthesize.done" in types and "stage.deterministic_gate" in types
+      and "stage.synthesize.pass1" in types and "stage.deterministic_gate" in types
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.0" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.1" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
+# --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
+check("sin fallback: trigger=None, pass2=None, answer=pass1 (conf 0.8 >= tau 0.5)",
+      rec["fallback"]["trigger"] is None and rec["confidence"]["pass1"] == 0.8
+      and rec["confidence"]["pass2"] is None and rec["confidence"]["delta"] is None
+      and rec["confidence"]["state"] == "value"
+      and "stage.synthesize.pass2" not in types)
+check("confidence_by_subclaim viaja al registro (asimetria declarada, no promediada)",
+      rec["confidence"]["by_subclaim"] == {"marker-expression": 0.9, "functional-requirement": 0.3})
+check("citas tipadas con serie numerica (letras reservadas a precedente)",
+      rec["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      and rec["answer"]["absence_kind"] == "not-applicable")
+tu = rec["token_usage"]
+check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings declarados",
+      tu["by_model"].get("stub-synth") == {"in": 100, "out": 50}
+      and tu["by_model"].get("claude-opus-4-8") == {"in": 10, "out": 5}
+      and tu["input_tokens"] == 140 and tu["output_tokens"] == 70
+      and "PROJECTION" in tu["cost_class"] and tu["estimated_cost_usd"] > 0
+      and tu["embedding"]["total_tokens"] == 0,
+      f"cost={tu['estimated_cost_usd']}")
 view = app.get_run(RID, authorization=AUTH)
 check("latido expuesto (heartbeat_age_s) y no-stale tras actividad",
       view["heartbeat_age_s"] is not None and view["heartbeat_stale"] is False)
+
+# ---- 5b. fallback por CONFIANZA (el fix que pidio la corrida #1: tau=0.5) ----------------------------
+rv = app.create_run(app.RunBody(question="thin evidence question", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": 0.3, "pass2": 0.75}),
+                     panel_caller=_stub_caller_factory(ALL_A))
+rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+ev_types = [e["type"] for e in app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]]
+check("pass1 0.3 < tau 0.5 -> dispara Ruta B por CONFIANZA aunque lo estructural dijera suficiente",
+      rec["fallback"]["trigger"] == "confidence"
+      and rec["fallback"]["fb_meta"]["pass1_confidence"] == 0.3
+      and rec["fallback"]["fb_meta"]["tau"] == 0.5
+      and rec["audit"]["required_because"] == "FALLBACK_FETCHED"
+      and "stage.path_b" in ev_types)
+check("dos pasadas persistidas: pass1=0.3, pass2=0.75, delta=+0.45 (el dato mas informativo)",
+      rec["confidence"]["pass1"] == 0.3 and rec["confidence"]["pass2"] == 0.75
+      and rec["confidence"]["delta"] == 0.45 and rec["confidence"]["final"] == 0.75
+      and "stage.synthesize.pass2" in ev_types)
+
+# ---- 5c. fallback ESTRUCTURAL (la via original) -----------------------------------------------------
+rag_backend.query = lambda text, k=6: HitList([], degraded=None)   # DI sin chunks -> insuficiente
+rv = app.create_run(app.RunBody(question="no coverage question", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": 0.9, "pass2": 0.9}),
+                     panel_caller=_stub_caller_factory(ALL_A))
+rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+check("insuficiencia estructural -> trigger=structural y dos pasadas aunque pass1 fuera confiada",
+      rec["fallback"]["trigger"] == "structural" and rec["confidence"]["pass2"] == 0.9)
+rag_backend.query = lambda text, k=6: HitList([_chunk], degraded=None)
+
+# ---- 5d. confianza AUSENTE -> dispara fallback + estado declarado (jamas null silencioso) ------------
+rv = app.create_run(app.RunBody(question="model omits confidence", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": None, "pass2": None}),
+                     panel_caller=_stub_caller_factory(ALL_A))
+rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+check("confianza ausente: dispara el gate + confidence.state='absent-not-calibratable' declarado",
+      rec["fallback"]["trigger"] == "confidence"
+      and rec["fallback"]["fb_meta"]["pass1_confidence"] is None
+      and rec["confidence"]["state"] == "absent-not-calibratable"
+      and rec["confidence"]["delta"] is None)
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)
@@ -175,9 +244,9 @@ RID3 = rv["run_id"]
 claimed = db.claim_next_queued()
 
 
-def _synth_then_cancel(question, bundle):
+def _synth_then_cancel(question, evidence, pass_label):
     db.request_cancel(RID3)   # la cancelacion llega mientras la corrida trabaja
-    return _stub_synth(question, bundle)
+    return _stub_synth(question, evidence, pass_label)
 
 
 runs_mod.execute_run(claimed, synthesizer=_synth_then_cancel,
@@ -190,7 +259,7 @@ rv = app.create_run(app.RunBody(question="explode", entities=[]), authorization=
 claimed = db.claim_next_queued()
 
 
-def _synth_boom(question, bundle):
+def _synth_boom(question, evidence, pass_label):
     raise ValueError("synth exploded (smoke)")
 
 

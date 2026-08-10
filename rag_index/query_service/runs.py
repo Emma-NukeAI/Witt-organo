@@ -19,6 +19,7 @@ Spend per run (authorized, measured, never capped — ADR-0047 d.3): 1 query emb
 (opus) + the 4-reviewer panel (~1-2.50 USD). Usage is accumulated into the frozen record.
 """
 import json
+import os
 import sys
 import threading
 import time
@@ -32,23 +33,50 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db  # noqa: E402
 from lib import answer_pipeline, composite_auditor, resolve_id, verify_output  # noqa: E402
 
-RENDER_CONTRACT_VERSION = "1.0"
+RENDER_CONTRACT_VERSION = "1.1"   # block 4 (ADR-0051): +confidence{pass1,pass2,delta,by_subclaim,state}, +fallback, +citations, +token_usage
 SYNTH_MODEL = "claude-opus-4-8"   # best-tier policy (2026-06-13 directive) — never downgraded to save cost
+
+# tau (ADR-0051): pass-1 confidence below this triggers the Path B fallback — the model's own "is my
+# store enough?" signal, the decider the eval harness recommends (run_held_out --conf-threshold 0.5)
+# over the structural check the repo documents as fooled-by-any-chunk-present (run #1 confirmed it live).
+FALLBACK_CONF_TAU = float(os.environ.get("WITT_FALLBACK_CONF_TAU", "0.5"))
 
 SYNTH_TOOL = {
     "name": "emit_answer",
-    "description": ("Answer the biology question using ONLY the provided evidence bundle. If the bundle "
-                    "is thin, say so in gap_flags and keep confidence honest. NEVER invent identifiers: "
+    "description": ("Answer the biology question using ONLY the provided evidence. If the evidence is "
+                    "thin, say so in gap_flags and keep confidence honest. NEVER invent identifiers: "
                     "only assert gene IDs that appear in the evidence or the verified-store resolutions."),
     "input_schema": {
         "type": "object",
         "properties": {
             "direct_answer": {"type": "string"},
             "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+            "confidence_by_subclaim": {
+                "type": "object", "additionalProperties": {"type": "number"},
+                "description": ("REQUIRED when the answer composes sub-claims of asymmetric evidence "
+                                "strength (CLAUDE.md §5): map each sub-claim (short label) to its own "
+                                "confidence instead of averaging them into one number.")},
+            "absence_kind": {
+                "type": "string",
+                "enum": ["not-applicable", "no-evidence-retrieved", "evidence-of-no-effect"],
+                "description": ("When the answer rests on an ABSENCE: 'no-evidence-retrieved' (the store "
+                                "returned nothing on-topic — says nothing about the world) vs "
+                                "'evidence-of-no-effect' (retrieved evidence actively supports a null "
+                                "effect). These are OPPOSITE epistemic states; never conflate them. "
+                                "'not-applicable' when the answer asserts positive evidence.")},
             "gap_flags": {"type": "array", "items": {"type": "string"}},
-            "evidence_cited": {"type": "array", "items": {"type": "string"}},
+            "evidence_cited": {
+                "type": "array",
+                "items": {"type": "object", "properties": {
+                    "kind": {"type": "string",
+                             "enum": ["di-chunk", "di-record", "di-database", "paper", "store-resolution",
+                                      "other"]},
+                    "id": {"type": "string"},
+                    "note": {"type": "string"}},
+                    "required": ["kind", "id"]},
+                "description": "typed citations — every claim traces to a doc_id / CORPUS id / PMID"},
         },
-        "required": ["direct_answer", "confidence"],
+        "required": ["direct_answer", "confidence", "absence_kind"],
     },
 }
 
@@ -57,16 +85,22 @@ class RunCancelled(Exception):
     pass
 
 
-def _compact_evidence(bundle):
-    """The evidence view handed to the synthesizer and the panel — compact, never the raw 100K bundle."""
-    return {
+def _compact_evidence(bundle, include_path_b=True):
+    """The evidence view handed to the synthesizer and the panel — compact, never the raw 100K bundle.
+    include_path_b=False is the PASS-1 view (DI-only): pass-1 confidence measures 'is my store enough?'
+    even when structural insufficiency already fetched external papers (ADR-0051)."""
+    ev = {
         "path_a_hits": [{"doc_id": h["doc_id"], "type": h["type"], "score": h["score"], "text": h["text"]}
                         for h in bundle["path_a"]["hits"]],
         "retrieval": bundle["path_a"]["retrieval"],
         "entities_checked": bundle["entities_checked"],
         "sufficiency": bundle["sufficiency"],
-        "path_b": {k: v for k, v in bundle["path_b"].items() if k != "tool_universe_directive"},
     }
+    if include_path_b:
+        ev["path_b"] = {k: v for k, v in bundle["path_b"].items() if k != "tool_universe_directive"}
+    else:
+        ev["path_b"] = {"included": False, "note": "pass-1 view is DI-only by design (ADR-0051)"}
+    return ev
 
 
 def _evidence_ids(bundle):
@@ -77,26 +111,105 @@ def _evidence_ids(bundle):
     return ids
 
 
-def _default_synthesizer(question, bundle):
-    """Single-pass synthesis from the bundle (v1; the two-pass delta is block 4). Returns
-    {direct_answer, stated_confidence, gap_flags, evidence_cited, model, usage}."""
+def _default_synthesizer(question, evidence, pass_label):
+    """One synthesis pass over an evidence view (pass1 = DI-only, pass2 = DI + Path B). Returns
+    {direct_answer, stated_confidence, confidence_by_subclaim, absence_kind, gap_flags,
+    evidence_cited, model, usage}."""
     system = ("You answer zebrafish pronephros research questions for a medical team, from a curated "
-              "evidence bundle (DATA INAMOVIBLE). Use ONLY the bundle. Be direct; keep confidence honest "
-              "(a thin bundle means LOW confidence + explicit gap_flags); technical identifiers stay in "
-              "English. Never assert an identifier that is not in the evidence.")
-    user_text = json.dumps({"question": question, "evidence": _compact_evidence(bundle)},
-                           ensure_ascii=False, default=str)
+              "evidence bundle (DATA INAMOVIBLE"
+              + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
+              "Use ONLY the provided evidence. Be direct; keep confidence honest (thin evidence means "
+              "LOW confidence + explicit gap_flags); when sub-claims have asymmetric evidence strength, "
+              "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
+              "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
+              "identifier that is not in the evidence.")
+    user_text = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
-        SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2000)
+        SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
     gap_flags = list(out.get("gap_flags", []))
     if out.get("confidence") is None:
-        # run a361f566 (first real run) surfaced this: the model may omit the field even when required.
-        # Three-state confidence discipline (UI contract §4): an absent value is DECLARED, never a
-        # silent null that could read as "not measured" or "clean".
-        gap_flags.append("stated_confidence ABSENT (synthesizer omitted it after retry) — not calibratable")
+        # run a361f566 surfaced this: the model may omit the field even when required. Three-state
+        # discipline: an absent value is DECLARED, never a silent null.
+        gap_flags.append(f"stated_confidence ABSENT in {pass_label} (omitted after retry) — not calibratable")
     return {"direct_answer": out["direct_answer"], "stated_confidence": out.get("confidence"),
+            "confidence_by_subclaim": out.get("confidence_by_subclaim"),
+            "absence_kind": out.get("absence_kind"),
             "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
             "model": SYNTH_MODEL, "usage": usage}
+
+
+def _normalize_citations(items):
+    """Typed, numerically indexed citation series (ADR-0051). Numbers are EVIDENCE; the letter series
+    is reserved for precedent (block 6) so the two can never be conflated by construction."""
+    out = []
+    for i, c in enumerate(items or [], 1):
+        if isinstance(c, dict):
+            out.append({"n": i, "kind": c.get("kind", "other"), "id": str(c.get("id", "")),
+                        "note": c.get("note", "")})
+        else:
+            out.append({"n": i, "kind": "other", "id": str(c), "note": ""})
+    return out
+
+
+# Per-Mtok prices for the cost PROJECTION (input, output). These are projection INPUTS, not
+# measurements — the token counts are measured from API responses; the dollar figure is calculated
+# and labeled as such (measurement-class discipline, ADR 2026-07-13).
+PRICES_PER_MTOK_USD = {
+    "claude-opus-4-8": (5.0, 25.0), "claude-sonnet-5": (3.0, 15.0),
+    "claude-haiku-4-5-20251001": (1.0, 5.0), "gpt-4o": (2.5, 10.0),
+    "text-embedding-3-small": (0.02, 0.0),
+}
+PRICES_AS_OF = "2026-08"
+
+
+def _usage_in_out(usage):
+    """Normalize Anthropic (input_tokens/output_tokens) and OpenAI (prompt_tokens/completion_tokens)."""
+    u = usage or {}
+    return (int(u.get("input_tokens") or u.get("prompt_tokens") or 0),
+            int(u.get("output_tokens") or u.get("completion_tokens") or 0))
+
+
+def _token_usage(passes, audit_result, embed_tokens):
+    """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
+    `passes` = [(label, answer_dict)] for the synthesis passes that ran."""
+    by_model = {}
+
+    def _add(model, usage):
+        i, o = _usage_in_out(usage)
+        m = by_model.setdefault(model, {"in": 0, "out": 0})
+        m["in"] += i
+        m["out"] += o
+
+    for _label, p in passes:
+        _add(p.get("model") or SYNTH_MODEL, p.get("usage"))
+    for row in audit_result.get("panel", []):
+        if "usage" in row and "verdict" in row:
+            _add(row["reviewer"], row["usage"])
+    embed_model = os.environ.get("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    cost = 0.0
+    for model, m in by_model.items():
+        pi, po = PRICES_PER_MTOK_USD.get(model, (0.0, 0.0))
+        cost += (m["in"] * pi + m["out"] * po) / 1e6
+    cost += embed_tokens * PRICES_PER_MTOK_USD.get(embed_model, (0.02, 0.0))[0] / 1e6
+    return {
+        "input_tokens": sum(m["in"] for m in by_model.values()),
+        "output_tokens": sum(m["out"] for m in by_model.values()),
+        "by_model": by_model,
+        "embedding": {"model": embed_model, "total_tokens": embed_tokens,
+                      "attribution": "process-wide window during this run (concurrent runs may overlap)"},
+        "estimated_cost_usd": round(cost, 4),
+        "cost_class": f"PROJECTION (calculated from measured tokens x per-Mtok prices as of "
+                      f"{PRICES_AS_OF}; the token counts are measurements, the dollars are not)",
+    }
+
+
+def _embed_usage_snapshot():
+    try:
+        sys.path.insert(0, str(ROOT / "rag_index" / "graphrag"))
+        import embeddings as _emb
+        return _emb.usage_snapshot()["total_tokens"]
+    except Exception:
+        return 0
 
 
 def execute_run(run, synthesizer=None, panel_caller=None):
@@ -121,6 +234,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     try:
         db.add_event(run_id, "run.state", payload={"state": "running"})
         _check_cancel()
+        embed_t0 = _embed_usage_snapshot()
 
         # 1) retrieve — the ONE state machine, instrumented via on_stage (never re-assembled)
         bundle = answer_pipeline.retrieve(run["question"],
@@ -130,15 +244,68 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         bundle["run_id"] = run_id
         bundle["bundle_identity"] = answer_pipeline._identity(bundle)
 
-        # 2) synthesize (v1 single-pass)
+        # 2) PASS 1 — DI-only synthesis. Its confidence is the real "is my store enough?" signal
+        # (ADR-0051), measured even when structural insufficiency already fetched Path B.
         db.add_event(run_id, "stage.synthesize.start", agent=SYNTH_MODEL)
-        answer = synthesizer(run["question"], bundle)
-        db.add_event(run_id, "stage.synthesize.done", agent=answer.get("model"),
-                     payload={"stated_confidence": answer.get("stated_confidence"),
-                              "gap_flags": answer.get("gap_flags", [])})
+        pass1 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=False), "pass1")
+        conf1 = pass1.get("stated_confidence")
+        db.add_event(run_id, "stage.synthesize.pass1", agent=pass1.get("model"),
+                     payload={"stated_confidence": conf1, "absence_kind": pass1.get("absence_kind"),
+                              "gap_flags": pass1.get("gap_flags", [])})
         _check_cancel()
 
-        # 3) deterministic anti-fabrication gate (Logic-LM-class, NOT an LLM) — handed to the panel
+        # 3) fallback decision — TWO deciders, and the record says WHICH fired (handoff §5.7):
+        # structural (assess_sufficiency, documented as fooled-by-any-chunk-present) already fetched
+        # Path B inside retrieve(); the confidence gate (pass1 < tau, or absent) fires it now.
+        structural_fired = bundle["path_b"]["triggered"]
+        conf_fired = (not structural_fired) and (conf1 is None or conf1 < FALLBACK_CONF_TAU)
+        trigger = "structural" if structural_fired else ("confidence" if conf_fired else None)
+        if conf_fired:
+            papers = answer_pipeline.path_b(run["question"])
+            bundle["path_b"] = {
+                "triggered": True,
+                "triggered_by": [f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU}"
+                                 if conf1 is not None else
+                                 f"confidence-gate: pass1_confidence ABSENT (tau={FALLBACK_CONF_TAU})"],
+                "papers": papers,
+                "tool_universe_directive": answer_pipeline.tool_universe_directive(run["question"])}
+            # external evidence entered the run -> the honest state is FALLBACK_FETCHED (same
+            # constructor, same literals — never a re-invented machine)
+            bundle["decision_state"] = answer_pipeline._state(
+                "FALLBACK_FETCHED", may_answer=False, may_propose=False,
+                required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict the "
+                              "externally-augmented answer BEFORE it may be shown (confidence-gated "
+                              "fallback, ADR-0051; audit on 100% of runs, ADR-0049).")
+            db.add_event(run_id, "stage.path_b", agent="answer_pipeline",
+                         payload={"triggered": True, "trigger": "confidence",
+                                  "n_papers": len(papers)})
+            _check_cancel()
+        bundle["fallback"] = {"trigger": trigger,
+                              "fb_meta": {"pass1_confidence": conf1, "tau": FALLBACK_CONF_TAU,
+                                          "structural_sufficient": not structural_fired,
+                                          "absence_kind": pass1.get("absence_kind")}}
+
+        # 4) PASS 2 — only when a fallback fired: re-synthesize with the external evidence
+        # incorporated. BOTH confidences persist; the delta is the run's most informative datum
+        # (the 0.14 -> 0.71 Level-2 measurement).
+        if trigger:
+            pass2 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=True), "pass2")
+            conf2 = pass2.get("stated_confidence")
+            delta = (round(conf2 - conf1, 4) if isinstance(conf1, (int, float))
+                     and isinstance(conf2, (int, float)) else None)
+            db.add_event(run_id, "stage.synthesize.pass2", agent=pass2.get("model"),
+                         payload={"stated_confidence": conf2, "delta_vs_pass1": delta,
+                                  "absence_kind": pass2.get("absence_kind")})
+            answer = pass2
+            passes = [("pass1", pass1), ("pass2", pass2)]
+        else:
+            conf2, delta = None, None
+            answer = pass1
+            passes = [("pass1", pass1)]
+        bundle["bundle_identity"] = answer_pipeline._identity(bundle)
+        _check_cancel()
+
+        # 5) deterministic anti-fabrication gate over the FINAL answer (Logic-LM-class, NOT an LLM)
         adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
                                                  "evidence_cited": answer.get("evidence_cited", [])})
         report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
@@ -147,7 +314,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                      payload=checks, level="info" if adm else "warning")
         _check_cancel()
 
-        # 4) composite audit — 100% of runs (ADR-0049), the terminal transition
+        # 6) composite audit — 100% of runs (ADR-0049), the terminal transition
         db.add_event(run_id, "stage.audit.start", agent="composite-auditor")
         audit_result = composite_auditor.audit(
             claim={"direct_answer": answer["direct_answer"],
@@ -161,7 +328,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                               "source_vocabulary": audit_result["source_vocabulary"]},
                      level="info" if audit_result["verdict"] != "REVISE" else "warning")
 
-        # 5) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2)
+        # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2)
+        embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -170,14 +338,27 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                                    "index_version": _index_version()},
             "retrieval_summary": bundle["retrieval_summary"],
             "decision_state": bundle["decision_state"],
+            # block 4 (ADR-0051): which decider fired the fallback + the two-pass confidence story
+            "fallback": bundle["fallback"],
+            "confidence": {
+                "pass1": conf1, "pass2": conf2, "delta": delta,
+                "final": answer.get("stated_confidence"),
+                "by_subclaim": answer.get("confidence_by_subclaim"),
+                # three-state discipline: a null NEVER masquerades as a measurement
+                "state": ("value" if answer.get("stated_confidence") is not None
+                          else "absent-not-calibratable"),
+            },
             "audit": bundle["audit"],
             "answer": {"direct_answer": answer["direct_answer"],
                        "stated_confidence": answer.get("stated_confidence"),
+                       "absence_kind": answer.get("absence_kind"),
                        "gap_flags": answer.get("gap_flags", []),
-                       "evidence_cited": answer.get("evidence_cited", []),
                        "model": answer.get("model")},
+            "citations": _normalize_citations(answer.get("evidence_cited")),
             "deterministic_checks": checks,
-            "usage": {"synthesis": answer.get("usage", {}), "panel": audit_result.get("usage", {})},
+            "token_usage": _token_usage(passes, audit_result, embed_tokens),
+            "usage_raw": {"passes": {label: p.get("usage", {}) for label, p in passes},
+                          "panel_total": audit_result.get("usage", {})},
             "bundle_identity": bundle["bundle_identity"],
             "question_matches_run": bundle["question"] == run["question"],
         }
