@@ -29,6 +29,8 @@ services:
       - WITT_BACKEND_DB_URL=${WITT_BACKEND_DB_URL}     # postgresql+psycopg://witt:...@rag-wittbackenddb-qxzrgu:5432/witt
       - DI_QUERY_POOL_SIZE=8                           # 5 users (the hardcoded 4 queued the 5th)
       - WITT_CORS_ORIGINS=${WITT_CORS_ORIGINS:-}       # set to the webapp origin when it exists
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}         # block 3 (ADR-0050): synthesis (opus) + panel
+      - WITT_RUN_WORKERS=${WITT_RUN_WORKERS:-2}        # in-process run workers (runs take minutes)
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

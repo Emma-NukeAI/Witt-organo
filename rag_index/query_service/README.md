@@ -26,6 +26,13 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/artifacts/report/{name}` | ✓ | sirve un HTML histórico (path-safe por membresía) |
 | GET | `/artifacts/run/{set}/{name}` | ✓ | un run histórico (JSON; `instrumented: false` = sin `decision_state`) |
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
+| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049) |
+| GET | `/runs` · `/runs/{id}` | ✓ | listado / estado con `heartbeat_age_s` + `heartbeat_stale` |
+| GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
+| GET | `/runs/{id}/events?after=` | ✓ | **replay** — las mismas filas que el stream (una bitácora) |
+| GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
+| POST | `/runs/{id}/cancel` | ✓ | `cancelled` de primera clase (queued: inmediato; running: frontera de etapa) |
+| POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
 
 **`/status` es NO-SPEND por construcción** (receta `liveness.py`): lee el JSON del store + el manifest
 del índice y hace solo Cypher de conteo (jamás un embed). Con `WITT_STATUS_TTL_SECONDS` (default 60),
@@ -78,8 +85,18 @@ asumen un solo proceso.
 monkeypatcheado, cero red / cero spend / cero mutación). Necesita `fastapi` + `sqlalchemy` (el
 contenedor los trae; en dev cualquier venv desechable — **no** el `.venv` del MCP, ADR-0039).
 
+## Corridas (bloque 3, ADR-0049/0050)
+
+Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`, instrumentada por
+`on_stage`) → síntesis (`claude-opus-4-8`) → gate determinista (`verify_output`) → **panel
+composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
+registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
+Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (19/19 offline).
+
 ## Pendiente (bloques siguientes)
 
-- `POST /runs` + stream SSE + modelo de corrida (bloque 3, con el composite-auditor invocable).
+- Dos pasadas con delta de confianza (`pass1/pass2`), `confidence_by_subclaim`, `TokenUsage` formal,
+  citas estructuradas, el `Plan` condicional de M3 (bloque 4).
 - `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
 - Normalización de metadata entre ruta densa y sparse (residual §5.9, notado en ADR-0047).

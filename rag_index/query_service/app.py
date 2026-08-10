@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backend import — traps 2/3)
 import db  # noqa: E402
+import runs as runs_mod  # noqa: E402
 from lib import rag_backend  # noqa: E402
 
 SERVICE_VERSION = "1.0"
@@ -83,7 +84,10 @@ async def lifespan(_app):
     _STATE["started_at"] = _now_iso()
     db.init_db()
     _preload_main_thread()   # lifespan runs on the main thread, before serving — trap 1
+    # run workers start AFTER the main-thread preload (the 1800s deadlock cannot recur) — ADR-0050
+    runs_mod.start_workers(int(os.environ.get("WITT_RUN_WORKERS", "2")))
     yield
+    runs_mod.stop_workers()
 
 
 app = FastAPI(title="Witt DATA INAMOVIBLE query service (read-only)", version=SERVICE_VERSION,
@@ -307,6 +311,141 @@ def artifact_run(run_set: str, name: str, authorization: str = Header(None)):
     if run_set not in idx or not any(i["name"] == name for i in idx[run_set]):
         raise HTTPException(status_code=404, detail="no such run record")
     return json.loads((RUNS_DIR / run_set / name).read_text(encoding="utf-8"))
+
+
+# --- runs: the run model + event stream (block 3, ADR-0050) -----------------------------------------
+
+HEARTBEAT_STALE_S = int(os.environ.get("WITT_HEARTBEAT_STALE_SECONDS", "300"))
+
+
+class RunBody(BaseModel):
+    question: str
+    entities: list[str] = []
+
+
+def _run_view(run):
+    """Run row -> API shape, with the heartbeat DERIVED (the UI's 'no event for N min' detector —
+    a run stuck 1800s in a deadlock must be distinguishable from one that is working)."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
+    view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
+            for k, v in run.items() if k not in ("bundle_json", "frozen_record_json")}
+    view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
+    view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
+                                   and run["state"] in ("queued", "running"))
+    return view
+
+
+@app.post("/runs")
+def create_run(body: RunBody, authorization: str = Header(None)):
+    """Queue a run (async — poll /runs/{id} or subscribe to /runs/{id}/stream). Per ADR-0049 the run's
+    terminal state is ALWAYS post-audit; per ADR-0047 d.3 the panel runs on 100% of runs (measured,
+    never capped)."""
+    user = _user_of(authorization)
+    q = body.question.strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="question must be non-empty")
+    run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()])
+    return _run_view(db.get_run(run_id))
+
+
+@app.get("/runs")
+def list_runs(mine: bool = False, authorization: str = Header(None)):
+    user = _user_of(authorization)
+    return {"runs": [
+        {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
+         for k, v in r.items()}
+        for r in db.list_runs(user_id=user["user_id"] if mine else None)]}
+
+
+@app.get("/runs/{run_id}")
+def get_run(run_id: str, authorization: str = Header(None)):
+    _user_of(authorization)
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    return _run_view(run)
+
+
+@app.get("/runs/{run_id}/record")
+def get_frozen_record(run_id: str, authorization: str = Header(None)):
+    """The frozen record the UI renders (URL / PDF / bitácora — one source, three readers, ADR-0046)."""
+    _user_of(authorization)
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    if not run.get("frozen_record_json"):
+        raise HTTPException(status_code=409, detail={"state": run["state"],
+                                                     "note": "no frozen record yet (run not finished)"})
+    return json.loads(run["frozen_record_json"])
+
+
+@app.get("/runs/{run_id}/events")
+def get_events(run_id: str, after: int = 0, authorization: str = Header(None)):
+    """Replay (and polling) endpoint — reads THE same log the live stream reads (db.run_events)."""
+    _user_of(authorization)
+    if db.get_run(run_id) is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    return {"events": db.events_after(run_id, after)}
+
+
+@app.get("/runs/{run_id}/stream")
+async def stream_events(run_id: str, after: int = 0, authorization: str = Header(None)):
+    """Live SSE trace — the SAME rows as /events (one log, two readers, they cannot contradict).
+    Emits `data: <event JSON>` lines; closes after the run reaches a terminal state and the log drains."""
+    _user_of(authorization)
+    if db.get_run(run_id) is None:
+        raise HTTPException(status_code=404, detail="no such run")
+
+    async def _gen():
+        import asyncio
+        last = after
+        idle = 0.0
+        while True:
+            events = db.events_after(run_id, last)
+            for ev in events:
+                last = ev["seq"]
+                idle = 0.0
+                yield f"data: {json.dumps(ev, ensure_ascii=False, default=str)}\n\n"
+            run = db.get_run(run_id)
+            if run["state"] in ("awaiting_closure", "closed", "failed", "cancelled") and not events:
+                yield f"event: end\ndata: {json.dumps({'state': run['state']})}\n\n"
+                return
+            await asyncio.sleep(1.0)
+            idle += 1.0
+            if idle >= 15.0:   # SSE keep-alive comment so proxies do not cut the stream
+                idle = 0.0
+                yield ": heartbeat\n\n"
+
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(_gen(), media_type="text/event-stream")
+
+
+@app.post("/runs/{run_id}/cancel")
+def cancel_run(run_id: str, authorization: str = Header(None)):
+    """Cancellation is a first-class terminal state — a cancelled run must NEVER render as failed/dead
+    (it would lie about the system). Queued runs cancel immediately; running ones at the next stage."""
+    _user_of(authorization)
+    if db.get_run(run_id) is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    accepted = db.request_cancel(run_id)
+    if not accepted:
+        raise HTTPException(status_code=409, detail={"state": db.get_run(run_id)["state"],
+                                                     "note": "only queued/running runs can be cancelled"})
+    db.add_event(run_id, "run.cancel_requested", level="warning")
+    return _run_view(db.get_run(run_id))
+
+
+@app.post("/runs/{run_id}/close")
+def close_run(run_id: str, authorization: str = Header(None)):
+    """Explicit closure (seed of the closure-as-precedent-requirement ADR): freezes the record."""
+    user = _user_of(authorization)
+    res = runs_mod.close_run(run_id, by=user["user_id"])
+    if res is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    if not res.get("closed"):
+        raise HTTPException(status_code=409, detail=res)
+    return res
 
 
 # --- aliases matching the UI's proposed surface (UI-DATA-CONTRACTS.md §2) — same handlers ------------
