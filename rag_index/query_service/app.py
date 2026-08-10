@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backend import — traps 2/3)
 import db  # noqa: E402
+import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import rag_backend  # noqa: E402
 
@@ -446,6 +447,20 @@ def close_run(run_id: str, authorization: str = Header(None)):
     if not res.get("closed"):
         raise HTTPException(status_code=409, detail=res)
     return res
+
+
+# --- precedent layer (block 6, ADR-0053): the OTHER index — separate admissibility, equal value ------
+
+@app.get("/precedent/search")
+def precedent_search(q: str, k: int = 5, authorization: str = Header(None)):
+    """Relevance search over CLOSED runs (explicit closure = the precedent requirement). Every item is
+    structurally marked admissible_as_evidence: false — precedent informs humans and planning; it never
+    enters the gated evidence object (the anti-fabrication gate is provenance-blind by design, so this
+    rule lives at the product layer). Citation series stay disjoint: numbers=evidence, letters=precedent."""
+    _user_of(authorization)
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="q must be non-empty")
+    return precedent_mod.search(q.strip(), k)
 
 
 # --- aliases matching the UI's proposed surface (UI-DATA-CONTRACTS.md §2) — same handlers ------------

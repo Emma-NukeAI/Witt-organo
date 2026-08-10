@@ -33,6 +33,7 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | `cancelled` de primera clase (queued: inmediato; running: frontera de etapa) |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
+| GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
 
 **`/status` es NO-SPEND por construcción** (receta `liveness.py`): lee el JSON del store + el manifest
 del índice y hace solo Cypher de conteo (jamás un embed). Con `WITT_STATUS_TTL_SECONDS` (default 60),

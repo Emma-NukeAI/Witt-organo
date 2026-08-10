@@ -274,6 +274,22 @@ def cancel_requested(run_id: str) -> bool:
     return bool(row and row._mapping["cancel_requested"])
 
 
+def closed_runs(limit=1000):
+    """CLOSED runs only — the precedent corpus (block 6, ADR-0053): a run becomes precedent ONLY after
+    explicit closure (frozen_at stamped), never before."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(runs.c.run_id, runs.c.question, runs.c.user_id, runs.c.frozen_at,
+                                 runs.c.closed_by, runs.c.frozen_record_json)
+                          .where(runs.c.state == "closed")
+                          .order_by(runs.c.frozen_at.desc()).limit(limit)).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        d["frozen_at"] = _dt_utc(d["frozen_at"])
+        out.append(d)
+    return out
+
+
 def add_event(run_id: str, type: str, payload=None, agent=None, tool=None,
               level="info", degraded=None) -> int:
     """Append one event to THE run log (monotonic seq) and refresh the heartbeat. Returns seq."""
