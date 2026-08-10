@@ -22,14 +22,18 @@ k_requested} where `mode` is a 4-literal enum (RETRIEVAL_MODES) and NEVER None/n
 distinguish "measured clean" from "not measured". The run-level aggregate is `retrieval_summary`
 (worst-of-n, declared).
 
-Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent):
+Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent).
+REFORMED by ADR-0049 (founder decision 2026-08-09: the audit runs on 100% of runs, DI-sufficient included;
+cost is measured, never capped). DI_SUFFICIENT and FALLBACK_FETCHED are now INTERMEDIATE states; the
+terminal of every run is AUDIT_APPROVED | AUDIT_REJECTED:
   RETRIEVE -> Path A (DI)
-     |- sufficient ----------------------> [DI_SUFFICIENT]   may_answer=Y           -> ANSWER (from DI)
+     |- sufficient ----------------------> [DI_SUFFICIENT]    may_answer=N -> AUDIT (composite >=3, REQUIRED)
      |- insufficient -> Path B (external) -> [FALLBACK_FETCHED] may_answer=N -> AUDIT (composite >=3, REQUIRED)
                                                 |- record_audit, approved -> [AUDIT_APPROVED] Y -> ANSWER + PROPOSE(gate)
                                                 |- record_audit, none     -> [AUDIT_REJECTED]   -> ANSWER(gap) / REFINE
   The bundle's `decision_state` carries may_answer_now + required_next_action, so a consumer (agent,
-  human, orchestrator) CANNOT answer external evidence without an audit verdict (record_audit()).
+  human, orchestrator) CANNOT answer without an audit verdict (record_audit()) on EITHER branch.
+  The invokable panel lives in lib/composite_auditor.py (record_audit's first real caller).
   Audit + propose are wired transitions, not steps an agent is trusted to remember (CLAUDE.md §7).
 
 CLI:
@@ -179,13 +183,25 @@ def _state(name, may_answer, may_propose, required_next):
             "required_next_action": required_next}
 
 
-def retrieve(question, entities=None, n_papers=2):
+def retrieve(question, entities=None, n_papers=2, on_stage=None):
     """The orchestrator: Path A, then Path B iff A is insufficient. Never a stopper. The returned bundle
-    carries an explicit `decision_state` that GATES what may happen next — answering external evidence is
-    blocked until an audit verdict is recorded (record_audit())."""
+    carries an explicit `decision_state` that GATES what may happen next — answering (on EITHER branch,
+    ADR-0049) is blocked until an audit verdict is recorded (record_audit()).
+
+    `on_stage(stage_name, payload)` (optional) is called after each stage — the event-emission hook the
+    run model uses (ADR-0050) so the live trace and the replay read ONE state machine, not a re-built
+    copy of it (the run_held_out.py re-assembly is exactly what left 31 historic runs without a
+    decision_state). It may raise to abort (e.g. cancellation): the exception propagates."""
+    def _stage(name, payload):
+        if on_stage:
+            on_stage(name, payload)
+
     a = path_a(question)
+    _stage("path_a", {"n_hits": a["n_hits"], "retrieval": a["retrieval"]})
     ent = check_entities(entities)
+    _stage("check_entities", {e: v["in_di"] for e, v in ent.items()})
     suf = assess_sufficiency(a, ent)
+    _stage("assess_sufficiency", suf)
     bundle = {"question": question,
               "run_id": uuid.uuid4().hex,
               "stamp": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
@@ -193,13 +209,19 @@ def retrieve(question, entities=None, n_papers=2):
               "entities_checked": ent, "path_a": a, "sufficiency": suf}
     if suf["sufficient"]:
         bundle["path_b"] = {"triggered": False, "reason": "DI sufficient (literature present + entities resolved)"}
+        # ADR-0049 (founder, 2026-08-09): DI-sufficiency no longer authorizes a direct answer — the
+        # composite audit runs on 100% of runs. This state is now INTERMEDIATE.
         bundle["decision_state"] = _state(
-            "DI_SUFFICIENT", may_answer=True, may_propose=False,
-            required_next="ANSWER — synthesize from the DI Path-A hits. No external evidence involved.")
+            "DI_SUFFICIENT", may_answer=False, may_propose=False,
+            required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict the DI-grounded "
+                          "answer BEFORE it may be shown (ADR-0049: audit on 100% of runs, DI-sufficient "
+                          "included). Feed the verdict to record_audit(); lib/composite_auditor.py is the "
+                          "invokable panel.")
     else:
         bundle["path_b"] = {"triggered": True, "triggered_by": suf["reasons"],
                             "papers": path_b(question, n=n_papers),
                             "tool_universe_directive": tool_universe_directive(question, n_papers)}
+        _stage("path_b", {"triggered": True, "n_papers": len(bundle["path_b"]["papers"])})
         bundle["decision_state"] = _state(
             "FALLBACK_FETCHED", may_answer=False, may_propose=False,
             required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict each Path-B paper "
@@ -213,6 +235,7 @@ def retrieve(question, entities=None, n_papers=2):
     bundle["retrieval_summary"] = {"mode": max(modes, key=_MODE_SEVERITY.__getitem__),
                                    "retrievals": len(modes), "aggregation": "worst-of-n"}
     bundle["bundle_identity"] = _identity(bundle)
+    _stage("decision_state", bundle["decision_state"])
     return bundle
 
 
