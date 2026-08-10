@@ -47,7 +47,7 @@ def _load_local_secrets():
 
 _load_local_secrets()
 import json  # noqa: E402
-from lib import rag_backend, resolve_id, raw_store  # noqa: E402
+from lib import rag_backend, resolve_id, raw_store, verify_output  # noqa: E402
 
 MANIFEST = ROOT / "rag_index" / "corpus_manifest.json"
 
@@ -92,25 +92,105 @@ _QUERY_POOL = _futures.ThreadPoolExecutor(max_workers=4)
 _DENSE_TIMEOUT_S = int(os.environ.get("DI_QUERY_TIMEOUT_S", "12"))
 
 
+# --- block-1.4 exposure (webapp handoff §3): manifest/record binding + index version --------------
+# Both caches refresh on file mtime change: reads are free (CLAUDE.md §7 — mutations are gated, reads
+# auto-reload), so a human-gated ingest becomes visible without restarting the server.
+_REC_IDX = {"mtime": None, "idx": {}}
+_IDX_VER = {"mtime": None, "version": None}
+
+
+def _record_index():
+    """doc_id/accession -> corpus-record summary {corpus_record_id, verification_tier, approval_status,
+    approved_by, data_niche}. `verification_tier` and `approval_status` use the explicit literal
+    'not-declared' when absent — never a silent null (a missing tier is 'not measured', not 'clean')."""
+    try:
+        mtime = MANIFEST.stat().st_mtime
+    except OSError:
+        return {}
+    if _REC_IDX["mtime"] != mtime:
+        idx = {}
+        try:
+            man = json.loads(MANIFEST.read_text(encoding="utf-8"))
+        except Exception:
+            man = {"records": []}
+        for r in man.get("records", []):
+            chain = r.get("approval_chain") or [{}]
+            info = {"corpus_record_id": r.get("corpus_record_id"),
+                    "verification_tier": r.get("verification_tier") or "not-declared",
+                    "approval_status": chain[-1].get("status") or "not-declared",
+                    "approved_by": chain[-1].get("approved_by"),
+                    "data_niche": (r.get("axis_data_niche") or {}).get("primary")}
+            cid = str(r.get("corpus_record_id") or "").lower()
+            if cid:
+                idx[cid] = info
+            acc = str((r.get("source_document") or {}).get("accession") or "").lower()
+            for part in (p.strip() for p in acc.split("/")):
+                if part:
+                    idx.setdefault(part, info)
+        _REC_IDX.update(mtime=mtime, idx=idx)
+    return _REC_IDX["idx"]
+
+
+def _index_version():
+    p = ROOT / "rag_index" / "index" / "manifest.json"
+    try:
+        mtime = p.stat().st_mtime
+    except OSError:
+        return None
+    if _IDX_VER["mtime"] != mtime:
+        try:
+            _IDX_VER["version"] = json.loads(p.read_text(encoding="utf-8")).get("index_version")
+        except Exception:
+            _IDX_VER["version"] = None
+        _IDX_VER["mtime"] = mtime
+    return _IDX_VER["version"]
+
+
+def _bind_record(doc_id, meta):
+    """Bind a hit to its corpus record: dataset doc_id 'CORPUS-YYYY-NNNN', chunk 'CORPUS-YYYY-NNNN#cNNN'
+    (or its metadata.parent), or a metadata accession. Returns the record summary or None (db:/niche:
+    docs are taxonomy, not corpus records)."""
+    idx = _record_index()
+    for key in (str(doc_id).split("#")[0], str(meta.get("parent") or "").split("#")[0],
+                str(meta.get("accession") or "")):
+        info = idx.get(key.strip().lower())
+        if info:
+            return info
+    return None
+
+
 def _hit_dicts(hits, degraded=None):
     out = []
     for h in hits:
         meta = dict(h.metadata) if isinstance(h.metadata, dict) else {"meta": h.metadata}
         if degraded:
             meta["degraded"] = degraded
-        out.append({"doc_id": h.doc_id, "score": round(h.score, 4), "type": h.type,
-                    "text": h.text, "metadata": meta})
+        d = {"doc_id": h.doc_id, "score": round(h.score, 4), "type": h.type,
+             "text": h.text, "metadata": meta}
+        rec = _bind_record(h.doc_id, meta)
+        if rec:  # block 1.4: a search result KNOWS its evidence level without a second call
+            d["record"] = rec
+        out.append(d)
     return out
 
 
-def _envelope(hit_dicts, degraded):
+def _envelope(hit_dicts, degraded, last_error=None):
     """The uniform query ENVELOPE (ADR-0043): the degradation marker lives ON the envelope, sourced from
     `HitList.degraded` — never derived from per-hit metadata. Stamping only per-hit loses the marker the
     moment the hit list is empty (the for-loop never runs), which made "degraded and empty" byte-identical
     to "healthy and empty" — opposite conclusions (a real DI gap vs. a broken retriever), and the
     2026-07-18/19 silent-degradation trap reintroduced at the empty-result edge. Per-hit stamps are KEPT
-    for backward compatibility, but the envelope is the source of truth for consumers (CLI, MCP, HTTP)."""
-    return {"degraded": degraded, "n_hits": len(hit_dicts), "hits": hit_dicts}
+    for backward compatibility, but the envelope is the source of truth for consumers (CLI, MCP, HTTP).
+
+    Block 1.4 (ADR-0047): `last_error` turns "degraded" into a diagnosis ("Neo4j unreachable" vs a generic
+    marker); `index_version` + `store_version` make scores/resolutions comparable across time."""
+    env = {"degraded": degraded, "n_hits": len(hit_dicts), "hits": hit_dicts,
+           "last_error": last_error, "index_version": _index_version()}
+    try:
+        env["store_version"] = resolve_id.store_version()
+    except Exception:
+        env["store_version"] = None
+    return env
 
 
 def _query(query: str, k: int = 5):
@@ -138,16 +218,18 @@ def _query(query: str, k: int = 5):
         # (Neo4j down / dim mismatch / MAX_PATH) and returns sparse hits. Read the marker it travels on the
         # result and surface it — never label a sparse-only result 'semantic' (ADR-0039, the 07-18/19 trap).
         degraded = getattr(hits, "degraded", None)
+        last_error = getattr(rag_backend.get_backend(), "last_error", None) if degraded else None
         r = _hit_dicts(hits, degraded=degraded)
         _log(f"_query OK({'semantic' if not degraded else 'DEGRADED:' + degraded}) "
              f"{(_time.perf_counter() - _t0):.2f}s hits={len(r)}"
              + (f" top={r[0]['doc_id']}:{r[0]['score']}" if r else "")
-             + (f" err={rag_backend.get_backend().last_error}"
-                if degraded and hasattr(rag_backend.get_backend(), 'last_error') else ""))
-        return _envelope(r, degraded)
+             + (f" err={last_error}" if last_error else ""))
+        return _envelope(r, degraded, last_error=last_error)
     except _futures.TimeoutError:
+        dense_cause = f"dense-timeout:{_DENSE_TIMEOUT_S}s (hosted semantic path exceeded budget)"
         _log(f"_query dense TIMEOUT {_DENSE_TIMEOUT_S}s -> sparse fallback (hosted Neo4j slow)")
     except Exception as e:
+        dense_cause = f"dense:{type(e).__name__}:{str(e)[:160]}"
         _log(f"_query dense ERROR {(_time.perf_counter() - _t0):.2f}s {type(e).__name__}: "
              f"{str(e)[:160]} -> sparse fallback")
     # ---- §6 fallback: local sparse, run DIRECTLY (not via the pool) so a pool saturated with hung dense
@@ -156,24 +238,44 @@ def _query(query: str, k: int = 5):
         hits = rag_backend.query_sparse(query, k)
         r = _hit_dicts(hits, degraded="sparse")
         _log(f"_query OK(sparse-fallback) {(_time.perf_counter() - _t0):.2f}s hits={len(r)}")
-        return _envelope(r, "sparse")
+        return _envelope(r, "sparse", last_error=dense_cause)
     except Exception as e:
         _log(f"_query sparse FAILED {(_time.perf_counter() - _t0):.2f}s {type(e).__name__}: {str(e)[:160]}")
         return {"error": "query_unavailable", "degraded": "unavailable", "n_hits": 0, "hits": [],
+                "last_error": f"{dense_cause}; sparse:{type(e).__name__}:{str(e)[:160]}",
                 "note": ("hosted semantic backend slow AND local sparse fallback failed; "
                          "use resolve_identifier or retry (CLAUDE.md §6)."),
                 "query": query}
 
 
 def _resolve(key: str):
-    """Deterministic verified-identifier resolve (symbol | ENSDARG | RefSeq NM_* | UniProt)."""
+    """Deterministic verified-identifier resolve (symbol | ENSDARG | RefSeq NM_* | UniProt).
+
+    Block 1.4 (ADR-0047): returns the FULL VerifiedRecord — the prior shape returned 6 fields and
+    discarded 12 (confidence, provenance, resolver, notes, …), leaving per-entity provenance unreachable
+    from any client. `tier_weight` is a CALIBRATION label-weight (Bayes-purity/ECE, ADR-0024), NOT a
+    ranking or probative-strength score — it always travels WITH its tier literal (a 0.0 weight does not
+    prove NOT_FOUND: unknown literals also map to 0.0)."""
     r = resolve_id.resolve(key)
     if r is resolve_id.NOT_FOUND:
         return {"resolved": False, "key": key,
                 "note": "NOT_FOUND — verify against Ensembl + raw-cache (CLAUDE.md §7.9) before use; never mint."}
-    return {"resolved": True, "symbol": r.symbol, "ensdarg": r.ensdarg,
-            "tier": "RAW" if r.is_raw_verified else "DERIVED", "raw_cache_ref": r.raw_cache_ref,
-            "verified_on": r.verified_on}
+    tier = "RAW" if r.is_raw_verified else "DERIVED"
+    out = {"resolved": True, "symbol": r.symbol, "ensdarg": r.ensdarg,
+           "tier": tier, "raw_cache_ref": r.raw_cache_ref, "verified_on": r.verified_on,
+           # block 1.4 — the 12 previously-discarded fields:
+           "confidence": r.confidence, "provenance": r.provenance, "resolver": r.resolver,
+           "source_db": r.source_db, "taxon": r.taxon, "anchor_match": r.anchor_match,
+           "ensdarp": r.ensdarp, "ensdart": r.ensdart, "uniprot_acc": r.uniprot_acc,
+           "assembly": r.assembly, "ensembl_release": r.ensembl_release, "notes": r.notes,
+           "tier_weight": verify_output.tier_weight(tier),
+           "tier_weight_kind": "calibration label-weight (Bayes-purity/ECE, ADR-0024) — NOT ranking "
+                               "nor probative strength; DERIVED=0.7 is a provisional placeholder"}
+    try:
+        out["store_version"] = resolve_id.store_version()
+    except Exception:
+        out["store_version"] = None
+    return out
 
 
 def _fetch_raw(key: str, filename: str = None, expires_seconds: int = 3600):

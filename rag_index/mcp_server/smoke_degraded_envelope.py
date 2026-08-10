@@ -132,6 +132,42 @@ try:
     check("CLI: degradado+vacio -> exit 3 (NO se confunde con sano+vacio=4 ni error=4)",
           rc_degraded_empty == 3 and rc_healthy_empty == 4 and rc_error == 4,
           f"degraded+empty={rc_degraded_empty} healthy+empty={rc_healthy_empty} error={rc_error}")
+
+    # ---- 9. Bloque 1.4 (ADR-0047): last_error = diagnostico, no solo marcador ---------------------
+    rag_backend.query = _dense_down
+    rag_backend.query_sparse = lambda text, k=5: HitList([], degraded="sparse-by-config")
+    r = server._query("diagnosis probe", 3)
+    check("last_error viaja en el sobre cuando degrada (causa, no solo marcador)",
+          str(r.get("last_error", "")).startswith("dense:RuntimeError"),
+          f"last_error={str(r.get('last_error'))[:60]!r}")
+    check("el sobre carga index_version y store_version (comparabilidad)",
+          "index_version" in r and r.get("store_version"),
+          f"index={r.get('index_version')} store={r.get('store_version')}")
+
+    # ---- 10. Bloque 1.4: cada hit CORPUS-* conoce su nivel probatorio (record binding) ------------
+    ds = server._hit_dicts([_hit("CORPUS-2026-0001")])
+    ck = server._hit_dicts([_hit("CORPUS-2026-0003#c000")])
+    db = server._hit_dicts([_hit("db:ZFIN")])
+    check("hit dataset/chunk se enlaza a su corpus record (approval_chain sin segunda llamada)",
+          ds[0].get("record", {}).get("corpus_record_id") == "CORPUS-2026-0001"
+          and ds[0]["record"].get("approval_status") == "approved"
+          and ck[0].get("record", {}).get("corpus_record_id") == "CORPUS-2026-0003"
+          and "record" not in db[0],
+          f"tier={ds[0].get('record', {}).get('verification_tier')}")
+
+    # ---- 11. Bloque 1.4: _resolve devuelve el record COMPLETO (antes: 6 campos, 12 descartados) ---
+    from lib import verify_output
+    rr = server._resolve("pax2a")
+    full_fields = {"confidence", "provenance", "resolver", "source_db", "taxon", "anchor_match",
+                   "ensdarp", "ensdart", "uniprot_acc", "assembly", "ensembl_release", "notes"}
+    check("_resolve expone los 12 campos antes descartados + tier_weight etiquetado",
+          rr.get("resolved") and full_fields.issubset(rr.keys())
+          and rr.get("tier_weight") == verify_output.tier_weight(rr["tier"])
+          and "NOT ranking" in rr.get("tier_weight_kind", "") and rr.get("store_version"),
+          f"tier={rr.get('tier')} weight={rr.get('tier_weight')} conf={rr.get('confidence')}")
+    nf = server._resolve("gen_inexistente_xyz")
+    check("_resolve NOT_FOUND intacto (positivo, sin campo tier)",
+          nf.get("resolved") is False and "tier" not in nf)
 finally:
     rag_backend.query, rag_backend.query_sparse = _orig_query, _orig_sparse
     answer_pipeline.path_b = _orig_path_b

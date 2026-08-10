@@ -73,6 +73,8 @@ def _cmd_query(args):
     else:
         if degraded:
             print(f"⚠ DEGRADED [{degraded}] — {_DEGRADED_HELP.get(degraded, 'sparse-only, NOT semantic')}")
+            if res.get("last_error"):  # block 1.4: a diagnosis ("Neo4j unreachable"), not just a marker
+                print(f"  cause: {res['last_error']}")
             print("  These are sparse/keyword hits, NOT semantic GraphRAG results. Do not treat as high-recall.\n")
         else:
             print("semantic (dense GraphRAG) ✓\n")
@@ -121,6 +123,9 @@ def _cmd_health(args):
         "embed_model": os.environ.get("EMBED_MODEL"),
         "neo4j_uri_set": bool(os.environ.get("NEO4J_URI")),
         "degraded": degraded,
+        "last_error": res.get("last_error"),
+        "index_version": res.get("index_version"),
+        "store_version": res.get("store_version"),
         "semantic_ok": degraded is None and bool(hits),
         "top": (f"{hits[0]['doc_id']}:{hits[0]['score']}" if hits else None),
     }
