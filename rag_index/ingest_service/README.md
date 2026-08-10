@@ -12,8 +12,12 @@ teammate  --POST /submit (submit token)-->  [queue]  --admin /approve-->  manife
 ```
 - `/submit` stores the raw (source-pointer for a public URL / MinIO mirror for an upload), classifies it,
   extracts **verified entities** (resolve_id gate — never minted), and parks a PROPOSED record.
-- `/pending` (admin) lists the queue. `/approve/{id}?by=Name` (admin) merges it into the manifest +
-  ingests into Neo4j. `/reject/{id}` (admin) drops it.
+- `/pending` (admin) lists the queue (FIFO by `created_at`); `/pending/{id}` (admin) returns the FULL
+  proposal — confidence, reasoning, gap_flags, entities, raw provenance — so the approver never signs
+  blind (ADR-0052). `/approve/{id}?by=Name` (admin) merges it into the manifest + ingests into Neo4j.
+  `/reject/{id}?by=Name&reason=...` (admin) ARCHIVES the proposal with author+reason — never deletes
+  (ADR-0045). `/actions` (admin) is the DI-change history (who did what, when, outcome). Approve/reject
+  are serialized by an in-process + cross-process write lock (concurrency 1, honest 503 when busy).
 
 ## Deploy on Dokploy
 

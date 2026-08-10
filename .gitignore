@@ -128,6 +128,7 @@ reports/smoke_contract_*.json
 rag_index/ingest_service/queue/
 rag_index/ingest_service/rejected/
 rag_index/ingest_service/actions_log.jsonl
+rag_index/ingest_service/write.lock
 
 # Query service dev database (prod is Postgres on Dokploy via WITT_BACKEND_DB_URL — ADR-0048)
 rag_index/query_service/backend.db

@@ -33,6 +33,7 @@ TMP = Path(tempfile.mkdtemp(prefix="smoke_ingest_gate_"))
 os.environ["INGEST_QUEUE_DIR"] = str(TMP / "queue")
 os.environ["INGEST_REJECTED_DIR"] = str(TMP / "rejected")
 os.environ["INGEST_ACTIONS_LOG"] = str(TMP / "actions_log.jsonl")
+os.environ["INGEST_LOCK_FILE"] = str(TMP / "write.lock")
 os.environ.setdefault("INGEST_SUBMIT_TOKEN", "smoke-submit-token")
 os.environ.setdefault("INGEST_ADMIN_TOKEN", "smoke-admin-token")
 
@@ -157,6 +158,31 @@ check("concurrencia same-sid: exactamente 1 exito + 1 404 (no doble ingesta)",
       len(oks) == 1 and len(notfound) == 1, f"results={[(k, getattr(v, 'get', lambda *_: v)('corpus_record_id')) if k == 'ok' else (k, v) for k, v in results]}")
 check("concurrencia: los corpus_record_id del manifest no colisionan",
       len(cids) == len(set(cids)), f"cids={cids}")
+
+# ---- 8. detalle de propuesta: el gate humano YA NO firma a ciegas (ADR-0052) ------------------------
+_seed("detail-1", "2026-08-10T10:00:00+00:00")
+d = app.pending_detail("detail-1", authorization=ADMIN)
+check("GET /pending/{sid}: propuesta COMPLETA (chain, provenance, created_at) antes de firmar",
+      d["submission_id"] == "detail-1" and "approval_chain" in d and "raw_provenance" in d
+      and bool(d.get("created_at")))
+check("detalle de sid inexistente -> 404",
+      _http_error(app.pending_detail, "nope", authorization=ADMIN) == 404)
+
+# ---- 9. historico de acciones (decision 9-bis, read path) -------------------------------------------
+acts = app.actions(authorization=ADMIN)["actions"]
+kinds = {a["action"] for a in acts}
+check("GET /actions: historico con approve y reject, newest-first",
+      {"approve", "reject"}.issubset(kinds) and acts[0]["ts"] >= acts[-1]["ts"], f"n={len(acts)}")
+
+# ---- 10. lock CROSS-PROCESO (ADR-0052): ocupado -> 503 honesto; stale -> takeover --------------------
+app.LOCK_TIMEOUT_S = 0.5
+app.LOCK_FILE.write_text("pid=99999 at=held", encoding="utf-8")
+check("lock ocupado por otro proceso -> 503 'write queue busy' (jamas carrera silenciosa)",
+      _http_error(app.reject, "detail-1", by="emmanuel", reason="x", authorization=ADMIN) == 503)
+os.utime(app.LOCK_FILE, (0, time.time() - 2000))   # holder muerto hace >900s
+r = app.reject("detail-1", by="emmanuel", reason="stale takeover test", authorization=ADMIN)
+check("lock stale (holder muerto) -> takeover, la operacion procede y el lock se libera",
+      r["rejected"] and not app.LOCK_FILE.exists())
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))

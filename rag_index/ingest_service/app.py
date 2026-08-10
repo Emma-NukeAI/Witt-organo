@@ -46,11 +46,48 @@ ADMIN_TOKEN = os.environ.get("INGEST_ADMIN_TOKEN")
 
 # ADR-0045: /approve and /reject are serialized. Two concurrent /approve computed the SAME _next_id, ran
 # two full re-ingests, and the loser's git PUT failed with the data already in Neo4j ("applied in Neo4j
-# but NOT in git" — half an ingest, which breaks inamovibility). In-process lock only (uvicorn runs this
-# app single-process); the cross-process write queue is the block-5 deliverable.
+# but NOT in git" — half an ingest, which breaks inamovibility).
 _WRITE_LOCK = threading.Lock()
 
-app = FastAPI(title="DATA INAMOVIBLE ingestion service", version="1.1")
+# ADR-0052 (block 5): the write section is ALSO serialized across PROCESSES on the host — the promised
+# "cola FIFO con concurrencia 1" is now structural, not an artifact of running one uvicorn worker. A
+# file lock (O_CREAT|O_EXCL) next to the queue volume; a crashed holder must never wedge the human gate,
+# so locks older than INGEST_LOCK_STALE_S are taken over. If the lock cannot be acquired within
+# INGEST_LOCK_TIMEOUT_S the request gets an honest 503 ("write queue busy"), never a silent race.
+LOCK_FILE = Path(os.environ.get("INGEST_LOCK_FILE", str(Path(__file__).parent / "write.lock")))
+LOCK_TIMEOUT_S = float(os.environ.get("INGEST_LOCK_TIMEOUT_S", "30"))
+LOCK_STALE_S = float(os.environ.get("INGEST_LOCK_STALE_S", "900"))
+
+
+class _CrossProcessLock:
+    def __enter__(self):
+        import time as _t
+        deadline = _t.time() + LOCK_TIMEOUT_S
+        while True:
+            try:
+                fd = os.open(str(LOCK_FILE), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+                os.write(fd, f"pid={os.getpid()} at={_now_iso()}".encode())
+                os.close(fd)
+                return self
+            except FileExistsError:
+                try:  # stale takeover: the previous holder died mid-write
+                    if _t.time() - LOCK_FILE.stat().st_mtime > LOCK_STALE_S:
+                        LOCK_FILE.unlink(missing_ok=True)
+                        continue
+                except OSError:
+                    continue
+                if _t.time() > deadline:
+                    raise HTTPException(status_code=503,
+                                        detail="write queue busy (another approve/reject in flight) — retry")
+                _t.sleep(0.2)
+
+    def __exit__(self, *exc):
+        try:
+            LOCK_FILE.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+app = FastAPI(title="DATA INAMOVIBLE ingestion service", version="1.2")
 
 
 def _now_iso():
@@ -146,6 +183,36 @@ def pending(authorization: str = Header(None)):
                          "created_at": p.get("created_at")} for p in items]}
 
 
+@app.get("/pending/{sid}")
+def pending_detail(sid: str, authorization: str = Header(None)):
+    """The FULL proposal for the human gate (ADR-0052, block 5). The list endpoint shows 4 summary
+    fields; approving on those alone is signing blind — the opposite of a human gate (handoff §5.4).
+    Here the approver sees confidence, reasoning, gap_flags, extracted entities and raw provenance
+    BEFORE putting their name on the approval chain."""
+    _auth(authorization, ADMIN_TOKEN, "admin")
+    qf = QUEUE / f"{sid}.json"
+    if not qf.exists():
+        raise HTTPException(status_code=404, detail="no such submission")
+    return json.loads(qf.read_text(encoding="utf-8"))
+
+
+@app.get("/actions")
+def actions(limit: int = 100, authorization: str = Header(None)):
+    """The DI-change history read path (decision 9-bis; seeded by ADR-0045's append-only action log):
+    who approved/rejected what, when, with which outcome. Newest first."""
+    _auth(authorization, ADMIN_TOKEN, "admin")
+    if not ACTIONS_LOG.exists():
+        return {"actions": []}
+    lines = ACTIONS_LOG.read_text(encoding="utf-8").splitlines()
+    out = []
+    for line in reversed(lines[-max(1, min(limit, 1000)):]):
+        try:
+            out.append(json.loads(line))
+        except Exception:
+            continue
+    return {"actions": out}
+
+
 @app.post("/approve/{sid}")
 def approve(sid: str, by: str, authorization: str = Header(None)):
     """The HUMAN GATE: merge a queued proposal into the manifest + ingest into Neo4j.
@@ -154,7 +221,7 @@ def approve(sid: str, by: str, authorization: str = Header(None)):
     corpus_record_id or interleave half-ingests. A concurrent duplicate of the SAME sid gets a 404
     (the first one consumed the queue file) — idempotent by construction."""
     _auth(authorization, ADMIN_TOKEN, "admin")
-    with _WRITE_LOCK:
+    with _WRITE_LOCK, _CrossProcessLock():
         qf = QUEUE / f"{sid}.json"
         if not qf.exists():
             raise HTTPException(status_code=404, detail="no such submission")
@@ -202,7 +269,7 @@ def reject(sid: str, by: str, reason: str, authorization: str = Header(None)):
     _auth(authorization, ADMIN_TOKEN, "admin")
     if not (reason or "").strip():
         raise HTTPException(status_code=400, detail="a non-empty rejection reason is required")
-    with _WRITE_LOCK:
+    with _WRITE_LOCK, _CrossProcessLock():
         qf = QUEUE / f"{sid}.json"
         if not qf.exists():
             raise HTTPException(status_code=404, detail="no such submission")
