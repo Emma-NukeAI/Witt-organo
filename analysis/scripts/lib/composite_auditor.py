@@ -124,6 +124,16 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
                 time.sleep(1)
                 continue
             raise last
+        # The API does NOT enforce `required` (run_held_out lesson) — the FIRST real production run
+        # (a361f566, 2026-08-10) came back with confidence omitted and it slipped through as a silent
+        # null. Retry once on missing required fields; on the final attempt return what we got (the
+        # caller flags the absence explicitly — a null must never masquerade as a measurement).
+        required = tool.get("input_schema", {}).get("required", [])
+        missing = [k for k in required if tool_input.get(k) is None]
+        if missing and attempt < retries:
+            last = RuntimeError(f"tool_use omitted required fields {missing}")
+            time.sleep(1)
+            continue
         return tool_input, payload.get("usage", {})
     raise last  # pragma: no cover
 

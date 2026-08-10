@@ -88,8 +88,14 @@ def _default_synthesizer(question, bundle):
                            ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2000)
+    gap_flags = list(out.get("gap_flags", []))
+    if out.get("confidence") is None:
+        # run a361f566 (first real run) surfaced this: the model may omit the field even when required.
+        # Three-state confidence discipline (UI contract §4): an absent value is DECLARED, never a
+        # silent null that could read as "not measured" or "clean".
+        gap_flags.append("stated_confidence ABSENT (synthesizer omitted it after retry) — not calibratable")
     return {"direct_answer": out["direct_answer"], "stated_confidence": out.get("confidence"),
-            "gap_flags": out.get("gap_flags", []), "evidence_cited": out.get("evidence_cited", []),
+            "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
             "model": SYNTH_MODEL, "usage": usage}
 
 
