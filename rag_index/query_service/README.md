@@ -46,13 +46,16 @@ inventadas.
 
 ## Despliegue (Dokploy)
 
-1. App Postgres en el mismo proyecto Dokploy (red interna). Setea `WITT_BACKEND_DB_URL`.
-2. Servicio con este Dockerfile (build context = raíz del repo). Env: `NEO4J_URI/USER/PASSWORD`,
-   `OPENAI_API_KEY`, `RAG_BACKEND=neo4j`, `DI_QUERY_POOL_SIZE=8`, `WITT_CORS_ORIGINS=<origen webapp>`.
-   **Sin puertos públicos**: la webapp le habla por la red interna.
-3. `python seed_users.py init` (una vez, contra el Postgres) y distribuye las contraseñas por canal
-   directo — no al Drive compartido, no a git.
-4. Healthcheck de Dokploy → `GET /health` (sin auth, sin red, sin spend).
+1. App Postgres nativa en el mismo proyecto Dokploy (red interna, SIN external port) — hecha 2026-08-09
+   (`rag-wittbackenddb-qxzrgu`).
+2. **Create → Compose**, conectado a este repo (branch `master`), compose path
+   `rag_index/query_service/docker-compose.query.yml`. En **Environment**: las mismas variables que ya
+   usa el ingest service (`NEO4J_*`, `OPENAI_API_KEY`, `MINIO_*`) + `WITT_BACKEND_DB_URL`.
+   **Sin puertos públicos**: la webapp le hablará por la red interna.
+3. Desde la **Terminal** del servicio en Dokploy: `python seed_users.py init` (una vez) — imprime las 5
+   contraseñas UNA vez; distribúyelas por canal directo, no al Drive compartido, no a git.
+4. Healthcheck del compose → `GET /health` (sin auth, sin red, sin spend). Verificación sin curl:
+   `python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8078/health').read().decode())"`
 
 ## Las cuatro trampas heredadas (todas causaron incidentes reales)
 

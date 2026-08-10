@@ -1,0 +1,46 @@
+# Webapp read-only query service on Dokploy (block 2, ADR-0048). Same deploy pattern as the ingest
+# service: Dokploy -> Compose -> this repo, compose path rag_index/query_service/docker-compose.query.yml
+# (build context = repo root). Secrets go in the Dokploy Environment tab — NEVER committed (§7).
+#
+# NETWORKING (ADR-0047 decision 5): NO published ports — this service is INTERNAL-ONLY; the webapp will
+# be the single exposed surface. It joins: the Neo4j stack's network (semantic queries), the MinIO stack's
+# network (raw drill), and dokploy-network (where the native Postgres `rag-wittbackenddb-qxzrgu` lives).
+# Verification happens from the service's own terminal in Dokploy (curl-less python one-liners — README).
+services:
+  query:
+    build:
+      context: ../..                                   # repo root (Dockerfile copies the whole repo)
+      dockerfile: rag_index/query_service/Dockerfile
+    restart: unless-stopped
+    networks: [default, neo4j_net, minio_net, dokploy-network]
+    environment:
+      - NEO4J_URI=${NEO4J_URI}                         # same values the ingest service already uses
+      - NEO4J_USER=${NEO4J_USER}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - RAG_BACKEND=neo4j
+      - EMBED_MODEL=openai                             # the ADR-0039 hard pin (1536-dim index)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MINIO_ENDPOINT=${MINIO_ENDPOINT}               # raw drill (/raw) presigning
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+      - MINIO_SECURE=${MINIO_SECURE:-false}
+      - WITT_BACKEND_DB_URL=${WITT_BACKEND_DB_URL}     # postgresql+psycopg://witt:...@rag-wittbackenddb-qxzrgu:5432/witt
+      - DI_QUERY_POOL_SIZE=8                           # 5 users (the hardcoded 4 queued the 5th)
+      - WITT_CORS_ORIGINS=${WITT_CORS_ORIGINS:-}       # set to the webapp origin when it exists
+    healthcheck:                                       # process-liveness only: no auth, no network, no spend
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s                                # lifespan preloads sklearn + warms dense before serving
+networks:
+  default: {}
+  neo4j_net:
+    external: true
+    name: rag-emma-mequsz_default                      # the Neo4j stack's network (same as the ingest service)
+  minio_net:
+    external: true
+    name: rag-datainamovibleminio-grjoil_default       # the MinIO stack's network
+  dokploy-network:
+    external: true
+    name: dokploy-network                              # where the native Dokploy Postgres lives
