@@ -34,6 +34,7 @@ os.environ["INGEST_QUEUE_DIR"] = str(TMP / "queue")
 os.environ["INGEST_REJECTED_DIR"] = str(TMP / "rejected")
 os.environ["INGEST_ACTIONS_LOG"] = str(TMP / "actions_log.jsonl")
 os.environ["INGEST_LOCK_FILE"] = str(TMP / "write.lock")
+os.environ["WITT_BACKEND_DB_URL"] = f"sqlite:///{TMP / 'identity.db'}"   # ADR-0056: sesiones compartidas
 os.environ.setdefault("INGEST_SUBMIT_TOKEN", "smoke-submit-token")
 os.environ.setdefault("INGEST_ADMIN_TOKEN", "smoke-admin-token")
 
@@ -158,6 +159,41 @@ check("concurrencia same-sid: exactamente 1 exito + 1 404 (no doble ingesta)",
       len(oks) == 1 and len(notfound) == 1, f"results={[(k, getattr(v, 'get', lambda *_: v)('corpus_record_id')) if k == 'ok' else (k, v) for k, v in results]}")
 check("concurrencia: los corpus_record_id del manifest no colisionan",
       len(cids) == len(set(cids)), f"cids={cids}")
+
+# ---- 11. ADR-0056: sesiones unificadas — dos puertas de auth, UNA identidad HTTP --------------------
+assert app.sessions_db is not None, "sessions_db no importo — falta sqlalchemy en el venv del smoke"
+app.sessions_db.init_db()
+app.sessions_db.upsert_user("natalia", "Natalia", "medico", "pw-natalia-123")
+SESSION = "Bearer " + app.sessions_db.create_session("natalia")["token"]
+_seed("sess-1", "2026-08-15T10:00:00+00:00")
+p = app.pending(authorization=SESSION)
+check("un bearer de SESION del backend abre las puertas admin (misma identidad que la webapp)",
+      any(x["submission_id"] == "sess-1" for x in p["pending"]))
+r = app.reject("sess-1", reason="prueba de sesion", by="impostor", authorization=SESSION)
+check("con sesion, el firmante se DERIVA de la sesion — el query param falsificable se IGNORA",
+      r["by"] == "natalia" and r["reason"] == "prueba de sesion")
+arch = json.loads((app.REJECTED / "sess-1.json").read_text(encoding="utf-8"))
+check("la cadena registra al usuario real de la sesion",
+      arch["approval_chain"][0]["rejected_by"] == "natalia")
+_seed("sess-2", "2026-08-15T11:00:00+00:00")
+check("token estatico (CLI) sin by en approve -> 400 (el CLI declara su firmante explicito)",
+      _http_error(app.approve, "sess-2", authorization=ADMIN) == 400)
+check("token basura -> 401 en ambas puertas",
+      _http_error(app.pending, authorization="Bearer nope") == 401)
+r = app.approve("sess-2", by="emmanuel-cli", authorization=ADMIN)
+check("la puerta estatica (CLI) sigue viva: approve con by explicito funciona igual",
+      r["approved"] and r["by"] == "emmanuel-cli")
+import asyncio
+_orig_sp = app.raw_store.source_pointer
+app.raw_store.source_pointer = lambda url, path=None: {"policy": "source-pointer",
+                                                       "source_url": url, "sha256": "stub"}
+sres = asyncio.run(app.submit(authorization=SESSION, name="sess submit", source_db="local",
+                              accession=None, niche="RN11", domain=None,
+                              url="https://example.org/x.json", private=False, file=None))
+app.raw_store.source_pointer = _orig_sp
+det = app.pending_detail(sres["submission_id"], authorization=SESSION)
+check("/submit con sesion registra submitted_by (atribucion por persona, None = CLI)",
+      det["submitted_by"] == "natalia")
 
 # ---- 8. detalle de propuesta: el gate humano YA NO firma a ciegas (ADR-0052) ------------------------
 _seed("detail-1", "2026-08-10T10:00:00+00:00")

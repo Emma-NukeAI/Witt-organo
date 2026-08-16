@@ -12,7 +12,11 @@ teammate  --POST /submit (submit token)-->  [queue]  --admin /approve-->  manife
 ```
 - `/submit` stores the raw (source-pointer for a public URL / MinIO mirror for an upload), classifies it,
   extracts **verified entities** (resolve_id gate — never minted), and parks a PROPOSED record.
-- `/pending` (admin) lists the queue (FIFO by `created_at`); `/pending/{id}` (admin) returns the FULL
+- **Auth (ADR-0056): dos puertas, una identidad.** La webapp manda el bearer de SESIÓN del backend (el
+  firmante se deriva del usuario de sesión; `by` se ignora); los scripts CLI usan los tokens estáticos y
+  declaran `by` explícito (400 si falta). Requiere `WITT_BACKEND_DB_URL` en el Environment (mismo valor
+  que el query service); sin ella solo funciona la puerta CLI (fail-closed de sesión).
+- `/pending` (admin) lists the queue (FIFO by `created_at`, con `submitted_by`); `/pending/{id}` (admin) returns the FULL
   proposal — confidence, reasoning, gap_flags, entities, raw provenance — so the approver never signs
   blind (ADR-0052). `/approve/{id}?by=Name` (admin) merges it into the manifest + ingests into Neo4j.
   `/reject/{id}?by=Name&reason=...` (admin) ARCHIVES the proposal with author+reason — never deletes

@@ -11,7 +11,7 @@ services:
     # Neo4j + MinIO run as SEPARATE Dokploy stacks. Join their docker networks (external) and reach them
     # by SERVICE NAME on the INTERNAL ports — bypasses host hairpin/firewall entirely.
     # Env: NEO4J_URI=bolt://neo4j:7687 , MINIO_ENDPOINT=minio:9000
-    networks: [default, neo4j_net, minio_net]
+    networks: [default, neo4j_net, minio_net, dokploy-network]   # dokploy-network: Postgres de identidad (ADR-0056)
     ports:
       - "8077:8077"
     environment:
@@ -36,6 +36,8 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}                  # push-back: commit the approved manifest to git (Contents API)
       - GITHUB_REPO=Emma-NukeAI/Witt-organo           # leave GITHUB_TOKEN empty to disable push-back (maintainer syncs)
       - GITHUB_BRANCH=master
+      - WITT_BACKEND_DB_URL=${WITT_BACKEND_DB_URL:-}  # ADR-0056: session bearers del backend (mismo valor que
+                                                      # el query service); vacio = solo puerta de token estatico
     volumes:
       - ingest_queue:/data                            # ADR-0054: queue + rejected/ + actions_log + lock —
                                                       # ALL gate state survives redeploys (was /data/queue
@@ -48,5 +50,8 @@ networks:
   minio_net:
     external: true
     name: rag-datainamovibleminio-grjoil_default      # the MinIO stack's docker network (from its deploy)
+  dokploy-network:
+    external: true
+    name: dokploy-network                             # where the native Postgres (identity DB) lives
 volumes:
   ingest_queue:

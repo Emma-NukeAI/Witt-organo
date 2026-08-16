@@ -8,7 +8,9 @@ and parks a PROPOSED record in a pending queue. Only the ADMIN token can /approv
 record into the manifest and ingests it into Neo4j. The human gate (CLAUDE.md §7) is preserved: teammates
 SUBMIT; a human APPROVES.
 
-Auth (bearer tokens, env): INGEST_SUBMIT_TOKEN (teammates), INGEST_ADMIN_TOKEN (the approver).
+Auth (ADR-0056: two doors, one HTTP identity): a backend SESSION bearer (webapp — signer derived from
+the session user; needs WITT_BACKEND_DB_URL) OR the static env tokens INGEST_SUBMIT_TOKEN /
+INGEST_ADMIN_TOKEN (CLI scripts — `by` stated explicitly). Flat permissions: any valid session approves.
 Reuses the repo libs (raw_store, corpus_classifier, resolve_id) + ingest.py. Runs where Neo4j + MinIO +
 the repo are reachable (same Dokploy network). Deploy: see README.md. NOT a public-internet service
 without TLS + tokens.
@@ -28,8 +30,14 @@ from fastapi import FastAPI, UploadFile, File, Form, Header, HTTPException
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))   # for git_sync (sibling module)
+sys.path.insert(0, str(ROOT / "rag_index" / "query_service"))  # the backend identity store (ADR-0056)
 from lib import resolve_id, raw_store, corpus_classifier, add_dataset  # noqa: E402
 import git_sync  # noqa: E402
+
+try:
+    import db as sessions_db  # noqa: E402  query_service/db.py — sessions/users (needs WITT_BACKEND_DB_URL)
+except Exception:              # sqlalchemy absent (legacy env) -> the static-token door still works
+    sessions_db = None
 
 QUEUE = Path(os.environ.get("INGEST_QUEUE_DIR", str(Path(__file__).parent / "queue")))
 QUEUE.mkdir(parents=True, exist_ok=True)
@@ -87,7 +95,7 @@ class _CrossProcessLock:
         except OSError:
             pass
 
-app = FastAPI(title="DATA INAMOVIBLE ingestion service", version="1.2")
+app = FastAPI(title="DATA INAMOVIBLE ingestion service", version="1.3")
 
 
 def _now_iso():
@@ -106,10 +114,27 @@ def _log_action(entry):
         pass
 
 
-def _auth(authorization, expected, role):
+def _identify(authorization, static_token, role):
+    """ADR-0056: TWO auth doors, ONE HTTP identity.
+      1) A backend SESSION bearer (the webapp, via internal proxy): identity = the session user —
+         the signer is DERIVED from the session; any `by` query param is IGNORED (it was falsifiable:
+         anyone with the static token could sign as anyone).
+      2) The static service token (CLI scripts / legacy curls): the caller states `by` explicitly.
+    Returns {'kind': 'session'|'static', 'by': user_id|None}; raises 401 otherwise. If the backend
+    identity DB is unreachable, the session door fails CLOSED while the static door keeps the CLI
+    alive (flat permissions, ADR-0047: any valid session may approve; account admin stays local)."""
     token = (authorization or "").removeprefix("Bearer ").strip()
-    if not expected or token != expected:
-        raise HTTPException(status_code=401, detail=f"{role} token required")
+    if token:
+        if sessions_db is not None:
+            try:
+                user = sessions_db.validate_token(token)
+            except Exception:   # identity DB unreachable/uninitialized -> session door closed
+                user = None
+            if user:
+                return {"kind": "session", "by": user["user_id"]}
+        if static_token and token == static_token:
+            return {"kind": "static", "by": None}
+    raise HTTPException(status_code=401, detail=f"{role}: valid session bearer or service token required")
 
 
 def _next_id():
@@ -127,7 +152,7 @@ async def submit(authorization: str = Header(None), name: str = Form(...), sourc
                  accession: str = Form(None), niche: str = Form(None), domain: str = Form(None),
                  url: str = Form(None), private: bool = Form(False), file: UploadFile = File(None)):
     """Teammate submission -> a PROPOSED record parked in the queue (NOT yet in the truth)."""
-    _auth(authorization, SUBMIT_TOKEN, "submit")
+    actor = _identify(authorization, SUBMIT_TOKEN, "submit")
     if not url and not file:
         raise HTTPException(status_code=400, detail="provide a public --url or upload a file")
 
@@ -163,6 +188,7 @@ async def submit(authorization: str = Header(None), name: str = Form(...), sourc
         "approval_chain": [{"gate": "categorization", "status": "pending_review"}],
         "substrate_evidence": ["test_1", "test_3"],
         "created_at": _now_iso(),   # ADR-0045: queue order + history need a timestamp (uuid4 has none)
+        "submitted_by": actor["by"],  # ADR-0056: per-person attribution (None = CLI/static door)
     }
     (QUEUE / f"{sid}.json").write_text(json.dumps(proposal, indent=2, ensure_ascii=False), encoding="utf-8")
     return {"submitted": True, "submission_id": sid, "verified_entities": len(ents),
@@ -172,7 +198,7 @@ async def submit(authorization: str = Header(None), name: str = Form(...), sourc
 
 @app.get("/pending")
 def pending(authorization: str = Header(None)):
-    _auth(authorization, ADMIN_TOKEN, "admin")
+    _identify(authorization, ADMIN_TOKEN, "admin")
     items = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(QUEUE.glob("*.json"))]
     # ADR-0045: FIFO by submission time — lexicographic order over a uuid4 filename is no order at all.
     # Legacy proposals without created_at sort first (oldest-unknown surfaces before anything newer).
@@ -180,7 +206,8 @@ def pending(authorization: str = Header(None)):
     return {"pending": [{"submission_id": p["submission_id"], "name": p["source_document"]["name"],
                          "niche": p["proposed_placement"]["data_niche"],
                          "entities": len(p["entities_extracted"]),
-                         "created_at": p.get("created_at")} for p in items]}
+                         "created_at": p.get("created_at"),
+                         "submitted_by": p.get("submitted_by")} for p in items]}
 
 
 @app.get("/pending/{sid}")
@@ -189,7 +216,7 @@ def pending_detail(sid: str, authorization: str = Header(None)):
     fields; approving on those alone is signing blind — the opposite of a human gate (handoff §5.4).
     Here the approver sees confidence, reasoning, gap_flags, extracted entities and raw provenance
     BEFORE putting their name on the approval chain."""
-    _auth(authorization, ADMIN_TOKEN, "admin")
+    _identify(authorization, ADMIN_TOKEN, "admin")
     qf = QUEUE / f"{sid}.json"
     if not qf.exists():
         raise HTTPException(status_code=404, detail="no such submission")
@@ -200,7 +227,7 @@ def pending_detail(sid: str, authorization: str = Header(None)):
 def actions(limit: int = 100, authorization: str = Header(None)):
     """The DI-change history read path (decision 9-bis; seeded by ADR-0045's append-only action log):
     who approved/rejected what, when, with which outcome. Newest first."""
-    _auth(authorization, ADMIN_TOKEN, "admin")
+    _identify(authorization, ADMIN_TOKEN, "admin")
     if not ACTIONS_LOG.exists():
         return {"actions": []}
     lines = ACTIONS_LOG.read_text(encoding="utf-8").splitlines()
@@ -214,13 +241,17 @@ def actions(limit: int = 100, authorization: str = Header(None)):
 
 
 @app.post("/approve/{sid}")
-def approve(sid: str, by: str, authorization: str = Header(None)):
+def approve(sid: str, by: str = None, authorization: str = Header(None)):
     """The HUMAN GATE: merge a queued proposal into the manifest + ingest into Neo4j.
     Serialized under _WRITE_LOCK (ADR-0045): the whole read-manifest -> _next_id -> ingest -> git
     sequence is one critical section, so two concurrent approvals can no longer mint the same
     corpus_record_id or interleave half-ingests. A concurrent duplicate of the SAME sid gets a 404
     (the first one consumed the queue file) — idempotent by construction."""
-    _auth(authorization, ADMIN_TOKEN, "admin")
+    actor = _identify(authorization, ADMIN_TOKEN, "admin")
+    if actor["kind"] == "session":
+        by = actor["by"]            # ADR-0056: the signer is the SESSION user — the param is ignored
+    elif not (by or "").strip():
+        raise HTTPException(status_code=400, detail="by (query param) is required for service-token calls")
     with _WRITE_LOCK, _CrossProcessLock():
         qf = QUEUE / f"{sid}.json"
         if not qf.exists():
@@ -262,11 +293,15 @@ def approve(sid: str, by: str, authorization: str = Header(None)):
 
 
 @app.post("/reject/{sid}")
-def reject(sid: str, by: str, reason: str, authorization: str = Header(None)):
+def reject(sid: str, reason: str, by: str = None, authorization: str = Header(None)):
     """The OTHER half of the human gate (ADR-0045): a rejection is a RECORDED decision, not a silent
     deletion. Requires author + non-empty reason; 404s on an unknown sid (the old handler returned 200
     and deleted nothing/anything silently); archives the full proposal, append-only, with the verdict."""
-    _auth(authorization, ADMIN_TOKEN, "admin")
+    actor = _identify(authorization, ADMIN_TOKEN, "admin")
+    if actor["kind"] == "session":
+        by = actor["by"]            # ADR-0056: the signer is the SESSION user — the param is ignored
+    elif not (by or "").strip():
+        raise HTTPException(status_code=400, detail="by (query param) is required for service-token calls")
     if not (reason or "").strip():
         raise HTTPException(status_code=400, detail="a non-empty rejection reason is required")
     with _WRITE_LOCK, _CrossProcessLock():

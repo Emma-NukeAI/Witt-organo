@@ -2,6 +2,9 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 python-multipart>=0.0.9     # file uploads (UploadFile)
+# --- backend identity store (ADR-0056: session bearers shared with the query service) ---
+sqlalchemy>=2.0
+psycopg[binary]>=3.1
 # --- reused DATA INAMOVIBLE libs (same as rag_index/graphrag/requirements.txt) ---
 neo4j>=5.20
 openai>=1.40
