@@ -21,3 +21,5 @@
 ## Verification (offline, deterministic)
 
 `smoke_ingest_gate.py` → **22/22** (+7: sesión abre puertas admin · firmante derivado ignora `by` falsificado · cadena con el usuario real · 400 CLI sin by · 401 token basura · puerta CLI viva · `submitted_by` registrado) · `smoke_run_pipeline.py` → **35/35** (+3: epistemic_summary congelado · /usage agregado completo · ventana vacía honesta) · `smoke_query_service.py` → **29/29** (+4: filtro declarado + espejo intacto sin filtro + /config-history + 401) · `smoke_precedent.py` 15/15 · coherencia 7/7.
+
+**Verificado EN VIVO (2026-08-15, Emmanuel):** desde la terminal del `witt-query-service` desplegado — `POST /login` (backend) → bearer de sesión → `GET http://ingest:8077/pending` respondió `{"pending":[]}`. La puerta de sesión cruza servicios en producción por la red interna; `WITT_BACKEND_DB_URL` ya estaba en el Environment de la ingesta (quedó desde la configuración del 2026-08-09). El camino exacto de la webapp, funcionando.
