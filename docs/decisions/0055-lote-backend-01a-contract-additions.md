@@ -15,7 +15,7 @@
 7. **Los ejes por entidad NUNCA van por `/resolve` — declarado, no silencio**: `taxonomy_axes: {served: false, why}` en cada respuesta. El store verificado es identidad+procedencia; nicho/dominio por entidad deriva del grafo (MENTIONS) — la operación browse (Rack fase 2, LOTE B).
 8. **`/status` gana dos campos**: `integrity` (del artefacto real `analysis/outputs/store_integrity_scan_latest.json` por convención `--json`; sin artefacto → `scanned: false` declarado — un escaneo ausente jamás se pinta limpio) y `embed_model_changed_at` (de `rag_index/config_history.json`, append-only, fechas con fuente ADR — "el único caso en que un score viejo miente" ya es advertible). El docstring/README que decían 9 campos sirviendo 10 quedaron corregidos; README 19/19 → 32/32.
 
-**Pendiente de Emmanuel (Método 2, único punto de producto del brief):** si `/status` se abre sin auth (o un `/status-lite`) para el cintillo pre-login del boceto M1.
+**Decisión de Emmanuel (2026-08-15, Método 2 — el único punto de producto del brief): `/status` se queda CON auth.** No hay puerta pública ni `/status-lite`: ninguna superficie del backend responde sin sesión. Consecuencia para la UI: el cintillo pre-login del boceto M1 no puede esperar estado del store antes del login — se rediseña a estado post-login (o a un indicador local de la propia webapp), y esa adaptación es del lado de `witt-webapp`.
 
 ## Consequences
 
