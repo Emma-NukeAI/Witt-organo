@@ -370,10 +370,17 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             "bundle_identity": bundle["bundle_identity"],
             "question_matches_run": bundle["question"] == run["question"],
         }
+        # LOTE-02·3: the list-row epistemic summary is derived HERE, at freeze — never at serve time
+        # (the frozen-counter discipline: a list row must not re-derive what the record froze).
+        epistemic_summary = {"retrieval_mode": bundle["retrieval_summary"]["mode"],
+                             "verdict": audit_result["verdict"],
+                             "confidence_state": frozen["confidence"]["state"],
+                             "panel_n_valid": audit_result["n_valid"]}
         db.update_run(run_id, state="awaiting_closure", finished_at=db._now(),
                       bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
                       frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str),
-                      usage_json=json.dumps(token_usage, ensure_ascii=False, default=str))
+                      usage_json=json.dumps(token_usage, ensure_ascii=False, default=str),
+                      epistemic_summary_json=json.dumps(epistemic_summary, ensure_ascii=False))
         db.add_event(run_id, "run.state", payload={"state": "awaiting_closure",
                                                    "verdict": audit_result["verdict"]})
     except RunCancelled:

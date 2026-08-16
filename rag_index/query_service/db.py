@@ -73,6 +73,7 @@ runs = Table(
     Column("cancelled_by", String(64)),                       # LOTE-01·A3: a cancellation without an author
     Column("cancel_reason", Text),                            # is a hole in the registry (ERP rule)
     Column("usage_json", Text),                               # LOTE-01·A4: spend persists on EVERY exit path
+    Column("epistemic_summary_json", Text),                   # LOTE-02·3: derived AT FREEZE, never at serve
     Column("error", Text),
     Column("bundle_json", Text),                              # the full evidence bundle (ADR-0043/0044)
     Column("frozen_record_json", Text),                       # the frozen record the UI renders (read-only)
@@ -114,12 +115,35 @@ def _migrate():
     from sqlalchemy import text
     for stmt in ("ALTER TABLE runs ADD COLUMN cancelled_by VARCHAR(64)",
                  "ALTER TABLE runs ADD COLUMN cancel_reason TEXT",
-                 "ALTER TABLE runs ADD COLUMN usage_json TEXT"):
+                 "ALTER TABLE runs ADD COLUMN usage_json TEXT",
+                 "ALTER TABLE runs ADD COLUMN epistemic_summary_json TEXT"):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
         except Exception:
             pass  # column already there
+    # Backfill (LOTE-02·3): derive the epistemic summary for runs frozen BEFORE this column existed.
+    # Derived exclusively FROM frozen values (retrieval_summary/audit/confidence of the frozen record),
+    # so the at-freeze discipline holds — this is a re-read of frozen data, not a re-measurement.
+    import json as _json
+    try:
+        with engine().begin() as cx:
+            rows = cx.execute(select(runs.c.run_id, runs.c.frozen_record_json)
+                              .where(runs.c.frozen_record_json.isnot(None),
+                                     runs.c.epistemic_summary_json.is_(None))).all()
+            for r in rows:
+                rec = _json.loads(r._mapping["frozen_record_json"])
+                conf = rec.get("confidence") or {}
+                summ = {"retrieval_mode": (rec.get("retrieval_summary") or {}).get("mode"),
+                        "verdict": (rec.get("audit") or {}).get("verdict"),
+                        "confidence_state": conf.get(
+                            "state", "value" if (rec.get("answer") or {}).get("stated_confidence")
+                            is not None else "absent-not-calibratable"),
+                        "panel_n_valid": (rec.get("audit") or {}).get("n_valid")}
+                cx.execute(runs.update().where(runs.c.run_id == r._mapping["run_id"])
+                           .values(epistemic_summary_json=_json.dumps(summ, ensure_ascii=False)))
+    except Exception:
+        pass
 
 
 def _now():
@@ -267,7 +291,7 @@ def list_runs(user_id=None, limit=50):
         q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
                    runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
                    runs.c.last_event_at, runs.c.cancelled_by, runs.c.cancel_reason,
-                   runs.c.usage_json, runs.c.error)
+                   runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error)
         if user_id:
             q = q.where(runs.c.user_id == user_id)
         rows = cx.execute(q.order_by(runs.c.created_at.desc()).limit(limit)).all()
@@ -305,6 +329,25 @@ def cancel_requested(run_id: str) -> bool:
     with engine().begin() as cx:
         row = cx.execute(select(runs.c.cancel_requested).where(runs.c.run_id == run_id)).first()
     return bool(row and row._mapping["cancel_requested"])
+
+
+def runs_usage(frm=None, to=None):
+    """All runs (no cap) with their usage for the M8 aggregation (LOTE-02·2) — the LIST serves max 50;
+    a client-side total would be a figure without its full denominator, so the sum lives here."""
+    with engine().begin() as cx:
+        q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
+                   runs.c.created_at, runs.c.usage_json)
+        if frm is not None:
+            q = q.where(runs.c.created_at >= frm)
+        if to is not None:
+            q = q.where(runs.c.created_at <= to)
+        rows = cx.execute(q).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        d["created_at"] = _dt_utc(d["created_at"])
+        out.append(d)
+    return out
 
 
 def closed_runs(limit=1000):

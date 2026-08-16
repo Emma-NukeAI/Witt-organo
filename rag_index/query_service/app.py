@@ -33,7 +33,7 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -151,15 +151,32 @@ def health():
 # --- the read front door: EXACTLY the CLI/MCP envelope (transport change, ADR-0043/0048) ------------
 
 @app.get("/query")
-def query(q: str, k: int = 5, authorization: str = Header(None)):
+def query(q: str, k: int = 5, niche: str = None, authorization: str = Header(None)):
     """Semantic GraphRAG query. Returns server._query's envelope VERBATIM — {degraded, n_hits, hits,
     last_error, index_version, store_version}. Degraded results are 200 (a valid, banded answer the UI
-    must paint); only query_unavailable is 503."""
+    must paint); only query_unavailable is 503.
+
+    LOTE-02·4 — `niche` (optional): a DECLARED post-retrieval filter. It filters a k*4 candidate window
+    by the per-hit `record.data_niche` binding (block 1.4) and adds a `filter` block saying exactly what
+    was done (candidates_considered + the recall caveat). A retrieve-level filter — the one agent doors
+    would also use — is a future retrieval feature; this is honest filtering, never a disguised one.
+    Without `niche` the envelope stays a verbatim mirror (no `filter` key)."""
     _user_of(authorization)
-    res = server._query(q, k)
+    if not niche:
+        res = server._query(q, k)
+        if "error" in res:
+            raise HTTPException(status_code=503, detail=res)
+        return res
+    res = server._query(q, min(k * 4, 40))
     if "error" in res:
         raise HTTPException(status_code=503, detail=res)
-    return res
+    matched = [h for h in res["hits"] if (h.get("record") or {}).get("data_niche") == niche][:k]
+    return {**res, "hits": matched, "n_hits": len(matched),
+            "filter": {"niche": niche, "applied": "post-retrieval",
+                       "candidates_considered": len(res["hits"]),
+                       "note": "filtra por record.data_niche sobre una ventana k*4 de candidatos; el "
+                               "recall fuera de esa ventana NO se explora — el filtro a nivel retrieve "
+                               "(el que usarían también CLI/MCP) es feature futura de recuperación"}}
 
 
 # LOTE-01·A7: declared ONCE, structurally — the verified store is an identity+provenance store; it has
@@ -388,12 +405,16 @@ def _run_view(run):
     now = datetime.datetime.now(datetime.timezone.utc)
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
-            for k, v in run.items() if k not in ("bundle_json", "frozen_record_json", "usage_json")}
+            for k, v in run.items()
+            if k not in ("bundle_json", "frozen_record_json", "usage_json", "epistemic_summary_json")}
     view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
     view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
     view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
+    # LOTE-02·3: frozen-at-freeze summary for rich list rows; null = run without a frozen record yet
+    view["epistemic_summary"] = (json.loads(run["epistemic_summary_json"])
+                                 if run.get("epistemic_summary_json") else None)
     return view
 
 
@@ -552,6 +573,105 @@ def taxonomia(authorization: str = Header(None)):
     out = {**data, "provenance": provenance, "refreshed_at": _now_iso()}
     _TAXONOMY_CACHE.update(at=now, data=out)
     return out
+
+
+# --- usage aggregation (LOTE-02·2, M8): the sum lives on the SERVER ----------------------------------
+
+@app.get("/usage")
+def usage(from_: str = Query(None, alias="from"), to: str = None,
+          authorization: str = Header(None)):
+    """Aggregated consumption per person / period / model over usage_json of ALL runs (no cap — the
+    list serves 50; a client-side total would have no full denominator). Token counts are MEASURED [M]
+    from API responses; dollars stay a labeled PROJECTION [E] (cost_class). `from_`/`to` = ISO dates
+    (inclusive; date-only accepted). Rack /query embeds are NOT per-run — served apart with their
+    attribution caveat, never silently summed into totals."""
+    _user_of(authorization)
+
+    def _parse(dstr, end=False):
+        if not dstr or not isinstance(dstr, str):   # direct (non-HTTP) calls pass the Query default
+            return None
+        d = datetime.datetime.fromisoformat(dstr)
+        if d.tzinfo is None:
+            d = d.replace(tzinfo=datetime.timezone.utc)
+        if end and len(dstr) <= 10:   # date-only 'to' -> end of that day
+            d = d + datetime.timedelta(days=1) - datetime.timedelta(seconds=1)
+        return d
+
+    try:
+        frm, to_dt = _parse(from_), _parse(to, end=True)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="from/to must be ISO dates (YYYY-MM-DD)")
+    rows = db.runs_usage(frm, to_dt)
+    totals = {"input_tokens": 0, "output_tokens": 0, "embedding_tokens": 0, "estimated_cost_usd": 0.0}
+    by_user, by_model, most = {}, {}, None
+    n_with = 0
+    for r in rows:
+        u = json.loads(r["usage_json"]) if r.get("usage_json") else None
+        if not u:
+            continue
+        n_with += 1
+        cost = float(u.get("estimated_cost_usd") or 0.0)
+        totals["input_tokens"] += u.get("input_tokens", 0)
+        totals["output_tokens"] += u.get("output_tokens", 0)
+        totals["embedding_tokens"] += (u.get("embedding") or {}).get("total_tokens", 0)
+        totals["estimated_cost_usd"] += cost
+        bu = by_user.setdefault(r["user_id"], {"n_runs": 0, "input_tokens": 0, "output_tokens": 0,
+                                               "estimated_cost_usd": 0.0})
+        bu["n_runs"] += 1
+        bu["input_tokens"] += u.get("input_tokens", 0)
+        bu["output_tokens"] += u.get("output_tokens", 0)
+        bu["estimated_cost_usd"] = round(bu["estimated_cost_usd"] + cost, 4)
+        for model, m in (u.get("by_model") or {}).items():
+            bm = by_model.setdefault(model, {"in": 0, "out": 0, "estimated_cost_usd": 0.0})
+            bm["in"] += m.get("in", 0)
+            bm["out"] += m.get("out", 0)
+            pi, po = runs_mod.PRICES_PER_MTOK_USD.get(model, (0.0, 0.0))
+            bm["estimated_cost_usd"] = round(bm["estimated_cost_usd"]
+                                             + (m.get("in", 0) * pi + m.get("out", 0) * po) / 1e6, 4)
+        if most is None or cost > most["estimated_cost_usd"]:
+            most = {"run_id": r["run_id"], "user_id": r["user_id"], "state": r["state"],
+                    "question": (r["question"] or "")[:120],
+                    "created_at": r["created_at"].isoformat(timespec="seconds") if r["created_at"] else None,
+                    "estimated_cost_usd": round(cost, 4)}
+    totals["estimated_cost_usd"] = round(totals["estimated_cost_usd"], 4)
+    try:
+        sys.path.insert(0, str(ROOT / "rag_index" / "graphrag"))
+        import embeddings as _emb
+        snap = _emb.usage_snapshot()
+        rack = {"total_tokens_since_boot": snap["total_tokens"], "calls": snap["calls"],
+                "attribution": "proceso completo desde el arranque del servicio — INCLUYE los embeds de "
+                               "corridas ya contados por corrida; no sumar con totals (doble conteo)"}
+    except Exception:
+        rack = {"total_tokens_since_boot": None, "calls": None, "attribution": "no disponible"}
+    return {"from": from_, "to": to, "n_runs": len(rows), "n_runs_with_usage": n_with,
+            "totals": totals, "by_user": by_user, "by_model": by_model, "most_expensive": most,
+            "rack_embeddings": rack,
+            "cost_class": f"PROJECTION (calculated from measured tokens x per-Mtok prices as of "
+                          f"{runs_mod.PRICES_AS_OF}; the token counts are measurements, the dollars are not)"}
+
+
+# --- config history (LOTE-02·5, M6/SISTEMA): the catalog has history ---------------------------------
+
+@app.get("/config-history")
+def config_history(authorization: str = Header(None)):
+    """The comparability-affecting config changes, verbatim from rag_index/config_history.json
+    (append-only, ADR-sourced dates — ADR-0055) with declared provenance. Also DECLARES where the other
+    two histories live today (user account history, store_version history) instead of leaving silence."""
+    _user_of(authorization)
+    hist = json.loads(_CONFIG_HISTORY.read_text(encoding="utf-8"))
+    return {"entries": hist.get("entries", []),
+            "provenance": {"path": "rag_index/config_history.json",
+                           "mtime": datetime.datetime.fromtimestamp(
+                               _CONFIG_HISTORY.stat().st_mtime,
+                               datetime.timezone.utc).isoformat(timespec="seconds")},
+            "user_history": {"source": "tabla users: created_at + disabled (ESTADO, no bitácora de "
+                                       "eventos); altas/resets vía seed_users.py local (ADR-0048)",
+                             "note": "un event-log de altas/bajas/resets es bloque futuro"},
+            "store_version_history": {"source": "git — commits a analysis/outputs/"
+                                                "verified_identifiers.json + su serie de ADRs "
+                                                "(0029/0035/0041/0042…), cada crecimiento human-gated",
+                                      "note": "puerta programática del historial del store: futura"},
+            "refreshed_at": _now_iso()}
 
 
 # --- precedent layer (block 6, ADR-0053): the OTHER index — separate admissibility, equal value ------

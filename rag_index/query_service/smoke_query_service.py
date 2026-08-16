@@ -140,6 +140,28 @@ check("/resolve declara taxonomy_axes.served=false con el porque (nunca por esta
       rr["resolved"] is True and rr["taxonomy_axes"]["served"] is False
       and "browse" in rr["taxonomy_axes"]["why"])
 
+# --- LOTE-02·4: filtro por nicho DECLARADO (post-retrieval, jamas disfrazado) -------------------------
+rag_backend.query = lambda text, k=5: HitList(
+    [Hit(doc_id="CORPUS-2026-0001", type="dataset", score=0.9, text="rn1 doc", metadata={}),
+     Hit(doc_id="CORPUS-2026-0009", type="dataset", score=0.8, text="rn11 doc", metadata={})],
+    degraded=None)
+rq = app.query("filter me", 5, niche="RN11", authorization=AUTH)
+check("/query?niche=RN11: filtra por record.data_niche y DECLARA el filtro (candidatos + caveat)",
+      rq["n_hits"] == 1 and rq["hits"][0]["doc_id"] == "CORPUS-2026-0009"
+      and rq["filter"]["applied"] == "post-retrieval" and rq["filter"]["candidates_considered"] == 2
+      and "recall" in rq["filter"]["note"])
+rq2 = app.query("no filter", 5, authorization=AUTH)
+check("sin niche el sobre sigue siendo espejo verbatim (sin llave filter)", "filter" not in rq2)
+rag_backend.query, rag_backend.query_sparse = _orig_q, _orig_s
+
+# --- LOTE-02·5: /config-history con procedencia + declaracion de los otros dos historicos -------------
+ch = app.config_history(authorization=AUTH)
+check("/config-history: entries verbatim + procedencia + historicos de usuario/store DECLARADOS",
+      ch["entries"] and ch["entries"][0]["field"] == "embed_model"
+      and ch["provenance"]["path"] == "rag_index/config_history.json"
+      and "users" in ch["user_history"]["source"] and "git" in ch["store_version_history"]["source"])
+check("/config-history sin token -> 401", _http_error(app.config_history, authorization=None) == 401)
+
 # ---- 4. indice de artefactos historicos (ADR-0046) --------------------------------------------------
 art = app.artifacts(authorization=AUTH)
 check("indice: reports/*.html listados con titulo y mtime",

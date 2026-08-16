@@ -18,7 +18,7 @@ expuesta (ADR-0047, decisión 5).
 | POST | `/logout` | ✓ | revoca el token |
 | GET | `/me` | ✓ | `{user_id, display_name, role}` (role = rater_profile) |
 | GET | `/health` | — | liveness de proceso para Dokploy: sin red, sin spend |
-| GET | `/query?q=&k=` | ✓ | **el sobre ADR-0043 verbatim**; degradado = 200 (la UI pinta la banda); `query_unavailable` = 503 |
+| GET | `/query?q=&k=&niche=` | ✓ | **el sobre ADR-0043 verbatim**; degradado = 200 (la UI pinta la banda); `query_unavailable` = 503. `niche` (opcional): filtro **declarado** post-retrieval sobre ventana k×4 con bloque `filter` + caveat de recall (ADR-0056) |
 | GET | `/resolve?key=` | ✓ | `VerifiedRecord` completo (bloque 1.4); NOT_FOUND = 200 con `resolved: false` |
 | GET | `/raw?key=&filename=` | ✓ | drill al crudo (`fetch_raw`): URL presignada MinIO o source_url+sha256 |
 | GET | `/status` | ✓ | **StoreStatus NO-SPEND** con caché TTL: los 9 campos del contrato + `index_version`, `integrity` (escaneo real o `scanned:false` honesto) y `embed_model_changed_at` (de `rag_index/config_history.json` — ADR-0055) |
@@ -34,6 +34,8 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
+| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056) |
+| GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
 
 **`/status` es NO-SPEND por construcción** (receta `liveness.py`): lee el JSON del store + el manifest

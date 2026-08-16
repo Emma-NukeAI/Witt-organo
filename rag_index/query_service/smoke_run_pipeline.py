@@ -184,6 +184,9 @@ check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings de
 view = app.get_run(RID, authorization=AUTH)
 check("latido expuesto (heartbeat_age_s) y no-stale tras actividad",
       view["heartbeat_age_s"] is not None and view["heartbeat_stale"] is False)
+check("LOTE-02·3: epistemic_summary derivado AL CONGELAR, visible en la vista (renglon rico de M6)",
+      view["epistemic_summary"] == {"retrieval_mode": "semantic", "verdict": "APPROVE",
+                                    "confidence_state": "value", "panel_n_valid": 4})
 
 # ---- LOTE-01·A1/A2: la LISTA trae el latido + el umbral viaja con la derivacion ----------------------
 lst = app.list_runs(authorization=AUTH)["runs"]
@@ -295,6 +298,19 @@ vf = app.get_run(rv["run_id"], authorization=AUTH)
 check("LOTE-01·A4: una corrida failed tambien expone su token_usage (aqui 0, medido no ausente)",
       vf["token_usage"] is not None and vf["token_usage"]["input_tokens"] == 0
       and "cost_class" in vf["token_usage"])
+
+# ---- LOTE-02·2: /usage — la suma vive en el SERVIDOR (M8) --------------------------------------------
+us = app.usage(authorization=AUTH)
+check("/usage: totales + by_user + by_model + most_expensive + costo PROJECTION",
+      us["n_runs"] >= 6 and us["n_runs_with_usage"] >= 5
+      and us["by_user"]["natalia"]["n_runs"] == us["n_runs_with_usage"]
+      and us["by_model"]["stub-synth"]["in"] >= 700
+      and us["most_expensive"] is not None and "PROJECTION" in us["cost_class"]
+      and "attribution" in us["rack_embeddings"],
+      f"n={us['n_runs']} con_usage={us['n_runs_with_usage']} stub_in={us['by_model']['stub-synth']['in']}")
+us2 = app.usage(from_="2099-01-01", authorization=AUTH)
+check("/usage con ventana vacia -> denominador honesto (0 corridas, 0 con usage)",
+      us2["n_runs"] == 0 and us2["n_runs_with_usage"] == 0)
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))
