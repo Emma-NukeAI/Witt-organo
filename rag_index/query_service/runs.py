@@ -231,10 +231,17 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                      degraded=degraded)
         _check_cancel()
 
+    # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
+    # cancelled paths too — M8 cannot reconcile otherwise ("118,000 tokens gastados antes de morir").
+    passes, audit_result = [], {}
+    embed_t0 = _embed_usage_snapshot()
+
+    def _usage_now():
+        return _token_usage(passes, audit_result, max(0, _embed_usage_snapshot() - embed_t0))
+
     try:
         db.add_event(run_id, "run.state", payload={"state": "running"})
         _check_cancel()
-        embed_t0 = _embed_usage_snapshot()
 
         # 1) retrieve — the ONE state machine, instrumented via on_stage (never re-assembled)
         bundle = answer_pipeline.retrieve(run["question"],
@@ -248,6 +255,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # (ADR-0051), measured even when structural insufficiency already fetched Path B.
         db.add_event(run_id, "stage.synthesize.start", agent=SYNTH_MODEL)
         pass1 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=False), "pass1")
+        passes.append(("pass1", pass1))
         conf1 = pass1.get("stated_confidence")
         db.add_event(run_id, "stage.synthesize.pass1", agent=pass1.get("model"),
                      payload={"stated_confidence": conf1, "absence_kind": pass1.get("absence_kind"),
@@ -290,6 +298,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # (the 0.14 -> 0.71 Level-2 measurement).
         if trigger:
             pass2 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=True), "pass2")
+            passes.append(("pass2", pass2))
             conf2 = pass2.get("stated_confidence")
             delta = (round(conf2 - conf1, 4) if isinstance(conf1, (int, float))
                      and isinstance(conf2, (int, float)) else None)
@@ -297,11 +306,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                          payload={"stated_confidence": conf2, "delta_vs_pass1": delta,
                                   "absence_kind": pass2.get("absence_kind")})
             answer = pass2
-            passes = [("pass1", pass1), ("pass2", pass2)]
         else:
             conf2, delta = None, None
             answer = pass1
-            passes = [("pass1", pass1)]
         bundle["bundle_identity"] = answer_pipeline._identity(bundle)
         _check_cancel()
 
@@ -330,6 +337,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
         # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2)
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
+        token_usage = _token_usage(passes, audit_result, embed_tokens)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -356,7 +364,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                        "model": answer.get("model")},
             "citations": _normalize_citations(answer.get("evidence_cited")),
             "deterministic_checks": checks,
-            "token_usage": _token_usage(passes, audit_result, embed_tokens),
+            "token_usage": token_usage,
             "usage_raw": {"passes": {label: p.get("usage", {}) for label, p in passes},
                           "panel_total": audit_result.get("usage", {})},
             "bundle_identity": bundle["bundle_identity"],
@@ -364,15 +372,18 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         }
         db.update_run(run_id, state="awaiting_closure", finished_at=db._now(),
                       bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
-                      frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str))
+                      frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str),
+                      usage_json=json.dumps(token_usage, ensure_ascii=False, default=str))
         db.add_event(run_id, "run.state", payload={"state": "awaiting_closure",
                                                    "verdict": audit_result["verdict"]})
     except RunCancelled:
-        db.update_run(run_id, state="cancelled", finished_at=db._now())
+        db.update_run(run_id, state="cancelled", finished_at=db._now(),
+                      usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
         db.add_event(run_id, "run.state", payload={"state": "cancelled"}, level="warning")
     except Exception as e:
         db.update_run(run_id, state="failed", finished_at=db._now(),
-                      error=f"{type(e).__name__}: {str(e)[:400]}")
+                      error=f"{type(e).__name__}: {str(e)[:400]}",
+                      usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
         db.add_event(run_id, "error", payload={"error": f"{type(e).__name__}: {str(e)[:400]}"},
                      level="error")
         db.add_event(run_id, "run.state", payload={"state": "failed"}, level="error")

@@ -119,7 +119,26 @@ check("/status NO-SPEND (ni un embed) + datos reales del store",
 st2 = app.status(authorization=AUTH)
 check("/status cachea por TTL (mismo refreshed_at dentro de la ventana)",
       st2["refreshed_at"] == st["refreshed_at"])
+# --- LOTE-01·A8: integridad honesta + la fecha del cambio de embed model ------------------------------
+check("/status.integrity: sin artefacto de escaneo -> scanned:false declarado (jamas 'limpio')",
+      st["integrity"]["scanned"] is False and "note" in st["integrity"])
+check("/status.embed_model_changed_at desde config_history.json (ADR-0021, no hardcodeado)",
+      st["embed_model_changed_at"] == "2026-06-12")
 rag_backend.query, rag_backend.query_sparse = _orig_q, _orig_s
+
+# --- LOTE-01·A6: la taxonomia por UNA puerta (la UI se niega a copiar los archivos) -------------------
+tax = app.taxonomia(authorization=AUTH)
+check("/taxonomia: niches + databases + crosswalk con procedencia (ruta+mtime)",
+      all(k in tax for k in ("niches", "databases", "crosswalk", "provenance"))
+      and tax["provenance"]["niches"]["path"] == "rag_index/niches.json"
+      and tax["provenance"]["niches"]["mtime"])
+check("/taxonomia sin token -> 401", _http_error(app.taxonomia, authorization=None) == 401)
+
+# --- LOTE-01·A7: los ejes por entidad NUNCA van por /resolve — declarado, no silencio -----------------
+rr = app.resolve("pax2a", authorization=AUTH)
+check("/resolve declara taxonomy_axes.served=false con el porque (nunca por esta puerta)",
+      rr["resolved"] is True and rr["taxonomy_axes"]["served"] is False
+      and "browse" in rr["taxonomy_axes"]["why"])
 
 # ---- 4. indice de artefactos historicos (ADR-0046) --------------------------------------------------
 art = app.artifacts(authorization=AUTH)

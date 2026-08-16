@@ -21,17 +21,18 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/query?q=&k=` | ✓ | **el sobre ADR-0043 verbatim**; degradado = 200 (la UI pinta la banda); `query_unavailable` = 503 |
 | GET | `/resolve?key=` | ✓ | `VerifiedRecord` completo (bloque 1.4); NOT_FOUND = 200 con `resolved: false` |
 | GET | `/raw?key=&filename=` | ✓ | drill al crudo (`fetch_raw`): URL presignada MinIO o source_url+sha256 |
-| GET | `/status` | ✓ | **StoreStatus (9 campos) NO-SPEND** con caché TTL — ver abajo |
+| GET | `/status` | ✓ | **StoreStatus NO-SPEND** con caché TTL: los 9 campos del contrato + `index_version`, `integrity` (escaneo real o `scanned:false` honesto) y `embed_model_changed_at` (de `rag_index/config_history.json` — ADR-0055) |
+| GET | `/taxonomia` | ✓ | nichos + bases + crosswalk con procedencia (ruta+mtime), TTL — la única puerta de la taxonomía (ADR-0055) |
 | GET | `/artifacts` | ✓ | índice de históricos (ADR-0046): `reports/*.html` + `evaluation/runs/**` |
 | GET | `/artifacts/report/{name}` | ✓ | sirve un HTML histórico (path-safe por membresía) |
 | GET | `/artifacts/run/{set}/{name}` | ✓ | un run histórico (JSON; `instrumented: false` = sin `decision_state`) |
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
-| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049) |
-| GET | `/runs` · `/runs/{id}` | ✓ | listado / estado con `heartbeat_age_s` + `heartbeat_stale` |
+| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`) |
+| GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
 | GET | `/runs/{id}/events?after=` | ✓ | **replay** — las mismas filas que el stream (una bitácora) |
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
-| POST | `/runs/{id}/cancel` | ✓ | `cancelled` de primera clase (queued: inmediato; running: frontera de etapa) |
+| POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
 
@@ -93,7 +94,9 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (19/19 offline).
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (32/32 offline; `smoke_query_service.py`
+25/25). `/resolve` declara `taxonomy_axes.served: false` — los ejes por entidad derivan del grafo
+(browse, Rack fase 2), nunca de esa puerta.
 
 ### Dos pasadas + decisor por confianza (bloque 4, ADR-0051)
 

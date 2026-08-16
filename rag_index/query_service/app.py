@@ -162,12 +162,23 @@ def query(q: str, k: int = 5, authorization: str = Header(None)):
     return res
 
 
+# LOTE-01·A7: declared ONCE, structurally — the verified store is an identity+provenance store; it has
+# no per-entity niche/domain/context/metabolic-role axes and NEVER will through this door. Per-entity
+# taxonomy derives from the GRAPH (Entity-MENTIONS-Document-IN_NICHE), i.e. the future browse operation
+# (Rack fase 2, LOTE B). The UI can render "nunca por esta puerta" instead of "todavía no".
+_TAXONOMY_AXES_DECL = {"served": False,
+                       "why": "the verified store carries identity+provenance only; per-entity "
+                              "niche/domain derives from graph MENTIONS — the browse operation "
+                              "(Rack fase 2), never this door"}
+
+
 @app.get("/resolve")
 def resolve(key: str, authorization: str = Header(None)):
     """Deterministic verified-identifier resolve — full VerifiedRecord (block 1.4). NOT_FOUND is a
-    positive result (200, resolved: false), not an HTTP error."""
+    positive result (200, resolved: false), not an HTTP error. `taxonomy_axes` declares that per-entity
+    axes are NEVER served by this door (LOTE-01·A7)."""
     _user_of(authorization)
-    return server._resolve(key)
+    return {**server._resolve(key), "taxonomy_axes": _TAXONOMY_AXES_DECL}
 
 
 @app.get("/raw")
@@ -180,7 +191,8 @@ def raw(key: str, filename: str = None, authorization: str = Header(None)):
     return res
 
 
-# --- StoreStatus: the 9 UI fields, aggregated from the 3 disconnected sources, NO-SPEND -------------
+# --- StoreStatus: the UI contract's 9 fields + ADR-0048/0055 extensions (index_version, integrity,
+# --- embed_model_changed_at), aggregated from the disconnected sources, NO-SPEND ---------------------
 
 _STATUS_CACHE = {"at": 0.0, "data": None}
 
@@ -209,11 +221,52 @@ def _neo4j_counts():
         drv.close()
 
 
+_INTEGRITY_ARTIFACT = ROOT / "analysis" / "outputs" / "store_integrity_scan_latest.json"
+_CONFIG_HISTORY = ROOT / "rag_index" / "config_history.json"
+
+
+def _integrity_row():
+    """LOTE-01·A8a: the M2 integrity row, served ONLY from a real scan artifact (the convention:
+    `store_integrity_scan.py --json analysis/outputs/store_integrity_scan_latest.json`). No artifact
+    -> an honest 'scanned: false' — a missing scan is never rendered as a clean one."""
+    if not _INTEGRITY_ARTIFACT.exists():
+        return {"scanned": False,
+                "note": "no scan artifact — run: python substrate_calibration/tools/"
+                        "store_integrity_scan.py --json analysis/outputs/store_integrity_scan_latest.json"}
+    try:
+        rep = json.loads(_INTEGRITY_ARTIFACT.read_text(encoding="utf-8"))
+        findings = rep.get("findings", [])
+        return {"scanned": True,
+                "scanned_at": datetime.datetime.fromtimestamp(
+                    _INTEGRITY_ARTIFACT.stat().st_mtime,
+                    datetime.timezone.utc).isoformat(timespec="seconds"),
+                "n_records": rep.get("n_records"), "store_version": rep.get("store_version"),
+                "n_findings": len(findings),
+                "n_critical_high": sum(1 for f in findings
+                                       if f.get("severity") in ("critical", "high"))}
+    except Exception as e:
+        return {"scanned": False, "note": f"scan artifact unreadable: {type(e).__name__}"}
+
+
+def _embed_model_changed_at():
+    """LOTE-01·A8b: without this date the UI cannot warn when old scores stopped being comparable
+    ('el único caso en que un score viejo miente'). Source: rag_index/config_history.json (append-only,
+    dates sourced from ADRs) — never a hardcoded constant in code."""
+    try:
+        hist = json.loads(_CONFIG_HISTORY.read_text(encoding="utf-8"))
+        entries = [e for e in hist.get("entries", []) if e.get("field") == "embed_model"]
+        return entries[-1]["changed_at"] if entries else None
+    except Exception:
+        return None
+
+
 def _store_status():
-    """StoreStatus (UI-DATA-CONTRACTS.md M2/M8): store_version, record_count, sha, doc_count,
-    entity_count, embed_model, embed_dim, index_state, refreshed_at. TTL-cached: a UI header polling
-    every N seconds costs at most one free Cypher round per TTL and ZERO OpenAI, always — a status
-    indicator that costs money ends up turned off, and that is the one that must never turn off."""
+    """StoreStatus: the UI contract's 9 fields (store_version, record_count, sha, doc_count,
+    entity_count, embed_model, embed_dim, index_state, refreshed_at) + the ADR-0048/0055 extensions:
+    index_version (score comparability), integrity (real scan or honest 'scanned: false') and
+    embed_model_changed_at (config_history.json — the catalog has history). TTL-cached: a UI header
+    polling every N seconds costs at most one free Cypher round per TTL and ZERO OpenAI, always — a
+    status indicator that costs money ends up turned off, and that is the one that must never turn off."""
     now = time.time()
     if _STATUS_CACHE["data"] and now - _STATUS_CACHE["at"] < STATUS_TTL_S:
         return _STATUS_CACHE["data"]
@@ -228,6 +281,8 @@ def _store_status():
           "embed_dim": 1536 if embed_model == "openai" else None,   # the ADR-0039 hard pin
           "index_state": "OFFLINE",
           "index_version": server._index_version(),
+          "integrity": _integrity_row(),
+          "embed_model_changed_at": _embed_model_changed_at(),
           "refreshed_at": _now_iso()}
     if os.environ.get("NEO4J_URI"):
         try:
@@ -326,14 +381,19 @@ class RunBody(BaseModel):
 
 def _run_view(run):
     """Run row -> API shape, with the heartbeat DERIVED (the UI's 'no event for N min' detector —
-    a run stuck 1800s in a deadlock must be distinguishable from one that is working)."""
+    a run stuck 1800s in a deadlock must be distinguishable from one that is working). LOTE-01·A2:
+    the threshold TRAVELS with the derivation (an alert without its threshold cannot be judged).
+    LOTE-01·A4: usage_json (spend on EVERY exit path, failed/cancelled included) is served parsed
+    as `token_usage`."""
     now = datetime.datetime.now(datetime.timezone.utc)
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
-            for k, v in run.items() if k not in ("bundle_json", "frozen_record_json")}
+            for k, v in run.items() if k not in ("bundle_json", "frozen_record_json", "usage_json")}
     view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
+    view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
+    view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
     return view
 
 
@@ -346,17 +406,26 @@ def create_run(body: RunBody, authorization: str = Header(None)):
     q = body.question.strip()
     if not q:
         raise HTTPException(status_code=400, detail="question must be non-empty")
+    # LOTE-01·A5: "bloquea, no degrada" es del servidor, no disciplina de la UI. Con el índice OFFLINE
+    # no se encola (la corrida nacería degradada); mismo camino NO-SPEND del /status. El loop local
+    # sparse-dev (siempre OFFLINE sin NEO4J_URI) se destraba con WITT_ALLOW_RUNS_OFFLINE=1.
+    st = _store_status()
+    if st["index_state"] == "OFFLINE" and os.environ.get("WITT_ALLOW_RUNS_OFFLINE") != "1":
+        raise HTTPException(status_code=409, detail={
+            "state": "index_offline",
+            "note": "el índice semántico está OFFLINE — el diseño manda bloquear, no degradar. "
+                    "Dev sparse: exporta WITT_ALLOW_RUNS_OFFLINE=1 (documentado en README).",
+            "status_error": st.get("status_error")})
     run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()])
     return _run_view(db.get_run(run_id))
 
 
 @app.get("/runs")
 def list_runs(mine: bool = False, authorization: str = Header(None)):
+    """LOTE-01·A1: the LIST goes through the same _run_view as the detail — heartbeat fields included
+    and identical datetime serialization (a stuck run must be distinguishable FROM THE LIST)."""
     user = _user_of(authorization)
-    return {"runs": [
-        {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
-         for k, v in r.items()}
-        for r in db.list_runs(user_id=user["user_id"] if mine else None)]}
+    return {"runs": [_run_view(r) for r in db.list_runs(user_id=user["user_id"] if mine else None)]}
 
 
 @app.get("/runs/{run_id}")
@@ -422,18 +491,26 @@ async def stream_events(run_id: str, after: int = 0, authorization: str = Header
     return StreamingResponse(_gen(), media_type="text/event-stream")
 
 
+class CancelBody(BaseModel):
+    reason: str = ""
+
+
 @app.post("/runs/{run_id}/cancel")
-def cancel_run(run_id: str, authorization: str = Header(None)):
+def cancel_run(run_id: str, body: CancelBody = None, authorization: str = Header(None)):
     """Cancellation is a first-class terminal state — a cancelled run must NEVER render as failed/dead
-    (it would lie about the system). Queued runs cancel immediately; running ones at the next stage."""
-    _user_of(authorization)
+    (it would lie about the system). Queued runs cancel immediately; running ones at the next stage.
+    LOTE-01·A3: the author (session user) and reason are REGISTERED — a cancellation without an author
+    is a hole in the registry (ERP rule)."""
+    user = _user_of(authorization)
     if db.get_run(run_id) is None:
         raise HTTPException(status_code=404, detail="no such run")
-    accepted = db.request_cancel(run_id)
+    reason = (body.reason if body else "") or ""
+    accepted = db.request_cancel(run_id, by=user["user_id"], reason=reason)
     if not accepted:
         raise HTTPException(status_code=409, detail={"state": db.get_run(run_id)["state"],
                                                      "note": "only queued/running runs can be cancelled"})
-    db.add_event(run_id, "run.cancel_requested", level="warning")
+    db.add_event(run_id, "run.cancel_requested", level="warning",
+                 payload={"by": user["user_id"], "reason": reason})
     return _run_view(db.get_run(run_id))
 
 
@@ -447,6 +524,34 @@ def close_run(run_id: str, authorization: str = Header(None)):
     if not res.get("closed"):
         raise HTTPException(status_code=409, detail=res)
     return res
+
+
+# --- taxonomy (LOTE-01·A6): the Rack's filters come from ONE door — the UI refuses to copy the files
+# (drift); this serves the three living sources verbatim with declared provenance (path + mtime). ------
+
+_TAXONOMY_CACHE = {"at": 0.0, "data": None}
+_TAXONOMY_FILES = {"niches": ROOT / "rag_index" / "niches.json",
+                   "databases": ROOT / "rag_index" / "databases.json",
+                   "crosswalk": ROOT / "rag_index" / "niche_database_crosswalk.json"}
+
+
+@app.get("/taxonomia")
+def taxonomia(authorization: str = Header(None)):
+    """Read-only taxonomy: niches (13, frozen since ADR-0018 — human-gated mutable), databases, and the
+    niche-database crosswalk, each with its provenance (repo path + mtime). TTL-cached."""
+    _user_of(authorization)
+    now = time.time()
+    if _TAXONOMY_CACHE["data"] and now - _TAXONOMY_CACHE["at"] < ARTIFACTS_TTL_S:
+        return _TAXONOMY_CACHE["data"]
+    data, provenance = {}, {}
+    for key, path in _TAXONOMY_FILES.items():
+        data[key] = json.loads(path.read_text(encoding="utf-8"))
+        provenance[key] = {"path": str(path.relative_to(ROOT)).replace("\\", "/"),
+                           "mtime": datetime.datetime.fromtimestamp(
+                               path.stat().st_mtime, datetime.timezone.utc).isoformat(timespec="seconds")}
+    out = {**data, "provenance": provenance, "refreshed_at": _now_iso()}
+    _TAXONOMY_CACHE.update(at=now, data=out)
+    return out
 
 
 # --- precedent layer (block 6, ADR-0053): the OTHER index — separate admissibility, equal value ------

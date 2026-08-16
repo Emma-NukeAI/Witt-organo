@@ -70,6 +70,9 @@ runs = Table(
     Column("closed_by", String(64)),
     Column("last_event_at", DateTime(timezone=True)),         # heartbeat: 'no event for N min' detector
     Column("cancel_requested", Boolean, nullable=False, default=False),
+    Column("cancelled_by", String(64)),                       # LOTE-01·A3: a cancellation without an author
+    Column("cancel_reason", Text),                            # is a hole in the registry (ERP rule)
+    Column("usage_json", Text),                               # LOTE-01·A4: spend persists on EVERY exit path
     Column("error", Text),
     Column("bundle_json", Text),                              # the full evidence bundle (ADR-0043/0044)
     Column("frozen_record_json", Text),                       # the frozen record the UI renders (read-only)
@@ -100,6 +103,23 @@ def engine():
 
 def init_db():
     metadata.create_all(engine())
+    _migrate()
+
+
+def _migrate():
+    """Additive column migrations for PRE-EXISTING tables — create_all never ALTERs, and the prod
+    Postgres already holds runs (ADR-0050). Idempotent: each ADD COLUMN is tried and silently skipped
+    when the column exists (works on SQLite and Postgres). Additive-only by policy; a destructive
+    migration would need its own ADR."""
+    from sqlalchemy import text
+    for stmt in ("ALTER TABLE runs ADD COLUMN cancelled_by VARCHAR(64)",
+                 "ALTER TABLE runs ADD COLUMN cancel_reason TEXT",
+                 "ALTER TABLE runs ADD COLUMN usage_json TEXT"):
+        try:
+            with engine().begin() as cx:
+                cx.execute(text(stmt))
+        except Exception:
+            pass  # column already there
 
 
 def _now():
@@ -240,13 +260,24 @@ def get_run(run_id: str):
 
 
 def list_runs(user_id=None, limit=50):
+    """List rows carry the SAME field set the detail view derives from (LOTE-01·A1): heartbeat inputs,
+    cancellation authorship and usage — a stuck run must be distinguishable from the LIST, and the
+    datetime normalization must match the detail (SQLite drops tzinfo)."""
     with engine().begin() as cx:
         q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
-                   runs.c.created_at, runs.c.finished_at, runs.c.last_event_at)
+                   runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
+                   runs.c.last_event_at, runs.c.cancelled_by, runs.c.cancel_reason,
+                   runs.c.usage_json, runs.c.error)
         if user_id:
             q = q.where(runs.c.user_id == user_id)
         rows = cx.execute(q.order_by(runs.c.created_at.desc()).limit(limit)).all()
-    return [dict(r._mapping) for r in rows]
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at"):
+            d[k] = _dt_utc(d.get(k))
+        out.append(d)
+    return out
 
 
 def update_run(run_id: str, **values):
@@ -254,14 +285,16 @@ def update_run(run_id: str, **values):
         cx.execute(runs.update().where(runs.c.run_id == run_id).values(**values))
 
 
-def request_cancel(run_id: str) -> bool:
+def request_cancel(run_id: str, by=None, reason=None) -> bool:
     """Flag a queued/running run for cancellation (checked between stages). A queued run cancels
-    immediately; a running one cancels at its next stage boundary."""
+    immediately; a running one cancels at its next stage boundary. LOTE-01·A3: the author and reason
+    are part of the registry — a cancellation without them is a hole in the record."""
     with engine().begin() as cx:
         row = cx.execute(select(runs.c.state).where(runs.c.run_id == run_id)).first()
         if row is None or row._mapping["state"] not in ("queued", "running"):
             return False
-        cx.execute(runs.update().where(runs.c.run_id == run_id).values(cancel_requested=True))
+        cx.execute(runs.update().where(runs.c.run_id == run_id)
+                   .values(cancel_requested=True, cancelled_by=by, cancel_reason=reason))
         if row._mapping["state"] == "queued":
             cx.execute(runs.update().where(runs.c.run_id == run_id, runs.c.state == "queued")
                        .values(state="cancelled", finished_at=_now()))

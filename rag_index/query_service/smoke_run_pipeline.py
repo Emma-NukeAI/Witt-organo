@@ -26,6 +26,7 @@ except Exception:
 TMP = Path(tempfile.mkdtemp(prefix="smoke_run_pipeline_"))
 os.environ["WITT_BACKEND_DB_URL"] = f"sqlite:///{TMP / 'backend.db'}"
 os.environ.pop("NEO4J_URI", None)
+os.environ["WITT_ALLOW_RUNS_OFFLINE"] = "1"   # dev sparse siempre esta OFFLINE (LOTE-01·A5 override)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import app  # noqa: E402
@@ -184,6 +185,22 @@ view = app.get_run(RID, authorization=AUTH)
 check("latido expuesto (heartbeat_age_s) y no-stale tras actividad",
       view["heartbeat_age_s"] is not None and view["heartbeat_stale"] is False)
 
+# ---- LOTE-01·A1/A2: la LISTA trae el latido + el umbral viaja con la derivacion ----------------------
+lst = app.list_runs(authorization=AUTH)["runs"]
+check("GET /runs (lista) via _run_view: latido + umbral + token_usage + fechas como el detalle",
+      lst and all(("heartbeat_age_s" in r and "heartbeat_stale" in r
+                   and r["heartbeat_stale_after_s"] == app.HEARTBEAT_STALE_S
+                   and "token_usage" in r) for r in lst)
+      and view["heartbeat_stale_after_s"] == app.HEARTBEAT_STALE_S)
+
+# ---- LOTE-01·A5: POST /runs bloquea con el indice OFFLINE (server-side, no disciplina de UI) ---------
+os.environ.pop("WITT_ALLOW_RUNS_OFFLINE", None)
+err = _http_error(app.create_run, app.RunBody(question="should be blocked", entities=[]),
+                  authorization=AUTH)
+os.environ["WITT_ALLOW_RUNS_OFFLINE"] = "1"
+check("indice OFFLINE sin override -> POST /runs = 409 index_offline (bloquea, no degrada)",
+      err == 409)
+
 # ---- 5b. fallback por CONFIANZA (el fix que pidio la corrida #1: tau=0.5) ----------------------------
 rv = app.create_run(app.RunBody(question="thin evidence question", entities=[]), authorization=AUTH)
 claimed = db.claim_next_queued()
@@ -236,9 +253,12 @@ check("close doble -> 409 (el cierre es unico)", _http_error(app.close_run, RID,
 # ---- 7. cancelacion como estado de primera clase -----------------------------------------------------
 rv = app.create_run(app.RunBody(question="cancel me", entities=[]), authorization=AUTH)
 RID2 = rv["run_id"]
-app.cancel_run(RID2, authorization=AUTH)
+app.cancel_run(RID2, body=app.CancelBody(reason="cambie de opinion"), authorization=AUTH)
 check("cancel de un run queued -> cancelled inmediato (no failed, no muerto)",
       db.get_run(RID2)["state"] == "cancelled")
+v2 = app.get_run(RID2, authorization=AUTH)
+check("LOTE-01·A3: la cancelacion registra autor (sesion) y razon, visibles en la vista",
+      v2["cancelled_by"] == "natalia" and v2["cancel_reason"] == "cambie de opinion")
 rv = app.create_run(app.RunBody(question="cancel mid-flight", entities=[]), authorization=AUTH)
 RID3 = rv["run_id"]
 claimed = db.claim_next_queued()
@@ -253,6 +273,10 @@ runs_mod.execute_run(claimed, synthesizer=_synth_then_cancel,
                      panel_caller=_stub_caller_factory(ALL_A))
 check("cancel en vuelo: se detecta en la frontera de etapa -> cancelled (jamas disfrazado de failed)",
       db.get_run(RID3)["state"] == "cancelled" and db.get_run(RID3)["error"] is None)
+v3 = app.get_run(RID3, authorization=AUTH)
+check("LOTE-01·A4: lo gastado ANTES de la cancelacion queda visible (pass1 = 100 in / 50 out)",
+      v3["token_usage"] is not None and v3["token_usage"]["input_tokens"] == 100
+      and v3["token_usage"]["output_tokens"] == 50 and "cost_class" in v3["token_usage"])
 
 # ---- 8. fallo honesto ---------------------------------------------------------------------------------
 rv = app.create_run(app.RunBody(question="explode", entities=[]), authorization=AUTH)
@@ -267,6 +291,10 @@ runs_mod.execute_run(claimed, synthesizer=_synth_boom, panel_caller=_stub_caller
 run = db.get_run(rv["run_id"])
 check("fallo -> failed con error registrado + evento level=error",
       run["state"] == "failed" and "synth exploded" in (run["error"] or ""))
+vf = app.get_run(rv["run_id"], authorization=AUTH)
+check("LOTE-01·A4: una corrida failed tambien expone su token_usage (aqui 0, medido no ausente)",
+      vf["token_usage"] is not None and vf["token_usage"]["input_tokens"] == 0
+      and "cost_class" in vf["token_usage"])
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))

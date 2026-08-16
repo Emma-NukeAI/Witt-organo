@@ -1,0 +1,11 @@
+{
+  "_readme": "Config changes that affect score/resolution COMPARABILITY (the catalog has history — the ERP rule from registro-congelado.md; served by /status as embed_model_changed_at). Human-maintained, append-only: add an entry per change, never rewrite. Seeded 2026-08-15 (LOTE-01·A8, ADR-0055); dates sourced from ADRs, never from memory.",
+  "entries": [
+    {
+      "field": "embed_model",
+      "value": "openai text-embedding-3-small (1536-dim)",
+      "changed_at": "2026-06-12",
+      "source": "ADR-0021 (hosted deployment: Neo4j vector index doc_embeddings, 1536-dim, OpenAI embeddings); hard-pinned since by ADR-0039/0040 (EMBED_MODEL=openai whenever NEO4J_URI is set)"
+    }
+  ]
+}
