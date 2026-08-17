@@ -35,9 +35,15 @@ import time
 import urllib.error
 import urllib.request
 
-VOCABULARY = ("APPROVE", "APPROVE_MINOR", "REVISE")
-SOURCE_VOCABULARY = "APPROVE|APPROVE_MINOR|REVISE"
-_SEVERITY = {"APPROVE": 0, "APPROVE_MINOR": 1, "REVISE": 2}
+# ADR-0058 (decisión de Emmanuel, 2026-08-16): APPROVE_DECLINE distingue la DECLINACIÓN CORRECTA del
+# claim rechazado. Las dos únicas corridas reales terminaron AUDIT_REJECTED por decir la verdad sobre
+# una ausencia — si el panel castiga sistemáticamente la honestidad, todo hallazgo negativo (dato de
+# primera clase en este proyecto) nace objetado y el equipo aprende a ignorar el veredicto. Una
+# declinación correcta APRUEBA (severidad entre APPROVE y APPROVE_MINOR: la caracterización específica
+# domina al approve genérico; cualquier issue real domina a ambas).
+VOCABULARY = ("APPROVE", "APPROVE_DECLINE", "APPROVE_MINOR", "REVISE")
+SOURCE_VOCABULARY = "APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE"
+_SEVERITY = {"APPROVE": 0, "APPROVE_DECLINE": 1, "APPROVE_MINOR": 2, "REVISE": 3}
 
 DEFAULT_PANEL = [
     {"reviewer": "claude-opus-4-8", "family": "anthropic", "lens": "correctness"},
@@ -52,8 +58,13 @@ ANTHROPIC_VERSION = "2023-06-01"
 VERDICT_TOOL = {
     "name": "emit_audit_verdict",
     "description": ("Emit your adversarial audit verdict for the claim under your assigned lens. "
-                    "APPROVE = no material issue found; APPROVE_MINOR = real but minor issues, state them; "
-                    "REVISE = a material problem the answer must fix before it may be shown. "
+                    "APPROVE = no material issue found; "
+                    "APPROVE_DECLINE = the claim HONESTLY DECLINES to answer (absence_kind declared) and "
+                    "declining IS the correct epistemic move given the evidence — a correctly identified "
+                    "absence is a first-class negative finding (it routes to re-ingest), NOT a defect; "
+                    "APPROVE_MINOR = real but minor issues, state them; "
+                    "REVISE = a material problem the answer must fix before it may be shown (including a "
+                    "LAZY decline: refusing to answer when the evidence actually supported answering). "
                     "Report ONLY what you actually found in the provided material; you are handed the "
                     "deterministic verification results — do NOT claim any verification you did not run."),
     "input_schema": {
@@ -81,7 +92,10 @@ _LENS_CHARGES = {
                            "An identifier the deterministic gate marked unresolved is an automatic REVISE."),
     "reproducibility": ("As a cross-provider reviewer, check the reasoning chain END-TO-END: could an "
                         "independent reader reproduce the conclusion from the evidence shown? Flag leaps, "
-                        "missing steps, and reliance on unstated knowledge."),
+                        "missing steps, and reliance on unstated knowledge. An honest decline IS "
+                        "reproducible when an independent reader of the same evidence would also conclude "
+                        "it is insufficient — that is APPROVE_DECLINE, not a defect (ADR-0058: this exact "
+                        "lens vetoed both real runs for telling the truth about an absence)."),
 }
 
 
@@ -232,6 +246,12 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     for member in panel:
         system = (f"You are one reviewer on an adversarial composite-audit panel (zebrafish pronephros "
                   f"research substrate). Your assigned lens: {member['lens']}. {_LENS_CHARGES[member['lens']]} "
+                  f"HONEST-DECLINE DOCTRINE (ADR-0058): when the claim declines to answer WITH its "
+                  f"absence_kind declared, judge whether DECLINING is the correct move given the evidence "
+                  f"shown (external literature included, if fetched) — do NOT punish the decline for the "
+                  f"absence itself: a correctly identified absence is a first-class negative finding of "
+                  f"this system (it triggers the re-ingest loop). Correct decline -> APPROVE_DECLINE; "
+                  f"decline despite sufficient evidence (lazy) -> REVISE. "
                   f"You are handed deterministic verification results in the input — cite them; NEVER claim "
                   f"a verification you did not run. Vote independently; other reviewers cover other lenses.")
         try:
@@ -268,9 +288,10 @@ def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=N
     bundle identity is re-stamped after the enrichment (ADR-0044)."""
     if answer_pipeline_module is None:
         from lib import answer_pipeline as answer_pipeline_module
-    approved_overall = audit_result["verdict"] in ("APPROVE", "APPROVE_MINOR")
+    approved_overall = audit_result["verdict"] in ("APPROVE", "APPROVE_DECLINE", "APPROVE_MINOR")
     # v1 granularity: the panel audits the claim+evidence as a whole; per-item verdicts are a refinement
-    # (noted in ADR-0049). APPROVE/APPROVE_MINOR admits the evidence set; REVISE rejects it.
+    # (noted in ADR-0049). APPROVE/APPROVE_DECLINE/APPROVE_MINOR admits; REVISE rejects. ADR-0058: a
+    # CORRECT decline terminates AUDIT_APPROVED — the negative finding is admitted as first-class.
     approved = list(evidence_ids) if approved_overall else []
     rejected = [] if approved_overall else list(evidence_ids)
     bundle = answer_pipeline_module.record_audit(

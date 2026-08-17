@@ -101,7 +101,23 @@ ALL_A = {"correctness": "APPROVE", "overclaim": "APPROVE", "evidence-grounding":
 r = composite_auditor.audit({"c": 1}, {"e": 1}, caller=_stub_caller_factory(ALL_A))
 check("panel 4/4 APPROVE -> APPROVE, tally correcto, source_vocabulary presente",
       r["verdict"] == "APPROVE" and r["tally"]["APPROVE"] == 4
-      and r["source_vocabulary"] == "APPROVE|APPROVE_MINOR|REVISE" and r["n_valid"] == 4)
+      and r["source_vocabulary"] == "APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE" and r["n_valid"] == 4)
+# ADR-0058: la declinacion correcta es su propio veredicto y APRUEBA
+r = composite_auditor.audit({"c": 1}, {"e": 1}, caller=_stub_caller_factory(
+    {**ALL_A, "reproducibility": "APPROVE_DECLINE"}))
+check("ADR-0058: APPROVE_DECLINE domina al APPROVE generico (caracterizacion especifica)",
+      r["verdict"] == "APPROVE_DECLINE")
+r = composite_auditor.audit({"c": 1}, {"e": 1}, caller=_stub_caller_factory(
+    {**ALL_A, "reproducibility": "APPROVE_DECLINE", "overclaim": "APPROVE_MINOR"}))
+check("ADR-0058: un issue real (APPROVE_MINOR) domina a la declinacion", r["verdict"] == "APPROVE_MINOR")
+b_dec = answer_pipeline.retrieve("honest decline run")
+r_dec = composite_auditor.audit({"c": 1}, {"e": 1}, caller=_stub_caller_factory(
+    {"correctness": "APPROVE_DECLINE", "overclaim": "APPROVE_DECLINE",
+     "evidence-grounding": "APPROVE_DECLINE", "reproducibility": "APPROVE_DECLINE"}))
+b_dec = composite_auditor.apply_to_bundle(b_dec, r_dec, ["x"])
+check("ADR-0058: la declinacion honesta correcta termina AUDIT_APPROVED (hallazgo de primera clase)",
+      b_dec["decision_state"]["state"] == "AUDIT_APPROVED"
+      and b_dec["audit"]["verdict"] == "APPROVE_DECLINE")
 r = composite_auditor.audit({"c": 1}, {"e": 1}, caller=_stub_caller_factory(
     {**ALL_A, "overclaim": "APPROVE_MINOR"}))
 check("worst-of: un APPROVE_MINOR degrada el verdict global", r["verdict"] == "APPROVE_MINOR")
