@@ -30,6 +30,7 @@ evaluation/run_held_out.py. The caller is INJECTABLE so gates run offline and de
 """
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -84,6 +85,43 @@ _LENS_CHARGES = {
 }
 
 
+_TRAP_RE = re.compile(r'<parameter\s+name="([^"]+)">\s*([^<]*)', re.S)
+
+
+def recover_trapped_params(tool_input):
+    """Deterministic recovery of tool parameters the model emitted as XML-ish TEXT inside a string
+    field — the finding of BOTH real production runs (LOTE-03 / ADR-0057): direct_answer ended with
+    `…</parameter>\\n<parameter name="confidence">0.15`, so the value EXISTED but arrived as prose and
+    the field read None ("ABSENT after retry" — falsely).
+
+    A regex, not a judgment: (1) cut each string field at the first serialization artifact
+    (`</parameter>` or `<parameter name=`) so the prose a doctor reads never ends in garbage;
+    (2) lift trapped values into their fields ONLY where the field is absent/None (never overwrite a
+    properly emitted value); (3) list what was lifted in `_recovered_fields` — a recovered value is
+    NEVER silent: callers must surface provenance (the UI renders recovered ≠ clean measurement)."""
+    trapped, cuts = {}, {}
+    for key, val in tool_input.items():
+        if not isinstance(val, str):
+            continue
+        idxs = [i for i in (val.find("</parameter>"), val.find("<parameter name=")) if i != -1]
+        if not idxs:
+            continue
+        cut = min(idxs)
+        cuts[key] = val[:cut].rstrip()
+        for name, raw in _TRAP_RE.findall(val[cut:]):
+            raw = raw.strip()
+            if not raw or name in trapped:
+                continue
+            trapped[name] = float(raw) if re.fullmatch(r"-?\d+(\.\d+)?", raw) else raw
+    tool_input.update(cuts)
+    recovered = [n for n, v in trapped.items() if tool_input.get(n) is None]
+    for n in recovered:
+        tool_input[n] = trapped[n]
+    if recovered:
+        tool_input["_recovered_fields"] = sorted(recovered)
+    return tool_input
+
+
 def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200):
     """Forced-tool Messages call (urllib; the run_held_out.py pattern). Returns (tool_input, usage).
     `tool` defaults to VERDICT_TOOL; the run synthesizer reuses this with its own schema (ADR-0050)."""
@@ -116,6 +154,11 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
             raise last
         tool_input = next((b["input"] for b in payload.get("content", [])
                            if b.get("type") == "tool_use" and b.get("name") == tool["name"]), None)
+        if tool_input is not None:
+            # ADR-0057: recover BEFORE the required-fields check — a value trapped as text satisfies
+            # `required` once lifted (with provenance), instead of burning a retry that repeats the
+            # same malformation (observed: the retry ran and the model derailed identically).
+            tool_input = recover_trapped_params(dict(tool_input))
         bad_verdict = (tool["name"] == VERDICT_TOOL["name"]
                        and (tool_input or {}).get("verdict") not in VOCABULARY)
         if tool_input is None or bad_verdict:

@@ -33,7 +33,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db  # noqa: E402
 from lib import answer_pipeline, composite_auditor, resolve_id, verify_output  # noqa: E402
 
-RENDER_CONTRACT_VERSION = "1.1"   # block 4 (ADR-0051): +confidence{pass1,pass2,delta,by_subclaim,state}, +fallback, +citations, +token_usage
+RENDER_CONTRACT_VERSION = "1.2"   # ADR-0057: +confidence.source/pass1_source/pass2_source (procedencia:
+                                  # stated | recovered-from-malformed-tool-call | derived-min-of-subclaims),
+                                  # +path_b.query_sent/query_source/n_results_by_source. 1.1 = ADR-0051.
 SYNTH_MODEL = "claude-opus-4-8"   # best-tier policy (2026-06-13 directive) — never downgraded to save cost
 
 # tau (ADR-0051): pass-1 confidence below this triggers the Path B fallback — the model's own "is my
@@ -64,6 +66,12 @@ SYNTH_TOOL = {
                                 "'evidence-of-no-effect' (retrieved evidence actively supports a null "
                                 "effect). These are OPPOSITE epistemic states; never conflate them. "
                                 "'not-applicable' when the answer asserts positive evidence.")},
+            "search_query_en": {
+                "type": "string",
+                "description": ("ENGLISH keyword query for external literature search (gene symbols + "
+                                "concise English domain terms, e.g. 'osr1 pax2a zebrafish pronephros "
+                                "induction'). ALWAYS provide it — a low-confidence pass triggers an "
+                                "external search and the index is English-only (ADR-0057).")},
             "gap_flags": {"type": "array", "items": {"type": "string"}},
             "evidence_cited": {
                 "type": "array",
@@ -127,15 +135,43 @@ def _default_synthesizer(question, evidence, pass_label):
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
     gap_flags = list(out.get("gap_flags", []))
-    if out.get("confidence") is None:
-        # run a361f566 surfaced this: the model may omit the field even when required. Three-state
-        # discipline: an absent value is DECLARED, never a silent null.
+    recovered = out.get("_recovered_fields", [])
+    conf = out.get("confidence")
+    if conf is not None:
+        # ADR-0057: BOTH real runs shipped the scalar TRAPPED as text inside direct_answer; the
+        # recovery lifts it deterministically — with provenance, never silently.
+        conf_source = ("recovered-from-malformed-tool-call" if "confidence" in recovered else "stated")
+        if "confidence" in recovered:
+            gap_flags.append(f"stated_confidence RECOVERED from a malformed tool call in {pass_label} "
+                             "(serialization artifact stripped from direct_answer) — provenance declared, "
+                             "render as recovered, not as a clean measurement")
+    elif out.get("confidence_by_subclaim"):
+        conf_source = None   # runs.py derives min-of-subclaims (declared there) — §5 allows the OR
+    else:
+        conf_source = None
         gap_flags.append(f"stated_confidence ABSENT in {pass_label} (omitted after retry) — not calibratable")
-    return {"direct_answer": out["direct_answer"], "stated_confidence": out.get("confidence"),
+    return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
+            "confidence_source": conf_source,
             "confidence_by_subclaim": out.get("confidence_by_subclaim"),
             "absence_kind": out.get("absence_kind"),
+            "search_query_en": out.get("search_query_en"),
             "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
             "model": SYNTH_MODEL, "usage": usage}
+
+
+def _resolve_confidence(answer):
+    """(value, source) for the fallback gate and the record. §5's own contract is `confidence OR
+    confidence_by_subclaim`: when the model honestly refuses one scalar over asymmetric sub-claims
+    (the run-99986dbb hypothesis) but emits by_subclaim, we DERIVE min-of-subclaims — worst-of, the
+    house aggregation rule, conservative for the never-stopper gate — and DECLARE the derivation."""
+    conf = answer.get("stated_confidence")
+    if conf is not None:
+        return conf, (answer.get("confidence_source") or "stated")
+    subs = answer.get("confidence_by_subclaim") or {}
+    vals = [v for v in subs.values() if isinstance(v, (int, float))]
+    if vals:
+        return round(min(vals), 4), "derived-min-of-subclaims"
+    return None, None
 
 
 def _normalize_citations(items):
@@ -256,9 +292,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         db.add_event(run_id, "stage.synthesize.start", agent=SYNTH_MODEL)
         pass1 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=False), "pass1")
         passes.append(("pass1", pass1))
-        conf1 = pass1.get("stated_confidence")
+        conf1, conf1_source = _resolve_confidence(pass1)
         db.add_event(run_id, "stage.synthesize.pass1", agent=pass1.get("model"),
-                     payload={"stated_confidence": conf1, "absence_kind": pass1.get("absence_kind"),
+                     payload={"stated_confidence": conf1, "confidence_source": conf1_source,
+                              "absence_kind": pass1.get("absence_kind"),
                               "gap_flags": pass1.get("gap_flags", [])})
         _check_cancel()
 
@@ -269,13 +306,23 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         conf_fired = (not structural_fired) and (conf1 is None or conf1 < FALLBACK_CONF_TAU)
         trigger = "structural" if structural_fired else ("confidence" if conf_fired else None)
         if conf_fired:
-            papers = answer_pipeline.path_b(run["question"])
+            # ADR-0057: the query SENT to the English index is never the raw (Spanish) question when a
+            # better source exists — the synthesizer's English keywords first, entities second.
+            entities = [e for e in run["entities_csv"].split(",") if e]
+            if (pass1.get("search_query_en") or "").strip():
+                q_sent, q_source = pass1["search_query_en"].strip(), "synthesizer"
+            else:
+                q_sent, q_source = answer_pipeline.build_external_query(run["question"], entities)
+            papers = answer_pipeline.path_b(run["question"], query=q_sent)
             bundle["path_b"] = {
                 "triggered": True,
                 "triggered_by": [f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU}"
                                  if conf1 is not None else
                                  f"confidence-gate: pass1_confidence ABSENT (tau={FALLBACK_CONF_TAU})"],
                 "papers": papers,
+                "query_sent": q_sent, "query_source": q_source,
+                "n_results_by_source": {"europepmc": sum(1 for p in papers
+                                                         if p.get("source") == "europepmc")},
                 "tool_universe_directive": answer_pipeline.tool_universe_directive(run["question"])}
             # external evidence entered the run -> the honest state is FALLBACK_FETCHED (same
             # constructor, same literals — never a re-invented machine)
@@ -286,10 +333,14 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                               "fallback, ADR-0051; audit on 100% of runs, ADR-0049).")
             db.add_event(run_id, "stage.path_b", agent="answer_pipeline",
                          payload={"triggered": True, "trigger": "confidence",
-                                  "n_papers": len(papers)})
+                                  "n_papers": len(papers), "query_sent": q_sent,
+                                  "query_source": q_source,
+                                  "n_results_by_source": bundle["path_b"]["n_results_by_source"]})
             _check_cancel()
         bundle["fallback"] = {"trigger": trigger,
-                              "fb_meta": {"pass1_confidence": conf1, "tau": FALLBACK_CONF_TAU,
+                              "fb_meta": {"pass1_confidence": conf1,
+                                          "pass1_confidence_source": conf1_source,
+                                          "tau": FALLBACK_CONF_TAU,
                                           "structural_sufficient": not structural_fired,
                                           "absence_kind": pass1.get("absence_kind")}}
 
@@ -299,16 +350,19 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         if trigger:
             pass2 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=True), "pass2")
             passes.append(("pass2", pass2))
-            conf2 = pass2.get("stated_confidence")
+            conf2, conf2_source = _resolve_confidence(pass2)
             delta = (round(conf2 - conf1, 4) if isinstance(conf1, (int, float))
                      and isinstance(conf2, (int, float)) else None)
             db.add_event(run_id, "stage.synthesize.pass2", agent=pass2.get("model"),
-                         payload={"stated_confidence": conf2, "delta_vs_pass1": delta,
+                         payload={"stated_confidence": conf2, "confidence_source": conf2_source,
+                                  "delta_vs_pass1": delta,
                                   "absence_kind": pass2.get("absence_kind")})
             answer = pass2
+            final_conf, final_source = conf2, conf2_source
         else:
-            conf2, delta = None, None
+            conf2, conf2_source, delta = None, None, None
             answer = pass1
+            final_conf, final_source = conf1, conf1_source
         bundle["bundle_identity"] = answer_pipeline._identity(bundle)
         _check_cancel()
 
@@ -349,12 +403,17 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             # block 4 (ADR-0051): which decider fired the fallback + the two-pass confidence story
             "fallback": bundle["fallback"],
             "confidence": {
-                "pass1": conf1, "pass2": conf2, "delta": delta,
-                "final": answer.get("stated_confidence"),
+                "pass1": conf1, "pass1_source": conf1_source,
+                "pass2": conf2, "pass2_source": conf2_source,
+                "delta": delta,
+                "final": final_conf,
+                # ADR-0057: the EXACT provenance field the UI renders — a recovered or derived value
+                # is a value (state), but it is NEVER a clean measurement (source says how it exists):
+                # "stated" | "recovered-from-malformed-tool-call" | "derived-min-of-subclaims" | null
+                "source": final_source,
                 "by_subclaim": answer.get("confidence_by_subclaim"),
                 # three-state discipline: a null NEVER masquerades as a measurement
-                "state": ("value" if answer.get("stated_confidence") is not None
-                          else "absent-not-calibratable"),
+                "state": "value" if final_conf is not None else "absent-not-calibratable",
             },
             "audit": bundle["audit"],
             "answer": {"direct_answer": answer["direct_answer"],

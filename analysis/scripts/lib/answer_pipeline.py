@@ -159,12 +159,27 @@ def tool_universe_directive(question, n=2):
     }
 
 
-def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse")):
+def build_external_query(question, entities=None):
+    """The query actually SENT to external literature (ADR-0057). Europe PMC is an ENGLISH biomedical
+    index: sending the team's Spanish question verbatim returns ZERO results (verified live: ES→0,
+    EN→3, entities→3 — production run 99986dbb). Deterministic rule: resolved entities (English gene
+    symbols, the strongest signal) when present; the raw question otherwise. Callers RECORD what was
+    sent — 'searched badly' must never look identical to 'nothing exists'."""
+    ents = [e.strip() for e in (entities or []) if e and e.strip()]
+    if ents:
+        return " ".join(ents), "entities"
+    return question, "question-verbatim"
+
+
+def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse"), query=None):
     """External fallback — MULTI-SOURCE, never a stopper. Europe PMC is the built-in dependency-free
-    source; Tool Universe (PubMed + more DBs) layers in when reachable. Each paper records its `source`."""
+    source; Tool Universe (PubMed + more DBs) layers in when reachable. Each paper records its `source`.
+    `query` (ADR-0057): the search string actually sent to the external index; defaults to the raw
+    question ONLY as last resort (see build_external_query — Spanish questions return zero)."""
+    q_sent = query or question
     papers = []
     if "europepmc" in sources:
-        for rec in fetch_paper.search_europepmc(question, n=n):
+        for rec in fetch_paper.search_europepmc(q_sent, n=n):
             ident = f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi"))
             got = fetch_paper.fetch_external(ident, want_full_text=full_text) if ident else {"found": False}
             papers.append({
@@ -218,10 +233,19 @@ def retrieve(question, entities=None, n_papers=2, on_stage=None):
                           "included). Feed the verdict to record_audit(); lib/composite_auditor.py is the "
                           "invokable panel.")
     else:
+        q_sent, q_source = build_external_query(question, entities)
+        papers = path_b(question, n=n_papers, query=q_sent)
         bundle["path_b"] = {"triggered": True, "triggered_by": suf["reasons"],
-                            "papers": path_b(question, n=n_papers),
+                            "papers": papers,
+                            # ADR-0057: what was ACTUALLY searched, auditable — a Path B that searched
+                            # badly must never look identical to a Path B that found nothing.
+                            "query_sent": q_sent, "query_source": q_source,
+                            "n_results_by_source": {"europepmc": sum(
+                                1 for p in papers if p.get("source") == "europepmc")},
                             "tool_universe_directive": tool_universe_directive(question, n_papers)}
-        _stage("path_b", {"triggered": True, "n_papers": len(bundle["path_b"]["papers"])})
+        _stage("path_b", {"triggered": True, "n_papers": len(papers),
+                          "query_sent": q_sent, "query_source": q_source,
+                          "n_results_by_source": bundle["path_b"]["n_results_by_source"]})
         bundle["decision_state"] = _state(
             "FALLBACK_FETCHED", may_answer=False, may_propose=False,
             required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict each Path-B paper "

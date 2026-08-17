@@ -66,15 +66,17 @@ def _stub_caller_factory(verdicts):
     return _caller
 
 
-def _mk_synth(conf_by_pass):
-    """Sintetizador stub de dos pasadas: conf_by_pass = {'pass1': x, 'pass2': y}."""
+def _mk_synth(conf_by_pass, extra=None):
+    """Sintetizador stub de dos pasadas: conf_by_pass = {'pass1': x, 'pass2': y} (+campos extra)."""
     def _synth(question, evidence, pass_label):
-        return {"direct_answer": "wt1a (ENSDARG00000031420) marks the zebrafish pronephros.",
-                "stated_confidence": conf_by_pass.get(pass_label, 0.8),
-                "confidence_by_subclaim": {"marker-expression": 0.9, "functional-requirement": 0.3},
-                "absence_kind": "not-applicable",
-                "gap_flags": [], "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}],
-                "model": "stub-synth", "usage": {"input_tokens": 100, "output_tokens": 50}}
+        out = {"direct_answer": "wt1a (ENSDARG00000031420) marks the zebrafish pronephros.",
+               "stated_confidence": conf_by_pass.get(pass_label, 0.8),
+               "confidence_by_subclaim": {"marker-expression": 0.9, "functional-requirement": 0.3},
+               "absence_kind": "not-applicable",
+               "gap_flags": [], "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}],
+               "model": "stub-synth", "usage": {"input_tokens": 100, "output_tokens": 50}}
+        out.update(extra or {})
+        return out
     return _synth
 
 
@@ -159,7 +161,7 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.1" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.2" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -236,14 +238,72 @@ rag_backend.query = lambda text, k=6: HitList([_chunk], degraded=None)
 # ---- 5d. confianza AUSENTE -> dispara fallback + estado declarado (jamas null silencioso) ------------
 rv = app.create_run(app.RunBody(question="model omits confidence", entities=[]), authorization=AUTH)
 claimed = db.claim_next_queued()
-runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": None, "pass2": None}),
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": None, "pass2": None},
+                                                    extra={"confidence_by_subclaim": None}),
                      panel_caller=_stub_caller_factory(ALL_A))
 rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
-check("confianza ausente: dispara el gate + confidence.state='absent-not-calibratable' declarado",
+check("confianza ausente (ni escalar ni subclaims): gate + 'absent-not-calibratable' declarado",
       rec["fallback"]["trigger"] == "confidence"
       and rec["fallback"]["fb_meta"]["pass1_confidence"] is None
       and rec["confidence"]["state"] == "absent-not-calibratable"
       and rec["confidence"]["delta"] is None)
+
+# ---- LOTE-03·2: la confianza atrapada como texto se RECUPERA, con procedencia declarada --------------
+prod_artifact = {"direct_answer": "…no hay evidencia funcional (marcadores pronéfricos).</parameter>\n"
+                                  '<parameter name="confidence">0.15',
+                 "confidence": None, "absence_kind": "no-evidence-retrieved"}
+out = composite_auditor.recover_trapped_params(dict(prod_artifact))
+check("recover_trapped_params: el artefacto EXACTO de produccion (2/2 corridas) se recupera",
+      out["confidence"] == 0.15 and out["_recovered_fields"] == ["confidence"]
+      and "<parameter" not in out["direct_answer"] and "</parameter" not in out["direct_answer"]
+      and out["direct_answer"].endswith("(marcadores pronéfricos)."))
+clean = composite_auditor.recover_trapped_params({"direct_answer": "texto limpio.", "confidence": 0.8})
+check("recover_trapped_params: una salida limpia pasa intacta (sin _recovered_fields)",
+      clean["confidence"] == 0.8 and "_recovered_fields" not in clean)
+rv = app.create_run(app.RunBody(question="recovered conf run", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth(
+    {"pass1": 0.15, "pass2": 0.75},
+    extra={"confidence_source": "recovered-from-malformed-tool-call"}),
+    panel_caller=_stub_caller_factory(ALL_A))
+rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+check("procedencia en el registro: fb_meta.pass1_confidence_source='recovered-…' + gate disparado (0.15<tau)",
+      rec["fallback"]["trigger"] == "confidence"
+      and rec["fallback"]["fb_meta"]["pass1_confidence_source"] == "recovered-from-malformed-tool-call"
+      and rec["confidence"]["pass1_source"] == "recovered-from-malformed-tool-call")
+
+# ---- LOTE-03·2b: §5 permite el OR — by_subclaim sin escalar deriva min (worst-of, declarado) ----------
+rv = app.create_run(app.RunBody(question="subclaims only run", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth(
+    {"pass1": None, "pass2": 0.75},
+    extra={"confidence_by_subclaim": {"a": 0.60, "b": 0.10, "c": 0.05}}),
+    panel_caller=_stub_caller_factory(ALL_A))
+rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+check("by_subclaim sin escalar: gate usa min (0.05) DECLARADO como derived-min-of-subclaims",
+      rec["fallback"]["fb_meta"]["pass1_confidence"] == 0.05
+      and rec["fallback"]["fb_meta"]["pass1_confidence_source"] == "derived-min-of-subclaims"
+      and rec["confidence"]["pass1_source"] == "derived-min-of-subclaims"
+      and rec["confidence"]["source"] == "stated" and rec["confidence"]["final"] == 0.75)
+
+# ---- LOTE-03·1: la query externa se construye y se REGISTRA (jamas la pregunta ES verbatim a ciegas) --
+q_sent, q_src = answer_pipeline.build_external_query("¿Qué señal induce el pronefros?", ["osr1", "pax2a"])
+check("build_external_query: entidades (EN) primero; la fuente se declara",
+      q_sent == "osr1 pax2a" and q_src == "entities"
+      and answer_pipeline.build_external_query("solo pregunta", [])[1] == "question-verbatim")
+rv = app.create_run(app.RunBody(question="pregunta en español sin cobertura",
+                                entities=["osr1", "pax2a"]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth(
+    {"pass1": 0.2, "pass2": 0.7},
+    extra={"search_query_en": "osr1 pax2a zebrafish pronephros induction"}),
+    panel_caller=_stub_caller_factory(ALL_A))
+ev_types = app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]
+pb = next(e for e in ev_types if e["type"] == "stage.path_b")
+check("conf-gated: la query del sintetizador (EN) se usa y queda AUDITABLE en el evento",
+      pb["payload"]["query_sent"] == "osr1 pax2a zebrafish pronephros induction"
+      and pb["payload"]["query_source"] == "synthesizer"
+      and "n_results_by_source" in pb["payload"])
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)
