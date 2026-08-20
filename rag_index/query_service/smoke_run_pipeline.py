@@ -74,6 +74,11 @@ def _mk_synth(conf_by_pass, extra=None):
                "confidence_by_subclaim": {"marker-expression": 0.9, "functional-requirement": 0.3},
                "absence_kind": "not-applicable",
                "gap_flags": [], "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}],
+               # contrato §5 (ADR-0060): el stub cita el criterio REAL del catalogo
+               "alternatives_considered": ["wt1b como paralogo redundante: descartado, sin evidencia"],
+               "framework_applied": "Logic-LM",
+               "framework_criterion": "for any task whose criteria are formalizable",
+               "framework_reason": "la admisibilidad del identificador es formalizable",
                "model": "stub-synth", "usage": {"input_tokens": 100, "output_tokens": 50}}
         out.update(extra or {})
         return out
@@ -177,7 +182,7 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.2" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.3" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -400,6 +405,70 @@ check("_evidence_ids prefiere evidence_id: dos items sin PMID ya no colapsan en 
                               "path_b": {"papers": [{"evidence_id": "ZFIN:A"}, {"evidence_id": "ZFIN:B"},
                                                     {"search_rec": {"pmid": "999"}}]}})
       == ["ZFIN:A", "ZFIN:B", "PMID:999"])
+
+# ---- ADR-0060 / tapon 2: los tres campos §5 que faltaban en el 100% de las corridas ------------------
+from lib import reasoning_catalog  # noqa: E402
+
+fa = rec["reasoning"]["framework_applied"]
+check("framework_applied: el modelo elige el NOMBRE; la SECCION y el TIER los resuelve la TABLA "
+      "(§4: citar el header del tier en vez de la seccion es falla de auditoria, paso 2 veces)",
+      fa["name"] == "Logic-LM" and fa["catalog_section"] == "§5" and fa["tier"] == 1,
+      f"seccion={fa['catalog_section']} tier={fa['tier']}")
+check("framework_applied viaja marcado como SELF-REPORT (§5 nota critica) — jamas como medicion",
+      fa["class"] == "self-report" and "introspección" in fa["class_note"])
+check("la cita se VERIFICA contra el catalogo: un criterio real hace match",
+      fa["criterion_matches_catalog"] is True and fa["criterion_overlap"] >= 0.5,
+      f"overlap={fa['criterion_overlap']}")
+inventado = reasoning_catalog.resolve("Logic-LM", "porque el modelo lo considero apropiado hoy")
+check("un criterio INVENTADO se registra como no-coincidente — se declara, no se rechaza",
+      inventado["criterion_matches_catalog"] is False and inventado["catalog_section"] == "§5")
+nm = reasoning_catalog.resolve(reasoning_catalog.NONE_MATCHED, "", "pregunta abierta, ninguno aplica")
+check("NONE-MATCHED es un destino legitimo: seccion y tier NULOS + la declaracion explicita que pide §4",
+      nm["catalog_section"] is None and nm["tier"] is None
+      and nm["declared_no_rigorous_framework"] is True)
+raro = reasoning_catalog.resolve("Razonamiento Cosmico", "algo")
+check("un nombre fuera del vocabulario se registra CRUDO y marcado off_catalog — no se corrige ni se tira",
+      raro["name"] == "Razonamiento Cosmico" and raro["off_catalog"] is True
+      and raro["catalog_section"] is None)
+
+sf = rec["reasoning"]["structural_frameworks"]
+check("structural_frameworks: lo que el PIPELINE aplica, derivado del codigo (contrapeso al self-report)",
+      all(x["class"] == "derived-from-code" for x in sf)
+      and any(x["catalog_section"] == "§5" and "verify_output" in x["component"] for x in sf))
+check("el panel NO se disfraza de Self-Consistency: worst-of-N no es voto por mayoria, y se dice",
+      any("NO es Self-Consistency" in x["note"] for x in sf))
+
+ai = {a["agent"]: a for a in rec["agents_invoked"]}
+check("agents_invoked DERIVADO de lo que corrio (§11), nunca auto-reportado por el modelo",
+      ai["composite-auditor"]["status"] == "invoked"
+      and ai["composite-auditor"]["invocation_id"].startswith("panel:")
+      and any("verdict:" in e for e in ai["composite-auditor"]["evidence_generated"]))
+pre = ai["(preflight §11 sobre el catálogo de agentes)"]
+check("el hueco del planner queda DECLARADO en cada corrida: not-assessed != skipped-ad-hoc "
+      "(saltarse con justificacion afirmaria un juicio que nadie hizo)",
+      pre["status"] == "not-assessed" and "planner" in pre["reason"])
+
+check("alternatives_considered viaja en el registro (§5: la asimetria entre formatos es violacion)",
+      rec["alternatives_considered"] == ["wt1b como paralogo redundante: descartado, sin evidencia"])
+
+# ausencia: null, NO lista vacia — y declarada en gap_flags
+rv_sin = app.create_run(app.RunBody(question="sin campos §5", entities=[]), authorization=AUTH)
+runs_mod.execute_run(db.claim_next_queued(),
+                     synthesizer=lambda q, e, pl: {"direct_answer": "x", "stated_confidence": 0.9,
+                                                   "absence_kind": "not-applicable", "gap_flags": [],
+                                                   "evidence_cited": [], "model": "stub-pelon",
+                                                   "usage": {}},
+                     panel_caller=_stub_caller_factory(ALL_A))
+rsin = app.get_frozen_record(rv_sin["run_id"], authorization=AUTH)
+check("§5 ausente -> null (NO [] que se leeria como 'no habia alternativas') + seccion/tier nulos",
+      rsin["alternatives_considered"] is None
+      and rsin["reasoning"]["framework_applied"]["name"] is None
+      and rsin["reasoning"]["framework_applied"]["catalog_section"] is None
+      and rsin["reasoning"]["framework_applied"]["class"] == "self-report")
+check("el digest del catalogo va en el prompt: sin el, pedir la cita FABRICA numeros de seccion",
+      "Logic-LM (Tier 1)" in reasoning_catalog.digest()
+      and "NONE-MATCHED" in reasoning_catalog.digest()
+      and all(f in reasoning_catalog.ENUM for f in ("Logic-LM", "Self-Consistency")))
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)

@@ -96,8 +96,12 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (54/54 offline; `smoke_query_service.py`
-29/29). Contrato del registro: `render_contract_version 1.2` (ADR-0057: `confidence.source` con procedencia
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (67/67 offline; `smoke_query_service.py`
+29/29). Contrato del registro: `render_contract_version 1.3` (ADR-0060: los tres campos §5 que faltaban —
+`reasoning.framework_applied` SELF-REPORT con sección/tier resueltos por tabla y la cita comprobada
+contra el catálogo, `reasoning.structural_frameworks` derivados del código, `agents_invoked` derivado de
+lo que corrió con el hueco del planner declarado `not-assessed`, y `alternatives_considered` con sus tres
+estados). 1.2 (ADR-0057: `confidence.source` con procedencia
 stated|recovered-from-malformed-tool-call|derived-min-of-subclaims; `path_b.query_sent/query_source` auditables). `/resolve` declara `taxonomy_axes.served: false` — los ejes por entidad derivan del grafo
 (browse, Rack fase 2), nunca de esa puerta.
 

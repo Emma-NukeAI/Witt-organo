@@ -31,11 +31,13 @@ sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import db  # noqa: E402
-from lib import answer_pipeline, composite_auditor, resolve_id, verify_output  # noqa: E402
+from lib import (answer_pipeline, composite_auditor, reasoning_catalog, resolve_id,  # noqa: E402
+                 verify_output)
 
-RENDER_CONTRACT_VERSION = "1.2"   # ADR-0057: +confidence.source/pass1_source/pass2_source (procedencia:
-                                  # stated | recovered-from-malformed-tool-call | derived-min-of-subclaims),
-                                  # +path_b.query_sent/query_source/n_results_by_source. 1.1 = ADR-0051.
+RENDER_CONTRACT_VERSION = "1.3"   # ADR-0060 (tapón 2): +reasoning {framework_applied (SELF-REPORT, con
+                                  # sección y tier resueltos por tabla), structural_frameworks (derivados
+                                  # del código)}, +agents_invoked (derivado, §11), +alternatives_considered.
+                                  # 1.2 = ADR-0057 (confidence.source + path_b.query_sent). 1.1 = ADR-0051.
 SYNTH_MODEL = "claude-opus-4-8"   # best-tier policy (2026-06-13 directive) — never downgraded to save cost
 
 # tau (ADR-0051): pass-1 confidence below this triggers the Path B fallback — the model's own "is my
@@ -83,10 +85,66 @@ SYNTH_TOOL = {
                     "note": {"type": "string"}},
                     "required": ["kind", "id"]},
                 "description": "typed citations — every claim traces to a doc_id / CORPUS id / PMID"},
+            # --- contrato §5, campos que faltaban en 100% de las corridas de la webapp (ADR-0060) ---
+            "alternatives_considered": {
+                "type": "array", "items": {"type": "string"},
+                "description": ("REQUIRED by CLAUDE.md §5: the hypotheses/readings you REJECTED and why, "
+                                "one per item. An answer with no alternatives considered is either "
+                                "trivial or under-examined — say which. Asymmetry between formats is a "
+                                "contract violation, so this travels in the record, not only in prose.")},
+            "framework_applied": {
+                "type": "string", "enum": reasoning_catalog.ENUM,
+                "description": ("The reasoning framework you applied, chosen from the catalog handed to "
+                                "you in the system prompt. Pick the NAME only — the catalog section and "
+                                "the tier are resolved deterministically from a table, NOT from you "
+                                "(CLAUDE.md §4 records two real sessions that cited 'Tier 2' instead of "
+                                "the framework section; that is an audit failure). If none matches, "
+                                "answer NONE-MATCHED instead of forcing one.")},
+            "framework_criterion": {
+                "type": "string",
+                "description": ("QUOTE the applicability criterion from that framework's catalog entry "
+                                "that your task actually matched. Required by §4: naming the framework "
+                                "without quoting the criterion is an audit failure. Empty when "
+                                "NONE-MATCHED — and then say why in framework_reason.")},
+            "framework_reason": {
+                "type": "string",
+                "description": "one line on why this framework fits (or why none did)"},
         },
-        "required": ["direct_answer", "confidence", "absence_kind"],
+        "required": ["direct_answer", "confidence", "absence_kind", "alternatives_considered",
+                     "framework_applied"],
     },
 }
+
+
+def _agents_invoked(audit_result, deterministic_checks):
+    """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
+    agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
+
+    Schema per §11: {agent, status, invocation_id|reason, evidence_generated}."""
+    out = [{
+        "agent": "composite-auditor",
+        "status": "invoked",
+        "invocation_id": f"panel:{audit_result.get('n_valid')}/{len(audit_result.get('panel', []))}",
+        "evidence_generated": [f"verdict:{audit_result.get('verdict')}",
+                               f"tally:{json.dumps(audit_result.get('tally', {}), sort_keys=True)}"],
+    }, {
+        "agent": "verify_output (gate determinista, clase Logic-LM)",
+        "status": "invoked",
+        "invocation_id": "deterministic_gate",
+        "evidence_generated": [f"admissible:{deterministic_checks.get('admissible')}"],
+    }, {
+        # El hueco, DECLARADO en cada corrida en vez de invisible: §11 pide un preflight que decida qué
+        # agente del catálogo dueño del work-type se invoca o se salta con justificación. La ruta HTTP no
+        # tiene planner (tapón 3), así que ese juicio NO se hizo. `not-assessed` NO es `skipped-ad-hoc`:
+        # saltarse con justificación afirma que alguien juzgó; esto afirma que nadie juzgó.
+        "agent": "(preflight §11 sobre el catálogo de agentes)",
+        "status": "not-assessed",
+        "reason": ("la corrida de la webapp no tiene planner: ningún componente decide qué agente del "
+                   "catálogo es dueño del work-type de esta respuesta. NO equivale a skipped-ad-hoc "
+                   "(que afirmaría un juicio hecho). Se desbloquea con el planner de M3."),
+        "evidence_generated": [],
+    }]
+    return out
 
 
 class RunCancelled(Exception):
@@ -136,7 +194,12 @@ def _default_synthesizer(question, evidence, pass_label):
               "LOW confidence + explicit gap_flags); when sub-claims have asymmetric evidence strength, "
               "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
               "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
-              "identifier that is not in the evidence.")
+              "identifier that is not in the evidence.\n\n"
+              # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
+              # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
+              # fabrica números de sección, que es peor que no pedir nada.
+              + reasoning_catalog.digest()
+              + "\n\nAlso report alternatives_considered (§5): the readings you rejected and why.")
     user_text = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
@@ -156,12 +219,23 @@ def _default_synthesizer(question, evidence, pass_label):
     else:
         conf_source = None
         gap_flags.append(f"stated_confidence ABSENT in {pass_label} (omitted after retry) — not calibratable")
+    if not out.get("framework_applied"):
+        gap_flags.append(f"framework_applied AUSENTE en {pass_label} (§4 lo exige) — no se inventa: "
+                         "el registro lo declara ausente")
+    if not out.get("alternatives_considered"):
+        gap_flags.append(f"alternatives_considered AUSENTE en {pass_label} (§5 lo exige) — declarado, "
+                         "no rellenado con una lista vacía que se leería como 'no había alternativas'")
     return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
             "confidence_source": conf_source,
             "confidence_by_subclaim": out.get("confidence_by_subclaim"),
             "absence_kind": out.get("absence_kind"),
             "search_query_en": out.get("search_query_en"),
             "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
+            # contrato §5 (ADR-0060): self-report del modelo; runs.py resuelve sección/tier por tabla
+            "alternatives_considered": out.get("alternatives_considered"),
+            "framework_applied": out.get("framework_applied"),
+            "framework_criterion": out.get("framework_criterion"),
+            "framework_reason": out.get("framework_reason"),
             "model": SYNTH_MODEL, "usage": usage}
 
 
@@ -422,6 +496,21 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                        "absence_kind": answer.get("absence_kind"),
                        "gap_flags": answer.get("gap_flags", []),
                        "model": answer.get("model")},
+            # --- contrato §5, ADR-0060 -------------------------------------------------------------
+            # alternatives_considered: null (ausente) NO es [] (se consideraron y no había). Tres
+            # estados, como en todo este contrato.
+            "alternatives_considered": answer.get("alternatives_considered"),
+            "reasoning": {
+                # SELF-REPORT del modelo, con la sección y el tier resueltos por TABLA (§4): el modelo
+                # sólo elige el nombre y cita el criterio, así que no puede citar una sección que no
+                # existe. `criterion_matches_catalog` dice si la cita vino de verdad del catálogo.
+                "framework_applied": reasoning_catalog.resolve(
+                    answer.get("framework_applied"), answer.get("framework_criterion"),
+                    answer.get("framework_reason") or ""),
+                # y el contrapeso honesto: lo que el PIPELINE aplica, pase lo que pase con la etiqueta
+                "structural_frameworks": reasoning_catalog.structural_frameworks(),
+            },
+            "agents_invoked": _agents_invoked(audit_result, checks),
             "citations": _normalize_citations(answer.get("evidence_cited")),
             "deterministic_checks": checks,
             "token_usage": token_usage,
