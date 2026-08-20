@@ -101,6 +101,38 @@ Bloque integrado sobre la pregunta real de `a361f566…` (`entities=['wt1a']`): 
 **Webapp:** `npm run gate` → **111/111 PASS** (+1: el desglose por fuente y el tally visibles en la
 traza).
 
+### Corrida real end-to-end (2026-08-20) — el A/B contra la corrida histórica
+
+`ea96d70e120143df9fdfd339a3aeb208`, **misma pregunta** que `a361f566…`: Neo4j real, Opus 4.8 real,
+panel real de 4 jueces, ZFIN real. USD **0.1833** (proyección desde 24,560 in / 4,837 out medidos).
+
+| | `a361f566…` (2026-08-10, contrato 1.0, sin ZFIN) | `ea96d70e…` (2026-08-20, contrato 1.2, con ZFIN) |
+|---|---|---|
+| Respuesta | *"no wt1a requirement for pronephros development can be asserted"* | *"**Yes.** wt1a is required… concentrado en el compartimento glomérulo/podocito"* |
+| `absence_kind` | (no existía en 1.0) | pass1 `no-evidence-retrieved` → pass2 `not-applicable` |
+| Confianza | 0.15, atrapada en el texto | 0.15 → **0.86**, delta **+0.71** |
+| Veredicto | **REVISE** (gpt-4o/reproducibility vetó) | **APPROVE_MINOR** — 2 APPROVE + 2 APPROVE_MINOR, **cero REVISE**; gpt-4o APPROVE 0.95 |
+| Terminal | `AUDIT_REJECTED` | **`AUDIT_APPROVED`** |
+| Citas | prosa, sin tipo | 5 tipadas: 1 `store-resolution` + 4 PMIDs de ZFIN |
+
+Tres cosas que la corrida confirma más allá del tapón:
+
+1. **El decisor de confianza es el que salva la corrida.** `fb_meta.structural_sufficient: true` — el
+   decisor estructural volvió a decir "suficiente" (el defecto fooled-by-any-chunk-present que el repo
+   documenta), y fue el gate de confianza (0.15 < 0.5) el que disparó la Ruta B. Confirmación viva de la
+   tesis de ADR-0051.
+2. **La respuesta quedó MÁS FINA que un "sí".** El modelo notó que los readouts de ducto y túbulo salen
+   `NORMAL` en la perturbación de wt1a (PMID:21871448) y acotó el claim a podocito/glomérulo en vez de
+   afirmar un requerimiento uniforme. Y sus `gap_flags` declaran que los hits de Path A eran off-topic y
+   que la respuesta descansa en el set de ZFIN — exactamente la conducta que el contrato §5 pide.
+3. **El bug del escalar atrapado sigue vivo: 3 de 3 corridas reales.** `confidence.source` =
+   `recovered-from-malformed-tool-call` en **ambas** pasadas. La recuperación de ADR-0057 no es un parche
+   histórico: es infraestructura que carga peso en cada corrida. Vale abrir la pregunta de por qué Opus
+   sigue emitiendo el escalar dentro de `direct_answer`.
+
+Cierre explícito ejercido: `frozen_at` 2026-08-20T19:20:26Z, `closed_by: emmanuel`,
+`epistemic_summary = {semantic, APPROVE_MINOR, value, 4}`.
+
 ## Pendiente que esta decisión NO cierra
 
 Tapón 1·B (SDK de Tool Universe en el contenedor del query service — **nunca** en el `.venv` del MCP) ·
