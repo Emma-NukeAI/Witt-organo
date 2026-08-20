@@ -112,8 +112,14 @@ def _compact_evidence(bundle, include_path_b=True):
 
 
 def _evidence_ids(bundle):
+    """The ids the audit's approved/rejected lists key on. `evidence_id` (set by path_b for every source)
+    is preferred: a multi-source Path B where several items fall back to the literal "paper" collapses
+    distinct evidence into one key, and the panel's verdict then lands on the wrong item."""
     ids = [h["doc_id"] for h in bundle["path_a"]["hits"]]
     for p in bundle["path_b"].get("papers", []):
+        if p.get("evidence_id"):
+            ids.append(p["evidence_id"])
+            continue
         rec = p.get("search_rec", {})
         ids.append(f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi") or "paper"))
     return ids
@@ -313,17 +319,14 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 q_sent, q_source = pass1["search_query_en"].strip(), "synthesizer"
             else:
                 q_sent, q_source = answer_pipeline.build_external_query(run["question"], entities)
-            papers = answer_pipeline.path_b(run["question"], query=q_sent)
-            bundle["path_b"] = {
-                "triggered": True,
-                "triggered_by": [f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU}"
-                                 if conf1 is not None else
-                                 f"confidence-gate: pass1_confidence ABSENT (tau={FALLBACK_CONF_TAU})"],
-                "papers": papers,
-                "query_sent": q_sent, "query_source": q_source,
-                "n_results_by_source": {"europepmc": sum(1 for p in papers
-                                                         if p.get("source") == "europepmc")},
-                "tool_universe_directive": answer_pipeline.tool_universe_directive(run["question"])}
+            # ONE builder for the block (answer_pipeline.path_b_bundle) — the structural trigger inside
+            # retrieve() and this confidence-gated one must not maintain two copies of the same dict.
+            # `entities` travels: the zfin source keys on gene SYMBOLS, not on a free-text query.
+            bundle["path_b"] = answer_pipeline.path_b_bundle(
+                run["question"], entities=entities, query=q_sent, query_source=q_source,
+                triggered_by=[f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU}"
+                              if conf1 is not None else
+                              f"confidence-gate: pass1_confidence ABSENT (tau={FALLBACK_CONF_TAU})"])
             # external evidence entered the run -> the honest state is FALLBACK_FETCHED (same
             # constructor, same literals — never a re-invented machine)
             bundle["decision_state"] = answer_pipeline._state(
@@ -332,10 +335,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                               "externally-augmented answer BEFORE it may be shown (confidence-gated "
                               "fallback, ADR-0051; audit on 100% of runs, ADR-0049).")
             db.add_event(run_id, "stage.path_b", agent="answer_pipeline",
-                         payload={"triggered": True, "trigger": "confidence",
-                                  "n_papers": len(papers), "query_sent": q_sent,
-                                  "query_source": q_source,
-                                  "n_results_by_source": bundle["path_b"]["n_results_by_source"]})
+                         payload=answer_pipeline.path_b_event_payload(bundle["path_b"],
+                                                                     trigger="confidence"))
             _check_cancel()
         bundle["fallback"] = {"trigger": trigger,
                               "fb_meta": {"pass1_confidence": conf1,

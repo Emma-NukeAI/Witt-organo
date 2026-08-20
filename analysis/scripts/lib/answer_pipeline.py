@@ -3,7 +3,12 @@ answer_pipeline.py — DI-first / external-fallback retrieval orchestrator (ADR-
 
 Given a question, gathers evidence on TWO paths:
   Path A — DATA INAMOVIBLE first: semantic query (rag_backend, live Neo4j) + resolve key entities.
-  Path B — external fallback (only when A is insufficient): Europe PMC search + fetch_paper full text.
+  Path B — external fallback (only when A is insufficient), MULTI-SOURCE (see PATH_B_SOURCES):
+             europepmc — literature search + fetch_paper full text (free, no key)
+             zfin      — NATIVE zebrafish mutant/knockdown phenotypes with PMIDs, from the project's own
+                         Tool Universe workspace tool (tapón 1·A, 2026-08-19). A stronger evidence tier
+                         than generic literature for a pronephros claim; keys on gene SYMBOLS.
+             tooluniverse — the PACKAGE tools; still a named directive until the SDK ships (tapón 1·B).
   NEVER-STOPPER (founder rule, 2026-06-13): absence in DI never stops the answer — it TRIGGERS Path B.
 
 Output = an auditor-ready EVIDENCE BUNDLE. This stage only gathers + routes; it does NOT audit
@@ -47,6 +52,7 @@ import os
 import re
 import sys
 import pathlib
+import time
 import uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[2].parent
@@ -136,8 +142,175 @@ def _search_tooluniverse(question, n):
     Not reachable from this standalone script today (SDK absent in .venv; MCP is per-session), so it returns
     [] and Europe PMC stays the dependency-free default. The explicit MCP query an agent should run is
     surfaced by tool_universe_directive() and threaded into the bundle (path_b.tool_universe_directive),
-    so Tool Universe is NAMED + actionable by the agent rather than silently dropped (ADR-0022 / ADR-0026)."""
+    so Tool Universe is NAMED + actionable by the agent rather than silently dropped (ADR-0022 / ADR-0026).
+
+    NOTE (tapón 1·A): the WORKSPACE tools of `.tooluniverse/tools/` do NOT go through here — they are
+    stdlib-pure and importable by path, so they run for real (see _search_zfin). This hook stays for the
+    PACKAGE tools, which still need the SDK (tapón 1·B)."""
     return []
+
+
+# --- Tool Universe workspace tools (tapón 1·A) --------------------------------------------------
+# `.tooluniverse/tools/*.py` are the project's OWN tools: stdlib-pure and explicitly "importable +
+# testable without the tooluniverse package installed" (their own docstrings). They are tracked in git,
+# so the service container gets them with `COPY . /app`. Loading them BY PATH is required: the directory
+# is dot-prefixed, hence not an importable package.
+_TU_WORKSPACE = ROOT / ".tooluniverse" / "tools"
+_WS_CACHE = {}
+
+
+def _workspace_tool(filename, attr):
+    """Load one workspace-tool callable by path. Returns None when absent/unloadable — a missing tool
+    DEGRADES its source and is declared in the ledger; it never breaks a run (§6 no-hang rule)."""
+    key = (filename, attr)
+    if key not in _WS_CACHE:
+        fn = None
+        try:
+            import importlib.util
+            path = _TU_WORKSPACE / filename
+            spec = importlib.util.spec_from_file_location(f"_witt_ws_{path.stem}", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            fn = getattr(mod, attr, None)
+        except Exception:
+            fn = None
+        _WS_CACHE[key] = fn
+    return _WS_CACHE[key]
+
+
+# Anatomy filter for ZFIN phenotype statements. ZFIN statements are ENGLISH; the team asks in Spanish,
+# so the table maps BOTH (the LOTE-03 lesson: an index in another language returns zero and it looks
+# identical to "nothing exists"). Deterministic and DECLARED — never a model deciding the filter.
+ZFIN_ANATOMY_TERMS = (
+    ("pronephr", ("pronephr", "pronefr", "prone fr")),
+    ("glomer",   ("glomer", "glomér")),
+    ("duct",     ("duct", "ducto", "conducto")),
+    ("tubul",    ("tubul", "túbul", "tubul")),
+    ("podocyte", ("podocyte", "podocito")),
+    ("kidney",   ("kidney", "riñón", "rinon", "renal")),
+)
+ZFIN_BUDGET_S = float(os.environ.get("WITT_ZFIN_BUDGET_S", "45"))
+ZFIN_MAX_ENTITIES = int(os.environ.get("WITT_ZFIN_MAX_ENTITIES", "6"))
+ZFIN_MAX_STATEMENTS = int(os.environ.get("WITT_ZFIN_MAX_STATEMENTS", "12"))
+
+
+def zfin_anatomy_filter(question):
+    """(term, source) — the anatomy keyword sent to ZFIN, derived deterministically from the question.
+    None means "no filter" (all phenotypes), which is a WIDER search, never a failed one."""
+    q = (question or "").lower()
+    for term, needles in ZFIN_ANATOMY_TERMS:
+        if any(nd in q for nd in needles):
+            return term, "question-keyword-table"
+    return None, "no-anatomy-term-in-question"
+
+
+def _search_zfin(entities, question, budget_s=None, max_entities=None, max_statements=None):
+    """Native zebrafish loss-of-function evidence (ZFIN via the Alliance of Genome Resources), the
+    Path-B source the human-centric tools cannot provide. Symbol -> ZFIN curie -> observed mutant/
+    knockdown phenotype STATEMENTS with backing PMIDs, taxon 7955, no API key.
+
+    Returns (items, ledger):
+      items  — evidence items (ONLY symbols that actually matched), same shape as the Europe PMC items
+      ledger — one row PER SYMBOL ATTEMPTED with an explicit status. This is the diagnostic LOTE-03
+               demanded: `no-match` ("searched, ZFIN has nothing on this anatomy") must never look like
+               `error` ("the search itself failed") or like a symbol we never tried.
+
+    Bounded by construction (§6 no-hang): a wall-clock budget stops the loop and the remaining symbols
+    are recorded as `skipped-budget`. Statements per gene are capped and the truncation is DECLARED —
+    a silent cut would render as "that is all ZFIN knows".
+    """
+    budget_s = ZFIN_BUDGET_S if budget_s is None else budget_s
+    max_entities = ZFIN_MAX_ENTITIES if max_entities is None else max_entities
+    max_statements = ZFIN_MAX_STATEMENTS if max_statements is None else max_statements
+
+    symbols = [e.strip() for e in (entities or []) if e and e.strip()]
+    query_zfin = _workspace_tool("zfin_zebrafish.py", "query_zfin")
+    anatomy, anatomy_source = zfin_anatomy_filter(question)
+    considered, over_cap = symbols[:max_entities], symbols[max_entities:]
+    items, ledger = [], []
+
+    if query_zfin is None:
+        return [], [{"symbol": s, "status": "tool-unavailable",
+                     "detail": f"{_TU_WORKSPACE / 'zfin_zebrafish.py'} not importable"}
+                    for s in considered]
+    if not symbols:
+        return [], []
+
+    t0 = time.monotonic()
+    for sym in considered:
+        if time.monotonic() - t0 > budget_s:
+            ledger.append({"symbol": sym, "status": "skipped-budget",
+                           "detail": f"ZFIN wall-clock budget {budget_s}s exhausted"})
+            continue
+        res = query_zfin(sym, anatomy=anatomy, limit=max_statements)
+        if res.get("status") != "success":
+            ledger.append({"symbol": sym, "status": "error", "detail": res.get("error", "")[:200]})
+            continue
+        d = res["data"]
+        n_matched = d.get("n_matched") or 0
+        row = {"symbol": sym, "status": "success" if n_matched else "no-match",
+               "curie": d.get("zfin_curie"), "n_matched": n_matched,
+               "n_phenotypes_total": d.get("n_phenotypes_total"),
+               "anatomy_filter": anatomy}
+        ledger.append(row)
+        if not n_matched:
+            continue
+        phenos = d.get("phenotypes", [])[:max_statements]
+        cached = _cache_zfin(sym, res)
+        items.append({
+            "source": "zfin",
+            # a REAL external identifier, resolved live from the symbol (never minted) — this is what
+            # the auditor's approved/rejected lists key on, so it must be unique and resolvable
+            "evidence_id": d.get("zfin_curie") or f"ZFIN:unresolved:{sym}",
+            "search_rec": {"pmid": None, "pmcid": None, "doi": None,
+                           "title": (f"ZFIN phenotypes — {sym}"
+                                     + (f" (anatomy: {anatomy})" if anatomy else " (all anatomies)")),
+                           "year": None, "journal": "ZFIN via Alliance of Genome Resources",
+                           "is_oa": True, "cited_by": None},
+            "fetched": {"found": True, "full_text": False, "n_chunks": None,
+                        "raw_cached": cached, "raw_ref": None},
+            "zfin": {"symbol": sym, "curie": d.get("zfin_curie"), "taxon": d.get("taxon"),
+                     "anatomy_filter": anatomy, "anatomy_filter_source": anatomy_source,
+                     "n_phenotypes_total": d.get("n_phenotypes_total"), "n_matched": n_matched,
+                     "n_returned": len(phenos), "truncated": n_matched > len(phenos),
+                     "phenotypes": phenos,
+                     # the PMIDs come straight from the authoritative API, not from a model; they are
+                     # RETRIEVED with provenance, NOT verified-for-citation (CLAUDE.md §7 — verify_output
+                     # still gates whatever the synthesizer chooses to cite)
+                     "identifier_provenance": "alliance-genome-api-live"},
+        })
+    for sym in over_cap:
+        ledger.append({"symbol": sym, "status": "skipped-cap",
+                       "detail": f"more than max_entities={max_entities} symbols in the run"})
+    return items, ledger
+
+
+def _cache_zfin(symbol, res):
+    """Persist the tool's DETERMINISTIC envelope under mcp_cache (§6 cache discipline). Named without
+    the `raw_` prefix on purpose: it is one deterministic transform away from the Alliance response —
+    the phenotype statements and PMIDs are verbatim, but it is not the untouched HTTP body, and this
+    project does not let a near-raw artifact borrow the word `raw`."""
+    try:
+        CACHE.mkdir(exist_ok=True)
+        date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+        slug = re.sub(r"[^a-z0-9]+", "-", symbol.lower()).strip("-") or "symbol"
+        p = CACHE / f"zfin_{slug}_{date}.json"
+        p.write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+        return [str(p.relative_to(ROOT))]
+    except Exception:
+        return []
+
+
+def n_results_by_source(papers):
+    """Per-source result counts for the bundle + the event payload (ADR-0057 made the total auditable;
+    per-source is what distinguishes 'this source found nothing' from 'this source never ran'). ONE
+    implementation, called from both Path-B trigger sites — a re-derived counter drifts."""
+    counts = {}
+    for p in papers or []:
+        src = p.get("source") or "unknown"
+        counts[src] = counts.get(src, 0) + 1
+    counts.setdefault("europepmc", 0)
+    return counts
 
 
 def tool_universe_directive(question, n=2):
@@ -171,11 +344,24 @@ def build_external_query(question, entities=None):
     return question, "question-verbatim"
 
 
-def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse"), query=None):
-    """External fallback — MULTI-SOURCE, never a stopper. Europe PMC is the built-in dependency-free
-    source; Tool Universe (PubMed + more DBs) layers in when reachable. Each paper records its `source`.
-    `query` (ADR-0057): the search string actually sent to the external index; defaults to the raw
-    question ONLY as last resort (see build_external_query — Spanish questions return zero)."""
+PATH_B_SOURCES = ("europepmc", "zfin", "tooluniverse")
+
+
+def path_b(question, n=2, full_text=True, sources=PATH_B_SOURCES, query=None, entities=None,
+           ledger_out=None):
+    """External fallback — MULTI-SOURCE, never a stopper. Each item records its `source`:
+      europepmc   — literature (built-in, dependency-free)
+      zfin        — NATIVE zebrafish loss-of-function phenotypes (tapón 1·A): a STRONGER evidence tier
+                    than generic literature for a pronephros claim, and invisible to the human-centric
+                    tools. Needs `entities` (gene symbols), not a free-text query.
+      tooluniverse— the PACKAGE tools; still a documented hook until the SDK ships (tapón 1·B).
+    `query` (ADR-0057): the search string actually sent to the external literature index; defaults to
+    the raw question ONLY as last resort (see build_external_query — Spanish questions return zero).
+    `ledger_out` (dict, optional): side channel for per-source search ledgers — the diagnostic that
+    keeps "searched and found nothing" distinguishable from "the search failed".
+
+    This function is the ONE seam the offline gates stub: everything that touches the network lives
+    here, so a stubbed path_b is a genuinely offline run."""
     q_sent = query or question
     papers = []
     if "europepmc" in sources:
@@ -184,12 +370,56 @@ def path_b(question, n=2, full_text=True, sources=("europepmc", "tooluniverse"),
             got = fetch_paper.fetch_external(ident, want_full_text=full_text) if ident else {"found": False}
             papers.append({
                 "source": "europepmc",
+                "evidence_id": ident or "paper",
                 "search_rec": {k: rec.get(k) for k in ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")},
                 "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached", "raw_ref")},
             })
+    if "zfin" in sources:
+        zfin_items, zfin_ledger = _search_zfin(entities, question)
+        papers += zfin_items
+        if ledger_out is not None:
+            ledger_out["zfin_searched"] = zfin_ledger
     if "tooluniverse" in sources:
         papers += _search_tooluniverse(question, n)  # documented breadth hook (live when MCP/SDK present)
     return papers
+
+
+def path_b_bundle(question, entities=None, n=2, query=None, query_source=None, triggered_by=None,
+                  sources=PATH_B_SOURCES):
+    """The `path_b` block of the bundle, built in ONE place. Both trigger sites (structural, inside
+    retrieve(); confidence-gated, inside runs.execute_run) call this — a re-assembled block is how the
+    per-source counters drift apart, and drifting counters are how a broken search looks like an empty
+    world (LOTE-03·1)."""
+    if query is None:
+        query, query_source = build_external_query(question, entities)
+    ledger = {}
+    papers = path_b(question, n=n, query=query, entities=entities, sources=sources, ledger_out=ledger)
+    block = {"triggered": True,
+             "triggered_by": list(triggered_by or []),
+             "papers": papers,
+             # ADR-0057: what was ACTUALLY searched, auditable — a Path B that searched badly must
+             # never look identical to a Path B that found nothing.
+             "query_sent": query, "query_source": query_source,
+             "n_results_by_source": n_results_by_source(papers),
+             "sources_requested": list(sources),
+             "tool_universe_directive": tool_universe_directive(question, n)}
+    block.update(ledger)   # zfin_searched: the per-symbol status ledger, when the source ran
+    return block
+
+
+def path_b_event_payload(block, trigger=None):
+    """The event payload for `stage.path_b` — the live trace and the replay read the SAME summary."""
+    p = {"triggered": True, "n_papers": len(block.get("papers", [])),
+         "query_sent": block.get("query_sent"), "query_source": block.get("query_source"),
+         "n_results_by_source": block.get("n_results_by_source", {})}
+    if trigger:
+        p["trigger"] = trigger
+    if "zfin_searched" in block:
+        led = block["zfin_searched"]
+        p["zfin_searched"] = led
+        p["zfin_status_tally"] = {s: sum(1 for r in led if r.get("status") == s)
+                                  for s in sorted({r.get("status") for r in led})}
+    return p
 
 
 def _state(name, may_answer, may_propose, required_next):
@@ -233,19 +463,9 @@ def retrieve(question, entities=None, n_papers=2, on_stage=None):
                           "included). Feed the verdict to record_audit(); lib/composite_auditor.py is the "
                           "invokable panel.")
     else:
-        q_sent, q_source = build_external_query(question, entities)
-        papers = path_b(question, n=n_papers, query=q_sent)
-        bundle["path_b"] = {"triggered": True, "triggered_by": suf["reasons"],
-                            "papers": papers,
-                            # ADR-0057: what was ACTUALLY searched, auditable — a Path B that searched
-                            # badly must never look identical to a Path B that found nothing.
-                            "query_sent": q_sent, "query_source": q_source,
-                            "n_results_by_source": {"europepmc": sum(
-                                1 for p in papers if p.get("source") == "europepmc")},
-                            "tool_universe_directive": tool_universe_directive(question, n_papers)}
-        _stage("path_b", {"triggered": True, "n_papers": len(papers),
-                          "query_sent": q_sent, "query_source": q_source,
-                          "n_results_by_source": bundle["path_b"]["n_results_by_source"]})
+        bundle["path_b"] = path_b_bundle(question, entities=entities, n=n_papers,
+                                         triggered_by=suf["reasons"])
+        _stage("path_b", path_b_event_payload(bundle["path_b"], trigger="structural"))
         bundle["decision_state"] = _state(
             "FALLBACK_FETCHED", may_answer=False, may_propose=False,
             required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict each Path-B paper "

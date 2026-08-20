@@ -321,6 +321,86 @@ check("conf-gated: la query del sintetizador (EN) se usa y queda AUDITABLE en el
       and pb["payload"]["query_source"] == "synthesizer"
       and "n_results_by_source" in pb["payload"])
 
+# ---- LOTE-04 / tapon 1A: ZFIN como fuente de Ruta B (nativo pez cebra) -------------------------------
+# Todo offline: la tool se inyecta en el cache de carga por path, y CACHE se desvia al tmp del gate
+# (el header promete cero mutacion, y eso incluye mcp_cache).
+_CACHE_REAL = answer_pipeline.CACHE
+answer_pipeline.CACHE = TMP / "mcp_cache"
+
+check("filtro anatomico determinista: ES y EN caen al MISMO termino de ZFIN (leccion LOTE-03: un "
+      "indice en otro idioma devuelve cero y se ve igual que 'no existe')",
+      answer_pipeline.zfin_anatomy_filter("¿Qué señal induce el pronefros?") == ("pronephr", "question-keyword-table")
+      and answer_pipeline.zfin_anatomy_filter("is wt1a required for pronephros") == ("pronephr", "question-keyword-table")
+      and answer_pipeline.zfin_anatomy_filter("pregunta sin anatomia") == (None, "no-anatomy-term-in-question"))
+
+def _fake_zfin(symbol, anatomy=None, limit=50):
+    if symbol == "boom":
+        return {"status": "error", "error": "HTTPError: 500"}
+    if symbol == "vacio":
+        return {"status": "success", "data": {"symbol": symbol, "zfin_curie": "ZFIN:ZDB-GENE-VACIO",
+                                             "taxon": "NCBITaxon:7955", "n_phenotypes_total": 143,
+                                             "n_matched": 0, "anatomy_filter": anatomy, "phenotypes": []}}
+    return {"status": "success", "data": {
+        "symbol": symbol, "zfin_curie": f"ZFIN:ZDB-GENE-{symbol.upper()}", "taxon": "NCBITaxon:7955",
+        "n_phenotypes_total": 143, "n_matched": 30, "anatomy_filter": anatomy,
+        "phenotypes": [{"statement": f"{symbol}: pronephric duct absent, abnormal",
+                        "references": ["12345678"]}] * 30}}
+
+answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = _fake_zfin
+items, ledger = answer_pipeline._search_zfin(
+    ["pax2a", "vacio", "boom", "a", "b", "c", "d"], "pronefros: ¿qué induce el pronefros?")
+by = {r["symbol"]: r["status"] for r in ledger}
+check("ZFIN distingue los CUATRO destinos de un simbolo: success / no-match / error / skipped-cap "
+      "(buscar y no hallar JAMAS se ve como que la busqueda fallo)",
+      by["pax2a"] == "success" and by["vacio"] == "no-match" and by["boom"] == "error"
+      and by["d"] == "skipped-cap" and len(ledger) == 7,
+      f"ledger={by}")
+check("ZFIN emite item SOLO cuando hubo match, con evidence_id = curie resuelto en vivo (nunca acuñado)",
+      len(items) == 4 and all(i["source"] == "zfin" for i in items)
+      and items[0]["evidence_id"] == "ZFIN:ZDB-GENE-PAX2A"
+      and all(i["evidence_id"] != "paper" for i in items),
+      f"n_items={len(items)}")
+z = items[0]["zfin"]
+check("el truncado de statements se DECLARA (n_matched 30 > n_returned 12) — un corte silencioso se "
+      "leeria como 'eso es todo lo que ZFIN sabe'",
+      z["n_matched"] == 30 and z["n_returned"] == 12 and z["truncated"] is True
+      and z["anatomy_filter"] == "pronephr" and z["taxon"] == "NCBITaxon:7955"
+      and z["identifier_provenance"] == "alliance-genome-api-live")
+check("presupuesto de reloj: agotado -> los simbolos restantes quedan skipped-budget, no invisibles",
+      [r["status"] for r in answer_pipeline._search_zfin(["x", "y"], "pronefros", budget_s=-1)[1]]
+      == ["skipped-budget", "skipped-budget"])
+answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = None
+check("tool ausente -> la fuente DEGRADA declarada (tool-unavailable), la corrida no truena (§6 no-hang)",
+      answer_pipeline._search_zfin(["pax2a"], "pronefros")[1][0]["status"] == "tool-unavailable")
+answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
+answer_pipeline.CACHE = _CACHE_REAL
+
+check("n_results_by_source: por fuente, y europepmc SIEMPRE presente (0 explicito != fuente ausente)",
+      answer_pipeline.n_results_by_source([{"source": "zfin"}, {"source": "zfin"}])
+      == {"zfin": 2, "europepmc": 0})
+
+# path_b sigue stubbeado ([]) -> path_b_bundle es offline y el bloque queda completo y declarado
+blk = answer_pipeline.path_b_bundle("pregunta", entities=["osr1"], triggered_by=["motivo"])
+check("path_b_bundle: UN constructor del bloque, con fuentes pedidas + contadores + query declarada",
+      blk["triggered"] is True and blk["query_sent"] == "osr1" and blk["query_source"] == "entities"
+      and blk["sources_requested"] == list(answer_pipeline.PATH_B_SOURCES)
+      and blk["n_results_by_source"] == {"europepmc": 0} and blk["triggered_by"] == ["motivo"])
+pl = answer_pipeline.path_b_event_payload(
+    {"papers": [], "query_sent": "q", "query_source": "entities",
+     "n_results_by_source": {"europepmc": 0, "zfin": 1},
+     "zfin_searched": [{"symbol": "a", "status": "success"}, {"symbol": "b", "status": "no-match"}]},
+    trigger="confidence")
+check("el evento stage.path_b lleva el desglose por fuente + el tally de ZFIN (la traza viva y el "
+      "replay leen el MISMO resumen)",
+      pl["n_results_by_source"]["zfin"] == 1 and pl["trigger"] == "confidence"
+      and pl["zfin_status_tally"] == {"no-match": 1, "success": 1})
+
+check("_evidence_ids prefiere evidence_id: dos items sin PMID ya no colapsan en la llave 'paper'",
+      runs_mod._evidence_ids({"path_a": {"hits": []},
+                              "path_b": {"papers": [{"evidence_id": "ZFIN:A"}, {"evidence_id": "ZFIN:B"},
+                                                    {"search_rec": {"pmid": "999"}}]}})
+      == ["ZFIN:A", "ZFIN:B", "PMID:999"])
+
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)
 rec2 = app.get_frozen_record(RID, authorization=AUTH)
