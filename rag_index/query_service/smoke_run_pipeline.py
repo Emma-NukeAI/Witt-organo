@@ -182,7 +182,7 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.3" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.4" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -469,6 +469,132 @@ check("el digest del catalogo va en el prompt: sin el, pedir la cita FABRICA num
       "Logic-LM (Tier 1)" in reasoning_catalog.digest()
       and "NONE-MATCHED" in reasoning_catalog.digest()
       and all(f in reasoning_catalog.ENUM for f in ("Logic-LM", "Self-Consistency")))
+
+# ---- ADR-0061 / tapon 3: el plan declarado ------------------------------------------------------------
+from lib import agent_matrix  # noqa: E402
+
+def _fake_planner_ok(question, entities):
+    return ({"work_type": "evidence-grounded QA con hipotesis de suficiencia",
+             "niches": ["N3", "N4"],
+             "agents_applicable": [
+                 {"agent": "causal-pruner", "reason": "la pregunta pide set minimo + suficiencia"},
+                 {"agent": "hypothesis-generator", "reason": "hipotesis fundada en literatura"},
+                 {"agent": "composite-auditor", "reason": "auditoria de la respuesta"}]},
+            {"input_tokens": 400, "output_tokens": 120})
+
+HIST_OK = ([{"cost_usd": 0.18, "duration_s": 60, "trigger": None}] * 3
+           + [{"cost_usd": 0.21, "duration_s": 95, "trigger": "confidence"}] * 3)
+
+pl = runs_mod.build_plan("¿osr1 es suficiente para inducir el pronefros ectopicamente?",
+                         ["osr1"], planner=_fake_planner_ok, history_rows=HIST_OK)
+check("plan: lo estructural viene del CODIGO (Ruta A siempre, B condicional con sus 2 decisores, "
+      "panel obligatorio con sus 4 lentes)",
+      pl["route"]["class"] == "structural" and pl["route"]["path_b"]["conditional"] is True
+      and len(pl["route"]["path_b"]["deciders"]) == 2
+      and pl["audit"]["required"] is True and len(pl["audit"]["panel"]) == 4)
+ags = {a["agent"]: a for a in pl["judgment"]["agents_applicable"]}
+check("plan: el modelo elige NOMBRES; el gate y la componentizacion los resuelve la TABLA "
+      "(causal-pruner=hard-rule sin componente; composite-auditor=componentizado)",
+      ags["causal-pruner"]["gate"] == "hard-rule" and ags["causal-pruner"]["componentized"] is False
+      and ags["causal-pruner"]["will_run"] == "skipped-ad-hoc"
+      and ags["composite-auditor"]["componentized"] is True
+      and ags["composite-auditor"]["will_run"] == "runs-always-componentized")
+check("plan: nichos resueltos con nombre y fase (§3) + in_scope",
+      pl["judgment"]["scope"]["in_scope"] is True
+      and any(n["code"] == "N3" and "Embriología" in n["name"] for n in pl["judgment"]["niches"]))
+check("plan: estimaciones DETERMINISTAS por escenario (mediana de historia real, clase PROJECTION)",
+      pl["estimates"]["di_only"]["state"] == "projected"
+      and pl["estimates"]["di_only"]["cost_usd"]["median"] == 0.18
+      and pl["estimates"]["with_fallback"]["duration_s"]["median"] == 95
+      and "PROJECTION" in pl["estimates"]["class"])
+# el defecto que destapo la PRIMERA corrida real del planner: escenario 'projected' con la mediana
+# de costo en null porque esas corridas no tenian gasto medido.
+HIST_SIN_COSTO = [{"cost_usd": None, "duration_s": 0.05, "trigger": None}] * 3
+pl_parcial = runs_mod.build_plan("q", [], planner=_fake_planner_ok, history_rows=HIST_SIN_COSTO)
+check("plan: metrica sin medir NO se cubre con la que si existe -> escenario PARCIAL, costo "
+      "insufficient-history, duracion projected (una proyeccion sin numero no es proyeccion)",
+      pl_parcial["estimates"]["di_only"]["state"] == "partial"
+      and pl_parcial["estimates"]["di_only"]["cost_usd"]["state"] == "insufficient-history"
+      and pl_parcial["estimates"]["di_only"]["cost_usd"]["n_measured"] == 0
+      and pl_parcial["estimates"]["di_only"]["duration_s"]["state"] == "projected")
+pl_thin = runs_mod.build_plan("q", [], planner=_fake_planner_ok, history_rows=HIST_OK[:2])
+check("plan: historia insuficiente -> '[?] sin historia suficiente' declarado, JAMAS un numero "
+      "inventado (LOTE-01)",
+      pl_thin["estimates"]["di_only"]["state"] == "insufficient-history"
+      and "median" not in pl_thin["estimates"]["di_only"]["cost_usd"])
+def _planner_out_of_scope(question, entities):
+    return ({"work_type": "pregunta fuera de dominio", "niches": [],
+             "out_of_scope_reason": "no toca ninguno de los seis nichos",
+             "agents_applicable": []}, {})
+pl_oos = runs_mod.build_plan("¿cual es la capital de Francia?", [], planner=_planner_out_of_scope,
+                             history_rows=HIST_OK)
+check("plan: cero nichos -> FUERA DE ALCANCE marcado (§3: se marca, el humano decide — no se bloquea)",
+      pl_oos["judgment"]["scope"]["in_scope"] is False
+      and "humano decide" in pl_oos["judgment"]["scope"]["note"])
+def _planner_boom(question, entities):
+    raise RuntimeError("planner caido")
+pl_err = runs_mod.build_plan("q", [], planner=_planner_boom, history_rows=HIST_OK)
+check("plan: el juicio FALLA sin tumbar el plan (no-hang §6) — errored declarado, estructura intacta",
+      pl_err["judgment"]["state"] == "errored" and "planner caido" in pl_err["judgment"]["error"]
+      and pl_err["route"]["class"] == "structural" and pl_err["estimates"]["di_only"]["state"] == "projected")
+
+# --- el plan viaja: POST /runs/plan -> POST /runs {plan_id} -> stage.plan -> registro congelado --------
+runs_mod._default_planner_real = runs_mod._default_planner
+runs_mod._default_planner = _fake_planner_ok
+prv = app.create_plan(app.PlanBody(question="¿osr1 es suficiente para inducir el pronefros?",
+                                   entities=["osr1"]), authorization=AUTH)
+runs_mod._default_planner = runs_mod._default_planner_real
+check("POST /runs/plan: devuelve plan_id + plan con juicio declarado",
+      bool(prv["plan_id"]) and prv["plan"]["judgment"]["state"] == "declared")
+rv_p = app.create_run(app.RunBody(question="¿osr1 es suficiente para inducir el pronefros?",
+                                  entities=["osr1"], plan_id=prv["plan_id"]), authorization=AUTH)
+check("POST /runs con plan_id: la vista declara plan_declared=true",
+      rv_p["plan_declared"] is True)
+err409 = _http_error(app.create_run, app.RunBody(question="otra", plan_id=prv["plan_id"]),
+                     authorization=AUTH)
+check("un plan se consume UNA vez: re-usarlo -> 409 plan_already_used (un juicio viejo no pasa por fresco)",
+      err409 == 409)
+check("plan_id inexistente -> 404 (no se inventa un plan)",
+      _http_error(app.create_run, app.RunBody(question="q", plan_id="nope"), authorization=AUTH) == 404)
+claimed_p = db.claim_next_queued()
+runs_mod.execute_run(claimed_p, synthesizer=_stub_synth, panel_caller=_stub_caller_factory(ALL_A))
+ev_p = app.get_events(rv_p["run_id"], after=0, authorization=AUTH)["events"]
+tipos_p = [e["type"] for e in ev_p]
+first_stage = next(t for t in tipos_p if t.startswith("stage."))
+check("stage.plan es el PRIMER evento de etapa de la traza (el boceto M3 lo pinta primero)",
+      first_stage == "stage.plan"
+      and next(e for e in ev_p if e["type"] == "stage.plan")["payload"]["agents"]
+          == ["causal-pruner", "hypothesis-generator", "composite-auditor"])
+rec_p = app.get_frozen_record(rv_p["run_id"], authorization=AUTH)
+check("el planner GASTA y su gasto entra al total (M8 cuadra) + aparte en plan_judgment: "
+      "dejarlo fuera haria irreconciliable el consumo (misma disciplina que LOTE-01·A4)",
+      rec_p["token_usage"]["plan_judgment"] is not None
+      and rec_p["token_usage"]["plan_judgment"]["in"] == 400
+      # el planner y el juez de la lente correctness son el MISMO modelo: agregar por modelo es
+      # lo correcto (410 = 400 del plan + 10 del juez), y plan_judgment lo desglosa aparte
+      and rec_p["token_usage"]["by_model"]["claude-opus-4-8"]["in"] == 410
+      and rec_p["token_usage"]["input_tokens"] >= 400,
+      f"plan_judgment={rec_p['token_usage']['plan_judgment']} by_model={rec_p['token_usage']['by_model']}")
+check("una corrida SIN plan no inventa plan_judgment: null declarado",
+      rec["token_usage"]["plan_judgment"] is None)
+check("registro 1.4: el plan viaja CONGELADO + plan_question_matches_run=true",
+      rec_p["plan_declared"] is True and rec_p["plan"]["judgment"]["state"] == "declared"
+      and rec_p["plan_question_matches_run"] is True)
+ai_p = {a["agent"]: a for a in rec_p["agents_invoked"]}
+check("agents_invoked CON plan: los aplicables no-componentizados entran skipped-ad-hoc (literal §5 "
+      "de la matriz) con la razon del planner + fila agregada not-applicable — y NO hay not-assessed",
+      ai_p["causal-pruner"]["status"] == "skipped-ad-hoc"
+      and "planner (§11)" in ai_p["causal-pruner"]["reason"]
+      and any(a["status"] == "not-applicable" and "resto del catálogo" in a["agent"]
+              for a in rec_p["agents_invoked"])
+      and not any(a["status"] == "not-assessed" for a in rec_p["agents_invoked"]))
+check("agents_invoked SIN plan (corridas previas de este gate): el hueco sigue not-assessed",
+      any(a["status"] == "not-assessed" for a in rec["agents_invoked"])
+      and rec["plan_declared"] is False and rec["plan"] is None)
+check("matriz: derogaciones y suspensiones viajan en la tabla (html-report ADR-0046 · "
+      "investor-relations ADR-0008)",
+      "ADR-0046" in agent_matrix.AGENTS["html-report-emitter"]["note"]
+      and "SUSPENDIDO" in agent_matrix.AGENTS["investor-relations-drafter"]["note"])
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)

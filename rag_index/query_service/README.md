@@ -27,6 +27,7 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/artifacts/report/{name}` | ✓ | sirve un HTML histórico (path-safe por membresía) |
 | GET | `/artifacts/run/{set}/{name}` | ✓ | un run histórico (JSON; `instrumented: false` = sin `decision_state`) |
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
+| POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`) |
 | POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`) |
 | GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
@@ -96,8 +97,10 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (67/67 offline; `smoke_query_service.py`
-29/29). Contrato del registro: `render_contract_version 1.3` (ADR-0060: los tres campos §5 que faltaban —
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (86/86 offline; `smoke_query_service.py`
+29/29). Contrato del registro: `render_contract_version 1.4` (ADR-0061: `plan` congelado + `plan_declared` +
+`plan_question_matches_run`, `agents_invoked` poblado desde el juicio del planner, y el gasto del plan
+dentro de `token_usage` con su desglose `plan_judgment`). 1.3 (ADR-0060: los tres campos §5 que faltaban —
 `reasoning.framework_applied` SELF-REPORT con sección/tier resueltos por tabla y la cita comprobada
 contra el catálogo, `reasoning.structural_frameworks` derivados del código, `agents_invoked` derivado de
 lo que corrió con el hueco del planner declarado `not-assessed`, y `alternatives_considered` con sus tres

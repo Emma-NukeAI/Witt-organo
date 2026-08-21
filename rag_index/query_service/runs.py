@@ -31,10 +31,12 @@ sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import db  # noqa: E402
-from lib import (answer_pipeline, composite_auditor, reasoning_catalog, resolve_id,  # noqa: E402
-                 verify_output)
+from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
+                 resolve_id, verify_output)
 
-RENDER_CONTRACT_VERSION = "1.3"   # ADR-0060 (tapón 2): +reasoning {framework_applied (SELF-REPORT, con
+RENDER_CONTRACT_VERSION = "1.4"   # ADR-0061 (tapón 3): +plan (el plan declarado o null-declarado) y
+                                  # agents_invoked poblado desde el juicio del planner cuando existe.
+                                  # 1.3 = ADR-0060 (tapón 2): +reasoning {framework_applied (SELF-REPORT, con
                                   # sección y tier resueltos por tabla), structural_frameworks (derivados
                                   # del código)}, +agents_invoked (derivado, §11), +alternatives_considered.
                                   # 1.2 = ADR-0057 (confidence.source + path_b.query_sent). 1.1 = ADR-0051.
@@ -116,9 +118,209 @@ SYNTH_TOOL = {
 }
 
 
-def _agents_invoked(audit_result, deterministic_checks):
+# --- el planner (tapón 3, ADR-0061) --------------------------------------------------------------------
+# El plan declarado del boceto M3: el checkpoint humano ANTES de gastar. Tres clases de contenido, cada
+# una con su clase declarada, jamás mezcladas:
+#   structural       — hechos del pipeline (Ruta A primero, B condicional, auditoría al 100%): del código.
+#   model-judgment   — clasificación de work-type/nichos/agentes: juicio del modelo contra la matriz,
+#                      con el gate level y la componentización resueltos por TABLA (agent_matrix).
+#   projection       — costo/duración: mediana de la historia REAL, calculada por código (constitución:
+#                      una proyección la calcula un tool desde insumos declarados, nunca la estima un
+#                      modelo). Sin historia suficiente: "[?] sin historia suficiente" (LOTE-01).
+PLAN_VERSION = "1"
+PLAN_MIN_HISTORY = int(os.environ.get("WITT_PLAN_MIN_HISTORY", "3"))
+
+PLAN_TOOL = {
+    "name": "emit_plan_judgment",
+    "description": ("Classify this question BEFORE the run executes (CLAUDE.md §11 preflight + §3 scope "
+                    "filter). Judge which catalog agents' work-types the question implicates and which "
+                    "niches it belongs to. You are NOT answering the question. Return ONLY applicable "
+                    "agents — the gate level and whether each exists as an executable component are "
+                    "resolved from a table, NOT by you."),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "work_type": {"type": "string",
+                          "description": "dominant work-type of answering this question, one short line"},
+            "niches": {"type": "array", "items": {"type": "string", "enum": agent_matrix.NICHE_ENUM},
+                       "description": ("CLAUDE.md §3: every task classifies into >=1 of the six niches. "
+                                       "Empty array = OUT OF SCOPE (must be flagged, never silently "
+                                       "proceeded).")},
+            "out_of_scope_reason": {"type": "string",
+                                    "description": "REQUIRED when niches=[] — why no niche fits"},
+            "agents_applicable": {
+                "type": "array",
+                "items": {"type": "object", "properties": {
+                    "agent": {"type": "string", "enum": agent_matrix.ENUM},
+                    "reason": {"type": "string",
+                               "description": "which part of the question matches this work-type signal"}},
+                    "required": ["agent", "reason"]},
+                "description": ("agents whose work-type signal THIS question implicates (composite-auditor "
+                                "and identifier-verification-gate always run — include them only to add a "
+                                "question-specific reason)")},
+        },
+        "required": ["work_type", "niches", "agents_applicable"],
+    },
+}
+
+
+def _default_planner(question, entities):
+    """One SMALL model call (SYNTH_MODEL, best-tier policy) that judges work-type/nichos/agentes contra
+    la matriz. Inyectable en los gates. Devuelve (judgment_dict, usage)."""
+    system = ("You are the §11 agent-invocation preflight of the Witt × Organogenesis webapp: classify "
+              "the incoming question BEFORE the pipeline runs. Judge strictly against the matrix and "
+              "niches below; do NOT answer the question itself.\n\n" + agent_matrix.digest())
+    user_text = json.dumps({"question": question, "entities": entities or []}, ensure_ascii=False)
+    return composite_auditor._anthropic_tool_call(SYNTH_MODEL, system, user_text,
+                                                  tool=PLAN_TOOL, max_tokens=1200)
+
+
+def plan_estimates(history_rows):
+    """Proyección DETERMINISTA de costo/duración por escenario (DI-only vs con-fallback), mediana sobre
+    la historia real. n < PLAN_MIN_HISTORY => estado insufficient-history (LOTE-01: '[?] sin historia
+    suficiente' — jamás un número inventado)."""
+    def _median(vals):
+        vals = sorted(v for v in vals if isinstance(v, (int, float)))
+        if not vals:
+            return None
+        m = len(vals) // 2
+        return round((vals[m] if len(vals) % 2 else (vals[m - 1] + vals[m]) / 2), 4)
+
+    def _metric(rows, key):
+        """Estado POR MÉTRICA. El defecto que esto corrige lo destapó la primera corrida real del
+        planner: el escenario se reportaba `projected` con la mediana de costo en null, porque las
+        corridas de ese escenario no tenían gasto medido. Una proyección sin número NO es una
+        proyección — cada métrica declara su propio denominador."""
+        vals = [r.get(key) for r in rows]
+        n = sum(1 for v in vals if isinstance(v, (int, float)))
+        if n < PLAN_MIN_HISTORY:
+            return {"state": "insufficient-history", "n_measured": n,
+                    "min_required": PLAN_MIN_HISTORY,
+                    "note": "[?] sin historia suficiente — no se inventa un número"}
+        return {"state": "projected", "n_measured": n, "median": _median(vals),
+                "basis": f"mediana de {n} corridas con esta métrica medida"}
+
+    def _scenario(rows, label):
+        cost, dur = _metric(rows, "cost_usd"), _metric(rows, "duration_s")
+        # el escenario está proyectado sólo si AMBAS métricas lo están; si una falta, se declara
+        # parcial en vez de dejar que la que sí existe cubra a la que no
+        states = {cost["state"], dur["state"]}
+        state = ("projected" if states == {"projected"}
+                 else "insufficient-history" if states == {"insufficient-history"}
+                 else "partial")
+        return {"scenario": label, "state": state, "n_runs": len(rows),
+                "cost_usd": cost, "duration_s": dur}
+
+    rows = history_rows or []
+    di_only = [r for r in rows if r.get("trigger") is None]
+    fallback = [r for r in rows if r.get("trigger") is not None]
+    return {"class": "PROJECTION (calculada por código desde la historia real; los insumos son "
+                     "mediciones, la proyección no lo es)",
+            "di_only": _scenario(di_only, "di-only"),
+            "with_fallback": _scenario(fallback, "with-fallback")}
+
+
+def build_plan(question, entities=None, planner=None, history_rows=None):
+    """El plan completo. El juicio del modelo puede FALLAR sin tumbar nada (§6 no-hang): un plan con
+    judgment.state=errored sigue siendo un plan — declara que el juicio no se pudo hacer, que es
+    distinto de no haberlo intentado."""
+    planner = planner or _default_planner
+    entities = [e for e in (entities or []) if e and e.strip()]
+
+    plan = {
+        "plan_version": PLAN_VERSION,
+        "matrix": f"{agent_matrix.MATRIX_PATH} {agent_matrix.MATRIX_VERSION}",
+        "question": question, "entities": entities,
+        "route": {
+            "class": "structural",
+            "path_a": "DATA INAMOVIBLE primero — siempre",
+            "path_b": {"conditional": True,
+                       "note": ("la suficiencia se evalúa DESPUÉS de correr la Ruta A: declarar la Ruta B "
+                                "como hecho sería inventar información"),
+                       "deciders": ["structural (assess_sufficiency)",
+                                    f"confidence (pass1 < tau={FALLBACK_CONF_TAU})"],
+                       "sources": list(answer_pipeline.PATH_B_SOURCES)},
+        },
+        "audit": {"class": "structural", "required": True,
+                  "panel": [f"{m['reviewer']} ({m['lens']})" for m in composite_auditor.DEFAULT_PANEL],
+                  "note": "obligatorio en el 100% de las corridas (ADR-0049) — la mayor parte del costo"},
+        "deterministic_gate": {"class": "structural", "component": "lib/verify_output.py",
+                               "note": "clase Logic-LM, no es un LLM; corre en cada corrida"},
+    }
+
+    try:
+        out, usage = planner(question, entities)
+        niches = [{"code": c, **agent_matrix.NICHES[c]} for c in out.get("niches", [])
+                  if c in agent_matrix.NICHES]
+        agents = []
+        for a in out.get("agents_applicable", []):
+            row = agent_matrix.resolve(a.get("agent"))
+            if row is None:
+                agents.append({"agent": a.get("agent"), "off_matrix": True,
+                               "reason": a.get("reason", ""), "will_run": "unknown-off-matrix"})
+                continue
+            comp = row.get("componentized")
+            agents.append({
+                "agent": a["agent"],
+                "gate": row["gate"],
+                "signal": row["signal"],
+                "evidence": row["evidence"],
+                "componentized": bool(comp),
+                "component": comp[0] if comp else None,
+                "matrix_note": row.get("note"),
+                "reason": a.get("reason", ""),
+                "will_run": "runs-always-componentized" if comp else "skipped-ad-hoc",
+            })
+        plan["judgment"] = {
+            "class": "model-judgment",
+            "state": "declared",
+            "work_type": out.get("work_type"),
+            "niches": niches,
+            "scope": ({"in_scope": True} if niches else
+                      {"in_scope": False,
+                       "reason": out.get("out_of_scope_reason") or "no declarado",
+                       "note": "§3: una tarea fuera de los seis nichos SE MARCA — el humano decide"}),
+            "agents_applicable": agents,
+            "planner": {"model": SYNTH_MODEL, "usage": usage, "class": "self-report",
+                        "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)"},
+        }
+    except Exception as e:
+        plan["judgment"] = {"class": "model-judgment", "state": "errored",
+                            "error": f"{type(e).__name__}: {str(e)[:300]}",
+                            "note": ("el juicio no se pudo hacer — DISTINTO de no intentado y de "
+                                     "'ningún agente aplica'. El plan sigue siendo válido en sus partes "
+                                     "estructurales; preguntar no se bloquea (§6 no-hang).")}
+
+    plan["estimates"] = plan_estimates(db.plan_history() if history_rows is None else history_rows)
+    return plan
+
+
+def plan_event_payload(plan):
+    """Resumen de stage.plan — la traza viva y el replay leen el MISMO resumen."""
+    j = plan.get("judgment", {})
+    p = {"plan_version": plan.get("plan_version"),
+         "judgment_state": j.get("state"),
+         "work_type": j.get("work_type"),
+         "niches": [n.get("code") for n in j.get("niches", [])],
+         "n_agents_applicable": len(j.get("agents_applicable", [])),
+         "agents": [a.get("agent") for a in j.get("agents_applicable", [])],
+         "audit_required": True}
+    sc = j.get("scope") or {}
+    if sc.get("in_scope") is False:
+        p["out_of_scope"] = True
+    return p
+
+
+def _agents_invoked(audit_result, deterministic_checks, plan=None):
     """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
     agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
+
+    Con plan (tapón 3, ADR-0061): el preflight §11 SÍ se hizo — lo hizo el planner antes de encolar.
+    Cada agente que el planner juzgó aplicable y no existe como componente entra con el literal §5 de la
+    matriz (`skipped-ad-hoc`: el rol corre ad-hoc dentro de la síntesis) y la razón del planner. El resto
+    del catálogo queda en UNA fila agregada `not-applicable` (trazabilidad sin 25 filas de ruido).
+
+    Sin plan: el hueco sigue declarado como `not-assessed` — nadie juzgó, y eso se dice.
 
     Schema per §11: {agent, status, invocation_id|reason, evidence_generated}."""
     out = [{
@@ -132,18 +334,46 @@ def _agents_invoked(audit_result, deterministic_checks):
         "status": "invoked",
         "invocation_id": "deterministic_gate",
         "evidence_generated": [f"admissible:{deterministic_checks.get('admissible')}"],
-    }, {
-        # El hueco, DECLARADO en cada corrida en vez de invisible: §11 pide un preflight que decida qué
-        # agente del catálogo dueño del work-type se invoca o se salta con justificación. La ruta HTTP no
-        # tiene planner (tapón 3), así que ese juicio NO se hizo. `not-assessed` NO es `skipped-ad-hoc`:
-        # saltarse con justificación afirma que alguien juzgó; esto afirma que nadie juzgó.
-        "agent": "(preflight §11 sobre el catálogo de agentes)",
-        "status": "not-assessed",
-        "reason": ("la corrida de la webapp no tiene planner: ningún componente decide qué agente del "
-                   "catálogo es dueño del work-type de esta respuesta. NO equivale a skipped-ad-hoc "
-                   "(que afirmaría un juicio hecho). Se desbloquea con el planner de M3."),
-        "evidence_generated": [],
     }]
+    judgment = (plan or {}).get("judgment") or {}
+    if judgment.get("state") == "declared":
+        judged = 0
+        for a in judgment.get("agents_applicable", []):
+            if a.get("componentized"):
+                continue   # composite-auditor / verify_output ya están arriba como invoked, medidos
+            judged += 1
+            out.append({
+                "agent": a.get("agent"),
+                "status": "skipped-ad-hoc",   # literal §5 de la matriz: el rol corre ad-hoc en la síntesis
+                "reason": (f"planner (§11): {a.get('reason', '')} — no existe como componente; la "
+                           f"síntesis cubre el rol ad-hoc. Gate de matriz: {a.get('gate')}"
+                           + (f". {a.get('matrix_note')}" if a.get("matrix_note") else "")),
+                "evidence_generated": [],
+            })
+        out.append({
+            "agent": f"(resto del catálogo — {agent_matrix.MATRIX_VERSION})",
+            "status": "not-applicable",
+            "reason": (f"preflight §11 HECHO por el planner: {judged} aplicables arriba; los demás "
+                       f"work-types de la matriz no aplican a esta pregunta (fila agregada por "
+                       f"trazabilidad, matriz {agent_matrix.MATRIX_PATH})"),
+            "evidence_generated": [],
+        })
+    else:
+        reason_extra = ""
+        if judgment.get("state") == "errored":
+            reason_extra = (f" En esta corrida SÍ se intentó (plan adjunto) pero el juicio FALLÓ: "
+                            f"{judgment.get('error', '')}.")
+        out.append({
+            # El hueco, DECLARADO en cada corrida en vez de invisible. `not-assessed` NO es
+            # `skipped-ad-hoc`: saltarse con justificación afirma que alguien juzgó; esto afirma que
+            # nadie juzgó (o que el juicio falló, y entonces se dice).
+            "agent": "(preflight §11 sobre el catálogo de agentes)",
+            "status": "not-assessed",
+            "reason": ("la corrida no lleva juicio del planner: ningún componente decidió qué agente "
+                       "del catálogo es dueño del work-type de esta respuesta. NO equivale a "
+                       "skipped-ad-hoc (que afirmaría un juicio hecho)." + reason_extra),
+            "evidence_generated": [],
+        })
     return out
 
 
@@ -285,9 +515,13 @@ def _usage_in_out(usage):
             int(u.get("output_tokens") or u.get("completion_tokens") or 0))
 
 
-def _token_usage(passes, audit_result, embed_tokens):
+def _token_usage(passes, audit_result, embed_tokens, plan=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
-    `passes` = [(label, answer_dict)] for the synthesis passes that ran."""
+    `passes` = [(label, answer_dict)] for the synthesis passes that ran.
+
+    `plan` (ADR-0061): el planner es una llamada de modelo y GASTA. Dejarla fuera haría que M8 no
+    cuadre — misma disciplina que LOTE-01·A4 (lo gastado antes de morir sobrevive). El gasto del plan
+    se atribuye al modelo que lo hizo y se declara aparte en `plan_judgment`."""
     by_model = {}
 
     def _add(model, usage):
@@ -298,6 +532,10 @@ def _token_usage(passes, audit_result, embed_tokens):
 
     for _label, p in passes:
         _add(p.get("model") or SYNTH_MODEL, p.get("usage"))
+    planner_meta = ((plan or {}).get("judgment") or {}).get("planner") or {}
+    planner_usage = planner_meta.get("usage") or {}
+    if planner_usage:
+        _add(planner_meta.get("model") or SYNTH_MODEL, planner_usage)
     for row in audit_result.get("panel", []):
         if "usage" in row and "verdict" in row:
             _add(row["reviewer"], row["usage"])
@@ -307,10 +545,15 @@ def _token_usage(passes, audit_result, embed_tokens):
         pi, po = PRICES_PER_MTOK_USD.get(model, (0.0, 0.0))
         cost += (m["in"] * pi + m["out"] * po) / 1e6
     cost += embed_tokens * PRICES_PER_MTOK_USD.get(embed_model, (0.02, 0.0))[0] / 1e6
+    pi, po = _usage_in_out(planner_usage)
     return {
         "input_tokens": sum(m["in"] for m in by_model.values()),
         "output_tokens": sum(m["out"] for m in by_model.values()),
         "by_model": by_model,
+        # el gasto del plan va DENTRO del total (M8 cuadra) y ADEMÁS aparte, para que se pueda
+        # responder "¿cuánto cuesta declarar un plan?" sin re-derivarlo
+        "plan_judgment": ({"model": planner_meta.get("model"), "in": pi, "out": po}
+                          if planner_usage else None),
         "embedding": {"model": embed_model, "total_tokens": embed_tokens,
                       "attribution": "process-wide window during this run (concurrent runs may overlap)"},
         "estimated_cost_usd": round(cost, 4),
@@ -351,13 +594,26 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     # cancelled paths too — M8 cannot reconcile otherwise ("118,000 tokens gastados antes de morir").
     passes, audit_result = [], {}
     embed_t0 = _embed_usage_snapshot()
+    # holder explícito: el plan se carga DENTRO del try, y _usage_now (definida antes) tiene que
+    # poder verlo en los caminos failed/cancelled — el gasto del planner ya ocurrió y debe sobrevivir
+    # (LOTE-01·A4). Una clausura sobre `plan` con locals() no lo alcanza.
+    plan_holder = {}
 
     def _usage_now():
-        return _token_usage(passes, audit_result, max(0, _embed_usage_snapshot() - embed_t0))
+        return _token_usage(passes, audit_result, max(0, _embed_usage_snapshot() - embed_t0),
+                            plan=plan_holder.get("plan"))
 
     try:
         db.add_event(run_id, "run.state", payload={"state": "running"})
         _check_cancel()
+
+        # 0) el plan declarado (tapón 3, ADR-0061) — si la corrida lo trae, es el PRIMER evento de la
+        # traza (el boceto M3 lo pinta como primera línea). No traerlo no bloquea nada: se declara.
+        plan = json.loads(run["plan_json"]) if run.get("plan_json") else None
+        plan_holder["plan"] = plan
+        if plan:
+            db.add_event(run_id, "stage.plan", agent="planner", payload=plan_event_payload(plan))
+            _check_cancel()
 
         # 1) retrieve — the ONE state machine, instrumented via on_stage (never re-assembled)
         bundle = answer_pipeline.retrieve(run["question"],
@@ -466,7 +722,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
         # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2)
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
-        token_usage = _token_usage(passes, audit_result, embed_tokens)
+        token_usage = _token_usage(passes, audit_result, embed_tokens, plan=plan)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -510,7 +766,13 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 # y el contrapeso honesto: lo que el PIPELINE aplica, pase lo que pase con la etiqueta
                 "structural_frameworks": reasoning_catalog.structural_frameworks(),
             },
-            "agents_invoked": _agents_invoked(audit_result, checks),
+            "agents_invoked": _agents_invoked(audit_result, checks, plan),
+            # --- tapón 3 (ADR-0061): el plan declarado viaja congelado; su ausencia se DECLARA -----
+            "plan": plan,
+            "plan_declared": plan is not None,
+            # un plan hecho para OTRA pregunta no puede pasar por el juicio de ésta (misma disciplina
+            # que question_matches_run, ADR-0044)
+            "plan_question_matches_run": (plan.get("question") == run["question"]) if plan else None,
             "citations": _normalize_citations(answer.get("evidence_cited")),
             "deterministic_checks": checks,
             "token_usage": token_usage,
@@ -579,9 +841,9 @@ def close_run(run_id, by):
     return {"closed": True, "run_id": run_id, "frozen_at": frozen["frozen_at"]}
 
 
-def new_run(user_id, question, entities=None):
+def new_run(user_id, question, entities=None, plan_json=None):
     run_id = uuid.uuid4().hex
-    db.create_run(run_id, user_id, question, entities)
+    db.create_run(run_id, user_id, question, entities, plan_json=plan_json)
     db.add_event(run_id, "run.state", payload={"state": "queued"})
     return run_id
 

@@ -15,6 +15,7 @@ Security model (decisions 3/4/9-bis of the webapp handoff):
 """
 import datetime
 import hashlib
+import json
 import hmac
 import os
 import secrets
@@ -75,8 +76,22 @@ runs = Table(
     Column("usage_json", Text),                               # LOTE-01·A4: spend persists on EVERY exit path
     Column("epistemic_summary_json", Text),                   # LOTE-02·3: derived AT FREEZE, never at serve
     Column("error", Text),
+    Column("plan_json", Text),                                # ADR-0061: el plan declarado, copiado al encolar
     Column("bundle_json", Text),                              # the full evidence bundle (ADR-0043/0044)
     Column("frozen_record_json", Text),                       # the frozen record the UI renders (read-only)
+)
+
+plans = Table(
+    # ADR-0061 (tapón 3): el plan declarado ANTES de encolar — el checkpoint humano del boceto M3.
+    # Server-side por procedencia: el cliente refiere plan_id, jamás re-manda el objeto (tamper).
+    "plans", metadata,
+    Column("plan_id", String(64), primary_key=True),
+    Column("user_id", String(64), ForeignKey("users.user_id"), nullable=False),
+    Column("question", Text, nullable=False),
+    Column("entities_csv", Text, nullable=False, default=""),
+    Column("plan_json", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("run_id", String(64)),                             # sellado al consumirse (un plan, una corrida)
 )
 
 run_events = Table(
@@ -116,7 +131,8 @@ def _migrate():
     for stmt in ("ALTER TABLE runs ADD COLUMN cancelled_by VARCHAR(64)",
                  "ALTER TABLE runs ADD COLUMN cancel_reason TEXT",
                  "ALTER TABLE runs ADD COLUMN usage_json TEXT",
-                 "ALTER TABLE runs ADD COLUMN epistemic_summary_json TEXT"):
+                 "ALTER TABLE runs ADD COLUMN epistemic_summary_json TEXT",
+                 "ALTER TABLE runs ADD COLUMN plan_json TEXT"):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
@@ -249,11 +265,63 @@ def _dt_utc(v):
     return v
 
 
-def create_run(run_id: str, user_id: str, question: str, entities=None):
+def create_run(run_id: str, user_id: str, question: str, entities=None, plan_json=None):
     with engine().begin() as cx:
         cx.execute(runs.insert().values(run_id=run_id, user_id=user_id, question=question,
                                         entities_csv=",".join(entities or []), state="queued",
-                                        created_at=_now(), cancel_requested=False))
+                                        created_at=_now(), cancel_requested=False,
+                                        plan_json=plan_json))
+
+
+def create_plan(plan_id: str, user_id: str, question: str, entities, plan_json: str):
+    with engine().begin() as cx:
+        cx.execute(plans.insert().values(plan_id=plan_id, user_id=user_id, question=question,
+                                         entities_csv=",".join(entities or []),
+                                         plan_json=plan_json, created_at=_now()))
+
+
+def get_plan(plan_id: str):
+    with engine().begin() as cx:
+        row = cx.execute(select(plans).where(plans.c.plan_id == plan_id)).first()
+    return dict(row._mapping) if row else None
+
+
+def mark_plan_used(plan_id: str, run_id: str):
+    """Un plan se consume por UNA corrida: re-usarlo silencioso haría pasar un juicio viejo como
+    fresco. El sello no borra nada — deja la traza plan->corrida."""
+    with engine().begin() as cx:
+        n = cx.execute(plans.update()
+                       .where(plans.c.plan_id == plan_id, plans.c.run_id.is_(None))
+                       .values(run_id=run_id)).rowcount
+    return n == 1
+
+
+def plan_history(limit=200):
+    """Insumo DETERMINISTA de las estimaciones del plan (LOTE-01: 'estimaciones con historia').
+    Corridas que completaron el pipeline (awaiting_closure/closed), con costo, duración y qué decisor
+    de fallback disparó — la mediana se calcula en runs.plan_estimates(), NUNCA la estima un modelo
+    (constitución: proyección = tool/script desde insumos declarados)."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(runs.c.started_at, runs.c.finished_at, runs.c.usage_json,
+                                 runs.c.frozen_record_json)
+                          .where(runs.c.state.in_(("awaiting_closure", "closed")))
+                          .order_by(runs.c.created_at.desc()).limit(limit)).all()
+    out = []
+    for r in rows:
+        d = r._mapping
+        try:
+            cost = (json.loads(d["usage_json"]) or {}).get("estimated_cost_usd") if d["usage_json"] else None
+        except Exception:
+            cost = None
+        try:
+            trigger = ((json.loads(d["frozen_record_json"]) or {}).get("fallback") or {}).get("trigger")                 if d["frozen_record_json"] else None
+        except Exception:
+            trigger = None
+        dur = None
+        if d["started_at"] and d["finished_at"]:
+            dur = ( _dt_utc(d["finished_at"]) - _dt_utc(d["started_at"]) ).total_seconds()
+        out.append({"cost_usd": cost, "duration_s": dur, "trigger": trigger})
+    return out
 
 
 def claim_next_queued():

@@ -30,6 +30,7 @@ import os
 import re
 import sys
 import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -394,6 +395,31 @@ HEARTBEAT_STALE_S = int(os.environ.get("WITT_HEARTBEAT_STALE_SECONDS", "300"))
 class RunBody(BaseModel):
     question: str
     entities: list[str] = []
+    # ADR-0061 (tapon 3): referencia al plan declarado por POST /runs/plan. Opcional por diseno --
+    # preguntar JAMAS se bloquea por el planner (no-hang §6); una corrida sin plan lo declara.
+    plan_id: str | None = None
+
+
+class PlanBody(BaseModel):
+    question: str
+    entities: list[str] = []
+
+
+@app.post("/runs/plan")
+def create_plan(body: PlanBody, authorization: str = Header(None)):
+    """El plan declarado (tapon 3, ADR-0061): el checkpoint humano del boceto M3, ANTES de encolar.
+    Partes estructurales del codigo + juicio del planner (modelo; puede fallar sin bloquear) +
+    estimaciones DETERMINISTAS de la historia real. Server-side y referido por plan_id -- el cliente
+    nunca re-manda el objeto (procedencia)."""
+    user = _user_of(authorization)
+    q = body.question.strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="question must be non-empty")
+    plan = runs_mod.build_plan(q, [e.strip() for e in body.entities if e.strip()])
+    plan_id = uuid.uuid4().hex
+    db.create_plan(plan_id, user["user_id"], q, plan["entities"],
+                   json.dumps(plan, ensure_ascii=False, default=str))
+    return {"plan_id": plan_id, "plan": plan}
 
 
 def _run_view(run):
@@ -406,12 +432,14 @@ def _run_view(run):
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
             for k, v in run.items()
-            if k not in ("bundle_json", "frozen_record_json", "usage_json", "epistemic_summary_json")}
+            if k not in ("bundle_json", "frozen_record_json", "usage_json", "epistemic_summary_json",
+                         "plan_json")}
     view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
     view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
     view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
+    view["plan_declared"] = bool(run.get("plan_json"))   # ADR-0061; el plan completo va en el registro
     # LOTE-02·3: frozen-at-freeze summary for rich list rows; null = run without a frozen record yet
     view["epistemic_summary"] = (json.loads(run["epistemic_summary_json"])
                                  if run.get("epistemic_summary_json") else None)
@@ -437,7 +465,22 @@ def create_run(body: RunBody, authorization: str = Header(None)):
             "note": "el índice semántico está OFFLINE — el diseño manda bloquear, no degradar. "
                     "Dev sparse: exporta WITT_ALLOW_RUNS_OFFLINE=1 (documentado en README).",
             "status_error": st.get("status_error")})
-    run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()])
+    plan_json = None
+    if body.plan_id:
+        prow = db.get_plan(body.plan_id)
+        if prow is None:
+            raise HTTPException(status_code=404, detail="plan_id no existe")
+        if prow["run_id"]:
+            # un plan se consume por UNA corrida: re-usarlo callado haria pasar un juicio viejo como
+            # fresco (ADR-0061). El cliente declara plan nuevo o corre sin plan.
+            raise HTTPException(status_code=409, detail={
+                "state": "plan_already_used", "run_id": prow["run_id"],
+                "note": "este plan ya respalda otra corrida; declara un plan nuevo"})
+        plan_json = prow["plan_json"]
+    run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()],
+                              plan_json=plan_json)
+    if body.plan_id:
+        db.mark_plan_used(body.plan_id, run_id)
     return _run_view(db.get_run(run_id))
 
 
