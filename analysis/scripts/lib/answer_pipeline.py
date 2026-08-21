@@ -8,7 +8,10 @@ Given a question, gathers evidence on TWO paths:
              zfin      — NATIVE zebrafish mutant/knockdown phenotypes with PMIDs, from the project's own
                          Tool Universe workspace tool (tapón 1·A, 2026-08-19). A stronger evidence tier
                          than generic literature for a pronephros claim; keys on gene SYMBOLS.
-             tooluniverse — the PACKAGE tools; still a named directive until the SDK ships (tapón 1·B).
+             pubmed    — literatura vía NCBI E-utilities (tapón 1·B, ADR-0062): misma query, ranking
+                         distinto; dedup por PMID contra europepmc, declarado.
+             tooluniverse — the PACKAGE tools; SDK-in-container medido y RECHAZADO (ADR-0062) — el
+                         hook queda para un sidecar futuro.
   NEVER-STOPPER (founder rule, 2026-06-13): absence in DI never stops the answer — it TRIGGERS Path B.
 
 Output = an auditor-ready EVIDENCE BUNDLE. This stage only gathers + routes; it does NOT audit
@@ -144,9 +147,13 @@ def _search_tooluniverse(question, n):
     surfaced by tool_universe_directive() and threaded into the bundle (path_b.tool_universe_directive),
     so Tool Universe is NAMED + actionable by the agent rather than silently dropped (ADR-0022 / ADR-0026).
 
-    NOTE (tapón 1·A): the WORKSPACE tools of `.tooluniverse/tools/` do NOT go through here — they are
-    stdlib-pure and importable by path, so they run for real (see _search_zfin). This hook stays for the
-    PACKAGE tools, which still need the SDK (tapón 1·B)."""
+    NOTE (tapón 1·A/1·B): the WORKSPACE tools of `.tooluniverse/tools/` do NOT go through here — they
+    are stdlib-pure and importable by path, so they run for real (_search_zfin, _search_pubmed).
+    Installing the SDK in the query-service container was MEASURED and REJECTED (ADR-0062): the pinned
+    1.2.6 does not even resolve on py3.12, and the latest pulls 173 packages (playwright, faiss-cpu,
+    onnxruntime, …) into the container whose founding lesson is ADR-0039. If the planner someday routes
+    to many package tools, the shape is a SEPARATE sidecar container over the internal network — never
+    pip install into this interpreter. Until then this hook stays [] and the directive stays named."""
     return []
 
 
@@ -310,6 +317,7 @@ def n_results_by_source(papers):
         src = p.get("source") or "unknown"
         counts[src] = counts.get(src, 0) + 1
     counts.setdefault("europepmc", 0)
+    counts.setdefault("pubmed", 0)   # ambas fuentes de literatura corren en todo path_b: 0 explícito
     return counts
 
 
@@ -344,17 +352,75 @@ def build_external_query(question, entities=None):
     return question, "question-verbatim"
 
 
-PATH_B_SOURCES = ("europepmc", "zfin", "tooluniverse")
+PATH_B_SOURCES = ("europepmc", "pubmed", "zfin", "tooluniverse")
+
+
+def _search_pubmed(query, n, existing_ids):
+    """PubMed directo (tapón 1·B, ADR-0062) vía la workspace tool — la primera llamada que nombra el
+    directive (`PubMed_search_articles`), corriendo en Layer 0 en vez del SDK (medido y rechazado:
+    173 paquetes, y la versión pineada ni resuelve en 3.12).
+
+    Europe PMC INDEXA PubMed: la cobertura se solapa casi por completo — lo que esta fuente agrega es
+    DIVERSIDAD DE RANKING (el best-match de PubMed sube papers distintos al top-k) e independencia de
+    fuente. Por eso el dedup por PMID es obligatorio: sin él, el mismo paper entra dos veces a la
+    evidencia y el sintetizador lo cuenta doble. El dedup se DECLARA en el ledger, nunca es silencioso.
+
+    Returns (items, ledger_row)."""
+    query_pubmed = _workspace_tool("pubmed_literature.py", "query_pubmed")
+    if query_pubmed is None:
+        return [], {"status": "tool-unavailable",
+                    "detail": f"{_TU_WORKSPACE / 'pubmed_literature.py'} not importable"}
+    res = query_pubmed(query, limit=n)
+    if res.get("status") != "success":
+        return [], {"status": "error", "detail": str(res.get("error", ""))[:200]}
+    records = res["data"].get("records", [])
+    items, dupes = [], []
+    for rec in records:
+        ident = f"PMID:{rec['pmid']}" if rec.get("pmid") else None
+        if not ident:
+            continue
+        if ident in existing_ids:
+            dupes.append(ident)   # ya entró por europepmc — declarado, no duplicado ni tirado callado
+            continue
+        got = _fetch_or_declare(ident, True)
+        items.append({
+            "source": "pubmed",
+            "evidence_id": ident,
+            "search_rec": {"pmid": rec.get("pmid"), "pmcid": None, "doi": None,
+                           "title": rec.get("title"), "year": rec.get("year"),
+                           "journal": rec.get("journal"), "is_oa": None, "cited_by": None},
+            "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached",
+                                                "raw_ref", "fetch_error") if k in got or k != "fetch_error"},
+        })
+    return items, {"status": "success" if records else "no-match",
+                   "n_found_total": res["data"].get("n_found_total"),
+                   "n_returned": len(records),
+                   "n_new": len(items),
+                   "duplicates_of_europepmc": dupes,
+                   "ranking": "pubmed-relevance (diversidad frente al ranking de EPMC)"}
+
+
+def _fetch_or_declare(ident, want_full_text):
+    """fetch_external envuelto (§6 no-hang): un timeout de red bajando UN paper degrada ESE item
+    (`found: false` + el error declarado), jamás tumba path_b completo. Lo destapó la verificación en
+    vivo del 2026-08-20: un read-timeout de EPMC mató el bloque entero."""
+    try:
+        return fetch_paper.fetch_external(ident, want_full_text=want_full_text)
+    except Exception as e:
+        return {"found": False, "fetch_error": f"{type(e).__name__}: {str(e)[:160]}"}
 
 
 def path_b(question, n=2, full_text=True, sources=PATH_B_SOURCES, query=None, entities=None,
            ledger_out=None):
     """External fallback — MULTI-SOURCE, never a stopper. Each item records its `source`:
       europepmc   — literature (built-in, dependency-free)
+      pubmed      — literature vía NCBI E-utilities (tapón 1·B, ADR-0062): MISMA query, ranking
+                    distinto; dedup por PMID contra europepmc, declarado en el ledger.
       zfin        — NATIVE zebrafish loss-of-function phenotypes (tapón 1·A): a STRONGER evidence tier
                     than generic literature for a pronephros claim, and invisible to the human-centric
                     tools. Needs `entities` (gene symbols), not a free-text query.
-      tooluniverse— the PACKAGE tools; still a documented hook until the SDK ships (tapón 1·B).
+      tooluniverse— the PACKAGE tools. El SDK en el contenedor se MIDIÓ y se rechazó (ADR-0062);
+                    este hook queda para un sidecar futuro, no para pip install aquí.
     `query` (ADR-0057): the search string actually sent to the external literature index; defaults to
     the raw question ONLY as last resort (see build_external_query — Spanish questions return zero).
     `ledger_out` (dict, optional): side channel for per-source search ledgers — the diagnostic that
@@ -367,13 +433,19 @@ def path_b(question, n=2, full_text=True, sources=PATH_B_SOURCES, query=None, en
     if "europepmc" in sources:
         for rec in fetch_paper.search_europepmc(q_sent, n=n):
             ident = f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi"))
-            got = fetch_paper.fetch_external(ident, want_full_text=full_text) if ident else {"found": False}
+            got = _fetch_or_declare(ident, full_text) if ident else {"found": False}
             papers.append({
                 "source": "europepmc",
                 "evidence_id": ident or "paper",
                 "search_rec": {k: rec.get(k) for k in ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")},
-                "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached", "raw_ref")},
+                "fetched": {k: got.get(k) for k in ("found", "full_text", "n_chunks", "raw_cached",
+                                                    "raw_ref", "fetch_error") if k in got or k != "fetch_error"},
             })
+    if "pubmed" in sources:
+        pm_items, pm_ledger = _search_pubmed(q_sent, n, {p.get("evidence_id") for p in papers})
+        papers += pm_items
+        if ledger_out is not None:
+            ledger_out["pubmed_searched"] = pm_ledger
     if "zfin" in sources:
         zfin_items, zfin_ledger = _search_zfin(entities, question)
         papers += zfin_items
@@ -419,6 +491,10 @@ def path_b_event_payload(block, trigger=None):
         p["zfin_searched"] = led
         p["zfin_status_tally"] = {s: sum(1 for r in led if r.get("status") == s)
                                   for s in sorted({r.get("status") for r in led})}
+    if "pubmed_searched" in block:
+        pm = block["pubmed_searched"]
+        p["pubmed_searched"] = {k: pm.get(k) for k in ("status", "n_found_total", "n_new",
+                                                       "duplicates_of_europepmc")}
     return p
 
 

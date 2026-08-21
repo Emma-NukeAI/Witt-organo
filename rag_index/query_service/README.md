@@ -97,7 +97,7 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (86/86 offline; `smoke_query_service.py`
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (91/91 offline; `smoke_query_service.py`
 29/29). Contrato del registro: `render_contract_version 1.4` (ADR-0061: `plan` congelado + `plan_declared` +
 `plan_question_matches_run`, `agents_invoked` poblado desde el juicio del planner, y el gasto del plan
 dentro de `token_usage` con su desglose `plan_judgment`). 1.3 (ADR-0060: los tres campos §5 que faltaban —
@@ -110,7 +110,11 @@ stated|recovered-from-malformed-tool-call|derived-min-of-subclaims; `path_b.quer
 
 ### Dos pasadas + decisor por confianza (bloque 4, ADR-0051)
 
-**Ruta B multi-fuente (ADR-0059).** `PATH_B_SOURCES = ("europepmc", "zfin", "tooluniverse")`. `zfin` es
+**Ruta B multi-fuente (ADR-0059).** `PATH_B_SOURCES = ("europepmc", "pubmed", "zfin", "tooluniverse")`. `pubmed` (ADR-0062) es la misma
+query por NCBI E-utilities con ranking propio y **dedup por PMID contra europepmc, declarado** — el SDK
+en el contenedor se midió y se RECHAZÓ (la 1.2.6 pineada ni resuelve en py3.12; la última trae 173
+paquetes con playwright/faiss/onnxruntime): la amplitud entra por Layer 0, y la escalación futura es un
+sidecar, jamás pip install aquí. `zfin` es
 la fuente NATIVA de pez cebra: símbolo → curie ZFIN → statements de fenotipo mutante/knockdown con sus
 PMIDs (Alliance of Genome Resources, sin API key, cero gasto de modelo) — un tier de evidencia más
 fuerte que literatura genérica para un claim de pronefros, y la tool ya vivía sin cablear en

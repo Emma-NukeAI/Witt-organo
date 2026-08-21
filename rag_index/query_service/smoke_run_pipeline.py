@@ -380,16 +380,65 @@ check("tool ausente -> la fuente DEGRADA declarada (tool-unavailable), la corrid
 answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
 answer_pipeline.CACHE = _CACHE_REAL
 
-check("n_results_by_source: por fuente, y europepmc SIEMPRE presente (0 explicito != fuente ausente)",
+check("n_results_by_source: por fuente, y AMBAS fuentes de literatura SIEMPRE presentes "
+      "(0 explicito != fuente ausente)",
       answer_pipeline.n_results_by_source([{"source": "zfin"}, {"source": "zfin"}])
-      == {"zfin": 2, "europepmc": 0})
+      == {"zfin": 2, "europepmc": 0, "pubmed": 0})
+
+# ---- ADR-0062 / tapon 1B: PubMed en Layer 0 con dedup por PMID -----------------------------------------
+def _fake_pubmed(query, limit=8):
+    return {"status": "success", "data": {"query": query, "n_found_total": 9, "records": [
+        {"pmid": "19666820", "title": "RA responsive element controls wt1a", "year": "2009",
+         "journal": "Development"},
+        {"pmid": "42153456", "title": "ya vino por europepmc", "year": "2025", "journal": "X"},
+    ]}}
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed
+_fetch_real = answer_pipeline.fetch_paper.fetch_external
+answer_pipeline.fetch_paper.fetch_external = lambda ident, want_full_text=True: {"found": True}
+items, row = answer_pipeline._search_pubmed("wt1a zebrafish", 5, {"PMID:42153456"})
+answer_pipeline.fetch_paper.fetch_external = _fetch_real
+check("pubmed: dedup por PMID contra europepmc DECLARADO — el duplicado ni entra dos veces ni se "
+      "tira callado (EPMC indexa PubMed: sin esto el sintetizador cuenta doble)",
+      len(items) == 1 and items[0]["evidence_id"] == "PMID:19666820"
+      and items[0]["source"] == "pubmed"
+      and row["status"] == "success" and row["n_new"] == 1
+      and row["duplicates_of_europepmc"] == ["PMID:42153456"])
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] =     lambda query, limit=8: {"status": "error", "error": "HTTPError: 500"}
+items_e, row_e = answer_pipeline._search_pubmed("q", 5, set())
+check("pubmed: la busqueda FALLIDA se declara error — jamas se ve igual que 'no hay resultados'",
+      items_e == [] and row_e["status"] == "error" and "500" in row_e["detail"])
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = None
+check("pubmed: tool ausente -> tool-unavailable declarado, la corrida no truena (§6 no-hang)",
+      answer_pipeline._search_pubmed("q", 5, set())[1]["status"] == "tool-unavailable")
+answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
+pl_ev = answer_pipeline.path_b_event_payload(
+    {"papers": [], "query_sent": "q", "query_source": "entities",
+     "n_results_by_source": {"europepmc": 2, "pubmed": 1, "zfin": 0},
+     "pubmed_searched": {"status": "success", "n_found_total": 9, "n_new": 1,
+                         "duplicates_of_europepmc": ["PMID:1"], "ranking": "x"}})
+def _boom_fetch(ident, want_full_text=True):
+    raise TimeoutError("read timed out")
+_fetch_real2 = answer_pipeline.fetch_paper.fetch_external
+answer_pipeline.fetch_paper.fetch_external = _boom_fetch
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed
+items_t, row_t = answer_pipeline._search_pubmed("q", 5, set())
+answer_pipeline.fetch_paper.fetch_external = _fetch_real2
+answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
+check("un timeout bajando UN paper degrada ESE item (found=false + fetch_error declarado) — "
+      "jamas tumba path_b (§6 no-hang; lo destapo la verificacion en vivo)",
+      len(items_t) == 2 and all(i["fetched"]["found"] is False for i in items_t)
+      and "TimeoutError" in items_t[0]["fetched"]["fetch_error"])
+
+check("el evento stage.path_b lleva el resumen de pubmed (dedup incluido) — un solo log",
+      pl_ev["pubmed_searched"]["n_new"] == 1
+      and pl_ev["pubmed_searched"]["duplicates_of_europepmc"] == ["PMID:1"])
 
 # path_b sigue stubbeado ([]) -> path_b_bundle es offline y el bloque queda completo y declarado
 blk = answer_pipeline.path_b_bundle("pregunta", entities=["osr1"], triggered_by=["motivo"])
 check("path_b_bundle: UN constructor del bloque, con fuentes pedidas + contadores + query declarada",
       blk["triggered"] is True and blk["query_sent"] == "osr1" and blk["query_source"] == "entities"
       and blk["sources_requested"] == list(answer_pipeline.PATH_B_SOURCES)
-      and blk["n_results_by_source"] == {"europepmc": 0} and blk["triggered_by"] == ["motivo"])
+      and blk["n_results_by_source"] == {"europepmc": 0, "pubmed": 0} and blk["triggered_by"] == ["motivo"])
 pl = answer_pipeline.path_b_event_payload(
     {"papers": [], "query_sent": "q", "query_source": "entities",
      "n_results_by_source": {"europepmc": 0, "zfin": 1},
