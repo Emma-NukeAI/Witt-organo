@@ -132,6 +132,7 @@ or external references that informed the decision.
 | [0062](0062-tooluniverse-sdk-rejected-pubmed-layer0.md) | 2026-08-20 | Tapón 1·B: el SDK de Tool Universe en el contenedor se MIDE y se RECHAZA; PubMed entra por Layer 0 | Accepted |
 | [0063](0063-plan-route-store-consultation.md) | 2026-08-22 | El plan rutea: corrida de evidencia vs consulta del sistema (plan v2) | Accepted |
 | [0064](0064-m5-ratings-append-only-and-declared-power-calibration.md) | 2026-08-22 | M5 ratings append-only sobre el registro + calibración ECE con poder DECLARADO | Accepted |
+| [0065](0065-trapped-scalar-dedicated-confidence-elicitation.md) | 2026-08-22 | El escalar atrapado se resuelve por ESTRUCTURA: elicitación dedicada de confianza (contrato 1.5) | Accepted |
 
 ---
 

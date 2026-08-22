@@ -182,7 +182,7 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.4" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.5" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -281,6 +281,63 @@ check("recover_trapped_params: el artefacto EXACTO de produccion (2/2 corridas) 
 clean = composite_auditor.recover_trapped_params({"direct_answer": "texto limpio.", "confidence": 0.8})
 check("recover_trapped_params: una salida limpia pasa intacta (sin _recovered_fields)",
       clean["confidence"] == 0.8 and "_recovered_fields" not in clean)
+
+# ---- ADR-0065: la elicitación dedicada es la medición AUTORITATIVA del escalar ------------------------
+# (medido en evaluation/scripts/ab_trapped_scalar.py: in-line atrapado ~50-60% e insensible a prompts;
+# la elicitación sin campos largos = 24/24 limpia con |delta| mediana 0.09 tras clavar la semántica)
+_orig_tool_call = composite_auditor._anthropic_tool_call
+
+
+def _mk_fake_api(synth_out, elicit_out=None, elicit_raises=False):
+    def fake(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200):
+        if tool and tool["name"] == "emit_confidence":
+            if elicit_raises:
+                raise RuntimeError("elicitation down (smoke)")
+            return dict(elicit_out), {"input_tokens": 30, "output_tokens": 3}
+        return dict(synth_out), {"input_tokens": 100, "output_tokens": 50}
+    return fake
+
+
+_BASE_SYNTH = {"direct_answer": "respuesta.", "confidence": None, "absence_kind": "not-applicable",
+               "alternatives_considered": ["x"], "framework_applied": "NONE-MATCHED",
+               "gap_flags": [], "evidence_cited": []}
+
+composite_auditor._anthropic_tool_call = _mk_fake_api(dict(_BASE_SYNTH), elicit_out={"confidence": 0.4})
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0065a: la elicitada gobierna (source=stated-second-elicitation) + usage FUSIONADO (M8 cuadra)",
+      ans["stated_confidence"] == 0.4 and ans["confidence_source"] == "stated-second-elicitation"
+      and ans["stated_confidence_inline"] is None
+      and ans["usage"] == {"input_tokens": 130, "output_tokens": 53})
+
+composite_auditor._anthropic_tool_call = _mk_fake_api({**_BASE_SYNTH, "confidence": 0.9},
+                                                      elicit_out={"confidence": 0.2})
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0065b: divergencia >0.15 DECLARADA en gap_flags; la elicitada gobierna, la in-line persiste",
+      ans["stated_confidence"] == 0.2 and ans["stated_confidence_inline"] == 0.9
+      and any("cross-check divergence" in f for f in ans["gap_flags"]))
+
+composite_auditor._anthropic_tool_call = _mk_fake_api(
+    {**_BASE_SYNTH, "confidence": 0.15, "_recovered_fields": ["confidence"]},
+    elicit_out={"confidence": 0.1, "confidence_by_subclaim": {"s1": 0.2, "s2": 0.05}})
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0065c: in-line RECOVERED queda como cross-check declarado; subclaims elicitados ganan",
+      ans["stated_confidence"] == 0.1 and ans["confidence_source"] == "stated-second-elicitation"
+      and ans["stated_confidence_inline"] == 0.15
+      and ans["confidence_by_subclaim"] == {"s1": 0.2, "s2": 0.05}
+      and any("kept as cross-check" in f for f in ans["gap_flags"]))
+
+composite_auditor._anthropic_tool_call = _mk_fake_api({**_BASE_SYNTH, "confidence": 0.7},
+                                                      elicit_raises=True)
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0065d: elicitación caída JAMÁS bloquea (§6) — cae al in-line source=stated + flag declarado",
+      ans["stated_confidence"] == 0.7 and ans["confidence_source"] == "stated"
+      and any("elicitation FAILED" in f for f in ans["gap_flags"]))
+
+composite_auditor._anthropic_tool_call = _mk_fake_api(dict(_BASE_SYNTH), elicit_raises=True)
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0065e: sin escalar por NINGÚN camino -> ausencia DECLARADA (jamás null silencioso)",
+      ans["stated_confidence"] is None and any("ABSENT" in f for f in ans["gap_flags"]))
+composite_auditor._anthropic_tool_call = _orig_tool_call
 rv = app.create_run(app.RunBody(question="recovered conf run", entities=[]), authorization=AUTH)
 claimed = db.claim_next_queued()
 runs_mod.execute_run(claimed, synthesizer=_mk_synth(

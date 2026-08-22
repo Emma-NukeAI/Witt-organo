@@ -103,8 +103,13 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (91/91 offline; `smoke_query_service.py`
-29/29). Contrato del registro: `render_contract_version 1.4` (ADR-0061: `plan` congelado + `plan_declared` +
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (99/99 offline; `smoke_query_service.py`
+29/29). Contrato del registro: `render_contract_version 1.5` (ADR-0065: el escalar de confianza viene
+de una **elicitación dedicada** post-síntesis — `confidence.source: "stated-second-elicitation"` — con
+el instrumento in-line preservado en `pass1_inline`/`pass2_inline`, divergencia >0.15 declarada en
+gap_flags y fallback §6 al camino ADR-0057 si la elicitación cae; medido en
+`evaluation/scripts/ab_trapped_scalar.py`: in-line atrapado ~50–60% e insensible a prompts, elicitación
+20/20 limpia con |delta| mediana ≤0.14). 1.4 (ADR-0061: `plan` congelado + `plan_declared` +
 `plan_question_matches_run`, `agents_invoked` poblado desde el juicio del planner, y el gasto del plan
 dentro de `token_usage` con su desglose `plan_judgment`). 1.3 (ADR-0060: los tres campos §5 que faltaban —
 `reasoning.framework_applied` SELF-REPORT con sección/tier resueltos por tabla y la cita comprobada
@@ -144,9 +149,9 @@ como proyección). `render_contract_version: 1.1`.
 (Actualizado 2026-08-22 — la lista previa estaba una época atrás: el plan de M3 es ADR-0061, el
 precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 
-- **Escalar atrapado (6/6 corridas):** investigar por qué Opus 4.8 emite `confidence` dentro de
-  `direct_answer` pese al schema de `SYNTH_TOOL`; la recuperación de ADR-0057 carga el peso hoy. Medir
-  contra corridas nuevas antes de declarar resuelto.
+- **Escalar atrapado: fix estructural ENTREGADO (ADR-0065), confirmación en producción PENDIENTE** —
+  la próxima corrida real debe salir con `confidence.source: "stated-second-elicitation"`; hasta
+  entonces el item no se declara resuelto (regla del handoff: medir contra corridas nuevas).
 - **Consulta abierta (nombrada en ADR-0063, no construida):** agente que lea /status + /taxonomia +
   manifest y responda la pregunta meta en lenguaje natural — módulo propio con su historia de auditoría.
 - **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción);

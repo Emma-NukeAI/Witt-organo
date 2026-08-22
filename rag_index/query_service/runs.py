@@ -34,7 +34,11 @@ import db  # noqa: E402
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 
-RENDER_CONTRACT_VERSION = "1.4"   # ADR-0061 (tapón 3): +plan (el plan declarado o null-declarado) y
+RENDER_CONTRACT_VERSION = "1.5"   # ADR-0065 (escalar atrapado): confidence.source gana el literal
+                                  # "stated-second-elicitation" (la elicitación dedicada es la medición
+                                  # autoritativa del escalar) + confidence.pass1_inline/pass2_inline
+                                  # (el instrumento in-line persiste — continuidad de la serie).
+                                  # 1.4 = ADR-0061 (tapón 3): +plan (el plan declarado o null-declarado) y
                                   # agents_invoked poblado desde el juicio del planner cuando existe.
                                   # 1.3 = ADR-0060 (tapón 2): +reasoning {framework_applied (SELF-REPORT, con
                                   # sección y tier resueltos por tabla), structural_frameworks (derivados
@@ -116,6 +120,66 @@ SYNTH_TOOL = {
                      "framework_applied"],
     },
 }
+
+# --- elicitación dedicada del escalar (ADR-0065) -------------------------------------------------------
+# El hallazgo medido (evaluation/scripts/ab_trapped_scalar.py, 2026-08-22): Opus 4.8 emite la transición
+# de parámetro en sintaxis XML legada DENTRO del string de direct_answer en ~50-60% de las llamadas de
+# síntesis (A 5/8 · C 6/12; 6/6 corridas de producción), es INSENSIBLE al orden del schema (emitió
+# direct_answer primero en 16/16 aunque el schema listara confidence primero), `temperature` está
+# DEPRECADO para el modelo (400 medido), y los nudges de prompt solo lo reducen (B 2/8). El fix
+# estructural: un tool SIN campos de texto largo no tiene string que contaminar — 24/24 elicitaciones
+# limpias — y la confianza se emite VIENDO la respuesta completa (answer-then-confidence). La semántica
+# va CLAVADA al gate (una declinación honesta = confianza BAJA): la primera versión sin esta cláusula
+# midió |delta| 0.75 vs el in-line — habría roto el fallback en silencio. Con la semántica fijada:
+# |delta| mediana 0.09, sesgo conservador (jamás cruza el umbral en 24/24).
+CONF_TOOL = {
+    "name": "emit_confidence",
+    "description": ("Emit ONLY the calibration scalars for the answer you are shown. No prose, no "
+                    "restating the answer — just the numbers."),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1,
+                           "description": ("the SAME quantity the synthesizer reports in its own "
+                                           "confidence field: how confident you are that the QUESTION "
+                                           "is substantively and correctly ANSWERED from the evidence "
+                                           "shown. Thin, off-topic or insufficient evidence means LOW "
+                                           "confidence — and an answer that DECLINES or mostly "
+                                           "describes gaps means LOW confidence (the fallback gate "
+                                           "consumes this signal as 'is this evidence enough?'). This "
+                                           "is NOT a grade of whether declining was the right move.")},
+            "confidence_by_subclaim": {
+                "type": "object", "additionalProperties": {"type": "number"},
+                "description": ("REQUIRED when the answer composes sub-claims of asymmetric evidence "
+                                "strength (CLAUDE.md §5): short label -> confidence, never averaged")},
+        },
+        "required": ["confidence"],
+    },
+}
+ELICIT_SYSTEM = ("You are the confidence-calibration step of the Witt zebrafish evidence pipeline. "
+                 "You are shown a question, the evidence bundle the synthesizer saw, and the answer "
+                 "it produced (with its gap flags). Emit ONLY the calibration scalars via the tool. "
+                 "SEMANTICS (hard rule): confidence measures whether the QUESTION got a substantive, "
+                 "correct answer from THIS evidence — the very signal the pipeline's fallback gate "
+                 "consumes. An honest decline over thin evidence is the RIGHT behavior AND scores LOW "
+                 "confidence (low = 'this evidence is not enough', which is what triggers the external "
+                 "search). Never score the quality of the declining itself.")
+
+
+def _elicit_confidence(question, evidence, direct_answer, gap_flags, pass_label):
+    """La medición AUTORITATIVA del escalar (ADR-0065): una mini-llamada forzada cuyo tool no tiene
+    campos de texto largo — estructuralmente no hay string que contaminar. Devuelve (conf, subs, usage);
+    valores fuera de [0,1] o no numéricos se rechazan a None (el caller cae al in-line, §6 no-hang)."""
+    user_text = json.dumps({"question": question, "evidence": evidence,
+                            "produced_answer": {"pass": pass_label, "direct_answer": direct_answer,
+                                                "gap_flags": gap_flags}},
+                           ensure_ascii=False, default=str)
+    out, usage = composite_auditor._anthropic_tool_call(
+        SYNTH_MODEL, ELICIT_SYSTEM, user_text, tool=CONF_TOOL, max_tokens=300)
+    conf = out.get("confidence")
+    conf = float(conf) if isinstance(conf, (int, float)) and 0 <= conf <= 1 else None
+    subs = out.get("confidence_by_subclaim") or None
+    return conf, subs, usage
 
 
 # --- el planner (tapón 3, ADR-0061) --------------------------------------------------------------------
@@ -449,42 +513,73 @@ def _evidence_ids(bundle):
     return ids
 
 
+def synth_system(pass_label):
+    """The EXACT production system prompt of a synthesis pass — factored out so diagnostics
+    (evaluation/scripts/ab_trapped_scalar.py) measure against the real string, never a replica."""
+    return ("You answer zebrafish pronephros research questions for a medical team, from a curated "
+            "evidence bundle (DATA INAMOVIBLE"
+            + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
+            "Use ONLY the provided evidence. Be direct; keep confidence honest (thin evidence means "
+            "LOW confidence + explicit gap_flags); when sub-claims have asymmetric evidence strength, "
+            "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
+            "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
+            "identifier that is not in the evidence.\n\n"
+            # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
+            # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
+            # fabrica números de sección, que es peor que no pedir nada.
+            + reasoning_catalog.digest()
+            + "\n\nAlso report alternatives_considered (§5): the readings you rejected and why.")
+
+
 def _default_synthesizer(question, evidence, pass_label):
     """One synthesis pass over an evidence view (pass1 = DI-only, pass2 = DI + Path B). Returns
     {direct_answer, stated_confidence, confidence_by_subclaim, absence_kind, gap_flags,
     evidence_cited, model, usage}."""
-    system = ("You answer zebrafish pronephros research questions for a medical team, from a curated "
-              "evidence bundle (DATA INAMOVIBLE"
-              + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
-              "Use ONLY the provided evidence. Be direct; keep confidence honest (thin evidence means "
-              "LOW confidence + explicit gap_flags); when sub-claims have asymmetric evidence strength, "
-              "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
-              "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
-              "identifier that is not in the evidence.\n\n"
-              # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
-              # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
-              # fabrica números de sección, que es peor que no pedir nada.
-              + reasoning_catalog.digest()
-              + "\n\nAlso report alternatives_considered (§5): the readings you rejected and why.")
+    system = synth_system(pass_label)
     user_text = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
     gap_flags = list(out.get("gap_flags", []))
     recovered = out.get("_recovered_fields", [])
-    conf = out.get("confidence")
-    if conf is not None:
-        # ADR-0057: BOTH real runs shipped the scalar TRAPPED as text inside direct_answer; the
-        # recovery lifts it deterministically — with provenance, never silently.
+    inline_conf = out.get("confidence")
+    if "confidence" in recovered:
+        # ADR-0057: el escalar in-line llegó ATRAPADO como texto (medido ~50-60% de llamadas); la
+        # recuperación lo levanta con procedencia. Desde ADR-0065 es el CROSS-CHECK, no la medición.
+        gap_flags.append(f"in-line confidence RECOVERED from a malformed tool call in {pass_label} "
+                         "(serialization artifact stripped from direct_answer) — kept as cross-check; "
+                         "the elicited scalar governs (ADR-0065)")
+    # ADR-0065: la elicitación dedicada es la medición autoritativa del escalar. Su fallo NUNCA
+    # bloquea (§6 no-hang): se cae al camino in-line/recovered de ADR-0057, con la procedencia de ese
+    # camino, y se declara.
+    try:
+        elicited, e_subs, e_usage = _elicit_confidence(question, evidence, out["direct_answer"],
+                                                       gap_flags, pass_label)
+    except Exception as e:
+        elicited, e_subs, e_usage = None, None, None
+        gap_flags.append(f"confidence elicitation FAILED in {pass_label} "
+                         f"({type(e).__name__}: {str(e)[:80]}) — falling back to the in-line scalar "
+                         "(§6 no-hang)")
+    if e_usage:
+        mi, mo = _usage_in_out(usage)
+        ei, eo = _usage_in_out(e_usage)
+        usage = {"input_tokens": mi + ei, "output_tokens": mo + eo}   # M8 cuadra: el gasto se fusiona
+    if elicited is not None:
+        conf = elicited
+        conf_source = "stated-second-elicitation"
+        if isinstance(inline_conf, (int, float)) and abs(elicited - inline_conf) > 0.15:
+            gap_flags.append(f"confidence cross-check divergence in {pass_label}: elicited {elicited} "
+                             f"vs in-line {inline_conf}"
+                             + (" (in-line itself recovered)" if "confidence" in recovered else "")
+                             + " — declared; the elicited value governs (ADR-0065)")
+    elif inline_conf is not None:
+        conf = inline_conf
         conf_source = ("recovered-from-malformed-tool-call" if "confidence" in recovered else "stated")
-        if "confidence" in recovered:
-            gap_flags.append(f"stated_confidence RECOVERED from a malformed tool call in {pass_label} "
-                             "(serialization artifact stripped from direct_answer) — provenance declared, "
-                             "render as recovered, not as a clean measurement")
     elif out.get("confidence_by_subclaim"):
-        conf_source = None   # runs.py derives min-of-subclaims (declared there) — §5 allows the OR
+        conf, conf_source = None, None   # runs.py derives min-of-subclaims (declared) — §5 allows the OR
     else:
-        conf_source = None
-        gap_flags.append(f"stated_confidence ABSENT in {pass_label} (omitted after retry) — not calibratable")
+        conf, conf_source = None, None
+        gap_flags.append(f"stated_confidence ABSENT in {pass_label} (in-line omitted after retry AND "
+                         "elicitation unavailable) — not calibratable")
     if not out.get("framework_applied"):
         gap_flags.append(f"framework_applied AUSENTE en {pass_label} (§4 lo exige) — no se inventa: "
                          "el registro lo declara ausente")
@@ -493,7 +588,8 @@ def _default_synthesizer(question, evidence, pass_label):
                          "no rellenado con una lista vacía que se leería como 'no había alternativas'")
     return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
             "confidence_source": conf_source,
-            "confidence_by_subclaim": out.get("confidence_by_subclaim"),
+            "stated_confidence_inline": inline_conf,   # el instrumento previo persiste (continuidad)
+            "confidence_by_subclaim": e_subs or out.get("confidence_by_subclaim"),
             "absence_kind": out.get("absence_kind"),
             "search_query_en": out.get("search_query_en"),
             "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
@@ -772,10 +868,15 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             "confidence": {
                 "pass1": conf1, "pass1_source": conf1_source,
                 "pass2": conf2, "pass2_source": conf2_source,
+                # ADR-0065: el instrumento in-line PERSISTE junto al elicitado — un cambio de
+                # instrumento se declara y ambas series sobreviven (continuidad de la calibración)
+                "pass1_inline": pass1.get("stated_confidence_inline"),
+                "pass2_inline": (pass2.get("stated_confidence_inline") if trigger else None),
                 "delta": delta,
                 "final": final_conf,
-                # ADR-0057: the EXACT provenance field the UI renders — a recovered or derived value
-                # is a value (state), but it is NEVER a clean measurement (source says how it exists):
+                # ADR-0057/0065: the EXACT provenance field the UI renders — a recovered or derived
+                # value is a value (state), but source says HOW it exists:
+                # "stated-second-elicitation" (ADR-0065, the authoritative dedicated elicitation) |
                 # "stated" | "recovered-from-malformed-tool-call" | "derived-min-of-subclaims" | null
                 "source": final_source,
                 "by_subclaim": answer.get("confidence_by_subclaim"),
