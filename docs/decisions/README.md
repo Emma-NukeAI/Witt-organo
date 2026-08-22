@@ -133,6 +133,8 @@ or external references that informed the decision.
 | [0063](0063-plan-route-store-consultation.md) | 2026-08-22 | El plan rutea: corrida de evidencia vs consulta del sistema (plan v2) | Accepted |
 | [0064](0064-m5-ratings-append-only-and-declared-power-calibration.md) | 2026-08-22 | M5 ratings append-only sobre el registro + calibración ECE con poder DECLARADO | Accepted |
 | [0065](0065-trapped-scalar-dedicated-confidence-elicitation.md) | 2026-08-22 | El escalar atrapado se resuelve por ESTRUCTURA: elicitación dedicada de confianza (contrato 1.5) | Accepted |
+| [0066](0066-plan-v3-clarification-and-data-landscape.md) | 2026-08-22 | Plan v3: preguntas de clarificación + paisaje de datos pre-gasto (adopción VB #1) | Accepted |
+| [0067](0067-bounded-revision-cycle-post-revise.md) | 2026-08-22 | Ciclo de revisión acotado post-REVISE: nada se borra, tope duro = 1 (adopción VB #2, contrato 1.6) | Accepted |
 
 ---
 

@@ -182,7 +182,7 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.audit.verdict" in types, f"n={len(ev)}")
 rec = app.get_frozen_record(RID, authorization=AUTH)
 check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.5" and rec["audit"]["verdict"] == "APPROVE"
+      rec["render_contract_version"] == "1.6" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -592,8 +592,51 @@ def _fake_planner_ok(question, entities):
 HIST_OK = ([{"cost_usd": 0.18, "duration_s": 60, "trigger": None}] * 3
            + [{"cost_usd": 0.21, "duration_s": 95, "trigger": "confidence"}] * 3)
 
+# ADR-0066: query_sparse stubbeado para que el preview del paisaje sea determinista en el gate
+_orig_sparse = rag_backend.query_sparse
+rag_backend.query_sparse = lambda text, k=5: HitList([_chunk, _chunk], degraded="sparse-by-config")
+
 pl = runs_mod.build_plan("¿osr1 es suficiente para inducir el pronefros ectopicamente?",
                          ["osr1"], planner=_fake_planner_ok, history_rows=HIST_OK)
+check("ADR-0066 (plan v3): data_landscape ESTRUCTURAL — preview DI sparse NO-SPEND + fuentes B por hechos "
+      "(zfin aplica con entities; tooluniverse declarado hook)",
+      pl["plan_version"] == "3" and pl["data_landscape"]["class"] == "structural"
+      and pl["data_landscape"]["di_preview"]["n_hits"] == 2
+      and pl["data_landscape"]["di_preview"]["mode"] == "sparse-preview-no-spend"
+      and "aplica: 1 símbolo" in pl["data_landscape"]["path_b_sources"]["zfin"]
+      and "hook" in pl["data_landscape"]["path_b_sources"]["tooluniverse"])
+check("ADR-0066: planner sin clarifying_questions -> [] (pregunta clara — jamás se inventan)",
+      pl["judgment"]["clarifying_questions"] == [])
+
+
+def _planner_ambiguo(question, entities):
+    return ({"work_type": "QA con alcance ambiguo", "route": "evidence-run", "niches": ["N3"],
+             "agents_applicable": [],
+             "clarifying_questions": [
+                 {"question": "¿inducción ectópica (GOF) o requerimiento (LOF)?",
+                  "why": "cambia qué evidencia busca la Ruta B y qué agentes aplican"}]}, {})
+
+
+pl_amb = runs_mod.build_plan("¿osr1 induce?", [], planner=_planner_ambiguo, history_rows=HIST_OK)
+check("ADR-0066: 1-3 preguntas de clarificación DECLARADAS en el juicio + n_clarifying en stage.plan; "
+      "zfin declara NO-aplica sin entities (never-stopper: nada bloquea)",
+      len(pl_amb["judgment"]["clarifying_questions"]) == 1
+      and pl_amb["judgment"]["clarifying_questions"][0]["why"].startswith("cambia")
+      and runs_mod.plan_event_payload(pl_amb)["n_clarifying"] == 1
+      and runs_mod.plan_event_payload(pl_amb)["di_preview_hits"] == 2
+      and "NO aplica" in pl_amb["data_landscape"]["path_b_sources"]["zfin"])
+
+
+def _sparse_boom(text, k=5):
+    raise RuntimeError("sparse index down")
+
+
+rag_backend.query_sparse = _sparse_boom
+pl_noidx = runs_mod.build_plan("q", [], planner=_fake_planner_ok, history_rows=HIST_OK)
+check("ADR-0066: el preview caído se DECLARA unavailable y el plan sigue entero (§6 no-hang)",
+      pl_noidx["data_landscape"]["di_preview"]["state"] == "unavailable"
+      and pl_noidx["judgment"]["state"] == "declared")
+rag_backend.query_sparse = lambda text, k=5: HitList([_chunk, _chunk], degraded="sparse-by-config")
 check("plan: lo estructural viene del CODIGO (Ruta A siempre, B condicional con sus 2 decisores, "
       "panel obligatorio con sus 4 lentes)",
       pl["route"]["class"] == "structural" and pl["route"]["path_b"]["conditional"] is True
@@ -663,6 +706,8 @@ pl_err = runs_mod.build_plan("q", [], planner=_planner_boom, history_rows=HIST_O
 check("plan: el juicio FALLA sin tumbar el plan (no-hang §6) — errored declarado, estructura intacta",
       pl_err["judgment"]["state"] == "errored" and "planner caido" in pl_err["judgment"]["error"]
       and pl_err["route"]["class"] == "structural" and pl_err["estimates"]["di_only"]["state"] == "projected")
+check("ADR-0066: el paisaje es ESTRUCTURAL — presente aunque el juicio del planner falle",
+      pl_err["data_landscape"]["di_preview"]["n_hits"] == 2)
 
 # --- el plan viaja: POST /runs/plan -> POST /runs {plan_id} -> stage.plan -> registro congelado --------
 runs_mod._default_planner_real = runs_mod._default_planner
@@ -721,6 +766,7 @@ check("matriz: derogaciones y suspensiones viajan en la tabla (html-report ADR-0
       "investor-relations ADR-0008)",
       "ADR-0046" in agent_matrix.AGENTS["html-report-emitter"]["note"]
       and "SUSPENDIDO" in agent_matrix.AGENTS["investor-relations-drafter"]["note"])
+rag_backend.query_sparse = _orig_sparse   # fin de la seccion del planner (ADR-0066)
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
 res = app.close_run(RID, authorization=AUTH)
@@ -775,6 +821,106 @@ vf = app.get_run(rv["run_id"], authorization=AUTH)
 check("LOTE-01·A4: una corrida failed tambien expone su token_usage (aqui 0, medido no ausente)",
       vf["token_usage"] is not None and vf["token_usage"]["input_tokens"] == 0
       and "cost_class" in vf["token_usage"])
+
+# ---- ADR-0067: ciclo de revisión acotado (adopción del loop reviewer->re-delegate de VB) --------------
+def _stub_caller_rounds(rounds):
+    """caller por RONDAS de panel: cada 4 llamadas (un panel completo) avanza a la siguiente ronda."""
+    n = {"i": 0}
+
+    def _caller(member, system, user_text):
+        idx = min(n["i"] // 4, len(rounds) - 1)
+        n["i"] += 1
+        return ({"verdict": rounds[idx][member["lens"]], "caught": f"catch-{member['lens']}",
+                 "correction_applied": "cita el chunk exacto", "confidence": 0.9,
+                 "reasons": ["falta grounding"]},
+                {"input_tokens": 10, "output_tokens": 5})
+    return _caller
+
+
+ALL_R = {k: "REVISE" for k in ALL_A}
+_rev_seen = {"labels": [], "findings": False}
+
+
+def _synth_with_revision(question, evidence, pass_label):
+    _rev_seen["labels"].append(pass_label)
+    if pass_label == "revision":
+        _rev_seen["findings"] = bool(evidence.get("revision_input", {}).get("panel_findings"))
+        base = _mk_synth({})(question, evidence, pass_label)
+        return {**base, "direct_answer": "REVISED: wt1a marks the pronephros (chunk c000).",
+                "stated_confidence": 0.85}
+    return _mk_synth({"pass1": 0.8})(question, evidence, pass_label)
+
+
+rv = app.create_run(app.RunBody(question="revision cycle run", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_synth_with_revision,
+                     panel_caller=_stub_caller_rounds([ALL_R, ALL_A]))
+rec_r = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+ev_r = [e["type"] for e in app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]]
+check("ADR-0067a: REVISE -> UNA revisión (hallazgos del panel como insumo tipado) -> re-auditoría -> "
+      "APPROVE terminal",
+      rec_r["revision"]["performed"] is True and rec_r["revision"]["initial_verdict"] == "REVISE"
+      and rec_r["revision"]["final_verdict"] == "APPROVE"
+      and rec_r["decision_state"]["state"] == "AUDIT_APPROVED"
+      and _rev_seen["findings"] is True and "revision" in _rev_seen["labels"]
+      and len(rec_r["revision"]["findings_used"]) == 4)
+check("ADR-0067b: NADA se borra — answer_initial + audit_initial persisten junto a la versión final",
+      rec_r["answer_initial"]["direct_answer"].startswith("wt1a (ENSDARG")
+      and rec_r["audit_initial"]["verdict"] == "REVISE"
+      and rec_r["answer"]["direct_answer"].startswith("REVISED:")
+      and rec_r["audit"]["verdict"] == "APPROVE"
+      and rec_r["confidence"]["revision"] == 0.85 and rec_r["confidence"]["final"] == 0.85
+      and rec_r["render_contract_version"] == "1.6")
+check("ADR-0067c: la traza lleva las DOS rondas (revision_round 0/1) + stage.revision.start + "
+      "stage.synthesize.revision (cap duro = 1)",
+      ev_r.count("stage.audit.verdict") == 2 and "stage.revision.start" in ev_r
+      and "stage.synthesize.revision" in ev_r and rec_r["revision"]["cap"] == 1)
+check("ADR-0067d: el usage cuenta AMBOS paneles (8 jueces) y la pasada de revisión (M8 cuadra)",
+      rec_r["usage_raw"]["panel_total"] == {"input_tokens": 80, "output_tokens": 40}
+      and rec_r["token_usage"]["by_model"].get("stub-synth", {}).get("in") == 200)
+
+rv = app.create_run(app.RunBody(question="revision fails again", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_synth_with_revision,
+                     panel_caller=_stub_caller_rounds([ALL_R, ALL_R]))
+rec_rr = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+ev_rr = [e["type"] for e in app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]]
+check("ADR-0067e: REVISE tras la revisión -> AUDIT_REJECTED terminal honesto (jamás una 2ª iteración)",
+      rec_rr["revision"]["performed"] is True and rec_rr["revision"]["final_verdict"] == "REVISE"
+      and rec_rr["decision_state"]["state"] == "AUDIT_REJECTED"
+      and ev_rr.count("stage.audit.verdict") == 2)
+
+os.environ["WITT_REVISION_CYCLE"] = "0"
+rv = app.create_run(app.RunBody(question="kill switch run", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": 0.8}),
+                     panel_caller=_stub_caller_factory({**ALL_A, "correctness": "REVISE"}))
+rec_ks = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+ev_ks = [e["type"] for e in app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]]
+os.environ["WITT_REVISION_CYCLE"] = "1"
+check("ADR-0067f: kill-switch WITT_REVISION_CYCLE=0 -> comportamiento pre-ADR (REVISE terminal, "
+      "skipped_reason declarado, un solo panel)",
+      rec_ks["revision"]["enabled"] is False and rec_ks["revision"]["performed"] is False
+      and "kill-switch" in rec_ks["revision"]["skipped_reason"]
+      and rec_ks["decision_state"]["state"] == "AUDIT_REJECTED"
+      and ev_ks.count("stage.audit.verdict") == 1)
+
+rv = app.create_run(app.RunBody(question="thin panel run", entities=[]), authorization=AUTH)
+claimed = db.claim_next_queued()
+runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": 0.8}),
+                     panel_caller=_stub_caller_factory(
+                         {"correctness": "APPROVE", "overclaim": RuntimeError("judge down"),
+                          "evidence-grounding": RuntimeError("judge down"), "reproducibility": "APPROVE"}))
+rec_tp = app.get_frozen_record(rv["run_id"], authorization=AUTH)
+check("ADR-0067g: REVISE por panel_incomplete NO dispara revisión (el problema son los jueces, no la "
+      "respuesta) — skipped_reason lo declara",
+      rec_tp["revision"]["performed"] is False
+      and "panel_incomplete" in rec_tp["revision"]["skipped_reason"]
+      and rec_tp["decision_state"]["state"] == "AUDIT_REJECTED")
+
+check("ADR-0067h: una corrida SIN revisión declara el bloque en 3 estados (null-declarado, no ausencia)",
+      rec["revision"]["performed"] is False and rec["audit_initial"] is None
+      and rec["answer_initial"] is None and rec["confidence"]["revision"] is None)
 
 # ---- LOTE-02·2: /usage — la suma vive en el SERVIDOR (M8) --------------------------------------------
 us = app.usage(authorization=AUTH)

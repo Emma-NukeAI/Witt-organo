@@ -34,7 +34,11 @@ import db  # noqa: E402
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 
-RENDER_CONTRACT_VERSION = "1.5"   # ADR-0065 (escalar atrapado): confidence.source gana el literal
+RENDER_CONTRACT_VERSION = "1.6"   # ADR-0067 (ciclo de revisión acotado, adopción VB): +revision
+                                  # {enabled, performed, cap=1, findings_used, initial/final_verdict} +
+                                  # audit_initial + answer_initial cuando hubo revisión (AMBAS versiones
+                                  # persisten — nada se borra) + confidence.revision/revision_source.
+                                  # 1.5 = ADR-0065 (escalar atrapado): confidence.source gana el literal
                                   # "stated-second-elicitation" (la elicitación dedicada es la medición
                                   # autoritativa del escalar) + confidence.pass1_inline/pass2_inline
                                   # (el instrumento in-line persiste — continuidad de la serie).
@@ -191,7 +195,10 @@ def _elicit_confidence(question, evidence, direct_answer, gap_flags, pass_label)
 #   projection       — costo/duración: mediana de la historia REAL, calculada por código (constitución:
 #                      una proyección la calcula un tool desde insumos declarados, nunca la estima un
 #                      modelo). Sin historia suficiente: "[?] sin historia suficiente" (LOTE-01).
-PLAN_VERSION = "2"   # v2 (ADR-0063): +judgment.route — el juicio del planner ahora TIENE a dónde ir
+PLAN_VERSION = "3"   # v3 (ADR-0066, adopción VB): +judgment.clarifying_questions (alineación pre-gasto,
+                     # jamás bloquea) + data_landscape estructural (preview DI sparse NO-SPEND + qué
+                     # fuentes Ruta B aplican — el briefing chief-of-staff, versión Witt).
+                     # v2 (ADR-0063): +judgment.route — el juicio del planner ahora TIENE a dónde ir
 PLAN_MIN_HISTORY = int(os.environ.get("WITT_PLAN_MIN_HISTORY", "3"))
 
 PLAN_TOOL = {
@@ -232,10 +239,51 @@ PLAN_TOOL = {
                 "description": ("agents whose work-type signal THIS question implicates (composite-auditor "
                                 "and identifier-verification-gate always run — include them only to add a "
                                 "question-specific reason)")},
+            "clarifying_questions": {
+                "type": "array", "maxItems": 3,
+                "items": {"type": "object", "properties": {
+                    "question": {"type": "string"},
+                    "why": {"type": "string",
+                            "description": "which analysis decision changes depending on the answer"}},
+                    "required": ["question", "why"]},
+                "description": ("0-3 clarification questions for the HUMAN, ONLY when the question is "
+                                "genuinely ambiguous about scope or intent (ADR-0066, pre-spend "
+                                "alignment). An EMPTY array means the question is clear — NEVER invent "
+                                "questions for a clear one. These never block the run (never-stopper): "
+                                "answering them refines a FUTURE plan, it is not a gate.")},
         },
         "required": ["work_type", "route", "niches", "agents_applicable"],
     },
 }
+
+
+def _data_landscape(question, entities):
+    """El briefing de paisaje pre-gasto (ADR-0066 — el patrón chief-of-staff de Virtual Biotech,
+    versión Witt): QUÉ tiene la DI sobre el tema (preview con el índice sparse LOCAL — NO-SPEND por
+    construcción: cero red, cero embed, mismo patrón /status) y qué fuentes de Ruta B aplican
+    (hechos del código, no juicio). Best-effort: su fallo jamás tumba el plan (§6 no-hang)."""
+    land = {
+        "class": "structural",
+        "path_b_sources": {
+            "europepmc": "aplica siempre (query EN, entidades-primero — ADR-0057)",
+            "pubmed": "aplica siempre (NCBI E-utilities, dedup por PMID vs EPMC — ADR-0062)",
+            "zfin": (f"aplica: {len(entities)} símbolo(s) de gen declarados"
+                     if entities else "NO aplica sin entities (las keys son símbolos de gen — ADR-0059)"),
+            "tooluniverse": "hook [] — solo sesiones de agente (ADR-0062)",
+        },
+        "note": ("preview con el índice sparse local (NO-SPEND, orientativo); la corrida real "
+                 "recupera con el índice semántico — este conteo NO es una medición de la corrida"),
+    }
+    try:
+        from lib import rag_backend
+        hits = rag_backend.query_sparse(question, 5)
+        land["di_preview"] = {"n_hits": len(hits),
+                              "top_doc_ids": [getattr(h, "doc_id", None) for h in hits[:3]],
+                              "mode": "sparse-preview-no-spend"}
+    except Exception as e:
+        land["di_preview"] = {"state": "unavailable",
+                              "error": f"{type(e).__name__}: {str(e)[:120]}"}
+    return land
 
 
 def _default_planner(question, entities):
@@ -321,6 +369,8 @@ def build_plan(question, entities=None, planner=None, history_rows=None):
         "deterministic_gate": {"class": "structural", "component": "lib/verify_output.py",
                                "note": "clase Logic-LM, no es un LLM; corre en cada corrida"},
     }
+    # ADR-0066: el paisaje es ESTRUCTURAL — se calcula aunque el juicio del planner falle
+    plan["data_landscape"] = _data_landscape(question, entities)
 
     try:
         out, usage = planner(question, entities)
@@ -380,6 +430,9 @@ def build_plan(question, entities=None, planner=None, history_rows=None):
             "niches": niches,
             "scope": scope,
             "agents_applicable": agents,
+            # ADR-0066 (never-stopper): 0-3 preguntas de clarificación pre-gasto; [] = pregunta clara.
+            # JAMÁS bloquean — responderlas refina un plan FUTURO, no es un gate.
+            "clarifying_questions": out.get("clarifying_questions") or [],
             "planner": {"model": SYNTH_MODEL, "usage": usage, "class": "self-report",
                         "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)"},
         }
@@ -404,6 +457,8 @@ def plan_event_payload(plan):
          "niches": [n.get("code") for n in j.get("niches", [])],
          "n_agents_applicable": len(j.get("agents_applicable", [])),
          "agents": [a.get("agent") for a in j.get("agents_applicable", [])],
+         "n_clarifying": len(j.get("clarifying_questions") or []),                       # ADR-0066
+         "di_preview_hits": ((plan.get("data_landscape") or {}).get("di_preview") or {}).get("n_hits"),
          "audit_required": True}
     sc = j.get("scope") or {}
     if sc.get("in_scope") is False:
@@ -474,6 +529,35 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None):
                        "skipped-ad-hoc (que afirmaría un juicio hecho)." + reason_extra),
             "evidence_generated": [],
         })
+    return out
+
+
+# --- ciclo de revisión acotado (ADR-0067, adopción del loop reviewer->re-delegate de VB) --------------
+# Hoy un REVISE del panel era terminal: la corrida moría honesta sin intentar la corrección. VB
+# demuestra el valor del loop de re-delegación; la versión Witt lo acota y lo AUDITA: UNA pasada de
+# revisión con los hallazgos del panel como insumo tipado, re-gate determinista, re-auditoría, y tope
+# DURO de 1 (dinámica-dentro-de-etapas-acotadas, jamás iteración abierta — stress-test/method-selection).
+# A diferencia de VB, NADA se borra: ambas respuestas y ambos veredictos persisten en el registro.
+REVISION_CAP = 1
+
+
+def _revision_enabled():
+    """Kill-switch operativo (leído en tiempo de corrida, no de import): WITT_REVISION_CYCLE=0
+    restaura el comportamiento pre-ADR-0067 (REVISE terminal sin intento de corrección)."""
+    return os.environ.get("WITT_REVISION_CYCLE", "1") == "1"
+
+
+def _panel_findings(audit_result):
+    """Los hallazgos ACCIONABLES del panel para la pasada de revisión: qué atrapó cada juez y qué
+    corrección propuso — lo que VB re-delega como prosa, aquí viaja como insumo tipado. Incluye
+    APPROVE_MINOR (catch real aunque no vete) además de REVISE."""
+    out = []
+    for r in audit_result.get("panel", []):
+        if r.get("verdict") in ("REVISE", "APPROVE_MINOR") and (r.get("caught") or r.get("reasons")):
+            out.append({"lens": r["lens"], "reviewer": r["reviewer"], "verdict": r["verdict"],
+                        "caught": r.get("caught", ""),
+                        "correction_applied": r.get("correction_applied", ""),
+                        "reasons": r.get("reasons", [])})
     return out
 
 
@@ -724,7 +808,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
     # cancelled paths too — M8 cannot reconcile otherwise ("118,000 tokens gastados antes de morir").
-    passes, audit_result = [], {}
+    # panel_rows_all acumula las filas de TODOS los paneles (con revisión hay dos — ADR-0067): el
+    # gasto de ambos debe contar en cualquier camino de salida.
+    passes, audit_result, panel_rows_all = [], {}, []
     embed_t0 = _embed_usage_snapshot()
     # holder explícito: el plan se carga DENTRO del try, y _usage_now (definida antes) tiene que
     # poder verlo en los caminos failed/cancelled — el gasto del planner ya ocurrió y debe sobrevivir
@@ -732,7 +818,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     plan_holder = {}
 
     def _usage_now():
-        return _token_usage(passes, audit_result, max(0, _embed_usage_snapshot() - embed_t0),
+        return _token_usage(passes, {"panel": panel_rows_all},
+                            max(0, _embed_usage_snapshot() - embed_t0),
                             plan=plan_holder.get("plan"))
 
     try:
@@ -845,16 +932,87 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                    "stated_confidence": answer.get("stated_confidence")},
             evidence=_compact_evidence(bundle), deterministic_checks=checks,
             required_because=bundle["decision_state"]["state"], caller=panel_caller)
-        bundle = composite_auditor.apply_to_bundle(bundle, audit_result, _evidence_ids(bundle))
+        panel_rows_all.extend(audit_result.get("panel", []))
         db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
                      payload={"verdict": audit_result["verdict"], "tally": audit_result["tally"],
-                              "n_valid": audit_result["n_valid"],
+                              "n_valid": audit_result["n_valid"], "revision_round": 0,
                               "source_vocabulary": audit_result["source_vocabulary"]},
                      level="info" if audit_result["verdict"] != "REVISE" else "warning")
 
-        # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2)
+        # 6b) ciclo de revisión acotado (ADR-0067): UN intento de corrección con los hallazgos del
+        # panel como insumo, re-gate determinista, re-auditoría — y el veredicto de la ronda 2 es
+        # terminal SEA CUAL SEA (tope duro REVISION_CAP=1). AMBAS versiones persisten en el registro.
+        revision = {"enabled": _revision_enabled(), "performed": False, "cap": REVISION_CAP}
+        audit_initial, answer_initial = None, None
+        conf_rev, conf_rev_source = None, None
+        if audit_result["verdict"] == "REVISE" and not revision["enabled"]:
+            revision["skipped_reason"] = "kill-switch WITT_REVISION_CYCLE=0 (comportamiento pre-ADR-0067)"
+        elif audit_result["verdict"] == "REVISE" and audit_result.get("panel_incomplete"):
+            # el REVISE viene del panel delgado (<3 jueces válidos), no de la respuesta: re-sintetizar
+            # no arregla jueces caídos — se declara y el terminal honesto se conserva
+            revision["skipped_reason"] = ("panel_incomplete — el REVISE es estructural (jueces caídos), "
+                                          "no un hallazgo sobre la respuesta; la revisión no aplica")
+        elif audit_result["verdict"] == "REVISE":
+            _check_cancel()
+            findings = _panel_findings(audit_result)
+            db.add_event(run_id, "stage.revision.start", agent="composite-auditor",
+                         payload={"n_findings": len(findings), "cap": REVISION_CAP}, level="warning")
+            rev_evidence = {**_compact_evidence(bundle), "revision_input": {
+                "previous_answer": {"direct_answer": answer["direct_answer"],
+                                    "stated_confidence": answer.get("stated_confidence"),
+                                    "gap_flags": answer.get("gap_flags", [])},
+                "panel_findings": findings,
+                "instruction": ("REVISE the previous answer to resolve the panel's findings USING ONLY "
+                                "the evidence shown — fixing a finding never licenses new claims or new "
+                                "identifiers; if a finding cannot be resolved from this evidence, say so "
+                                "explicitly (honest-decline doctrine, ADR-0058)")}}
+            answer_rev = synthesizer(run["question"], rev_evidence, "revision")
+            passes.append(("revision", answer_rev))
+            conf_rev, conf_rev_source = _resolve_confidence(answer_rev)
+            db.add_event(run_id, "stage.synthesize.revision", agent=answer_rev.get("model"),
+                         payload={"stated_confidence": conf_rev, "confidence_source": conf_rev_source,
+                                  "n_findings_input": len(findings)})
+            _check_cancel()
+            adm2, reasons2 = verify_output.admissible({"direct_answer": answer_rev["direct_answer"],
+                                                       "evidence_cited": answer_rev.get("evidence_cited", [])})
+            report2 = verify_output.verify_identifiers(answer_rev["direct_answer"]).as_dict()
+            checks2 = {"admissible": adm2, "reasons": reasons2, "identifier_report": report2}
+            db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
+                         payload=checks2, level="info" if adm2 else "warning")
+            _check_cancel()
+            db.add_event(run_id, "stage.audit.start", agent="composite-auditor",
+                         payload={"revision_round": 1})
+            audit2 = composite_auditor.audit(
+                claim={"direct_answer": answer_rev["direct_answer"],
+                       "stated_confidence": answer_rev.get("stated_confidence")},
+                evidence=_compact_evidence(bundle), deterministic_checks=checks2,
+                required_because=bundle["decision_state"]["state"], caller=panel_caller)
+            panel_rows_all.extend(audit2.get("panel", []))
+            db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
+                         payload={"verdict": audit2["verdict"], "tally": audit2["tally"],
+                                  "n_valid": audit2["n_valid"], "revision_round": 1,
+                                  "source_vocabulary": audit2["source_vocabulary"]},
+                         level="info" if audit2["verdict"] != "REVISE" else "warning")
+            # nada se borra: la versión inicial y su veredicto quedan en el registro
+            audit_initial = {k: audit_result[k] for k in
+                             ("panel", "tally", "verdict", "n_valid", "source_vocabulary")}
+            answer_initial = {"direct_answer": answer["direct_answer"],
+                              "stated_confidence": answer.get("stated_confidence"),
+                              "absence_kind": answer.get("absence_kind"),
+                              "gap_flags": answer.get("gap_flags", [])}
+            revision.update(performed=True, findings_used=findings,
+                            initial_verdict=audit_result["verdict"],
+                            final_verdict=audit2["verdict"],
+                            initial_checks_admissible=checks["admissible"])
+            answer, checks = answer_rev, checks2
+            final_conf, final_source = conf_rev, conf_rev_source
+            audit_result = audit2
+        bundle = composite_auditor.apply_to_bundle(bundle, audit_result, _evidence_ids(bundle))
+
+        # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2).
+        # El usage cuenta TODOS los paneles (con revisión hay dos — ADR-0067).
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
-        token_usage = _token_usage(passes, audit_result, embed_tokens, plan=plan)
+        token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -872,6 +1030,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 # instrumento se declara y ambas series sobreviven (continuidad de la calibración)
                 "pass1_inline": pass1.get("stated_confidence_inline"),
                 "pass2_inline": (pass2.get("stated_confidence_inline") if trigger else None),
+                # ADR-0067: la confianza de la pasada de revisión (null cuando no hubo revisión)
+                "revision": conf_rev,
+                "revision_source": conf_rev_source,
                 "delta": delta,
                 "final": final_conf,
                 # ADR-0057/0065: the EXACT provenance field the UI renders — a recovered or derived
@@ -884,6 +1045,12 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 "state": "value" if final_conf is not None else "absent-not-calibratable",
             },
             "audit": bundle["audit"],
+            # --- ciclo de revisión (ADR-0067): AMBAS versiones persisten — nada se borra ------------
+            # audit_initial/answer_initial son null-declarados cuando no hubo revisión (3 estados,
+            # jamás ausencia silenciosa); revision.skipped_reason explica los REVISE sin intento.
+            "audit_initial": audit_initial,
+            "answer_initial": answer_initial,
+            "revision": revision,
             "answer": {"direct_answer": answer["direct_answer"],
                        "stated_confidence": answer.get("stated_confidence"),
                        "absence_kind": answer.get("absence_kind"),
@@ -914,7 +1081,12 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             "deterministic_checks": checks,
             "token_usage": token_usage,
             "usage_raw": {"passes": {label: p.get("usage", {}) for label, p in passes},
-                          "panel_total": audit_result.get("usage", {})},
+                          # suma de TODOS los paneles (con revisión hay dos — ADR-0067)
+                          "panel_total": {
+                              "input_tokens": sum(_usage_in_out(r.get("usage"))[0]
+                                                  for r in panel_rows_all if "verdict" in r),
+                              "output_tokens": sum(_usage_in_out(r.get("usage"))[1]
+                                                   for r in panel_rows_all if "verdict" in r)}},
             "bundle_identity": bundle["bundle_identity"],
             "question_matches_run": bundle["question"] == run["question"],
         }
