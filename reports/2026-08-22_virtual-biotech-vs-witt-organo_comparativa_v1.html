@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Virtual Biotech vs Witt-organo — comparativa de harness científico</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d3748;
+    --text:#e6edf3; --muted:#9aa7b4; --accent:#58a6ff; --gold:#e3b341;
+    --green:#3fb950; --red:#f85149; --purple:#bc8cff; --orange:#ffa657;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text); font:16px/1.65 Georgia,'Times New Roman',serif; padding:0 0 80px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px}
+  header{border-bottom:1px solid var(--line); padding:48px 0 32px; margin-bottom:36px}
+  .kicker{font-family:Consolas,monospace; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--gold)}
+  h1{font-size:34px; line-height:1.2; margin:10px 0 8px; font-weight:600}
+  .sub{color:var(--muted); font-size:15px}
+  h2{font-size:23px; margin:44px 0 14px; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:8px}
+  h3{font-size:17px; margin:22px 0 8px; color:var(--gold)}
+  p{margin:0 0 12px}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px 22px; margin:16px 0}
+  .callout{border-left:4px solid var(--accent); background:var(--panel2); padding:14px 18px; border-radius:0 8px 8px 0; margin:14px 0; font-size:15px}
+  .callout.warn{border-left-color:var(--orange)}
+  .callout.ok{border-left-color:var(--green)}
+  .callout.danger{border-left-color:var(--red)}
+  .badge{display:inline-block; font-family:Consolas,monospace; font-size:11.5px; padding:2px 9px; border-radius:20px; border:1px solid var(--line); margin:2px 4px 2px 0; white-space:nowrap}
+  .badge.g{color:var(--green); border-color:var(--green)}
+  .badge.r{color:var(--red); border-color:var(--red)}
+  .badge.b{color:var(--accent); border-color:var(--accent)}
+  .badge.y{color:var(--gold); border-color:var(--gold)}
+  .badge.p{color:var(--purple); border-color:var(--purple)}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:14.5px}
+  th{font-family:Consolas,monospace; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); text-align:left; padding:8px 10px; border-bottom:2px solid var(--line)}
+  td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+  tr:hover td{background:rgba(88,166,255,.04)}
+  code{font-family:Consolas,monospace; font-size:13.5px; color:var(--orange); background:rgba(255,166,87,.08); padding:1px 5px; border-radius:4px}
+  ul,ol{margin:0 0 12px 22px}
+  li{margin-bottom:7px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+  .metric{font-family:Consolas,monospace; color:var(--gold)}
+  .tag-col{width:130px}
+  .contract{background:linear-gradient(180deg,#1a2233,#161b22); border:1px solid #35415a}
+  .contract h3{margin-top:14px}
+  .conf-bar{height:8px; background:#232b3b; border-radius:6px; overflow:hidden; margin:4px 0 2px}
+  .conf-fill{height:100%; background:linear-gradient(90deg,#2f81f7,#58a6ff)}
+  .small{font-size:13px; color:var(--muted)}
+  footer{margin-top:56px; border-top:1px solid var(--line); padding-top:18px; font-size:13px; color:var(--muted); font-family:Consolas,monospace}
+  .num{font-family:Consolas,monospace; color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kicker">Witt × Organogenesis · Análisis de arquitectura · TYPE A</div>
+    <h1>The Virtual Biotech (Stanford/Zou) vs Witt-organo:<br>dos harness científicos, dos tesis epistémicas</h1>
+    <div class="sub">2026-08-22 · sesión de repo (Método 2, Emmanuel dirige) · fuente: Zhang, Eckmann, Miao, Mahon &amp; Zou, bioRxiv 2026.02.23.707551 (45 pp., leído completo incl. Extended Methods y Supplementary Notes I–II) · contraste contra el estado vivo del repo (ADR-0001…0065)</div>
+  </div>
+</header>
+<div class="wrap">
+
+<!-- ============ TLDR ============ -->
+<div class="card" style="border-color:var(--gold)">
+  <h3 style="margin-top:0">TL;DR</h3>
+  <p><strong>Son dos mitades complementarias, no dos competidores.</strong> Virtual Biotech (VB) es un harness de <em>descubrimiento</em>: throughput masivo (37,075 agentes paralelos, 55,984 trials en 6 h), 100+ tools MCP sobre bases públicas, orquestación jerárquica CSO→divisiones, y casos reales validados externamente por ~$50 USD cada uno. Witt-organo es un harness de <em>accountability</em>: confianza con procedencia declarada, gate anti-fabricación determinista, panel adversarial cross-provider en el 100% de las corridas, registro congelado inmutable y calibración con poder declarado. <strong>VB no tiene NINGUNA capa de calibración</strong> — ni un campo de confianza — y su revisor es un solo LLM (Haiku), exactamente el anti-patrón que nuestro stress-test descartó. Nosotros no tenemos su throughput ni su amplitud de tools ni su loop de revisión-que-corrige.</p>
+  <p style="margin-bottom:0"><strong>La mejor versión combinada:</strong> adoptar de VB (1) la entrevista de clarificación + briefing de paisaje de datos como extensión del planner, (2) el loop revisor→re-delegación como UN ciclo de revisión acotado y auditado post-REVISE, (3) su patrón map-reduce de curación masiva para nuestras deudas de corpus (con nuestro gate humano de ingesta intacto), y (4) su disciplina anti-fuga para las evals del Tapón 5 — sin ceder jamás la máquina de estados congelada, el panel multi-proveedor ni los gates humanos, que son exactamente lo que a ellos les falta.</p>
+</div>
+
+<!-- ============ PREFLIGHT ============ -->
+<div class="callout">
+  <strong>Preflight §10 (declaración obligatoria).</strong> Artefactos del repo consultados para esta comparativa: <code>CLAUDE.md</code> (contrato vivo GWT v1.1, §1–§12), la serie completa de ADRs con foco en 0043–0065 (sobre degraded, run model, composite-auditor invocable, dos pasadas, planner declarado, ratings/calibración, elicitación dedicada), <code>method-selection.md</code> v1.2 (doctrina Método 1/2 + stress-test), <code>orchestration-patterns.md</code> (patrón Composite Audit), <code>reasoning-frameworks-catalog.md</code> v1.2, <code>agent-invocation-matrix.md</code> v1.2, <code>HANDOFF-2026-08-22.md</code> + addendum, y el estado del pipeline verificado en código esta misma sesión. <strong>Hueco declarado:</strong> el repo no contiene ningún artefacto previo que compare Witt contra frameworks agénticos externos — esta es la primera comparativa de ese tipo; la mitad "VB" opera desde el texto completo del paper (extraído a caché de sesión) y conocimiento experto, no desde artefactos del repo. Los identificadores del paper (NCT06137183, B7-H3/CD276, OSMR, GSE*) se citan <em>del paper</em> como fuente atestiguada y NO se resolvieron contra la DATA INAMOVIBLE (dominio humano de drug discovery, fuera del alcance del store zebrafish) — declarado en <code>gap_flags</code>.
+</div>
+
+<!-- ============ FICHA VB ============ -->
+<h2>1 · Qué es Virtual Biotech (ficha técnica del paper)</h2>
+<div class="card">
+  <p><strong>Autores/venue:</strong> Zhang, Eckmann, Miao (Stanford), Mahon (PHD Biosciences), Zou (Stanford). bioRxiv, 23-feb-2026, <em>preprint sin peer review</em>, CC-BY-ND.</p>
+  <p><strong>Stack:</strong> construido sobre el <strong>Claude Agent SDK</strong> (el mismo substrato que este repo usa vía Claude Code) — orquestación jerárquica padre→hijos con contextos aislados, MCP nativo, Skills con progressive disclosure. Workers = Sonnet 4.5; chief-of-staff y reviewer = Haiku 4.5. 10 servidores MCP (FastMCP) → 100+ tools sobre Open Targets 25.09 (backbone), CELLxGENE Census, Tabula Sapiens v2, Tahoe-100M, cBioPortal, ClinicalTrials.gov, ChEMBL, OpenFDA, PubMed.</p>
+  <p><strong>Organigrama:</strong> CSO orquestador (jamás toca datos: rutea, sintetiza, decide flujos) → 4 divisiones (Target ID, Target Safety, Modality Selection, Clinical Officers) con 8 agentes científicos + oficina del CSO (chief-of-staff = briefing de paisaje; scientific reviewer = QA con 3 criterios y loop de re-delegación).</p>
+  <p><strong>Flujo:</strong> query → <em>entrevista de clarificación al usuario</em> + briefing del chief-of-staff (inventario de MCPs + web) → descomposición y ruteo → análisis por divisiones (paralelo o secuencial, decide el CSO) → reviewer evalúa (¿responde la pregunta? ¿fuerza de evidencia? ¿exhaustividad?) → re-delegación iterativa hasta cerrar huecos → síntesis → <em>reporte + codebase reproducible descargable</em>.</p>
+  <p style="margin-bottom:0"><strong>Resultados clave:</strong> <span class="metric">37,075</span> agentes clinical-trialist en paralelo curaron <span class="metric">55,984</span> trials en <span class="metric">6 h</span> (184× vs un solo agente), con cascada de evidencia de 3 niveles (CTgov→PubMed→web), JSON validado por Pydantic con loop de re-validación, fuente rastreada por campo, y <em>validación de instrumento</em>: concordancia humana 89.7%/83.9%/92.4% (endpoints 1º/2º/AEs, n=100) + 85.3% vs el dataset TDC (n=7,278). Hallazgo científico: especificidad celular (tau) y bimodalidad del target predicen progresión de fase (+40% P1→P2, +48% a P4), éxito de endpoints y −32% de eventos adversos — ortogonal a la evidencia genética. Casos: B7-H3 (hipótesis CAF-céntrica validada externamente post-cutoff por la Breakthrough Designation de ifinatamab deruxtecan) por <span class="metric">$46</span>; autopsia del trial OSMRβ/UC terminado → propuesta de enrolamiento por biomarcador por <span class="metric">$54</span>.</p>
+</div>
+
+<!-- ============ COMPARATIVA ============ -->
+<h2>2 · Las dos arquitecturas, lado a lado</h2>
+<table>
+  <tr><th style="width:190px">Dimensión</th><th>Virtual Biotech</th><th>Witt-organo (GWT v1.1)</th></tr>
+  <tr><td><strong>Tesis de optimización</strong></td><td>Throughput de descubrimiento: máxima evidencia integrada por dólar/hora</td><td>Accountability epistémica: juicio calibrado, procedencia total, auditoría como producto (ERP de biología)</td></tr>
+  <tr><td><strong>Orquestación</strong></td><td>Dinámica: CSO decompone y rutea por juicio, secuencia o paraleliza a discreción, re-delega tras el review</td><td>Declarada: máquina de estados fija (Path A→suficiencia→Path B→2 pasadas→gate→panel→congelado), plan congelado ANTES del gasto (ADR-0061), replay==traza viva</td></tr>
+  <tr><td><strong>Rol humano</strong></td><td>Fija intención al inicio (entrevista) + follow-ups; el resto autónomo; sin gates internos</td><td>Método 2 por default (humano dirige, sistema instrumenta); Método 1 minoritario; gates humanos duros (DI, compliance, budget, wet-lab, cierre)</td></tr>
+  <tr><td><strong>QA / revisión</strong></td><td>1 reviewer agent (Haiku 4.5, mismo run, criterios blandos) → re-delegación iterativa</td><td>Panel composite-auditor: 4 jueces cross-provider (Opus+Sonnet+Haiku+gpt-4o), lentes adversariales, worst-of-N, ≥3 válidos, vocabulario con APPROVE_DECLINE, chequeo determinista entregado a los jueces (ADR-0038); 100% de corridas; terminal (sin loop de corrección)</td></tr>
+  <tr><td><strong>Calibración</strong></td><td><span class="badge r">AUSENTE</span> — cero campos de confianza, cero medición; "weak/strong" ad-hoc (su propio reviewer flagueó un rating MODERATE sin criterios definidos)</td><td>Confianza con procedencia declarada (stated-second-elicitation, ADR-0065), dos pasadas + delta, by_subclaim, ECE con poder declarado (ADR-0064), gold-set humano (banco + M5)</td></tr>
+  <tr><td><strong>Anti-fabricación</strong></td><td>Prompt-level: verificación de NCT ID en el trialist + "never fabricate"; sin gate estructural</td><td>Estructural: <code>verify_output</code> determinista (clase Logic-LM) + <code>resolve_id</code> sobre store human-gated + crudo cacheado §7.9; ID no resuelto = FALLO de gate</td></tr>
+  <tr><td><strong>Procedencia / degradación</strong></td><td><code>dataSourceTracking</code> por campo (en UN workflow); sin clases de medición, sin marcador de degradación</td><td>Medición/atestiguada/proyección en TODA cifra; <code>degraded</code> in-band end-to-end; absence_kind; estimaciones con denominador; 3 estados jamás null silencioso</td></tr>
+  <tr><td><strong>Rastro de auditoría</strong></td><td>Reporte + código reproducible descargable por sesión; "se puede leer el código"</td><td>Registro congelado inmutable con contrato versionado (1.5), bundle identity sha256, bitácora única replay==vivo, cierre explícito→precedente, ratings append-only</td></tr>
+  <tr><td><strong>Paralelismo</strong></td><td><span class="badge g">Primera clase</span>: 37K agentes, 1 agente = 1 unidad de trabajo con contexto completo</td><td>2 workers in-process; paralelismo real solo en sesiones de agente (p. ej. barrido de 6 agentes del corpus)</td></tr>
+  <tr><td><strong>Superficie de tools</strong></td><td>100+ tools / 10 MCPs / TBs de datos públicos multi-escala</td><td>DI-first (113 registros verificados) + Path B con 3 fuentes vivas Layer-0 (EPMC, PubMed, ZFIN) + Tool Universe solo-sesión; crecimiento human-gated deliberado</td></tr>
+  <tr><td><strong>Validación del instrumento</strong></td><td><span class="badge g">Ejecutada</span>: muestreo humano n=100 + cross-check TDC + permutaciones + mixed-effects</td><td>Diseñada y esperando insumo humano: banco v1 (30 preguntas, 4 médicos) + ratings M5 recién entregados (ADR-0064); ECE hoy "infrastructure populated"</td></tr>
+  <tr><td><strong>Costo por análisis</strong></td><td>$46–54 por caso profundo; ~$0.001–0.002 por trial curado</td><td>$0.18–0.25 por corrida (medido, sin caps); panel = mayor parte del costo</td></tr>
+  <tr><td><strong>Madurez del claim</strong></td><td>Preprint; validación externa post-cutoff fuerte en 1 caso; "objetividad" afirmada sin medirla</td><td>Disciplina de claims: "measured ≠ validated", aggregate-captured ≠ satisfied (ADR-0030/0037); poder declarado</td></tr>
+</table>
+
+<!-- ============ FORTALEZAS ============ -->
+<h2>3 · Dónde cada uno es más fuerte</h2>
+<div class="grid2">
+  <div class="card">
+    <h3 style="margin-top:0">VB nos gana en…</h3>
+    <ol>
+      <li><strong>Paralelismo de curación como doctrina.</strong> "Un agente por unidad de trabajo, con TODO su contexto para esa unidad" + schema Pydantic + cascada de fuentes + fuente por campo. 184× de speedup medido. Nuestro Método 1 existe en doctrina pero jamás se ha ejercido a escala.</li>
+      <li><strong>Descomposición dinámica con handoffs cruzados.</strong> El caso B7-H3: reviewer detecta que falta contexto espacial → CSO despacha análisis Visium → luego supervivencia TCGA. Nuestra pipeline de producto es fija; esa cadena "sigue-la-evidencia" hoy solo la hace una sesión Método 2 con humano.</li>
+      <li><strong>Loop revisor→re-delegación que CORRIGE.</strong> Su review produce fixes accionables y el run itera hasta cerrarlos. Nuestro REVISE es terminal: honesto, pero muere sin intentar la corrección.</li>
+      <li><strong>Alineación pre-gasto.</strong> Entrevista de clarificación al usuario + briefing del chief-of-staff (paisaje de datos, factibilidad) ANTES de análisis caros.</li>
+      <li><strong>Codebase reproducible como artefacto</strong> de cada sesión.</li>
+      <li><strong>Validación de instrumento ejecutada</strong> (concordancia humana + dataset externo + robustez estadística seria: permutaciones, mixed-effects, ajuste por evidencia genética).</li>
+      <li><strong>Disciplina anti-fuga en los casos</strong>: web tools apagadas + validación con readouts posteriores al cutoff del modelo.</li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">Witt les gana en…</h3>
+    <ol>
+      <li><strong>Calibración de punta a punta.</strong> Ellos no tienen NI un campo de confianza. Nosotros: escalar con procedencia exacta, delta de dos pasadas (la medición 0.14→0.71 que justificó Level-2), by_subclaim, ECE anclado en humanos con poder declarado.</li>
+      <li><strong>Auditoría real, no simbólica.</strong> Su reviewer es un solo Haiku dentro del mismo run — el anti-patrón single-LLM-auditor que nuestro stress-test (abril 2026) descartó con literatura: mala calibración + fidelidad 25–39% + fragilidad, multiplicadas en cascada. Nuestro panel es cross-provider, adversarial, con jueces a los que se les ENTREGA el chequeo determinista y se les prohíbe inventar verificación.</li>
+      <li><strong>Anti-fabricación estructural.</strong> El gate determinista + store verificado human-gated vs su "never fabricate" en el prompt.</li>
+      <li><strong>Estado epistémico in-band.</strong> degraded/absence_kind/clases de medición viajan CON el dato; en VB una fuente caída se vuelve improvisación silenciosa del agente (nuestro incidente 07-18/19 es exactamente por qué esto importa).</li>
+      <li><strong>Registro congelado + precedente.</strong> Inmutabilidad con identidad criptográfica y contrato versionado vs reportes descargables.</li>
+      <li><strong>Gates humanos donde hay consecuencias.</strong> DI inamovible, compliance, budget, cierre explícito. VB no muta nada (por eso puede permitirse no tener gates) — pero al portar sus patrones a un mundo con mutaciones, los gates son la diferencia.</li>
+      <li><strong>Honestidad institucionalizada del claim.</strong> APPROVE_DECLINE (declinar honesto APRUEBA), "measured ≠ validated", poder declarado. Su paper afirma "objetividad" de los agentes sin medirla — nuestro marco lo trataría como self-report.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ POR QUÉ DIFIEREN ============ -->
+<h2>4 · Por qué las metodologías difieren (no es que uno esté "mal")</h2>
+<div class="card">
+  <p><strong>Optimizan variables distintas.</strong> VB responde: <em>"¿cuánta evidencia integrada puedo generar por hora/dólar, con supervisión humana en los extremos?"</em> — su cliente es el descubrimiento temprano sobre datos públicos, donde el peor caso de un error es una hipótesis mala que un humano descarta. Witt responde: <em>"¿cuándo puedo CONFIAR en una respuesta, y cómo capturo el juicio experto calibrado que la respalda?"</em> — su cliente es la tesis del sustrato (el activo ES la calibración) y un equipo médico que va a citar el registro. Por eso VB puede rutear dinámicamente (velocidad) y Witt congela el plan antes del gasto (procedencia); por eso VB revisa con un Haiku barato (throughput) y Witt paga 4 jueces cross-provider en el 100% (la auditoría ES el producto); por eso VB corre 37K agentes sin gate (nada muta) y Witt gatea cada ADD al store (la DI es inamovible por diseño).</p>
+  <p style="margin-bottom:0"><strong>La convergencia es real y valida ambas tesis:</strong> los dos corren sobre el mismo substrato (Claude Agent SDK/MCP/Skills), los dos separan orquestación de análisis, los dos ponen un revisor entre el análisis y la síntesis, y los dos declaran que el humano debe quedarse en el loop. VB incluso admite en su Discussion la brecha exacta que Witt llena: "AI agents can make analysis or interpretation errors… a single mistake can propagate through the virtual organization". Su mitigación es un reviewer single-LLM; la nuestra es el stack completo de accountability. <em>Nuestro MITAD_A es el complemento estructural de su clase de sistema.</em></p>
+</div>
+
+<!-- ============ ROADMAP DE ADOPCIÓN ============ -->
+<h2>5 · La mejor versión combinada: qué adoptar, con impacto y riesgo</h2>
+<p>Ranqueado por valor/esfuerzo. Cada item declara el impacto en nuestro workflow y por qué hoy hacemos distinto (la pregunta explícita del fundador).</p>
+<table>
+  <tr><th style="width:30px">#</th><th style="width:250px">Adopción (de VB → Witt)</th><th>Qué es y por qué</th><th style="width:250px">Impacto / costo / riesgo</th></tr>
+  <tr>
+    <td class="num">1</td>
+    <td><strong>Entrevista de clarificación + paisaje de datos en el planner</strong><br><span class="badge b">plan v3</span> <span class="badge g">esfuerzo bajo</span></td>
+    <td>Extender ADR-0061/0063: cuando la pregunta es ambigua, el plan incluye 1–3 preguntas de clarificación (patrón CollabLLM de VB) + una línea de paisaje: qué tiene la DI sobre el tema (preview sparse NO-SPEND) y qué fuentes Path-B aplican (el briefing del chief-of-staff, versión Witt). Hoy no lo hacemos porque el planner nació para rutear y estimar, no para alinear intención — VB demuestra que la alineación pre-gasto reduce corridas desperdiciadas.</td>
+    <td>Contrato: plan v3 (aditivo) + card M3 en la webapp. +1 llamada barata. Riesgo bajo; regla never-stopper: las preguntas jamás bloquean (skippeable). Bonus: mejora el eje INPUT del banco (preguntas mejores = mejor calibración).</td>
+  </tr>
+  <tr>
+    <td class="num">2</td>
+    <td><strong>Ciclo de revisión acotado post-REVISE</strong><br><span class="badge y">cambio de máquina de estados → ADR propio</span> <span class="badge y">esfuerzo medio</span></td>
+    <td>Hoy un REVISE del panel es terminal: la corrida muere honesta. VB demuestra el valor del loop reviewer→re-delegate. Versión Witt: si el panel emite REVISE con hallazgos accionables, UNA pasada de revisión (síntesis con los hallazgos como insumo) + re-auditoría, tope duro = 1 iteración; AMBAS versiones y AMBOS veredictos persisten en el registro congelado (a diferencia de VB, donde la iteración es invisible en el artefacto final). Hoy no existe porque el bloque 3 priorizó el terminal honesto — correcto entonces, mejorable ahora.</td>
+    <td>Costo: hasta ~2× en corridas REVISE (~$4 peor caso). Estado nuevo intermedio + eventos + UI de traza. Riesgo medio: exige que la revisión no borre nada (append de pasada, no reemplazo) y tope duro. Sube la tasa de corridas útiles sin sacrificar el rastro.</td>
+  </tr>
+  <tr>
+    <td class="num">3</td>
+    <td><strong>Map-reduce de curación masiva (el patrón 37K) para las deudas de corpus</strong><br><span class="badge p">Método 1 por doctrina</span> <span class="badge y">esfuerzo medio</span></td>
+    <td>Su doctrina exacta — 1 agente por unidad con contexto completo, JSON validado por schema, cascada de fuentes declarada, fuente por campo, auditoría por muestreo humano — es NUESTRO Método 1 según method-selection.md (acotado, reversible, repetible) ejecutado a escala y medido. Candidatos Witt: barrido ZFIN/EPMC del paisaje genotipo→fenotipo del pronefros (S4 penetrancia hoy cubre ~19 genes), re-anotación del corpus histórico de evaluation/runs, backfill de literatura por gen. El paper es EVIDENCIA de que Método 1 escala cuando la unidad está bien especificada — actualiza nuestro prior del stress-test (el 75% de fallo aplica a pipelines autónomos de investigación abierta, no a curación acotada con schema).</td>
+    <td>Impacto alto en crecimiento de la DI. <strong>Invariante no negociable:</strong> el gate humano de ingesta se queda (hard rule §7 — VB no lo necesita porque no muta; nosotros sí). El cuello pasa a ser tu revisión: mitigarlo con UX de gate por lotes + muestreo de concordancia estilo VB, jamás quitando el gate. Riesgo: volumen de propuestas > capacidad del gate → cuarentena, no auto-aprobación.</td>
+  </tr>
+  <tr>
+    <td class="num">4</td>
+    <td><strong>Protocolo de validación de instrumento para todo lote Método 1</strong><br><span class="badge g">esfuerzo bajo</span></td>
+    <td>Su auditoría de concordancia (muestra aleatoria n=100, % acuerdo por campo, taxonomía de desacuerdos "ambigüedad intrínseca vs error") como práctica ESTÁNDAR de cualquier corrida masiva nuestra. Complementa el banco v1 (que calibra respuestas del pipeline; esto calibra al agente-como-anotador).</td>
+    <td>Costo casi nulo (es diseño, no infra). Encaja con ADR-0005: el resultado se reporta como "measured", jamás "validated". Cero riesgo.</td>
+  </tr>
+  <tr>
+    <td class="num">5</td>
+    <td><strong>Disciplina anti-fuga para el Tapón 5 (evals)</strong><br><span class="badge g">esfuerzo bajo</span></td>
+    <td>De su diseño de casos: (a) web tools OFF en preguntas held-out, (b) preferir preguntas cuya verdad-terreno es posterior al cutoff del modelo (su validación con ifinatamab). Directo a <code>run_held_out.py</code> cuando el Tapón 5 se construya.</td>
+    <td>Puro diseño de evaluación. Cero riesgo, sube la credibilidad de Test 3/4.</td>
+  </tr>
+  <tr>
+    <td class="num">6</td>
+    <td><strong>Codebase reproducible en el registro</strong><br><span class="badge b">futuro (fase de análisis)</span></td>
+    <td>Cuando las corridas dejen de ser retrieval+síntesis y ejecuten análisis de datos (Fase II), el código de análisis entra al registro congelado como artefacto con hash — la versión Witt de su "report and codebase".</td>
+    <td>No aplica hoy (nuestras corridas no generan código). Anotado para la fase de análisis.</td>
+  </tr>
+</table>
+
+<h3>Qué NO adoptar, y por qué (igual de importante)</h3>
+<div class="callout danger">
+  <strong>1 · Orquestación dinámica del CSO en lugar de la máquina de estados — NO para el producto.</strong> Un plan que se decide en vuelo no se puede congelar, replicar ni auditar; ADR-0061 congeló el plan ANTES del gasto exactamente por procedencia. Además method-selection v1.2 documenta por qué el ruteo por juicio del orquestador multiplica modos de falla en cascada. La vía media correcta es dinámica-dentro-de-etapas-acotadas (el ciclo de revisión #2, tope 1), jamás delegación abierta. La modalidad dinámica ya existe en Witt: se llama sesión Método 2 con humano al volante.<br><br>
+  <strong>2 · Reviewer single-LLM barato — NO.</strong> Regresión directa contra §7 (composite-auditor reemplaza el single-LLM audit) y contra ADR-0031/0038 (la independencia real es cross-provider; la divergencia intra-Anthropic era ruido de tier).<br><br>
+  <strong>3 · El framing de "objetividad" de los agentes — NO.</strong> Nuestro marco lo trata como self-report no verificado (§5: framework_applied es etiqueta de prompt-time; jueces LLM = advisory, jamás ground truth). Irónicamente, el propio ejemplo de reviewer del paper (Supp. Note II) muestra el problema: un rating "MODERATE" sin criterios definidos.<br><br>
+  <strong>4 · Tiering de modelos para roles de juicio — NO.</strong> Su reviewer usa Haiku "por eficiencia"; nuestra directiva 2026-06-13 exige best-tier para juicio y nuestro panel existe porque los tiers no son independencia.
+</div>
+
+<!-- ============ PAPER ============ -->
+<h2>6 · El "paper científico" que Witt puede integrar</h2>
+<div class="card">
+  <p>VB publicó tres cosas en un solo paper: (a) el harness, (b) un dataset liberado (55,984 trials anotados con fuente), y (c) un hallazgo científico producido POR el harness (features single-cell → outcomes clínicos). El análogo Witt, en orden de diferenciación:</p>
+  <ol>
+    <li><strong>El paper de accountability (nuestro claim único):</strong> <em>"Calibración anclada en humanos de un pipeline agéntico de evidencia en biología del desarrollo"</em> — el banco de 30 preguntas × 4 médicos, los ratings M5 por consenso con procedencia (ADR-0064), la trayectoria de ECE con poder declarado, la doctrina APPROVE_DECLINE (la declinación honesta como resultado de primera clase), el delta de dos pasadas como medición de suficiencia de evidencia, y el gate anti-fabricación determinista con su tasa de captura. <strong>Nadie — VB incluido — publica esto.</strong> VB es el foil de citación perfecto: "los harness de descubrimiento existen y escalan; lo que no existe es la capa que dice cuándo creerles". Requisito: volumen de corridas + calificaciones de los médicos (los mismos insumos que ya esperamos para Tapones 4/5).</li>
+    <li><strong>El dataset-release estilo VB con nuestro sello:</strong> curación map-reduce del paisaje genotipo→fenotipo del pronefros de zebrafish (ZFIN + EPMC, cascada declarada, fuente por campo, concordancia humana muestreada, ingesta human-gated) → dataset público de penetrancias/fenotipos con procedencia completa — la versión "inamovible" de su trial dataset, en nuestro dominio y con nuestro estándar de evidencia.</li>
+    <li><strong>El resultado de asociación producido por el harness:</strong> con (2) hecho, preguntas tipo "¿qué propiedades de red/expresión predicen penetrancia de fenotipo pronéfrico?" — el equivalente estructural de su tau→trial-success, a escala zebrafish.</li>
+  </ol>
+  <p class="small" style="margin-bottom:0">Los tres son compuestos: (1) puede escribirse sobre lo ya construido en cuanto haya volumen; (2)+(3) son el mismo proyecto en dos etapas y le dan a Latido un artefacto científico citable además del producto.</p>
+</div>
+
+<!-- ============ CONTRATO §5 ============ -->
+<h2>7 · Contrato §5 de esta salida</h2>
+<div class="card contract">
+  <h3 style="margin-top:0">direct_answer</h3>
+  <p>VB y Witt-organo son complementos, no competidores: VB es el mejor ejemplo publicado del harness de <em>descubrimiento</em> (throughput, amplitud, paralelismo masivo) y carece por completo de la capa de <em>accountability</em> que es la tesis de Witt (calibración, procedencia, auditoría multi-proveedor, inmutabilidad). La mejor versión combinada adopta de VB la alineación pre-gasto (plan v3), un ciclo de revisión acotado y auditado, el patrón map-reduce de curación con gate humano intacto, y su disciplina anti-fuga/validación de instrumento — y rechaza su orquestación dinámica sin plan congelado, su reviewer single-LLM y su framing de objetividad. El paper científico natural de Witt es la capa que a VB (y al campo) le falta: calibración anclada en humanos de pipelines agénticos de evidencia, con VB como foil.</p>
+
+  <h3>confidence_by_subclaim</h3>
+  <table>
+    <tr><th>Sub-claim</th><th style="width:110px">Confianza</th><th style="width:220px"></th><th>Clase</th></tr>
+    <tr><td>Descripción fiel de la arquitectura/resultados de VB</td><td class="metric">0.95</td><td><div class="conf-bar"><div class="conf-fill" style="width:95%"></div></div></td><td>paper completo leído (45 pp. incl. métodos y prompts)</td></tr>
+    <tr><td>Descripción fiel del estado Witt-organo</td><td class="metric">0.97</td><td><div class="conf-bar"><div class="conf-fill" style="width:97%"></div></div></td><td>código + ADRs vivos, verificados esta sesión</td></tr>
+    <tr><td>Diagnóstico de brechas de VB (sin calibración; reviewer single-LLM)</td><td class="metric">0.90</td><td><div class="conf-bar"><div class="conf-fill" style="width:90%"></div></div></td><td>explícito en el texto del paper (Methods + Supp. II)</td></tr>
+    <tr><td>Valor esperado de las adopciones propuestas (#1–#5)</td><td class="metric">0.60</td><td><div class="conf-bar"><div class="conf-fill" style="width:60%"></div></div></td><td><strong>juicio/proyección</strong> — no medido; cada adopción exige su medición antes de declarar valor</td></tr>
+    <tr><td>Viabilidad del paper de accountability (§6.1)</td><td class="metric">0.60</td><td><div class="conf-bar"><div class="conf-fill" style="width:60%"></div></div></td><td>dirección sólida; depende de volumen + calificaciones médicas aún no existentes</td></tr>
+  </table>
+  <p class="small">Agregación deliberadamente NO colapsada a un escalar (§5: sub-claims de fuerza asimétrica). Peor-de-N informativo: 0.60 en las partes prescriptivas.</p>
+
+  <h3>evidence_cited</h3>
+  <ul class="small">
+    <li>[paper] Zhang et al., <em>The Virtual Biotech</em>, bioRxiv doi:10.64898/2026.02.23.707551 (texto completo, 45 pp.; fuente atestiguada externa — cachéada en sesión)</li>
+    <li>[repo] CLAUDE.md GWT v1.1 §1–§12 · ADR-0022 (answer pipeline) · ADR-0043/0044 (sobre degraded, identidad) · ADR-0049/0050 (panel invocable, run model) · ADR-0051 (dos pasadas) · ADR-0053 (precedente) · ADR-0057/0058 (defectos producción, APPROVE_DECLINE) · ADR-0059–0063 (tapones) · ADR-0064 (ratings/ECE) · ADR-0065 (elicitación dedicada)</li>
+    <li>[repo] method-selection.md v1.2 (doctrina Método 1/2, stress-test abril 2026) · orchestration-patterns.md (Composite Audit) · agent-invocation-matrix.md v1.2 · reasoning-frameworks-catalog.md v1.2</li>
+    <li>[repo] estado vivo verificado esta sesión: smokes 99/29/29/15, corridas reales en BD dev, HANDOFF-2026-08-22 + addendum</li>
+  </ul>
+
+  <h3>alternatives_considered</h3>
+  <ul class="small">
+    <li><strong>"Adoptar VB entero como reemplazo del pipeline"</strong> — rechazado: perderíamos plan congelado, panel, gate determinista y registro inmutable; es optimizar la variable equivocada para la tesis Witt.</li>
+    <li><strong>"No adoptar nada; VB es otro dominio"</strong> — rechazado: la doctrina de curación paralela, la alineación pre-gasto y la validación de instrumento son transferibles y medibles, y VB corre sobre nuestro mismo substrato (Agent SDK).</li>
+    <li><strong>"Adoptar el loop de re-delegación completo (iteración abierta)"</strong> — rechazado a favor del tope duro de 1 ciclo con ambas versiones congeladas: la iteración abierta es inauditable y multiplica fallas en cascada (stress-test).</li>
+    <li><strong>"El paper Witt = replicar su análisis de trials"</strong> — rechazado: sería jugar su juego con menos tools; nuestro claim único es la capa de calibración/accountability que ellos no tienen.</li>
+    <li><strong>"Leer solo el abstract/figuras y comparar de memoria"</strong> — rechazado: la sustancia del harness vive en Extended Methods y los Supp. Notes (prompts, cascada, validación); se leyó completo.</li>
+  </ul>
+
+  <h3>gap_flags</h3>
+  <ul class="small">
+    <li>Los identificadores citados del paper (NCT06137183, B7-H3/CD276, OSMR, GSE12251/16879/92415/206285/73661, PMIDs implícitos) provienen del paper como fuente atestiguada y NO fueron resueltos contra la DATA INAMOVIBLE (dominio humano, fuera del alcance del store zebrafish) ni re-verificados contra fuentes primarias.</li>
+    <li>El paper es un preprint sin peer review; sus cifras de concordancia y speedup son auto-reportadas por los autores.</li>
+    <li>No se midió ninguna de las adopciones propuestas — sus valores esperados son juicio experto (clase proyección); cada una exige medición propia antes de declarar beneficio (la lección ADR-0065 aplica: hasta el fix "obvio" se mide).</li>
+    <li>No hay artefacto previo del repo comparando frameworks externos — sin línea base interna para esta clase de análisis.</li>
+    <li>El costo por corrida de VB ($46–54) y el nuestro ($0.18–0.25) no son comparables directamente: profundidades y alcances distintos (caso multi-división vs pregunta única).</li>
+  </ul>
+
+  <h3>framework_applied</h3>
+  <p class="small"><code>Self-Discover</code> — per reasoning-frameworks-catalog.md §3: <em>"Novel problem types the agent hasn't seen before; problems where the right reasoning shape isn't pre-known; cases where you want the agent to justify why it reasoned the way it did."</em> Primera comparativa contra un framework externo en el repo: la estructura de razonamiento (leer-completo → extraer arquitectura → comparar por dimensiones → derivar adopciones con impacto → derivar el claim publicable) se compuso para esta tarea. Self-report de prompt-time, no introspección verificada (advertencia §5). Los sub-claims descriptivos se verificaron contra el texto/código (dinámica CoVe §8 parcial, declarada sin re-elección formal porque la dinámica dominante siguió siendo la descomposición comparativa).</p>
+
+  <h3>agents_invoked (§11)</h3>
+  <table class="small">
+    <tr><th>Agente</th><th class="tag-col">Status</th><th>Razón / evidencia</th></tr>
+    <tr><td><code>html-report-emitter</code></td><td><span class="badge g">invoked</span></td><td>este reporte (TYPE A, §5 visible como UI) — sesión de repo, ADR-0046 no aplica derogación</td></tr>
+    <tr><td><code>reasoning-exposer</code></td><td><span class="badge y">skipped-ad-hoc</span></td><td>Método 2 con el fundador al volante; los campos §5 se exponen directamente en este reporte (permitido por matrix §6 Pattern A nota de human-in-loop)</td></tr>
+    <tr><td><code>composite-auditor</code></td><td><span class="badge y">skipped-ad-hoc</span></td><td>brief estratégico para decisión del fundador, NO reclamado como evidencia de auditoría de sustrato; si alguna adopción se convierte en ADR/implementación, su cierre lleva sus gates normales. Disponible a pedido.</td></tr>
+    <tr><td><code>causal-pruner</code></td><td><span class="badge b">not-applicable</span></td><td>sin ranking de candidatos biológicos ni sets mínimos</td></tr>
+    <tr><td><code>cross-field-bridge-agent</code></td><td><span class="badge b">not-applicable</span></td><td>comparación de arquitectura de software, no puente biológico entre campos</td></tr>
+    <tr><td><code>calibration-tracker</code></td><td><span class="badge y">skipped-ad-hoc</span></td><td>los sub-claims prescriptivos no tienen outcome verificable a corto plazo; no se emite claim record (si Emmanuel adopta el roadmap, cada pieza genera los suyos)</td></tr>
+  </table>
+</div>
+
+<footer>
+  <div>reports/2026-08-22_virtual-biotech-vs-witt-organo_comparativa_v1.html · TYPE A · sesión 2026-08-22 (misma sesión que ADR-0064/0065) · fuente externa cacheada: scratchpad de sesión (virtual_biotech_fulltext.txt) · el código manda sobre este documento</div>
+</footer>
+</div>
+</body>
+</html>
