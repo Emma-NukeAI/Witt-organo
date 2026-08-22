@@ -94,6 +94,44 @@ or external references that informed the decision.
 | [0024](0024-admissibility-predicate-and-bayes-purity-tier-weight.md) | 2026-06-18 | Explicit admissibility predicate H(c) + Bayes-purity verified_tier_weight + EVPI placeholder (R2) | Accepted |
 | [0025](0025-accountability-checks-framework-and-agents-invoked-gates.md) | 2026-06-18 | Accountability checks: §4 framework-citation gate + §11 agents_invoked gate (R3) | Accepted |
 | [0026](0026-unified-world-state-transition-and-tooluniverse-directive.md) | 2026-06-18 | Unified World-State-Transition claim contract (do-typed) + explicit Tool Universe Path-B directive (R4) | Accepted |
+| [0027](0027-accountability-detection-hardening-from-adversarial-validation.md) | 2026-06-22 | Detection-layer hardening of MITAD_A from the 2026-06-22 adversarial validation | Accepted |
+| [0028](0028-lens-validity-weighting-and-perspective-diverse-panels.md) | 2026-06-23 | Lens-validity weighting + perspective-diverse Self-Consistency panels | Accepted |
+| [0029](0029-data-inamovible-add-signaling-induction-markers.md) | 2026-06-23 | DATA INAMOVIBLE: add 5 pronephros upstream-signaling / induction markers (human-gated ADD) | Accepted |
+| [0030](0030-compute-ece-aggregate-captured-not-satisfied.md) | 2026-07-04 | compute_ece Test-4 language: a cross-sectional snapshot is "aggregate-captured", never "satisfied" | Accepted |
+| [0031](0031-multi-family-composite-auditor-panel.md) | 2026-07-05 | Multi-family composite-auditor panels (reviewer independence) | Accepted |
+| [0032](0032-measure-the-controls-retrieval-and-store-integrity.md) | 2026-07-05 | Measure the controls: retrieval eval + store-integrity scan as standing gates | Accepted |
+| [0033](0033-security-hardening-hosted-store-integrity-control.md) | 2026-07-05 | Security hardening of the hosted store is an integrity control, not a backlog item | Proposed — DEFERRED (parked) |
+| [0034](0034-freeze-substrate-feature-growth-until-controls-earn-their-weight.md) | 2026-07-05 | Freeze substrate feature growth until each control earns its weight (and biology moves) | Accepted |
+| [0035](0035-di-add-level2-induction-cascade-ids.md) | 2026-07-11 | DATA INAMOVIBLE ADD: +23 pronephros-induction cascade IDs from the Level-2 Tool Universe fallback | Accepted |
+| [0036](0036-verify-output-reingest-candidate-not-fabrication.md) | 2026-07-11 | verify_output: a live-verified out-of-store ID is a re-ingest candidate, not a fabrication fail | Accepted |
+| [0037](0037-closing-composite-audit-corrections.md) | 2026-07-11 | Closing composite-audit of the 2026-07-11 session: all claims REVISE, one real bug, corrections applied | Accepted |
+| [0038](0038-honesty-bundle-openai-judge-fabrication-fix.md) | 2026-07-11 | Honesty bundle: cross-provider (OpenAI) judge, judge-fabrication fix, deterministic-first scoring | Accepted |
+| [0039](0039-data-inamovible-mcp-reproducible-venv-portable-config.md) | 2026-07-19 | data-inamovible MCP: run on a reproducible interpreter (uv.lock) + portable versioned `.mcp.json` | Accepted |
+| [0040](0040-data-inamovible-perfection-audit-cli-primary-team-access.md) | 2026-07-19 | data-inamovible perfection audit: in-band degradation marker, structural human gate, `witt-di` CLI (hybrid CLI-primary), team access via local `.secrets` | Accepted |
+| [0041](0041-materialize-tier-weights-and-register-europepmc.md) | 2026-07-20 | Re-ingest to materialize tier weights + register EuropePMC as a source (human-gated) | Accepted |
+| [0042](0042-corpus-0004-rn3-ingest-and-relational-data-rn11-placement.md) | 2026-07-21 | First RN3 corpus record (CORPUS-2026-0004, human-gated ingest) + relational genotype-phenotype data places under RN11 | Accepted |
+| [0043](0043-degraded-envelope-end-to-end.md) | 2026-08-09 | El marcador `degraded` viaja en un SOBRE `{degraded, n_hits, hits}` de punta a punta (y el bundle carga un enum de 4 literales, nunca nullable) | Accepted |
+| [0044](0044-bundle-identity-run-id.md) | 2026-08-09 | Identidad de bundle: nombre por `run_id`, `stamp` real, `bundle_identity.sha256` | Accepted |
+| [0045](0045-ingest-gate-rejection-registry-and-serialized-approve.md) | 2026-08-09 | El gate del ingest service registra sus decisiones: rechazo archivado (nunca borrado), `/approve` serializado, `created_at` + orden FIFO real | Accepted |
+| [0046](0046-html-report-derogation-webapp-era.md) | 2026-08-04 | Derogación CON ALCANCE del reporte HTML obligatorio (§5/§7): las corridas de la era webapp no emiten HTML; su rastro es el registro congelado, y los reportes históricos se indexan en la webapp | Accepted |
+| [0047](0047-webapp-backend-architecture-decisions.md) | 2026-08-09 | Decisiones de arquitectura del backend webapp (fundador, 2026-08-09) + exposición del bloque 1.4 | Accepted |
+| [0048](0048-query-service-http-read-front-door.md) | 2026-08-09 | `query_service`: el front door HTTP de solo lectura para la webapp (espejo del sobre, status NO-SPEND, identidad de 5 cuentas, índice de históricos) | Accepted |
+| [0049](0049-audit-always-composite-auditor-invokable.md) | 2026-08-04 | Auditoría en el 100% de las corridas (la máquina de estados se reforma) + `composite-auditor` se vuelve un componente invocable con vocabulario homologado | Accepted |
+| [0050](0050-run-model-event-log-frozen-record.md) | 2026-08-09 | Modelo de corrida + bitácora única de eventos + registro congelado persistido en el backend | Accepted |
+| [0051](0051-two-pass-confidence-gate-tokenusage.md) | 2026-08-10 | Dos pasadas con decisor de fallback por confianza, `confidence_by_subclaim` + `absence_kind`, citas tipadas y `TokenUsage` medido (bloque 4) | Accepted |
+| [0052](0052-ingest-write-queue-and-sighted-gate.md) | 2026-08-10 | Cola de escritura serializada CROSS-PROCESO + el gate humano deja de firmar a ciegas (bloque 5) | Accepted |
+| [0053](0053-precedent-layer-disjoint-series.md) | 2026-08-10 | La capa de precedente: índice separado, admisibilidad distinta, series de citas disjuntas por construcción (bloque 6) | Accepted |
+| [0054](0054-ingest-e2e-first-gated-prune-volume-fix.md) | 2026-08-10 | Estreno e2e del gate hosted (push-back funcionando), el PRIMER prune human-gated, y el estado del gate al volumen | Accepted |
+| [0055](0055-lote-backend-01a-contract-additions.md) | 2026-08-15 | LOTE BACKEND 01·A: adiciones de contrato reportadas por la webapp (M1–M3 construidos) | Accepted |
+| [0056](0056-lote-backend-02-unified-sessions-usage-epistemic-list.md) | 2026-08-15 | LOTE BACKEND 02: sesiones unificadas en el ingest (dos puertas, una identidad) + agregados de consumo + resumen epistémico congelado + filtro declarado + puerta del historial | Accepted |
+| [0057](0057-production-defects-external-query-trapped-confidence.md) | 2026-08-16 | Defectos de producción de las dos corridas reales: la Ruta B buscaba en español (0 papers) y la confianza viajaba atrapada como texto (LOTE-03) | Accepted |
+| [0058](0058-approve-decline-honest-negative-findings.md) | 2026-08-16 | `APPROVE_DECLINE`: la declinación honesta correcta APRUEBA (decisión del hallazgo 3 de LOTE-03) | Accepted |
+| [0059](0059-zfin-native-path-b-source.md) | 2026-08-19 | ZFIN (fenotipos nativos de pez cebra) como fuente de Ruta B: Tool Universe deja de ser un recado | Accepted |
+| [0060](0060-section5-contract-fields-in-frozen-record.md) | 2026-08-20 | Los tres campos §5 que faltaban: `framework_applied` con sección resuelta por tabla, `agents_invoked` derivado, `alternatives_considered` | Accepted |
+| [0061](0061-declared-plan-planner-preflight.md) | 2026-08-20 | El plan declarado: el preflight §11 se vuelve componente, y `not-assessed` se convierte en juicio | Accepted |
+| [0062](0062-tooluniverse-sdk-rejected-pubmed-layer0.md) | 2026-08-20 | Tapón 1·B: el SDK de Tool Universe en el contenedor se MIDE y se RECHAZA; PubMed entra por Layer 0 | Accepted |
+| [0063](0063-plan-route-store-consultation.md) | 2026-08-22 | El plan rutea: corrida de evidencia vs consulta del sistema (plan v2) | Accepted |
+| [0064](0064-m5-ratings-append-only-and-declared-power-calibration.md) | 2026-08-22 | M5 ratings append-only sobre el registro + calibración ECE con poder DECLARADO | Accepted |
 
 ---
 
