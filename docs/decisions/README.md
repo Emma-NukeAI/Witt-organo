@@ -136,6 +136,8 @@ or external references that informed the decision.
 | [0066](0066-plan-v3-clarification-and-data-landscape.md) | 2026-08-22 | Plan v3: preguntas de clarificación + paisaje de datos pre-gasto (adopción VB #1) | Accepted |
 | [0067](0067-bounded-revision-cycle-post-revise.md) | 2026-08-22 | Ciclo de revisión acotado post-REVISE: nada se borra, tope duro = 1 (adopción VB #2, contrato 1.6) | Accepted |
 | [0068](0068-method1-curation-sweep-instrument-validation-antileak.md) | 2026-08-22 | Curación Método 1 estilo map-reduce (gate humano intacto) + validación de instrumento + anti-fuga (adopciones VB #3–#5) | Accepted |
+| [0069](0069-metadata-normalization-dense-sparse.md) | 2026-08-22 | La metadata del path Neo4j se normaliza a LA MISMA forma del sparse (cierra §5.9) | Accepted |
+| [0070](0070-consulta-sistema-deterministic-v1.md) | 2026-08-22 | La consulta abierta del sistema, v1 DETERMINISTA (`GET /consulta-sistema`) | Accepted |
 
 ---
 

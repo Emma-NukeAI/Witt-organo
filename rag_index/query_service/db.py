@@ -448,6 +448,14 @@ def runs_usage(frm=None, to=None):
     return out
 
 
+def run_state_tally():
+    """Conteo de corridas por estado (gratis — un GROUP BY). Insumo de la consulta abierta
+    (ADR-0070): el inventario de corridas es un hecho de la BD, no un juicio."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(runs.c.state, func.count()).group_by(runs.c.state)).all()
+    return {r[0]: r[1] for r in rows}
+
+
 def closed_runs(limit=1000):
     """CLOSED runs only — the precedent corpus (block 6, ADR-0053): a run becomes precedent ONLY after
     explicit closure (frozen_at stamped), never before."""

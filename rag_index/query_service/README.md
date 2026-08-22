@@ -37,6 +37,7 @@ expuesta (ADR-0047, decisión 5).
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
 | GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056) |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
+| GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
 | POST | `/runs/{id}/ratings` | ✓ | **calificación M5** (ADR-0064): append-only (una corrección = fila nueva), procedencia DERIVADA de la sesión (`is_author`/`rater_profile`/`instrument`, jamás del cliente), ejes 1-5 con `[?]` explícito (`cannot-rate`/`not-applicable` — nunca un 1); solo corridas terminadas (409 en queued/running) |
 | GET | `/runs/{id}/ratings` | ✓ | ratings + consenso con la **independencia M5 aplicada en el servidor**: scores ajenos enmascarados hasta que emitas el tuyo; el consenso cuenta sin promediar (`{invited, received, open, missing}`) |
@@ -157,12 +158,13 @@ precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 - **Escalar atrapado: fix estructural ENTREGADO (ADR-0065), confirmación en producción PENDIENTE** —
   la próxima corrida real debe salir con `confidence.source: "stated-second-elicitation"`; hasta
   entonces el item no se declara resuelto (regla del handoff: medir contra corridas nuevas).
-- **Consulta abierta (nombrada en ADR-0063, no construida):** agente que lea /status + /taxonomia +
-  manifest y responda la pregunta meta en lenguaje natural — módulo propio con su historia de auditoría.
-- **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción);
-  su fuente de etiquetas humanas ya existe (ratings M5, ADR-0064) — falta el volumen.
+- **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción,
+  contra `evaluation/EVAL_DESIGN.md`); su fuente de etiquetas humanas ya existe (ratings M5,
+  ADR-0064) — falta el volumen.
 - `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
-- Normalización de metadata entre ruta densa y sparse (residual §5.9, notado en ADR-0047).
+
+(Resueltos 2026-08-22: la consulta abierta = ADR-0070 (`GET /consulta-sistema`, determinista v1) ·
+la normalización de metadata §5.9 = ADR-0069.)
 - PDF server-side (M4) · correo M9 (Resend) · poblar el precedente (corridas cerradas reales).
 
 (Resuelto 2026-08-22 por decisión de Emmanuel — ADR-0064: `failed`/`cancelled` son estatus terminales

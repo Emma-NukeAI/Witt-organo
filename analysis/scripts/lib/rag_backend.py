@@ -233,8 +233,34 @@ class Neo4jGraphRetriever(Retriever):
             rel_names = [(x.get("symbol") or x.get("id") or x.get("name")) for x in related if isinstance(x, dict)]
             hits.append(Hit(node.get("doc_id", "?"), float(r.get("score", 0.0)),
                             node.get("type", "document"), node.get("text", ""),
-                            {"meta": node.get("meta"), "related": [n for n in rel_names if n]}))
+                            _parse_node_meta(node.get("meta"), [n for n in rel_names if n])))
         return hits
+
+
+def _parse_node_meta(meta_raw, related_names):
+    """§5.9 (ADR-0069): normaliza la metadata del path Neo4j a LA MISMA forma del path sparse.
+
+    ingest.py guarda en `Document.meta` el json.dumps de la MISMA metadata que gather_documents
+    da al índice sparse (accession, data_niche, section, raw_ref, source_db…). Antes esto viajaba
+    como `{meta: <string sin parsear>, related}` — la peor inversión posible para el producto: el
+    panel de detalle se veía RICO justo cuando el sistema estaba degradado (sparse) y VACÍO cuando
+    estaba sano (Neo4j). Aquí se parsea y aplana, así ambas rutas cargan el mismo contrato; un
+    string imparseable se conserva DECLARADO en `meta_unparsed` (jamás se tira en silencio), y
+    `related` (la expansión 1-hop del grafo) se suma como bonus del path denso."""
+    md = {}
+    if isinstance(meta_raw, dict):
+        md.update(meta_raw)
+    elif isinstance(meta_raw, str) and meta_raw:
+        try:
+            parsed = json.loads(meta_raw)
+            if isinstance(parsed, dict):
+                md.update(parsed)
+            else:
+                md["meta_unparsed"] = meta_raw
+        except Exception:
+            md["meta_unparsed"] = meta_raw
+    md["related"] = related_names or []
+    return md
 
 
 class HybridRetriever(Retriever):

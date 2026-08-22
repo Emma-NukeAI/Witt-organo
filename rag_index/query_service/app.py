@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backend import — traps 2/3)
 import calibration as calibration_mod  # noqa: E402
+import consulta_sistema as consulta_mod  # noqa: E402
 import db  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
@@ -839,6 +840,19 @@ def config_history(authorization: str = Header(None)):
                                                 "(0029/0035/0041/0042…), cada crecimiento human-gated",
                                       "note": "puerta programática del historial del store: futura"},
             "refreshed_at": _now_iso()}
+
+
+# --- consulta abierta del sistema (ADR-0063 la nombró; ADR-0070 la construye) ------------------------
+
+@app.get("/consulta-sistema")
+def consulta_sistema_endpoint(q: str = None, authorization: str = Header(None)):
+    """La pregunta META respondida, no solo ruteada: inventario del sistema (store, índice, corpus,
+    taxonomía, corridas, config, cuarentena) con procedencia por sección + resumen en lenguaje
+    natural compuesto por CÓDIGO. v1 determinista — `model_consulted: false` estructural (una
+    respuesta de modelo sin panel no puede verse homologada; ADR-0070 documenta el cambio de
+    mecanismo vs el handoff). NO-SPEND: reusa el /status TTL + conteos gratis."""
+    _user_of(authorization)
+    return consulta_mod.answer(q, _store_status(), db.run_state_tally())
 
 
 # --- precedent layer (block 6, ADR-0053): the OTHER index — separate admissibility, equal value ------

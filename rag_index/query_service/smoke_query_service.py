@@ -185,6 +185,44 @@ check("indice separa claim_records de artefactos aux (eps probes) sin ocultarlos
 rec = app.artifact_run("month_0", claims[0]["name"], authorization=AUTH)
 check("servir un run historico (JSON con claim_id)", bool(rec.get("claim_id")))
 
+# ---- §5.9 (ADR-0069): la metadata del path Neo4j se normaliza a LA MISMA forma del sparse ------------
+from lib.rag_backend import _parse_node_meta  # noqa: E402
+
+md = _parse_node_meta('{"accession": "GSE218068", "data_niche": "RN2", "raw_ref": "raw/x"}', ["osr1"])
+check("ADR-0069: node.meta (string JSON) se APLANA — accession/data_niche/raw_ref + related del grafo "
+      "(la inversion rico-cuando-degradado / vacio-cuando-sano queda cerrada)",
+      md["accession"] == "GSE218068" and md["data_niche"] == "RN2" and md["raw_ref"] == "raw/x"
+      and md["related"] == ["osr1"] and "meta" not in md)
+check("ADR-0069: meta imparseable se conserva DECLARADO (meta_unparsed), jamas se tira en silencio",
+      _parse_node_meta("{rota", [])["meta_unparsed"] == "{rota")
+check("ADR-0069: meta ausente -> solo related (la ausencia no inventa campos)",
+      _parse_node_meta(None, ["a"]) == {"related": ["a"]})
+
+# ---- consulta abierta (ADR-0070): la pregunta META respondida — determinista y NO-SPEND --------------
+rag_backend.query, rag_backend.query_sparse = _spend_trap, _spend_trap
+app._STATUS_CACHE.update(at=0.0, data=None)
+cs = app.consulta_sistema_endpoint(q="dime que tenemos en data inamovible", authorization=AUTH)
+check("ADR-0070: NO-SPEND estructural + model_consulted=false DECLARADO (sin panel no hay homologacion)",
+      cs["model_consulted"] is False and cs["answer_class"] == "deterministic-inventory"
+      and "homologada" in cs["note"])
+check("ADR-0070: el resumen lo compone CODIGO con cifras reales del store (113 identificadores)",
+      "113" in cs["resumen"] and "precedente" in cs["resumen"])
+check("ADR-0070: ruteo por palabras clave — 'data inamovible' filtra a la seccion store, con su fuente",
+      cs["q_matched_sections"] == ["store"]
+      and set(cs["snapshot"]["secciones"].keys()) == {"store"}
+      and "fuente" in cs["snapshot"]["secciones"]["store"])
+cs2 = app.consulta_sistema_endpoint(q="algo sin senal alguna", authorization=AUTH)
+check("ADR-0070: sin match -> snapshot COMPLETO con q_matched_sections null declarado",
+      cs2["q_matched_sections"] is None
+      and {"store", "indice", "corpus", "taxonomia", "corridas", "config", "curacion"}
+      <= set(cs2["snapshot"]["secciones"].keys()))
+check("ADR-0070: el indice OFFLINE deja conteos null (jamas inventados) y el corpus declara su path",
+      cs2["snapshot"]["secciones"]["indice"]["doc_count"] is None
+      and cs2["snapshot"]["secciones"]["corpus"]["fuente"]["path"] == "rag_index/corpus_manifest.json")
+check("ADR-0070: sin token -> 401",
+      _http_error(app.consulta_sistema_endpoint, q="x", authorization=None) == 401)
+rag_backend.query, rag_backend.query_sparse = _orig_q, _orig_s
+
 # ---- 5. logout + alias ------------------------------------------------------------------------------
 app.logout(authorization=AUTH)
 check("logout revoca la sesion (siguiente llamada 401)",
