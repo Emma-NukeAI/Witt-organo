@@ -38,6 +38,10 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056) |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
+| POST | `/runs/{id}/ratings` | ✓ | **calificación M5** (ADR-0064): append-only (una corrección = fila nueva), procedencia DERIVADA de la sesión (`is_author`/`rater_profile`/`instrument`, jamás del cliente), ejes 1-5 con `[?]` explícito (`cannot-rate`/`not-applicable` — nunca un 1); solo corridas terminadas (409 en queued/running) |
+| GET | `/runs/{id}/ratings` | ✓ | ratings + consenso con la **independencia M5 aplicada en el servidor**: scores ajenos enmascarados hasta que emitas el tuyo; el consenso cuenta sin promediar (`{invited, received, open, missing}`) |
+| GET | `/ratings/pending` | ✓ | la cola "PENDIENTES DE CALIFICAR" del usuario de la sesión, con consenso y resumen epistémico por fila |
+| GET | `/calibration` | ✓ | **ECE sobre corridas CERRADAS anclado en ratings humanos** (tapón 4, ADR-0064): reutiliza `compute_ece.py`, mapeo de outcomes DECLARADO en la respuesta, poder declarado (`n<10` = case capture, descriptivo, jamás un número ciego; `n>=10` agrega isotonic), desglose médico/dev; NO-SPEND |
 
 **`/status` es NO-SPEND por construcción** (receta `liveness.py`): lee el JSON del store + el manifest
 del índice y hace solo Cypher de conteo (jamás un embed). Con `WITT_STATUS_TTL_SECONDS` (default 60),
@@ -89,6 +93,8 @@ asumen un solo proceso.
 `python rag_index/query_service/smoke_query_service.py` — offline (SQLite tmp, backend
 monkeypatcheado, cero red / cero spend / cero mutación). Necesita `fastapi` + `sqlalchemy` (el
 contenedor los trae; en dev cualquier venv desechable — **no** el `.venv` del MCP, ADR-0039).
+Ratings + calibración: `python rag_index/query_service/smoke_ratings_calibration.py` (mismo régimen
+offline; ADR-0064).
 
 ## Corridas (bloque 3, ADR-0049/0050)
 
@@ -133,9 +139,20 @@ state}`), junto con `fallback.trigger` (structural|confidence), `absence_kind`, 
 (`citations[{n, kind, id}]`) y `token_usage` (by_model medido, embeddings incluidos, costo etiquetado
 como proyección). `render_contract_version: 1.1`.
 
-## Pendiente (bloques siguientes)
+## Pendiente
 
-- `Plan` condicional de M3 (planner) · serializador de series disjuntas + `PrecedentItem` (bloque 6).
-- Bloque 5: cola de escritura cross-proceso, endpoint de detalle de propuesta, PAT del push-back.
+(Actualizado 2026-08-22 — la lista previa estaba una época atrás: el plan de M3 es ADR-0061, el
+precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
+
+- **Escalar atrapado (6/6 corridas):** investigar por qué Opus 4.8 emite `confidence` dentro de
+  `direct_answer` pese al schema de `SYNTH_TOOL`; la recuperación de ADR-0057 carga el peso hoy. Medir
+  contra corridas nuevas antes de declarar resuelto.
+- **Consulta abierta (nombrada en ADR-0063, no construida):** agente que lea /status + /taxonomia +
+  manifest y responda la pregunta meta en lenguaje natural — módulo propio con su historia de auditoría.
+- **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción);
+  su fuente de etiquetas humanas ya existe (ratings M5, ADR-0064) — falta el volumen.
 - `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
 - Normalización de metadata entre ruta densa y sparse (residual §5.9, notado en ADR-0047).
+- PDF server-side (M4) · correo M9 (Resend) · poblar el precedente (corridas cerradas reales).
+- Divergencia flagged (ADR-0064): M5 dice que failed/cancelled "se pueden cerrar" (precedente); hoy
+  `close_run` solo acepta `awaiting_closure`. Decisión de producto pendiente.

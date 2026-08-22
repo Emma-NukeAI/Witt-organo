@@ -107,6 +107,36 @@ run_events = Table(
     Column("payload_json", Text),
 )
 
+# --- ratings (M5, tapón 4 de PENDIENTES DE BACK; ADR-0064) -------------------------------------------
+# The two-zone rule of the frozen record (registro-congelado.md): run MEASUREMENTS freeze at frozen_at
+# and never change; ratings[] APPEND after it. Structurally that means ratings live in their OWN
+# append-only table and are MERGED into the record at read time — the frozen blob itself never mutates.
+# Provenance fields (rated_by, rater_profile, is_author, instrument, saw_answer_before_rating) are
+# DERIVED server-side from the session + the run, never taken from the client (same principle as
+# ADR-0056: the signer is derived; a falsifiable `by` is ignored).
+
+RATING_INPUT_STATES = ("value", "cannot-rate")
+RATING_OUTPUT_STATES = ("value", "cannot-rate", "not-applicable")
+RATABLE_STATES = ("awaiting_closure", "closed", "failed", "cancelled")   # never queued/running
+
+run_ratings = Table(
+    "run_ratings", metadata,
+    Column("run_id", String(64), ForeignKey("runs.run_id"), primary_key=True),
+    Column("seq", Integer, primary_key=True),                 # append-only: corrections are NEW rows
+    Column("rated_by", String(64), ForeignKey("users.user_id"), nullable=False),
+    Column("rated_at", DateTime(timezone=True), nullable=False),
+    Column("rater_profile", String(16), nullable=False),      # snapshot of user.role at rating time
+    Column("is_author", Boolean, nullable=False),             # derived: rated_by == run.user_id
+    Column("blind", Boolean, nullable=False, default=False),  # webapp instrument is NOT blind (v1);
+    Column("saw_answer_before_rating", Boolean, nullable=False),  # the blind instrument is the CSV bank
+    Column("instrument", String(32), nullable=False),         # m5-cierre (author) | m5-consenso (rest)
+    Column("rating_input", Integer),                          # 1-5 | null ([?] no la puedo calificar)
+    Column("rating_input_state", String(16), nullable=False),
+    Column("rating_output", Integer),                         # 1-5 | null (cannot-rate / not-applicable)
+    Column("rating_output_state", String(16), nullable=False),
+    Column("note", Text, nullable=False, default=""),
+)
+
 _engine = None
 
 
@@ -462,4 +492,95 @@ def events_after(run_id: str, after_seq: int = 0, limit: int = 500):
         m["ts"] = _dt_utc(m["ts"]).isoformat(timespec="seconds")
         m["payload"] = _json.loads(m.pop("payload_json")) if m.get("payload_json") else None
         out.append(m)
+    return out
+
+
+# --- ratings helpers (M5, ADR-0064) -------------------------------------------------------------------
+
+def add_rating(run: dict, user: dict, rating_input, rating_input_state,
+               rating_output, rating_output_state, note: str = "") -> dict:
+    """Append ONE rating row (validated by the caller). Provenance is DERIVED here, never client-stated:
+    is_author from the run's author, rater_profile from the session user's role at rating time,
+    instrument from authorship (m5-cierre = the author's closure rating, m5-consenso = everyone else),
+    saw_answer_before_rating from whether a frozen record exists (a failed run has no answer to see).
+    Two attempts on the seq race (two simultaneous raters), same monotonic-seq pattern as run_events."""
+    run_id = run["run_id"]
+    is_author = run["user_id"] == user["user_id"]
+    row = {
+        "run_id": run_id, "rated_by": user["user_id"],
+        "rater_profile": user["role"], "is_author": is_author,
+        "blind": False,   # v1: the webapp shows the answer; the blind instrument is the CSV bank
+        "saw_answer_before_rating": bool(run.get("frozen_record_json")),
+        "instrument": "m5-cierre" if is_author else "m5-consenso",
+        "rating_input": rating_input, "rating_input_state": rating_input_state,
+        "rating_output": rating_output, "rating_output_state": rating_output_state,
+        "note": note or "",
+    }
+    last_err = None
+    for _attempt in (1, 2):
+        try:
+            with engine().begin() as cx:
+                seq = (cx.execute(select(func.max(run_ratings.c.seq))
+                                  .where(run_ratings.c.run_id == run_id)).scalar() or 0) + 1
+                now = _now()
+                cx.execute(run_ratings.insert().values(seq=seq, rated_at=now, **row))
+            return {**row, "seq": seq, "rated_at": now.isoformat(timespec="seconds")}
+        except Exception as e:   # PK race on seq — retry once with a fresh max
+            last_err = e
+    raise last_err
+
+
+def ratings_for(run_id: str):
+    """All rating rows for a run, chronological (append-only log — corrections are later rows)."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(run_ratings).where(run_ratings.c.run_id == run_id)
+                          .order_by(run_ratings.c.seq)).all()
+    out = []
+    for r in rows:
+        m = dict(r._mapping)
+        m["rated_at"] = _dt_utc(m["rated_at"]).isoformat(timespec="seconds")
+        out.append(m)
+    return out
+
+
+def consensus_view(run_id: str, author_id: str):
+    """The M5 consensus block (registro-congelado contract: {invited, received, open} + who is missing).
+    invited = enabled accounts other than the author (the author rates at closure, not by invitation);
+    received = DISTINCT non-author raters; open = received < invited. Values are NOT aggregated here —
+    'nunca un promedio limpio' (M5): the UI shows individual values, this block only counts."""
+    enabled = [u["user_id"] for u in list_users() if not u["disabled"]]
+    invited = [u for u in enabled if u != author_id]
+    with engine().begin() as cx:
+        raters = sorted({r._mapping["rated_by"] for r in cx.execute(
+            select(run_ratings.c.rated_by).where(run_ratings.c.run_id == run_id))})
+    received = [u for u in raters if u != author_id]
+    return {"invited": len(invited), "received": len(received),
+            "open": len(received) < len(invited),
+            "raters": raters, "missing": sorted(set(invited) - set(raters))}
+
+
+def user_has_rated(run_id: str, user_id: str) -> bool:
+    with engine().begin() as cx:
+        row = cx.execute(select(run_ratings.c.seq)
+                         .where(run_ratings.c.run_id == run_id,
+                                run_ratings.c.rated_by == user_id).limit(1)).first()
+    return row is not None
+
+
+def runs_pending_rating(user_id: str, limit: int = 100):
+    """The M5 'PENDIENTES DE CALIFICAR' queue: ratable runs (terminal or awaiting closure) where THIS
+    user has no rating yet. Includes the user's OWN runs (an author who skipped the closure rating still
+    owes one) — the UI may split by authorship."""
+    with engine().begin() as cx:
+        rated = select(run_ratings.c.run_id).where(run_ratings.c.rated_by == user_id)
+        rows = cx.execute(select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
+                                 runs.c.created_at, runs.c.frozen_at, runs.c.epistemic_summary_json)
+                          .where(runs.c.state.in_(RATABLE_STATES), ~runs.c.run_id.in_(rated))
+                          .order_by(runs.c.created_at.desc()).limit(limit)).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        for k in ("created_at", "frozen_at"):
+            d[k] = _dt_utc(d.get(k)).isoformat(timespec="seconds") if d.get(k) else None
+        out.append(d)
     return out

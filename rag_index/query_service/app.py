@@ -44,6 +44,7 @@ sys.path.insert(0, str(ROOT / "rag_index" / "mcp_server"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backend import — traps 2/3)
+import calibration as calibration_mod  # noqa: E402
 import db  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
@@ -503,15 +504,21 @@ def get_run(run_id: str, authorization: str = Header(None)):
 
 @app.get("/runs/{run_id}/record")
 def get_frozen_record(run_id: str, authorization: str = Header(None)):
-    """The frozen record the UI renders (URL / PDF / bitácora — one source, three readers, ADR-0046)."""
-    _user_of(authorization)
+    """The frozen record the UI renders (URL / PDF / bitácora — one source, three readers, ADR-0046).
+    Two zones (registro-congelado.md / ADR-0064): the frozen MEASUREMENTS come verbatim from the blob
+    and never change; `ratings`/`consensus` are merged at read time from the append-only run_ratings
+    table — the blob itself is never rewritten. Others' scores stay MASKED until the requester has
+    rated (M5 independence — server-enforced, not UI discipline)."""
+    user = _user_of(authorization)
     run = db.get_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="no such run")
     if not run.get("frozen_record_json"):
         raise HTTPException(status_code=409, detail={"state": run["state"],
                                                      "note": "no frozen record yet (run not finished)"})
-    return json.loads(run["frozen_record_json"])
+    rec = json.loads(run["frozen_record_json"])
+    rec.update(_ratings_view(run, user["user_id"]))
+    return rec
 
 
 @app.get("/runs/{run_id}/events")
@@ -588,6 +595,123 @@ def close_run(run_id: str, authorization: str = Header(None)):
     if not res.get("closed"):
         raise HTTPException(status_code=409, detail=res)
     return res
+
+
+# --- ratings + calibración (M5 → Test 4; tapón 4 de PENDIENTES DE BACK, ADR-0064) --------------------
+
+class RatingBody(BaseModel):
+    # Escala 1-5 del contrato del registro congelado (M5). El banco CSV usa OTRA escala (0-2
+    # categórica): son instrumentos distintos y cada rating viaja con su campo `instrument`.
+    rating_input: int | None = None
+    rating_output: int | None = None
+    rating_input_state: str | None = None    # "value" | "cannot-rate"
+    rating_output_state: str | None = None   # "value" | "cannot-rate" | "not-applicable"
+    note: str = ""
+
+
+def _rating_axis(value, state, allowed, axis):
+    """Normalize one axis to (value, state) or 400. The [?] of M5 is EXPLICIT: absence of judgment is a
+    declared state ('cannot-rate' / 'not-applicable'), never a silent null and NEVER a 1."""
+    if state is None:
+        if value is None:
+            raise HTTPException(status_code=400, detail=f"{axis}: da un valor 1-5 o declara el estado "
+                                f"explícito ({'|'.join(allowed[1:])}) — la ausencia silenciosa no existe (M5)")
+        state = "value"
+    if state not in allowed:
+        raise HTTPException(status_code=400, detail=f"{axis}_state debe ser uno de {allowed}")
+    if state == "value":
+        if not isinstance(value, int) or not 1 <= value <= 5:
+            raise HTTPException(status_code=400, detail=f"{axis} debe ser un entero 1-5 cuando el estado es 'value'")
+    elif value is not None:
+        raise HTTPException(status_code=400, detail=f"{axis}: un estado '{state}' no lleva número")
+    return value, state
+
+
+def _ratings_view(run, requester_id):
+    """Ratings + consensus for one run, with the M5 independence rule SERVER-ENFORCED: others' scores
+    and notes are masked until the requester has emitted their own rating ('si ves lo que ya opinaron,
+    dejas de ser independiente'). The consensus block only counts — it never aggregates values."""
+    rows = db.ratings_for(run["run_id"])
+    has_rated = any(r["rated_by"] == requester_id for r in rows)
+    if has_rated or not rows:
+        visible, masked = rows, False
+    else:
+        visible = [{"seq": r["seq"], "rated_by": r["rated_by"], "rated_at": r["rated_at"],
+                    "instrument": r["instrument"], "is_author": r["is_author"], "masked": True}
+                   for r in rows]
+        masked = True
+    out = {"ratings": visible, "ratings_masked": masked,
+           "consensus": db.consensus_view(run["run_id"], run["user_id"])}
+    if masked:
+        out["ratings_masking_note"] = ("las calificaciones ajenas se ocultan hasta que emitas la tuya "
+                                       "(independencia M5, aplicada en el servidor)")
+    return out
+
+
+@app.post("/runs/{run_id}/ratings")
+def add_rating(run_id: str, body: RatingBody, authorization: str = Header(None)):
+    """Append ONE rating (M5 cierre/consenso). Append-only: a correction is a NEW row (the latest per
+    rater counts for consensus/calibration); nothing is ever overwritten. Provenance derived server-side
+    (rated_by/rater_profile/is_author/instrument) — same principle as ADR-0056's derived signer. The
+    run_events entry carries NO scores (a reader of /events must not pierce the masking)."""
+    user = _user_of(authorization)
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    if run["state"] not in db.RATABLE_STATES:
+        raise HTTPException(status_code=409, detail={
+            "state": run["state"],
+            "note": "solo se califica una corrida que terminó (awaiting_closure/closed/failed/cancelled)"})
+    rin, rin_state = _rating_axis(body.rating_input, body.rating_input_state,
+                                  db.RATING_INPUT_STATES, "rating_input")
+    rout, rout_state = _rating_axis(body.rating_output, body.rating_output_state,
+                                    db.RATING_OUTPUT_STATES, "rating_output")
+    note = (body.note or "").strip()
+    if len(note) > 4000:
+        raise HTTPException(status_code=400, detail="note: máximo 4000 caracteres")
+    stored = db.add_rating(run, user, rin, rin_state, rout, rout_state, note)
+    db.add_event(run_id, "rating.added",
+                 payload={"rated_by": stored["rated_by"], "instrument": stored["instrument"],
+                          "seq": stored["seq"], "rating_input_state": rin_state,
+                          "rating_output_state": rout_state})
+    return {"rating": stored, **_ratings_view(run, user["user_id"])}
+
+
+@app.get("/runs/{run_id}/ratings")
+def get_ratings(run_id: str, authorization: str = Header(None)):
+    """Ratings + consensus of one run, masked per the requester (see _ratings_view)."""
+    user = _user_of(authorization)
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    return _ratings_view(run, user["user_id"])
+
+
+@app.get("/ratings/pending")
+def ratings_pending(authorization: str = Header(None)):
+    """The M5 'PENDIENTES DE CALIFICAR' queue for the session user: ratable runs they have not rated,
+    each with its consensus counts and frozen epistemic summary (a rater must see the epistemic state —
+    'no se puede calificar una respuesta degradada creyendo que estaba limpia')."""
+    user = _user_of(authorization)
+    out = []
+    for row in db.runs_pending_rating(user["user_id"]):
+        row["epistemic_summary"] = (json.loads(row.pop("epistemic_summary_json"))
+                                    if row.get("epistemic_summary_json") else None)
+        row.pop("epistemic_summary_json", None)
+        row["consensus"] = db.consensus_view(row["run_id"], row["user_id"])
+        out.append(row)
+    return {"pending": out, "expected_of": user["user_id"],
+            "note": "calificar es esperado, no opcional (M5) — pero JAMÁS bloquea una corrida"}
+
+
+@app.get("/calibration")
+def calibration_report(authorization: str = Header(None)):
+    """ECE sobre corridas CERRADAS anclado en calificaciones humanas (tapón 4, ADR-0064). Reutiliza
+    compute_ece.py (nunca re-implementa el binning); el mapeo de outcomes viaja DECLARADO en la
+    respuesta; con n < umbral el reporte lo dice (`power.sufficient: false`) en vez de calcular a
+    ciegas. NO-SPEND por construcción."""
+    _user_of(authorization)
+    return calibration_mod.report()
 
 
 # --- taxonomy (LOTE-01·A6): the Rack's filters come from ONE door — the UI refuses to copy the files
