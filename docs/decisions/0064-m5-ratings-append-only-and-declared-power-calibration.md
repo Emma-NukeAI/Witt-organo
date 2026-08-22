@@ -85,11 +85,14 @@ lleva `instrument`, `/calibration` declara que mezcla `m5-cierre`+`m5-consenso` 
   periódicas) gana su fuente de etiquetas humanas.
 - `/calibration` va a responder "infrastructure populated" hasta que lleguen calificaciones reales —
   ese es el comportamiento correcto, no un defecto.
-- Divergencia **flagged, no resuelta** (decisión de producto pendiente de Emmanuel): M5 dice que una
-  corrida muerta/cancelada "se puede cerrar" (y así volverse precedente), pero `close_run` solo acepta
-  `awaiting_closure`. Hoy: failed/cancelled SÍ se califican (RATABLE_STATES) pero no entran al corpus de
-  precedente ni al ECE (que barre solo `closed`). Si se decide cerrarlas, es un cambio de máquina de
-  estados → su propio ADR.
+- Divergencia flagged → **RESUELTA por decisión de Emmanuel (2026-08-22, mismo día):** *"las canceladas
+  no entran en precedentes ni en data inamovible ni nada. Simplemente es un cierre y se canceló. La
+  podemos tener como un status aparte, pero no deberían de afectar nada más."* Es decir: el
+  comportamiento actual del código ES el decidido — `failed`/`cancelled` son estatus terminales aparte,
+  jamás precedente ni ECE (que barre solo `closed`); `close_run` sigue aceptando solo
+  `awaiting_closure`. Se califican (RATABLE_STATES) como registro/feedback, sin efecto en calibración.
+  La regla contraria del boceto M5 ("una corrida muerta se puede cerrar y es precedente valioso") queda
+  superada por esta decisión; si algún día se quiere, será su propio ADR.
 - Gates: `smoke_ratings_calibration.py` 29/29 · regresión completa verde (query service 29/29 ·
   run-pipeline 94/94 · precedent 15/15).
 

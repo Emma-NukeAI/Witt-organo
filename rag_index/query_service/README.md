@@ -154,5 +154,7 @@ precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 - `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
 - Normalización de metadata entre ruta densa y sparse (residual §5.9, notado en ADR-0047).
 - PDF server-side (M4) · correo M9 (Resend) · poblar el precedente (corridas cerradas reales).
-- Divergencia flagged (ADR-0064): M5 dice que failed/cancelled "se pueden cerrar" (precedente); hoy
-  `close_run` solo acepta `awaiting_closure`. Decisión de producto pendiente.
+
+(Resuelto 2026-08-22 por decisión de Emmanuel — ADR-0064: `failed`/`cancelled` son estatus terminales
+aparte, jamás precedente ni ECE; `close_run` se queda solo con `awaiting_closure`. No era pendiente de
+código: el comportamiento actual es el decidido.)
