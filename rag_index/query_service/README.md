@@ -38,6 +38,7 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056) |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
+| GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
 | POST | `/runs/{id}/ratings` | ✓ | **calificación M5** (ADR-0064): append-only (una corrección = fila nueva), procedencia DERIVADA de la sesión (`is_author`/`rater_profile`/`instrument`, jamás del cliente), ejes 1-5 con `[?]` explícito (`cannot-rate`/`not-applicable` — nunca un 1); solo corridas terminadas (409 en queued/running) |
 | GET | `/runs/{id}/ratings` | ✓ | ratings + consenso con la **independencia M5 aplicada en el servidor**: scores ajenos enmascarados hasta que emitas el tuyo; el consenso cuenta sin promediar (`{invited, received, open, missing}`) |
@@ -161,10 +162,12 @@ precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 - **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción,
   contra `evaluation/EVAL_DESIGN.md`); su fuente de etiquetas humanas ya existe (ratings M5,
   ADR-0064) — falta el volumen.
-- `/rack/node/{id}` (browse del grafo) — la operación `browse` aún no existe en ninguna puerta.
+- PDF server-side (M4) · correo M9 (Resend) · migrar `run_held_out` al run model · 2ª etapa de
+  curación (agentes-lectores EPMC, plantilla ADR-0068).
 
 (Resueltos 2026-08-22: la consulta abierta = ADR-0070 (`GET /consulta-sistema`, determinista v1) ·
-la normalización de metadata §5.9 = ADR-0069.)
+la normalización de metadata §5.9 = ADR-0069 · el browse del grafo = ADR-0071
+(`GET /rack/node/{id}`, verificado EN VIVO contra el Neo4j real).)
 - PDF server-side (M4) · correo M9 (Resend) · poblar el precedente (corridas cerradas reales).
 
 (Resuelto 2026-08-22 por decisión de Emmanuel — ADR-0064: `failed`/`cancelled` son estatus terminales

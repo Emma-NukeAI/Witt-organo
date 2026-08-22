@@ -47,6 +47,7 @@ import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backe
 import calibration as calibration_mod  # noqa: E402
 import consulta_sistema as consulta_mod  # noqa: E402
 import db  # noqa: E402
+import rack_browse as rack_browse_mod  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import rag_backend  # noqa: E402
@@ -189,7 +190,8 @@ def query(q: str, k: int = 5, niche: str = None, authorization: str = Header(Non
 _TAXONOMY_AXES_DECL = {"served": False,
                        "why": "the verified store carries identity+provenance only; per-entity "
                               "niche/domain derives from graph MENTIONS — the browse operation "
-                              "(Rack fase 2), never this door"}
+                              "(GET /rack/node/{id}, ADR-0071), never this door",
+                       "door": "/rack/node/{id}"}
 
 
 @app.get("/resolve")
@@ -840,6 +842,19 @@ def config_history(authorization: str = Header(None)):
                                                 "(0029/0035/0041/0042…), cada crecimiento human-gated",
                                       "note": "puerta programática del historial del store: futura"},
             "refreshed_at": _now_iso()}
+
+
+# --- browse del grafo (Rack fase 2, ADR-0071): la operación que no existía en ninguna puerta ---------
+
+@app.get("/rack/node/{node_id}")
+def rack_node(node_id: str, authorization: str = Header(None)):
+    """Recorre la DATA INAMOVIBLE como grafo: documento/entidad/nicho/base con sus aristas
+    (IN_NICHE, FROM_DB, FEEDS, MENTIONS con tier_weight) — y para ENTIDADES los ejes de taxonomía
+    derivados (la puerta que /resolve declara nunca servir, LOTE-01·A7). `browse_mode` viaja
+    SIEMPRE (graph | files-fallback declarado, §6 no-hang); NOT_FOUND = 200 found:false; el
+    embedding jamás se serializa; NO-SPEND (cero embeds — lookups parametrizados)."""
+    _user_of(authorization)
+    return rack_browse_mod.browse_node(node_id)
 
 
 # --- consulta abierta del sistema (ADR-0063 la nombró; ADR-0070 la construye) ------------------------

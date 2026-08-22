@@ -138,6 +138,7 @@ or external references that informed the decision.
 | [0068](0068-method1-curation-sweep-instrument-validation-antileak.md) | 2026-08-22 | Curación Método 1 estilo map-reduce (gate humano intacto) + validación de instrumento + anti-fuga (adopciones VB #3–#5) | Accepted |
 | [0069](0069-metadata-normalization-dense-sparse.md) | 2026-08-22 | La metadata del path Neo4j se normaliza a LA MISMA forma del sparse (cierra §5.9) | Accepted |
 | [0070](0070-consulta-sistema-deterministic-v1.md) | 2026-08-22 | La consulta abierta del sistema, v1 DETERMINISTA (`GET /consulta-sistema`) | Accepted |
+| [0071](0071-rack-browse-graph-operation.md) | 2026-08-22 | El browse del grafo (`GET /rack/node/{id}`): la operación que no existía en ninguna puerta | Accepted |
 
 ---
 

@@ -198,6 +198,39 @@ check("ADR-0069: meta imparseable se conserva DECLARADO (meta_unparsed), jamas s
 check("ADR-0069: meta ausente -> solo related (la ausencia no inventa campos)",
       _parse_node_meta(None, ["a"]) == {"related": ["a"]})
 
+# ---- browse del grafo (ADR-0071, Rack fase 2): files-fallback DECLARADO en dev ------------------------
+bn = app.rack_node("RN11", authorization=AUTH)
+check("ADR-0071: browse de un NICHO — files-fallback declarado (sin NEO4J_URI), documentos + FEEDS",
+      bn["found"] is True and bn["kind"] == "niche" and bn["browse_mode"] == "files-fallback"
+      and bn["browse_error"] is None
+      and sum(1 for e in bn["edges"]["in"] if e["rel"] == "IN_NICHE") == 4
+      and any(e["rel"] == "FEEDS" for e in bn["edges"]["in"]))
+bd = app.rack_node("CORPUS-2026-0001", authorization=AUTH)
+check("ADR-0071: browse de un DOCUMENTO — IN_NICHE + MENTIONS (44 entidades) con tier POR ARISTA",
+      bd["found"] is True and bd["kind"] == "document"
+      and any(e["rel"] == "IN_NICHE" and e["id"] == "RN1" for e in bd["edges"]["out"])
+      and sum(1 for e in bd["edges"]["out"] if e["rel"] == "MENTIONS") == 44
+      and any(e.get("edge_props", {}).get("verification_tier") == "RAW"
+              for e in bd["edges"]["out"] if e["rel"] == "MENTIONS"))
+be = app.rack_node("aldh1a3", authorization=AUTH)
+check("ADR-0071: browse de una ENTIDAD — ejes POR ENTIDAD derivados (la promesa LOTE-01·A7 cumplida)",
+      be["found"] is True and be["kind"] == "entity" and be["node"]["tier"] == "RAW"
+      and any(a["niche"] == "RN1" for a in be["derived"]["data_niches"])
+      and "resolve" in be["derived"]["note"])
+bg = app.rack_node("ENSDARG00000076933", authorization=AUTH)
+check("ADR-0071: la entidad tambien resuelve por ENSDARG (orden de resolucion declarado)",
+      bg["found"] is True and bg["kind"] == "entity" and bg["node"]["symbol"] == "aldh1a3")
+bc = app.rack_node("CORPUS-2026-0003#c000", authorization=AUTH)
+check("ADR-0071: un CHUNK navega a su parent + raw_ref (el drill al crudo)",
+      bc["found"] is True and bc["node"]["type"] == "chunk"
+      and bc["node"]["parent"] == "CORPUS-2026-0003"
+      and any(e["rel"] == "PART_OF" for e in bc["edges"]["out"]))
+bx = app.rack_node("no-existe-xyz", authorization=AUTH)
+check("ADR-0071: NOT_FOUND es resultado positivo (found:false) con orden de resolucion + modo declarados",
+      bx["found"] is False and "document" in bx["resolution_order"]
+      and bx["browse_mode"] == "files-fallback")
+check("ADR-0071: sin token -> 401", _http_error(app.rack_node, "RN11", authorization=None) == 401)
+
 # ---- consulta abierta (ADR-0070): la pregunta META respondida — determinista y NO-SPEND --------------
 rag_backend.query, rag_backend.query_sparse = _spend_trap, _spend_trap
 app._STATUS_CACHE.update(at=0.0, data=None)
