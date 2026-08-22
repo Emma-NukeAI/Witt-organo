@@ -135,6 +135,7 @@ or external references that informed the decision.
 | [0065](0065-trapped-scalar-dedicated-confidence-elicitation.md) | 2026-08-22 | El escalar atrapado se resuelve por ESTRUCTURA: elicitación dedicada de confianza (contrato 1.5) | Accepted |
 | [0066](0066-plan-v3-clarification-and-data-landscape.md) | 2026-08-22 | Plan v3: preguntas de clarificación + paisaje de datos pre-gasto (adopción VB #1) | Accepted |
 | [0067](0067-bounded-revision-cycle-post-revise.md) | 2026-08-22 | Ciclo de revisión acotado post-REVISE: nada se borra, tope duro = 1 (adopción VB #2, contrato 1.6) | Accepted |
+| [0068](0068-method1-curation-sweep-instrument-validation-antileak.md) | 2026-08-22 | Curación Método 1 estilo map-reduce (gate humano intacto) + validación de instrumento + anti-fuga (adopciones VB #3–#5) | Accepted |
 
 ---
 

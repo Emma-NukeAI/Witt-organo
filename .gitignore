@@ -132,3 +132,4 @@ rag_index/ingest_service/write.lock
 
 # Query service dev database (prod is Postgres on Dokploy via WITT_BACKEND_DB_URL — ADR-0048)
 rag_index/query_service/backend.db
+rag_index/curation/quarantine/
