@@ -127,7 +127,7 @@ SYNTH_TOOL = {
 #   projection       — costo/duración: mediana de la historia REAL, calculada por código (constitución:
 #                      una proyección la calcula un tool desde insumos declarados, nunca la estima un
 #                      modelo). Sin historia suficiente: "[?] sin historia suficiente" (LOTE-01).
-PLAN_VERSION = "1"
+PLAN_VERSION = "2"   # v2 (ADR-0063): +judgment.route — el juicio del planner ahora TIENE a dónde ir
 PLAN_MIN_HISTORY = int(os.environ.get("WITT_PLAN_MIN_HISTORY", "3"))
 
 PLAN_TOOL = {
@@ -142,6 +142,16 @@ PLAN_TOOL = {
         "properties": {
             "work_type": {"type": "string",
                           "description": "dominant work-type of answering this question, one short line"},
+            "route": {
+                "type": "string", "enum": ["evidence-run", "store-consultation"],
+                "description": ("WHERE this question belongs (ADR-0063). 'store-consultation': the "
+                                "question asks about the SYSTEM ITSELF — what the DATA INAMOVIBLE "
+                                "contains, versions, counts, state, inventory ('qué tenemos en la "
+                                "DI') — its answer lives in the consultation doors (store status, "
+                                "taxonomy, Rack search), NOT in the evidence pipeline; running the "
+                                "pipeline would spend the 4-judge panel on a question it cannot "
+                                "answer from evidence chunks. 'evidence-run': a biology question "
+                                "answerable from evidence — the pipeline's actual job.")},
             "niches": {"type": "array", "items": {"type": "string", "enum": agent_matrix.NICHE_ENUM},
                        "description": ("CLAUDE.md §3: every task classifies into >=1 of the six niches. "
                                        "Empty array = OUT OF SCOPE (must be flagged, never silently "
@@ -159,7 +169,7 @@ PLAN_TOOL = {
                                 "and identifier-verification-gate always run — include them only to add a "
                                 "question-specific reason)")},
         },
-        "required": ["work_type", "niches", "agents_applicable"],
+        "required": ["work_type", "route", "niches", "agents_applicable"],
     },
 }
 
@@ -271,15 +281,40 @@ def build_plan(question, entities=None, planner=None, history_rows=None):
                 "reason": a.get("reason", ""),
                 "will_run": "runs-always-componentized" if comp else "skipped-ad-hoc",
             })
+        # la ruta (ADR-0063): el modelo la elige; la GUÍA la resuelve la tabla — dónde vive la
+        # respuesta es un hecho del sistema, no un juicio
+        route = out.get("route") or "evidence-run"
+        route_guidance = None
+        if route == "store-consultation":
+            route_guidance = {
+                "doors": ["Rack — estado del store, búsqueda y resolución determinista (/rack)",
+                          "taxonomía y crosswalk — la única puerta (/rack)",
+                          "estado del sistema y consumo (/consumo)"],
+                "note": ("la respuesta a una pregunta de inventario/estado vive en las puertas de "
+                         "consulta (deterministas, sin gasto de modelo). El pipeline la trataría "
+                         "como pregunta de evidencia y gastaría el panel de 4 jueces en algo que "
+                         "no puede responder desde chunks."),
+            }
+        # el filtro §3 gobierna TAREAS de sustrato; una pregunta meta sobre el sistema no es
+        # fuera-de-alcance ni dentro: el filtro NO APLICA, y eso se declara (tres estados, no dos)
+        if route == "store-consultation":
+            scope = {"in_scope": None,
+                     "note": ("consulta META sobre el sistema — el filtro §3 aplica a tareas de "
+                              "sustrato, no a preguntas de inventario; no-aplica ≠ fuera-de-alcance")}
+        elif niches:
+            scope = {"in_scope": True}
+        else:
+            scope = {"in_scope": False,
+                     "reason": out.get("out_of_scope_reason") or "no declarado",
+                     "note": "§3: una tarea fuera de los seis nichos SE MARCA — el humano decide"}
         plan["judgment"] = {
             "class": "model-judgment",
             "state": "declared",
             "work_type": out.get("work_type"),
+            "route": route,
+            "route_guidance": route_guidance,
             "niches": niches,
-            "scope": ({"in_scope": True} if niches else
-                      {"in_scope": False,
-                       "reason": out.get("out_of_scope_reason") or "no declarado",
-                       "note": "§3: una tarea fuera de los seis nichos SE MARCA — el humano decide"}),
+            "scope": scope,
             "agents_applicable": agents,
             "planner": {"model": SYNTH_MODEL, "usage": usage, "class": "self-report",
                         "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)"},
@@ -301,6 +336,7 @@ def plan_event_payload(plan):
     p = {"plan_version": plan.get("plan_version"),
          "judgment_state": j.get("state"),
          "work_type": j.get("work_type"),
+         "route": j.get("route"),
          "niches": [n.get("code") for n in j.get("niches", [])],
          "n_agents_applicable": len(j.get("agents_applicable", [])),
          "agents": [a.get("agent") for a in j.get("agents_applicable", [])],

@@ -524,6 +524,7 @@ from lib import agent_matrix  # noqa: E402
 
 def _fake_planner_ok(question, entities):
     return ({"work_type": "evidence-grounded QA con hipotesis de suficiencia",
+             "route": "evidence-run",
              "niches": ["N3", "N4"],
              "agents_applicable": [
                  {"agent": "causal-pruner", "reason": "la pregunta pide set minimo + suficiencia"},
@@ -572,7 +573,7 @@ check("plan: historia insuficiente -> '[?] sin historia suficiente' declarado, J
       pl_thin["estimates"]["di_only"]["state"] == "insufficient-history"
       and "median" not in pl_thin["estimates"]["di_only"]["cost_usd"])
 def _planner_out_of_scope(question, entities):
-    return ({"work_type": "pregunta fuera de dominio", "niches": [],
+    return ({"work_type": "pregunta fuera de dominio", "route": "evidence-run", "niches": [],
              "out_of_scope_reason": "no toca ninguno de los seis nichos",
              "agents_applicable": []}, {})
 pl_oos = runs_mod.build_plan("¿cual es la capital de Francia?", [], planner=_planner_out_of_scope,
@@ -580,6 +581,25 @@ pl_oos = runs_mod.build_plan("¿cual es la capital de Francia?", [], planner=_pl
 check("plan: cero nichos -> FUERA DE ALCANCE marcado (§3: se marca, el humano decide — no se bloquea)",
       pl_oos["judgment"]["scope"]["in_scope"] is False
       and "humano decide" in pl_oos["judgment"]["scope"]["note"])
+def _planner_inventario(question, entities):
+    return ({"work_type": "consulta de inventario del sistema", "route": "store-consultation",
+             "niches": [], "agents_applicable": []}, {})
+pl_inv = runs_mod.build_plan("dime que tenemos en data inamovible", [],
+                             planner=_planner_inventario, history_rows=HIST_OK)
+check("ADR-0063: consulta META -> route=store-consultation con la GUIA resuelta por tabla "
+      "(donde vive la respuesta es un hecho del sistema, no un juicio)",
+      pl_inv["judgment"]["route"] == "store-consultation"
+      and any("/rack" in d for d in pl_inv["judgment"]["route_guidance"]["doors"])
+      and "panel de 4 jueces" in pl_inv["judgment"]["route_guidance"]["note"])
+check("ADR-0063: en consulta META el filtro §3 NO APLICA (in_scope=None declarado) — "
+      "no-aplica != fuera-de-alcance: la pregunta de Emmanuel no debe salir marcada FUERA DE ALCANCE",
+      pl_inv["judgment"]["scope"]["in_scope"] is None
+      and "no-aplica" in pl_inv["judgment"]["scope"]["note"])
+check("ADR-0063: la ruta viaja en el evento stage.plan",
+      runs_mod.plan_event_payload(pl_inv)["route"] == "store-consultation"
+      and runs_mod.plan_event_payload(pl)["route"] == "evidence-run")
+
+
 def _planner_boom(question, entities):
     raise RuntimeError("planner caido")
 pl_err = runs_mod.build_plan("q", [], planner=_planner_boom, history_rows=HIST_OK)
