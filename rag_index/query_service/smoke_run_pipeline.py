@@ -922,6 +922,35 @@ check("ADR-0067h: una corrida SIN revisión declara el bloque en 3 estados (null
       rec["revision"]["performed"] is False and rec["audit_initial"] is None
       and rec["answer_initial"] is None and rec["confidence"]["revision"] is None)
 
+# ---- ADR-0073: el PDF de servidor — del JSON congelado, jamás de la página ----------------------------
+import record_pdf  # noqa: E402
+
+pdf_ok = record_pdf.build_pdf(rec, compress=False)
+check("ADR-0073a: PDF generado del registro congelado — %PDF + banda de modo con PALABRAS completas",
+      pdf_ok[:5] == b"%PDF-" and b"SELLADA" in pdf_ok and b"CONGELADO" in pdf_ok
+      and b"APROBADA" in pdf_ok and b"PREGUNTA" in pdf_ok)
+pdf_rev = record_pdf.build_pdf(rec_r, compress=False)
+check("ADR-0073b: el ciclo de revisión viaja al PDF — ronda 0 completa y marcada SUPERADA (nada se borra)",
+      b"RONDA 0" in pdf_rev and b"SUPERADA" in pdf_rev and b"REVISION" in pdf_rev)
+try:
+    record_pdf.build_pdf({**rec, "question_matches_run": False})
+    ident_ok = False
+except ValueError:
+    ident_ok = True
+check("ADR-0073c: identidad rota -> el PDF NO se genera (la misma regla que la hoja, ADR-0044)",
+      ident_ok)
+pdf_ni = record_pdf.build_pdf({k: v for k, v in rec.items() if k != "retrieval_summary"},
+                              compress=False)
+check("ADR-0073d: sin retrieval_summary la banda dice NO INSTRUMENTADO con palabras completas "
+      "(jamás se apoya en punteados)",
+      b"NO INSTRUMENTADO" in pdf_ni)
+resp_pdf = app.get_record_pdf(RID, authorization=AUTH)
+check("ADR-0073e: GET /runs/{id}/record.pdf sirve application/pdf con Content-Disposition de descarga",
+      resp_pdf.media_type == "application/pdf" and bytes(resp_pdf.body)[:5] == b"%PDF-"
+      and "registro_" in resp_pdf.headers.get("content-disposition", ""))
+check("ADR-0073f: el pie declara el canal único + el saneo latin-1 (disciplina de exportación)",
+      b"latin-1" in pdf_ok and b"UNICO" in pdf_ok)
+
 # ---- LOTE-02·2: /usage — la suma vive en el SERVIDOR (M8) --------------------------------------------
 us = app.usage(authorization=AUTH)
 check("/usage: totales + by_user + by_model + most_expensive + costo PROJECTION",

@@ -31,6 +31,7 @@ expuesta (ADR-0047, decisión 5).
 | POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`) |
 | GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
+| GET | `/runs/{id}/record.pdf` | ✓ | **el PDF de servidor** (M4, ADR-0073): generado DEL JSON congelado con plantilla propia — jamás "imprimir la página"; bandas con palabras completas, procedencia del escalar en palabras, ambas rondas de la revisión, identidad rota = 409; el ÚNICO canal autorizado de exportación |
 | GET | `/runs/{id}/events?after=` | ✓ | **replay** — las mismas filas que el stream (una bitácora) |
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
@@ -163,8 +164,10 @@ precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 - **Tapón 5 — evals periódicas**: el instrumento YA existe (`evaluation/run_held_out_v2.py` sobre el
   run model, ADR-0072, contra `evaluation/EVAL_DESIGN.md`); falta el cron + umbrales + volumen de
   etiquetas humanas (ratings M5, ADR-0064).
-- PDF server-side (M4) · correo M9 (Resend) · 2ª etapa de curación (agentes-lectores EPMC,
-  plantilla ADR-0068).
+- Correo M9 (Resend — necesita cuenta) · 2ª etapa de curación (agentes-lectores EPMC, plantilla
+  ADR-0068, tras validar F4 del barrido ZFIN).
+
+(Resuelto 2026-08-22 también: PDF de servidor M4 = ADR-0073, `GET /runs/{id}/record.pdf`.)
 
 (Resueltos 2026-08-22: la consulta abierta = ADR-0070 (`GET /consulta-sistema`, determinista v1) ·
 la normalización de metadata §5.9 = ADR-0069 · el browse del grafo = ADR-0071

@@ -10,3 +10,4 @@ openai>=1.40
 minio>=7.2
 scikit-learn
 numpy
+fpdf2>=2.8                  # PDF de servidor del registro congelado (M4, ADR-0073) — 4 paquetes puros, medido

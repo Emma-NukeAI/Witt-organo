@@ -140,6 +140,7 @@ or external references that informed the decision.
 | [0070](0070-consulta-sistema-deterministic-v1.md) | 2026-08-22 | La consulta abierta del sistema, v1 DETERMINISTA (`GET /consulta-sistema`) | Accepted |
 | [0071](0071-rack-browse-graph-operation.md) | 2026-08-22 | El browse del grafo (`GET /rack/node/{id}`): la operación que no existía en ninguna puerta | Accepted |
 | [0072](0072-held-out-harness-on-run-model.md) | 2026-08-22 | El harness held-out migra al run model: lo que se evalúa ES el pipeline de producción | Accepted |
+| [0073](0073-server-pdf-frozen-record-export.md) | 2026-08-22 | El PDF de servidor del registro congelado (`GET /runs/{id}/record.pdf`, M4 export) | Accepted |
 
 ---
 

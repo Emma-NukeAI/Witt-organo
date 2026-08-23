@@ -48,6 +48,7 @@ import calibration as calibration_mod  # noqa: E402
 import consulta_sistema as consulta_mod  # noqa: E402
 import db  # noqa: E402
 import rack_browse as rack_browse_mod  # noqa: E402
+import record_pdf as record_pdf_mod  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import rag_backend  # noqa: E402
@@ -522,6 +523,30 @@ def get_frozen_record(run_id: str, authorization: str = Header(None)):
     rec = json.loads(run["frozen_record_json"])
     rec.update(_ratings_view(run, user["user_id"]))
     return rec
+
+
+@app.get("/runs/{run_id}/record.pdf")
+def get_record_pdf(run_id: str, authorization: str = Header(None)):
+    """M4 export (ADR-0073): el PDF de SERVIDOR, generado DEL JSON CONGELADO con plantilla propia —
+    jamás 'imprimir la página' (el derivado limpio es la fuga que este canal existe para tapar).
+    Identidad rota (question_matches_run=false) => 409, la misma regla que la hoja (ADR-0044).
+    El consenso viaja como conteos; los scores individuales no se exportan en v1."""
+    user = _user_of(authorization)
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    if not run.get("frozen_record_json"):
+        raise HTTPException(status_code=409, detail={"state": run["state"],
+                                                     "note": "no frozen record yet (run not finished)"})
+    rec = json.loads(run["frozen_record_json"])
+    rec.update(_ratings_view(run, user["user_id"]))
+    try:
+        pdf_bytes = record_pdf_mod.build_pdf(rec)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail={"state": "identity-mismatch", "note": str(e)})
+    from fastapi.responses import Response
+    return Response(content=pdf_bytes, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="registro_{run_id}.pdf"'})
 
 
 @app.get("/runs/{run_id}/events")
