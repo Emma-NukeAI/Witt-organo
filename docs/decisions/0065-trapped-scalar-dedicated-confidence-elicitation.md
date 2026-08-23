@@ -2,7 +2,7 @@
 
 - **Status:** Accepted — 2026-08-22. Item 2 de PENDIENTES DE BACK (`witt-ui-lab/HANDOFF-2026-08-22.md`);
   Emmanuel priorizó atacarlo antes que sus propios ajustes ("hagamos primero esto… podría impactar más
-  cosas"). **La declaración de "resuelto en producción" queda PENDIENTE de corridas reales nuevas** —
+  cosas"). **La declaración de "resuelto en producción" quedó PENDIENTE hasta corridas reales nuevas (CUMPLIDA 2026-08-23, ver bullet abajo)** —
   este ADR registra el fix medido a nivel unidad, no un cierre por fe (disciplina del handoff: "medir
   contra corridas nuevas antes de declarar resuelto").
 - **CONFIRMADO EN VIVO (2026-08-22, mismo día — piloto del harness v2, ADR-0072):** 2/2 corridas
@@ -12,6 +12,15 @@
   0.05: el sesgo conservador exacto del A/B). Registros: `evaluation/runs/month_p1/Q01.json`/`Q26.json`.
   Queda como verificación OPERATIVA (no de mecanismo): la primera corrida de witt-ai.com.mx tras el
   Redeploy de Emmanuel.
+- **VERIFICACIÓN OPERATIVA CUMPLIDA (2026-08-23):** la primera corrida real de producción post-Redeploy
+  (`4d046355…`, la pregunta wt1a de la corrida #1 re-corrida) salió `confidence.source:
+  "stated-second-elicitation"` en pass1, pass2 y final, con el in-line persistido (pass1 0.05 vs 0.10;
+  pass2 0.86 vs 0.82 — |Δ| 0.05/0.04, dentro de la banda 0.15) y CERO recuperación regex. De pilón, el
+  gate de fallback consumió el escalar limpio exactamente como se diseñó: 0.05 < τ=0.5 →
+  `fallback.trigger: confidence` (con `structural_sufficient: true` — el trap any-chunk ya no existe en
+  producción) → Ruta B (ZFIN 1 + EuropePMC 2) → pass2 0.86 → panel 4 válidos (2 APPROVE + 2
+  APPROVE_MINOR) → `AUDIT_APPROVED`. **El item queda RESUELTO** — misma pregunta que la corrida #1
+  (2026-08-10), ahora aprobada con la evidencia que aquella pidió (CORPUS-2026-0009 + ZFIN vivo).
 - **Relates:** ADR-0057 (descubrió el fenómeno 2/2 y creó `recover_trapped_params`), ADR-0051 (el gate
   de fallback por confianza τ=0.5 que consume este escalar), ADR-0058 (la doctrina de declinación
   honesta — reapareció aquí como el near-miss semántico), CLAUDE.md §6 (no-hang).
@@ -87,8 +96,8 @@ Reglas del flujo (todas con check en el smoke):
 ## Consequences
 
 - Las corridas nuevas deben salir con `confidence.source: "stated-second-elicitation"` y sin el flag de
-  recuperación como procedencia del escalar. **Verificación en producción pendiente**: la próxima
-  corrida real es la medición que permite declarar el item resuelto.
+  recuperación como procedencia del escalar. **Verificación en producción CUMPLIDA (2026-08-23)**: la
+  primera corrida real post-Redeploy (`4d046355…`) fue esa medición y salió limpia — item RESUELTO.
 - El sesgo conservador (−0.05..−0.15) empuja, si acaso, a disparar Ruta B de más — dirección segura
   (never-stopper); las fuentes B son gratis y la pass2 cuesta ~USD 0.05–0.08.
 - Cambio de instrumento de calibración DECLARADO: el ECE de ADR-0064 consumirá `confidence.final` como
