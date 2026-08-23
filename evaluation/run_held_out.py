@@ -1,6 +1,14 @@
 """
 run_held_out.py — Test 3 (iteration loop) + Test 1 (reasoning) baseline runner (plan Track A / A1).
 
+**DEPRECADO PARA CORRIDAS NUEVAS (2026-08-22, ADR-0072):** este harness "salta la máquina de
+estados" (faltantes §5.6 — arma su propio bundle SIN decision_state; por eso los históricos salen
+`instrumented: false`). Las evals nuevas corren por `run_held_out_v2.py`, que ejecuta cada pregunta
+por el run model REAL de producción (runs.execute_run: dos pasadas + elicitación ADR-0065 + gate +
+panel + revisión ADR-0067 + registro congelado 1.6). Este archivo se CONSERVA porque (a) es el
+instrumento que produjo month_0/4/8 (procedencia de esos récords) y (b) el v2 REUSA por import su
+juez multi-proveedor, la carga del set y la extracción de entidades. No correr `run` nuevo aquí.
+
 Runs the frozen held-out set (evaluation/held_out_set_v1.json, 30 Q) through a 3-STAGE pipeline per
 question and writes claim-record-conforming outputs so compute_ece.py + noise_probe.py can measure the
 baseline. This is the step that moves Test 3 from SCAFFOLD -> measured and produces the first REAL EPS.

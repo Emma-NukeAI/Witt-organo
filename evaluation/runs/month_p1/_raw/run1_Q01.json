@@ -1,0 +1,389 @@
+{
+ "run_id": "6ef0995969064cf391d03b5b7512fce4",
+ "frozen": {
+  "render_contract_version": "1.6",
+  "run_id": "6ef0995969064cf391d03b5b7512fce4",
+  "user_id": "eval-harness",
+  "question": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?",
+  "measured_at": "2026-08-23T00:11:55+00:00",
+  "store_at_retrieval": {
+   "store_version": "2026-07-21.3",
+   "index_version": null
+  },
+  "retrieval_summary": {
+   "mode": "semantic",
+   "retrievals": 1,
+   "aggregation": "worst-of-n"
+  },
+  "decision_state": {
+   "state": "AUDIT_APPROVED",
+   "may_answer_now": true,
+   "may_propose_now": true,
+   "required_next_action": "ANSWER from approved evidence ['CORPUS-2026-0001', 'CORPUS-2026-0003#c000', 'db:ZFIN', 'CORPUS-2026-0007', 'niche:RN1', 'CORPUS-2026-0002'] + PROPOSE to the DI via propose_from_external.py (human gate). Rejected/absent items -> gap_flags."
+  },
+  "fallback": {
+   "trigger": "confidence",
+   "fb_meta": {
+    "pass1_confidence": 0.05,
+    "pass1_confidence_source": "stated-second-elicitation",
+    "tau": 0.5,
+    "structural_sufficient": true,
+    "absence_kind": "no-evidence-retrieved"
+   }
+  },
+  "confidence": {
+   "pass1": 0.05,
+   "pass1_source": "stated-second-elicitation",
+   "pass2": 0.05,
+   "pass2_source": "stated-second-elicitation",
+   "pass1_inline": 0.15,
+   "pass2_inline": 0.05,
+   "revision": null,
+   "revision_source": null,
+   "delta": 0.0,
+   "final": 0.05,
+   "source": "stated-second-elicitation",
+   "by_subclaim": {
+    "pronephric_TF_markers": 0.04,
+    "intermediate_mesoderm_TF_markers": 0.04,
+    "expression_order_lineage_constraint": 0.03,
+    "corpus_has_usable_TF_calls": 0.05,
+    "external_search_yield": 0.02
+   },
+   "state": "value"
+  },
+  "audit": {
+   "approved": [
+    "CORPUS-2026-0001",
+    "CORPUS-2026-0003#c000",
+    "db:ZFIN",
+    "CORPUS-2026-0007",
+    "niche:RN1",
+    "CORPUS-2026-0002"
+   ],
+   "rejected": [],
+   "note": "composite-auditor Mode 1: APPROVE_DECLINE (valid 4/4, APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE)",
+   "required": true,
+   "required_because": "FALLBACK_FETCHED",
+   "panel": [
+    {
+     "reviewer": "claude-opus-4-8",
+     "family": "anthropic",
+     "lens": "correctness",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.83,
+     "reasons": [
+      "The claim declines with a clearly declared absence_kind ('no-evidence-retrieved'), correctly distinguishing that from evidence-of-absence — this is a first-class negative finding under ADR-0058, not a defect.",
+      "Correctness lens: I hunted for factual errors and found none, precisely because the claim asserts NO substantive TF facts. It does not state that osr1 marks early intermediate mesoderm, nor pax2a/pax8/lhx1a as pronephric markers, nor any expression ordering — it explicitly refuses to assert these. There is therefore no unsupported causal or factual claim to refute.",
+      "The decline is NOT lazy. The Path-A bundle genuinely lacks any extracted TF expression calls: CORPUS-2026-0003#c000 is a generic model-organism statement, ZFIN and ZESTA are pointers with no surfaced content, and the remaining hits are off-topic (cornea/anterior-segment, sox17 endoderm variance). No document states which TFs distinguish pronephric vs. intermediate mesoderm or their 12-24 hpf ordering.",
+      "Path-B external search was actually run with a well-targeted query (pax2a pax8 lhx1a osr1 hnf1b wt1a ...) and returned zero papers from both EuropePMC and PubMed (n_results_by_source both 0), so no external literature was available to answer. The claim does not overstate any verification it did not run.",
+      "Deterministic identifier_report is clean (ok=true, no misbound/flagged/unresolved), consistent with a claim that introduces no gene IDs as findings — nothing to verify, nothing falsely verified.",
+      "Minor tension worth noting but not disqualifying: sufficiency.sufficient=true in the bundle conflicts with the decline, but the substantive evidence review shows sufficiency was mis-set — no usable TF content exists — so declining remains the correct epistemic move over answering from a good-model platitude plus bare database pointers."
+     ],
+     "usage": {
+      "input_tokens": 3229,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 796,
+      "output_tokens_details": {
+       "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+     }
+    },
+    {
+     "reviewer": "claude-sonnet-5",
+     "family": "anthropic",
+     "lens": "overclaim",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.9,
+     "reasons": [
+      "Claim declines to answer and explicitly declares the absence_kind: no extracted TF expression content, only generic pointers (ZFIN, ZESTA) and off-topic datasets (cornea, sox17 cell-number variance).",
+      "Path-B external search targeted exactly the relevant gene set (pax2a, pax8, lhx1a, osr1, hnf1b, wt1a) plus the correct developmental window and returned 0 EuropePMC and 0 PubMed hits, confirming no literature was available to substitute for the missing retrieval.",
+      "Stated confidence (0.05) is appropriately low and matches the confidence-gate trigger for Path-B, so no overclaiming of certainty occurred.",
+      "The claim correctly refrains from asserting specific gene identities or temporal ordering that are not supported by any retrieved chunk — this is the correct behavior under the overclaim lens, not a defect.",
+      "Claim correctly frames this as 'no-evidence-retrieved' rather than 'evidence of absence', avoiding a stronger negative claim than warranted.",
+      "No fabricated 'validated' language, no hedged hypothesis presented as finding; the answer stays within the sufficiency bounds of the sparse evidence bundle.",
+      "Deterministic checks show admissible=true with no identifier issues, consistent with a clean decline rather than a data-integrity problem."
+     ],
+     "usage": {
+      "input_tokens": 3322,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 606,
+      "output_tokens_details": {
+       "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+     }
+    },
+    {
+     "reviewer": "claude-haiku-4-5-20251001",
+     "family": "anthropic",
+     "lens": "evidence-grounding",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.92,
+     "reasons": [
+      "The answer correctly identifies the absence of transcription-factor-level detail in the evidence bundle and declines to answer rather than inventing content.",
+      "Path A retrieval produced 6 hits but none contain the specific TF expression calls needed: CORPUS-2026-0003#c000 is only a general statement about zebrafish pronephros as a model; ZFIN and ZESTA are pointers to resources but the actual extracted TF expression data is not present in the bundle.",
+      "Path B external search was appropriately triggered by low confidence (0.05 < 0.5 threshold) and specifically queried the relevant gene set (pax2a, pax8, lhx1a, osr1, hnf1b, wt1a) across both EuropePMC and PubMed, returning zero results — confirming that no literature was available to fill the gap.",
+      "The answer correctly distinguishes between 'no evidence retrieved' (which is what occurred) and 'evidence that markers do not exist' (which would be a false claim). This is the honest epistemic move.",
+      "Absence_kind is properly declared: the answer explains what is missing (transcription-factor-level detail, expression timing orders, lineage-constraining data) and why declining is correct given the retrieval failure.",
+      "All citations to evidence are grounded: CORPUS-2026-0003#c000 is explicitly cited and correctly characterized as a general statement; ZFIN and ZESTA are noted as pointers without falsely claiming extracted content.",
+      "Deterministic checks confirm admissible=true with no unresolved identifiers, and the identifier_report shows ok=true with no flagged mismatches.",
+      "The recommended next step (query ZESTA/ZFIN directly) is methodologically sound and does not override the correct decline decision.",
+      "No memory-based assertions: all factual claims about what is in the bundle are anchored to the provided evidence structure."
+     ],
+     "usage": {
+      "input_tokens": 2725,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 560,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+     }
+    },
+    {
+     "reviewer": "gpt-4o",
+     "family": "openai",
+     "lens": "reproducibility",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 1.0,
+     "reasons": [
+      "The claim correctly identifies an absence of evidence in the retrieved material and external search results.",
+      "The claim explicitly references what was found and why it is insufficient to answer the question.",
+      "The direct answer clearly states the lack of evidence and recommends a next step to query ZFIN or ZESTA directly.",
+      "The retrieval results and search attempts are documented and verify the absence of specific transcription factor markers or their expression orders."
+     ],
+     "usage": {
+      "completion_tokens": 108,
+      "prompt_tokens": 1868,
+      "total_tokens": 1976,
+      "completion_tokens_details": {
+       "accepted_prediction_tokens": 0,
+       "audio_tokens": 0,
+       "reasoning_tokens": 0,
+       "rejected_prediction_tokens": 0
+      },
+      "prompt_tokens_details": {
+       "audio_tokens": 0,
+       "cache_write_tokens": null,
+       "cached_tokens": 0
+      }
+     }
+    }
+   ],
+   "tally": {
+    "APPROVE": 0,
+    "APPROVE_DECLINE": 4,
+    "APPROVE_MINOR": 0,
+    "REVISE": 0
+   },
+   "verdict": "APPROVE_DECLINE",
+   "source_vocabulary": "APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE",
+   "n_valid": 4,
+   "usage": {
+    "input_tokens": 9276,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 1962,
+    "completion_tokens": 108,
+    "prompt_tokens": 1868,
+    "total_tokens": 1976
+   }
+  },
+  "audit_initial": null,
+  "answer_initial": null,
+  "revision": {
+   "enabled": true,
+   "performed": false,
+   "cap": 1
+  },
+  "answer": {
+   "direct_answer": "I cannot responsibly answer this question from the provided evidence bundle. The retrieved material does not contain the transcription-factor–level detail the question demands.\n\nWhat the bundle actually contains: (1) a general statement that the zebrafish pronephros is a good model for nephron development (CORPUS-2026-0003#c000), (2) generic pointers to resources that *could* hold the answer — ZFIN (TFs, expression, markers) and the ZESTA spatiotemporal atlas covering 3–24 hpf — but with NO extracted TF expression calls, and (3) several off-topic datasets (cornea/anterior-segment, sox17 endoderm cell-number variance). No document states which transcription factors mark pronephric mesoderm vs. intermediate mesoderm, nor their temporal expression order at 12–24 hpf. The Path-B external search (querying exactly the relevant genes: pax2a, pax8, lhx1a, osr1, hnf1b, wt1a) returned ZERO papers from EuropePMC and PubMed, so no literature was available to fill the gap.\n\nConsequently the specific claims a correct answer would need — e.g. osr1 marking early intermediate mesoderm, pax2a/pax8/lhx1a as pronephric mesoderm markers, and any inferred expression ordering constraining lineage — are NOT supported by anything in this bundle. I will not assert those gene IDs or their expression order as findings, because doing so would be inventing content not present in the evidence.\n\nThis is a 'no-evidence-retrieved' situation, not evidence that such markers/ordering do not exist: the atlas and ZFIN plausibly contain the answer, but the retrieval surfaced no usable content and the external search matched nothing. Recommended next step: query ZESTA/ZFIN directly for expression of the intermediate-/pronephric-mesoderm TF set across 12–24 hpf.",
+   "stated_confidence": 0.05,
+   "absence_kind": "no-evidence-retrieved",
+   "gap_flags": [
+    "No retrieved document names any transcription factor for pronephric vs. intermediate mesoderm.",
+    "No expression-timing/order data (12-24 hpf) present in any chunk.",
+    "Path-B external search returned 0 papers (EuropePMC=0, PubMed=0) despite a well-targeted gene query.",
+    "ZFIN and ZESTA are referenced only as resource stubs; their actual expression calls were not extracted into the bundle.",
+    "The 'sufficiency: sufficient=true' flag conflicts with pass1_confidence=0.05 and the empty external search — treat sufficiency as unreliable here.",
+    "Several top hits (cornea/anterior segment, sox17 endoderm) are off-topic for pronephros TFs."
+   ],
+   "model": "claude-opus-4-8"
+  },
+  "alternatives_considered": [
+   "Answer from general domain knowledge (osr1 → intermediate mesoderm; pax2a/pax8/lhx1a → pronephric mesoderm; pax2a onset ~11-12 hpf downstream of osr1). REJECTED: the instructions restrict me to provided evidence, and none of these gene calls or their ordering appear in any retrieved document — asserting them would be inventing identifiers/findings.",
+   "Treat CORPUS-2026-0003#c000 as sufficient. REJECTED: it only frames the pronephros as a nephron-development model and mentions 'when and how renal...' without naming any transcription factor or expression order.",
+   "Treat ZFIN / ZESTA pointers as an answer. REJECTED: these are resource descriptions, not extracted expression data; they signal where the answer lives but contain no TF marker calls in the bundle.",
+   "Declare 'evidence-of-no-effect' (that no such markers/ordering exist). REJECTED: the retrieval returning nothing on-topic says nothing about the biology; the correct epistemic label is no-evidence-retrieved."
+  ],
+  "reasoning": {
+   "framework_applied": {
+    "class": "self-report",
+    "class_note": "etiqueta de prompt-time, NO introspección fiel (§5, nota crítica v2.2; Anthropic abril 2025). Jamás se renderiza como medición.",
+    "catalog": "skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md v1.2",
+    "name": "NONE-MATCHED",
+    "catalog_section": null,
+    "tier": null,
+    "quoted_criterion": null,
+    "criterion_matches_catalog": null,
+    "declared_no_rigorous_framework": true,
+    "reason": "The bottleneck is missing evidence, not a reasoning-strategy choice. No catalog framework (majority voting, symbolic formalization, branch exploration, verification-of-drafts) can generate content absent from the bundle; the honest move is to flag the gap rather than force a framework."
+   },
+   "structural_frameworks": [
+    {
+     "mechanism": "Logic-LM (verificación simbólica determinista)",
+     "catalog_section": "§5",
+     "tier": 1,
+     "component": "lib/verify_output.py",
+     "class": "derived-from-code",
+     "note": "no es un LLM: un identificador que no resuelve contra el store verificado es falla de gate"
+    },
+    {
+     "mechanism": "panel adversarial composite-auditor Mode 1 (4 lentes, 2 proveedores), agregación worst-of-N",
+     "catalog_section": null,
+     "tier": null,
+     "component": "lib/composite_auditor.py",
+     "class": "derived-from-code",
+     "note": "NO es Self-Consistency (§4): no hay voto por mayoría — cualquier catch real domina. Se nombra aparte para no disfrazar worst-of-N de framework de Tier 1"
+    },
+    {
+     "mechanism": "dos pasadas con gate de confianza (τ) sobre evidencia DI-only vs aumentada",
+     "catalog_section": null,
+     "tier": null,
+     "component": "query_service/runs.py",
+     "class": "derived-from-code",
+     "note": "ADR-0051: el delta pass1→pass2 es la medición de '¿mi store alcanza?'"
+    }
+   ]
+  },
+  "agents_invoked": [
+   {
+    "agent": "composite-auditor",
+    "status": "invoked",
+    "invocation_id": "panel:4/4",
+    "evidence_generated": [
+     "verdict:APPROVE_DECLINE",
+     "tally:{\"APPROVE\": 0, \"APPROVE_DECLINE\": 4, \"APPROVE_MINOR\": 0, \"REVISE\": 0}"
+    ]
+   },
+   {
+    "agent": "verify_output (gate determinista, clase Logic-LM)",
+    "status": "invoked",
+    "invocation_id": "deterministic_gate",
+    "evidence_generated": [
+     "admissible:True"
+    ]
+   },
+   {
+    "agent": "(preflight §11 sobre el catálogo de agentes)",
+    "status": "not-assessed",
+    "reason": "la corrida no lleva juicio del planner: ningún componente decidió qué agente del catálogo es dueño del work-type de esta respuesta. NO equivale a skipped-ad-hoc (que afirmaría un juicio hecho).",
+    "evidence_generated": []
+   }
+  ],
+  "plan": null,
+  "plan_declared": false,
+  "plan_question_matches_run": null,
+  "citations": [],
+  "deterministic_checks": {
+   "admissible": true,
+   "reasons": [],
+   "identifier_report": {
+    "ok": true,
+    "identifier_admissible": true,
+    "verified_raw": [],
+    "verified_derived": [],
+    "not_found_positive": [],
+    "unresolved": [],
+    "reingest_candidates": [],
+    "flagged_external": [],
+    "misbound": []
+   }
+  },
+  "token_usage": {
+   "input_tokens": 23459,
+   "output_tokens": 5478,
+   "by_model": {
+    "claude-opus-4-8": {
+     "in": 15544,
+     "out": 4204
+    },
+    "claude-sonnet-5": {
+     "in": 3322,
+     "out": 606
+    },
+    "claude-haiku-4-5-20251001": {
+     "in": 2725,
+     "out": 560
+    },
+    "gpt-4o": {
+     "in": 1868,
+     "out": 108
+    }
+   },
+   "plan_judgment": null,
+   "embedding": {
+    "model": "text-embedding-3-small",
+    "total_tokens": 35,
+    "attribution": "process-wide window during this run (concurrent runs may overlap)"
+   },
+   "estimated_cost_usd": 0.2132,
+   "cost_class": "PROJECTION (calculated from measured tokens x per-Mtok prices as of 2026-08; the token counts are measurements, the dollars are not)"
+  },
+  "usage_raw": {
+   "passes": {
+    "pass1": {
+     "input_tokens": 5789,
+     "output_tokens": 1595
+    },
+    "pass2": {
+     "input_tokens": 6526,
+     "output_tokens": 1813
+    }
+   },
+   "panel_total": {
+    "input_tokens": 11144,
+    "output_tokens": 2070
+   }
+  },
+  "bundle_identity": {
+   "sha256": "c3aa733b751f88fd408a0cd89a694d9f4f169c599c2d55c74fd2b18627f4e42f",
+   "run_id": "6ef0995969064cf391d03b5b7512fce4",
+   "question": "Which transcription factors mark the pronephric mesoderm vs. the intermediate mesoderm at 12–24 hpf, and how does their expression order constrain lineage?"
+  },
+  "question_matches_run": true
+ },
+ "path_a_doc_ids": [
+  "CORPUS-2026-0001",
+  "CORPUS-2026-0003#c000",
+  "db:ZFIN",
+  "CORPUS-2026-0007",
+  "niche:RN1",
+  "CORPUS-2026-0002"
+ ]
+}

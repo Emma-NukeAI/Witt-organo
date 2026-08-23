@@ -43,8 +43,11 @@ Todo barrido/curación masiva (p. ej. `rag_index/curation/zfin_sweep.py`) entreg
   multi-familia para audit gates (§7) · poder declarado con n<umbral (ADR-0064).
 - Fuente de etiquetas humanas: los ratings M5 (ADR-0064) + el banco de calibración v1.
 
-## 4 · Pendiente que esto desbloquea
+## 4 · El instrumento (ADR-0072 — construido el mismo día)
 
-El **Tapón 5** (evals periódicas sobre el código de producción) se construye contra este diseño:
-`run_held_out.py` migrado al run model + web-off estructural + banco con verdad-terreno
-post-cutoff cuando exista volumen de ratings (insumo del Tapón 4).
+`evaluation/run_held_out_v2.py` ejecuta cada pregunta held-out por el run model REAL de producción
+y cumple este diseño: `--sources di-only|di+structured` declarado por corrida (di-only a prueba de
+fugas: `path_b_bundle(sources=())`), `--model-cutoff` atestiguado en cada récord, juez advisory
+jamás ground truth, outcome determinista del gate del propio run, gasto medido por pregunta,
+récords instrumentados (decision_state) que compute_ece consume. Lo que falta del **Tapón 5** es
+solo operación: cron + umbrales + volumen de etiquetas humanas (ratings M5, ADR-0064).

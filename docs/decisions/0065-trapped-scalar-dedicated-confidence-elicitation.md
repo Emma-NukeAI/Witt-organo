@@ -5,6 +5,13 @@
   cosas"). **La declaración de "resuelto en producción" queda PENDIENTE de corridas reales nuevas** —
   este ADR registra el fix medido a nivel unidad, no un cierre por fe (disciplina del handoff: "medir
   contra corridas nuevas antes de declarar resuelto").
+- **CONFIRMADO EN VIVO (2026-08-22, mismo día — piloto del harness v2, ADR-0072):** 2/2 corridas
+  reales por el código de producción (modelos vivos, retrieval semántico Neo4j, ambas pasadas +
+  panel) salieron con `confidence.source: "stated-second-elicitation"` limpio en pass1, pass2 y
+  final — cero recuperación regex — con el in-line persistido (`pass1_inline: 0.15` vs elicitado
+  0.05: el sesgo conservador exacto del A/B). Registros: `evaluation/runs/month_p1/Q01.json`/`Q26.json`.
+  Queda como verificación OPERATIVA (no de mecanismo): la primera corrida de witt-ai.com.mx tras el
+  Redeploy de Emmanuel.
 - **Relates:** ADR-0057 (descubrió el fenómeno 2/2 y creó `recover_trapped_params`), ADR-0051 (el gate
   de fallback por confianza τ=0.5 que consume este escalar), ADR-0058 (la doctrina de declinación
   honesta — reapareció aquí como el near-miss semántico), CLAUDE.md §6 (no-hang).

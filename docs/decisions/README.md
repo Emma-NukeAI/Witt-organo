@@ -139,6 +139,7 @@ or external references that informed the decision.
 | [0069](0069-metadata-normalization-dense-sparse.md) | 2026-08-22 | La metadata del path Neo4j se normaliza a LA MISMA forma del sparse (cierra §5.9) | Accepted |
 | [0070](0070-consulta-sistema-deterministic-v1.md) | 2026-08-22 | La consulta abierta del sistema, v1 DETERMINISTA (`GET /consulta-sistema`) | Accepted |
 | [0071](0071-rack-browse-graph-operation.md) | 2026-08-22 | El browse del grafo (`GET /rack/node/{id}`): la operación que no existía en ninguna puerta | Accepted |
+| [0072](0072-held-out-harness-on-run-model.md) | 2026-08-22 | El harness held-out migra al run model: lo que se evalúa ES el pipeline de producción | Accepted |
 
 ---
 

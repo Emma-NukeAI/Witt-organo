@@ -1,0 +1,19 @@
+{
+ "set": "month_p1",
+ "generated_at": "2026-08-23T00:15:22Z",
+ "harness": "run_held_out-2.0 (run-model, ADR-0072)",
+ "backend": "neo4j",
+ "sources_mode": "di+structured",
+ "model_cutoff": "not-declared",
+ "n_questions": 2,
+ "runs_per_q": 1,
+ "outcomes": {
+  "positive": 0,
+  "negative": 0,
+  "unfalsifiable_in_phase_I": 2,
+  "unscored": 0,
+  "failed": 0
+ },
+ "spend_usd_projection": 0.4236,
+ "note": "outcomes: deterministic=ground truth store; judge=ADVISORY jamás ground truth (ADR-0037); ECE via compute_ece.py sobre este dir"
+}

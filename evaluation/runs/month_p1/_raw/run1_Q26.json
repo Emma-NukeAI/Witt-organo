@@ -1,0 +1,410 @@
+{
+ "run_id": "9819771997324e5f8eaeb327a34656ec",
+ "frozen": {
+  "render_contract_version": "1.6",
+  "run_id": "9819771997324e5f8eaeb327a34656ec",
+  "user_id": "eval-harness",
+  "question": "Which segment-specific markers separate proximal tubule, distal early, distal late, and duct in the zebrafish pronephros, and what are their verified IDs?",
+  "measured_at": "2026-08-23T00:13:41+00:00",
+  "store_at_retrieval": {
+   "store_version": "2026-07-21.3",
+   "index_version": null
+  },
+  "retrieval_summary": {
+   "mode": "semantic",
+   "retrievals": 1,
+   "aggregation": "worst-of-n"
+  },
+  "decision_state": {
+   "state": "AUDIT_APPROVED",
+   "may_answer_now": true,
+   "may_propose_now": true,
+   "required_next_action": "ANSWER from approved evidence ['CORPUS-2026-0003#c000', 'CORPUS-2026-0003', 'CORPUS-2026-0002', 'CORPUS-2026-0006', 'db:ZFIN', 'db:DanioCODE'] + PROPOSE to the DI via propose_from_external.py (human gate). Rejected/absent items -> gap_flags."
+  },
+  "fallback": {
+   "trigger": "confidence",
+   "fb_meta": {
+    "pass1_confidence": 0.06,
+    "pass1_confidence_source": "stated-second-elicitation",
+    "tau": 0.5,
+    "structural_sufficient": true,
+    "absence_kind": "no-evidence-retrieved"
+   }
+  },
+  "confidence": {
+   "pass1": 0.06,
+   "pass1_source": "stated-second-elicitation",
+   "pass2": 0.08,
+   "pass2_source": "stated-second-elicitation",
+   "pass1_inline": 0.15,
+   "pass2_inline": 0.05,
+   "revision": null,
+   "revision_source": null,
+   "delta": 0.02,
+   "final": 0.08,
+   "source": "stated-second-elicitation",
+   "by_subclaim": {
+    "markers_present_in_evidence": 0.03,
+    "verified_zfin_ids_retrieved": 0.0,
+    "pathB_returned_papers": 0.0,
+    "canonical_markers_offered_unverified": 0.2,
+    "top_hits_on_topic": 0.05
+   },
+   "state": "value"
+  },
+  "audit": {
+   "approved": [
+    "CORPUS-2026-0003#c000",
+    "CORPUS-2026-0003",
+    "CORPUS-2026-0002",
+    "CORPUS-2026-0006",
+    "db:ZFIN",
+    "db:DanioCODE"
+   ],
+   "rejected": [],
+   "note": "composite-auditor Mode 1: APPROVE_DECLINE (valid 4/4, APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE)",
+   "required": true,
+   "required_because": "FALLBACK_FETCHED",
+   "panel": [
+    {
+     "reviewer": "claude-opus-4-8",
+     "family": "anthropic",
+     "lens": "correctness",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.83,
+     "reasons": [
+      "Under the correctness lens I tried to refute the decline by checking whether the evidence actually supported answering the segment-marker->ID mapping question. It does not: the top corpus hit CORPUS-2026-0003 is about pronephros tubulogenesis via polarity proteins Prkc iota/zeta, and the remaining hits (CORPUS-2026-0002 anterior-segment/cornea atlas, CORPUS-2026-0006 ciliary-mutant penetrance) are off-topic. None report segmentation markers or ZFIN IDs.",
+      "The deterministic identifier_report shows verified_raw=[] and verified_derived=[] with no resolved IDs, consistent with the claim's refusal to assert any gene IDs. This is the correct move — asserting IDs here would be fabrication.",
+      "Path-B external search was triggered by the confidence gate and returned zero papers (europepmc=0, pubmed=0), so no literature was fetched to fill the gap. Declining is therefore epistemically warranted, not lazy.",
+      "The claim carefully quarantines the canonical Wingert & Davidson marker set (slc20a1a, slc13a1, slc12a1, slc12a3, gata3) as the search target / prior-knowledge context, explicitly NOT asserting their IDs from this evidence. That framing is factually accurate and does not overclaim.",
+      "Minor note (not disqualifying): the sufficiency block reports sufficient=true which contradicts the correct decline, but the claim rightly does not rely on that flag — the actual hit contents and empty identifier report govern, and they support declining.",
+      "Absence is correctly declared with the gap identified and a targeted ZFIN re-ingest lookup recommended — a first-class negative finding per ADR-0058, routing to re-ingest rather than a defect."
+     ],
+     "usage": {
+      "input_tokens": 3083,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 749,
+      "output_tokens_details": {
+       "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+     }
+    },
+    {
+     "reviewer": "claude-sonnet-5",
+     "family": "anthropic",
+     "lens": "overclaim",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "None material. The claim correctly declines: none of the path_a hits contain segment-specific marker→ID mappings (CORPUS-2026-0003 is about polarity proteins/tubulogenesis, -0002 is an anterior-segment/cornea atlas, -0006 is ciliary-mutant penetrance; ZFIN/DanioCODE are generic database descriptors with no resolved IDs), path_b returned zero papers (europepmc=0, pubmed=0), and deterministic identifier_report shows no verified_raw/verified_derived IDs. Stated confidence (0.08) is appropriately low and matches the pass1_confidence=0.06 gate that triggered Path B.",
+     "correction_applied": "",
+     "confidence": 0.88,
+     "reasons": [
+      "Direct answer explicitly declines and states absence_kind-equivalent reasoning (no marker/ID mapping in evidence), consistent with ADR-0058 decline doctrine.",
+      "Claim does not assert any gene IDs; it explicitly flags the canonical field knowledge (slc20a1a, slc12a1, slc12a3, gata3, slc13a1) as 'NOT present in this evidence' and not asserted, avoiding overclaim/hallucinated IDs.",
+      "Deterministic identifier_report confirms zero verified_raw/verified_derived/not_found_positive entries, supporting that no ID-level claims were fabricated.",
+      "Path B triggered per confidence gate and returned 0 hits from europepmc/pubmed, and zfin_searched is empty, so no external evidence was available to fill the gap -- decline is the correct move, not lazy.",
+      "Stated confidence of 0.08 is low and proportionate to the near-total absence of on-topic evidence; no overclaiming of certainty found.",
+      "Minor stylistic note: the answer's discursive mention of canonical markers (slc20a1a etc.) as a 'recommendation' is appropriately hedged and clearly labeled as not evidence-backed, so it does not constitute overclaim."
+     ],
+     "usage": {
+      "input_tokens": 3176,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 783,
+      "output_tokens_details": {
+       "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+     }
+    },
+    {
+     "reviewer": "claude-haiku-4-5-20251001",
+     "family": "anthropic",
+     "lens": "evidence-grounding",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.94,
+     "reasons": [
+      "Claim correctly identifies absence of segment-specific pronephros markers in retrieved evidence: Path-A hits (n=6) include only generic database descriptors (ZFIN, DanioCODE) and off-target papers (corneal atlas CORPUS-2026-0002, ciliary mutant CORPUS-2026-0006, pronephros polarity proteins CORPUS-2026-0003 — none reporting segmentation markers).",
+      "Path-B external search properly triggered (confidence 0.06 < gate 0.5) and returned zero results from PubMed (n=0) and EuropePMC (n=0); ZFIN search executed but returned no papers (zfin_searched=[]).",
+      "Claim CORRECTLY DECLINES to assert markers (slc20a1a, slc13a1, slc12a1, slc12a3, gata3) without evidence grounding — explicitly states 'I am NOT asserting their IDs here because none appear in the evidence,' preventing invention of identifiers.",
+      "Claim transparently acknowledges the canonical literature context (Wingert & Davidson reference) while correctly marking it as OUTSIDE the evidence bundle ('NOT present in this evidence, offered only as the search target').",
+      "Deterministic identifier check confirms no unresolved IDs (verified_raw=[], verified_derived=[], unresolved=[]), supporting the absence finding.",
+      "Recommendation for targeted ZFIN re-ingest is appropriately scoped to named candidate identifiers and routes to proper secondary lookup.",
+      "No grounding violations detected: every statement either cites provided evidence (corpus hits, Path-B results) or explicitly disclaims external origin."
+     ],
+     "usage": {
+      "input_tokens": 2618,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+       "ephemeral_5m_input_tokens": 0,
+       "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 496,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+     }
+    },
+    {
+     "reviewer": "gpt-4o",
+     "family": "openai",
+     "lens": "reproducibility",
+     "verdict": "APPROVE_DECLINE",
+     "caught": "",
+     "correction_applied": "",
+     "confidence": 0.95,
+     "reasons": [
+      "Claim correctly identifies absence of required markers and ZFIN gene IDs in retrieved evidence.",
+      "External search results confirm the claim's statement of no additional literature support.",
+      "Evidence retrieved is insufficient to answer the query without speculating or inventing identifiers.",
+      "Correct epistemic move to decline due to lack of evidence, per ADR-0058 guidelines."
+     ],
+     "usage": {
+      "completion_tokens": 89,
+      "prompt_tokens": 1776,
+      "total_tokens": 1865,
+      "completion_tokens_details": {
+       "accepted_prediction_tokens": 0,
+       "audio_tokens": 0,
+       "reasoning_tokens": 0,
+       "rejected_prediction_tokens": 0
+      },
+      "prompt_tokens_details": {
+       "audio_tokens": 0,
+       "cache_write_tokens": null,
+       "cached_tokens": 0
+      }
+     }
+    }
+   ],
+   "tally": {
+    "APPROVE": 0,
+    "APPROVE_DECLINE": 4,
+    "APPROVE_MINOR": 0,
+    "REVISE": 0
+   },
+   "verdict": "APPROVE_DECLINE",
+   "source_vocabulary": "APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE",
+   "n_valid": 4,
+   "usage": {
+    "input_tokens": 8877,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 2028,
+    "completion_tokens": 89,
+    "prompt_tokens": 1776,
+    "total_tokens": 1865
+   }
+  },
+  "audit_initial": null,
+  "answer_initial": null,
+  "revision": {
+   "enabled": true,
+   "performed": false,
+   "cap": 1
+  },
+  "answer": {
+   "direct_answer": "The retrieved evidence does NOT contain the segment-specific marker→ID mapping needed to answer this question. None of the hits report markers or verified ZFIN gene IDs for zebrafish pronephros segments. The top corpus hit (CORPUS-2026-0003) concerns pronephros tubulogenesis via polarity proteins Prkc iota/zeta — not segmentation markers. Other hits are off-topic (anterior-segment/cornea atlas CORPUS-2026-0002; ciliary-mutant penetrance CORPUS-2026-0006). ZFIN and DanioCODE appear only as generic database descriptors with no resolved IDs. The Path-B external search returned zero papers (europepmc=0, pubmed=0), so no literature was fetched to fill the gap.\n\nI therefore cannot assert any marker or gene ID from this bundle without inventing identifiers, which is prohibited. What the field canonically reports (Wingert & Davidson; NOT present in this evidence, offered only as the search target, not as an answer): proximal segments PCT/PST distinguished by slc20a1a and trim2b/slc13a1; distal early by slc12a1; distal late by slc12a3; pronephric duct by gata3. These require verification against ZFIN before use — I am NOT asserting their IDs here because none appear in the evidence.\n\nRecommend a targeted ZFIN lookup for: slc20a1a, slc13a1, slc12a1, slc12a3, gata3.",
+   "stated_confidence": 0.08,
+   "absence_kind": "no-evidence-retrieved",
+   "gap_flags": [
+    "No segment-specific markers present in any retrieved chunk.",
+    "No verified ZFIN gene IDs retrieved for any pronephros segment marker.",
+    "Path-B external search returned zero papers (europepmc=0, pubmed=0); ZFIN lookup list empty.",
+    "Sufficiency flag claims 'sufficient:true' but this contradicts the actual content — the bundle is insufficient for a marker→ID answer.",
+    "Top hits are off-topic (cornea/anterior-segment, ciliary mutants) relative to nephron segmentation."
+   ],
+   "model": "claude-opus-4-8"
+  },
+  "alternatives_considered": [
+   "Treating CORPUS-2026-0003 as a source for segment markers — rejected: it is about Prkci/Prkcz polarity in tubulogenesis, not nephron segmentation markers.",
+   "Using the generic ZFIN/DanioCODE database hits to supply gene IDs — rejected: they are descriptor entries with no resolved marker→ID mappings; asserting IDs from them would be fabrication.",
+   "Answering from canonical field knowledge (Wingert et al. slc20a1a/slc12a1/slc12a3/gata3) as if evidenced — rejected: not in the provided bundle; stated only as an unverified search target, not asserted with IDs.",
+   "Declaring 'evidence-of-no-effect' — rejected: the store simply returned nothing on-topic; that is no-evidence-retrieved, an opposite epistemic state."
+  ],
+  "reasoning": {
+   "framework_applied": {
+    "class": "self-report",
+    "class_note": "etiqueta de prompt-time, NO introspección fiel (§5, nota crítica v2.2; Anthropic abril 2025). Jamás se renderiza como medición.",
+    "catalog": "skills/custom/organogenesis-agent-architect/references/reasoning-frameworks-catalog.md v1.2",
+    "name": "First-Principles Reasoning",
+    "catalog_section": "§7",
+    "tier": 3,
+    "quoted_criterion": "\"assumption-stripping heuristic; no 2025+ LLM-specific studies\"",
+    "criterion_matches_catalog": true,
+    "criterion_overlap": 0.75,
+    "reason": "Stripped the question to what the bundle can actually support; the core finding is that the required marker/ID assumptions are unmet by the retrieved evidence."
+   },
+   "structural_frameworks": [
+    {
+     "mechanism": "Logic-LM (verificación simbólica determinista)",
+     "catalog_section": "§5",
+     "tier": 1,
+     "component": "lib/verify_output.py",
+     "class": "derived-from-code",
+     "note": "no es un LLM: un identificador que no resuelve contra el store verificado es falla de gate"
+    },
+    {
+     "mechanism": "panel adversarial composite-auditor Mode 1 (4 lentes, 2 proveedores), agregación worst-of-N",
+     "catalog_section": null,
+     "tier": null,
+     "component": "lib/composite_auditor.py",
+     "class": "derived-from-code",
+     "note": "NO es Self-Consistency (§4): no hay voto por mayoría — cualquier catch real domina. Se nombra aparte para no disfrazar worst-of-N de framework de Tier 1"
+    },
+    {
+     "mechanism": "dos pasadas con gate de confianza (τ) sobre evidencia DI-only vs aumentada",
+     "catalog_section": null,
+     "tier": null,
+     "component": "query_service/runs.py",
+     "class": "derived-from-code",
+     "note": "ADR-0051: el delta pass1→pass2 es la medición de '¿mi store alcanza?'"
+    }
+   ]
+  },
+  "agents_invoked": [
+   {
+    "agent": "composite-auditor",
+    "status": "invoked",
+    "invocation_id": "panel:4/4",
+    "evidence_generated": [
+     "verdict:APPROVE_DECLINE",
+     "tally:{\"APPROVE\": 0, \"APPROVE_DECLINE\": 4, \"APPROVE_MINOR\": 0, \"REVISE\": 0}"
+    ]
+   },
+   {
+    "agent": "verify_output (gate determinista, clase Logic-LM)",
+    "status": "invoked",
+    "invocation_id": "deterministic_gate",
+    "evidence_generated": [
+     "admissible:True"
+    ]
+   },
+   {
+    "agent": "(preflight §11 sobre el catálogo de agentes)",
+    "status": "not-assessed",
+    "reason": "la corrida no lleva juicio del planner: ningún componente decidió qué agente del catálogo es dueño del work-type de esta respuesta. NO equivale a skipped-ad-hoc (que afirmaría un juicio hecho).",
+    "evidence_generated": []
+   }
+  ],
+  "plan": null,
+  "plan_declared": false,
+  "plan_question_matches_run": null,
+  "citations": [
+   {
+    "n": 1,
+    "kind": "di-chunk",
+    "id": "CORPUS-2026-0003#c000",
+    "note": "Pronephros tubulogenesis / polarity proteins — no segmentation markers."
+   },
+   {
+    "n": 2,
+    "kind": "di-record",
+    "id": "CORPUS-2026-0003",
+    "note": "Prkc iota/zeta polarity in epithelial identity; not segment marker IDs."
+   },
+   {
+    "n": 3,
+    "kind": "di-database",
+    "id": "db:ZFIN",
+    "note": "Generic descriptor only; no resolved marker→ID mappings returned."
+   },
+   {
+    "n": 4,
+    "kind": "di-database",
+    "id": "db:DanioCODE",
+    "note": "Generic regulatory-genome descriptor; off-topic for marker IDs."
+   }
+  ],
+  "deterministic_checks": {
+   "admissible": true,
+   "reasons": [],
+   "identifier_report": {
+    "ok": true,
+    "identifier_admissible": true,
+    "verified_raw": [],
+    "verified_derived": [],
+    "not_found_positive": [],
+    "unresolved": [],
+    "reingest_candidates": [],
+    "flagged_external": [],
+    "misbound": []
+   }
+  },
+  "token_usage": {
+   "input_tokens": 22675,
+   "output_tokens": 5496,
+   "by_model": {
+    "claude-opus-4-8": {
+     "in": 15105,
+     "out": 4128
+    },
+    "claude-sonnet-5": {
+     "in": 3176,
+     "out": 783
+    },
+    "claude-haiku-4-5-20251001": {
+     "in": 2618,
+     "out": 496
+    },
+    "gpt-4o": {
+     "in": 1776,
+     "out": 89
+    }
+   },
+   "plan_judgment": null,
+   "embedding": {
+    "model": "text-embedding-3-small",
+    "total_tokens": 37,
+    "attribution": "process-wide window during this run (concurrent runs may overlap)"
+   },
+   "estimated_cost_usd": 0.2104,
+   "cost_class": "PROJECTION (calculated from measured tokens x per-Mtok prices as of 2026-08; the token counts are measurements, the dollars are not)"
+  },
+  "usage_raw": {
+   "passes": {
+    "pass1": {
+     "input_tokens": 5719,
+     "output_tokens": 1597
+    },
+    "pass2": {
+     "input_tokens": 6303,
+     "output_tokens": 1782
+    }
+   },
+   "panel_total": {
+    "input_tokens": 10653,
+    "output_tokens": 2117
+   }
+  },
+  "bundle_identity": {
+   "sha256": "c4d93e67a55438cefb4c06affea302f1520724ab6292f946e0f7622989ef2aa8",
+   "run_id": "9819771997324e5f8eaeb327a34656ec",
+   "question": "Which segment-specific markers separate proximal tubule, distal early, distal late, and duct in the zebrafish pronephros, and what are their verified IDs?"
+  },
+  "question_matches_run": true
+ },
+ "path_a_doc_ids": [
+  "CORPUS-2026-0003#c000",
+  "CORPUS-2026-0003",
+  "CORPUS-2026-0002",
+  "CORPUS-2026-0006",
+  "db:ZFIN",
+  "db:DanioCODE"
+ ]
+}

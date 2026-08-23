@@ -156,14 +156,15 @@ como proyección). `render_contract_version: 1.1`.
 (Actualizado 2026-08-22 — la lista previa estaba una época atrás: el plan de M3 es ADR-0061, el
 precedente + series disjuntas ADR-0053, y el bloque 5 del ingest ADR-0052/0054.)
 
-- **Escalar atrapado: fix estructural ENTREGADO (ADR-0065), confirmación en producción PENDIENTE** —
-  la próxima corrida real debe salir con `confidence.source: "stated-second-elicitation"`; hasta
-  entonces el item no se declara resuelto (regla del handoff: medir contra corridas nuevas).
-- **Tapón 5 — evals periódicas** (`evaluation/run_held_out.py` como gate del código de producción,
-  contra `evaluation/EVAL_DESIGN.md`); su fuente de etiquetas humanas ya existe (ratings M5,
-  ADR-0064) — falta el volumen.
-- PDF server-side (M4) · correo M9 (Resend) · migrar `run_held_out` al run model · 2ª etapa de
-  curación (agentes-lectores EPMC, plantilla ADR-0068).
+- **Escalar atrapado: RESUELTO Y CONFIRMADO EN VIVO** (ADR-0065 + piloto v2 de ADR-0072, 2026-08-22:
+  2/2 corridas reales por el código de producción salieron `stated-second-elicitation` limpio, cero
+  recuperación regex). Verificación operativa restante: la primera corrida de witt-ai.com.mx tras
+  el Redeploy.
+- **Tapón 5 — evals periódicas**: el instrumento YA existe (`evaluation/run_held_out_v2.py` sobre el
+  run model, ADR-0072, contra `evaluation/EVAL_DESIGN.md`); falta el cron + umbrales + volumen de
+  etiquetas humanas (ratings M5, ADR-0064).
+- PDF server-side (M4) · correo M9 (Resend) · 2ª etapa de curación (agentes-lectores EPMC,
+  plantilla ADR-0068).
 
 (Resueltos 2026-08-22: la consulta abierta = ADR-0070 (`GET /consulta-sistema`, determinista v1) ·
 la normalización de metadata §5.9 = ADR-0069 · el browse del grafo = ADR-0071
