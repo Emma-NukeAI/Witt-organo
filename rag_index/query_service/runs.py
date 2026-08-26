@@ -615,6 +615,20 @@ def synth_system(pass_label):
             + "\n\nAlso report alternatives_considered (§5): the readings you rejected and why.")
 
 
+def _lista_serializada(raw):
+    """ADR-0074: un campo-lista que llegó como STRING — atrapado como texto y levantado crudo
+    (ADR-0057), o emitido como string por el modelo (la API no valida tipos del schema). String
+    JSON de lista -> la lista (ítems no-string se re-serializan legibles); cualquier otra cosa ->
+    None, y el llamador conserva el crudo DECLARADO — jamás lo corrige, jamás lo rellena."""
+    try:
+        v = json.loads(raw)
+    except ValueError:
+        return None
+    if not isinstance(v, list):
+        return None
+    return [x if isinstance(x, str) else json.dumps(x, ensure_ascii=False) for x in v]
+
+
 def _default_synthesizer(question, evidence, pass_label):
     """One synthesis pass over an evidence view (pass1 = DI-only, pass2 = DI + Path B). Returns
     {direct_answer, stated_confidence, confidence_by_subclaim, absence_kind, gap_flags,
@@ -623,7 +637,19 @@ def _default_synthesizer(question, evidence, pass_label):
     user_text = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
-    gap_flags = list(out.get("gap_flags", []))
+    # ADR-0074 (corrida real 9b3140ab): los campos-lista pueden llegar SERIALIZADOS como string.
+    # Un string aquí JAMÁS se explota en caracteres (list(str) congeló gap_flags como chars) ni se
+    # rellena con []: se parsea con procedencia declarada, o se conserva crudo como UN elemento.
+    gap_crudo = out.get("gap_flags", [])
+    if isinstance(gap_crudo, str):
+        gap_parseado = _lista_serializada(gap_crudo)
+        gap_flags = gap_parseado if gap_parseado is not None else [gap_crudo]
+        gap_flags.append(
+            f"gap_flags llegó SERIALIZADO como string en {pass_label} y se "
+            + ("parseó" if gap_parseado is not None else "conserva crudo (no era JSON de lista)")
+            + " — procedencia declarada (ADR-0074)")
+    else:
+        gap_flags = list(gap_crudo or [])
     recovered = out.get("_recovered_fields", [])
     inline_conf = out.get("confidence")
     if "confidence" in recovered:
@@ -667,7 +693,19 @@ def _default_synthesizer(question, evidence, pass_label):
     if not out.get("framework_applied"):
         gap_flags.append(f"framework_applied AUSENTE en {pass_label} (§4 lo exige) — no se inventa: "
                          "el registro lo declara ausente")
-    if not out.get("alternatives_considered"):
+    # ADR-0074: la lista del §5 serializada como string se normaliza ANTES de congelar
+    alts = out.get("alternatives_considered")
+    if isinstance(alts, str):
+        alts_parseadas = _lista_serializada(alts)
+        if alts_parseadas is not None:
+            alts = alts_parseadas
+            gap_flags.append(f"alternatives_considered llegó SERIALIZADA como string en {pass_label} "
+                             "y se parseó — procedencia declarada, no una emisión limpia (ADR-0074)")
+        else:
+            alts = [alts]
+            gap_flags.append(f"alternatives_considered llegó como string NO parseable en {pass_label} "
+                             "— se conserva cruda como un elemento, declarada (ADR-0074)")
+    if not alts:
         gap_flags.append(f"alternatives_considered AUSENTE en {pass_label} (§5 lo exige) — declarado, "
                          "no rellenado con una lista vacía que se leería como 'no había alternativas'")
     return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
@@ -678,7 +716,7 @@ def _default_synthesizer(question, evidence, pass_label):
             "search_query_en": out.get("search_query_en"),
             "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
             # contrato §5 (ADR-0060): self-report del modelo; runs.py resuelve sección/tier por tabla
-            "alternatives_considered": out.get("alternatives_considered"),
+            "alternatives_considered": alts,
             "framework_applied": out.get("framework_applied"),
             "framework_criterion": out.get("framework_criterion"),
             "framework_reason": out.get("framework_reason"),

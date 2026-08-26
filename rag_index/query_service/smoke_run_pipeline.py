@@ -337,6 +337,32 @@ composite_auditor._anthropic_tool_call = _mk_fake_api(dict(_BASE_SYNTH), elicit_
 ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
 check("ADR-0065e: sin escalar por NINGÚN camino -> ausencia DECLARADA (jamás null silencioso)",
       ans["stated_confidence"] is None and any("ABSENT" in f for f in ans["gap_flags"]))
+
+# ---- ADR-0074: campos-lista serializados como string — se parsean con procedencia o se conservan
+# crudos DECLARADOS (la corrida real 9b3140ab congeló alternatives como string JSON y gap_flags
+# explotado en caracteres; la hoja de la webapp no dibujaba) ------------------------------------------
+trap_lista = composite_auditor.recover_trapped_params(
+    {"direct_answer": 'texto.</parameter>\n<parameter name="alternatives_considered">["a", "b"]',
+     "confidence": 0.5, "alternatives_considered": None})
+check("ADR-0074a: recover_trapped_params parsea el contenedor JSON atrapado (lista, no string)",
+      trap_lista["alternatives_considered"] == ["a", "b"]
+      and "alternatives_considered" in trap_lista["_recovered_fields"])
+composite_auditor._anthropic_tool_call = _mk_fake_api(
+    {**_BASE_SYNTH, "alternatives_considered": '["alt uno", "alt dos"]', "gap_flags": '["g1"]'},
+    elicit_out={"confidence": 0.4})
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0074b: alternatives/gap_flags serializados se parsean, con procedencia; JAMÁS chars sueltos",
+      ans["alternatives_considered"] == ["alt uno", "alt dos"]
+      and "g1" in ans["gap_flags"]
+      and not any(len(f) == 1 for f in ans["gap_flags"])
+      and sum("SERIALIZAD" in f for f in ans["gap_flags"]) == 2)
+composite_auditor._anthropic_tool_call = _mk_fake_api(
+    {**_BASE_SYNTH, "alternatives_considered": "prosa suelta, no JSON"},
+    elicit_out={"confidence": 0.4})
+ans = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+check("ADR-0074c: string NO parseable -> se conserva crudo como UN elemento, declarado (jamás [])",
+      ans["alternatives_considered"] == ["prosa suelta, no JSON"]
+      and any("NO parseable" in f for f in ans["gap_flags"]))
 composite_auditor._anthropic_tool_call = _orig_tool_call
 rv = app.create_run(app.RunBody(question="recovered conf run", entities=[]), authorization=AUTH)
 claimed = db.claim_next_queued()

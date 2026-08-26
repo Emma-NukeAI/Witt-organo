@@ -112,7 +112,10 @@ def recover_trapped_params(tool_input):
     (`</parameter>` or `<parameter name=`) so the prose a doctor reads never ends in garbage;
     (2) lift trapped values into their fields ONLY where the field is absent/None (never overwrite a
     properly emitted value); (3) list what was lifted in `_recovered_fields` — a recovered value is
-    NEVER silent: callers must surface provenance (the UI renders recovered ≠ clean measurement)."""
+    NEVER silent: callers must surface provenance (the UI renders recovered ≠ clean measurement);
+    (4) a trapped value that is itself a serialized JSON container (a LIST field like
+    alternatives_considered trapped as text — ADR-0074, real run 9b3140ab froze it double-serialized
+    and the sheet crashed) is parsed back; a failed parse keeps the raw string — never invented."""
     trapped, cuts = {}, {}
     for key, val in tool_input.items():
         if not isinstance(val, str):
@@ -126,7 +129,17 @@ def recover_trapped_params(tool_input):
             raw = raw.strip()
             if not raw or name in trapped:
                 continue
-            trapped[name] = float(raw) if re.fullmatch(r"-?\d+(\.\d+)?", raw) else raw
+            if re.fullmatch(r"-?\d+(\.\d+)?", raw):
+                trapped[name] = float(raw)
+            elif raw[:1] in "[{":
+                # ADR-0074: contenedor JSON atrapado como texto -> se parsea de vuelta (un array
+                # con "<" adentro llega truncado por _TRAP_RE, el parse falla y el crudo queda)
+                try:
+                    trapped[name] = json.loads(raw)
+                except ValueError:
+                    trapped[name] = raw
+            else:
+                trapped[name] = raw
     tool_input.update(cuts)
     recovered = [n for n, v in trapped.items() if tool_input.get(n) is None]
     for n in recovered:
