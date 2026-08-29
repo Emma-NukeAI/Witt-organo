@@ -134,7 +134,16 @@ run_ratings = Table(
     Column("rating_input_state", String(16), nullable=False),
     Column("rating_output", Integer),                         # 1-5 | null (cannot-rate / not-applicable)
     Column("rating_output_state", String(16), nullable=False),
+    # DOS notas, no una (M5 v2, ADR-0075). El banco de calibración v1 midió que el texto libre fue lo
+    # ÚNICO que produjo diagnóstico accionable (68 celdas de comentario dieron TODOS los hallazgos; los
+    # cinco ejes categóricos casi nada) y que la ATRIBUCIÓN sólo fue posible porque había DOS columnas
+    # separadas (P_comentario sobre la pregunta / R_que_falta sobre la respuesta). Con un solo campo no
+    # se sabe de qué habla el comentario. `note` queda re-clavada a la RESPUESTA; `note_question` es la
+    # de la PREGUNTA, y va SIEMPRE VISIBLE y opcional: medido sobre las hojas reales, un disparador
+    # condicional habría OCULTADO 7 de los 9 comentarios de pregunta que Martín sí escribió (9/11 = 82%
+    # de sus filas), que fue su aporte principal.
     Column("note", Text, nullable=False, default=""),
+    Column("note_question", Text, nullable=False, default=""),
 )
 
 _engine = None
@@ -162,7 +171,13 @@ def _migrate():
                  "ALTER TABLE runs ADD COLUMN cancel_reason TEXT",
                  "ALTER TABLE runs ADD COLUMN usage_json TEXT",
                  "ALTER TABLE runs ADD COLUMN epistemic_summary_json TEXT",
-                 "ALTER TABLE runs ADD COLUMN plan_json TEXT"):
+                 "ALTER TABLE runs ADD COLUMN plan_json TEXT",
+                 # M5 v2 (ADR-0075): la nota de la PREGUNTA, separada de la de la respuesta. DEFAULT ''
+                 # para que el ADD COLUMN sea legal sobre la tabla que YA tiene filas en el Postgres de
+                 # producción (la calificación real de 4d046355) sin reescribirla — y para que esa fila
+                 # quede con '' = "el instrumento no lo pidió", jamás confundible con "no tenía nada que
+                 # decir": las filas pre-v2 se distinguen porque su `note` es la única que existió.
+                 "ALTER TABLE run_ratings ADD COLUMN note_question TEXT DEFAULT ''"):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
@@ -506,7 +521,7 @@ def events_after(run_id: str, after_seq: int = 0, limit: int = 500):
 # --- ratings helpers (M5, ADR-0064) -------------------------------------------------------------------
 
 def add_rating(run: dict, user: dict, rating_input, rating_input_state,
-               rating_output, rating_output_state, note: str = "") -> dict:
+               rating_output, rating_output_state, note: str = "", note_question: str = "") -> dict:
     """Append ONE rating row (validated by the caller). Provenance is DERIVED here, never client-stated:
     is_author from the run's author, rater_profile from the session user's role at rating time,
     instrument from authorship (m5-cierre = the author's closure rating, m5-consenso = everyone else),
@@ -522,7 +537,8 @@ def add_rating(run: dict, user: dict, rating_input, rating_input_state,
         "instrument": "m5-cierre" if is_author else "m5-consenso",
         "rating_input": rating_input, "rating_input_state": rating_input_state,
         "rating_output": rating_output, "rating_output_state": rating_output_state,
-        "note": note or "",
+        "note": note or "",                     # sobre la RESPUESTA
+        "note_question": note_question or "",   # sobre la PREGUNTA (M5 v2, ADR-0075)
     }
     last_err = None
     for _attempt in (1, 2):

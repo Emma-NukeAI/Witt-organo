@@ -243,6 +243,61 @@ except AssertionError:
 rag_backend.query, rag_backend.query_sparse = _oq, _os
 check("/calibration jamás toca el retriever ni embebe (NO-SPEND)", nospend)
 
+# ---- 9. M5 v2 (ADR-0075): la nota de la PREGUNTA + los cortes declarados ------------------------------
+# El banco de calibración v1 midió que el texto libre fue lo ÚNICO que produjo diagnóstico accionable, y
+# que atribuirlo sólo fue posible con DOS columnas separadas. Aquí se fija que existen las dos y que la
+# nueva NO perfora el enmascaramiento.
+r_v2 = mk_run("marcelo", state="closed", conf=0.8)
+res_v2 = app.add_rating(r_v2, app.RatingBody(rating_input=3, rating_output=4,
+                                             note="a la respuesta le faltó el glomérulo",
+                                             note_question="la pregunta no cabía en una sola corrida"),
+                        authorization=AUTH_NAT)
+check("M5 v2: las DOS notas se persisten por separado (respuesta / pregunta)",
+      res_v2["rating"]["note"] == "a la respuesta le faltó el glomérulo"
+      and res_v2["rating"]["note_question"] == "la pregunta no cabía en una sola corrida")
+check("M5 v2: la nota de la pregunta es OPCIONAL — sin ella la fila queda '' y se envía igual",
+      app.add_rating(mk_run("marcelo", state="closed"),
+                     app.RatingBody(rating_input=4, rating_output=4),
+                     authorization=AUTH_NAT)["rating"]["note_question"] == "")
+check("M5 v2: note_question de más de 4000 -> 400 (mismo tope que note)",
+      _http_error(app.add_rating, mk_run("marcelo", state="closed"),
+                  app.RatingBody(rating_input=4, rating_output=4, note_question="x" * 4001),
+                  authorization=AUTH_NAT) == 400)
+check("M5 v2: la fila enmascarada NO filtra note_question (allowlist, no denylist)",
+      all("note_question" not in r for r in app.get_ratings(r_v2, authorization=AUTH_EMM)["ratings"]))
+
+cal_v2 = app.calibration_report(authorization=AUTH_EMM)
+check("M5 v2: /calibration declara el rol de cada eje — rating_input JAMÁS entró al ECE",
+      "rating_input" in cal_v2["outcome_mapping"]["axis_roles"]
+      and "NUNCA" in cal_v2["outcome_mapping"]["axis_roles"])
+check("M5 v2: by_authorship trae m5-consenso y m5-cierre como bloques ECE PARALELOS",
+      set(cal_v2["by_authorship"]) >= {"m5-consenso", "m5-cierre", "note"}
+      and "n" in cal_v2["by_authorship"]["m5-consenso"])
+check("M5 v2: raters cuenta de cuántas cabezas depende el número (autoexamen y calificador único)",
+      isinstance(cal_v2["raters"]["n_runs_author_only"], int)
+      and isinstance(cal_v2["raters"]["n_runs_single_rater"], int)
+      and isinstance(cal_v2["raters"]["por_n_calificadores"], dict))
+check("M5 v2: ece_excluding_declines existe y cuenta las declinaciones honestas apartadas",
+      "n_excluded_declines" in cal_v2["ece_excluding_declines"]
+      and "class" in cal_v2["ece_excluding_declines"])
+check("M5 v2: el TITULAR no cambia — los cortes son paralelos, jamás reescriben `ece`",
+      cal_v2["ece"]["n"] == cal_v2["n_scored"])
+
+# una declinación honesta se APARTA del bloque paralelo, no del titular
+r_dec = mk_run("marcelo", state="closed", conf=0.15)
+with db.engine().begin() as _cx:
+    import json as _j
+    _rec = _j.loads(db.get_run(r_dec)["frozen_record_json"])
+    _rec["audit"] = {"verdict": "APPROVE_DECLINE"}
+    _cx.execute(db.runs.update().where(db.runs.c.run_id == r_dec)
+                .values(frozen_record_json=_j.dumps(_rec)))
+app.add_rating(r_dec, app.RatingBody(rating_input=4, rating_output=5), authorization=AUTH_NAT)
+cal_d = app.calibration_report(authorization=AUTH_EMM)
+check("M5 v2: la declinación honesta bien calificada SÍ entra al titular pero se aparta del bloque limpio",
+      cal_d["ece_excluding_declines"]["n_excluded_declines"] >= 1
+      and cal_d["ece_excluding_declines"]["n"] == cal_d["n_scored"]
+                                                  - cal_d["ece_excluding_declines"]["n_excluded_declines"])
+
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))
 sys.exit(0 if npass == len(CHECKS) else 1)

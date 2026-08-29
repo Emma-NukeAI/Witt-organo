@@ -634,7 +634,11 @@ class RatingBody(BaseModel):
     rating_output: int | None = None
     rating_input_state: str | None = None    # "value" | "cannot-rate"
     rating_output_state: str | None = None   # "value" | "cannot-rate" | "not-applicable"
+    # DOS notas (M5 v2, ADR-0075). `note` habla de la RESPUESTA; `note_question` de la PREGUNTA. Las dos
+    # opcionales y las dos SIEMPRE ofrecidas por la UI: el banco midió que el texto libre fue lo único
+    # que produjo diagnóstico, y que separarlo en dos columnas es lo que hizo posible atribuirlo.
     note: str = ""
+    note_question: str = ""
 
 
 def _rating_axis(value, state, allowed, axis):
@@ -697,7 +701,10 @@ def add_rating(run_id: str, body: RatingBody, authorization: str = Header(None))
     note = (body.note or "").strip()
     if len(note) > 4000:
         raise HTTPException(status_code=400, detail="note: máximo 4000 caracteres")
-    stored = db.add_rating(run, user, rin, rin_state, rout, rout_state, note)
+    note_q = (body.note_question or "").strip()
+    if len(note_q) > 4000:
+        raise HTTPException(status_code=400, detail="note_question: máximo 4000 caracteres")
+    stored = db.add_rating(run, user, rin, rin_state, rout, rout_state, note, note_q)
     db.add_event(run_id, "rating.added",
                  payload={"rated_by": stored["rated_by"], "instrument": stored["instrument"],
                           "seq": stored["seq"], "rating_input_state": rin_state,

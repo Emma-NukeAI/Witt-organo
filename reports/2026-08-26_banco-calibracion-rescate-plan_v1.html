@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rescate del banco de calibración v1 — plan · Witt × Organogenesis</title>
+<style>
+:root{
+  --c-bg:#fafaf7; --c-surface:#ffffff; --c-border:#e5e3dd; --c-text:#1a1a1a; --c-muted:#5a5a5a;
+  --c-faint:#8a8a86; --c-witt:#1d4e6e; --c-organo:#3a6a3f; --c-warn:#8a5a00; --c-critical:#8a2a2a;
+  --c-chip:#f0efe9; --c-good:#3a6a3f; --c-shadow:0 1px 2px rgba(30,30,20,.05),0 4px 14px rgba(30,30,20,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--c-bg);color:var(--c-text);
+  font:15.5px/1.62 'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;-webkit-font-smoothing:antialiased}
+nav.top{position:sticky;top:0;z-index:20;background:rgba(250,250,247,.96);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--c-border);padding:9px 20px;font-family:'Segoe UI',system-ui,sans-serif;font-size:12.5px}
+nav.top a{color:var(--c-muted);text-decoration:none;margin-right:15px;white-space:nowrap}
+nav.top a:hover{color:var(--c-witt);text-decoration:underline}
+nav .scroller{max-width:1100px;margin:0 auto;overflow-x:auto;white-space:nowrap}
+main{max-width:1100px;margin:0 auto;padding:34px 24px 90px}
+h1{font-size:29px;line-height:1.2;margin:6px 0 8px;letter-spacing:-.01em}
+h2{font-size:20px;margin:46px 0 12px;padding-top:16px;border-top:1px solid var(--c-border);letter-spacing:-.005em}
+h3{font-size:16px;margin:26px 0 7px;color:var(--c-witt)}
+p{margin:11px 0}
+.sans{font-family:'Segoe UI',system-ui,sans-serif}
+.sub{color:var(--c-muted);font-size:14px}
+.kicker{font-family:'Segoe UI',system-ui,sans-serif;font-size:11px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--c-faint)}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0 6px;font-family:'Segoe UI',system-ui,sans-serif}
+.chip{font-size:11.5px;padding:3px 11px;border-radius:20px;background:var(--c-chip);
+  border:1px solid var(--c-border);color:var(--c-muted)}
+.chip b{color:var(--c-text);font-weight:600}
+.chip.w{background:#eaf1f5;border-color:#cfe0ea;color:var(--c-witt)}
+.chip.g{background:#eaf2ea;border-color:#cfe0cf;color:var(--c-organo)}
+.panel{background:var(--c-surface);border:1px solid var(--c-border);border-radius:10px;
+  padding:17px 20px;margin:16px 0;box-shadow:var(--c-shadow)}
+.panel.lead{border-left:4px solid var(--c-witt)}
+.panel.warn{border-left:4px solid var(--c-warn);background:#fdfaf3}
+.panel.crit{border-left:4px solid var(--c-critical);background:#fdf5f4}
+.panel.good{border-left:4px solid var(--c-good);background:#f5faf5}
+.lab{font-family:'Segoe UI',system-ui,sans-serif;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:700;color:var(--c-faint);margin-bottom:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:11px;margin:20px 0}
+.stat{background:var(--c-surface);border:1px solid var(--c-border);border-radius:9px;padding:13px 14px;text-align:center}
+.stat .n{font-family:'Segoe UI',system-ui,sans-serif;font-size:25px;font-weight:700;line-height:1.05}
+.stat .l{font-family:'Segoe UI',system-ui,sans-serif;font-size:11px;color:var(--c-muted);margin-top:5px;line-height:1.32}
+.n.good{color:var(--c-good)} .n.warn{color:var(--c-warn)} .n.crit{color:var(--c-critical)} .n.w{color:var(--c-witt)}
+.scroll{overflow-x:auto;border:1px solid var(--c-border);border-radius:9px;margin:15px 0;background:var(--c-surface)}
+table{border-collapse:collapse;width:100%;font-family:'Segoe UI',system-ui,sans-serif;font-size:12.8px}
+th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--c-border);vertical-align:top}
+th{background:var(--c-chip);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--c-muted)}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:#fbfbf8}
+.badge{display:inline-block;font-family:'Segoe UI',system-ui,sans-serif;font-size:10.5px;font-weight:700;
+  padding:2px 8px;border-radius:5px;white-space:nowrap}
+.b-keep{background:#e3f0e3;color:#2c5730} .b-rew{background:#faeed6;color:#7a4f00}
+.b-split{background:#e6ecf5;color:#274b73} .b-rerun{background:#f0e7f5;color:#5a3273}
+.b-scal{background:#e0eff2;color:#1d5560} .b-none{background:#eeece7;color:#6a6a66}
+.b-hi{background:#f6e0de;color:#7a2420} .b-mid{background:#faeed6;color:#7a4f00} .b-lo{background:#eeece7;color:#6a6a66}
+code{font-family:'Cascadia Code','Consolas',monospace;font-size:12.2px;background:var(--c-chip);
+  padding:1px 5px;border-radius:4px}
+.quote{border-left:3px solid var(--c-border);padding:3px 0 3px 14px;margin:10px 0;color:var(--c-muted);font-style:italic}
+.quote b{color:var(--c-text);font-style:normal}
+ul,ol{margin:9px 0;padding-left:22px} li{margin:6px 0}
+.conf{display:grid;grid-template-columns:1fr 150px 44px;gap:11px;align-items:center;margin:8px 0;
+  font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+.bar{height:8px;border-radius:5px;background:var(--c-chip);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:5px}
+.cv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.conf{grid-template-columns:1fr 80px 40px}}
+footer{border-top:1px solid var(--c-border);margin-top:46px;padding-top:16px;color:var(--c-faint);
+  font-family:'Segoe UI',system-ui,sans-serif;font-size:12px}
+.tag{font-family:'Cascadia Code','Consolas',monospace;font-size:11px;color:var(--c-faint)}
+</style>
+</head>
+<body>
+
+<nav class="top"><div class="scroller sans">
+<a href="#resumen">1 · Resumen</a><a href="#metodo">2 · Método</a><a href="#instrumento">3 · El instrumento</a>
+<a href="#veredictos">4 · Las 30 preguntas</a><a href="#malaslecturas">5 · Las tres malas lecturas</a>
+<a href="#agosto">6 · Corridas de agosto</a><a href="#capacidades">7 · Quejas vs capacidades</a>
+<a href="#plan">8 · El plan</a><a href="#alternativas">9 · Alternativas</a><a href="#limites">10 · Límites</a>
+<a href="#contrato">11 · Contrato §5</a>
+</div></nav>
+
+<main>
+
+<div class="kicker">Witt × Organogenesis · TYPE D retrospectiva formal · Method 2 · Fase I · 2026-08-26</div>
+<h1>Rescate del banco de calibración v1</h1>
+<p class="sub">Qué se salva de las 30 preguntas que calificaron Martín, Marcelo y Nat — y qué hay que cambiarle al instrumento antes de la siguiente ronda. <b>Es un plan, no una ejecución:</b> nada del banco se modificó.</p>
+
+<div class="chips">
+  <span class="chip w"><b>framework:</b> Chain-of-Verification §8 (re-electo desde Self-Discover §3)</span>
+  <span class="chip"><b>16</b> agentes · 0 errores</span>
+  <span class="chip g"><b>0</b> mutación DATA INAMOVIBLE</span>
+  <span class="chip"><b>3</b> revisores · 52/90 celdas</span>
+  <span class="chip"><b>confianza:</b> por sub-afirmación (§5)</span>
+</div>
+
+<!-- ══════════════════════════ 1 ══════════════════════════ -->
+<h2 id="resumen">1 · Resumen ejecutivo</h2>
+
+<div class="panel lead">
+<div class="lab">Respuesta directa</div>
+<p><b>Se rescata prácticamente todo: ninguna de las 30 preguntas se retira.</b> La mitad exacta (15) se queda tal cual, 5 se reescriben, 3 se parten, 4 piden re-correr la respuesta y 3 se arreglan con un re-parseo determinista de costo cero. Lo que falló no fueron las preguntas: <b>falló el instrumento</b> — pidió 2 a 4 horas de lectura prometiendo "1–2 min por pregunta", puso las respuestas completas en inglés dentro de celdas de hoja de cálculo de hasta 8,328 caracteres, y ordenó el banco de forma que todo el modelado quedó apilado al final. Martín y Marcelo pararon exactamente en Q11.</p>
+<p>El hallazgo que decide el plan: <b>las 30 preguntas del banco SON <code>evaluation/held_out_set_v1.json</code></b> — mismos IDs, mismos <code>niche</code>, <code>type</code> y <code>system</code> en las 30, verificado uno a uno. El banco no es un instrumento aparte: es el held-out set con una capa de etiquetado humano encima. Y el pendiente que ya traes en el handoff del 08-23 —"decidir baseline held-out v2, 30 preguntas, ~USD 6–9"— <b>es exactamente la re-corrida de este banco</b> por el pipeline vivo.</p>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="n good">15</div><div class="l">se quedan<br>tal cual</div></div>
+  <div class="stat"><div class="n warn">5</div><div class="l">reescribir</div></div>
+  <div class="stat"><div class="n w">3</div><div class="l">partir en dos</div></div>
+  <div class="stat"><div class="n w">4</div><div class="l">re-correr<br>respuesta</div></div>
+  <div class="stat"><div class="n good">3</div><div class="l">recuperar escalar<br>(costo cero)</div></div>
+  <div class="stat"><div class="n crit">0</div><div class="l">retirar</div></div>
+</div>
+
+<div class="panel warn">
+<div class="lab">Las cinco cosas que hay que saber</div>
+<ol style="margin-top:4px">
+<li><b>La cobertura se cayó en un LUGAR, no por cansancio.</b> Martín gastó 46 caracteres de comentario por ítem y Marcelo 183 — <b>4× de diferencia</b> — y los dos pararon en Q11. Si el corte fuera presupuesto personal, no coincidirían. Q11 es el primer ítem de modelado del banco.</li>
+<li><b>El bloque de calificar la pregunta no midió nada.</b> Corregido por azar con las frecuencias reales, los tres ejes de INPUT dan kappa ≤ 0 (objetividad −0.099, contexto −0.004, especificidad −0.140). En especificidad los tres pares tienen correlación <b>negativa</b>: ordenan las preguntas en sentidos contrarios.</li>
+<li><b>Tres de los reclamos más duros de Nat son malas lecturas</b> de respuestas que estaban sustancialmente bien (Q05, Q23, Q30) — y las tres del mismo tipo: la respuesta trazaba una distinción epistémica fina y la lectora la colapsó. Eso no es un defecto de biología: es de <b>legibilidad</b>, y es exactamente lo que la UI de M5 arregla.</li>
+<li><b>El sustrato ya creció por debajo del banco.</b> <code>hand2</code> —que Nat reclama que el sistema no encontró— entró al store el <b>2026-07-21</b>, tres días después de congelar el banco, con el mismo <code>ENSDARG00000008305</code> que la respuesta había verificado en vivo. Nadie se equivocó: el instrumento envejeció.</li>
+<li><b>Hay una línea de trabajo entera fuera del repo.</b> Las corridas de córnea/campo ocular del 07 al 19 de agosto corrieron desde un checkout clavado en <code>69a6a49</code> (2026-07-19) que nunca volvió a jalar — operando 39 registros de store atrás, con una colisión de ADR-0041 que tiene causa legítima y no descuido.</li>
+</ol>
+</div>
+
+<!-- ══════════════════════════ 2 ══════════════════════════ -->
+<h2 id="metodo">2 · Método</h2>
+
+<div class="grid2">
+<div class="panel">
+<div class="lab">framework_applied</div>
+<p><b>Chain-of-Verification (CoVe, Tier 2)</b> — per <code>reasoning-frameworks-catalog.md §8 Chain-of-Verification</code>: <i>«Generate a draft answer, then generate verification questions about that answer, answer those questions independently, and revise the draft based on the verification results. Anti-hallucination by construction.»</i> Invocado por el criterio literal de §8 <i>«Outputs that cite specific facts or numbers»</i>: todo lo que aquí se afirma es una cifra o una cita de revisor.</p>
+<p><b>Re-electo a mitad de sesión</b> (CLAUDE.md §4) desde <code>§3 Self-Discover</code> — <i>«Before solving a problem, the agent first selects which reasoning operations to apply… Meta-reasoning before reasoning.»</i> — que gobernó la fase abierta de "¿qué se puede rescatar?". Cuando el trabajo dominante pasó a verificar afirmaciones contra flujos de evidencia múltiples (hojas de revisores, código del repo, ADRs, handoffs de agosto), CoVe se volvió el correcto.</p>
+</div>
+<div class="panel">
+<div class="lab">Capa determinista</div>
+<p>El cómputo repetible no lo hizo el modelo. <code>evaluation/scripts/score_calibration.py</code> (389 líneas, stdlib pura) produjo cobertura, acuerdo inter-revisor, diseño-vs-percepción, Spearman INPUT→OUTPUT y calibración anclada en humanos. Salida en <code>reports/calibracion_banco_20260826.json</code>.</p>
+<p>Los tres <code>.xlsx</code> se leyeron con un parser stdlib propio (zipfile + xml.etree), sin instalar <code>openpyxl</code> ni <code>pandas</code> — disciplina ADR-0040, que documenta que contaminar el <code>.venv</code> con <code>pip install</code> fue la causa raíz del incidente de intérprete del 2026-07-18/19.</p>
+</div>
+</div>
+
+<div class="panel crit">
+<div class="lab">Defecto encontrado en el propio instrumento de scoring</div>
+<p><code>score_calibration.py</code> deriva la identidad del revisor como <code>columna 'revisor' or nombre_de_archivo</code>, <b>sin normalizar</b>. Las filas vacías de Martín y Marcelo caían al nombre de archivo en minúsculas (<code>martin</code>) mientras sus filas llenas traían <code>Martin</code> — partiendo a cada persona en dos. El reporte salía con <b>5 revisores</b> y una cobertura falsa de <b>34.7%</b>. Corregido (identidad canónica en todas las filas): 3 revisores, cobertura real <b>57.8%</b>. Es la misma clase de fallo que la lección permanente del RIL: <i>un pase de gate vacuo es peor que un fallo de gate</i>. <b>Fix propuesto:</b> normalizar <code>_rev</code> con el mismo <code>_norm()</code> que ya usa el codificador de valores.</p>
+</div>
+
+<div class="panel">
+<div class="lab">agents_invoked</div>
+<div class="scroll"><table>
+<thead><tr><th>Agente / capa</th><th>Estado</th><th>Razón · evidencia</th></tr></thead>
+<tbody>
+<tr><td><code>Workflow</code> 16 agentes</td><td><span class="badge b-keep">invocado</span></td><td>4 diagnóstico · 5 triage (lotes de 6) · 5 verificación adversarial · 2 cruce. 16/16 completos, 0 errores, 2.25 M tokens de subagente.</td></tr>
+<tr><td><code>composite-auditor</code></td><td><span class="badge b-rew">skipped-ad-hoc</span></td><td>La verificación adversarial de este workflow (5 refutadores independientes sobre 23 veredictos consecuentes) cumple la función de Modo 1 split-and-vote para el triage, pero <b>no se declara como gate de auditoría de sustrato</b>. Obligatorio si algún veredicto se promueve a evidencia de Test 4.</td></tr>
+<tr><td><code>causal-pruner</code></td><td><span class="badge b-none">not-applicable</span></td><td>No se generan candidatos biológicos rankeados, conjuntos mínimos ni hipótesis de suficiencia. Los veredictos son sobre <i>preguntas</i>, no sobre biología.</td></tr>
+<tr><td><code>resolve_id</code> / store</td><td><span class="badge b-keep">invocado</span></td><td>Verificación en vivo de <code>hand2</code>, <code>six2b</code>, <code>rbpj</code>, <code>cdx1a</code>, <code>cdx4</code>, <code>sox9a</code>, <code>osr1</code>, <code>foxc1a</code>, <code>irx3b</code>, <code>pax6a/b</code>, <code>lhx1a</code>, <code>wt1a</code> contra <code>verified_identifiers.json</code> (113 registros, <code>store_version 2026-07-21.3</code>).</td></tr>
+<tr><td><code>retrospector</code> / RIL</td><td><span class="badge b-keep">leído</span></td><td><code>next_session_prepend.md</code> consultado en preflight §10 paso 8. Las lecciones permanentes sobre juez-no-es-verdad-terreno y ausencia-con-razón se aplicaron.</td></tr>
+</tbody></table></div>
+</div>
+
+<!-- ══════════════════════════ 3 ══════════════════════════ -->
+<h2 id="instrumento">3 · El instrumento, no las preguntas</h2>
+
+<p>La pregunta que hay que contestar primero no es "¿qué preguntas sirven?" sino "¿por qué solo una persona terminó?". La respuesta está medida.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Defecto del instrumento</th><th>Medición</th><th>Consecuencia</th></tr></thead>
+<tbody>
+<tr><td><b>La promesa de tiempo es falsa por 3× a 8×</b></td>
+<td>Instrucción textual: <i>«Califica las 30. ~1–2 min c/u»</i> = 30–60 min. Real: ruta mínima (pregunta + por qué importa + resumen) = 6,983 palabras → 35–54 min. Ruta profunda (+ respuesta completa) = <b>101,593 caracteres</b> ≈ 16,386 palabras más → +82 a +182 min. Total honesto: <b>2 a 4 horas</b>.</td>
+<td>La única ruta que permite <i>verificar</i> —que es justo lo que piden <code>R_correcta_util</code> y <code>R_la_usarias</code>— no cabía en el presupuesto anunciado.</td></tr>
+
+<tr><td><b>Las respuestas completas están en inglés</b></td>
+<td>Verificado sobre los tres <code>.xlsx</code> crudos: <code>respuesta_completa</code> EN = 30/30; <code>resumen_respuesta_ia</code> ES = 30/30.</td>
+<td>Médicos mexicanos verificando afirmaciones técnicas en segundo idioma. Nat, Q07: <i>«Me está tomando tiempo validar todo lo que arrojó»</i>.</td></tr>
+
+<tr><td><b>Orden monótono por nicho</b></td>
+<td>Secuencia de primer nicho Q01→Q20: RN1,RN1,RN1,RN1,RN2,RN2,RN3,RN3,RN4,RN5,RN6,RN6,RN7,RN8,RN9,RN10,RN11,RN12,RN12,RN13 — <b>sin una sola inversión</b>. Resultado: 91% biología en Q01–Q11, 58% modelado en Q12–Q30.</td>
+<td>Todo lo no-clínico quedó apilado después del punto de abandono. El sesgo de lo perdido es el peor posible: <code>perturbation_design</code> 4/4 ítems, <code>simulation_debug</code> 1/1 y <code>cross_field_bridge</code> 2/2 quedaron con <b>un solo calificador</b>.</td></tr>
+
+<tr><td><b>La respuesta de 8k caracteres va ANTES de las casillas</b></td>
+<td>Columnas A–F de solo lectura, G–N de captura. La celda F va de 1,274 (Q13) a <b>8,328</b> (Q09) caracteres.</td>
+<td>El revisor cruza una celda gigante en cada fila para llegar a la primera casilla. Los dos únicos ítems sin comentario de Nat son Q17 y Q18 (media 6,947 chars, contra 3,132 de los 28 comentados).</td></tr>
+
+<tr><td><b>No existe «no puedo calificar»</b></td>
+<td>Marcelo dejó el output de Q11 en blanco. Martín calificó 11/11 con casi cero varianza (9/11 «Objetiva», 9/11 «En foco», 9/11 «Muy específica»). En el CSV, blanco y «Sí» por defecto <b>no se distinguen</b>.</td>
+<td>El proyecto ya resolvió esto en ADR-0064 con el <code>[?]</code> de tres estados (<code>cannot-rate</code> / <code>not-applicable</code>): <i>«la ausencia de juicio NUNCA es un 1 ni un null silencioso»</i>. El banco v1 es anterior a esa doctrina.</td></tr>
+
+<tr><td><b>La rúbrica le regaló las respuestas</b></td>
+<td>Al menos 6 celdas de <code>banco_instrucciones_v1.csv</code> usan paráfrasis literales de preguntas del banco como ejemplos. <b>Q03 es el ejemplo textual de «Parcial»</b> — y aun así 2 de 3 revisores la contradijeron.</td>
+<td>La coincidencia diseño-vs-percepción (50% / 63% / 53%) está inflada. Descontadas esas celdas, cae al nivel del piso inter-revisor.</td></tr>
+
+<tr><td><b>Sin controles negativos</b></td>
+<td>Diseñamos 23/30 <code>en_foco</code>, 7 <code>exploratoria</code>, <b>0</b> <code>fuera_de_alcance</code>.</td>
+<td>El eje de contexto es inauditable: no se puede medir la especificidad de un detector que nunca ve un negativo.</td></tr>
+</tbody></table></div>
+
+<div class="panel crit">
+<div class="lab">El bloque de calificar la pregunta no midió un constructo compartido</div>
+<p>El piso de azar del banco <b>no es 0.33: es ~0.50</b>, porque las anclas bajas están muertas — «Vaga» se usó 0 de 33 veces, «Fuera de alcance» 1 de 33, «Genérica» 2 de 33. Una escala de tres opciones que opera de facto como de dos sube el acuerdo esperado por azar exactamente al nivel observado.</p>
+<div class="scroll"><table>
+<thead><tr><th>Eje</th><th>Acuerdo par-a-par</th><th>Azar corregido</th><th>Kappa</th><th>Lectura</th></tr></thead>
+<tbody>
+<tr><td><code>P_objetiva</code></td><td>0.455</td><td>0.504</td><td><b style="color:var(--c-critical)">−0.099</b></td><td>peor que azar</td></tr>
+<tr><td><code>P_en_contexto</code></td><td>0.515</td><td>0.517</td><td><b style="color:var(--c-critical)">−0.004</b></td><td>azar exacto</td></tr>
+<tr><td><code>P_especificidad</code></td><td>0.455</td><td>0.522</td><td><b style="color:var(--c-critical)">−0.140</b></td><td>peor que azar · <b>los tres pares con Spearman negativo</b> (−0.121, −0.313, −0.289)</td></tr>
+<tr><td><code>R_correcta_util</code></td><td>0.576</td><td>0.484</td><td><b style="color:var(--c-good)">+0.203</b></td><td>bajo pero real</td></tr>
+<tr><td><code>R_la_usarias</code></td><td>0.667</td><td>0.650</td><td><b style="color:var(--c-warn)">+0.048</b></td><td>inflado por ser binaria</td></tr>
+</tbody></table></div>
+<p><b>Ninguna de las 11 preguntas comparables tuvo unanimidad en los cinco ejes.</b> De 51 celdas eje×pregunta con los tres presentes, solo 16 (31.4%) tuvieron los tres votos iguales.</p>
+<p>Hay además severidad real de calificador —Martín el más suave en 4 de 5 ejes, Nat la más dura en 4 de 5— pero la severidad <b>no explica</b> el desacuerdo: si fuera solo un umbral distinto, los tres ordenarían igual las preguntas, y no lo hacen. El desacuerdo se descompone limpio: <b>Nat↔Martín es severidad pura</b> (Spearman +0.488, Nat nunca calificó por encima de Martín — corregible con anclas), <b>Martín↔Marcelo es criterio genuinamente distinto</b> (Spearman +0.048 — NO corregible con anclas).</p>
+</div>
+
+<div class="panel warn">
+<div class="lab">La rúbrica no tenía dónde poner lo que querían decir</div>
+<p>Las <b>tres</b> veces que alguien marcó «Fuera de alcance», quiso decir otra cosa:</p>
+<div class="quote"><b>Nat, Q24:</b> «Creo que está muy ambiciosa para ser respondida en una sola itaración, la partiría en 2» — quiso decir <i>mal tamaño</i>, no fuera de alcance.</div>
+<div class="quote"><b>Nat, Q30:</b> «Creo que es bueno cuestionarnos la arquitectura» — quiso decir <i>meta-gobernanza</i>, y es un elogio.</div>
+<div class="quote"><b>Martín, Q04:</b> «me gustaria entender de donde surgio esta pregunta» — quiso decir <i>no sé por qué preguntamos esto</i>: procedencia.</div>
+<p>Y Martín calificó cuatro veces un eje <b>que el instrumento no tiene</b>: transferencia al proyecto. En Q01 puso «Objetiva» + «Sí sólida» mientras escribía <i>«enfocada en transcriptoma, no ablacion causal»</i>. Su crítica real no cabe en ninguna columna.</p>
+</div>
+
+<!-- ══════════════════════════ 4 ══════════════════════════ -->
+<h2 id="veredictos">4 · Las 30 preguntas, una por una</h2>
+
+<div class="panel good">
+<div class="lab">Cómo se produjo esta tabla — y por qué el triage inicial estaba mal</div>
+<p>Cinco agentes emitieron veredictos por lotes de 6. Otros cinco, independientes, recibieron el encargo explícito de <b>tumbarlos</b>. <b>Refutaron 21 de 23</b> veredictos consecuentes, y los cinco convergieron —por separado— en el mismo sesgo:</p>
+<ul>
+<li><b>Sesgo de intervención:</b> el triage casi nunca decía «conservar». Convertía huecos de sistema, capacidad y datos en defectos de PREGUNTA, y recetaba reescrituras que <b>queman calificaciones médicas escasas</b>.</li>
+<li><b>Optimismo de mecanismo:</b> nombraba un ADR como si nombrarlo fuera evidencia de que el pipeline actual cierra el hueco. Verificado falso en casos concretos — p. ej. invocó el barrido ZFIN de ADR-0068 cuando <code>zfin_sweep.load_store_symbols()</code> solo toma símbolos del store, y varios marcadores no están ahí.</li>
+<li><b>Atribución fabricada:</b> en Q09 afirmó que «los otros dos leyeron la mitad de infraestructura» sin una sola palabra de revisor que lo sostuviera.</li>
+<li><b>Contradijo métricas medidas:</b> llamó a Q05 «el mayor exceso de confianza», cuando <code>calibracion_banco_20260826.json</code> la clasifica <code>well_calibrated</code> y la <b>única</b> sobre-confiada es Q15 (verificado por mí: Q05 ia 0.88 vs calidad 1.33; Q15 ia 0.42 vs calidad 0.0).</li>
+</ul>
+<p>El resultado se invirtió: de <b>6</b> «rescatar tal cual» a <b>15</b>. Esa inversión es el resultado más importante de la sesión y es evidencia directa de por qué CLAUDE.md §7 prohíbe la auto-auditoría.</p>
+</div>
+
+<div class="scroll"><table id="tabla-veredictos">
+<thead><tr><th>ID</th><th>Tema</th><th>Veredicto final</th><th>El triage decía</th><th>n</th><th>Valor</th></tr></thead>
+<tbody id="tbody-v"></tbody>
+</table></div>
+
+<p class="sub"><b>n</b> = número de calificadores. <b>n=1 significa Nat sola</b> — Martín paró en Q11 y Marcelo en Q11 (input) / Q10 (output). Las 19 preguntas con n=1 <b>no son consenso</b> y ninguna conclusión de este reporte descansa solo en ellas sin decirlo.</p>
+
+<div class="grid2">
+<div class="panel">
+<div class="lab">Los 3 defectos reales de pregunta</div>
+<ul style="margin-top:4px">
+<li><b>Q26 — falta el glomérulo.</b> Verificado: la pregunta enumera proximal / distal temprano / distal tardío / conducto y <b>omite el glomérulo</b>; la respuesta tampoco lo menciona (0 apariciones de <code>glomerul*</code>, <code>podoc*</code> o <code>nphs*</code>). Nat: <i>«sin este segmento no sirve»</i>. Tiene razón. <b>Corrección de los refutadores:</b> no reescribir en sitio —Nat calificó la pregunta 2/2/2, coincidencia exacta con el diseño— sino <b>añadir un ítem hermano</b> de glomérulo.</li>
+<li><b>Q01 — encuadre del mesodermo.</b> Objetado por <b>dos revisores independientes</b>. Marcelo: <i>«El mesodermo es completo para el embrión, no hay mesodermo por cada órgano, sino por sección»</i>. Nat: <i>«sesga un poco la pregunta… cuando uno da pie al otro»</i>. Convergencia 2/3 = el defecto de pregunta mejor sostenido del banco.</li>
+<li><b>Q08 — el conjunto no está fijado.</b> La pregunta dice «un conjunto de factores de transcripción» sin nombrarlo. El sistema mapeó pax8/pax2a/hnf1ba/wt1a/sim1a/lhx1a; Nat escribió six2b/foxc1a/irx3b/rbpj/osr1/hand2/cdx. <b>Traslape: cero.</b> No es desacuerdo — son listas distintas, no comparables.</li>
+</ul>
+</div>
+<div class="panel">
+<div class="lab">Los 3 de costo cero: RECUPERAR-ESCALAR</div>
+<p>Q13, Q22, Q28, Q29 y Q30 no tienen <code>ia_confidence</code> y por eso quedan fuera de la métrica de calibración anclada en humanos — la métrica estrella. <b>Verificado por mí:</b> los 5 son <code>baseline_reuse</code> (5 de 14), y <b>0 de 16</b> en <code>rerun</code> + <code>rich_reuse</code>.</p>
+<p>Eso no es una propiedad de esas preguntas: es <b>el escalar atrapado</b> que ADR-0057 midió y ADR-0065 resolvió por estructura (el modelo emite la confianza como texto dentro de una llamada mal formada). Se recupera con un re-parseo determinista sobre los récords de julio — <b>sin gastar una sola corrida</b> — y devuelve 5 preguntas al ECE.</p>
+<p class="tag">Cuidado: ADR-0065 midió que la recuperación por regex puede MAL-ASIGNAR (caso C#00: el framework aterrizó en el campo de confianza). El re-parseo va con verificación campo por campo, no ciego.</p>
+</div>
+</div>
+
+<!-- ══════════════════════════ 5 ══════════════════════════ -->
+<h2 id="malaslecturas">5 · Las tres malas lecturas — el hallazgo incómodo</h2>
+
+<p>Tres de los reclamos más severos de Nat acusan al <b>sistema</b>. Verifiqué los tres contra el texto congelado de las respuestas. Los tres son malas lecturas — y las tres del mismo tipo.</p>
+
+<div class="panel crit">
+<div class="lab">Q05 · «intenta encontrar el PDB de genes»</div>
+<div class="quote"><b>Nat:</b> «La respuesta que busca es incorrecta, intenta encontrar el PDB de genes (cuando estos son fragmentos de ADN) y los factores de trascripción son proteínas. Este es el motivo por el cuál la búsqueda en RCSB Protein Data Bank no arrojó resultados».</div>
+<p><b>Verificado — la respuesta sí usó proteínas.</b> Consultó <b>UniProtKB</b> con <code>organism_id:7955</code> y accesiones de proteína reales: <code>Q9DE25</code> (foxc1a), <code>Q90268</code> (pax2a), <code>A0AB32TC13</code> (wt1a), <code>F1QUT4</code> (tfap2a). Nunca buscó estructura de un gen.</p>
+<p><b>Pero el conteo explica la lectura:</b> «RCSB» aparece 3 veces y «UniProt» solo 2, y el método real va enterrado en prosa mientras el término más saliente sugiere otra cosa. <b>Es un defecto de legibilidad, no de corrección.</b></p>
+<p><b>Y hay algo más profundo, que los agentes encontraron y yo no:</b> el instinto de Nat era correcto aunque su mecanismo fuera falso. <b>0 de 113 registros del store tienen <code>uniprot_acc</code>; 0 de 113 tienen <code>ensdarp</code></b> — los campos existen en el schema de <code>VerifiedRecord</code> y están vacíos. La DATA INAMOVIBLE <b>no tiene capa proteica</b>, así que el sistema estructuralmente no puede anclar una consulta de estructura. Y el mismo defecto reaparece en Q27 (<i>«se pudo haber resuelto el docking de la enzima con ligandos»</i>): dos instancias independientes. Eso lo vuelve patrón, no anécdota.</p>
+</div>
+
+<div class="panel crit">
+<div class="lab">Q23 · «dice que pax6, foxc1 y lhx1 no tienen hits en desarrollo ocular»</div>
+<p><b>La respuesta afirma exactamente lo contrario.</b> Texto congelado: <i>«A REAL, VERIFIED MOLECULAR BRIDGE EXISTS (improves on the baseline, which claimed none): the two organs share a developmental transcription-factor toolkit… pax2, lhx1, foxc1, pitx2 are co-deployed (with pax6 as the eye master…)»</i>. El único enunciado de ausencia del texto es sobre <i>la transferencia chaperona en sí</i> («no experimental cross-tissue result shows POM-type cues rescue…»), no sobre esos genes.</p>
+<p>Nat leyó un enunciado de ausencia <b>de recuperación</b> y lo atribuyó a la <b>biología</b>. Es precisamente la distinción que el backend ya volvió estructural: <code>absence_kind</code> con <code>no-evidence-retrieved</code> ≠ <code>evidence-of-no-effect</code> (ADR-0051, el catch de Sonnet). En julio eso era prosa; hoy es un campo.</p>
+</div>
+
+<div class="panel crit">
+<div class="lab">Q30 · «no resolvió nada y parece que se confundió con los N# y RN#»</div>
+<p><b>El sistema no se confundió: detectó la colisión y la reportó.</b> Primera línea de la respuesta: <i>«the retrieved niche descriptors are labeled RN3, RN6… NOT the "N4/N5/N6" the question asks about. So the first honest finding is a taxonomy/label mismatch: I cannot confirm what N4 and N5 even are from this bundle.»</i> Luego entregó respuesta sustantiva: la taxonomía está factorizada por capa de modelado y no por anatomía; lo ocular es <i>consumidor</i> de nichos, no par de ellos; no reorganizar con esta evidencia; primero arreglar el naming.</p>
+<p><b>La confusión es del proyecto y ya estaba diagnosticada.</b> Existen dos ejes ambos prefijados con N: CLAUDE.md §3 define N1–N6 (dominio científico) y <code>rag_index/niches.json</code> define RN1–RN13 (datos). Y <b><code>docs/findings/2026-06-11-q30-niche-taxonomy-resolution.md</code> existe</b> — composite-audit de junio, veredicto unánime keep-as-is, ratificado por ti vía ADR-0018 — y dice textual que la causa raíz fue <i>«partly a communication failure on our side — the biomedic was shown N1–N6 without the RN1–RN13 axis surfaced»</i>. En junio nombramos la causa. En julio re-preguntamos lo mismo sin mostrarle a Nat esa resolución. En agosto ella leyó al revés la detección correcta.</p>
+<p>Nota: la pregunta Q30 <b>además está mal formulada</b>. La objeción original es ocular contra biofísica/biomecánica = <b>N5 contra N2</b>. La pregunta pide reorganizar «N4/N5/N6», donde N4 es Señalización y N6 Ingeniería de Tejidos: nombró bien un término y mal sus contrapartes.</p>
+</div>
+
+<div class="panel lead">
+<div class="lab">Por qué esto importa más que cualquier veredicto individual</div>
+<p>Las tres malas lecturas son de la misma clase: <b>la lectora colapsó una distinción epistémica que la respuesta sí trazaba</b> — método contra mención, ausencia-de-recuperación contra ausencia-biológica, declinación-honesta contra fracaso. Y las tres tienen hoy un campo estructurado que las hace no-perdibles: <code>query_sent</code> / <code>query_source</code> (ADR-0057), <code>absence_kind</code> (ADR-0051), <code>APPROVE_DECLINE</code> (ADR-0058), <code>confidence.source</code> (ADR-0065).</p>
+<p><b>Conclusión operativa:</b> las calificaciones bajas de Q05, Q23 y Q30 <b>no son evidencia de que el sistema sea malo</b> — son evidencia de que la presentación en prosa era mala. Retirar esas preguntas destruiría exactamente la señal que las hace valiosas. Y la lección para M5: la UI debe renderizar esos campos como <i>elementos</i>, no dejarlos en el texto.</p>
+<p class="sub"><b>Y la advertencia que corta hacia el otro lado:</b> en Q05 los tres revisores existían, y la que se equivocó fue la más dura. Si Q05 hubiera estado en el tramo n=1, quedaría registrada como fracaso del sistema. <b>19 de las 30 preguntas están en ese tramo.</b> Ese es el argumento más fuerte para no tratar el tramo Q12–Q30 como verdad-terreno.</p>
+</div>
+
+<!-- ══════════════════════════ 6 ══════════════════════════ -->
+<h2 id="agosto">6 · Las corridas de agosto — qué rescatan de verdad</h2>
+
+<p>Entre el 7 y el 19 de agosto el proyecto corrió sesiones profundas sobre varios temas del banco. Diez preguntas tienen un artefacto de agosto que las mejora. <b>Pero la mayoría mejora con ausencias bien medidas, no con el dato que el revisor pedía</b>, y eso hay que decirlo por separado en cada caso.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Pregunta</th><th>Artefacto de agosto</th><th>¿Cierra la queja?</th><th>Tipo de mejora</th><th>Rescate</th></tr></thead>
+<tbody>
+<tr><td><b>Q14</b> cinética de migración</td><td>HANDOFF 08-19 cinemática celular</td><td><span class="badge b-keep">SÍ</span></td><td>método/estructura</td><td><span class="badge b-hi">alto</span></td></tr>
+<tr><td><b>Q11</b> Morpheus córnea <span class="tag">(prompt propio de Nat)</span></td><td>HANDOFF 08-12 + 08-18</td><td><span class="badge b-mid">parcial</span></td><td>método/estructura</td><td><span class="badge b-hi">alto</span></td></tr>
+<tr><td><b>Q10</b> lecturas bioeléctricas</td><td>HANDOFF 08-10 eyefield Vmem</td><td><span class="badge b-mid">parcial</span></td><td>ausencia bien medida</td><td><span class="badge b-hi">alto</span></td></tr>
+<tr><td><b>Q12</b> condiciones de frontera</td><td>HANDOFF 08-18 balance de fuerzas</td><td><span class="badge b-lo">NO</span></td><td>método/estructura</td><td><span class="badge b-hi">alto</span></td></tr>
+<tr><td><b>Q17</b> endotelio corneal</td><td>HANDOFF 08-18 (histología estadificada)</td><td><span class="badge b-mid">parcial</span></td><td>dato positivo</td><td><span class="badge b-mid">medio</span></td></tr>
+<tr><td><b>Q02</b> marcadores cresta/copa</td><td>HANDOFF 08-10 (capa de identificadores)</td><td><span class="badge b-lo">NO</span></td><td>método/estructura</td><td><span class="badge b-mid">medio</span></td></tr>
+<tr><td><b>Q13</b> fluidos y mallas</td><td>HANDOFF 08-18</td><td><span class="badge b-lo">NO</span></td><td>método/estructura</td><td><span class="badge b-mid">medio</span></td></tr>
+<tr><td><b>Q23</b> puente ojo→riñón</td><td>HANDOFF 08-18 + 08-19</td><td><span class="badge b-lo">NO</span></td><td>ausencia bien medida</td><td><span class="badge b-mid">medio</span></td></tr>
+<tr><td><b>Q29</b> prueba mínima de gradiente</td><td>HANDOFF 08-18 (gate numérico)</td><td><span class="badge b-mid">parcial</span></td><td>método/estructura</td><td><span class="badge b-mid">medio</span></td></tr>
+<tr><td><b>Q15</b> morfometría</td><td>HANDOFF 08-18</td><td><span class="badge b-lo">NO</span></td><td>método/estructura</td><td><span class="badge b-lo">bajo</span></td></tr>
+</tbody></table></div>
+
+<div class="panel">
+<div class="lab">Los dos casos que valen la pena leer completos</div>
+<p><b>Q14 es el único «SÍ» limpio.</b> Julio propuso el esquema (matriz región × etapa con velocidad + tasa de apoptosis). Agosto lo <b>ejecutó</b> y al ejecutarlo <b>falsificó dos de sus decisiones de diseño</b>: la media aritmética cruda daba 87.6 µm/min (T2) y 7,540 µm/min (T4), dominada por un solo artículo de microfluídica que reporta 1 mm/s; la mediana entre artículos da 2.0 y 1.9. Nat había pedido <i>«darle seguimiento a la pregunta viendo cómo obtendría esta info y compararla con wet lab»</i>. Agosto responde eso exactamente, con un veredicto incómodo: <b>no se obtiene de repositorios públicos — hay que generarla</b>.</p>
+<p><b>Q12 es el «NO» más instructivo.</b> Agosto cierra la mitad <i>semántica</i> (qué número va dónde y en qué unidades: <i>«la moneda correcta NO es Pa sino energía — un CPM compara ΔH = σ·l³ contra su propia amplitud T_CPM»</i>) y deja intacta la mitad <i>sintáctica</i>, que es de lo que Nat se quejó: <i>«hace evidente que el documento que genere para correr en morpheus podría no funcionar»</i>. El formato del XML sigue sin resolverse.</p>
+</div>
+
+<div class="panel crit">
+<div class="lab">El problema de gobernanza — y no es «falta commitear»</div>
+<p>Los artefactos de agosto <b>no están en este repo</b>: <code>analysis/outputs/</code> tiene 52 archivos y <b>cero</b> que matcheen cornea|eyefield|motility|hydro|cpm; <code>analysis/scripts/</code> cero; <code>reports/</code> de agosto solo tiene el comparativo Virtual Biotech. Es una <b>línea paralela</b> que corrió desde un checkout clavado en <code>69a6a49</code> (2026-07-19) y nunca volvió a jalar.</p>
+<ul>
+<li><b>El punto de bifurcación es identificable.</b> El handoff del 08-12 declara <i>«el último commit sigue siendo 69a6a49»</i>. En ese commit el store lee 74 registros / <code>2026-07-11.1</code> — que es exactamente el «store 74, sin cambio» que repiten los cuatro handoffs. Hoy HEAD va en <b>113 / 2026-07-21.3</b>: la línea de agosto operó <b>39 registros atrás</b>.</li>
+<li><b>La colisión de ADR tiene causa, no descuido.</b> En <code>69a6a49</code> el ADR más alto era 0040. El commit siguiente en master acuñó ADR-0041 (tier weights + EuropePMC). Los dos ADR-0041 se acuñaron correctamente desde su propio punto de vista.</li>
+<li><b>El replay está bloqueado.</b> El handoff del 08-19 documenta que una directiva WDAC de Windows empezó a bloquear <code>.venv/Scripts/python.exe</code> al cierre de esa sesión. Hasta que un replay pase, cada número de esos handoffs se cita como <i>«asertado desde un JSON»</i>, no como <i>«reproducido»</i>.</li>
+</ul>
+</div>
+
+<!-- ══════════════════════════ 7 ══════════════════════════ -->
+<h2 id="capacidades">7 · Las quejas contra lo que ya construimos</h2>
+
+<p>Buena parte de lo que pidieron los revisores <b>ya existe</b> y ellos no lo saben. Otra parte no existe y es una brecha real que conviene nombrar.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>Lo que pidieron</th><th>Quién</th><th>Estado</th><th>La brecha real</th></tr></thead>
+<tbody>
+<tr><td>«Ya contamos con simulaciones de Morpheus que se pueden usar como base»</td><td>Nat, Q12</td><td><span class="badge b-keep">camino existe</span></td><td><b>RN13 tiene 0 registros de 9 en todo el corpus</b> (verificado). Nat ofrece un activo que ya tiene en la mano y el proyecto no lo ha recogido. <b>La acción de menor costo y mayor rendimiento del plan entero.</b></td></tr>
+<tr><td>«Porcentajes de expresión por gen»</td><td>Marcelo, Q02</td><td><span class="badge b-rew">parcial</span></td><td>La capacidad existe y ya produjo el dato: <code>schoels_markers_canonical.csv</code>, <code>schoels_markers_segment.csv</code> y <code>wagner_markers.csv</code> traen columna <code>pct_expressing</code> (verificado). Falta correrlo sobre el atlas ocular GSE218068 — computable con los mismos scripts.</td></tr>
+<tr><td>«Partiría la pregunta en dos»</td><td>Marcelo Q06/Q10 · Nat Q24</td><td><span class="badge b-rew">parcial</span></td><td><code>clarifying_questions</code> (ADR-0066) detecta <b>ambigüedad</b>, no <b>compuestud</b>. Q06 y Q10 no son ambiguas: son claras y dobles. El schema dice literal <i>«ONLY when the question is genuinely ambiguous… NEVER invent questions for a clear one»</i>.</td></tr>
+<tr><td>«Primero identificar los agentes, luego la cascada, luego qué falta para simular»</td><td>Nat, Q07 y Q06 · Marcelo Q03</td><td><span class="badge b-hi">no existe</span></td><td><b>La brecha más grande.</b> Es encadenamiento: la salida del paso 1 es la entrada del paso 2. El run model (ADR-0050) modela una corrida como unidad atómica; no hay corrida-hija ni secuencia. El precedente (ADR-0053) da continuidad de <i>registro</i>, nunca de <i>evidencia</i> (<code>admissible_as_evidence: false</code> es estructural). <b>Pedida por 2 de 3 revisores.</b></td></tr>
+<tr><td>«¿De dónde surgió esta pregunta?» (×4)</td><td>Martín</td><td><span class="badge b-rew">parcial</span></td><td>El sistema registra con obsesión de dónde salió una <b>respuesta</b>; no registra de dónde salió una <b>pregunta</b>. La procedencia existe y está documentada (P1→Q03, P3→Q11, P4→Q20, P2→Q30) — simplemente nunca se le mostró al revisor.</td></tr>
+<tr><td>«No pudo encontrar hand2»</td><td>Nat, Q25</td><td><span class="badge b-keep">resuelta</span></td><td>Ver abajo — el caso más limpio de crecimiento del sustrato.</td></tr>
+<tr><td>Estructura 3D / docking a nivel proteína</td><td>Nat, Q05 y Q27</td><td><span class="badge b-hi">no existe</span></td><td>Error de <b>tipo ontológico</b>: ninguna capa actual lo detecta. <code>resolve_id</code>/<code>verify_output</code> gatean que un ENSDARG exista y que el binding símbolo↔ENSDARG sea correcto, no que la <i>categoría</i> de la entidad sea la correcta para la operación pedida.</td></tr>
+</tbody></table></div>
+
+<div class="panel good">
+<div class="lab">El caso hand2 — nadie se equivocó, el instrumento envejeció</div>
+<p>Línea de tiempo medida sobre los snapshots versionados que el repo conserva:</p>
+<ul>
+<li><code>v2026-07-11.1</code> — 74 registros — <b>hand2 AUSENTE</b></li>
+<li><b>2026-07-18</b> — se congela el banco de calibración</li>
+<li><code>v2026-07-21.1</code> — 93 registros — <b>hand2 PRESENTE</b> · luego .2 (96) y .3 (113)</li>
+</ul>
+<p>La respuesta congelada de Q25 dice textual: <i>«hand2 was NOT_FOUND in-store, live-verified via Ensembl REST and raw-cached — an ADR-0036 reingest_candidate, not a fabrication»</i>. Era literalmente cierto al correr. Y el <code>ENSDARG00000008305</code> que verificó en vivo es <b>exactamente</b> el que el gate humano ingresó tres días después: cero divergencia. La maquinaria anti-fabricación funcionó como se diseñó. Nat tiene razón en su fecha de lectura; el sistema tenía razón en su fecha de corrida.</p>
+</div>
+
+<!-- ══════════════════════════ 8 ══════════════════════════ -->
+<h2 id="plan">8 · El plan</h2>
+
+<p>Ordenado por rendimiento sobre costo. Lo de arriba no gasta corridas ni calificaciones médicas; lo de abajo sí, y por eso va después.</p>
+
+<div class="scroll"><table>
+<thead><tr><th>#</th><th>Acción</th><th>Por qué ahora</th><th>Costo</th><th>Dueño</th></tr></thead>
+<tbody>
+<tr><td><b>1</b></td><td><b>Recoger los archivos de Morpheus que Nat ya tiene</b> → RN13 vía <code>add_dataset.py</code> → gate humano → <code>approve_dataset.py</code></td><td>RN13 = 0 registros verificado. Es un activo ofrecido por escrito que llevamos dos meses sin recoger, y ataca Q11, Q12, Q20, Q21 y Q29 de una sola vez.</td><td>bajo</td><td>Nat + gate tuyo</td></tr>
+<tr><td><b>2</b></td><td><b>Recuperar el escalar de Q13, Q22, Q28, Q29, Q30</b> por re-parseo determinista, con verificación campo por campo</td><td>Los 5 nulos son todos <code>baseline_reuse</code> (5/14 vs 0/16). Devuelve 5 preguntas a la métrica de calibración sin gastar una corrida.</td><td>cero</td><td>sesión de repo</td></tr>
+<tr><td><b>3</b></td><td><b>Rescatar la línea de agosto</b>: rama desde <code>69a6a49</code>, commitear los ~50 JSON + 27 scripts + caches, renumerar su ADR-0041 → <b>0075</b> con nota de procedencia (no tocar el 0041 de master)</td><td>Los caches crudos son irreemplazables y el replay está bloqueado por WDAC. Commitear primero, ordenar después.</td><td>bajo</td><td>sesión de repo</td></tr>
+<tr><td><b>4</b></td><td><b>Rediseñar el instrumento a banco v2</b> (ver recuadro abajo)</td><td>Sin esto, la siguiente ronda vuelve a morir en la pregunta 11.</td><td>bajo</td><td>sesión de repo</td></tr>
+<tr><td><b>5</b></td><td><b>Capturar la tabla de ortólogos de Nat</b> (Q08) en <code>evaluation/gold_set/atestiguado/</code> con procedencia, marcada <b>no admisible como evidencia</b> hasta verificarse contra Ensembl con cache crudo §7.9</td><td>Es verdad-terreno atestiguada por una experta. <b>Verificado:</b> six2b, rbpj, cdx1a, cdx4 son NOT_FOUND en el store — son candidatos de ingesta, no correcciones.</td><td>bajo</td><td>sesión + gate</td></tr>
+<tr><td><b>6</b></td><td><b>Abrir la capa proteica de la DI</b>: poblar <code>uniprot_acc</code> y <code>ensdarp</code> (hoy 0/113), y bloquear en <code>resolve_id</code> cualquier consulta de estructura/docking sin ancla proteica</td><td>Es la raíz arquitectónica de Q05 <i>y</i> Q27 — dos instancias independientes del mismo error de tipo ontológico.</td><td>medio</td><td>sesión + gate</td></tr>
+<tr><td><b>7</b></td><td><b>Correr el held-out v2 sobre las 30</b> con <code>run_held_out_v2.py</code> — <b>después</b> de 1, 2 y 6</td><td>Es el pendiente que ya traes del 08-23 (~USD 6–9). Es la re-corrida del banco por el pipeline vivo, con BD forzada a <code>evaluation/eval_runs.db</code>.</td><td>~USD 6–9</td><td>decisión tuya</td></tr>
+<tr><td><b>8</b></td><td><b>Segunda ronda con los tres médicos</b>, sobre las respuestas nuevas y con el instrumento v2</td><td>Solo después de 7. Calificar respuestas de julio otra vez sería medir un sistema jubilado.</td><td>~40 min c/u</td><td>Martín · Marcelo · Nat</td></tr>
+</tbody></table></div>
+
+<div class="panel warn">
+<div class="lab">Banco v2 — los seis cambios al instrumento</div>
+<ol style="margin-top:4px">
+<li><b>Lotes de 8, entregados en serie.</b> No se manda el siguiente hasta cerrar el anterior. Nunca un archivo de 30 filas.</li>
+<li><b>Romper el orden por nicho.</b> Cada lote lleva mezcla obligatoria (biología + modelado) y el orden dentro del lote rota entre revisores, para contrapesar el efecto de posición.</li>
+<li><b>El resumen es la ruta por defecto.</b> La respuesta completa sale de la hoja y se va a un documento aparte, con link por fila. Ninguna casilla debe quedar detrás de una celda de 8k caracteres. Y si se deja en inglés, se dice en las instrucciones y se recalcula ahí mismo el presupuesto de tiempo.</li>
+<li><b>Agregar el <code>[?]</code> de tres estados</b> (<code>cannot-rate</code> / <code>not-applicable</code>), alineado con ADR-0064. Blanco y «Sí» por defecto no pueden seguir siendo indistinguibles.</li>
+<li><b>Agregar las dos columnas que faltan:</b> <code>D_donde_falla</code> (nada falló · la pregunta · el sistema · los datos) cada vez que la respuesta no sea «Sí sólida», y <code>transferencia_al_proyecto</code> — el eje que Martín calificó cuatro veces sin tener dónde ponerlo.</li>
+<li><b>Arreglar la rúbrica:</b> ejemplos que NO salgan del banco (hoy Q03 es el ejemplo literal de «Parcial»); descomponer «Fuera de alcance» en <code>fuera-del-tema</code> / <code>no-alcanzable-ahora</code> / <code>meta-gobernanza</code>; partir <code>P_especificidad</code>, que mezcla dos dimensiones ortogonales y es el único eje con los tres pares en correlación negativa; y meter <b>3–5 controles negativos</b> genuinos sin avisar.</li>
+</ol>
+<p class="sub">Y una decisión de diseño que hay que tomar: <b>mostrar la procedencia de cada pregunta al revisor</b>. Martín la pidió cuatro veces. Para las cuatro con origen trazado (P1→Q03, P3→Q11, P4→Q20, P2→Q30) se puede poner ya.</p>
+</div>
+
+<div class="panel lead">
+<div class="lab">El futuro del banco frente a M5 en vivo</div>
+<p>Dijiste que pronto van a calificar en vivo desde la webapp. El banco <b>no muere: cambia de papel.</b></p>
+<p><b>Lo que muere</b> es el banco como medición del sistema actual. Sus respuestas se congelaron contra un pipeline que ya no existe — entre julio y hoy pasamos de contrato 1.0 a 1.6. Hay prueba directa de que eso cambia respuestas: misma pregunta wt1a, corrida <code>a361f566</code> (08-10) concluyó «no evidence»; corrida <code>4d046355</code> (08-23) concluyó que sí, acotado a glomérulo/podocito, con 0.05→0.86 y <code>AUDIT_APPROVED</code>.</p>
+<p><b>Lo que sobrevive</b> es el corpus de preguntas —30 ítems con <code>intended_labels</code>, <code>niche</code>, <code>type</code>, <code>system</code> y <code>causal_pruner_flag</code> pre-registrados, cuatro con procedencia trazada a sesiones reales de Nat— y el <b>brazo ciego</b>. ADR-0064 §6 es explícito: los dos instrumentos <b>no se mezclan en silencio</b>. M5 es 1–5, no ciego, con procedencia derivada del servidor; el banco es categórico, ciego, y con texto libre separado por bloque. <code>blind = False</code> es constante en M5 v1, con el comentario en <code>db.py</code>: <i>«the blind instrument is the CSV bank»</i>.</p>
+<p>Esa ceguera es la propiedad que M5 estructuralmente no puede tener, y es justo la que permite preguntar <i>«¿el experto coincide en que la confianza debía ser baja?»</i> sin anclarlo con el número de la IA. <b>El banco se queda como el brazo ciego del programa de calibración; M5 es el brazo continuo.</b> Y el texto libre del banco resultó ser lo más valioso de todo: los cinco ejes categóricos casi no midieron nada, y los 68 comentarios produjeron todos los diagnósticos accionables de este reporte.</p>
+</div>
+
+<!-- ══════════════════════════ 9 ══════════════════════════ -->
+<h2 id="alternativas">9 · Alternativas consideradas</h2>
+<div class="panel">
+<ul style="margin-top:2px">
+<li><b>«Retirar las preguntas que salieron mal calificadas.»</b> Rechazada, y es el error que la verificación adversarial atrapó 21 veces. Una pregunta excelente que no se pudo responder por falta de acervo <b>no es una pregunta mala</b>: es exactamente la sonda que mide el crecimiento del sustrato. Retirarla destruye la señal.</li>
+<li><b>«Confiar en el triage inicial.»</b> Rechazada por evidencia: 21 de 23 veredictos consecuentes cayeron. Sin la capa de refutación este reporte habría recomendado reescribir 10 preguntas y partir 6 — quemando calificaciones médicas escasas sobre defectos que no existían.</li>
+<li><b>«Tratar las 19 preguntas de Nat como verdad-terreno.»</b> Rechazada. Q05 es la demostración: con tres calificadores presentes, la más severa fue la que se equivocó. En el tramo n=1 ese error habría quedado registrado como fracaso del sistema.</li>
+<li><b>«Portar el banco a M5 y unificar instrumentos.»</b> Rechazada — ADR-0064 §6 lo prohíbe explícitamente y con razón: escalas distintas (0–2 vs 1–5), ceguera distinta, procedencia distinta. Se conservan como dos brazos declarados.</li>
+<li><b>«Correr el held-out v2 ya.»</b> Diferida, no rechazada. Correrlo <i>antes</i> de la ingesta RN13 y de la capa proteica mide el sistema sin las dos mejoras que sabemos que le faltan, y gasta el presupuesto en un baseline que envejece de inmediato.</li>
+<li><b>«Pedirle a Martín y Marcelo que terminen las 19 que faltan.»</b> Rechazada tal cual: sobre el instrumento v1 volverían a chocar con el mismo muro. Sobre el v2 y con respuestas re-corridas, sí.</li>
+</ul>
+</div>
+
+<!-- ══════════════════════════ 10 ══════════════════════════ -->
+<h2 id="limites">10 · Límites de lo que aquí se afirma</h2>
+<div class="panel crit">
+<ul style="margin-top:2px">
+<li><b>19 de 30 preguntas tienen un solo calificador.</b> En ese tramo «mayoría de revisores» es una opinión, no un consenso. Toda conclusión sobre Q12–Q30 hereda esa limitación.</li>
+<li><b>n = 11 para los ejes de input, 9–10 para los de output.</b> Con ese tamaño los intervalos de confianza de kappa son anchos; los valores negativos se leen como «indistinguible de azar», no como «los revisores se contradicen sistemáticamente».</li>
+<li><b>La hipótesis INPUT→OUTPUT no se sostiene ni se refuta.</b> Spearman 0.335 / 0.365 / 0.127. Con ejes cuya fiabilidad es ≤ azar, la hipótesis es <b>no-testeable por construcción del instrumento</b>. No se puede concluir «más específica = peor» ni que la especificidad sea irrelevante.</li>
+<li><b>No se puede concluir POR QUÉ pararon exactamente en Q11.</b> El <code>.xlsx</code> no tiene un solo timestamp. Hay dos explicaciones vivas —se acabó una sesión conjunta, o hay muro temático— y los datos no las separan. Ambas conducen al mismo rediseño.</li>
+<li><b>El scoring no fue completamente a ciegas.</b> Martín declara en Q05 haber deliberado con Nat: <i>«rewvisando con natalia aqui me surge una duda»</i>. La independencia está comprometida al menos en ese ítem.</li>
+<li><b>Nat no es jueza independiente en 4 preguntas</b> que ella misma originó (Q03, Q11, Q20, Q30).</li>
+<li><b>Los números de los handoffs de agosto están asertados, no reproducidos.</b> El replay está bloqueado por WDAC. Hasta que pase un replay con <code>RUN_DATE=20260818</code>, se citan como «asertado desde un JSON».</li>
+<li><b>Los minutos de carga son proyección, no medición.</b> Los caracteres y palabras están medidos directamente; las tasas de lectura (130–200 wpm) son supuestos declarados.</li>
+<li><b>Esta sesión no es un gate de auditoría de sustrato.</b> La verificación adversarial es fuerte pero no se invocó <code>composite-auditor</code> como gate formal (CLAUDE.md §7).</li>
+</ul>
+</div>
+
+<!-- ══════════════════════════ 11 ══════════════════════════ -->
+<h2 id="contrato">11 · Contrato §5</h2>
+<div class="panel">
+<div class="lab">confidence_by_subclaim</div>
+<p class="sub">Agregar a un escalar ocultaría que unas descansan en cómputo determinista sobre archivos del repo y otras en el juicio de una sola revisora.</p>
+<div class="conf"><div>El instrumento —no las preguntas— explica el abandono en Q11</div><div class="bar"><i style="width:86%;background:var(--c-good)"></i></div><div class="cv">0.86</div></div>
+<div class="conf"><div>Ninguna de las 30 preguntas amerita retirarse</div><div class="bar"><i style="width:84%;background:var(--c-good)"></i></div><div class="cv">0.84</div></div>
+<div class="conf"><div>Los 3 ejes de INPUT no miden un constructo compartido (kappa ≤ 0)</div><div class="bar"><i style="width:82%;background:var(--c-good)"></i></div><div class="cv">0.82</div></div>
+<div class="conf"><div>Q05, Q23 y Q30 son malas lecturas de respuestas correctas</div><div class="bar"><i style="width:88%;background:var(--c-good)"></i></div><div class="cv">0.88</div></div>
+<div class="conf"><div>Las 30 del banco == held_out_set_v1.json (verificado ítem por ítem)</div><div class="bar"><i style="width:97%;background:var(--c-good)"></i></div><div class="cv">0.97</div></div>
+<div class="conf"><div>Los 5 nulos de confianza son el escalar atrapado, recuperable sin corrida</div><div class="bar"><i style="width:78%;background:var(--c-good)"></i></div><div class="cv">0.78</div></div>
+<div class="conf"><div>La DI sin capa proteica es la raíz de Q05 y Q27</div><div class="bar"><i style="width:74%;background:#7a9a3a"></i></div><div class="cv">0.74</div></div>
+<div class="conf"><div>La línea de agosto corre desde un checkout clavado en 69a6a49</div><div class="bar"><i style="width:80%;background:var(--c-good)"></i></div><div class="cv">0.80</div></div>
+<div class="conf"><div>Ingerir RN13 es la acción de mayor rendimiento sobre costo</div><div class="bar"><i style="width:62%;background:var(--c-warn)"></i></div><div class="cv">0.62</div></div>
+<div class="conf"><div>Los veredictos individuales del tramo n=1 (Q12–Q30)</div><div class="bar"><i style="width:41%;background:var(--c-critical)"></i></div><div class="cv">0.41</div></div>
+<div class="conf"><div>La hipótesis INPUT→OUTPUT (no-testeable con este instrumento)</div><div class="bar"><i style="width:20%;background:var(--c-critical)"></i></div><div class="cv">0.20</div></div>
+</div>
+
+<footer>
+<p><b>Rescate del banco de calibración v1</b> · TYPE D retrospectiva formal · Method 2 (humano dirige, el sistema instrumenta) · Fase I · nichos N1·N3·N4·N5 · generado 2026-08-26.</p>
+<p><b>evidence_cited:</b> <code>evaluation/gold_set/banco_calibracion_v1.csv</code> · <code>banco_llave_v1.json</code> · <code>banco_instrucciones_v1.csv</code> · <code>evaluation/gold_set/respuestas/{nat,martin,marcelo}.csv</code> (nuevos, convertidos de los tres <code>.xlsx</code>) · <code>reports/calibracion_banco_20260826.json</code> · <code>evaluation/held_out_set_v1.json</code> · <code>analysis/outputs/verified_identifiers.json</code> (113, v2026-07-21.3) · <code>rag_index/corpus_manifest.json</code> · <code>rag_index/niches.json</code> · <code>docs/findings/2026-06-11-q30-niche-taxonomy-resolution.md</code> · <code>docs/HANDOFF-2026-08-23.md</code> · ADR-0018/0022/0027/0036/0039/0040/0050/0051/0053/0057/0058/0059/0064/0065/0066/0067/0068/0072 · handoffs de la línea ocular 2026-08-10/12/18/19 (fuera del repo, en <code>Downloads/</code>) · <code>Downloads/Nat Witt/P1–P4</code> (procedencia de Q03, Q11, Q20, Q30).</p>
+<p><b>Mutación de la DATA INAMOVIBLE: cero.</b> Store 113 sin cambio. Ninguna pregunta del banco fue modificada — este documento propone, no ejecuta. Los únicos archivos nuevos son los tres CSV de respuestas y el JSON de calibración.</p>
+<p><b>Predecesores (ADR-0002, no modificados):</b> <code>evaluation/gold_set/README_banco_calibracion.md</code> · <code>gold_set_v1.html</code> · <code>reports/2026-08-22_virtual-biotech-vs-witt-organo_comparativa_v1.html</code>.</p>
+</footer>
+
+</main>
+
+<script>
+const VEREDICTOS = [
+ {id:"Q01",t:"Factores de transcripción del mesodermo pronéfrico",f:"REESCRIBIR",o:"",n:3,v:"medio"},
+ {id:"Q02",t:"Marcadores: cresta neural vs. copa óptica y cristalino",f:"RE-CORRER-RESPUESTA",o:"RE-CORRER (condicionada)",n:3,v:"alto"},
+ {id:"Q03",t:"Regulador verdadero vs. gen acompañante",f:"RESCATAR-TAL-CUAL",o:"",n:3,v:"alto"},
+ {id:"Q04",t:"Especificidad tisular y asignación de Tier para KO",f:"PARTIR",o:"",n:3,v:"alto"},
+ {id:"Q05",t:"Estructuras 3D de TFs para docking",f:"REESCRIBIR",o:"RE-CORRER-RESPUESTA",n:3,v:"alto"},
+ {id:"Q06",t:"Complejos de interacción en desarrollo del ojo",f:"RESCATAR-TAL-CUAL",o:"",n:3,v:"alto"},
+ {id:"Q07",t:"Modelo de señalización de la inducción del pronephros",f:"RESCATAR-TAL-CUAL",o:"",n:3,v:"alto"},
+ {id:"Q08",t:"Ortólogos humanos y ohnólogos que confunden un KO",f:"REESCRIBIR",o:"",n:3,v:"alto"},
+ {id:"Q09",t:"Metabolismo y gradientes en tubulogénesis",f:"RESCATAR-TAL-CUAL",o:"PARTIR",n:3,v:"alto"},
+ {id:"Q10",t:"Lecturas bioeléctricas e ingesta de datos de voltaje",f:"PARTIR",o:"",n:3,v:"medio"},
+ {id:"Q11",t:"Ensamblaje de modelo Morpheus de córnea",f:"RESCATAR-TAL-CUAL",o:"RE-CORRER-RESPUESTA",n:3,v:"alto"},
+ {id:"Q12",t:"Condiciones de frontera en Morpheus",f:"RESCATAR-TAL-CUAL",o:"",n:1,v:"alto"},
+ {id:"Q13",t:"Lecturas de fluidos y formatos de malla en el pronefros",f:"RE-CORRER-RESPUESTA",o:"PARTIR",n:1,v:"medio"},
+ {id:"Q14",t:"Calibrar simulación con cinética de migración celular",f:"RESCATAR-TAL-CUAL",o:"",n:1,v:"medio"},
+ {id:"Q15",t:"Morfometría del pronephros vs mesodermo teratogénico",f:"RE-CORRER-RESPUESTA",o:"REESCRIBIR",n:1,v:"alto"},
+ {id:"Q16",t:"Tabla maestra de inducción del pronephros",f:"RESCATAR-TAL-CUAL",o:"",n:1,v:"alto"},
+ {id:"Q17",t:"Endotelio corneal en pez cebra",f:"RESCATAR-TAL-CUAL",o:"RE-CORRER-RESPUESTA",n:1,v:"alto"},
+ {id:"Q18",t:"Set mínimo de perturbación — suficiencia GOF",f:"RESCATAR-TAL-CUAL",o:"REESCRIBIR",n:1,v:"alto"},
+ {id:"Q19",t:"Doble KO y enmascaramiento por redundancia de paralogos",f:"RESCATAR-TAL-CUAL",o:"REESCRIBIR",n:1,v:"alto"},
+ {id:"Q20",t:"Error de inicialización en Morpheus",f:"RESCATAR-TAL-CUAL",o:"REESCRIBIR",n:1,v:"alto"},
+ {id:"Q21",t:"Pipeline de red de señalización a modelo Morpheus",f:"REESCRIBIR",o:"",n:1,v:"alto"},
+ {id:"Q22",t:"Resolver símbolos de gen a ENSDARG verificados",f:"RESCATAR-TAL-CUAL",o:"REESCRIBIR",n:1,v:"alto"},
+ {id:"Q23",t:"Puente ojo→riñón: tejido chaperón",f:"RE-CORRER-RESPUESTA",o:"",n:1,v:"medio"},
+ {id:"Q24",t:"Elementos regulatorios de respuesta a RA en pronephros",f:"PARTIR",o:"",n:1,v:"alto"},
+ {id:"Q25",t:"Síntesis balanceada de literatura: osr1",f:"RESCATAR-TAL-CUAL",o:"RE-CORRER-RESPUESTA",n:1,v:"alto"},
+ {id:"Q26",t:"Marcadores de segmentos del pronephros",f:"REESCRIBIR",o:"(+ ítem hermano de glomérulo)",n:1,v:"alto"},
+ {id:"Q27",t:"Perturbagenos de RA y formatos de docking",f:"RESCATAR-TAL-CUAL",o:"PARTIR",n:1,v:"medio"},
+ {id:"Q28",t:"Regulador vs. acompañante en scRNA",f:"RECUPERAR-ESCALAR",o:"RE-CORRER-RESPUESTA",n:1,v:"alto"},
+ {id:"Q29",t:"Prueba mínima de gradiente en Morpheus",f:"RECUPERAR-ESCALAR",o:"RE-CORRER-RESPUESTA",n:1,v:"alto"},
+ {id:"Q30",t:"Taxonomía de nichos: ¿biología ocular como nicho propio?",f:"RECUPERAR-ESCALAR",o:"REESCRIBIR",n:1,v:"medio"}
+];
+const CLS={"RESCATAR-TAL-CUAL":"b-keep","REESCRIBIR":"b-rew","PARTIR":"b-split",
+           "RE-CORRER-RESPUESTA":"b-rerun","RECUPERAR-ESCALAR":"b-scal"};
+const VCLS={alto:"b-hi",medio:"b-mid",bajo:"b-lo"};
+document.getElementById('tbody-v').innerHTML = VEREDICTOS.map(r=>
+  `<tr><td><b>${r.id}</b></td><td>${r.t}</td>`+
+  `<td><span class="badge ${CLS[r.f]||'b-none'}">${r.f}</span></td>`+
+  `<td class="tag">${r.o?('↩ '+r.o):''}</td>`+
+  `<td>${r.n===1?'<span class="badge b-mid">1 · Nat</span>':'<b>3</b>'}</td>`+
+  `<td><span class="badge ${VCLS[r.v]}">${r.v}</span></td></tr>`).join('');
+</script>
+</body>
+</html>

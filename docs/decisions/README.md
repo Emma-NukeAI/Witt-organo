@@ -141,6 +141,8 @@ or external references that informed the decision.
 | [0071](0071-rack-browse-graph-operation.md) | 2026-08-22 | El browse del grafo (`GET /rack/node/{id}`): la operación que no existía en ninguna puerta | Accepted |
 | [0072](0072-held-out-harness-on-run-model.md) | 2026-08-22 | El harness held-out migra al run model: lo que se evalúa ES el pipeline de producción | Accepted |
 | [0073](0073-server-pdf-frozen-record-export.md) | 2026-08-22 | El PDF de servidor del registro congelado (`GET /runs/{id}/record.pdf`, M4 export) | Accepted |
+| [0074](0074-list-fields-serialized-as-strings.md) | 2026-08-25 | Campos-lista serializados como string: se normalizan ANTES de congelar | Accepted |
+| [0075](0075-m5-v2-dos-notas-y-cortes-declarados.md) | 2026-08-26 | M5 v2: dos notas separadas, anclas con palabra, y los cortes que declaran de qué descansa el ECE | Accepted |
 
 ---
 

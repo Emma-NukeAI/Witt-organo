@@ -1,0 +1,1358 @@
+{
+  "generated_at": "2026-08-26T22:32:20Z",
+  "n_reviewers": 3,
+  "reviewers": [
+    "Marcelo",
+    "Martin",
+    "Nat"
+  ],
+  "n_questions": 30,
+  "coverage": {
+    "cells_per_axis_filled": {
+      "P_objetiva": 52,
+      "P_en_contexto": 52,
+      "P_especificidad": 52,
+      "R_correcta_util": 50,
+      "R_la_usarias": 50
+    },
+    "cells_expected_per_axis": 90,
+    "pct_by_axis": {
+      "P_objetiva": 57.8,
+      "P_en_contexto": 57.8,
+      "P_especificidad": 57.8,
+      "R_correcta_util": 55.6,
+      "R_la_usarias": 55.6
+    }
+  },
+  "distributions": {
+    "P_objetiva": {
+      "1": 21,
+      "2": 27,
+      "0": 4
+    },
+    "P_en_contexto": {
+      "2": 29,
+      "1": 20,
+      "0": 3
+    },
+    "P_especificidad": {
+      "1": 16,
+      "2": 29,
+      "0": 7
+    },
+    "R_correcta_util": {
+      "1": 22,
+      "2": 24,
+      "0": 4
+    },
+    "R_la_usarias": {
+      "1": 37,
+      "0": 13
+    }
+  },
+  "inter_reviewer_agreement": {
+    "P_objetiva": {
+      "mean_pairwise_agreement": 0.455,
+      "pct_questions_with_majority": 100.0,
+      "n_questions_scored_by_2plus": 11
+    },
+    "P_en_contexto": {
+      "mean_pairwise_agreement": 0.515,
+      "pct_questions_with_majority": 100.0,
+      "n_questions_scored_by_2plus": 11
+    },
+    "P_especificidad": {
+      "mean_pairwise_agreement": 0.455,
+      "pct_questions_with_majority": 100.0,
+      "n_questions_scored_by_2plus": 11
+    },
+    "R_correcta_util": {
+      "mean_pairwise_agreement": 0.576,
+      "pct_questions_with_majority": 81.8,
+      "n_questions_scored_by_2plus": 11
+    },
+    "R_la_usarias": {
+      "mean_pairwise_agreement": 0.667,
+      "pct_questions_with_majority": 90.9,
+      "n_questions_scored_by_2plus": 11
+    }
+  },
+  "reviewer_vs_intended_design": {
+    "P_objetiva": {
+      "pct_majority_matches_intended": 50.0,
+      "n_compared": 30,
+      "per_question": {
+        "Q01": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q02": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q03": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q04": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q05": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q06": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q07": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q08": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q09": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q10": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q11": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q12": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q13": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 0,
+          "match": false
+        },
+        "Q14": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q15": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q16": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q17": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q18": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q19": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 0,
+          "match": false
+        },
+        "Q20": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q21": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q22": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q23": {
+          "intended": "abierta",
+          "intended_code": 0,
+          "reviewer_majority_code": 0,
+          "match": true
+        },
+        "Q24": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q25": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q26": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q27": {
+          "intended": "objetiva",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q28": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q29": {
+          "intended": "parcial",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q30": {
+          "intended": "abierta",
+          "intended_code": 0,
+          "reviewer_majority_code": 0,
+          "match": true
+        }
+      }
+    },
+    "P_en_contexto": {
+      "pct_majority_matches_intended": 63.3,
+      "n_compared": 30,
+      "per_question": {
+        "Q01": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q02": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q03": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q04": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q05": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q06": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q07": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q08": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q09": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q10": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q11": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q12": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q13": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q14": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q15": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q16": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q17": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q18": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q19": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q20": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q21": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q22": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q23": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q24": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 0,
+          "match": false
+        },
+        "Q25": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q26": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q27": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q28": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q29": {
+          "intended": "en_foco",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q30": {
+          "intended": "exploratoria",
+          "intended_code": 1,
+          "reviewer_majority_code": 0,
+          "match": false
+        }
+      }
+    },
+    "P_especificidad": {
+      "pct_majority_matches_intended": 53.3,
+      "n_compared": 30,
+      "per_question": {
+        "Q01": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q02": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q03": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q04": {
+          "intended": "generica",
+          "intended_code": 0,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q05": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q06": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q07": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q08": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q09": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q10": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q11": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q12": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q13": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 0,
+          "match": false
+        },
+        "Q14": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q15": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q16": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q17": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q18": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q19": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q20": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q21": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 0,
+          "match": false
+        },
+        "Q22": {
+          "intended": "generica",
+          "intended_code": 0,
+          "reviewer_majority_code": 0,
+          "match": true
+        },
+        "Q23": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 1,
+          "match": true
+        },
+        "Q24": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q25": {
+          "intended": "generica",
+          "intended_code": 0,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q26": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 2,
+          "match": true
+        },
+        "Q27": {
+          "intended": "especifica",
+          "intended_code": 2,
+          "reviewer_majority_code": 1,
+          "match": false
+        },
+        "Q28": {
+          "intended": "intermedia",
+          "intended_code": 1,
+          "reviewer_majority_code": 2,
+          "match": false
+        },
+        "Q29": {
+          "intended": "generica",
+          "intended_code": 0,
+          "reviewer_majority_code": 0,
+          "match": true
+        },
+        "Q30": {
+          "intended": "generica",
+          "intended_code": 0,
+          "reviewer_majority_code": 0,
+          "match": true
+        }
+      }
+    }
+  },
+  "input_to_output_hypothesis": {
+    "P_objetiva": {
+      "spearman_vs_quality": 0.335,
+      "interpretation": "correlación de rangos entre el eje de la PREGUNTA percibido y la calidad de la RESPUESTA (R_correcta_util). Positiva alta ⇒ ese atributo de la pregunta predice mejor respuesta."
+    },
+    "P_en_contexto": {
+      "spearman_vs_quality": 0.365,
+      "interpretation": "correlación de rangos entre el eje de la PREGUNTA percibido y la calidad de la RESPUESTA (R_correcta_util). Positiva alta ⇒ ese atributo de la pregunta predice mejor respuesta."
+    },
+    "P_especificidad": {
+      "spearman_vs_quality": 0.127,
+      "interpretation": "correlación de rangos entre el eje de la PREGUNTA percibido y la calidad de la RESPUESTA (R_correcta_util). Positiva alta ⇒ ese atributo de la pregunta predice mejor respuesta."
+    }
+  },
+  "human_anchored_calibration": {
+    "per_question": {
+      "Q01": {
+        "ia_confidence": 0.72,
+        "expert_quality_0_1": 0.833,
+        "gap": -0.113
+      },
+      "Q02": {
+        "ia_confidence": 0.72,
+        "expert_quality_0_1": 0.667,
+        "gap": 0.053
+      },
+      "Q03": {
+        "ia_confidence": 0.6,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.4
+      },
+      "Q04": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 0.5,
+        "gap": -0.08
+      },
+      "Q05": {
+        "ia_confidence": 0.88,
+        "expert_quality_0_1": 0.667,
+        "gap": 0.213
+      },
+      "Q06": {
+        "ia_confidence": 0.72,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.28
+      },
+      "Q07": {
+        "ia_confidence": 0.55,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.45
+      },
+      "Q08": {
+        "ia_confidence": 0.82,
+        "expert_quality_0_1": 0.667,
+        "gap": 0.153
+      },
+      "Q09": {
+        "ia_confidence": 0.6,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.4
+      },
+      "Q10": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 0.5,
+        "gap": -0.08
+      },
+      "Q11": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 0.75,
+        "gap": -0.33
+      },
+      "Q12": {
+        "ia_confidence": 0.72,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.22
+      },
+      "Q13": {
+        "ia_confidence": null,
+        "expert_quality_0_1": 0.5,
+        "gap": null
+      },
+      "Q14": {
+        "ia_confidence": 0.62,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.12
+      },
+      "Q15": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 0.0,
+        "gap": 0.42
+      },
+      "Q16": {
+        "ia_confidence": 0.55,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.05
+      },
+      "Q17": {
+        "ia_confidence": 0.62,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.38
+      },
+      "Q18": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.58
+      },
+      "Q19": {
+        "ia_confidence": 0.6,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.1
+      },
+      "Q20": {
+        "ia_confidence": 0.45,
+        "expert_quality_0_1": 0.5,
+        "gap": -0.05
+      },
+      "Q21": {
+        "ia_confidence": 0.62,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.38
+      },
+      "Q22": {
+        "ia_confidence": null,
+        "expert_quality_0_1": 1.0,
+        "gap": null
+      },
+      "Q23": {
+        "ia_confidence": 0.34,
+        "expert_quality_0_1": 0.5,
+        "gap": -0.16
+      },
+      "Q24": {
+        "ia_confidence": 0.6,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.1
+      },
+      "Q25": {
+        "ia_confidence": 0.72,
+        "expert_quality_0_1": 0.5,
+        "gap": 0.22
+      },
+      "Q26": {
+        "ia_confidence": 0.87,
+        "expert_quality_0_1": 1.0,
+        "gap": -0.13
+      },
+      "Q27": {
+        "ia_confidence": 0.42,
+        "expert_quality_0_1": 0.5,
+        "gap": -0.08
+      },
+      "Q28": {
+        "ia_confidence": null,
+        "expert_quality_0_1": 0.5,
+        "gap": null
+      },
+      "Q29": {
+        "ia_confidence": null,
+        "expert_quality_0_1": 0.5,
+        "gap": null
+      },
+      "Q30": {
+        "ia_confidence": null,
+        "expert_quality_0_1": 0.0,
+        "gap": null
+      }
+    },
+    "overconfident": [
+      "Q15"
+    ],
+    "underconfident": [
+      "Q03",
+      "Q06",
+      "Q07",
+      "Q09",
+      "Q11",
+      "Q17",
+      "Q18",
+      "Q21"
+    ],
+    "well_calibrated": [
+      "Q01",
+      "Q02",
+      "Q04",
+      "Q05",
+      "Q08",
+      "Q10",
+      "Q12",
+      "Q14",
+      "Q16",
+      "Q19",
+      "Q20",
+      "Q23",
+      "Q24",
+      "Q25",
+      "Q26",
+      "Q27"
+    ],
+    "mean_abs_gap": 0.222,
+    "note": "Ancla humana (ADR-0037): la confianza de la IA es AUTO-REPORTE; la calidad experta es el gold-set humano. gap = ia_confidence - calidad_experta_normalizada. |gap| pequeño ⇒ bien calibrada. gap>0 ⇒ sobre-confianza; gap<0 ⇒ sub-confianza."
+  },
+  "per_question": [
+    {
+      "id": "Q01",
+      "tema": "Factores de transcripción del mesodermo pronéfrico",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.72,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 2,
+        "P_especificidad": 1.33
+      },
+      "quality_mean": 1.67,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q02",
+      "tema": "Marcadores: cresta neural vs. copa óptica y cristalino",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.72,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 1.33,
+        "P_especificidad": 1.67
+      },
+      "quality_mean": 1.33,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q03",
+      "tema": "Regulador verdadero vs. gen acompañante",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.6,
+      "perceived": {
+        "P_objetiva": 1.67,
+        "P_en_contexto": 2,
+        "P_especificidad": 1.67
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q04",
+      "tema": "Especificidad tisular y asignación de Tier para KO",
+      "intended": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 1.33,
+        "P_especificidad": 1.67
+      },
+      "quality_mean": 1,
+      "would_use_mean": 0.33
+    },
+    {
+      "id": "Q05",
+      "tema": "Estructuras 3D de TFs para docking",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.88,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 1.33,
+        "P_especificidad": 1.33
+      },
+      "quality_mean": 1.33,
+      "would_use_mean": 0.67
+    },
+    {
+      "id": "Q06",
+      "tema": "Complejos de interacción en desarrollo del ojo",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.72,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 1.33,
+        "P_especificidad": 2
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q07",
+      "tema": "Modelo de señalización de la inducción del pronephros",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.55,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 1.67,
+        "P_especificidad": 2
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q08",
+      "tema": "Ortólogos humanos y ohnólogos que confunden un KO",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.82,
+      "perceived": {
+        "P_objetiva": 1.67,
+        "P_en_contexto": 2,
+        "P_especificidad": 1.67
+      },
+      "quality_mean": 1.33,
+      "would_use_mean": 0.33
+    },
+    {
+      "id": "Q09",
+      "tema": "Metabolismo y gradientes en tubulogénesis",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.6,
+      "perceived": {
+        "P_objetiva": 1.67,
+        "P_en_contexto": 1.67,
+        "P_especificidad": 1.33
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q10",
+      "tema": "Lecturas bioeléctricas e ingesta de datos de voltaje",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 1.67,
+        "P_especificidad": 1.67
+      },
+      "quality_mean": 1,
+      "would_use_mean": 0.67
+    },
+    {
+      "id": "Q11",
+      "tema": "Ensamblaje de modelo Morpheus de córnea",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 1.33,
+        "P_en_contexto": 1.33,
+        "P_especificidad": 1.33
+      },
+      "quality_mean": 1.5,
+      "would_use_mean": 0.5
+    },
+    {
+      "id": "Q12",
+      "tema": "Condiciones de frontera en Morpheus",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.72,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q13",
+      "tema": "Lecturas de fluidos y formatos de malla en el pronefros",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": null,
+      "perceived": {
+        "P_objetiva": 0,
+        "P_en_contexto": 1,
+        "P_especificidad": 0
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q14",
+      "tema": "Calibrar simulación con cinética de migración celular",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.62,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q15",
+      "tema": "Morfometría del pronephros vs mesodermo teratogénico",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 1,
+        "P_especificidad": 2
+      },
+      "quality_mean": 0,
+      "would_use_mean": 0
+    },
+    {
+      "id": "Q16",
+      "tema": "Tabla maestra de inducción del pronephros",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.55,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 2
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q17",
+      "tema": "Endotelio corneal en pez cebra",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.62,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 1,
+        "P_especificidad": 1
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q18",
+      "tema": "Set mínimo de perturbación — suficiencia GOF del programa pronéfrico",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 2
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q19",
+      "tema": "Doble KO y enmascaramiento por redundancia de paralogos",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.6,
+      "perceived": {
+        "P_objetiva": 0,
+        "P_en_contexto": 2,
+        "P_especificidad": 2
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q20",
+      "tema": "Error de inicialización en Morpheus",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.45,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 1,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q21",
+      "tema": "Pipeline de red de señalización a modelo Morpheus",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.62,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 2,
+        "P_especificidad": 0
+      },
+      "quality_mean": 2,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q22",
+      "tema": "Resolver símbolos de gen a ENSDARG verificados",
+      "intended": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": null,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 1,
+        "P_especificidad": 0
+      },
+      "quality_mean": 2,
+      "would_use_mean": 0
+    },
+    {
+      "id": "Q23",
+      "tema": "Puente ojo→riñón: tejido chaperón",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "ia_confidence": 0.34,
+      "perceived": {
+        "P_objetiva": 0,
+        "P_en_contexto": 1,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 0
+    },
+    {
+      "id": "Q24",
+      "tema": "Elementos regulatorios de respuesta a RA en pronephros",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.6,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 0,
+        "P_especificidad": 2
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q25",
+      "tema": "Síntesis balanceada de literatura: osr1",
+      "intended": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": 0.72,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 1,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q26",
+      "tema": "Marcadores de segmentos del pronephros",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.87,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 2
+      },
+      "quality_mean": 2,
+      "would_use_mean": 0
+    },
+    {
+      "id": "Q27",
+      "tema": "Perturbagenos de RA y formatos de docking",
+      "intended": {
+        "especificidad": "especifica",
+        "contexto": "en_foco",
+        "objetividad": "objetiva"
+      },
+      "ia_confidence": 0.42,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 1,
+        "P_especificidad": 1
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q28",
+      "tema": "Regulador vs. acompañante en scRNA",
+      "intended": {
+        "especificidad": "intermedia",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": null,
+      "perceived": {
+        "P_objetiva": 2,
+        "P_en_contexto": 2,
+        "P_especificidad": 2
+      },
+      "quality_mean": 1,
+      "would_use_mean": 1
+    },
+    {
+      "id": "Q29",
+      "tema": "Prueba mínima de gradiente en Morpheus",
+      "intended": {
+        "especificidad": "generica",
+        "contexto": "en_foco",
+        "objetividad": "parcial"
+      },
+      "ia_confidence": null,
+      "perceived": {
+        "P_objetiva": 1,
+        "P_en_contexto": 1,
+        "P_especificidad": 0
+      },
+      "quality_mean": 1,
+      "would_use_mean": 0
+    },
+    {
+      "id": "Q30",
+      "tema": "Taxonomía de nichos: ¿biología ocular como nicho propio?",
+      "intended": {
+        "especificidad": "generica",
+        "contexto": "exploratoria",
+        "objetividad": "abierta"
+      },
+      "ia_confidence": null,
+      "perceived": {
+        "P_objetiva": 0,
+        "P_en_contexto": 0,
+        "P_especificidad": 0
+      },
+      "quality_mean": 0,
+      "would_use_mean": 0
+    }
+  ],
+  "input_files": [
+    "evaluation\\gold_set\\respuestas\\marcelo.csv",
+    "evaluation\\gold_set\\respuestas\\martin.csv",
+    "evaluation\\gold_set\\respuestas\\nat.csv"
+  ]
+}

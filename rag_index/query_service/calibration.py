@@ -50,6 +50,22 @@ OUTCOME_MAPPING_DECL = {
                   "(stated/recovered/derived) se tally en confidence_sources",
     "version": "v1 (ADR-0064) — recalibrable con volumen; el mapeo viaja en la respuesta para que "
                "ningun numero circule sin su metodo",
+    # --- declaraciones agregadas por M5 v2 (ADR-0075). Ninguna cambia el numero titular: lo que hacen es
+    # --- decir en voz alta lo que el numero SIEMPRE fue, y ofrecer al lado el bloque no contaminado.
+    "axis_roles": "rating_output es el UNICO eje que se mapea a outcome. rating_input NUNCA ha entrado "
+                  "al ECE — ni antes ni ahora (verificable: no aparece en este modulo); es un eje "
+                  "DESCRIPTIVO. Antecedente CRUZADO DE INSTRUMENTO (hipotesis sobre M5, jamas medicion "
+                  "de M5, ADR-0064 s6): en el banco CSV los tres ejes de input dieron kappa <= 0 "
+                  "corregido por azar. La fiabilidad de rating_input DENTRO de M5 esta SIN MEDIR",
+    "author_caveat": "una corrida calificada SOLO por su autor (m5-cierre) tiene su etiqueta decidida "
+                     "por una sola persona con interes en el resultado: es autoexamen, no consenso. "
+                     "NO se excluye del agregado (se declara, no se esconde), pero el bloque "
+                     "by_authorship trae el ECE de m5-consenso POR SEPARADO — ese es el numero sin "
+                     "autoexamen. Cuenta de corridas afectadas en raters.n_runs_author_only",
+    "honest_decline": "una declinacion honesta (verdict APPROVE_DECLINE, ADR-0058) trae confianza baja "
+                      "POR CONSTRUCCION y el sistema hizo lo correcto. Si el humano la califica alto, "
+                      "el par entra como error maximo justo cuando no hubo error. NO se excluye del "
+                      "agregado; se cuenta y se ofrece ece_excluding_declines al lado",
 }
 
 
@@ -121,6 +137,13 @@ def report():
     conf_sources = {}
     instruments = {}
     pairs_all, pairs_by_profile = [], {"medico": [], "dev": []}
+    # M5 v2 (ADR-0075): bloques PARALELOS. El numero titular (`ece`) no cambia — cambiar en silencio una
+    # cifra ya publicada seria justo lo que la casa prohibe. Lo que se agrega es el mismo calculo sobre
+    # subconjuntos declarados, para que el lector vea de que descansa el titular.
+    pairs_by_authorship = {"m5-consenso": [], "m5-cierre": []}
+    pairs_sin_declinacion = []
+    n_runs_author_only = n_runs_single_rater = n_pairs_honest_decline = 0
+    raters_hist = {}
 
     for row in closed:
         try:
@@ -140,6 +163,16 @@ def report():
         label, n_votes = _majority_label(latest)
         if label is not None:
             n_with_label += 1
+        # Cuantas PERSONAS distintas calificaron esta corrida, y si alguna fue alguien mas que el autor.
+        # Se cuenta sobre TODAS las cerradas con calificaciones (no solo las que llegan al par): el
+        # lector necesita saber de cuantas cabezas depende el numero, no de cuantos pares sobrevivieron.
+        if latest:
+            k = len(latest)
+            raters_hist[str(k)] = raters_hist.get(str(k), 0) + 1
+            if k == 1:
+                n_runs_single_rater += 1
+            if all(r["is_author"] for r in latest):
+                n_runs_author_only += 1
 
         if not isinstance(conf, (int, float)):
             excluded["no_confidence"] += 1
@@ -155,6 +188,18 @@ def report():
             p_label, _ = _majority_label([r for r in latest if r["rater_profile"] == profile])
             if p_label is not None:
                 pairs_by_profile[profile].append((float(conf), p_label))
+
+        # --- los tres cortes declarados de M5 v2 (ADR-0075), todos sobre el MISMO par ya admitido ---
+        # (1) por autoria: m5-consenso es el numero sin autoexamen; m5-cierre se reporta aparte.
+        for inst in ("m5-consenso", "m5-cierre"):
+            i_label, _ = _majority_label([r for r in latest if r["instrument"] == inst])
+            if i_label is not None:
+                pairs_by_authorship[inst].append((float(conf), i_label))
+        # (2) declinacion honesta: se cuenta y se ofrece el ECE sin ella al lado.
+        if (rec.get("audit") or {}).get("verdict") == "APPROVE_DECLINE":
+            n_pairs_honest_decline += 1
+        else:
+            pairs_sin_declinacion.append((float(conf), label))
 
     n_scored = len(pairs_all)
     return {
@@ -175,6 +220,32 @@ def report():
         },
         "ece": _pairs_to_block(pairs_all),
         "by_rater_profile": {p: _pairs_to_block(pairs) for p, pairs in pairs_by_profile.items()},
+        # --- M5 v2 (ADR-0075): los cortes que dicen de que descansa el titular -----------------------
+        "by_authorship": {
+            **{i: _pairs_to_block(p) for i, p in pairs_by_authorship.items()},
+            "note": ("m5-consenso = el ECE SIN autoexamen (lo calificó alguien distinto del autor); "
+                     "m5-cierre = la calificación del propio autor. Cuando sólo calificó el autor, el "
+                     "titular `ece` descansa entero en autoexamen — la cuenta está en "
+                     "raters.n_runs_author_only. Ninguno de los dos reemplaza al titular: se leen al lado"),
+        },
+        "raters": {
+            "n_runs_author_only": n_runs_author_only,
+            "n_runs_single_rater": n_runs_single_rater,
+            "por_n_calificadores": dict(sorted(raters_hist.items())),
+            "note": ("cuántas personas distintas calificaron cada corrida cerrada. Con UN calificador la "
+                     "mayoría estricta es una perífrasis de esa persona: su severidad decide la etiqueta. "
+                     "Medido en el banco de calibración (OTRO instrumento — antecedente, no medición de "
+                     "M5): la tasa de etiquetas positivas fue 100% para dos revisores y 69% para la "
+                     "tercera, un swing mayor que cualquier efecto de calibración que se quiera detectar"),
+        },
+        "ece_excluding_declines": {
+            **_pairs_to_block(pairs_sin_declinacion),
+            "n_excluded_declines": n_pairs_honest_decline,
+            "note": ("el mismo ECE quitando las corridas con verdict APPROVE_DECLINE. Una declinación "
+                     "honesta trae confianza baja por construcción y ES la conducta correcta: si el "
+                     "humano la califica alto, el par entra al titular como error máximo sin que haya "
+                     "habido error. Bloque paralelo — el titular no se toca"),
+        },
         "by_instrument": {
             **instruments,
             "note": ("el agregado MEZCLA m5-cierre y m5-consenso — declarado aqui, jamas en silencio "

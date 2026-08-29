@@ -79,10 +79,25 @@ def build_snapshot(status, run_tally):
         for r in recs:
             n = ((r.get("axis_data_niche") or {}).get("primary")) or "sin-nicho"
             por_nicho[n] = por_nicho.get(n, 0) + 1
+        # El denominador honesto (ADR-0075). `por_nicho` se venía pintando como si fuera EL reparto del
+        # acervo, cuando es el reparto de los registros CATALOGADOS en el manifest — que hoy son una
+        # fracción de los documentos indexados. Sin el denominador, un lector concluye "el corpus es
+        # 2/3 genómica" de una muestra que no sabe que es muestra. Los dos números ya viven en este
+        # mismo snapshot (sección `indice`), así que el arreglo es de lectura, no de datos.
+        doc_count = status.get("doc_count")
+        cobertura = (f"{len(recs)} de {doc_count}" if isinstance(doc_count, int) and doc_count
+                     else f"{len(recs)} (documentos indexados: no consta — índice OFFLINE)")
         snap["secciones"]["corpus"] = {
             "n_records": len(recs),
+            "n_docs_indexados": doc_count,
+            "cobertura_del_reparto": cobertura,
             "por_nicho": dict(sorted(por_nicho.items(), key=lambda kv: -kv[1])),
             "ultimo_id": recs[-1].get("corpus_record_id") if recs else None,
+            "caveat": ("`por_nicho` reparte SÓLO los registros catalogados en el manifest, no todo lo "
+                       "indexado: los documentos sin ficha no tienen eje y no aparecen en ninguna barra. "
+                       "Léelo como el reparto de lo CATALOGADO, jamás como el reparto del acervo. Y los "
+                       "nichos en cero pueden serlo por fase del proyecto (PROJECT_SCOPE) y no por "
+                       "descuido — un cero aquí no es, por sí solo, evidencia de hueco"),
             "fuente": {"path": "rag_index/corpus_manifest.json", "mtime": _mtime_iso(MANIFEST)},
         }
     except Exception as e:
