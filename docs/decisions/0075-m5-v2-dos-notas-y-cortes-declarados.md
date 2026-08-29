@@ -143,9 +143,25 @@ números ya vivían en el mismo snapshot: el arreglo es de lectura, no de datos.
   filtra por construcción — con test) · el evento `rating.added` sin scores · consenso = conteos ·
   la ausencia declarada · "calificar jamás bloquea una corrida" · `/calibration` NO-SPEND ·
   ADR-0064 §6 (el banco CSV sigue siendo OTRO instrumento y no entra aquí).
-- Gates: `smoke_ratings_calibration.py` **39/39** (+10) · `smoke_run_pipeline.py` 121/121 ·
-  `smoke_query_service.py` 45/45 · `smoke_precedent.py` 15/15 · webapp `npm run gate` **177/177** (+4)
-  + `WITT_BUILD_CHECK=1 npm run build` verde.
+- Gates: **`smoke_m5v2_http.py` NUEVO 32/32** · `smoke_ratings_calibration.py` **39/39** (+10) ·
+  `smoke_run_pipeline.py` 121/121 · `smoke_query_service.py` 45/45 · `smoke_precedent.py` 15/15 ·
+  `smoke_ingest_gate.py` 22/22 · `smoke_zfin_sweep.py` 12/12 · `smoke_run_held_out_v2.py` 12/12 ·
+  `doc_coherence_check` 7/7 · webapp `npm run gate` **177/177** (+4) + build verde.
+- **`smoke_m5v2_http.py` existe por una razón específica.** Los otros gates llaman
+  `app.add_rating(...)` como FUNCIÓN de Python: saltan el parseo del cuerpo por Pydantic, el ruteo y la
+  serialización a JSON. Un campo nuevo puede persistir perfecto por la vía directa y no llegar nunca
+  por HTTP. Este gate usa `TestClient` (stack ASGI completo, el mismo camino de la webapp) y fija:
+  que `note_question` sobrevive el viaje de ida y de vuelta · que el enmascaramiento **no la filtra**
+  sobre el JSON ya serializado · que una procedencia falsificada por el cliente se ignora (ADR-0056) ·
+  que un cliente VIEJO (sin el campo) sigue dando 200 · y que los tres cortes de `/calibration` más el
+  denominador del corpus viajan de verdad. Es la lección permanente del RIL aplicada: antes de
+  reportar verde hay que verificar que el gate VIO el campo, no sólo que no explotó.
+- **Ventana de pérdida silenciosa entre despliegues (medida).** El front autodespliega on push y el
+  backend se despliega A MANO. Con el front nuevo contra el backend viejo, Pydantic **descarta
+  `note_question` en silencio** (no da 422): la calificación se guarda y la nota de la pregunta se
+  pierde. El resto degrada limpio (los bloques de `/calibration` no viajan y la UI no los pinta —
+  hay test). Consecuencia operativa: **el redeploy de `witt-query-service` no es opcional ni
+  posponible** una vez que el front está vivo.
 
 ## Evidence
 
