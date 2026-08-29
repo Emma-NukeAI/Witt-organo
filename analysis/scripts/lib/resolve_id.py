@@ -9,6 +9,7 @@ WITHOUT changing callers, because the interface is the load-bearing contract:
     resolve(key)        -> VerifiedRecord | NOT_FOUND   (symbol | ENSDARG | UniProt accession)
     require(key)        -> VerifiedRecord                (raises ResolveError on NOT_FOUND)
     lookup_prior(topic) -> [VerifiedRecord]              (substring v1; semantic later)
+    list_records()      -> [VerifiedRecord]              (the whole store, absence markers included)
     store_version()     -> str
 
 `NOT_FOUND` is a distinct sentinel (not None): it means "we looked, the key does not resolve"
@@ -144,6 +145,12 @@ class SourceOfTruth:
         return [r for r in self._by_symbol.values()
                 if t in r.symbol.lower() or t in (r.notes or "").lower()]
 
+    def list_records(self) -> List[VerifiedRecord]:
+        """Every record in the store, absence markers included: a record with ensdarg=None is a
+        positive 'looked, does not resolve' (resolve() returns NOT_FOUND for it on purpose) —
+        callers split by ensdarg, they never silently drop the markers."""
+        return list(self._by_symbol.values())
+
 
 _default: Optional[SourceOfTruth] = None
 
@@ -165,6 +172,10 @@ def require(key):
 
 def lookup_prior(topic):
     return _get_default().lookup_prior(topic)
+
+
+def list_records():
+    return _get_default().list_records()
 
 
 def store_version():

@@ -280,6 +280,37 @@ def _resolve(key: str):
     return out
 
 
+def _list_entities():
+    """Enumerate the verified-identifier store (the GET /entities door, 2026-08-29). NO-SPEND,
+    file-read only — serves the SAME in-process snapshot as _resolve (the resolve_id singleton;
+    a store change on disk requires a restart to be seen, exactly like the resolve door).
+
+    Records with ensdarg=None are positive absence markers ('looked, does not resolve' — e.g.
+    clcnkb): they travel SEPARATE from the resolvable roster, because a picker must not offer
+    what cannot anchor evidence — but the absence is never silently dropped (ADR-0055 spirit).
+    tier/tier_weight mirror _resolve exactly (same derivation, same caveat)."""
+    entities, absence_markers = [], []
+    for r in resolve_id.list_records():
+        if r.ensdarg is None:
+            absence_markers.append({"symbol": r.symbol, "note": r.notes or None})
+            continue
+        tier = "RAW" if r.is_raw_verified else "DERIVED"
+        entities.append({"symbol": r.symbol, "ensdarg": r.ensdarg, "tier": tier,
+                         "tier_weight": verify_output.tier_weight(tier),
+                         "verified_on": r.verified_on})
+    entities.sort(key=lambda e: e["symbol"])
+    absence_markers.sort(key=lambda e: e["symbol"])
+    try:
+        sv = resolve_id.store_version()
+    except Exception:
+        sv = None
+    return {"n_entities": len(entities), "entities": entities,
+            "n_absence_markers": len(absence_markers), "absence_markers": absence_markers,
+            "store_version": sv,
+            "tier_weight_kind": "calibration label-weight (Bayes-purity/ECE, ADR-0024) — NOT ranking "
+                                "nor probative strength; DERIVED=0.7 is a provisional placeholder"}
+
+
 def _fetch_raw(key: str, filename: str = None, expires_seconds: int = 3600):
     """Resolve a corpus record / accession to its RAW data location(s) — the drill-down path for when a
     chunk/embedding is NOT enough and the agent needs the raw data that composes the truth. Returns

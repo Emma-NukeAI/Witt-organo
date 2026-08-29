@@ -214,6 +214,33 @@ def raw(key: str, filename: str = None, authorization: str = Header(None)):
     return res
 
 
+# --- entities: the verified store ENUMERATED (2026-08-29) --------------------------------------------
+# Until now the store was reachable one key at a time (/resolve); the webapp's advanced-search picker
+# needs the measured roster (Emmanuel: pick entities from a select, not from memory). NO-SPEND by
+# construction: same in-process snapshot the resolve door serves — no graph, no embeddings, no network.
+
+_ENTITIES_CACHE = {"at": 0.0, "data": None}
+
+
+@app.get("/entities")
+def entities(authorization: str = Header(None)):
+    """The verified-identifier store, enumerated: the resolvable roster (symbol + ensdarg + tier +
+    tier_weight + verified_on) for pickers, and the absence markers declared APART (ensdarg=null is a
+    positive 'looked, does not resolve' — offering one to anchor evidence would be a lie; hiding it,
+    another). Same snapshot as /resolve (module singleton; a store change requires redeploy), with
+    provenance and refreshed_at declared. TTL-cached like the other read doors."""
+    _user_of(authorization)
+    now = time.time()
+    if _ENTITIES_CACHE["data"] and now - _ENTITIES_CACHE["at"] < ARTIFACTS_TTL_S:
+        return _ENTITIES_CACHE["data"]
+    out = {**server._list_entities(),
+           "provenance": "analysis/outputs/verified_identifiers.json — snapshot del proceso; la misma "
+                         "fuente que sirve /resolve",
+           "refreshed_at": _now_iso()}
+    _ENTITIES_CACHE.update(at=now, data=out)
+    return out
+
+
 # --- StoreStatus: the UI contract's 9 fields + ADR-0048/0055 extensions (index_version, integrity,
 # --- embed_model_changed_at), aggregated from the disconnected sources, NO-SPEND ---------------------
 
