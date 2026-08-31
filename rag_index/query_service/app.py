@@ -472,6 +472,18 @@ def _run_view(run):
     view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
     view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
     view["plan_declared"] = bool(run.get("plan_json"))   # ADR-0061; el plan completo va en el registro
+    # 2026-08-29 (columna nicho/veredicto de la lista): los CÓDIGOS de nicho del juicio del plan
+    # viajan con el renglón, derivados del plan_json YA guardado (procedencia: el planner, ADR-0061);
+    # None = corrida sin plan o juicio sin nichos — ausencia declarada, jamás se rellena. El veredicto
+    # ya viaja en epistemic_summary (LOTE-02·3), congelado al freeze.
+    view["plan_niches"] = None
+    if run.get("plan_json"):
+        try:
+            juicio = (json.loads(run["plan_json"]).get("judgment") or {})
+            codigos = [n.get("code") for n in (juicio.get("niches") or []) if n.get("code")]
+            view["plan_niches"] = codigos or None
+        except Exception:
+            view["plan_niches"] = None
     # LOTE-02·3: frozen-at-freeze summary for rich list rows; null = run without a frozen record yet
     view["epistemic_summary"] = (json.loads(run["epistemic_summary_json"])
                                  if run.get("epistemic_summary_json") else None)

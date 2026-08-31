@@ -399,12 +399,17 @@ def get_run(run_id: str):
 def list_runs(user_id=None, limit=50):
     """List rows carry the SAME field set the detail view derives from (LOTE-01·A1): heartbeat inputs,
     cancellation authorship and usage — a stuck run must be distinguishable from the LIST, and the
-    datetime normalization must match the detail (SQLite drops tzinfo)."""
+    datetime normalization must match the detail (SQLite drops tzinfo).
+
+    2026-08-29: entities_csv y plan_json ENTRAN al SELECT — la lista los omitía, así que sus
+    derivados (genes por renglón, plan_declared, plan_niches) salían vacíos SOLO en la lista
+    mientras el detalle sí los servía: la promesa misma-vista de este docstring estaba rota
+    para esos campos. _run_view deriva y DESCARTA el blob (plan_json jamás viaja al renglón)."""
     with engine().begin() as cx:
-        q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
+        q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.entities_csv, runs.c.state,
                    runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
                    runs.c.last_event_at, runs.c.cancelled_by, runs.c.cancel_reason,
-                   runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error)
+                   runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json)
         if user_id:
             q = q.where(runs.c.user_id == user_id)
         rows = cx.execute(q.order_by(runs.c.created_at.desc()).limit(limit)).all()
