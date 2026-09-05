@@ -31,6 +31,7 @@ sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import db  # noqa: E402
+import niche_catalog  # noqa: E402
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 
@@ -1130,10 +1131,28 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         }
         # LOTE-02·3: the list-row epistemic summary is derived HERE, at freeze — never at serve time
         # (the frozen-counter discipline: a list row must not re-derive what the record froze).
+        # LOS DOS EJES DE NICHO (2026-09-05, decisión del fundador: "catálogo medido + panel para
+        # el resto"). Son fuentes DISTINTAS y se guardan separadas — el juicio jamás tapa a la
+        # medición:
+        #   · catalogo: RN* (tipo de dato) y N* (dominio) LEÍDOS de las fichas del corpus que la
+        #     respuesta citó, con su cobertura declarada. Es medición y cuesta cero.
+        #   · panel: N* JUZGADO por los cuatro jueces sobre la respuesta completa — cubre el 100%
+        #     de las corridas, incluidas las que citaron pura literatura sin ficha.
+        # Enfrentarlos es el lazo de calibración del panel: donde el catálogo alcanza, se puede ver
+        # si el panel coincide con lo que las fichas aprobadas ya declaraban.
+        # OJO con la llave: el registro congelado las llama `citations`, no `evidence`. Leer la
+        # llave equivocada NO truena — devuelve cobertura "0 de 0", que se lee como una corrida
+        # sin evidencia catalogada. Un cableado roto disfrazado de caso limpio (2026-09-05).
+        nichos = {
+            "catalogo": niche_catalog.niches_of_evidence(frozen.get("citations")),
+            "panel": audit_result.get("domain_niches"),
+        }
         epistemic_summary = {"retrieval_mode": bundle["retrieval_summary"]["mode"],
                              "verdict": audit_result["verdict"],
                              "confidence_state": frozen["confidence"]["state"],
-                             "panel_n_valid": audit_result["n_valid"]}
+                             "panel_n_valid": audit_result["n_valid"],
+                             "niches": nichos}
+        frozen["niches"] = nichos
         db.update_run(run_id, state="awaiting_closure", finished_at=db._now(),
                       bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
                       frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str),

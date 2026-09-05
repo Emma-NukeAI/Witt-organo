@@ -207,9 +207,31 @@ check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings de
 view = app.get_run(RID, authorization=AUTH)
 check("latido expuesto (heartbeat_age_s) y no-stale tras actividad",
       view["heartbeat_age_s"] is not None and view["heartbeat_stale"] is False)
+es = view["epistemic_summary"]
+# se comprueban los campos POR NOMBRE, no el dict por igualdad: la igualdad exacta convertía
+# cualquier campo aditivo en una regresión falsa (2026-09-05, al entrar el eje de nichos).
 check("LOTE-02·3: epistemic_summary derivado AL CONGELAR, visible en la vista (renglon rico de M6)",
-      view["epistemic_summary"] == {"retrieval_mode": "semantic", "verdict": "APPROVE",
-                                    "confidence_state": "value", "panel_n_valid": 4})
+      es["retrieval_mode"] == "semantic" and es["verdict"] == "APPROVE"
+      and es["confidence_state"] == "value" and es["panel_n_valid"] == 4,
+      f"summary={ {k: v for k, v in es.items() if k != 'niches'} }")
+
+# 2026-09-05 — LOS DOS EJES DE NICHO, en fuentes separadas: el juicio jamás tapa a la medición
+nic = es.get("niches") or {}
+check("nichos: el eje del CATALOGO viaja con su cobertura y se declara MEDICION",
+      (nic.get("catalogo") or {}).get("class") == "medicion"
+      and "coverage" in (nic.get("catalogo") or {}),
+      f"catalogo={ {k: v for k, v in (nic.get('catalogo') or {}).items() if k in ('class', 'coverage')} }")
+# el CABLEADO, no solo la forma: el registro llama `citations` a la evidencia y leer `evidence`
+# devolvia "0 de 0" — un cable roto disfrazado de corrida sin evidencia catalogada (2026-09-05).
+# El denominador tiene que ser el numero REAL de citas del registro.
+check("nichos: el catalogo lee las CITAS del registro (denominador real, no un 0 de 0 mudo)",
+      (nic.get("catalogo") or {}).get("n_evidence") == len(rec.get("citations") or []),
+      f"n_evidence={(nic.get('catalogo') or {}).get('n_evidence')} citas={len(rec.get('citations') or [])}")
+check("nichos: el eje del PANEL viaja aparte y se declara JUICIO (conteos, jamas un ganador)",
+      (nic.get("panel") or {}).get("class") == "juicio"
+      and isinstance((nic.get("panel") or {}).get("counts"), dict)
+      and "n_classified" in (nic.get("panel") or {}),
+      f"panel={nic.get('panel')}")
 
 # ---- LOTE-01·A1/A2: la LISTA trae el latido + el umbral viaja con la derivacion ----------------------
 lst = app.list_runs(authorization=AUTH)["runs"]

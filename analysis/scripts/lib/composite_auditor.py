@@ -76,6 +76,21 @@ VERDICT_TOOL = {
                                    "description": "the concrete correction the answer needs ('' if none)"},
             "confidence": {"type": "number", "minimum": 0, "maximum": 1},
             "reasons": {"type": "array", "items": {"type": "string"}},
+            # 2026-09-05 (decisión del fundador): el eje de DOMINIO CIENTÍFICO lo pone el panel y
+            # no el sintetizador, por la misma razón por la que el panel existe — la síntesis
+            # calificándose a sí misma acompaña a su propio error. Va aquí, en la llamada que YA
+            # corre en el 100% de las corridas: cuesta unos tokens de salida, no una llamada nueva.
+            # Es OPCIONAL en `required`: un juez que no lo emita se cuenta como "no clasificó", que
+            # es distinto de clasificar mal.
+            "domain_niches": {
+                "type": "array", "items": {"type": "string"},
+                "description": ("Scientific-domain niches (N1–N6) this ANSWER belongs to, judged from "
+                                "the claim and the evidence you were shown — codes ONLY, from the table "
+                                "in your system prompt. Most specific first. Emit [] if the answer gives "
+                                "you no basis: an empty list is an honest 'I cannot place it', and is "
+                                "worth more than a guess. This is the DOMAIN axis (what field), never the "
+                                "data-type axis (RN*) — that one is read from the catalog, not judged."),
+            },
         },
         "required": ["verdict", "confidence"],
     },
@@ -97,6 +112,53 @@ _LENS_CHARGES = {
                         "it is insufficient — that is APPROVE_DECLINE, not a defect (ADR-0058: this exact "
                         "lens vetoed both real runs for telling the truth about an absence)."),
 }
+
+
+def _niche_table() -> str:
+    """La tabla de nichos de dominio, VISIBLE para el juez. Mismo principio que agent_matrix.digest():
+    un juicio contra una tabla que el modelo nunca vio fabrica coincidencias. Si la matriz no se
+    puede importar, se devuelve una instrucción que APAGA la clasificación en vez de dejar al juez
+    inventando códigos contra un vocabulario que no conoce."""
+    try:
+        from lib import agent_matrix
+        filas = "\n".join(f"  {c}: {d['name']} (fase: {d['phase_i']})"
+                          for c, d in sorted(agent_matrix.NICHES.items()))
+        return ("DOMAIN-NICHE TABLE (for `domain_niches` — use these codes and no others):\n"
+                f"{filas}\n"
+                "Place the ANSWER, not the question. Use [] when the answer gives you no basis; "
+                "an honest empty list beats a guess. Do NOT emit RN* codes here: the data-type "
+                "axis is read from the catalog, never judged.")
+    except Exception:
+        return ("DOMAIN-NICHE TABLE unavailable: emit `domain_niches` as [] — classifying against a "
+                "vocabulary you were not shown would manufacture codes.")
+
+
+def tally_domain_niches(rows, n_valid: int) -> dict:
+    """Consenso del eje de dominio: CONTEOS, jamás un ganador (regla de la casa — promediar u
+    'olegir el más votado' convertiría cuatro opiniones en un hecho). El denominador viaja: sin él,
+    'N3: 2' no se distingue de 'N3: 2 de 2' contra 'N3: 2 de 4'.
+
+    Un juez que erró NO clasificó: no cuenta ni a favor ni en contra, y su ausencia queda en la
+    diferencia entre `n_valid` y `n_classified` (jamás se rellena)."""
+    conteo, clasificaron = {}, 0
+    for r in rows:
+        if "verdict" not in r:
+            continue                      # juez caído: excluido, nunca fabricado (ADR-0038)
+        codigos = r.get("domain_niches")
+        if not isinstance(codigos, list):
+            continue                      # no emitió el campo: "no clasificó" ≠ "clasificó vacío"
+        clasificaron += 1
+        for c in {str(x).strip() for x in codigos if str(x).strip()}:
+            conteo[c] = conteo.get(c, 0) + 1
+    return {
+        "class": "juicio",                # opinión del panel; el eje medido vive en el catálogo
+        "counts": dict(sorted(conteo.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "n_valid": n_valid,
+        "n_classified": clasificaron,
+        "note": ("conteos de jueces por código, jamás un ganador: cuatro opiniones no hacen un "
+                 "hecho. n_classified < n_valid = jueces que no clasificaron; su silencio no se "
+                 "reparte entre los demás."),
+    }
 
 
 _TRAP_RE = re.compile(r'<parameter\s+name="([^"]+)">\s*([^<]*)', re.S)
@@ -266,7 +328,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                   f"this system (it triggers the re-ingest loop). Correct decline -> APPROVE_DECLINE; "
                   f"decline despite sufficient evidence (lazy) -> REVISE. "
                   f"You are handed deterministic verification results in the input — cite them; NEVER claim "
-                  f"a verification you did not run. Vote independently; other reviewers cover other lenses.")
+                  f"a verification you did not run. Vote independently; other reviewers cover other lenses."
+                  f"\n\n{_niche_table()}")
         try:
             verdict, usage = caller(member, system, user_text)
             rows.append({"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
@@ -274,6 +337,11 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                          "correction_applied": verdict.get("correction_applied", ""),
                          "confidence": verdict.get("confidence"),
                          "reasons": verdict.get("reasons", []),
+                         # el eje de dominio POR JUEZ: se conserva crudo para que el consenso se
+                         # pueda auditar renglón por renglón (y un código fuera de la tabla quede
+                         # visible, no corregido en silencio)
+                         **({"domain_niches": verdict["domain_niches"]}
+                            if isinstance(verdict.get("domain_niches"), list) else {}),
                          "usage": usage or {}})   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):
@@ -285,7 +353,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     valid = [r for r in rows if "verdict" in r]
     tally = {v: sum(1 for r in valid if r["verdict"] == v) for v in VOCABULARY}
     out = {"required": True, "required_because": required_because, "panel": rows, "tally": tally,
-           "source_vocabulary": SOURCE_VOCABULARY, "n_valid": len(valid), "usage": usage_total}
+           "source_vocabulary": SOURCE_VOCABULARY, "n_valid": len(valid), "usage": usage_total,
+           "domain_niches": tally_domain_niches(rows, len(valid))}
     if len(valid) < min_valid:
         # a thin panel can NEVER approve — conservative by construction (Mode 1 minimum >=3)
         out["verdict"] = "REVISE"
