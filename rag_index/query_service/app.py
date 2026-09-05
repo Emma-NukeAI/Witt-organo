@@ -287,14 +287,25 @@ def _integrity_row():
     try:
         rep = json.loads(_INTEGRITY_ARTIFACT.read_text(encoding="utf-8"))
         findings = rep.get("findings", [])
-        return {"scanned": True,
-                "scanned_at": datetime.datetime.fromtimestamp(
+        # 2026-09-05: la hora sale del REPORTE, no del mtime. El mtime de un artefacto
+        # commiteado es la hora del CHECKOUT del contenedor — presentarlo como hora de
+        # escaneo sería una fecha de deploy disfrazada de medición. Los artefactos viejos
+        # (sin scanned_at) caen al mtime y ese fallback se DECLARA, no se disimula.
+        sellada = rep.get("scanned_at")
+        fila = {"scanned": True,
+                "scanned_at": sellada or datetime.datetime.fromtimestamp(
                     _INTEGRITY_ARTIFACT.stat().st_mtime,
                     datetime.timezone.utc).isoformat(timespec="seconds"),
+                "scanned_at_source": "report" if sellada else "file-mtime",
                 "n_records": rep.get("n_records"), "store_version": rep.get("store_version"),
                 "n_findings": len(findings),
                 "n_critical_high": sum(1 for f in findings
                                        if f.get("severity") in ("critical", "high"))}
+        if not sellada:
+            fila["note"] = ("artefacto sin scanned_at: la fecha sale del mtime del archivo — en un "
+                            "contenedor eso es la hora del checkout, no la del escaneo. Re-córrelo "
+                            "para sellarlo.")
+        return fila
     except Exception as e:
         return {"scanned": False, "note": f"scan artifact unreadable: {type(e).__name__}"}
 

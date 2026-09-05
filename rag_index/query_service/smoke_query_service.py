@@ -120,8 +120,32 @@ st2 = app.status(authorization=AUTH)
 check("/status cachea por TTL (mismo refreshed_at dentro de la ventana)",
       st2["refreshed_at"] == st["refreshed_at"])
 # --- LOTE-01·A8: integridad honesta + la fecha del cambio de embed model ------------------------------
-check("/status.integrity: sin artefacto de escaneo -> scanned:false declarado (jamas 'limpio')",
-      st["integrity"]["scanned"] is False and "note" in st["integrity"])
+# 2026-09-05: este check dependia de que el artefacto NO existiera, y ahora existe y se
+# commitea (es como prod lo recibe). Se fija el CONTRATO en los dos sentidos, forzando cada
+# rama con la ruta del artefacto — asi el gate ya no depende del estado del working tree.
+_art_real = app._INTEGRITY_ARTIFACT
+try:
+    app._INTEGRITY_ARTIFACT = _art_real.parent / "no_existe_este_artefacto.json"
+    fila = app._integrity_row()
+    check("/status.integrity: SIN artefacto -> scanned:false declarado (jamas 'limpio')",
+          fila["scanned"] is False and "note" in fila, f"fila={fila}")
+finally:
+    app._INTEGRITY_ARTIFACT = _art_real
+
+if _art_real.exists():
+    fila = app._integrity_row()
+    check("/status.integrity: CON artefacto -> scanned:true con conteos reales",
+          fila["scanned"] is True and isinstance(fila.get("n_findings"), int),
+          f"fila={ {k: fila[k] for k in ('scanned', 'n_findings', 'n_critical_high') if k in fila} }")
+    # la fecha sale del REPORTE, no del mtime: en un contenedor el mtime es la hora del
+    # CHECKOUT, y servirla como hora de escaneo seria una fecha de deploy disfrazada de
+    # medicion. Un artefacto viejo (sin sello) cae al mtime y lo DECLARA en scanned_at_source.
+    check("/status.integrity: la hora sale del reporte y su PROCEDENCIA viaja",
+          fila.get("scanned_at_source") in ("report", "file-mtime")
+          and (fila["scanned_at_source"] == "report") == ("note" not in fila),
+          f"source={fila.get('scanned_at_source')} note={'note' in fila}")
+else:
+    check("/status.integrity: CON artefacto -> scanned:true (omitido: no hay artefacto local)", True)
 check("/status.embed_model_changed_at desde config_history.json (ADR-0021, no hardcodeado)",
       st["embed_model_changed_at"] == "2026-06-12")
 rag_backend.query, rag_backend.query_sparse = _orig_q, _orig_s

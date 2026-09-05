@@ -29,7 +29,7 @@ import json
 import re
 import sys
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
@@ -92,7 +92,12 @@ def scan(stale_days=180):
          "status": "pending_review", "action": "human-gated review; NEVER auto-fixed", "finding": f}
         for f in findings if f["severity"] in ("critical", "high")
     ]
-    return {"n_records": len(recs), "store_version": store.get("store_version"),
+    # scanned_at va DENTRO del reporte (2026-09-05): el consumidor (/status) lo derivaba del
+    # mtime del archivo, y en producción el mtime es la hora del CHECKOUT, no la del escaneo —
+    # o sea, una fecha de deploy presentada como fecha de medición. El artefacto ahora carga su
+    # propia hora y viaja con ella.
+    return {"scanned_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "n_records": len(recs), "store_version": store.get("store_version"),
             "findings": findings, "by_code": dict(by_code), "proposals": proposals}
 
 
