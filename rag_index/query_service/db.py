@@ -146,6 +146,61 @@ run_ratings = Table(
     Column("note_question", Text, nullable=False, default=""),
 )
 
+# APUNTES (2026-09-04, pedido del fundador): el cuaderno de teorías e ideas. NO son las notas
+# de calificación de arriba y por eso no comparten tabla ni palabra: aquéllas van clavadas a
+# UNA corrida terminada, son append-only y se enmascaran (el juicio no se contamina); un
+# apunte es texto LIBRE del autor, editable, que puede citar varias corridas, genes y nichos
+# —o ninguno— y existe antes de que haya corrida alguna.
+#
+# Los enlaces van en CSV como en runs.entities_csv y plans.entities_csv (mismo patrón
+# incumbente; son listas cortas). Se guardan como el autor los escribió: la RESOLUCIÓN contra
+# el store verificado la hace /resolve cuando el lector la pide — un apunte puede citar un gen
+# que la DI todavía no conoce, y eso es información, no error.
+#
+# `visibility` por APUNTE (no política global): 'private' por default — quien escribe decide
+# qué comparte, apunte por apunte. Un apunte compartido lo LEE cualquier cuenta; escribirlo
+# sigue siendo sólo del autor.
+notes = Table(
+    "notes", metadata,
+    Column("note_id", String(64), primary_key=True),
+    Column("author_id", String(64), ForeignKey("users.user_id"), nullable=False),
+    Column("title", String(300), nullable=False, default=""),
+    Column("body", Text, nullable=False, default=""),
+    Column("visibility", String(16), nullable=False, default="private"),  # private | shared
+    Column("run_ids_csv", Text, nullable=False, default=""),    # corridas citadas
+    Column("entities_csv", Text, nullable=False, default=""),   # genes citados (sin resolver)
+    Column("niches_csv", Text, nullable=False, default=""),     # nichos citados
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+)
+
+# BORRADORES DE PREGUNTA (2026-09-04): lo que el agente redacta DESDE un apunte. Se persisten
+# porque el fundador quiere DEPURAR la estructura con resultados: sin registro no hay
+# calibración. Cada borrador guarda la VERSIÓN DE LA ESPECIFICACIÓN que lo produjo, así que
+# refinar la spec no reescribe la historia — un borrador viejo sigue siendo atribuible a la
+# regla que lo redactó.
+#
+# `run_id` se sella al consumirse, igual que plans.run_id: ese sello es el que cierra el lazo
+# de calibración — el borrador se vuelve corrida, la corrida se califica en el EJE PREGUNTA
+# (rating_input, re-anclado al TAMAÑO en ADR-0075), y el `fits_one_run` que el agente afirmó
+# queda enfrentado a lo que el humano midió.
+note_questions = Table(
+    "note_questions", metadata,
+    Column("question_id", String(64), primary_key=True),
+    Column("note_id", String(64), ForeignKey("notes.note_id"), nullable=False),
+    Column("author_id", String(64), ForeignKey("users.user_id"), nullable=False),
+    Column("spec_version", String(16), nullable=False),   # QUESTION_SPEC_VERSION que lo redactó
+    Column("model", String(64), nullable=False),
+    Column("state", String(16), nullable=False),          # drafted | errored
+    Column("question", Text, nullable=False, default=""),
+    Column("entities_csv", Text, nullable=False, default=""),
+    Column("draft_json", Text, nullable=False),           # la estructura COMPLETA, verbatim
+    Column("usage_json", Text),                           # el gasto, declarado
+    Column("error", Text),                                # el agente puede fallar sin tumbar nada
+    Column("run_id", String(64)),                         # sellado al consumirse (una corrida)
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
 _engine = None
 
 
@@ -613,3 +668,227 @@ def runs_pending_rating(user_id: str, limit: int = 100):
             d[k] = _dt_utc(d.get(k)).isoformat(timespec="seconds") if d.get(k) else None
         out.append(d)
     return out
+
+
+# --- APUNTES (2026-09-04) -----------------------------------------------------------------------
+# El cuaderno de teorías. Reglas de la casa que el store hace cumplir: escribir es SÓLO del autor
+# (un apunte compartido se lee, no se edita), y los enlaces se guardan verbatim — resolverlos es
+# trabajo de /resolve en el momento de leer, no del guardado.
+
+NOTE_VISIBILITIES = ("private", "shared")
+
+
+def _csv(valores) -> str:
+    """Lista -> CSV normalizado: sin vacíos, sin duplicados, ORDEN DE ESCRITURA conservado (el
+    orden en que el autor citó es información suya, no se alfabetiza)."""
+    vistos, out = set(), []
+    for v in valores or []:
+        v = (v or "").strip()
+        if v and v not in vistos:
+            vistos.add(v)
+            out.append(v)
+    return ",".join(out)
+
+
+def _note_view(row) -> dict:
+    """Fila -> forma de API: los CSV se sirven como LISTAS (el cliente no parsea CSV) y las fechas
+    en ISO. El cuerpo viaja completo: un apunte truncado en silencio sería una mentira."""
+    d = dict(row._mapping)
+    for k_csv, k_lista in (("run_ids_csv", "run_ids"), ("entities_csv", "entities"),
+                           ("niches_csv", "niches")):
+        crudo = d.pop(k_csv, "") or ""
+        d[k_lista] = [x for x in crudo.split(",") if x]
+    for k in ("created_at", "updated_at"):
+        d[k] = _dt_utc(d[k]).isoformat(timespec="seconds") if d.get(k) else None
+    return d
+
+
+def create_note(note_id: str, author_id: str, title: str, body: str, visibility: str,
+                run_ids=None, entities=None, niches=None) -> dict:
+    ahora = _now()
+    with engine().begin() as cx:
+        cx.execute(notes.insert().values(
+            note_id=note_id, author_id=author_id, title=title, body=body,
+            visibility=visibility if visibility in NOTE_VISIBILITIES else "private",
+            run_ids_csv=_csv(run_ids), entities_csv=_csv(entities), niches_csv=_csv(niches),
+            created_at=ahora, updated_at=ahora))
+    return get_note(note_id)
+
+
+def get_note(note_id: str):
+    with engine().begin() as cx:
+        row = cx.execute(select(notes).where(notes.c.note_id == note_id)).first()
+    return _note_view(row) if row else None
+
+
+def list_notes(reader_id: str, limit: int = 200):
+    """Lo que ESTE lector puede ver: sus propios apuntes (de cualquier visibilidad) más los
+    ajenos marcados 'shared'. Los privados de otra cuenta no salen ni en conteo."""
+    with engine().begin() as cx:
+        rows = cx.execute(
+            select(notes)
+            .where((notes.c.author_id == reader_id) | (notes.c.visibility == "shared"))
+            .order_by(notes.c.updated_at.desc())
+            .limit(limit)).all()
+    return [_note_view(r) for r in rows]
+
+
+def update_note(note_id: str, campos: dict) -> dict:
+    """Actualiza SÓLO las llaves presentes (PATCH real: omitir un campo lo deja intacto; mandarlo
+    vacío lo vacía — son cosas distintas y la puerta las distingue)."""
+    valores = {}
+    for k in ("title", "body", "visibility"):
+        if k in campos:
+            valores[k] = campos[k]
+    for k, col in (("run_ids", "run_ids_csv"), ("entities", "entities_csv"),
+                   ("niches", "niches_csv")):
+        if k in campos:
+            valores[col] = _csv(campos[k])
+    if valores:
+        valores["updated_at"] = _now()
+        with engine().begin() as cx:
+            cx.execute(notes.update().where(notes.c.note_id == note_id).values(**valores))
+    return get_note(note_id)
+
+
+def delete_note(note_id: str) -> bool:
+    with engine().begin() as cx:
+        n = cx.execute(delete(notes).where(notes.c.note_id == note_id)).rowcount
+    return n == 1
+
+
+def notes_citing_run(run_id: str, reader_id: str):
+    """El hipervínculo AL REVÉS: qué apuntes visibles para este lector citan esta corrida. El
+    filtro fino se hace en Python sobre la lista ya acotada por visibilidad — un LIKE sobre CSV
+    daría falsos positivos (r-1 contra r-12) y esto no es una tabla de millones."""
+    return [n for n in list_notes(reader_id) if run_id in n["run_ids"]]
+
+
+# --- BORRADORES DE PREGUNTA (2026-09-04) ---------------------------------------------------------
+# El lazo de calibración vive aquí: el borrador guarda la versión de spec que lo redactó y, al
+# consumirse, el run_id. Con eso se puede preguntar "las preguntas que redactó la spec v1, ¿qué
+# TAMAÑO les puso el humano?" — que es la depuración que el fundador pidió.
+
+def _question_view(row) -> dict:
+    d = dict(row._mapping)
+    d["entities"] = [x for x in (d.pop("entities_csv", "") or "").split(",") if x]
+    for k in ("draft_json", "usage_json"):
+        crudo = d.pop(k, None)
+        llave = k.removesuffix("_json")
+        try:
+            d[llave] = json.loads(crudo) if crudo else None
+        except (ValueError, TypeError):
+            # un blob ilegible se DECLARA, no se esconde ni se re-parsea a la fuerza
+            d[llave] = None
+            d[f"{llave}_unreadable"] = True
+    d["created_at"] = _dt_utc(d["created_at"]).isoformat(timespec="seconds") if d.get("created_at") else None
+    return d
+
+
+def create_note_question(question_id: str, note_id: str, author_id: str, spec_version: str,
+                         model: str, state: str, question: str, entities, draft_json: str,
+                         usage_json=None, error=None) -> dict:
+    with engine().begin() as cx:
+        cx.execute(note_questions.insert().values(
+            question_id=question_id, note_id=note_id, author_id=author_id,
+            spec_version=spec_version, model=model, state=state, question=question,
+            entities_csv=_csv(entities), draft_json=draft_json, usage_json=usage_json,
+            error=error, created_at=_now()))
+    return get_note_question(question_id)
+
+
+def get_note_question(question_id: str):
+    with engine().begin() as cx:
+        row = cx.execute(select(note_questions)
+                         .where(note_questions.c.question_id == question_id)).first()
+    return _question_view(row) if row else None
+
+
+def questions_of_note(note_id: str):
+    """Todos los borradores de un apunte, el más nuevo primero: la historia de intentos es parte
+    de la depuración — un borrador viejo no se borra al pedir otro."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(note_questions)
+                          .where(note_questions.c.note_id == note_id)
+                          .order_by(note_questions.c.created_at.desc())).all()
+    return [_question_view(r) for r in rows]
+
+
+def mark_question_used(question_id: str, run_id: str) -> bool:
+    """Un borrador se consume por UNA corrida (mismo sello que mark_plan_used). El sello no borra
+    nada: deja la traza borrador->corrida, que es la que permite calibrar."""
+    with engine().begin() as cx:
+        n = cx.execute(note_questions.update()
+                       .where(note_questions.c.question_id == question_id,
+                              note_questions.c.run_id.is_(None))
+                       .values(run_id=run_id)).rowcount
+    return n == 1
+
+
+def question_calibration():
+    """El tablero de depuración del AGENTE, por versión de spec. Enfrenta lo que el agente AFIRMÓ
+    (fits_one_run) con lo que el humano MIDIÓ (rating_input = el eje pregunta, re-anclado al
+    TAMAÑO en ADR-0075). Todo son CONTEOS: promediar calificaciones ordinales sería inventar.
+
+    Un borrador sin corrida, o con corrida sin calificar, no se cuenta como acierto ni como
+    fallo — se declara pendiente. La ausencia jamás se rellena."""
+    with engine().begin() as cx:
+        rows = cx.execute(select(note_questions.c.question_id, note_questions.c.spec_version,
+                                 note_questions.c.state, note_questions.c.draft_json,
+                                 note_questions.c.run_id)).all()
+        # la calificación del EJE PREGUNTA de cada corrida (la más reciente por corrida)
+        califs = cx.execute(select(run_ratings.c.run_id, run_ratings.c.seq,
+                                   run_ratings.c.rating_input,
+                                   run_ratings.c.rating_input_state)
+                            .order_by(run_ratings.c.run_id, run_ratings.c.seq)).all()
+    ultima = {}
+    for r in califs:
+        ultima[r.run_id] = (r.rating_input, r.rating_input_state)
+
+    por_version = {}
+    for r in rows:
+        v = por_version.setdefault(r.spec_version, {
+            "spec_version": r.spec_version, "n_borradores": 0, "n_errored": 0,
+            "n_usados": 0, "n_calificados": 0,
+            "tamano": {str(k): 0 for k in range(1, 6)},   # conteos del eje pregunta, jamás promedio
+            "no_calificable": 0,
+            "agente_dijo_cabe": {"si": 0, "no": 0, "sin_juicio": 0},
+            "cabe_vs_medido": {"acerto": 0, "fallo": 0, "pendiente": 0},
+        })
+        v["n_borradores"] += 1
+        if r.state == "errored":
+            v["n_errored"] += 1
+        try:
+            draft = json.loads(r.draft_json) if r.draft_json else {}
+        except (ValueError, TypeError):
+            draft = {}
+        cabe = draft.get("fits_one_run")
+        v["agente_dijo_cabe"]["si" if cabe is True else "no" if cabe is False else "sin_juicio"] += 1
+        if not r.run_id:
+            v["cabe_vs_medido"]["pendiente"] += 1
+            continue
+        v["n_usados"] += 1
+        nota, estado = ultima.get(r.run_id, (None, None))
+        if nota is None:
+            v["cabe_vs_medido"]["pendiente"] += 1
+            if estado == "cannot-rate":
+                v["no_calificable"] += 1
+            continue
+        v["n_calificados"] += 1
+        v["tamano"][str(nota)] = v["tamano"].get(str(nota), 0) + 1
+        # 4-5 = cupo en una corrida; 1-3 = no cupo (3 = "hubiera salido mejor partida en dos").
+        # El corte va DECLARADO en la salida: no es una verdad, es el corte que usamos.
+        midio_cabe = nota >= 4
+        if cabe is None:
+            v["cabe_vs_medido"]["pendiente"] += 1
+        else:
+            v["cabe_vs_medido"]["acerto" if bool(cabe) == midio_cabe else "fallo"] += 1
+    return {
+        "por_version": sorted(por_version.values(), key=lambda x: x["spec_version"]),
+        "eje": "rating_input (EJE PREGUNTA) — re-anclado al TAMAÑO en ADR-0075",
+        "anclas": {"5": "cabía completa: una pregunta, una respuesta", "4": "cabía, apretada",
+                   "3": "hubiera salido mejor partida en dos", "2": "pedía de más para una sola corrida",
+                   "1": "pedía muchísimo de más"},
+        "corte_declarado": "cupo = nota >= 4; el 3 cuenta como NO cupo (su ancla ya dice 'partida en dos')",
+        "note": "conteos, jamás promedios: promediar una escala ordinal de 5 anclas inventa una medición",
+    }

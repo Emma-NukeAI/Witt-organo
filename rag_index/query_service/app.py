@@ -47,6 +47,7 @@ import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backe
 import calibration as calibration_mod  # noqa: E402
 import consulta_sistema as consulta_mod  # noqa: E402
 import db  # noqa: E402
+import question_agent  # noqa: E402
 import rack_browse as rack_browse_mod  # noqa: E402
 import record_pdf as record_pdf_mod  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
@@ -430,6 +431,9 @@ class RunBody(BaseModel):
     # ADR-0061 (tapon 3): referencia al plan declarado por POST /runs/plan. Opcional por diseno --
     # preguntar JAMAS se bloquea por el planner (no-hang §6); una corrida sin plan lo declara.
     plan_id: str | None = None
+    # 2026-09-04: el borrador del agente que originó esta pregunta. Opcional — preguntar nunca
+    # se bloquea por el agente. Sella el lazo de calibración: borrador -> corrida -> eje pregunta.
+    from_question_id: str | None = None
 
 
 class PlanBody(BaseModel):
@@ -509,6 +513,17 @@ def create_run(body: RunBody, authorization: str = Header(None)):
             "note": "el índice semántico está OFFLINE — el diseño manda bloquear, no degradar. "
                     "Dev sparse: exporta WITT_ALLOW_RUNS_OFFLINE=1 (documentado en README).",
             "status_error": st.get("status_error")})
+    # el borrador que respalda la pregunta: se valida ANTES de encolar, y un borrador ya
+    # consumido es 409 igual que un plan reusado — dos corridas colgando del mismo borrador
+    # romperían la calibración (contaría dos veces una sola redacción)
+    if body.from_question_id:
+        qrow = db.get_note_question(body.from_question_id)
+        if qrow is None:
+            raise HTTPException(status_code=404, detail="from_question_id no existe")
+        if qrow["run_id"]:
+            raise HTTPException(status_code=409, detail={
+                "state": "question_already_used", "run_id": qrow["run_id"],
+                "note": "este borrador ya respalda otra corrida; pide uno nuevo o corre sin él"})
     plan_json = None
     if body.plan_id:
         prow = db.get_plan(body.plan_id)
@@ -523,6 +538,8 @@ def create_run(body: RunBody, authorization: str = Header(None)):
         plan_json = prow["plan_json"]
     run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()],
                               plan_json=plan_json)
+    if body.from_question_id:
+        db.mark_question_used(body.from_question_id, run_id)
     if body.plan_id:
         db.mark_plan_used(body.plan_id, run_id)
     return _run_view(db.get_run(run_id))
@@ -953,6 +970,179 @@ def precedent_search(q: str, k: int = 5, authorization: str = Header(None)):
     if not q.strip():
         raise HTTPException(status_code=400, detail="q must be non-empty")
     return precedent_mod.search(q.strip(), k)
+
+
+# --- APUNTES (2026-09-04, pedido del fundador) -------------------------------------------------------
+# El cuaderno de teorías: texto LIBRE que puede citar corridas, genes y nichos —o nada— y que existe
+# ANTES de que haya corrida. No son las notas de calificación (ésas van clavadas a una corrida
+# terminada, son append-only y se enmascaran); por eso tabla y palabra aparte.
+#
+# Reglas que la puerta hace cumplir, no el cliente:
+#   · escribir es SÓLO del autor (403); un apunte 'shared' se lee, no se edita
+#   · visibilidad POR APUNTE, default 'private' — quien escribe decide qué comparte
+#   · los enlaces se guardan VERBATIM: resolverlos contra el store es trabajo de /resolve al leer.
+#     Un apunte puede citar un gen que la DI todavía no conoce, y eso es información, no error.
+
+NOTE_TITLE_MAX = 300
+NOTE_BODY_MAX = 20000          # un apunte es prosa larga (las notas de calificación son 4000)
+NOTE_LINKS_MAX = 50            # tope por lista de enlaces: un apunte no es un índice
+
+
+class NoteBody(BaseModel):
+    title: str = ""
+    body: str = ""
+    visibility: str = "private"
+    run_ids: list[str] = []
+    entities: list[str] = []
+    niches: list[str] = []
+
+
+class NotePatch(BaseModel):
+    """PATCH real: lo OMITIDO no se toca, lo mandado vacío SÍ vacía — son cosas distintas."""
+    title: str | None = None
+    body: str | None = None
+    visibility: str | None = None
+    run_ids: list[str] | None = None
+    entities: list[str] | None = None
+    niches: list[str] | None = None
+
+
+def _validar_apunte(title, body, visibility, run_ids, entities, niches):
+    """Los topes se declaran en el 400 (un límite sin su cifra no se puede obedecer)."""
+    if title is not None and len(title) > NOTE_TITLE_MAX:
+        raise HTTPException(status_code=400, detail=f"title: máximo {NOTE_TITLE_MAX} caracteres")
+    if body is not None and len(body) > NOTE_BODY_MAX:
+        raise HTTPException(status_code=400, detail=f"body: máximo {NOTE_BODY_MAX} caracteres")
+    if visibility is not None and visibility not in db.NOTE_VISIBILITIES:
+        raise HTTPException(status_code=400,
+                            detail=f"visibility: uno de {list(db.NOTE_VISIBILITIES)}")
+    for nombre, lista in (("run_ids", run_ids), ("entities", entities), ("niches", niches)):
+        if lista is not None and len(lista) > NOTE_LINKS_MAX:
+            raise HTTPException(status_code=400,
+                                detail=f"{nombre}: máximo {NOTE_LINKS_MAX} enlaces")
+
+
+def _apunte_o_404(note_id: str, user: dict, para_escribir: bool) -> dict:
+    nota = db.get_note(note_id)
+    if nota is None:
+        raise HTTPException(status_code=404, detail="apunte no encontrado")
+    propio = nota["author_id"] == user["user_id"]
+    if para_escribir and not propio:
+        raise HTTPException(status_code=403, detail={
+            "state": "not-author",
+            "note": "un apunte lo edita o borra SÓLO quien lo escribió"})
+    if not propio and nota["visibility"] != "shared":
+        # el privado ajeno no existe para este lector: 404, no 403 (un 403 confirmaría que existe)
+        raise HTTPException(status_code=404, detail="apunte no encontrado")
+    return nota
+
+
+@app.get("/notes")
+def list_notes(limit: int = 200, authorization: str = Header(None)):
+    """Los apuntes VISIBLES para quien pregunta: los propios (de cualquier visibilidad) más los
+    ajenos marcados 'shared'. Los privados de otra cuenta no salen ni en el conteo."""
+    user = _user_of(authorization)
+    items = db.list_notes(user["user_id"], limit=limit)
+    return {"notes": items, "n": len(items), "limit": limit,
+            "reader": user["user_id"], "body_max": NOTE_BODY_MAX}
+
+
+@app.post("/notes")
+def create_note(body: NoteBody, authorization: str = Header(None)):
+    user = _user_of(authorization)
+    _validar_apunte(body.title, body.body, body.visibility, body.run_ids, body.entities, body.niches)
+    if not body.title.strip() and not body.body.strip():
+        raise HTTPException(status_code=400, detail="un apunte vacío no se guarda: título o cuerpo")
+    return db.create_note(uuid.uuid4().hex, user["user_id"], body.title.strip(), body.body,
+                          body.visibility, body.run_ids, body.entities, body.niches)
+
+
+@app.get("/notes/{note_id}")
+def get_note(note_id: str, authorization: str = Header(None)):
+    user = _user_of(authorization)
+    return _apunte_o_404(note_id, user, para_escribir=False)
+
+
+@app.patch("/notes/{note_id}")
+def update_note(note_id: str, body: NotePatch, authorization: str = Header(None)):
+    user = _user_of(authorization)
+    _apunte_o_404(note_id, user, para_escribir=True)
+    _validar_apunte(body.title, body.body, body.visibility, body.run_ids, body.entities, body.niches)
+    campos = {k: v for k, v in body.model_dump(exclude_unset=True).items() if v is not None}
+    if "title" in campos:
+        campos["title"] = campos["title"].strip()
+    return db.update_note(note_id, campos)
+
+
+@app.delete("/notes/{note_id}")
+def delete_note(note_id: str, authorization: str = Header(None)):
+    user = _user_of(authorization)
+    _apunte_o_404(note_id, user, para_escribir=True)
+    return {"deleted": db.delete_note(note_id), "note_id": note_id}
+
+
+@app.post("/notes/{note_id}/question")
+def draft_question(note_id: str, authorization: str = Header(None)):
+    """EL AGENTE: apunte -> pregunta que opera en Witt (2026-09-04). GASTA — una llamada al
+    modelo best-tier — y por eso es una acción EXPLÍCITA de la persona, jamás automática al
+    guardar. El gasto se guarda con el borrador.
+
+    Redactar es del AUTOR del apunte: un apunte compartido se lee, y poner a gastar sobre la
+    teoría ajena no es leerla.
+
+    §6 no-hang: si el modelo falla, la puerta responde 200 con un borrador `errored` que trae la
+    causa verbatim. Un 500 perdería el registro del intento, y el intento fallido también es dato
+    de calibración."""
+    user = _user_of(authorization)
+    nota = _apunte_o_404(note_id, user, para_escribir=True)
+    if not (nota["title"].strip() or nota["body"].strip()):
+        raise HTTPException(status_code=400, detail="un apunte vacío no da pregunta")
+
+    borrador, usage = question_agent.draft_question(nota)
+    return db.create_note_question(
+        uuid.uuid4().hex, note_id, user["user_id"],
+        borrador["spec_version"], borrador["model"], borrador["state"],
+        borrador["question"], borrador["entities"],
+        json.dumps(borrador, ensure_ascii=False, default=str),
+        usage_json=json.dumps(usage, ensure_ascii=False, default=str) if usage else None,
+        error=borrador.get("error"))
+
+
+@app.get("/notes/{note_id}/questions")
+def questions_of_note(note_id: str, authorization: str = Header(None)):
+    """Los borradores de un apunte, el más nuevo primero. La historia de intentos NO se borra al
+    pedir otro: es el material de la depuración."""
+    user = _user_of(authorization)
+    _apunte_o_404(note_id, user, para_escribir=False)
+    items = db.questions_of_note(note_id)
+    return {"questions": items, "n": len(items),
+            "spec_version_actual": question_agent.QUESTION_SPEC_VERSION}
+
+
+@app.get("/notes/questions/spec")
+def question_spec(authorization: str = Header(None)):
+    """La especificación VIGENTE, verbatim. La UI muestra la MISMA regla que el agente obedeció:
+    una regla que el operador no puede leer no se puede depurar."""
+    _user_of(authorization)
+    return {"spec": question_agent.QUESTION_SPEC, "model": question_agent.QUESTION_MODEL}
+
+
+@app.get("/notes/questions/calibration")
+def question_calibration(authorization: str = Header(None)):
+    """El tablero de depuración del agente, POR VERSIÓN DE SPEC: enfrenta lo que el agente
+    AFIRMÓ (fits_one_run) con lo que el humano MIDIÓ (rating_input = eje pregunta, TAMAÑO).
+    Todo son conteos — promediar una ordinal de 5 anclas inventaría una medición."""
+    _user_of(authorization)
+    return db.question_calibration()
+
+
+@app.get("/runs/{run_id}/notes")
+def notes_for_run(run_id: str, authorization: str = Header(None)):
+    """El hipervínculo AL REVÉS: qué apuntes visibles citan esta corrida — para que la hoja pueda
+    decir 'esto ya lo pensaste aquí'. Misma regla de visibilidad que /notes."""
+    user = _user_of(authorization)
+    items = db.notes_citing_run(run_id, user["user_id"])
+    return {"notes": items, "n": len(items), "run_id": run_id}
 
 
 # --- aliases matching the UI's proposed surface (UI-DATA-CONTRACTS.md §2) — same handlers ------------
