@@ -165,6 +165,8 @@ rv = app.create_run(app.RunBody(question="does wt1a mark the pronephros?", entit
                     authorization=AUTH)
 RID = rv["run_id"]
 check("POST /runs -> queued con run_id + evento inicial", rv["state"] == "queued" and len(RID) == 32)
+check("ADR-0076: la corrida NACE con número de corrida y viaja en la vista (1 en BD nueva)",
+      rv.get("run_no") == 1)
 claimed = db.claim_next_queued()
 check("claim atomico: queued -> running (FIFO)", claimed["run_id"] == RID
       and db.get_run(RID)["state"] == "running")
@@ -1011,6 +1013,13 @@ check("/usage: totales + by_user + by_model + most_expensive + costo PROJECTION"
 us2 = app.usage(from_="2099-01-01", authorization=AUTH)
 check("/usage con ventana vacia -> denominador honesto (0 corridas, 0 con usage)",
       us2["n_runs"] == 0 and us2["n_runs_with_usage"] == 0)
+
+# ---- ADR-0076: al final de todo el gate, los números son únicos y consecutivos en la creación ---------
+_lista = db.list_runs(limit=1000)
+_nums = [r["run_no"] for r in _lista]
+check("ADR-0076: todas las corridas del gate tienen número, sin repetidos, y la lista (created_at desc) los trae descendentes",
+      all(isinstance(n, int) for n in _nums) and len(set(_nums)) == len(_nums)
+      and _nums == sorted(_nums, reverse=True), f"run_no={_nums}")
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))

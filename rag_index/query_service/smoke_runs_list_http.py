@@ -9,6 +9,10 @@ plan_niches null · corrida sin registro congelado ⇒ epistemic_summary null), 
 y el detalle sirven la MISMA vista (LOTE-01·A1), y que los blobs (plan_json /
 frozen_record_json) JAMÁS se filtran al renglón.
 
+2026-09-05 (ADR-0076): el NÚMERO de corrida — nace con la corrida, es único, crece con la
+creación, viaja idéntico en lista y detalle, y el backfill numera por orden de creación a las
+que nacieron antes de la columna.
+
 NO-SPEND: sin red, sin modelo. BD sqlite temporal fuera del repo.
 Uso:  python smoke_runs_list_http.py
 """
@@ -97,6 +101,39 @@ det = client.get("/runs/r1", headers=AUTH).json()
 check("la lista y el detalle sirven la MISMA vista (LOTE-01·A1): plan_niches idéntico",
       det.get("plan_niches") == f1.get("plan_niches")
       and (det.get("epistemic_summary") or {}).get("verdict") == "APPROVE")
+
+# ---- ADR-0076: el número de corrida --------------------------------------------------------------------
+check("ADR-0076: cada renglón trae run_no entero",
+      isinstance(f1.get("run_no"), int) and isinstance(f2.get("run_no"), int),
+      f"r1={f1.get('run_no')!r} r2={f2.get('run_no')!r}")
+check("ADR-0076: r1 nació antes que r2 ⇒ su número es menor (1 y 2 en BD nueva)",
+      f1.get("run_no") == 1 and f2.get("run_no") == 2)
+check("ADR-0076: la lista y el detalle sirven el MISMO número", det.get("run_no") == f1.get("run_no"))
+check("ADR-0076: la corrida NUEVA recibe el siguiente número",
+      db.create_run("r3", "natalia", "¿q3?") == 3 and db.get_run("r3")["run_no"] == 3)
+
+# backfill: corridas que nacieron ANTES de la columna (run_no NULL) se numeran por creación
+with db.engine().begin() as cx:
+    cx.execute(text("UPDATE runs SET run_no = NULL WHERE run_id IN ('r1', 'r2')"))
+db._migrate()
+with db.engine().begin() as cx:
+    numeros = dict(cx.execute(text("SELECT run_id, run_no FROM runs")).all())
+check("ADR-0076: el backfill numera por ORDEN DE CREACIÓN después del máximo vigente (r3=3 ⇒ r1=4, r2=5)",
+      numeros == {"r1": 4, "r2": 5, "r3": 3}, f"numeros={numeros}")
+
+# el índice único es el árbitro: un número repetido NO entra
+dup = False
+try:
+    with db.engine().begin() as cx:
+        cx.execute(text("UPDATE runs SET run_no = 3 WHERE run_id = 'r1'"))
+except Exception:
+    dup = True
+check("ADR-0076: el índice único rechaza un número repetido", dup)
+db._migrate()
+with db.engine().begin() as cx:
+    numeros2 = dict(cx.execute(text("SELECT run_id, run_no FROM runs")).all())
+check("ADR-0076: _migrate es idempotente (una segunda pasada no renumera)",
+      numeros2 == {"r1": 4, "r2": 5, "r3": 3}, f"numeros={numeros2}")
 
 n_pass = sum(CHECKS)
 print(f"\n{n_pass}/{len(CHECKS)} PASS")

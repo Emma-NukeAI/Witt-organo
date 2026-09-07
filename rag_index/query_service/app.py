@@ -487,6 +487,7 @@ def _run_view(run):
     view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
     view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
     view["plan_declared"] = bool(run.get("plan_json"))   # ADR-0061; el plan completo va en el registro
+    # ADR-0076: run_no (el NÚMERO de corrida) viaja tal cual — es columna asignada al nacer, no derivación
     # 2026-08-29 (columna nicho/veredicto de la lista): los CÓDIGOS de nicho del juicio del plan
     # viajan con el renglón, derivados del plan_json YA guardado (procedencia: el planner, ADR-0061);
     # None = corrida sin plan o juicio sin nichos — ausencia declarada, jamás se rellena. El veredicto

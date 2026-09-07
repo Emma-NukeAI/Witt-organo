@@ -60,6 +60,9 @@ RUN_STATES = ("queued", "running", "awaiting_closure", "closed", "failed", "canc
 runs = Table(
     "runs", metadata,
     Column("run_id", String(64), primary_key=True),
+    Column("run_no", Integer),                                # ADR-0076: el NÚMERO de corrida — la identidad
+                                                              # legible (1, 2, 3… al nacer); único por índice.
+                                                              # run_id sigue siendo la llave técnica.
     Column("user_id", String(64), ForeignKey("users.user_id"), nullable=False),
     Column("question", Text, nullable=False),
     Column("entities_csv", Text, nullable=False, default=""),
@@ -227,6 +230,8 @@ def _migrate():
                  "ALTER TABLE runs ADD COLUMN usage_json TEXT",
                  "ALTER TABLE runs ADD COLUMN epistemic_summary_json TEXT",
                  "ALTER TABLE runs ADD COLUMN plan_json TEXT",
+                 # ADR-0076: el número de corrida. Su backfill y su índice único van abajo.
+                 "ALTER TABLE runs ADD COLUMN run_no INTEGER",
                  # M5 v2 (ADR-0075): la nota de la PREGUNTA, separada de la de la respuesta. DEFAULT ''
                  # para que el ADD COLUMN sea legal sobre la tabla que YA tiene filas en el Postgres de
                  # producción (la calificación real de 4d046355) sin reescribirla — y para que esa fila
@@ -238,6 +243,24 @@ def _migrate():
                 cx.execute(text(stmt))
         except Exception:
             pass  # column already there
+    # ADR-0076 — backfill del NÚMERO de corrida para las que nacieron antes de la columna: en orden de
+    # creación (la más vieja = 1; empate por run_id, así el resultado es determinista), continuando
+    # después del máximo que ya exista. Es asignación de identidad sobre un hecho que ya estaba en el
+    # registro (created_at), no una re-medición; corre UNA vez por corrida (sólo las que tienen NULL).
+    # Después, el índice ÚNICO: dos corridas con el mismo número serían el defecto que este número quita.
+    try:
+        with engine().begin() as cx:
+            maximo = cx.execute(select(func.max(runs.c.run_no))).scalar() or 0
+            faltan = cx.execute(select(runs.c.run_id)
+                                .where(runs.c.run_no.is_(None))
+                                .order_by(runs.c.created_at.asc(), runs.c.run_id.asc())).all()
+            for i, r in enumerate(faltan, start=1):
+                cx.execute(runs.update().where(runs.c.run_id == r._mapping["run_id"])
+                           .values(run_no=maximo + i))
+            cx.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS ix_runs_run_no ON runs (run_no)"))
+    except Exception as e:  # una corrida sin número se DECLARA en la UI; aquí queda la huella
+        import sys as _sys
+        print(f"[db._migrate] ADR-0076 backfill/índice de run_no no aplicó: {e!r}", file=_sys.stderr)
     # Backfill (LOTE-02·3): derive the epistemic summary for runs frozen BEFORE this column existed.
     # Derived exclusively FROM frozen values (retrieval_summary/audit/confidence of the frozen record),
     # so the at-freeze discipline holds — this is a re-read of frozen data, not a re-measurement.
@@ -366,11 +389,29 @@ def _dt_utc(v):
 
 
 def create_run(run_id: str, user_id: str, question: str, entities=None, plan_json=None):
-    with engine().begin() as cx:
-        cx.execute(runs.insert().values(run_id=run_id, user_id=user_id, question=question,
-                                        entities_csv=",".join(entities or []), state="queued",
-                                        created_at=_now(), cancel_requested=False,
-                                        plan_json=plan_json))
+    """ADR-0076: el NÚMERO de corrida se asigna AQUÍ, al nacer — MAX(run_no)+1 dentro de la misma
+    transacción del INSERT. Si dos corridas se encolan a la vez y leen el mismo máximo (Postgres en
+    READ COMMITTED lo permite), el índice único ix_runs_run_no rechaza a la segunda y ésta reintenta
+    con el número siguiente. Sin fallback a null: una corrida sin número sería la ambigüedad que el
+    número elimina. Devuelve el número asignado."""
+    from sqlalchemy.exc import IntegrityError
+    ultimo_error = None
+    for _intento in range(5):
+        try:
+            with engine().begin() as cx:
+                siguiente = (cx.execute(select(func.max(runs.c.run_no))).scalar() or 0) + 1
+                cx.execute(runs.insert().values(run_id=run_id, run_no=siguiente, user_id=user_id,
+                                                question=question,
+                                                entities_csv=",".join(entities or []), state="queued",
+                                                created_at=_now(), cancel_requested=False,
+                                                plan_json=plan_json))
+            return siguiente
+        except IntegrityError as e:
+            # sólo se reintenta la CARRERA del número; un run_id repetido es otro defecto y sube tal cual
+            if "run_no" not in str(e.orig).lower():
+                raise
+            ultimo_error = e
+    raise ultimo_error
 
 
 def create_plan(plan_id: str, user_id: str, question: str, entities, plan_json: str):
@@ -459,9 +500,11 @@ def list_runs(user_id=None, limit=50):
     2026-08-29: entities_csv y plan_json ENTRAN al SELECT — la lista los omitía, así que sus
     derivados (genes por renglón, plan_declared, plan_niches) salían vacíos SOLO en la lista
     mientras el detalle sí los servía: la promesa misma-vista de este docstring estaba rota
-    para esos campos. _run_view deriva y DESCARTA el blob (plan_json jamás viaja al renglón)."""
+    para esos campos. _run_view deriva y DESCARTA el blob (plan_json jamás viaja al renglón).
+    2026-09-05 (ADR-0076): run_no ENTRA al SELECT — mismo riesgo, misma lección."""
     with engine().begin() as cx:
-        q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.entities_csv, runs.c.state,
+        q = select(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
+                   runs.c.state,
                    runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
                    runs.c.last_event_at, runs.c.cancelled_by, runs.c.cancel_reason,
                    runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json)
