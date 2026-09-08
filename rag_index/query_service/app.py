@@ -554,7 +554,16 @@ def create_run(body: RunBody, authorization: str = Header(None)):
         db.mark_question_used(body.from_question_id, run_id)
     if body.plan_id:
         db.mark_plan_used(body.plan_id, run_id)
-    return _run_view(db.get_run(run_id))
+    return _con_comentarios([_run_view(db.get_run(run_id))])[0]
+
+
+def _con_comentarios(views):
+    """ADR-0077: `n_comments` viaja en TODA vista de corrida (lista, detalle y la recién creada) —
+    misma-vista (LOTE-01·A1) — con UNA consulta agrupada, no una por renglón. Es un conteo: medición."""
+    conteos = db.count_run_comments([v["run_id"] for v in views])
+    for v in views:
+        v["n_comments"] = conteos.get(v["run_id"], 0)
+    return views
 
 
 @app.get("/runs")
@@ -562,7 +571,8 @@ def list_runs(mine: bool = False, authorization: str = Header(None)):
     """LOTE-01·A1: the LIST goes through the same _run_view as the detail — heartbeat fields included
     and identical datetime serialization (a stuck run must be distinguishable FROM THE LIST)."""
     user = _user_of(authorization)
-    return {"runs": [_run_view(r) for r in db.list_runs(user_id=user["user_id"] if mine else None)]}
+    vistas = [_run_view(r) for r in db.list_runs(user_id=user["user_id"] if mine else None)]
+    return {"runs": _con_comentarios(vistas)}
 
 
 @app.get("/runs/{run_id}")
@@ -571,7 +581,49 @@ def get_run(run_id: str, authorization: str = Header(None)):
     run = db.get_run(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="no such run")
-    return _run_view(run)
+    return _con_comentarios([_run_view(run)])[0]
+
+
+# --- comentarios de corrida (ADR-0077) -------------------------------------------------------------
+
+COMMENT_BODY_MAX = 4000        # el mismo tope que las notas de calificación: un comentario no es un apunte
+
+
+class RunCommentBody(BaseModel):
+    body: str
+
+
+def _corrida_o_404(run_id: str):
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    return run
+
+
+@app.get("/runs/{run_id}/comments")
+def list_run_comments(run_id: str, authorization: str = Header(None)):
+    """ADR-0077: la conversación del equipo SOBRE la pregunta de esta corrida. Anexo append-only y
+    PÚBLICO para toda sesión válida (permisos planos); fuera del registro congelado, de las
+    calificaciones (M5) y de los apuntes. NO-SPEND. El tope del cuerpo se declara (body_max)."""
+    _user_of(authorization)
+    _corrida_o_404(run_id)
+    comentarios = db.list_run_comments(run_id)
+    return {"run_id": run_id, "comments": comentarios, "n": len(comentarios),
+            "body_max": COMMENT_BODY_MAX}
+
+
+@app.post("/runs/{run_id}/comments", status_code=201)
+def create_run_comment(run_id: str, body: RunCommentBody, authorization: str = Header(None)):
+    """Autor y hora los pone el SERVIDOR (procedencia de la sesión, ADR-0056). Sin PATCH ni DELETE:
+    lo dicho queda dicho. La corrida no se toca."""
+    user = _user_of(authorization)
+    _corrida_o_404(run_id)
+    texto = body.body.strip()
+    if not texto:
+        raise HTTPException(status_code=400, detail="un comentario vacío no se guarda")
+    if len(texto) > COMMENT_BODY_MAX:
+        raise HTTPException(status_code=400, detail=f"body: máximo {COMMENT_BODY_MAX} caracteres")
+    return db.create_run_comment(uuid.uuid4().hex, run_id, user["user_id"], texto)
 
 
 @app.get("/runs/{run_id}/record")

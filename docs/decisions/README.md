@@ -144,6 +144,7 @@ or external references that informed the decision.
 | [0074](0074-list-fields-serialized-as-strings.md) | 2026-08-25 | Campos-lista serializados como string: se normalizan ANTES de congelar | Accepted |
 | [0075](0075-m5-v2-dos-notas-y-cortes-declarados.md) | 2026-08-26 | M5 v2: dos notas separadas, anclas con palabra, y los cortes que declaran de qué descansa el ECE | Accepted |
 | [0076](0076-numero-de-corrida.md) | 2026-09-05 | Número de corrida: la identidad legible nace en el backend, no en la vista | Accepted |
+| [0077](0077-comentarios-de-corrida.md) | 2026-09-06 | Comentarios de corrida: la conversación sobre la pregunta como anexo append-only, público y fuera del registro | Accepted |
 
 ---
 

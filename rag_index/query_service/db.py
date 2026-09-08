@@ -177,6 +177,20 @@ notes = Table(
     Column("updated_at", DateTime(timezone=True), nullable=False),
 )
 
+# COMENTARIOS DE CORRIDA (ADR-0077, 2026-09-06): la conversación del equipo SOBRE la pregunta de
+# una corrida. Anexo append-only y PÚBLICO (toda sesión válida lee y escribe; permisos planos,
+# ADR-0047). No toca la corrida, ni el registro congelado, ni las calificaciones (M5: juicio con
+# instrumento), ni los apuntes (teorías que existen ANTES de la pregunta). Sin borrado ni edición:
+# lo dicho queda dicho, con autor y hora.
+run_comments = Table(
+    "run_comments", metadata,
+    Column("comment_id", String(64), primary_key=True),
+    Column("run_id", String(64), ForeignKey("runs.run_id"), nullable=False),
+    Column("author_id", String(64), ForeignKey("users.user_id"), nullable=False),
+    Column("body", Text, nullable=False),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
 # BORRADORES DE PREGUNTA (2026-09-04): lo que el agente redacta DESDE un apunte. Se persisten
 # porque el fundador quiere DEPURAR la estructura con resultados: sin registro no hay
 # calibración. Cada borrador guarda la VERSIÓN DE LA ESPECIFICACIÓN que lo produjo, así que
@@ -826,6 +840,59 @@ def _question_view(row) -> dict:
             d[f"{llave}_unreadable"] = True
     d["created_at"] = _dt_utc(d["created_at"]).isoformat(timespec="seconds") if d.get("created_at") else None
     return d
+
+
+# --- comentarios de corrida (ADR-0077) --------------------------------------------------------------
+
+def _comments_select():
+    """El nombre para mostrar sale de users (procedencia: la cuenta), jamás lo manda el cliente."""
+    return (select(run_comments.c.comment_id, run_comments.c.run_id, run_comments.c.author_id,
+                   users.c.display_name.label("author_name"), run_comments.c.body,
+                   run_comments.c.created_at)
+            .select_from(run_comments.join(users, users.c.user_id == run_comments.c.author_id)))
+
+
+def _comment_view(row) -> dict:
+    d = dict(row._mapping)
+    d["created_at"] = (_dt_utc(d["created_at"]).isoformat(timespec="seconds")
+                       if d.get("created_at") else None)
+    return d
+
+
+def create_run_comment(comment_id: str, run_id: str, author_id: str, body: str) -> dict:
+    """Append-only: el cuerpo se guarda VERBATIM (saltos de línea incluidos) con autor y hora del
+    servidor. No hay update ni delete: un comentario retirado sería un hueco en la conversación."""
+    with engine().begin() as cx:
+        cx.execute(run_comments.insert().values(comment_id=comment_id, run_id=run_id,
+                                                author_id=author_id, body=body, created_at=_now()))
+    return get_run_comment(comment_id)
+
+
+def get_run_comment(comment_id: str):
+    with engine().begin() as cx:
+        row = cx.execute(_comments_select().where(run_comments.c.comment_id == comment_id)).first()
+    return _comment_view(row) if row else None
+
+
+def list_run_comments(run_id: str):
+    """La conversación en orden de llegada (empate por id: determinista)."""
+    with engine().begin() as cx:
+        rows = cx.execute(_comments_select().where(run_comments.c.run_id == run_id)
+                          .order_by(run_comments.c.created_at.asc(),
+                                    run_comments.c.comment_id.asc())).all()
+    return [_comment_view(r) for r in rows]
+
+
+def count_run_comments(run_ids) -> dict:
+    """{run_id: n} en UNA consulta agrupada — la lista de /runs no dispara N+1."""
+    ids = [r for r in run_ids if r]
+    if not ids:
+        return {}
+    with engine().begin() as cx:
+        rows = cx.execute(select(run_comments.c.run_id, func.count())
+                          .where(run_comments.c.run_id.in_(ids))
+                          .group_by(run_comments.c.run_id)).all()
+    return {r[0]: int(r[1]) for r in rows}
 
 
 def create_note_question(question_id: str, note_id: str, author_id: str, spec_version: str,
