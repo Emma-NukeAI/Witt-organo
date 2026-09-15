@@ -27,6 +27,31 @@
   ADR-0059). Por tanto `conf1_ge_tau` GATEA por default (`cg-3`); `WITT_CG_CONF_COMPONENT=0` declarado lo vuelve
   informativo. Las menciones a "informativo por default" del escalar en este ADR quedan corregidas abajo; las de
   `calibration_coverage` (Context 5) siguen vigentes — esa sí es informativa hasta que exista historia.
+- **Correcciones tras la paridad de la webapp 2026-09-15.** El gate de paridad de `witt-webapp` (fixtures generados con
+  este backend, offline) midió seis discrepancias entre lo que este ADR prometía y lo que el código congela/emite. **Hallazgo
+  que las motivó:** los fixtures *objetada-confianza-ausente* y *citas-no-parseables* (corrida SIN entidades y SIN
+  `pass1.search_query_en`) salían con `n_rounds 2` y `stop_reason 'rounds-cap'` — el constructor no produce query, el ledger
+  legado dice `'not-searched'` (su literal de ADR-0078, intacto), el harness lo degradaba a `status 'error'` con "query builder
+  produced no … query (nothing to search)" (FALSO: no hubo error, no había nada que buscar) y dejaba `inputs_used [None]`, que
+  `families_with_new_inputs` leía como `[None] != []` (la firma de `_inputs_for`) → "insumo nuevo" → ronda 2 IDÉNTICA
+  (`skipped-cap 'same inputs as round 1'`) → `'rounds-cap'`, contra la promesa "nada se re-ejecuta por inercia". Se corrige en
+  el backend, con un check de smoke por corrección: **(a)** el resumen `papers[]` del EVENTO `stage.path_b`
+  (`answer_pipeline.path_b_event_payload`) copia `kind, source_family, label, identifier_provenance, url, gap_flags, zfin_curie,
+  round` SOLO cuando la llave existe en el ítem (ausente sigue ausente; un paper legado no las gana) — antes sólo llevaba
+  `evidence_id/source/selection_rank/text_provenance/fetched/zfin` y *Consequences* (9) pedía pintar lo que no viajaba;
+  **(b)** `search_harness._run_legacy_family`: ledger `'not-searched'` → fila `'not-requested'` con el `detail` del ledger y sin
+  `error` (`_legacy_status`), e `inputs_used` de europepmc/pubmed/zfin es EXACTAMENTE la firma de `_inputs_for` (query None →
+  `[]`, símbolos `[]` → `[]`, también en la rama `n_papers <= 0`) → esa corrida hace UNA ronda, `stop 'no-new-inputs'`, cero
+  llamadas; **(c)** `competence.evaluate` resuelve `tau_source` UNA vez: `components.conf1_ge_tau.tau_source ==
+  config.tau_source` (`'caller'` cuando τ vino del llamador — antes el componente decía la fuente del env); **(d)**
+  `components.calibration_coverage` AHORA lleva `include_origins` (lista | `'all'` — `runs.execute_run` declara `'all'` cuando
+  no hay filtro, `db` sigue recibiendo `None`) e `include_origins_source` (`'default-unset:WITT_CG_CALIBRATION_ORIGINS'` |
+  `'env:WITT_CG_CALIBRATION_ORIGINS'` | `'env:… (all origins, no filter)'`), copiados por `_calibration_component` cuando la
+  cobertura los trae — (A) lo prometía y no era verdad; **(e)** el vocabulario REAL de `plan_state` se declara en `runs`
+  (`SEARCH_PLAN_STATES_EXACT` + `SEARCH_PLAN_STATE_PREFIXES`, ver (G)) y viaja congelado en `search_ledger.plan_state_vocabulary`;
+  **(f)** `stage.audit.judge` gana `max_attempts` (= `1 + WITT_JUDGE_RETRIES`, leído de la MISMA fuente que
+  `composite_auditor.audit` — `resolve_judge_retries`) y `max_attempts_source`: la Traza dice "intento N de M". Gates tras la
+  corrección: `smoke_search_harness` 45 → **47**, `smoke_competence` 27 → **31**, `smoke_run_pipeline` 248 → **251** (tabla abajo).
 - **Relates:** ADR-0043 (tres estados, jamás `null` ambiguo) · ADR-0049 (auditoría en el 100% de las corridas) ·
   ADR-0051 (`pass1 < τ` como disparador de la Ruta B — deja de decidir SOLO: es el componente `conf1_ge_tau` de la conjunción,
   GATEANTE por default (`cg-3`), y sobrevive como alias `trigger_legacy`) · ADR-0053 (el gate es ciego a la procedencia por diseño) · ADR-0061/0066 (el plan declarado:
@@ -171,7 +196,12 @@ competente → ronda + pass2 SIEMPRE**, aunque la confianza sea alta. `calibrati
 reason 'no-niches'?, include_origins, class 'medicion'}`; sin nichos `n null` (no hay contra qué medir — jamás un 0).
 *(corrector)* `runs.execute_run` pasa `include_origins` desde `WITT_CG_CALIBRATION_ORIGINS` (default `['production']`,
 fuente en `include_origins_source`): corridas `smoke`/`simulation`/`fixture` cerradas y calificadas jamás cuentan como
-historia de competencia (ADR-0079); `all` = sin filtro, declarado.
+historia de competencia (ADR-0079); `all` = sin filtro, declarado. *(paridad webapp 2026-09-15)* La forma de arriba es VERDAD
+desde hoy: `components.calibration_coverage` copia `include_origins` (la lista aplicada, o el literal `'all'` cuando no hubo
+filtro — jamás un `null` que se leyera como "no declarado") e `include_origins_source` desde la cobertura que `execute_run`
+armó; sin ellos en la cobertura (el módulo puro llamado con un dict mínimo) las llaves quedan AUSENTES. Y `tau_source` se
+resuelve UNA vez: `components.conf1_ge_tau.tau_source == config.tau_source` (`'caller'` con `tau=` del llamador —
+`runs.FALLBACK_CONF_TAU` — o la fuente del env/default sin él); antes el componente decía `'default-unset:…'` para el MISMO τ.
 
 **(B) El cableado en `runs.execute_run`.** pass1 → `stage.synthesize.pass1` (gana `usage {in, out, model}`) →
 `stage.confidence.elicit{pass 'pass1', stated_confidence, confidence_source, elicitation_state, usage}` (la elicitación de
@@ -235,7 +265,12 @@ ronda las familias cuyos insumos son idénticos a los que ya consumieron (`rows[
 `stop_reason ∈ found-new|rounds-cap|no-families|no-new-inputs`; la ronda declara `n_admitted`, `families_with_new_inputs`,
 `n_not_reexecuted`, `round_over_budget`, `elapsed_over_budget_s`. Con las cinco familias default los insumos sólo cambian
 cuando se admite algo, así que hoy una corrida no competente que no encontró nada hace UNA ronda (antes hacía dos
-idénticas: 5 GETs repetidos para producir duplicados o no-match). Las tres fuentes de hoy NO se reescriben: adaptadores
+idénticas: 5 GETs repetidos para producir duplicados o no-match). *(paridad webapp 2026-09-15)* La regla exige que
+`rows[].inputs_used` sea EXACTAMENTE la firma de `_inputs_for` también en las familias legadas: query None → `[]` (no
+`[None]`), símbolos → la misma lista; y un ledger legado `'not-searched'` (el constructor no produjo query: nada que buscar)
+es fila `'not-requested'` con el `detail` del ledger y SIN `error` — antes era `'error'` + `[None]`, y una corrida sin entidades
+ni EN hacía dos rondas idénticas y paraba en `'rounds-cap'`; hoy hace UNA y para en `'no-new-inputs'` con cero llamadas. Las
+tres fuentes de hoy NO se reescriben: adaptadores
 que llaman a `answer_pipeline._search_europepmc/_search_pubmed/_search_zfin` y conservan su ledger; *(corrector)* el
 presupuesto de la familia ACOTA sus llamadas — `timeout=min(default del módulo, presupuesto)` viaja a
 `fetch_paper.search_europepmc_ledger` y `pubmed_literature.query_pubmed` (ambas ganan `timeout=` opcional, declarado en
@@ -300,7 +335,9 @@ vocabulario. `audit(judge_retries=None)`: hasta `1 + WITT_JUDGE_RETRIES` intento
 `audit.usage` **y** *(corrector)* a `token_usage.by_model` (bajo su reviewer), `by_stage.panel` y `usage_raw.panel_total` —
 antes M8 sub-contaba exactamente ese gasto y `by_stage_sum_matches_by_model` lo escondía; `audit.judge_retries
 {value, source}` declarado y copiado al registro (C7). `runs.panel_caller` emite `stage.audit.judge {attempt,
-retries_judge}` por INTENTO (el latido sigue acotado a un juez).
+retries_judge, max_attempts, max_attempts_source}` por INTENTO (el latido sigue acotado a un juez); *(paridad webapp
+2026-09-15)* `max_attempts = 1 + WITT_JUDGE_RETRIES` leído con `composite_auditor.resolve_judge_retries` — la MISMA fuente
+que `audit()` usa, así la Traza dice "intento N de M" con el M real (`max_attempts_source == audit.judge_retries.source`).
 
 **(F) Gasto por etapa.** `token_usage.by_stage {plan, synthesize_pass1, elicit_pass1, search, synthesize_pass2,
 elicit_pass2, panel, revision, embed, _sum}` desde el `usage` que cada llamada devuelve: la síntesis es la resta y la
@@ -312,7 +349,7 @@ aparte en tokens de embedding.
 `by_stage_sum_matches_by_model` (`_sum == by_model total`) se comprueba y viaja como bool.
 
 **(G) Congelado — contrato 1.9 (aditivo).** `competence` (el bloque de (A) + `decision`) · `search_ledger {plan (sin
-query_builder), plan_state ∈ built|not-requested|harness-unavailable|error, rounds[] (sin ítems), n_rounds int|null, cap,
+query_builder), plan_state, plan_state_vocabulary {exact, prefixes, rule}, rounds[] (sin ítems), n_rounds int|null, cap,
 round_budget_s, families_default, config_source{families, cap, round_budget_s}, second_round_rule, state ∈ 'harness' |
 'not-requested (…)' | 'legacy-path-b (…)' | 'harness-without-ledger (…)', harness_version?, stop_reason?, n_new_total?,
 n_items?}` (el `bundle.path_b` íntegro sigue en `bundle_json`) · `citations[]` += `resolved, resolved_to,
@@ -325,10 +362,22 @@ pass1_admissible, positive_claim_requires_citations (+_state, +_evaluation), com
 `token_usage.by_stage` + `by_stage_sum_matches_by_model` · `epistemic_summary += competent (bool|null), n_search_rounds
 (int|null; 0 = no se buscó, null = el harness no midió)` · `search_ledger` += `config_reader, stop_reasons_vocabulary,
 n_admitted_total`; `rounds[]` += `n_admitted, inputs_changed, families_with_new_inputs, n_not_reexecuted, round_over_budget,
-elapsed_over_budget_s`; `rounds[].sources[]` += `inputs_used`. Eventos nuevos: `stage.confidence.elicit{pass}`,
-`stage.competence`, `stage.search.plan`, `stage.search.round`, `stage.search.source`; ampliados: `stage.deterministic_gate
-{pass}`, `stage.synthesize.pass1/pass2 {usage}`, `stage.path_b {trigger 'competence', trigger_legacy, harness_used,
-search_ledger}`, `stage.audit.judge {attempt, retries_judge}`.
+elapsed_over_budget_s`; `rounds[].sources[]` += `inputs_used` (== la firma de `_inputs_for`, también en las legadas).
+**Vocabulario REAL de `plan_state`** *(paridad webapp 2026-09-15; antes este ADR declaraba sólo
+`built|not-requested|harness-unavailable|error`)*: `search_ledger.plan_state`, `search_ledger.plan.state` y
+`stage.search.plan.state` son un literal EXACTO de `runs.SEARCH_PLAN_STATES_EXACT = ('built', 'not-requested',
+'harness-unavailable', 'error')` **o** empiezan con un prefijo de `runs.SEARCH_PLAN_STATE_PREFIXES = ('error: ',
+'kill-switch ', 'not-applicable (', 'harness-unavailable (')` — `'kill-switch WITT_COMPETENCE_GATE=0'` / `'kill-switch
+WITT_SEARCH_HARNESS=0'` (compuerta o harness apagados), `'not-applicable (<skipped_reason>)'` (ruta `store-consultation`
+bajo la regla legada), y en el plan-sobre de `_build_search_plan` `'error: <tipo>: <msg>'` / `'harness-unavailable (<qué
+faltó>)'` junto a los exactos `'error'` / `'harness-unavailable'` que ese mismo builder devuelve como `plan_state`. El
+vocabulario viaja congelado en `search_ledger.plan_state_vocabulary` (como `stop_reasons_vocabulary`) y
+`runs.plan_state_in_vocabulary(state)` es el predicado que el gate de paridad aplica. Eventos nuevos:
+`stage.confidence.elicit{pass}`, `stage.competence`, `stage.search.plan`, `stage.search.round`, `stage.search.source`;
+ampliados: `stage.deterministic_gate {pass}`, `stage.synthesize.pass1/pass2 {usage}`, `stage.path_b {trigger 'competence',
+trigger_legacy, harness_used, search_ledger, papers[] += kind, source_family, label, identifier_provenance, url, gap_flags,
+zfin_curie, round — SOLO cuando el ítem trae la llave}`, `stage.audit.judge {attempt, retries_judge, max_attempts,
+max_attempts_source}`.
 
 **(H) Integración (C7).** Costuras mínimas, cada una documentada en el archivo: `search_harness.SEARCH_DISPATCH`
 apunta a las llaves REALES de C5 (`geo`/`openalex` → `data.records`; `unpaywall_crossref` → `source_rows
@@ -369,8 +418,13 @@ nacen sin plan) y `smoke_run_recovery.py` compara la forma base de las citas.
   `token_usage.by_stage` como desglose de M8 (con `elicit_* null + state` visible como "no separable", no como 0) y
   `by_stage_sum_matches_by_model`, `plan.state 'plan-without-usage…'`; (7) `epistemic_summary.{competent, n_search_rounds}`
   en la fila del Banco (0 ≠ null); (8) `stage.audit.judge {attempt, retries_judge}` y `audit.panel[].{retries_judge,
-  attempts, citation_support}`, `audit.judge_retries`; (9) `path_b.papers[].{kind, source_family, label,
-  identifier_provenance, url, gap_flags, zfin_curie}`; (10) `deterministic_checks.pass` es string (`'pass1'|'pass2'|'revision'`).
+  attempts, citation_support}`, `audit.judge_retries`, `stage.audit.judge.max_attempts` ("intento N de M"); (9) los ítems de la
+  Ruta B se pintan desde el EVENTO `stage.path_b.papers[]` — `{evidence_id, source, selection_rank, text_provenance, fetched,
+  zfin?}` + *(paridad webapp 2026-09-15)* `{kind, source_family, label, identifier_provenance, url, gap_flags, zfin_curie,
+  round}` cuando el ítem los trae — y del `bundle_json` (`path_b.papers[]` íntegro, con texto); **el registro congelado NO
+  lleva `path_b`**: un lector del frozen que espere `papers[]` ahí lee una ausencia declarada, no un bug; (10)
+  `deterministic_checks.pass` es string (`'pass1'|'pass2'|'revision'`); (11) `search_ledger.plan_state` se valida contra
+  `plan_state_vocabulary {exact, prefixes}` (exacto o prefijo), no contra cuatro literales.
 - **`record_pdf.py` (obra C8, dueño: backend):** *(corrector)* hoy imprime `fallback.trigger` + `trigger_decided_by` + el
   veredicto de la compuerta (`competence.competent`, `decision_source`), `search_ledger {state, n_rounds, cap, stop_reason}`
   y el `support_state` por cita (ausente = `NO INSTRUMENTADO (contrato < 1.9)`); quedan pendientes de pintar
@@ -450,13 +504,13 @@ nacen sin plan) y `smoke_run_recovery.py` compara la forma base de las citas.
 
 | Gate | Resultado |
 |---|---|
-| `smoke_competence.py` (C1 + corrector + cg-3: 8 checks de `competence.evaluate` puro — conjunción CON el escalar por default (`cg-3`: conf 0.3 → `['conf1_ge_tau']`, conf ausente → `'conf1-absent'`) y apagado explícito con `WITT_CG_CONF_COMPONENT=0` (informativo, nota veraz), conf ausente, inadmisible/estructural/no-medido, store-consultation `not_applicable`, kill-switch, calibration gating on/off, sin plan, env tolerante + `compact`; 1 de `db.calibration_coverage`; 18 del cableado real en `execute_run` con `retrieve`/`path_b_bundle` monkeypatcheados: competente sin ronda (`n_rounds 0`), no competente → plan REAL + harness stub + pass2, kill-switch alto/bajo con la Ruta B LEGADA (`search_plan None`, `trigger 'confidence'`), estructural, calibración sólo `production` vs `WITT_CG_CALIBRATION_ORIGINS=smoke`, harness ausente y `path_b_bundle` con firma vieja DECLARADOS, `by_stage` con/sin `usage_elicitation` y `plan-without-usage`, reintento por juez, `citation_support` eleva a `supported`) | **27/27 PASS** |
-| `smoke_search_harness.py` (C2 + corrector: plan por familias/directivas/caller, `directive-only` fuera salvo nombrada, desconocidas declaradas, ronda con presupuesto y fuente lenta simulada → `skipped-budget`, dedup contra `existing_ids` y dentro de la ronda, ids derivados con `gap_flag`, insumos encadenados DOI/curie, tools ausentes `tool-unavailable`, adaptadores legados byte-compatibles, `retrieve` sin plan sin cambios; `plan_event_payload.state 'built'`, `should_run_next_round(…, inputs_changed)`, `resolve_default_families`, sin insumos nuevos → UNA ronda `'no-new-inputs'`, ronda 2 SÓLO para la familia con insumo nuevo (`monarch` tras la curie de `alliance`) con la otra `skipped-cap 'same inputs as round 1 (not re-executed)'`, insumo resuelto en la misma ronda → una ronda) | **45/45 PASS** |
+| `smoke_competence.py` (C1 + corrector + cg-3: 8 checks de `competence.evaluate` puro — conjunción CON el escalar por default (`cg-3`: conf 0.3 → `['conf1_ge_tau']`, conf ausente → `'conf1-absent'`) y apagado explícito con `WITT_CG_CONF_COMPONENT=0` (informativo, nota veraz), conf ausente, inadmisible/estructural/no-medido, store-consultation `not_applicable`, kill-switch, calibration gating on/off, sin plan, env tolerante + `compact`; 1 de `db.calibration_coverage`; 18 del cableado real en `execute_run` con `retrieve`/`path_b_bundle` monkeypatcheados: competente sin ronda (`n_rounds 0`), no competente → plan REAL + harness stub + pass2, kill-switch alto/bajo con la Ruta B LEGADA (`search_plan None`, `trigger 'confidence'`), estructural, calibración sólo `production` vs `WITT_CG_CALIBRATION_ORIGINS=smoke`, harness ausente y `path_b_bundle` con firma vieja DECLARADOS, `by_stage` con/sin `usage_elicitation` y `plan-without-usage`, reintento por juez, `citation_support` eleva a `supported`; **paridad webapp 2026-09-15 (+4):** `tau_source` UNA vez (caller / env / default, componente == config), `include_origins`/`include_origins_source` copiados al componente puro y AUSENTES sin cobertura, aserción DURA en `execute_run` (`['production']` + `'default-unset:…'` en frozen y evento; `['smoke']` + `'env:…'` con la env), `store-consultation` + conf 0.3 → `plan_state 'not-applicable (…)'` idéntico en ledger/plan/evento, vocabulario REAL de `plan_state` (exactos + prefijos: `'error'`/`'error: RuntimeError…'` y `'harness-unavailable'`/`'harness-unavailable (…)'` medidos sobre `_build_search_plan`, `'kill-switch …'`, `'not-applicable (…)'`; `plan_state_vocabulary` congelado), `stage.audit.judge.max_attempts 2 == 1 + judge_retries.value` con la misma fuente) | 27/27 → **31/31 PASS** |
+| `smoke_search_harness.py` (C2 + corrector: plan por familias/directivas/caller, `directive-only` fuera salvo nombrada, desconocidas declaradas, ronda con presupuesto y fuente lenta simulada → `skipped-budget`, dedup contra `existing_ids` y dentro de la ronda, ids derivados con `gap_flag`, insumos encadenados DOI/curie, tools ausentes `tool-unavailable`, adaptadores legados byte-compatibles, `retrieve` sin plan sin cambios; `plan_event_payload.state 'built'`, `should_run_next_round(…, inputs_changed)`, `resolve_default_families`, sin insumos nuevos → UNA ronda `'no-new-inputs'`, ronda 2 SÓLO para la familia con insumo nuevo (`monarch` tras la curie de `alliance`) con la otra `skipped-cap 'same inputs as round 1 (not re-executed)'`, insumo resuelto en la misma ronda → una ronda; **paridad webapp 2026-09-15 (+2):** plan SIN entidades ni EN → europepmc/pubmed `'not-requested'` con el detail `'… (nothing to search)'` del ledger legado (que conserva `'not-searched'`) y SIN `error`, zfin/alliance `'no symbols'`, `inputs_used == inputs_signature` (`[]`, jamás `[None]`) con `inputs_mode`, cero llamadas a las fuentes; la misma corrida por `path_b_bundle` con cap 2 → UNA ronda, `stop 'no-new-inputs'`, `inputs_changed False`, `families_with_new_inputs []`) | 45/45 → **47/47 PASS** |
 | `smoke_tools_a.py` (C3 + corrector: `alliance_orthologs` A0–A11 (símbolo sin gen → `no-match 'symbol-unresolved'` + `throttle` declarado) · `ensembl_homology` B0–B10 · `zfin_expression_tsv` C0–C16 — `column_mode` positional/header, `evidence_id` desde las llaves de la fila == `build_evidence_id(resolves_to)` 58/58 y `raw_ref.line_no` localizando la línea real 58/58, 58 ids distintos, split por TAB con comilla, `n_rows_malformed`, presupuestos — · contrato común D1–D4) | **45/45 PASS** |
 | `smoke_tools_b.py` (C4: `uniprot` · `monarch` · `reactome` · `string` — fixture, vacío→no-match, 503→error sin data, timeout 0/7/default, cache hit, labels, evidence_id, procedencia; el bug de `reviewed None` en TrEMBL se halló y se clavó aquí) | **69/69 PASS** |
 | `smoke_tools_c.py` (C5 + corrector: `geo_gds` 22 · `unpaywall_crossref` 24 (Crossref 503 + Unpaywall success = filas independientes; sin correo → `tool-unavailable`, cero llamadas) · `openalex_search` 17 (créditos declarados) · transversal 5: CERO correos en `fixtures/*.json`, recorte del fixture declarado, `strip_affiliation_strings`/`redact_emails` cuentan) | **68/68 PASS** |
 | `smoke_gate_citations.py` (C6 + corrector: predicado positivo/declinación/ids vacíos; `absence_kind` AUSENTE → afirmación positiva (sin citas inadmisible, con 1 cita admisible); declinación con identificadores RESUELTOS (informe inyectado o medido) sin citas → inadmisible, con cita → admisible, sin informe → `not-provided`; escalera con y sin grounding sobre bundle sintético con Ruta A + EPMC + PubMed + ZFIN + DOI; no-salto de peldaños; `VERDICT_TOOL` opcional; charge sólo grounding; caller inyectado que falla 1 vez → veredicto + `retries_judge 1`, 2 veces → `errored`, ilegible → reintento, usage sólo de intentos con usage, env leída en `audit()`; end-to-end panel→`support_state`) | **48/48 PASS** |
-| `smoke_run_pipeline.py` (C7 integrador + corrector + cg-3: 217 → 238 → 247 → **248**; 32 checks ADR-0080 — cableado ESTÁTICO de `SEARCH_DISPATCH` sobre los 12 archivos reales (`fn_resolved == fn`), costuras C2↔C5, competente con plan sin ronda (`n_rounds 0`) y trigger null con la traza en orden, bloque `stage.competence == frozen.competence` (`cg-3`, `conjunction` CON `conf1_ge_tau` primero, nota veraz, `trigger_decided_by`, `tau_source`), `by_stage` competente (plan 400, `_sum 540`), NO competente con el harness REAL → 1 ronda `found-new`, 5 `stage.search.source`, ítem de ortología con id del tool, PubMed declarando duplicados de EPMC, `timeout` recibido por los fakes; `by_stage` NO competente y con revisión; camino REAL con `elicit_pass1 {30, 3, measured}`; eventos `gate{pass 'pass1','pass2'}` / `elicit` / `synthesize.pass1.usage`; nada nuevo → UNA ronda `'no-new-inputs'` (5 source events, no 10) + predicado `should_run_next_round(…, inputs_changed)`; `WITT_SEARCH_ROUNDS_CAP=1` → `rounds-cap`; presupuesto con reloj falso → `skipped-budget` + `over_budget`; kill-switch alto/bajo con la Ruta B de ADR-0078 byte a byte (`trigger 'confidence'`, `harness_used False`, sin `stage.search.round/source`, `legacy-path-b (kill-switch …)`, `triggered_by` con el literal de ADR-0051, `bundle.path_b` sin `search_ledger`); `WITT_SEARCH_HARNESS=0`; `WITT_CG_CONF_COMPONENT` default (gatea, `cg-3`: conf 0.3 → no competente + ronda) vs `0` explícito (informativo, competente, nota == gating) en dos checks; `WITT_CG_REQUIRE_CALIBRATION=1` gatea con n 0 (sólo `production`) + lector `WITT_CG_CALIBRATION_ORIGINS`; escalera `supported`/`unresolved`; afirmación positiva sin citas, `absence_kind` ausente sin citas y declinación con `ENSDARG` resuelto sin citas → inadmisibles; declinación limpia → competente; reintento por juez; juez AGOTADO que cobró → M8 cuadra (`panel 44`, `by_model` con el reviewer errado, `input_tokens == pasadas + plan + audit.usage`); `by_stage.plan` tres estados; env de familias en mayúsculas/duplicadas → UNA verdad; contrato 1.9 en las 20 corridas con `'confidence'` sólo bajo `competent null`; **0 llamadas a `urlopen` y `mcp_cache` byte-idéntico** — MEDIDO) | 203/217 → 217/217 → 238/238 → 247/247 → **248/248 PASS** |
+| `smoke_run_pipeline.py` (C7 integrador + corrector + cg-3: 217 → 238 → 247 → 248 → **251**; 35 checks ADR-0080 — cableado ESTÁTICO de `SEARCH_DISPATCH` sobre los 12 archivos reales (`fn_resolved == fn`), costuras C2↔C5, competente con plan sin ronda (`n_rounds 0`) y trigger null con la traza en orden, bloque `stage.competence == frozen.competence` (`cg-3`, `conjunction` CON `conf1_ge_tau` primero, nota veraz, `trigger_decided_by`, `tau_source`), `by_stage` competente (plan 400, `_sum 540`), NO competente con el harness REAL → 1 ronda `found-new`, 5 `stage.search.source`, ítem de ortología con id del tool, PubMed declarando duplicados de EPMC, `timeout` recibido por los fakes; `by_stage` NO competente y con revisión; camino REAL con `elicit_pass1 {30, 3, measured}`; eventos `gate{pass 'pass1','pass2'}` / `elicit` / `synthesize.pass1.usage`; nada nuevo → UNA ronda `'no-new-inputs'` (5 source events, no 10) + predicado `should_run_next_round(…, inputs_changed)`; `WITT_SEARCH_ROUNDS_CAP=1` → `rounds-cap`; presupuesto con reloj falso → `skipped-budget` + `over_budget`; kill-switch alto/bajo con la Ruta B de ADR-0078 byte a byte (`trigger 'confidence'`, `harness_used False`, sin `stage.search.round/source`, `legacy-path-b (kill-switch …)`, `triggered_by` con el literal de ADR-0051, `bundle.path_b` sin `search_ledger`); `WITT_SEARCH_HARNESS=0`; `WITT_CG_CONF_COMPONENT` default (gatea, `cg-3`: conf 0.3 → no competente + ronda) vs `0` explícito (informativo, competente, nota == gating) en dos checks; `WITT_CG_REQUIRE_CALIBRATION=1` gatea con n 0 (sólo `production`) + lector `WITT_CG_CALIBRATION_ORIGINS`; escalera `supported`/`unresolved`; afirmación positiva sin citas, `absence_kind` ausente sin citas y declinación con `ENSDARG` resuelto sin citas → inadmisibles; declinación limpia → competente; reintento por juez; juez AGOTADO que cobró → M8 cuadra (`panel 44`, `by_model` con el reviewer errado, `input_tokens == pasadas + plan + audit.usage`); `by_stage.plan` tres estados; env de familias en mayúsculas/duplicadas → UNA verdad; contrato 1.9 en las 21 corridas con `'confidence'` sólo bajo `competent null`; **0 llamadas a `urlopen` y `mcp_cache` byte-idéntico** — MEDIDO; **paridad webapp 2026-09-15 (+3):** el resumen `papers[]` del EVENTO `stage.path_b` lleva `kind 'ortholog'`/`source_family`/`label` presente-y-null/`identifier_provenance 'alliance-api-payload'`/`url`/`zfin_curie`/`round 1` para el ítem de ortología y `kind 'literature-candidate'`/`'europepmc-api-live'` para el paper seleccionado, sin texto ni `gap_flags` (ausente sigue ausente) y un paper LEGADO no las gana; corrida SIN entidades y SIN `search_query_en` → cinco filas `'not-requested'` (ninguna `'error'`), `inputs_used []`, `n_rounds 1`, `stop 'no-new-inputs'`, `query_sent None`, CERO llamadas a las tres legadas y a las fakes Layer 0; `WITT_CG_CALIBRATION_ORIGINS=all` → `include_origins 'all'` + `'env:… (all origins, no filter)'` y aserción DURA de `['production']` + fuente en frozen y evento; vocabulario REAL de `plan_state` en las 21 corridas + `_build_search_plan` (`'error'`/`'error: …'`, `'harness-unavailable'`/`'harness-unavailable (…)'`) con `plan_state_vocabulary` congelado; `stage.audit.judge` `[(1 de 2), (2 de 2)]` con `max_attempts == 1 + judge_retries.value` y la misma fuente) | 203/217 → 217/217 → 238/238 → 247/247 → 248/248 → **251/251 PASS** |
 | `smoke_thread_context.py` (kill-switch `WITT_COMPETENCE_GATE=0` para los conteos de pasadas + *(corrector)* UNA corrida encadenada con la compuerta ENCENDIDA: `no-plan` → dos pasadas con el snapshot del padre en AMBAS, `pass 'pass2'`, `parent_identifier_leak` evaluado sobre la candidata) | 34/36 → 36/36 → **37/37 PASS** |
 | `smoke_run_recovery.py` (compara la forma BASE de las citas: la escalera es aditiva) | 39/40 → **40/40 PASS** |
 | resto del directorio (`entities` 16 · `fetch_paper` 41 · `m5v2_http` 32 · `niches` 21 · `notes_http` 28 · `precedent` 30 · `pubmed_tool` 32 · `query_service` 47 · `question_agent_http` 35 · `ratings_calibration` 44 · `run_comments_http` 14 · `run_recovery` 40 · `runs_list_http` 17 · `runs_thread_http` 54 · `search_queries` 163 · `threads_db` 42 · `zfin_tool` 26 — `fetch_paper`/`pubmed_tool`/`zfin_tool` sin cambio tras `timeout=` opcional y el throttle) | todos PASS, exit 0 — **25/25 gates verdes tras el corrector** |

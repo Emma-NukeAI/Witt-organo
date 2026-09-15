@@ -460,6 +460,58 @@ def main():
               and blk0["zfin_searched"][0]["status"] == "success" and blk0["n_results_by_source"]["europepmc"] == 0
               and blk0["selection"]["n_selected"] == 0, repr(blk0["europepmc_searched"]))
 
+        # ---- corrector ADR-0080 (paridad webapp 2026-09-15): SIN entidades y SIN EN -> nada que buscar, declarado ----
+        # Hallazgo medido en los fixtures objetada-confianza-ausente / citas-no-parseables: el ledger legado decía
+        # 'not-searched' (query None), el harness lo degradaba a 'error' ("query builder produced no … query") y dejaba
+        # inputs_used [None] != [] (la firma de _inputs_for) -> ronda 2 idéntica (skipped-cap) -> stop 'rounds-cap', n_rounds 2.
+        lit_calls = []
+        _fe, _fp, _fz = (fetch_paper.search_europepmc_ledger, ap._WS_CACHE[("pubmed_literature.py", "query_pubmed")],
+                         ap._WS_CACHE[("zfin_zebrafish.py", "query_zfin")])
+        fetch_paper.search_europepmc_ledger = lambda *a, **kw: (lit_calls.append("europepmc"), _fe(*a, **kw))[1]
+        ap._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = lambda *a, **kw: (lit_calls.append("pubmed"), _fp(*a, **kw))[1]
+        ap._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = lambda *a, **kw: (lit_calls.append("zfin"), _fz(*a, **kw))[1]
+        called.clear()
+        plan_nq = sh.build_search_plan(q, [], None, families=["europepmc", "pubmed", "zfin", "alliance_orthologs"])
+        sh._TOOL_CACHE["alliance_orthologs"] = (spy, "injected", None)
+        ctx_nq = {"retmax": 20, "n_papers": 5, "literature_requested": True, "pubmed_seen": {}, "dois": [], "curies": []}
+        rd_nq = sh.run_round(plan_nq, 1, 30.0, ctx=ctx_nq)
+        bnq = {s["family"]: s for s in rd_nq["sources"]}
+        sig_nq = sh.inputs_signature(plan_nq, ctx_nq)
+        check("corrector paridad webapp: plan SIN entidades ni EN -> europepmc/pubmed dejan fila 'not-requested' con el detail del "
+              "ledger legado ('… (nothing to search)') y SIN error (no hubo fallo: no había nada que buscar; el ledger conserva SU "
+              "literal 'not-searched'); zfin/alliance 'not-requested' 'no symbols'; inputs_used == firma de _inputs_for ([] en las "
+              "cuatro, jamás [None]) con inputs_mode declarado; contadores null; cero llamadas a las fuentes; "
+              "families_with_new_inputs sobre lo consumido == []",
+              bnq["europepmc"]["status"] == "not-requested" and "nothing to search" in bnq["europepmc"]["detail"]
+              and "error" not in bnq["europepmc"] and bnq["europepmc"]["ledger"]["status"] == "not-searched"
+              and bnq["pubmed"]["status"] == "not-requested" and "nothing to search" in bnq["pubmed"]["detail"]
+              and "error" not in bnq["pubmed"] and bnq["pubmed"]["ledger"]["status"] == "not-searched"
+              and bnq["zfin"]["status"] == "not-requested" and bnq["zfin"]["detail"] == "no symbols"
+              and bnq["alliance_orthologs"]["status"] == "not-requested"
+              and all(bnq[f]["inputs_used"] == sig_nq[f][1] == [] and bnq[f]["inputs_mode"] == sig_nq[f][0] for f in bnq)
+              and all(bnq[f]["n_found"] is None and bnq[f]["n_new"] is None for f in bnq)
+              and lit_calls == [] and called == []
+              and sh.families_with_new_inputs(plan_nq, ctx_nq, sh.inputs_used_by_round(rd_nq)) == [],
+              repr({f: (s["status"], s.get("detail"), s.get("inputs_used")) for f, s in bnq.items()}))
+        ev_nq = []
+        blk_nq = ap.path_b_bundle(q, entities=[], search_plan=plan_nq, on_stage=lambda n, p: ev_nq.append(n))
+        sl_nq = blk_nq["search_ledger"]
+        check("corrector paridad webapp: la MISMA corrida por path_b_bundle con cap 2 -> should_run_next_round False -> UNA ronda, "
+              "stop 'no-new-inputs' (antes: [None] != [] fingía insumos nuevos -> ronda 2 idéntica skipped-cap -> 'rounds-cap', "
+              "n_rounds 2), rounds[0].inputs_changed False y families_with_new_inputs [], un solo search.round, las cuatro filas "
+              "'not-requested', europepmc_searched/pubmed_searched 'not-searched' (ledger de hoy intacto), papers [], cero llamadas",
+              sl_nq["n_rounds"] == 1 and sl_nq["cap"] == 2 and sl_nq["stop_reason"] == "no-new-inputs"
+              and sl_nq["rounds"][0]["inputs_changed"] is False and sl_nq["rounds"][0]["families_with_new_inputs"] == []
+              and ev_nq.count("search.round") == 1
+              and {s["family"]: s["status"] for s in sl_nq["rounds"][0]["sources"]} == {f: "not-requested" for f in plan_nq["families"]}
+              and not any("error" in s for s in sl_nq["rounds"][0]["sources"])
+              and blk_nq["europepmc_searched"]["status"] == "not-searched" and blk_nq["pubmed_searched"]["status"] == "not-searched"
+              and blk_nq["query_sent"] is None and blk_nq["papers"] == [] and lit_calls == [] and called == [],
+              repr((sl_nq["n_rounds"], sl_nq["stop_reason"], ev_nq, lit_calls)))
+        fetch_paper.search_europepmc_ledger = _fe
+        ap._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fp
+        ap._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = _fz
+
         # ---- retrieve(search_plan=) con Ruta A insuficiente (stubs) ----
         _path_a_real, _check_real = ap.path_a, ap.check_entities
         ap.path_a = lambda question, k=6, max_chars=None: {

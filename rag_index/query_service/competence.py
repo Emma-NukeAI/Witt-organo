@@ -142,6 +142,12 @@ def _calibration_component(calibration_coverage, min_required, gating):
         comp["reason"] = "calibration_coverage absent (not computed)"
     elif cc.get("reason"):
         comp["reason"] = cc["reason"]
+    # corrector ADR-0080 (paridad webapp 2026-09-15): el filtro por procedencia que runs._calibration_origins puso
+    # en la cobertura (include_origins lista | 'all', include_origins_source 'default-unset:…' | 'env:…') viaja al
+    # componente tal cual — ADR-0080 (A) lo promete; ausente en la cobertura → ausente aquí (nada se rellena)
+    for k in ("include_origins", "include_origins_source"):
+        if k in cc:
+            comp[k] = cc[k]
     return comp
 
 
@@ -167,14 +173,18 @@ def evaluate(conf1, admissible_pass1, plan, structural_fired, calibration_covera
       el contrato no cambie de forma cuando el consejo aterrice.
     `tau` None → WITT_FALLBACK_CONF_TAU (default 0.5), la misma constante de runs.FALLBACK_CONF_TAU."""
     cfg = env_config(env)
-    tau_eff = float(tau) if isinstance(tau, (int, float)) else cfg["tau"]
+    # corrector ADR-0080 (paridad webapp 2026-09-15): τ y su fuente se resuelven UNA vez — components.conf1_ge_tau.tau_source
+    # y config.tau_source decían cosas distintas ('default-unset:…' vs 'caller') para el MISMO τ del llamador
+    tau_from_caller = isinstance(tau, (int, float))
+    tau_eff = float(tau) if tau_from_caller else cfg["tau"]
+    tau_source = "caller" if tau_from_caller else cfg["tau_source"]
     route = plan_route(plan)
     niches = plan_niches(plan)
     has_plan = isinstance(plan, dict)
     judged = has_plan and ((plan.get("judgment") or {}).get("state") == "declared")
 
     conf_ok = isinstance(conf1, (int, float)) and conf1 >= tau_eff
-    comp_conf = {"value": bool(conf_ok), "conf1": conf1, "tau": tau_eff, "tau_source": cfg["tau_source"],
+    comp_conf = {"value": bool(conf_ok), "conf1": conf1, "tau": tau_eff, "tau_source": tau_source,
                  "gating": bool(cfg["conf_component_gating"]), "class": "model-judgment (stated_confidence)"}
     if not isinstance(conf1, (int, float)):
         comp_conf["reason"] = "conf1-absent"
@@ -232,7 +242,7 @@ def evaluate(conf1, admissible_pass1, plan, structural_fired, calibration_covera
         "config": {"gate_enabled": cfg["gate_enabled"], "require_calibration": cfg["require_calibration"],
                    "conf_component_gating": cfg["conf_component_gating"],
                    "min_history": cfg["min_history"], "min_history_source": cfg["min_history_source"],
-                   "tau": tau_eff, "tau_source": ("caller" if isinstance(tau, (int, float)) else cfg["tau_source"])},
+                   "tau": tau_eff, "tau_source": tau_source},   # la MISMA fuente que components.conf1_ge_tau.tau_source
         # la nota dice la VERDAD del registro: coincide con components.conf1_ge_tau.gating (cg-3: gatea por default;
         # sólo con WITT_CG_CONF_COMPONENT=0 declarado pasa a informativo)
         "self_report": {"stated_confidence": conf1, "class": "model-judgment",

@@ -722,12 +722,31 @@ def _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn
     return row, items
 
 
+def _legacy_status(led):
+    """(status de la fila, detail|None) desde el ledger legado de answer_pipeline (ADR-0078). Corrector ADR-0080
+    (paridad webapp 2026-09-15): el ledger dice 'not-searched' cuando el constructor NO produjo query (nada que
+    buscar, declarado) — ese literal es SUYO y no cambia; en el vocabulario del harness eso es 'not-requested' con el
+    detail del ledger, jamás 'error' (no hubo fallo: no había nada que buscar). Un literal fuera de SOURCE_STATES
+    sigue siendo 'error' (desajuste de vocabulario, declarado)."""
+    status = led.get("status")
+    if status == "not-searched":
+        return "not-requested", led.get("detail")
+    return (status if status in SOURCE_STATES else "error"), None
+
+
 def _run_legacy_family(family, spec, plan, ctx, budget_s):
     """Adaptadores de las tres fuentes que ya existían — llaman a answer_pipeline (import perezoso) y conservan
-    el ledger de hoy en `ledger` para que path_b publique europepmc_searched / pubmed_searched / zfin_searched."""
+    el ledger de hoy en `ledger` para que path_b publique europepmc_searched / pubmed_searched / zfin_searched.
+
+    Corrector ADR-0080 (paridad webapp 2026-09-15): `inputs_used` de cada fila es EXACTAMENTE la firma que
+    _inputs_for produce para la familia en este ctx (query None -> [], símbolos [] -> []). Antes la fila llevaba
+    [None] cuando no había query y families_with_new_inputs leía [None] != [] como "insumo nuevo": ronda 2 idéntica
+    (skipped-cap 'same inputs') y stop 'rounds-cap' en vez de 'no-new-inputs' — medido en los fixtures
+    objetada-confianza-ausente / citas-no-parseables de la webapp."""
     from lib import answer_pipeline as ap
     qb = plan.get("query_builder") or {}
     retmax = int(ctx.get("retmax") or ap.PATH_B_RETMAX_DEFAULT)
+    inputs, inputs_mode = _inputs_for(family, spec, plan, ctx)
     t0 = _monotonic()
     if family in LITERATURE_FAMILIES and not ctx.get("literature_requested", True):
         led = {"source": family, "status": "not-requested", "detail": f"n_papers={ctx.get('n_papers')} <= 0",
@@ -736,7 +755,7 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
         if family == "pubmed":
             led.update(n_found_total=None, n_new=None, duplicates_of_europepmc=None)
         return _row(family, spec, "not-requested", detail=led["detail"], query_sent=led["query_sent"], ledger=led,
-                    inputs_used=[led["query_sent"]]), []
+                    inputs_mode=inputs_mode, inputs_used=list(inputs)), []
     if family == "europepmc":
         # corrector ADR-0080: el presupuesto de la familia ACOTA la llamada (timeout por GET = min(default del
         # módulo, presupuesto)); antes la fuente usaba HTTP_TIMEOUT_S fijo y podía rebasar la ronda entera
@@ -755,14 +774,15 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
                          "url": f"https://europepmc.org/abstract/MED/{rec['pmid']}" if rec.get("pmid") else None,
                          "identifier_provenance": "europepmc-api-live", "raw_ref": None, "text": None})
             items.append(cand)
-        status = led.get("status")
-        status = status if status in SOURCE_STATES else "error"
+        status, detail = _legacy_status(led)
         row = _row("europepmc", spec, status, n_found=led.get("n_returned") if status in RAN_STATES else None,
                    elapsed_s=led.get("elapsed_s", round(_monotonic() - t0, 3)), query_sent=led.get("query_sent"),
-                   cache_hit=None, timeout_s_scope=scope, inputs_used=[(qb.get("europepmc") or {}).get("query")],
+                   cache_hit=None, timeout_s_scope=scope, inputs_mode=inputs_mode, inputs_used=list(inputs),
                    budget_s=round(budget_s, 3), ledger=led)
         if status == "error":
             row["error"] = led.get("error") or led.get("detail")
+        elif detail:
+            row["detail"] = detail
         return row, items
     if family == "pubmed":
         existing = ctx.get("pubmed_seen") or {}
@@ -782,17 +802,18 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
                          "url": f"https://pubmed.ncbi.nlm.nih.gov/{cand['search_rec']['pmid']}/" if cand["search_rec"].get("pmid") else None,
                          "identifier_provenance": "ncbi-eutils-live", "raw_ref": None, "text": None})
             items.append(cand)
-        status = led.get("status")
-        status = status if status in SOURCE_STATES else "error"
+        status, detail = _legacy_status(led)
         row = _row("pubmed", spec, status, n_found=led.get("n_returned") if status in RAN_STATES else None,
                    elapsed_s=round(_monotonic() - t0, 3), query_sent=led.get("query_sent"), cache_hit=None,
-                   timeout_s_scope=scope, inputs_used=[(qb.get("pubmed") or {}).get("query")],
+                   timeout_s_scope=scope, inputs_mode=inputs_mode, inputs_used=list(inputs),
                    budget_s=round(budget_s, 3), ledger=led)
         if status == "error":
             row["error"] = led.get("detail") or led.get("error")
+        elif detail:
+            row["detail"] = detail
         return row, items
     if family == "zfin":
-        symbols = list(((plan.get("queries") or {}).get("zfin") or {}).get("symbols") or plan.get("symbols") or [])
+        symbols = list(inputs)   # la MISMA firma que _inputs_for (modo 'symbols'): queries.zfin.symbols | plan.symbols | []
         items, ledger = ap._search_zfin(symbols, plan.get("question"), budget_s=min(ap.ZFIN_BUDGET_S, budget_s),
                                         zfin_filter=qb.get("zfin"))
         for it in items:
@@ -821,7 +842,8 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
             status, detail = "error", next((r.get("detail") for r in ledger if r.get("status") == "error"), None)
         row = _row("zfin", spec, status, n_found=len(items) if status in RAN_STATES else None,
                    elapsed_s=round(_monotonic() - t0, 3), query_sent=(qb.get("zfin") or {}).get("query"),
-                   cache_hit=None, budget_s=round(min(ap.ZFIN_BUDGET_S, budget_s), 3), inputs_used=list(symbols),
+                   cache_hit=None, budget_s=round(min(ap.ZFIN_BUDGET_S, budget_s), 3), inputs_mode=inputs_mode,
+                   inputs_used=list(symbols),
                    timeout_s_scope="per-http-get (answer_pipeline._search_zfin)", ledger=ledger,
                    zfin_status_tally=tallies)
         if detail:

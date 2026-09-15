@@ -2718,6 +2718,28 @@ check("ADR-0080 (C/D) la RONDA por fuente: europepmc success (6 -> pool), pubmed
       and {c["family"] for c in _TOOL_CALLS} == {"alliance_orthologs", "zfin_expression"}
       and all((s["n_found"] is None) == (s["status"] not in ("success", "no-match")) for s in _row_h.values()),
       json.dumps({f: (s["status"], s["n_found"], s["n_new"]) for f, s in _row_h.items()}))
+# --- corrector ADR-0080 (paridad webapp 2026-09-15): papers[] del EVENTO stage.path_b lleva las llaves del harness ---
+_pb_papers_h = _pb_ev[0]["papers"]
+_pb_orth = next((p for p in _pb_papers_h if p.get("kind") == "ortholog"), None)
+_pb_lit = next((p for p in _pb_papers_h if p.get("evidence_id") == "PMID:11111111"), None)
+check("ADR-0080 (G/Consequences 9, corrector paridad webapp) el resumen papers[] del EVENTO stage.path_b (lo único del ítem que la "
+      "webapp puede pintar: el bloque vive en bundle_json, no en el frozen) lleva las llaves del harness SOLO cuando el ítem las "
+      "trae: el ítem de ortología llega con kind 'ortholog', source_family 'alliance_orthologs', label PRESENTE y null (ni "
+      "predictivo ni inferido), identifier_provenance 'alliance-api-payload', url del tool, zfin_curie presente, round 1, sin "
+      "gap_flags (tiene id externo: ausente sigue ausente) y SIN texto; el paper de literatura seleccionado lleva kind "
+      "'literature-candidate', source_family 'europepmc', identifier_provenance 'europepmc-api-live', round 1; un paper LEGADO "
+      "(bloque ADR-0078 sin harness, pl_b) NO gana ninguna de esas llaves",
+      _pb_orth is not None and _pb_orth["source_family"] == "alliance_orthologs" and "label" in _pb_orth and _pb_orth["label"] is None
+      and _pb_orth["identifier_provenance"] == "alliance-api-payload"
+      and _pb_orth["url"] == "https://www.alliancegenome.org/gene/HGNC:12796"
+      and "zfin_curie" in _pb_orth and _pb_orth["round"] == 1 and _pb_orth["source"] == "alliance_orthologs"
+      and "gap_flags" not in _pb_orth
+      and not any(k in _pb_orth for k in ("statement", "text", "abstract", "text_excerpt", "title"))
+      and _pb_lit is not None and _pb_lit["kind"] == "literature-candidate" and _pb_lit["source_family"] == "europepmc"
+      and _pb_lit["identifier_provenance"] == "europepmc-api-live" and _pb_lit["round"] == 1
+      and _pb_lit["url"] == "https://europepmc.org/abstract/MED/11111111"
+      and all(k not in p for p in pl_b["papers"] for k in ("kind", "source_family", "label", "identifier_provenance", "round")),
+      json.dumps({"orth": _pb_orth, "lit": {k: _pb_lit.get(k) for k in ("kind", "source_family", "round", "url")} if _pb_lit else None}))
 _bs_h = _rec_h["token_usage"]["by_stage"]
 check("ADR-0080 (F) by_stage del NO competente: plan {0, 'no-plan'}, synthesize_pass1 100, synthesize_pass2 100, search 0 "
       "(Layer 0 no gasta modelo), panel 40; _sum 240 == by_model total (stub-synth 200 + jueces 40) == token_usage.input_tokens; "
@@ -2805,6 +2827,49 @@ check("ADR-0080 (C) WITT_SEARCH_ROUNDS_CAP=1 (leída en tiempo de corrida): una 
       and _sl_1["plan"]["rounds_cap"] == 1 and _sl_1["plan"]["rounds_cap_source"] == "env:WITT_SEARCH_ROUNDS_CAP"
       and len(_ev_payloads(_ev_1, "stage.search.round")) == 1,
       json.dumps({"n_rounds": _sl_1["n_rounds"], "cap": _sl_1["cap"], "cap_src": _sl_1["config_source"]["cap"]}))
+
+# --- (C, corrector paridad webapp 2026-09-15) SIN entidades y SIN pass1.search_query_en: nada que buscar, declarado ----
+# Hallazgo medido en los fixtures objetada-confianza-ausente / citas-no-parseables de la webapp: query None -> el ledger legado
+# decía 'not-searched', el harness lo degradaba a 'error' ("query builder produced no … query") con inputs_used [None] != []
+# -> ronda 2 IDÉNTICA (skipped-cap 'same inputs as round 1') -> stop 'rounds-cap', n_rounds 2, contra "nada se re-ejecuta".
+_sources_found()
+_NS_CALLS = []
+_ns_epmc, _ns_pm, _ns_zf = (answer_pipeline.fetch_paper.search_europepmc_ledger,
+                            answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")],
+                            answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")])
+answer_pipeline.fetch_paper.search_europepmc_ledger = lambda *a, **kw: (_NS_CALLS.append("europepmc"), _ns_epmc(*a, **kw))[1]
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = lambda *a, **kw: (_NS_CALLS.append("pubmed"), _ns_pm(*a, **kw))[1]
+answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = lambda *a, **kw: (_NS_CALLS.append("zfin"), _ns_zf(*a, **kw))[1]
+_TOOL_CALLS.clear()
+_rid_ns, _rec_ns, _ev_ns = _run80("ADR-0080 sin entidades ni EN: que marca el pronefros?", [])
+_sources_found()   # restaura las fakes de siempre (sin los espías)
+_sl_ns = _rec_ns["search_ledger"]
+_rows_ns = {s["family"]: s for s in _sl_ns["rounds"][0]["sources"]} if _sl_ns.get("rounds") else {}
+check("ADR-0080 (C, corrector paridad webapp) corrida SIN entidades y SIN search_query_en: el constructor no produce query "
+      "(stage.path_b.query_sent None) -> las cinco familias dejan 'not-requested' (europepmc/pubmed con el detail '… (nothing to "
+      "search)' del ledger legado, que conserva SU literal 'not-searched'; zfin/alliance/expresión 'no symbols'), NINGUNA fila "
+      "'error', inputs_used [] en todas (== la firma de _inputs_for) -> should_run_next_round False -> n_rounds 1, stop "
+      "'no-new-inputs' (antes: [None] != [] -> ronda 2 idéntica -> 'rounds-cap', n_rounds 2), rounds[0].inputs_changed False, un "
+      "solo stage.search.round con las 5 filas 'not-requested', CERO llamadas a las tres fuentes legadas y a las fakes Layer 0; "
+      "pass2 corre igual; epistemic_summary.n_search_rounds 1",
+      _sl_ns["state"] == "harness" and _sl_ns["n_rounds"] == 1 and _sl_ns["cap"] == 2 and _sl_ns["stop_reason"] == "no-new-inputs"
+      and set(_rows_ns) == {"europepmc", "pubmed", "zfin", "alliance_orthologs", "zfin_expression"}
+      and all(s["status"] == "not-requested" and "error" not in s and s["inputs_used"] == [] for s in _rows_ns.values())
+      and "nothing to search" in _rows_ns["europepmc"]["detail"] and "nothing to search" in _rows_ns["pubmed"]["detail"]
+      and _rows_ns["europepmc"]["ledger"]["status"] == "not-searched" and _rows_ns["pubmed"]["ledger"]["status"] == "not-searched"
+      and _rows_ns["zfin"]["detail"] == "no symbols" and _rows_ns["alliance_orthologs"]["detail"] == "no symbols"
+      and _sl_ns["rounds"][0]["inputs_changed"] is False and _sl_ns["rounds"][0]["families_with_new_inputs"] == []
+      and _sl_ns["rounds"][0]["n_admitted"] == 0 and _sl_ns["n_new_total"] == 0
+      and len(_ev_payloads(_ev_ns, "stage.search.round")) == 1
+      and all(s["status"] == "not-requested" for s in _ev_payloads(_ev_ns, "stage.search.round")[0]["sources"])
+      and _ev_payloads(_ev_ns, "stage.path_b")[0]["query_sent"] is None
+      and _ev_payloads(_ev_ns, "stage.path_b")[0]["europepmc_searched"]["status"] == "not-searched"
+      and _NS_CALLS == [] and _TOOL_CALLS == []
+      and "stage.synthesize.pass2" in _ev_types(_ev_ns)
+      and app.get_run(_rid_ns, authorization=AUTH)["epistemic_summary"]["n_search_rounds"] == 1,
+      json.dumps({"n_rounds": _sl_ns.get("n_rounds"), "stop": _sl_ns.get("stop_reason"),
+                  "rows": {f: (s["status"], s.get("detail"), s.get("inputs_used"), s.get("error")) for f, s in _rows_ns.items()},
+                  "legacy_calls": _NS_CALLS, "l0_calls": len(_TOOL_CALLS)}))
 
 # --- (C) presupuesto de RONDA: una fuente lenta consume el reloj -> la siguiente queda skipped-budget SIN red ------
 _sources_empty()
@@ -2955,11 +3020,22 @@ check("ADR-0080 (A) WITT_CG_REQUIRE_CALIBRATION=1: calibration_coverage entra a 
 _cal_ev_g = _ev_payloads(_ev_g, "stage.competence")[0]["components"]["calibration_coverage"]
 _cov_prod = db.calibration_coverage(["N3", "N4"], 10, include_origins=["production"])
 _cov_all = db.calibration_coverage(["N3", "N4"], 10, include_origins=None)
+# corrector paridad webapp 2026-09-15: con WITT_CG_CALIBRATION_ORIGINS=all el componente declara include_origins 'all' (jamás null)
+_rid_ga, _rec_ga, _ev_ga = _run80("ADR-0080 calibración all: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  env={"WITT_CG_REQUIRE_CALIBRATION": "1", "WITT_CG_CALIBRATION_ORIGINS": "all"})
+_cal_ga = _rec_ga["competence"]["components"]["calibration_coverage"]
 check("ADR-0080 (A, corrector) WITT_CG_CALIBRATION_ORIGINS default 'production': db.calibration_coverage se llama con "
       "include_origins ['production'] (fuente 'default-unset:WITT_CG_CALIBRATION_ORIGINS' en el bloque) — las corridas de "
       "origen smoke cerradas de esta BD quedan CONTADAS FUERA (n 0 con filtro, n_closed_rated_total con filtro <= sin filtro); "
-      "el lector CSV tolerante acepta 'all' como sin filtro declarado",
-      _cal_ev_g.get("include_origins") == ["production"] if "include_origins" in _cal_ev_g else True
+      "el lector CSV tolerante acepta 'all' como sin filtro declarado. Corrector paridad webapp: components.calibration_coverage "
+      "LLEVA include_origins ['production'] + include_origins_source (aserción DURA en frozen y evento; antes condicional a la "
+      "llave, que no existía); con WITT_CG_CALIBRATION_ORIGINS=all -> include_origins 'all' (literal, no null) + source "
+      "'env:WITT_CG_CALIBRATION_ORIGINS (all origins, no filter)' y n_closed_rated ENTERO (cuenta también smoke)",
+      _cal_g["include_origins"] == ["production"] and _cal_g["include_origins_source"] == "default-unset:WITT_CG_CALIBRATION_ORIGINS"
+      and _cal_ev_g["include_origins"] == ["production"] and _cal_ev_g["include_origins_source"] == _cal_g["include_origins_source"]
+      and _cal_ga["include_origins"] == "all" and _cal_ga["include_origins_source"] == "env:WITT_CG_CALIBRATION_ORIGINS (all origins, no filter)"
+      and isinstance(_cal_ga["n_closed_rated"], int) and _cal_ga["n_closed_rated"] >= _cal_g["n_closed_rated"]
+      and _cal_ga["gating"] is True
       and _cov_prod["include_origins"] == ["production"] and _cov_prod["n"] == 0
       and _cov_prod["n_closed_rated_total"] <= _cov_all["n_closed_rated_total"]
       and runs_mod._calibration_origins() == (["production"], "default-unset:WITT_CG_CALIBRATION_ORIGINS")
@@ -3088,10 +3164,15 @@ _row_j = next(r for r in _rec_j["audit"]["panel"] if r["lens"] == "overclaim")
 check("ADR-0080 (E) reintento por juez: el juez 'overclaim' cae en su primer intento y composite_auditor lo REINTENTA una vez "
       "(WITT_JUDGE_RETRIES default 1, declarado en audit.judge_retries {value 1, source 'default-unset:…'}) -> 5 eventos "
       "stage.audit.judge (uno con attempt 2 / retries_judge 1), la fila del juez lleva verdict APPROVE + retries_judge 1 + "
-      "attempts [errored, ok] (jamás fabricado), n_valid 4, y su usage cuenta UNA vez (panel 40)",
+      "attempts [errored, ok] (jamás fabricado), n_valid 4, y su usage cuenta UNA vez (panel 40). Corrector paridad webapp: "
+      "cada evento dice 'intento N de M' — max_attempts 2 == 1 + audit.judge_retries.value, misma fuente "
+      "('default-unset:WITT_JUDGE_RETRIES' en max_attempts_source): overclaim [(1 de 2), (2 de 2)]",
       len(_judge_ev) == 5
       and [(p["reviewer"] is not None, p["lens"], p["attempt"], p["retries_judge"]) for p in _judge_ev if p["lens"] == "overclaim"]
       == [(True, "overclaim", 1, 0), (True, "overclaim", 2, 1)]
+      and [(p["attempt"], p["max_attempts"]) for p in _judge_ev if p["lens"] == "overclaim"] == [(1, 2), (2, 2)]
+      and all(p["max_attempts"] == 2 == 1 + _rec_j["audit"]["judge_retries"]["value"]
+              and p["max_attempts_source"] == _rec_j["audit"]["judge_retries"]["source"] for p in _judge_ev)
       and _row_j["verdict"] == "APPROVE" and _row_j["retries_judge"] == 1
       and [a["status"] for a in _row_j["attempts"]] == ["errored", "ok"] and "error" in _row_j["attempts"][0]
       and _rec_j["audit"]["n_valid"] == 4 and _rec_j["audit"]["verdict"] == "APPROVE"
@@ -3179,7 +3260,7 @@ check("ADR-0080 (G) contrato 1.9 en el registro: render_contract_version '1.9'; 
           and set(runs_mod.TOKEN_STAGES) | {"_sum"} <= set(r["token_usage"]["by_stage"])
           and "by_stage_sum_matches_by_model" in r["token_usage"]
           for r in (_rec_c, _rec_h, _rec_2, _rec_1, _rec_b, _rec_k, _rec_kl, _rec_g, _rec_s, _rec_p, _rec_d, _rec_j,
-                    _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f))
+                    _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f, _rec_ns, _rec_ga))
       and all({"competent", "n_search_rounds"} <= set(app.get_run(rid, authorization=AUTH)["epistemic_summary"])
               for rid in (_rid_c, _rid_h, _rid_2, _rid_k))
       and all(r["deterministic_checks"]["pass"] in ("pass1", "pass2", "revision")
@@ -3189,12 +3270,57 @@ check("ADR-0080 (G) contrato 1.9 en el registro: render_contract_version '1.9'; 
       and runs_mod.TRIGGER_LEGACY_CONFIDENCE == "confidence"
       and all(r["fallback"]["trigger"] != "confidence" or r["competence"]["competent"] is None
               for r in (_rec_c, _rec_h, _rec_2, _rec_1, _rec_b, _rec_k, _rec_kl, _rec_g, _rec_s, _rec_p, _rec_d, _rec_j,
-                        _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f)))
+                        _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f, _rec_ns, _rec_ga)))
+
+# --- (G, corrector paridad webapp 2026-09-15) vocabulario REAL de plan_state: exactos + prefijos, declarado y MEDIDO -------
+_PS_RUNS = ((_rec_c, _ev_c), (_rec_h, _ev_h), (_rec_2, _ev_2), (_rec_1, _ev_1), (_rec_b, _ev_b), (_rec_k, _ev_k),
+            (_rec_kl, _ev_kl), (_rec_g, _ev_g), (_rec_s, _ev_s), (_rec_p, _ev_p), (_rec_d, _ev_d), (_rec_j, _ev_j),
+            (_rec_nh, _ev_nh), (_rec_cc, _ev_cc), (_rec_cd, _ev_cd), (_rec_di, _ev_di), (_rec_ab, _ev_ab), (_rec_je, _ev_je),
+            (_rec_f, _ev_f), (_rec_ns, _ev_ns), (_rec_ga, _ev_ga))
+_sh_saved = runs_mod.search_harness
+
+
+class _HarnessBoom:
+    @staticmethod
+    def build_search_plan(*a, **kw):
+        raise RuntimeError("plan exploded (simulated)")
+
+
+runs_mod.search_harness = _HarnessBoom
+_plan_err, _state_err = runs_mod._build_search_plan("q", ["wt1a"], None, runs_mod._search_config())
+runs_mod.search_harness = None
+_plan_un, _state_un = runs_mod._build_search_plan("q", ["wt1a"], None, runs_mod._search_config())
+runs_mod.search_harness = _sh_saved
+_ps_seen = sorted({r["search_ledger"]["plan_state"] for r, _ in _PS_RUNS}
+                  | {p["state"] for _, ev in _PS_RUNS for p in _ev_payloads(ev, "stage.search.plan")}
+                  | {(r["search_ledger"].get("plan") or {}).get("state") for r, _ in _PS_RUNS
+                     if (r["search_ledger"].get("plan") or {}).get("state") is not None}
+                  | {_state_err, _plan_err["state"], _state_un, _plan_un["state"]})
+check("ADR-0080 (G, corrector paridad webapp) vocabulario REAL de plan_state: ADR-0080 declaraba 4 literales exactos y el código "
+      "emite además 'kill-switch <ENV>=0', 'not-applicable (<skipped_reason>)' y, en el plan-sobre de _build_search_plan, "
+      "'error: <tipo>: <msg>' / 'harness-unavailable (<qué faltó>)' junto a los exactos 'error' / 'harness-unavailable'; runs lo "
+      "declara (SEARCH_PLAN_STATES_EXACT + SEARCH_PLAN_STATE_PREFIXES), lo congela en search_ledger.plan_state_vocabulary en las "
+      "21 corridas y plan_state_in_vocabulary lo valida: TODOS los search_ledger.plan_state, plan.state y stage.search.plan.state "
+      "de la sección pasan (medidos aquí: 'built', 'not-requested', 'kill-switch WITT_COMPETENCE_GATE=0', 'kill-switch "
+      "WITT_SEARCH_HARNESS=0'; sobre _build_search_plan: 'error' + 'error: RuntimeError: …', 'harness-unavailable' + "
+      "'harness-unavailable (…)'); 'legacy-path-b (built)' y None NO pasan",
+      all(runs_mod.plan_state_in_vocabulary(s) for s in _ps_seen)
+      and {"built", "not-requested", "kill-switch WITT_COMPETENCE_GATE=0", "kill-switch WITT_SEARCH_HARNESS=0",
+           "error", "harness-unavailable"} <= set(_ps_seen)
+      and _state_err == "error" and _plan_err["state"].startswith("error: RuntimeError: plan exploded")
+      and _state_un == "harness-unavailable" and _plan_un["state"].startswith("harness-unavailable (")
+      and all(r["search_ledger"]["plan_state_vocabulary"] == runs_mod.SEARCH_PLAN_STATE_VOCABULARY for r, _ in _PS_RUNS)
+      and runs_mod.SEARCH_PLAN_STATE_VOCABULARY["exact"] == list(runs_mod.SEARCH_PLAN_STATES_EXACT)
+      == ["built", "not-requested", "harness-unavailable", "error"]
+      and runs_mod.SEARCH_PLAN_STATE_VOCABULARY["prefixes"] == list(runs_mod.SEARCH_PLAN_STATE_PREFIXES)
+      == ["error: ", "kill-switch ", "not-applicable (", "harness-unavailable ("]
+      and not runs_mod.plan_state_in_vocabulary("legacy-path-b (built)") and not runs_mod.plan_state_in_vocabulary(None),
+      json.dumps(_ps_seen))
 
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()
 check("ADR-0080 (H) la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y contado durante "
-      "20 corridas (0 llamadas), mcp_cache byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate), "
+      "las 21 corridas de _run80 (0 llamadas), mcp_cache byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate), "
       "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
       _NET_CALLS == [] and _mcp_before == _mcp_after,
       json.dumps({"net_calls": _NET_CALLS[:3], "mcp_changed": [x for x in _mcp_after if x not in _mcp_before][:3]}))

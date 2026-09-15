@@ -175,6 +175,33 @@ check("(A) env tolerante: MIN_HISTORY 'abc' → 10 'default-invalid-env'; TAU 7 
       and comp_view["competent"] is False and comp_view["reasons"] == ["conf1_ge_tau"]
       and comp_view["components"]["conf1_ge_tau"] is False and comp_view["components"]["calibration_coverage"] is True)
 
+# corrector ADR-0080 (paridad webapp 2026-09-15): τ y su fuente se resuelven UNA vez — el componente y config coinciden
+b_tau_c = competence.evaluate(0.6, True, PLAN_OK, False, CAL_OK, env=ENV0, tau=0.5)
+b_tau_e = competence.evaluate(0.6, True, PLAN_OK, False, CAL_OK, env={"WITT_FALLBACK_CONF_TAU": "0.7"})
+check("(A, corrector paridad webapp) tau_source UNA vez: con tau del caller components.conf1_ge_tau.tau_source == config.tau_source "
+      "== 'caller' (antes el componente decía 'default-unset:…' para el MISMO τ); sin tau ambos == la fuente del env "
+      "('env:WITT_FALLBACK_CONF_TAU', 0.7) o del default ('default-unset:WITT_FALLBACK_CONF_TAU', 0.5); el τ efectivo coincide",
+      b_tau_c["components"]["conf1_ge_tau"]["tau_source"] == b_tau_c["config"]["tau_source"] == "caller"
+      and b_tau_c["components"]["conf1_ge_tau"]["tau"] == b_tau_c["config"]["tau"] == 0.5
+      and b_tau_e["components"]["conf1_ge_tau"]["tau_source"] == b_tau_e["config"]["tau_source"] == "env:WITT_FALLBACK_CONF_TAU"
+      and b_tau_e["components"]["conf1_ge_tau"]["tau"] == b_tau_e["config"]["tau"] == 0.7 and b_tau_e["competent"] is False
+      and b["components"]["conf1_ge_tau"]["tau_source"] == b["config"]["tau_source"] == "default-unset:WITT_FALLBACK_CONF_TAU",
+      json.dumps({"caller": (b_tau_c["components"]["conf1_ge_tau"]["tau_source"], b_tau_c["config"]["tau_source"]),
+                  "env": (b_tau_e["components"]["conf1_ge_tau"]["tau_source"], b_tau_e["config"]["tau_source"])}))
+
+# corrector ADR-0080 (paridad webapp 2026-09-15): include_origins / include_origins_source viajan al componente si la cobertura los trae
+CAL_ORIG = {**CAL_LOW, "include_origins": ["production"], "include_origins_source": "default-unset:WITT_CG_CALIBRATION_ORIGINS"}
+b_orig = competence.evaluate(0.8, True, PLAN_OK, False, CAL_ORIG, env=ENV0)
+check("(A, corrector paridad webapp) components.calibration_coverage COPIA include_origins (['production']) e include_origins_source "
+      "('default-unset:WITT_CG_CALIBRATION_ORIGINS') cuando la cobertura los trae (ADR-0080 A lo promete); sin ellos (CAL_LOW) las "
+      "dos llaves quedan AUSENTES, no null (nada se rellena)",
+      b_orig["components"]["calibration_coverage"]["include_origins"] == ["production"]
+      and b_orig["components"]["calibration_coverage"]["include_origins_source"] == "default-unset:WITT_CG_CALIBRATION_ORIGINS"
+      and b_orig["components"]["calibration_coverage"]["n_closed_rated"] == 2
+      and "include_origins" not in b["components"]["calibration_coverage"]
+      and "include_origins_source" not in b["components"]["calibration_coverage"],
+      json.dumps(b_orig["components"]["calibration_coverage"]))
+
 # =====================================================================================================
 # db.calibration_coverage — MEDICIÓN
 # =====================================================================================================
@@ -551,6 +578,24 @@ check("route store-consultation: competence.not_applicable True, competent null,
       and rec["fallback"]["fb_meta"]["competence"]["not_applicable"] is True
       and "store-consultation" in rec["fallback"]["fb_meta"]["competence"]["decision_source"]
       and "stage.synthesize.pass2" not in _types(ev))
+# corrector ADR-0080 (paridad webapp 2026-09-15): la MISMA ruta con conf 0.3 < tau → la regla legada dispara y el plan-sobre
+# declara plan_state 'not-applicable (<skipped_reason>)' — un literal con PREFIJO del vocabulario real (G)
+PB_CALLS.clear()
+row_sl, rec_sl, ev_sl = _run("que hay en la DI baja", {**PLAN_STORE, "question": "que hay en la DI baja",
+                                                       "thread_parent_run_id": None, "thread_parent_frozen_sha256": None},
+                             _synth({"pass1": 0.3, "pass2": 0.6}))
+check("(G, corrector paridad webapp) route store-consultation + conf 0.3 < tau: trigger 'confidence' (competent null), Ruta B LEGADA "
+      "(path_b_bundle SIN plan) y plan_state 'not-applicable (route store-consultation: …)' — el mismo literal en "
+      "search_ledger.plan_state, search_ledger.plan.state y stage.search.plan.state; search_ledger.state 'legacy-path-b "
+      "(not-applicable (…))'; n_rounds null (el harness no midió)",
+      rec_sl["competence"]["competent"] is None and rec_sl["fallback"]["trigger"] == "confidence"
+      and rec_sl["search_ledger"]["plan_state"].startswith("not-applicable (route store-consultation")
+      and rec_sl["search_ledger"]["plan"]["state"] == rec_sl["search_ledger"]["plan_state"]
+      and _payloads(ev_sl, "stage.search.plan")[0]["state"] == rec_sl["search_ledger"]["plan_state"]
+      and rec_sl["search_ledger"]["state"] == f"legacy-path-b ({rec_sl['search_ledger']['plan_state']})"
+      and rec_sl["search_ledger"]["n_rounds"] is None and PB_CALLS and PB_CALLS[-1]["search_plan"] is None
+      and "stage.synthesize.pass2" in _types(ev_sl),
+      rec_sl["search_ledger"]["plan_state"])
 
 # ---- calibration gating ON en la corrida real: ORÍGENES (corrector) + n=1 (cal-1) < min 10 → no competente ----------
 os.environ["WITT_CG_REQUIRE_CALIBRATION"] = "1"
@@ -564,18 +609,24 @@ os.environ.pop("WITT_COMPETENCE_MIN_HISTORY", None)
 os.environ.pop("WITT_CG_CALIBRATION_ORIGINS", None)
 _cal0 = rec0["competence"]["components"]["calibration_coverage"]
 _cal0_ev = _payloads(ev0, "stage.competence")[0]["components"]["calibration_coverage"]
+_cal1 = rec["competence"]["components"]["calibration_coverage"]
 check("calibration gating ON en execute_run (corrector): por DEFAULT la cobertura cuenta SÓLO origin 'production' "
       "(WITT_CG_CALIBRATION_ORIGINS default-unset) → las corridas cal-* de este gate (origin smoke) quedan CONTADAS FUERA: "
       "n 0 → no competente ['calibration_coverage']; con WITT_CG_CALIBRATION_ORIGINS=smoke → n 1 (cal-1) < 10 insuficiente → "
-      "ronda; con WITT_COMPETENCE_MIN_HISTORY=1 → n 1 ≥ 1 → competente sin ronda; min_required_source declarado",
+      "ronda; con WITT_COMPETENCE_MIN_HISTORY=1 → n 1 ≥ 1 → competente sin ronda; min_required_source declarado. "
+      "Corrector paridad webapp: el componente (y el evento stage.competence) LLEVAN include_origins ['production'] + "
+      "include_origins_source 'default-unset:WITT_CG_CALIBRATION_ORIGINS'; con la env → ['smoke'] + 'env:WITT_CG_CALIBRATION_ORIGINS' "
+      "(aserción DURA: antes el check era condicional a la presencia de la llave)",
       _cal0["n_closed_rated"] == 0 and _cal0["gating"] is True and rec0["competence"]["reasons"] == ["calibration_coverage"]
-      and _cal0_ev.get("include_origins") == ["production"] if "include_origins" in _cal0_ev else True
-      and rec["competence"]["components"]["calibration_coverage"] ["n_closed_rated"] == 1
-      and rec["competence"]["components"]["calibration_coverage"]["gating"] is True
+      and _cal0["include_origins"] == ["production"] and _cal0["include_origins_source"] == "default-unset:WITT_CG_CALIBRATION_ORIGINS"
+      and _cal0_ev["include_origins"] == ["production"] and _cal0_ev["include_origins_source"] == _cal0["include_origins_source"]
+      and _cal1["n_closed_rated"] == 1 and _cal1["gating"] is True
+      and _cal1["include_origins"] == ["smoke"] and _cal1["include_origins_source"] == "env:WITT_CG_CALIBRATION_ORIGINS"
       and rec["competence"]["reasons"] == ["calibration_coverage"] and rec["fallback"]["trigger"] == "competence"
       and rec2["competence"]["competent"] is True and rec2["fallback"]["trigger"] is None
-      and rec2["competence"]["components"]["calibration_coverage"]["min_required"] == 1,
-      json.dumps([rec0["competence"]["components"]["calibration_coverage"], rec["competence"]["components"]["calibration_coverage"]]))
+      and rec2["competence"]["components"]["calibration_coverage"]["min_required"] == 1
+      and rec2["competence"]["components"]["calibration_coverage"]["include_origins"] == ["smoke"],
+      json.dumps([_cal0, _cal1]))
 
 # ---- harness NO disponible / path_b_bundle con firma vieja → declarado, la Ruta B corre por el camino de hoy -----
 PB_CALLS.clear()
@@ -602,6 +653,41 @@ check("harness ausente (search_harness None): stage.search.plan emitido por runs
       and _payloads(ev_l, "stage.search.plan")[0]["path_b_bundle_accepts"] == []
       and len(PB_CALLS) == 1 and PB_CALLS[0].get("legacy") is True,
       json.dumps([rec_u["search_ledger"]["state"], rec_l["search_ledger"]["state"]]))
+
+# ---- (G, corrector paridad webapp 2026-09-15) vocabulario REAL de plan_state: exactos + prefijos, declarado y medido ----
+_sh_real = runs_mod.search_harness
+
+
+class _HarnessBoom:
+    @staticmethod
+    def build_search_plan(*a, **kw):
+        raise RuntimeError("plan exploded (simulated)")
+
+
+runs_mod.search_harness = _HarnessBoom
+plan_err, state_err = runs_mod._build_search_plan("q", ["wt1a"], None, runs_mod._search_config())
+runs_mod.search_harness = None
+plan_un, state_un = runs_mod._build_search_plan("q", ["wt1a"], None, runs_mod._search_config())
+runs_mod.search_harness = _sh_real
+_ps_seen = sorted({r["search_ledger"]["plan_state"] for r in (rec_k1, rec_k2, rec_sl, rec_u, rec_l, rec0, rec2)}
+                  | {state_err, plan_err["state"], state_un, plan_un["state"]}
+                  | {(r["search_ledger"].get("plan") or {}).get("state") for r in (rec_k2, rec_sl, rec_u)})
+check("(G, corrector paridad webapp) plan_state: el código emite MÁS que los 4 literales que ADR-0080 declaraba — 'kill-switch "
+      "WITT_COMPETENCE_GATE=0', 'not-applicable (<skipped_reason>)', y en el plan-sobre 'error: <tipo>: <msg>' / "
+      "'harness-unavailable (<qué faltó>)' junto a los exactos 'error' / 'harness-unavailable' de la tupla; runs declara el "
+      "vocabulario REAL (SEARCH_PLAN_STATES_EXACT + SEARCH_PLAN_STATE_PREFIXES), lo congela en search_ledger.plan_state_vocabulary "
+      "y plan_state_in_vocabulary lo valida: TODOS los literales medidos en este gate pasan; 'legacy-path-b (built)' y None no",
+      all(runs_mod.plan_state_in_vocabulary(s) for s in _ps_seen)
+      and {"built", "not-requested", "kill-switch WITT_COMPETENCE_GATE=0", "harness-unavailable", "error"} <= set(_ps_seen)
+      and any(s.startswith("not-applicable (") for s in _ps_seen)
+      and state_err == "error" and plan_err["state"].startswith("error: RuntimeError: plan exploded")
+      and state_un == "harness-unavailable" and plan_un["state"].startswith("harness-unavailable (")
+      and all(r["search_ledger"]["plan_state_vocabulary"] == runs_mod.SEARCH_PLAN_STATE_VOCABULARY
+              for r in (rec_k1, rec_k2, rec_sl, rec_u, rec_l, rec0, rec2))
+      and runs_mod.SEARCH_PLAN_STATE_VOCABULARY["exact"] == list(runs_mod.SEARCH_PLAN_STATES_EXACT)
+      and runs_mod.SEARCH_PLAN_STATE_VOCABULARY["prefixes"] == list(runs_mod.SEARCH_PLAN_STATE_PREFIXES)
+      and not runs_mod.plan_state_in_vocabulary("legacy-path-b (built)") and not runs_mod.plan_state_in_vocabulary(None),
+      json.dumps(_ps_seen))
 
 # ---- (F) by_stage con elicitación SEPARADA + (E) reintento por juez + citation_support ---------------------------
 # cg-3: conf 0.3 < tau gatea por default → la ronda (pass2) llega sin env alguna
@@ -632,6 +718,10 @@ check("(E) reintento por juez (composite_auditor, WITT_JUDGE_RETRIES default 1) 
       and [e["attempt"] for e in judge_ev if e["lens"] == "overclaim"] == [1, 2]
       and [e["retries_judge"] for e in judge_ev if e["lens"] == "overclaim"] == [0, 1]
       and all(e["retries_judge"] == 0 for e in judge_ev if e["lens"] != "overclaim")
+      # corrector paridad webapp: "intento N de M" — max_attempts == 1 + WITT_JUDGE_RETRIES (misma fuente que audit.judge_retries)
+      and all(e["max_attempts"] == 2 == 1 + rec["audit"]["judge_retries"]["value"]
+              and e["max_attempts_source"] == rec["audit"]["judge_retries"]["source"] == "default-unset:WITT_JUDGE_RETRIES"
+              for e in judge_ev)
       and over.get("retries_judge") == 1 and len(over.get("attempts") or []) == 2
       and over["verdict"] == "APPROVE" and rec["audit"]["verdict"] == "APPROVE",
       json.dumps({k: over.get(k) for k in ("retries_judge", "attempts")}, default=str))

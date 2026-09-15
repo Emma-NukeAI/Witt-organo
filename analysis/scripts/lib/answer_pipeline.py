@@ -1197,7 +1197,15 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
 
 
 def path_b_event_payload(block, trigger=None):
-    """The event payload for `stage.path_b` — the live trace and the replay read the SAME summary."""
+    """The event payload for `stage.path_b` — the live trace and the replay read the SAME summary.
+
+    papers[] es un RESUMEN por ítem, sin texto: evidence_id, source, selection_rank, text_provenance, fetched
+    {found, full_text (+cache_hit/cached_at/fetched_at/fetch_error si el fetch los midió)}, zfin {status,
+    has_references, n_matched, n_returned} si el ítem es de ZFIN, y — corrector ADR-0080 (paridad webapp
+    2026-09-15) — las llaves del harness kind / source_family / label / identifier_provenance / url / gap_flags /
+    zfin_curie / round copiadas SÓLO cuando existen en el ítem (ausente sigue ausente: un paper legado de ADR-0078
+    no las lleva y el evento tampoco). Es lo único que la webapp puede pintar de los ítems: el bloque path_b íntegro
+    vive en bundle_json, no en el registro congelado."""
     p = {"triggered": True, "n_papers": len(block.get("papers", [])),
          "query_sent": block.get("query_sent"), "query_source": block.get("query_source"),
          "n_results_by_source": block.get("n_results_by_source", {})}
@@ -1222,6 +1230,11 @@ def path_b_event_payload(block, trigger=None):
             for k in ("cache_hit", "cached_at", "fetched_at", "fetch_error"):
                 if k in f:
                     r["fetched"][k] = f[k]
+            # corrector ADR-0080 (paridad webapp 2026-09-15): las llaves del ítem normalizado del harness
+            # (search_harness.normalize_item / _path_b_harness) viajan al resumen SOLO si el ítem las trae
+            for k in ("kind", "source_family", "label", "identifier_provenance", "url", "gap_flags", "zfin_curie", "round"):
+                if k in it:
+                    r[k] = it[k]
             if it.get("zfin"):
                 z = it["zfin"]
                 r["zfin"] = {k: z.get(k) for k in ("status", "has_references", "n_matched", "n_returned")}

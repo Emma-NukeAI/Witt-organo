@@ -1649,6 +1649,22 @@ TRIGGER_VOCABULARY = "structural|competence|confidence(only when competence.comp
 SEARCH_HARNESS_ENV = "WITT_SEARCH_HARNESS"          # 1 (default) | 0 = la Ruta B no competente corre por path_b_bundle SIN plan
 CG_CALIBRATION_ORIGINS_ENV = "WITT_CG_CALIBRATION_ORIGINS"   # 'production' (default) | lista CSV | 'all' = sin filtro
 CG_CALIBRATION_ORIGINS_DEFAULT = "production"
+CG_CALIBRATION_ORIGINS_ALL = "all"                  # literal DECLARADO en la cobertura cuando no hay filtro (jamás null)
+# corrector ADR-0080 (paridad webapp 2026-09-15): el vocabulario REAL de search_plan.state / search_ledger.plan_state /
+# stage.search.plan.state. ADR-0080 (G) declaraba cuatro literales exactos; el código emite además formas con detalle:
+# 'kill-switch <ENV>=0' (compuerta o harness apagados), 'not-applicable (<skipped_reason>)' (ruta store-consultation bajo
+# la regla legada), 'error: <tipo>: <msg>' y 'harness-unavailable (<qué faltó>)' en el plan-sobre de _build_search_plan.
+# Un lector valida: exacto ∈ SEARCH_PLAN_STATES_EXACT o startswith(alguno de SEARCH_PLAN_STATE_PREFIXES).
+SEARCH_PLAN_STATES_EXACT = ("built", "not-requested", "harness-unavailable", "error")
+SEARCH_PLAN_STATE_PREFIXES = ("error: ", "kill-switch ", "not-applicable (", "harness-unavailable (")
+SEARCH_PLAN_STATE_VOCABULARY = {"exact": list(SEARCH_PLAN_STATES_EXACT), "prefixes": list(SEARCH_PLAN_STATE_PREFIXES),
+                                "rule": "state in exact OR state.startswith(prefix) (ADR-0080 G, corrector 2026-09-15)"}
+
+
+def plan_state_in_vocabulary(state):
+    """¿`state` es un literal exacto o empieza con un prefijo declarado? (el predicado que el gate de paridad aplica)."""
+    return isinstance(state, str) and (state in SEARCH_PLAN_STATES_EXACT
+                                       or any(state.startswith(p) for p in SEARCH_PLAN_STATE_PREFIXES))
 
 
 def _search_config():
@@ -1894,6 +1910,8 @@ def _search_ledger_of(block, search_plan, plan_state, harness_used, cfg):
                "rounds": [], "n_rounds": 0 if plan_state == "not-requested" else None,
                "cap": cfg["rounds_cap"], "state": state}
     out["plan_state"] = plan_state
+    # corrector ADR-0080 (paridad webapp 2026-09-15): el vocabulario REAL viaja congelado (como stop_reasons_vocabulary)
+    out["plan_state_vocabulary"] = dict(SEARCH_PLAN_STATE_VOCABULARY)
     out.setdefault("families_default", list(cfg["families_default"]))
     out.setdefault("cap", cfg["rounds_cap"])
     out.setdefault("round_budget_s", cfg["round_budget_s"])
@@ -2003,6 +2021,11 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     inner_caller = panel_caller or composite_auditor._default_caller
     judge_attempts = {}   # ADR-0080 (E): composite_auditor puede REINTENTAR un juez caído (WITT_JUDGE_RETRIES);
                           # cada invocación del caller deja su evento con attempt / retries_judge MEDIDOS aquí
+    # corrector ADR-0080 (paridad webapp 2026-09-15): la Traza quiere decir "intento N de M" — M = 1 + reintentos
+    # configurados, leídos de la MISMA fuente que composite_auditor.audit usa (resolve_judge_retries, WITT_JUDGE_RETRIES
+    # tolerante); audit() se llama aquí sin judge_retries=, así que el tope efectivo es exactamente este
+    judge_retries_cfg, judge_retries_src = composite_auditor.resolve_judge_retries()
+    judge_max_attempts = 1 + int(judge_retries_cfg)
 
     def panel_caller(member, system, user_text):   # noqa: F811 — envuelve al inyectado
         key = (member.get("reviewer"), member.get("lens"))
@@ -2012,7 +2035,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         db.add_event(run_id, "stage.audit.judge", agent="composite-auditor",
                      payload={"reviewer": member.get("reviewer"), "lens": member.get("lens"),
                               "phase": "start", "heartbeat": True,
-                              "attempt": attempt, "retries_judge": max(0, attempt - 1)})
+                              "attempt": attempt, "retries_judge": max(0, attempt - 1),
+                              "max_attempts": judge_max_attempts, "max_attempts_source": judge_retries_src})
         return inner_caller(member, system, user_text)
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
@@ -2125,6 +2149,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         cal_origins, cal_origins_src = _calibration_origins()
         cal_cov = db.calibration_coverage(niche_codes, min_hist, include_origins=cal_origins)
         cal_cov["min_required_source"] = min_hist_src
+        # corrector ADR-0080 (paridad webapp 2026-09-15): la cobertura DECLARA el filtro que se aplicó — lista de
+        # orígenes o el literal 'all' (sin filtro; db recibe None, el registro nunca lleva un null ambiguo) — y su
+        # fuente; competence._calibration_component los copia al componente que la webapp pinta
+        cal_cov["include_origins"] = list(cal_origins) if cal_origins is not None else CG_CALIBRATION_ORIGINS_ALL
         cal_cov["include_origins_source"] = cal_origins_src
         comp = competence.evaluate(conf1, checks1["admissible"], plan, structural_fired, cal_cov,
                                    council_coverage=None, tau=FALLBACK_CONF_TAU)

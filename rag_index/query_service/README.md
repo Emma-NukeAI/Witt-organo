@@ -210,8 +210,9 @@ ausente se declara `citations_schema.source: "absent"` (no se rellena con `[]`) 
 sintetizador y el panel reciben `path_b` PROYECTADO (evidencia y estados; sin `query_builder`, throttles,
 `search_ledger` anidado, `dedup_keys`) — el bloque íntegro sigue en `bundle_json`; (i) el evento
 `stage.path_b` gana un resumen por paper (`evidence_id, source, text_provenance, fetched.cache_hit/cached_at,
-selection_rank`), `epmc_query` y `selection.not_selected` — lo que la Traza SÍ puede leer, porque el bloque
-`path_b` no viaja en el registro congelado; (j) `text_cap_source`/`n_papers_source`/`retmax_source`
+selection_rank` y, desde la paridad webapp de ADR-0080 (2026-09-15), `kind, source_family, label, identifier_provenance,
+url, gap_flags, zfin_curie, round` SÓLO cuando el ítem del harness las trae), `epmc_query` y `selection.not_selected` —
+lo que la Traza SÍ puede leer, porque el bloque `path_b` no viaja en el registro congelado; (j) `text_cap_source`/`n_papers_source`/`retmax_source`
 declaran la procedencia real del tope (`env:…` | `default-unset:…` | `default-invalid-env:…` | `caller`).
 
 - **Ruta A**: cada hit viaja con hasta `WITT_PATH_A_CHARS` (2400) chars y declara su corte:
@@ -429,7 +430,8 @@ NUNCA se funden (`resolved`, `passage_delivered`, `pertinent 'not-available (ADR
 viajan separados dentro de cada cita; el veredicto de la lente `evidence-grounding` — `citation_support [{n, verdict}]`,
 OPCIONAL en `VERDICT_TOOL`, ignorado por las otras lentes — sólo eleva una cita que ya tiene pasaje). El panel REINTENTA
 una vez a un juez caído/ilegible (`WITT_JUDGE_RETRIES`, default 1; `retries_judge` + `attempts[]` en la fila,
-`audit.judge_retries {value, source}`, `stage.audit.judge` con `attempt`), jamás fabrica. **Gasto por etapa**:
+`audit.judge_retries {value, source}`, `stage.audit.judge` con `attempt` + `max_attempts` = `1 + WITT_JUDGE_RETRIES` de la
+misma fuente (`max_attempts_source`) — "intento N de M"), jamás fabrica. **Gasto por etapa**:
 `token_usage.by_stage {plan, synthesize_pass1, elicit_pass1, search, synthesize_pass2, elicit_pass2, panel, revision,
 embed, _sum}` desde el `usage` que cada llamada devuelve (los eventos que gastan lo llevan); `_sum == by_model` se
 comprueba y se declara (`by_stage_sum_matches_by_model`); un sintetizador que no separa la elicitación deja
@@ -437,8 +439,13 @@ comprueba y se declara (`by_stage_sum_matches_by_model`); un sintetizador que no
 (planner reported no usage)` (in/out null); el gasto de un juez AGOTADO que cobró entra a `by_model`/`panel` igual que
 a `audit.usage` (M8 cuadra en el caso del reintento fallido).
 
-**Registro congelado 1.9** (aditivo): `competence` (bloque íntegro + `decision`), `search_ledger {plan, rounds[],
-families_default, n_rounds, cap, round_budget_s, state, plan_state, config_source, stop_reason}`,
+**Registro congelado 1.9** (aditivo): `competence` (bloque íntegro + `decision`; `components.calibration_coverage` lleva
+`include_origins` (lista | `'all'`) + `include_origins_source`, y `conf1_ge_tau.tau_source == config.tau_source`),
+`search_ledger {plan, rounds[], families_default, n_rounds, cap, round_budget_s, state, plan_state,
+plan_state_vocabulary {exact, prefixes, rule}, config_source, stop_reason}` — `plan_state` es un literal EXACTO de
+`runs.SEARCH_PLAN_STATES_EXACT` (`built | not-requested | harness-unavailable | error`) o empieza con un prefijo de
+`runs.SEARCH_PLAN_STATE_PREFIXES` (`'error: '`, `'kill-switch '`, `'not-applicable ('`, `'harness-unavailable ('`);
+`runs.plan_state_in_vocabulary` lo valida —,
 `citations[].{resolved, passage_delivered, pertinent, supported, support_state}`, `citations_support_summary {n,
 by_state (los 5 peldaños siempre: enteros si `checked`, null si degradado), ladder, pertinent, state}`,
 `deterministic_checks.{pass ('pass1'|'pass2'|'revision'), pass1_admissible, positive_claim_requires_citations(+_state,
