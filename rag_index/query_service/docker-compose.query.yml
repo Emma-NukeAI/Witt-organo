@@ -31,6 +31,23 @@ services:
       - WITT_CORS_ORIGINS=${WITT_CORS_ORIGINS:-}       # set to the webapp origin when it exists
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}         # block 3 (ADR-0050): synthesis (opus) + panel
       - WITT_RUN_WORKERS=${WITT_RUN_WORKERS:-2}        # in-process run workers (runs take minutes)
+      # ADR-0078 — Path A/B hygiene. Placeholders only: values live in the Dokploy Environment tab; the
+      # defaults are DECLARED in code (answer_pipeline / pubmed_literature / fetch_paper / runs) and the
+      # effective value + its provenance ('env:…' | 'default-unset:…' | 'default-invalid-env:…') travel in
+      # every bundle + ledger. An EMPTY value is tolerated everywhere (declared default, never a crash).
+      - WITT_NCBI_EMAIL=${WITT_NCBI_EMAIL:-}           # NCBI E-utilities `email=` + fetch UA contact; empty
+                                                       # => ncbi_identity 'missing' / contact 'unset' (declared, never invented)
+      - NCBI_API_KEY=${NCBI_API_KEY:-}                 # optional; raises NCBI limit (derives 0.10 s pacing)
+      - WITT_NCBI_MIN_INTERVAL_S=${WITT_NCBI_MIN_INTERVAL_S:-}   # empty => derived (0.34 s no key / 0.10 s key)
+      - WITT_EPMC_MIN_INTERVAL_S=${WITT_EPMC_MIN_INTERVAL_S:-0.2}
+      - WITT_PATH_A_CHARS=${WITT_PATH_A_CHARS:-2400}   # chars per Path-A hit handed to the synthesizer (was 140)
+      - WITT_PATH_B_N_PAPERS=${WITT_PATH_B_N_PAPERS:-5}          # literature papers selected (top-n)
+      - WITT_PATH_B_RETMAX=${WITT_PATH_B_RETMAX:-20}   # candidates requested from EACH literature source
+      - WITT_PATH_B_EXCERPT_CHARS=${WITT_PATH_B_EXCERPT_CHARS:-1500}
+      - WITT_CACHE_TTL_DAYS=${WITT_CACHE_TTL_DAYS:-7}  # read-cache window for raw_paper_*.json (declared cache_hit)
+      - WITT_REAP_STALE_S=${WITT_REAP_STALE_S:-900}    # running run with no heartbeat for >N s => failed 'worker-lost'
+      - WITT_ZFIN_SERVER_FILTER=${WITT_ZFIN_SERVER_FILTER:-0}   # 1 = one filter.termName GET per anatomy root at Alliance
+                                                       # (unmeasured live; 'a|b' measured HTTP 400 2026-09-14) — default: client filter
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

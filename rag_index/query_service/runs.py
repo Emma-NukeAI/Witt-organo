@@ -35,7 +35,13 @@ import niche_catalog  # noqa: E402
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 
-RENDER_CONTRACT_VERSION = "1.6"   # ADR-0067 (ciclo de revisión acotado, adopción VB): +revision
+RENDER_CONTRACT_VERSION = "1.7"   # ADR-0078 (higiene de Ruta A y B): +citations_schema {source, n_raw,
+                                  # n_valid, raw_len_chars?, raw_type?, note?} + evidence_cited_raw +
+                                  # token_usage.{missing_price_models, cost_projection_complete} (+ la
+                                  # vista de corrida gana claimed_by/claimed_at/failure_reason). El bump
+                                  # va con el tipado opcional (`?`) en witt-webapp/src/api/types.ts —
+                                  # ESO es la paridad front↔back, no dejar la versión congelada.
+                                  # 1.6 = ADR-0067 (ciclo de revisión acotado, adopción VB): +revision
                                   # {enabled, performed, cap=1, findings_used, initial/final_verdict} +
                                   # audit_initial + answer_initial cuando hubo revisión (AMBAS versiones
                                   # persisten — nada se borra) + confidence.revision/revision_source.
@@ -566,10 +572,62 @@ class RunCancelled(Exception):
     pass
 
 
+# ADR-0078 corrector — la VISTA DE PROMPT del bloque path_b: el modelo lee EVIDENCIA, no bitácora. El
+# bloque íntegro (query_builder, throttles, rate_limit_headers, search_ledger anidado por paper, dedup_keys,
+# duplicates, cache_age…) se queda en el bundle (identidad sha, runs.bundle_json); al sintetizador y a los
+# jueces viaja esta proyección con lista blanca. Un paper lleva UN texto (text_excerpt; el abstract solo
+# cuando el excerpt viene del texto completo, porque entonces son textos distintos).
+_PROMPT_PATH_B_TOP = ("triggered", "triggered_by", "reason", "ledger_version", "query_sent", "query_sent_scope",
+                      "query_source", "epmc_query", "pubmed_query", "zfin_filter", "n_results_by_source",
+                      "sources_requested", "n_papers_requested")
+_PROMPT_LEDGER_KEYS = ("status", "n_found", "n_found_total", "n_returned", "n_new", "n_candidates",
+                       "detail", "error", "ncbi_identity")
+_PROMPT_ZFIN_ROW_KEYS = ("symbol", "status", "n_matched", "n_phenotypes_total", "n_phenotypes_total_scope",
+                         "anatomy_filter", "detail")
+_PROMPT_SELECTION_KEYS = ("rule", "n_requested", "n_candidates", "n_selected", "n_duplicates", "not_selected")
+_PROMPT_PAPER_KEYS = ("source", "evidence_id", "search_rec", "selection_rank", "text_provenance",
+                      "text_excerpt", "text_excerpt_omitted", "text_excerpt_rule")
+_PROMPT_ZFIN_ITEM_KEYS = ("symbol", "curie", "status", "has_references", "anatomy_filter", "n_phenotypes_total",
+                          "n_phenotypes_total_scope", "n_matched", "n_returned", "truncated", "phenotypes",
+                          "identifier_provenance")
+
+
+def _prompt_path_b(block):
+    """Proyección del bloque path_b para el prompt (ver _PROMPT_* arriba). Conserva los tres estados de cada
+    campo que copia (presente / null / ausente) — solo RECORTA llaves, jamás rellena."""
+    out = {k: block[k] for k in _PROMPT_PATH_B_TOP if k in block}
+    for led in ("europepmc_searched", "pubmed_searched"):
+        if isinstance(block.get(led), dict):
+            out[led] = {k: block[led][k] for k in _PROMPT_LEDGER_KEYS if k in block[led]}
+    if isinstance(block.get("zfin_searched"), list):
+        out["zfin_searched"] = [{k: r[k] for k in _PROMPT_ZFIN_ROW_KEYS if k in r} for r in block["zfin_searched"]]
+    if isinstance(block.get("selection"), dict):
+        out["selection"] = {k: block["selection"][k] for k in _PROMPT_SELECTION_KEYS if k in block["selection"]}
+    papers = []
+    for it in block.get("papers") or []:
+        p = {k: it[k] for k in _PROMPT_PAPER_KEYS if k in it}
+        if it.get("text_provenance") == "fulltext-excerpt" and "abstract" in it:
+            p["abstract"] = it["abstract"]   # texto distinto del excerpt: los dos aportan
+        f = it.get("fetched") or {}
+        p["fetched"] = {k: f.get(k) for k in ("found", "full_text") if k in f}
+        for k in ("fetch_error", "cache_hit", "cached_at"):
+            if k in f:
+                p["fetched"][k] = f[k]
+        if isinstance(it.get("zfin"), dict):
+            z = it["zfin"]
+            p["zfin"] = {k: z[k] for k in _PROMPT_ZFIN_ITEM_KEYS if k in z}
+        papers.append(p)
+    if "papers" in block:
+        out["papers"] = papers
+    return out
+
+
 def _compact_evidence(bundle, include_path_b=True):
     """The evidence view handed to the synthesizer and the panel — compact, never the raw 100K bundle.
     include_path_b=False is the PASS-1 view (DI-only): pass-1 confidence measures 'is my store enough?'
-    even when structural insufficiency already fetched external papers (ADR-0051)."""
+    even when structural insufficiency already fetched external papers (ADR-0051).
+    ADR-0078 corrector: path_b viaja PROYECTADO (_prompt_path_b) — evidencia y estados por fuente, sin la
+    plomería diagnóstica del ledger v2 (que sigue íntegra en el bundle)."""
     ev = {
         "path_a_hits": [{"doc_id": h["doc_id"], "type": h["type"], "score": h["score"], "text": h["text"]}
                         for h in bundle["path_a"]["hits"]],
@@ -578,7 +636,7 @@ def _compact_evidence(bundle, include_path_b=True):
         "sufficiency": bundle["sufficiency"],
     }
     if include_path_b:
-        ev["path_b"] = {k: v for k, v in bundle["path_b"].items() if k != "tool_universe_directive"}
+        ev["path_b"] = _prompt_path_b(bundle["path_b"])
     else:
         ev["path_b"] = {"included": False, "note": "pass-1 view is DI-only by design (ADR-0051)"}
     return ev
@@ -616,18 +674,25 @@ def synth_system(pass_label):
             + "\n\nAlso report alternatives_considered (§5): the readings you rejected and why.")
 
 
-def _lista_serializada(raw):
+def _lista_serializada(raw, keep_dicts=False):
     """ADR-0074: un campo-lista que llegó como STRING — atrapado como texto y levantado crudo
     (ADR-0057), o emitido como string por el modelo (la API no valida tipos del schema). String
     JSON de lista -> la lista (ítems no-string se re-serializan legibles); cualquier otra cosa ->
-    None, y el llamador conserva el crudo DECLARADO — jamás lo corrige, jamás lo rellena."""
+    None, y el llamador conserva el crudo DECLARADO — jamás lo corrige, jamás lo rellena.
+
+    ADR-0078: `keep_dicts=True` conserva los ítems dict tal cual — evidence_cited es una lista de
+    citas TIPADAS ({kind, id, note}) y re-serializarlas a string las degradaría a kind='other' con
+    el JSON como id (una cita sin tipo ni id legible: pérdida silenciosa)."""
+    if not isinstance(raw, str):
+        return None
     try:
         v = json.loads(raw)
     except ValueError:
         return None
     if not isinstance(v, list):
         return None
-    return [x if isinstance(x, str) else json.dumps(x, ensure_ascii=False) for x in v]
+    return [x if isinstance(x, str) or (keep_dicts and isinstance(x, dict))
+            else json.dumps(x, ensure_ascii=False) for x in v]
 
 
 def _default_synthesizer(question, evidence, pass_label):
@@ -709,13 +774,36 @@ def _default_synthesizer(question, evidence, pass_label):
     if not alts:
         gap_flags.append(f"alternatives_considered AUSENTE en {pass_label} (§5 lo exige) — declarado, "
                          "no rellenado con una lista vacía que se leería como 'no había alternativas'")
+    # ADR-0078 (misma lesión que gap_flags en ADR-0074, ahora en las citas): evidence_cited puede llegar
+    # SERIALIZADO como string. Iterarlo tal cual lo explota en N citas de UN carácter (medido: 469
+    # pseudocitas en una corrida real). Aquí se re-parsea con procedencia — el crudo se conserva en
+    # evidence_cited_raw — y si no es JSON de lista se deja el string para que _normalize_citations lo
+    # DECLARE 'string-unparseable' (jamás se rellena con [] callado ni se itera por caracteres).
+    ev_crudo = out.get("evidence_cited")   # None = la llave NO vino (ausente ≠ [] — ADR-0078 corrector)
+    ev_raw = None
+    if ev_crudo is None:
+        gap_flags.append(f"evidence_cited AUSENTE en {pass_label} — declarado, no rellenado con [] "
+                         "(citations_schema.source 'absent'; ADR-0078)")
+    if isinstance(ev_crudo, str):
+        ev_raw = ev_crudo
+        ev_parseado = _lista_serializada(ev_crudo, keep_dicts=True)
+        if ev_parseado is not None:
+            ev_crudo = ev_parseado
+            gap_flags.append(f"evidence_cited llegó SERIALIZADO como string en {pass_label} y se parseó "
+                             f"({len(ev_parseado)} citas) — procedencia declarada, crudo conservado en "
+                             "evidence_cited_raw (ADR-0078)")
+        else:
+            gap_flags.append(f"evidence_cited llegó como string NO parseable en {pass_label} — se "
+                             "conserva crudo en evidence_cited_raw; las citas quedan declaradas "
+                             "'string-unparseable', no se inventan (ADR-0078)")
     return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
             "confidence_source": conf_source,
             "stated_confidence_inline": inline_conf,   # el instrumento previo persiste (continuidad)
             "confidence_by_subclaim": e_subs or out.get("confidence_by_subclaim"),
             "absence_kind": out.get("absence_kind"),
             "search_query_en": out.get("search_query_en"),
-            "gap_flags": gap_flags, "evidence_cited": out.get("evidence_cited", []),
+            "gap_flags": gap_flags, "evidence_cited": ev_crudo,   # None cuando el modelo no la emitió
+            "evidence_cited_raw": ev_raw,   # ADR-0078: el string tal cual llegó; None = NO llegó string
             # contrato §5 (ADR-0060): self-report del modelo; runs.py resuelve sección/tier por tabla
             "alternatives_considered": alts,
             "framework_applied": out.get("framework_applied"),
@@ -739,28 +827,68 @@ def _resolve_confidence(answer):
     return None, None
 
 
-def _normalize_citations(items):
+CITATIONS_SCHEMA_SOURCES = ("list", "string-reparsed", "string-unparseable", "absent",
+                            "unsupported-type")
+
+
+def _normalize_citations(items, with_schema=False):
     """Typed, numerically indexed citation series (ADR-0051). Numbers are EVIDENCE; the letter series
-    is reserved for precedent (block 6) so the two can never be conflated by construction."""
+    is reserved for precedent (block 6) so the two can never be conflated by construction.
+
+    ADR-0078: un STRING jamás se itera — `for c in "abc"` producía N pseudocitas de un carácter
+    (469 en una corrida real). Un string se re-parsea vía _lista_serializada (JSON de lista -> citas,
+    'string-reparsed'); si no es JSON de lista -> [] y se DECLARA 'string-unparseable'. Con
+    with_schema=True devuelve (citas, citations_schema) donde citations_schema =
+    {source: 'list'|'string-reparsed'|'string-unparseable'|'absent'|'unsupported-type',
+     n_raw: ítems recibidos, n_valid: citas con id no vacío} — tres estados: ausente (None) ≠ []
+    ≠ lista con citas. Sin with_schema el retorno sigue siendo la lista (compatibilidad)."""
+    schema = {"source": None, "n_raw": 0, "n_valid": 0}
+    if items is None:
+        schema["source"], seq = "absent", []
+    elif isinstance(items, str):
+        parsed = _lista_serializada(items, keep_dicts=True)
+        if parsed is None:
+            schema["source"], seq = "string-unparseable", []
+            schema["n_raw"] = 1   # UN string opaco recibido, cero citas derivables
+            schema["raw_len_chars"] = len(items)
+            schema["note"] = ("evidence_cited llegó como string que no es JSON de lista; NO se itera "
+                              "por caracteres ni se inventa una cita (ADR-0078)")
+        else:
+            schema["source"], seq = "string-reparsed", parsed
+    elif isinstance(items, (list, tuple)):
+        schema["source"], seq = "list", list(items)
+    else:
+        schema["source"], seq = "unsupported-type", []
+        schema["n_raw"] = 1
+        schema["raw_type"] = type(items).__name__
+        schema["note"] = "evidence_cited llegó con un tipo que no es lista ni string — declarado, no forzado"
+    if seq:
+        schema["n_raw"] = len(seq)
     out = []
-    for i, c in enumerate(items or [], 1):
+    for i, c in enumerate(seq, 1):
         if isinstance(c, dict):
             out.append({"n": i, "kind": c.get("kind", "other"), "id": str(c.get("id", "")),
                         "note": c.get("note", "")})
         else:
             out.append({"n": i, "kind": "other", "id": str(c), "note": ""})
-    return out
+    schema["n_valid"] = sum(1 for c in out if c["id"])
+    return (out, schema) if with_schema else out
 
 
 # Per-Mtok prices for the cost PROJECTION (input, output). These are projection INPUTS, not
 # measurements — the token counts are measured from API responses; the dollar figure is calculated
 # and labeled as such (measurement-class discipline, ADR 2026-07-13).
+# ADR-0078: sonnet-5 cobraba (3.0, 15.0) y vale (2.0, 10.0); entran los modelos del consejo. Un modelo
+# que NO está en la tabla NO se cotiza a 0 (eso disfrazaba un hueco de precio como gasto cero): se
+# declara en missing_price_models y cost_projection_complete=False (ver _token_usage).
 PRICES_PER_MTOK_USD = {
-    "claude-opus-4-8": (5.0, 25.0), "claude-sonnet-5": (3.0, 15.0),
-    "claude-haiku-4-5-20251001": (1.0, 5.0), "gpt-4o": (2.5, 10.0),
+    "claude-opus-4-8": (5.0, 25.0), "claude-sonnet-5": (2.0, 10.0),
+    "claude-opus-5": (5.0, 25.0), "claude-fable-5-1": (10.0, 50.0),
+    "claude-haiku-4-5-20251001": (1.0, 5.0),
+    "gpt-4o": (2.5, 10.0), "gpt-6-astra": (10.0, 50.0), "gpt-5.6-sol": (4.0, 20.0),
     "text-embedding-3-small": (0.02, 0.0),
 }
-PRICES_AS_OF = "2026-08"
+PRICES_AS_OF = "2026-09"   # verified: 2026-09-08 source: platform.claude.com/docs/en/about-claude/pricing · developers.openai.com/api/docs/pricing
 
 
 def _usage_in_out(usage):
@@ -795,11 +923,21 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
         if "usage" in row and "verdict" in row:
             _add(row["reviewer"], row["usage"])
     embed_model = os.environ.get("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    # ADR-0078: un modelo sin precio en la tabla NO se cotiza a 0 — se EXCLUYE de la proyección y se
+    # declara en missing_price_models; cost_projection_complete dice si el número cubre todo el gasto.
     cost = 0.0
+    missing = []
     for model, m in by_model.items():
-        pi, po = PRICES_PER_MTOK_USD.get(model, (0.0, 0.0))
+        if model not in PRICES_PER_MTOK_USD:
+            missing.append(model)
+            continue
+        pi, po = PRICES_PER_MTOK_USD[model]
         cost += (m["in"] * pi + m["out"] * po) / 1e6
-    cost += embed_tokens * PRICES_PER_MTOK_USD.get(embed_model, (0.02, 0.0))[0] / 1e6
+    if embed_tokens:
+        if embed_model in PRICES_PER_MTOK_USD:
+            cost += embed_tokens * PRICES_PER_MTOK_USD[embed_model][0] / 1e6
+        else:
+            missing.append(embed_model)
     pi, po = _usage_in_out(planner_usage)
     return {
         "input_tokens": sum(m["in"] for m in by_model.values()),
@@ -812,8 +950,13 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
         "embedding": {"model": embed_model, "total_tokens": embed_tokens,
                       "attribution": "process-wide window during this run (concurrent runs may overlap)"},
         "estimated_cost_usd": round(cost, 4),
+        # ADR-0078: modelos con gasto medido pero SIN precio en la tabla — excluidos del número de arriba
+        "missing_price_models": missing,
+        "cost_projection_complete": not missing,
         "cost_class": f"PROJECTION (calculated from measured tokens x per-Mtok prices as of "
-                      f"{PRICES_AS_OF}; the token counts are measurements, the dollars are not)",
+                      f"{PRICES_AS_OF}; the token counts are measurements, the dollars are not"
+                      + ("" if not missing else
+                         f"; INCOMPLETE — sin precio para {missing}, excluidos") + ")",
     }
 
 
@@ -844,6 +987,19 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         db.add_event(run_id, f"stage.{name}", payload=payload, agent="answer_pipeline",
                      degraded=degraded)
         _check_cancel()
+
+    # ADR-0078 corrector — latido POR JUEZ: el panel corre en serie (composite_auditor.audit) y cada juez
+    # puede tardar hasta timeout×(1+retries) = 240 s sin emitir evento; con 4 jueces (y dos paneles si hay
+    # revisión) el hueco legítimo rebasaba WITT_REAP_STALE_S=900 y el reaper sentenciaba una corrida viva.
+    # Un evento stage.audit.judge ANTES de cada juez acota el hueco a un juez (≤ 240 s). Se envuelve el
+    # caller inyectable — composite_auditor no se toca; el caller por default sigue siendo el suyo.
+    inner_caller = panel_caller or composite_auditor._default_caller
+
+    def panel_caller(member, system, user_text):   # noqa: F811 — envuelve al inyectado
+        db.add_event(run_id, "stage.audit.judge", agent="composite-auditor",
+                     payload={"reviewer": member.get("reviewer"), "lens": member.get("lens"),
+                              "phase": "start", "heartbeat": True})
+        return inner_caller(member, system, user_text)
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
     # cancelled paths too — M8 cannot reconcile otherwise ("118,000 tokens gastados antes de morir").
@@ -957,7 +1113,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
         # 5) deterministic anti-fabrication gate over the FINAL answer (Logic-LM-class, NOT an LLM)
         adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
-                                                 "evidence_cited": answer.get("evidence_cited", [])})
+                                                 "evidence_cited": answer.get("evidence_cited") or []})
         report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
         checks = {"admissible": adm, "reasons": reasons, "identifier_report": report}
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
@@ -1013,7 +1169,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                                   "n_findings_input": len(findings)})
             _check_cancel()
             adm2, reasons2 = verify_output.admissible({"direct_answer": answer_rev["direct_answer"],
-                                                       "evidence_cited": answer_rev.get("evidence_cited", [])})
+                                                       "evidence_cited": answer_rev.get("evidence_cited") or []})
             report2 = verify_output.verify_identifiers(answer_rev["direct_answer"]).as_dict()
             checks2 = {"admissible": adm2, "reasons": reasons2, "identifier_report": report2}
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
@@ -1052,6 +1208,16 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # El usage cuenta TODOS los paneles (con revisión hay dos — ADR-0067).
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
         token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan)
+        # ADR-0078 corrector: UNA sola sede de re-parseo. Si evidence_cited LLEGÓ como string (el wrapper
+        # real lo guarda en evidence_cited_raw; un sintetizador stub puede dejarlo en evidence_cited),
+        # _normalize_citations recibe ESE string y declara 'string-reparsed' | 'string-unparseable'; si
+        # llegó lista, 'list'; si no vino, 'absent'. El registro ya no puede decir "llegó lista" junto a
+        # un crudo string.
+        ev_raw = answer.get("evidence_cited_raw")
+        if ev_raw is None and isinstance(answer.get("evidence_cited"), str):
+            ev_raw = answer["evidence_cited"]
+        citations, citations_schema = _normalize_citations(
+            ev_raw if isinstance(ev_raw, str) else answer.get("evidence_cited"), with_schema=True)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -1116,7 +1282,11 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             # un plan hecho para OTRA pregunta no puede pasar por el juicio de ésta (misma disciplina
             # que question_matches_run, ADR-0044)
             "plan_question_matches_run": (plan.get("question") == run["question"]) if plan else None,
-            "citations": _normalize_citations(answer.get("evidence_cited")),
+            "citations": citations,
+            # ADR-0078: cómo llegó evidence_cited (lista / string re-parseado / string no parseable /
+            # ausente) y cuántas citas válidas salieron — el lector distingue "citó 0" de "citó y se perdió"
+            "citations_schema": citations_schema,
+            "evidence_cited_raw": ev_raw,   # el string crudo tal cual llegó; None = NO llegó string
             "deterministic_checks": checks,
             "token_usage": token_usage,
             "usage_raw": {"passes": {label: p.get("usage", {}) for label, p in passes},
@@ -1153,24 +1323,39 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                              "panel_n_valid": audit_result["n_valid"],
                              "niches": nichos}
         frozen["niches"] = nichos
-        db.update_run(run_id, state="awaiting_closure", finished_at=db._now(),
-                      bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
-                      frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str),
-                      usage_json=json.dumps(token_usage, ensure_ascii=False, default=str),
-                      epistemic_summary_json=json.dumps(epistemic_summary, ensure_ascii=False))
-        db.add_event(run_id, "run.state", payload={"state": "awaiting_closure",
-                                                   "verdict": audit_result["verdict"]})
+        _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
+                bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
+                frozen_record_json=json.dumps(frozen, ensure_ascii=False, default=str),
+                usage_json=json.dumps(token_usage, ensure_ascii=False, default=str),
+                epistemic_summary_json=json.dumps(epistemic_summary, ensure_ascii=False))
     except RunCancelled:
-        db.update_run(run_id, state="cancelled", finished_at=db._now(),
-                      usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
-        db.add_event(run_id, "run.state", payload={"state": "cancelled"}, level="warning")
+        _finish(run_id, "cancelled", {}, level="warning",
+                usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
     except Exception as e:
-        db.update_run(run_id, state="failed", finished_at=db._now(),
-                      error=f"{type(e).__name__}: {str(e)[:400]}",
-                      usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
         db.add_event(run_id, "error", payload={"error": f"{type(e).__name__}: {str(e)[:400]}"},
                      level="error")
-        db.add_event(run_id, "run.state", payload={"state": "failed"}, level="error")
+        _finish(run_id, "failed", {}, level="error",
+                error=f"{type(e).__name__}: {str(e)[:400]}",
+                usage_json=json.dumps(_usage_now(), ensure_ascii=False, default=str))
+
+
+def _finish(run_id, state, payload, level="info", **values):
+    """ADR-0078 corrector — cierre terminal del worker, CONDICIONAL a que la fila siga 'running'
+    (db.finish_run). Si el reaper ya la sentenció failed/worker-lost (o alguien la canceló) mientras el
+    hilo seguía vivo, NO se pisa: queda UN evento run.state.conflict {attempted, found, ignored: true} y el
+    registro conserva un solo veredicto terminal. Devuelve True si el cierre se escribió."""
+    ok = db.finish_run(run_id, expected_state="running", state=state, finished_at=db._now(), **values)
+    if ok:
+        db.add_event(run_id, "run.state", payload={"state": state, **payload}, level=level)
+        return True
+    row = db.get_run(run_id) or {}
+    db.add_event(run_id, "run.state.conflict",
+                 payload={"attempted": state, "found": row.get("state"), "found_error": row.get("error"),
+                          "ignored": True,
+                          "note": "finished-after-reap: the worker outlived the reaper's verdict; the row "
+                                  "was NOT overwritten (ADR-0078)"},
+                 level="error")
+    return False
 
 
 def _safe(fn):
@@ -1218,21 +1403,97 @@ def new_run(user_id, question, entities=None, plan_json=None):
 
 _STOP = threading.Event()
 
+# ADR-0078: umbral del segador de corridas huérfanas (segundos sin latido). Default 900 = 3× el umbral
+# de VISTA HEARTBEAT_STALE_S=300 de app.py, a propósito: la vista sólo AVISA ("sin evento por N min")
+# y puede avisar temprano sin costo; el reaper MATA (running -> failed, irreversible) y tiene que
+# tolerar etapas legítimamente largas — una ronda de consejo futura (varios jueces en serie) o un
+# panel con reintentos puede pasar 5 min sin emitir evento. Matar sólo lo que lleva 3× el umbral de
+# aviso deja una banda donde la UI ya dice "sospechoso" y el sistema todavía no ha sentenciado.
+REAP_STALE_S_DEFAULT = 900
+
+
+def _env_int_tolerante(name, default):
+    """(valor, fuente) — igual que answer_pipeline._env_int_src: env vacía / no numérica / <= 0 -> default
+    DECLARADO (ADR-0078 corrector: `int(os.environ.get(...))` al importar tumbaba el servicio con
+    WITT_REAP_STALE_S='' en Dokploy — la única env del ADR cuyo fallo mataba el proceso)."""
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return default, f"default-unset:{name}"
+    try:
+        v = int(raw)
+    except ValueError:
+        return default, f"default-invalid-env:{name}"
+    return (v, f"env:{name}") if v > 0 else (default, f"default-invalid-env:{name}")
+
+
+REAP_STALE_S, REAP_STALE_S_SOURCE = _env_int_tolerante("WITT_REAP_STALE_S", REAP_STALE_S_DEFAULT)
+
+# ADR-0078 corrector: identidad del PROCESO en claimed_by. El nombre de hilo ('run-worker-0') es idéntico
+# en cada generación del proceso: ni el reaper ni la vista podían distinguir el hilo vivo del muerto.
+# claimed_by = '<boot_id>:<pid>:<thread>' (<= 64 chars: 8 + 1 + <=7 + 1 + nombre de hilo).
+WORKER_BOOT_ID = uuid.uuid4().hex[:8]
+
+
+def worker_id_for(thread_name):
+    return f"{WORKER_BOOT_ID}:{os.getpid()}:{thread_name}"[:64]
+
 
 def worker_loop(poll_seconds=1.0):
+    # ADR-0078: boot_id:pid:hilo es el worker_id que queda en runs.claimed_by (procedencia del reclamo)
+    worker_id = worker_id_for(threading.current_thread().name)
     while not _STOP.is_set():
-        run = db.claim_next_queued()
+        run = db.claim_next_queued(worker_id)
         if run is None:
             time.sleep(poll_seconds)
             continue
         execute_run(run)
 
 
-def start_workers(n=2):
+def _reap_once(stale_s, label, reason="worker-lost"):
+    """Una pasada del segador. Su fallo (BD caída un instante) NO tumba el hilo ni el arranque —
+    §6 no-hang: se deja huella en stderr y se reintenta en la siguiente ronda."""
+    try:
+        segadas = db.reap_stale_running(stale_s, reason=reason, stale_s_source=REAP_STALE_S_SOURCE)
+        if segadas:
+            print(f"[runs.reaper] {label}: {len(segadas)} corrida(s) running "
+                  + ("sin worker en este proceso" if reason == "worker-lost-restart"
+                     else f"sin latido por >{stale_s}s")
+                  + f" -> failed {reason} (ADR-0078): {segadas}", file=sys.stderr)
+        return segadas
+    except Exception as e:
+        print(f"[runs.reaper] {label}: reap_stale_running falló ({type(e).__name__}: {str(e)[:160]}) — "
+              "se reintenta en la siguiente ronda", file=sys.stderr)
+        return []
+
+
+def reaper_loop(stale_s=None):
+    """Hilo daemon 'run-reaper' (ADR-0078): repite reap_stale_running cada stale_s/3 segundos — tres
+    oportunidades por umbral, así una corrida huérfana se sentencia entre stale_s y 4/3·stale_s
+    después de su último latido, nunca mucho más tarde. Termina con _STOP."""
+    stale_s = REAP_STALE_S if stale_s is None else stale_s
+    period = max(1.0, float(stale_s) / 3.0)
+    while not _STOP.wait(period):
+        _reap_once(stale_s, "ronda")
+
+
+def start_workers(n=2, reap_stale_s=None):
     """In-process daemon workers (single uvicorn process, ADR-0048). sklearn is already preloaded on the
-    MAIN thread by the app lifespan before workers start — the 1800s deadlock cannot recur here."""
+    MAIN thread by the app lifespan before workers start — the 1800s deadlock cannot recur here.
+
+    ADR-0078 (corrector 2026-09-14): ANTES de lanzar hilos corre reap_stale_running(0, reason=
+    'worker-lost-restart') UNA vez — con `--workers 1` (ADR-0048) TODA fila 'running' al nacer el proceso
+    es huérfana por construcción (ningún hilo de este proceso la reclamó; el anterior murió por redeploy
+    u OOM), latiera hace 5 min o hace 5 h. Se sentencian failed/worker-lost, NUNCA se re-encolan. Luego
+    un hilo daemon 'run-reaper' aplica el umbral WITT_REAP_STALE_S cada WITT_REAP_STALE_S/3 s para los
+    hilos que mueran en caliente. Por qué 900 > HEARTBEAT_STALE_S=300: ver REAP_STALE_S arriba (la vista
+    avisa, el reaper mata). `reap_stale_s` solo parametriza el hilo periódico (gates)."""
+    stale_s = REAP_STALE_S if reap_stale_s is None else reap_stale_s
+    print(f"[runs.reaper] arranque: REAP_STALE_S={stale_s} ({REAP_STALE_S_SOURCE}); boot_id={WORKER_BOOT_ID}",
+          file=sys.stderr)
+    _reap_once(0.0, "arranque", reason="worker-lost-restart")
     for i in range(n):
         threading.Thread(target=worker_loop, name=f"run-worker-{i}", daemon=True).start()
+    threading.Thread(target=reaper_loop, args=(stale_s,), name="run-reaper", daemon=True).start()
 
 
 def stop_workers():

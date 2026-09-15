@@ -474,7 +474,11 @@ def _run_view(run):
     a run stuck 1800s in a deadlock must be distinguishable from one that is working). LOTE-01·A2:
     the threshold TRAVELS with the derivation (an alert without its threshold cannot be judged).
     LOTE-01·A4: usage_json (spend on EVERY exit path, failed/cancelled included) is served parsed
-    as `token_usage`."""
+    as `token_usage`.
+    ADR-0078: claimed_by/claimed_at (qué worker reclamó la corrida y cuándo) viajan TAL CUAL en la
+    vista — la lista de exclusión de abajo no los tapa; null = nadie declaró (llamador sin worker_id),
+    distinto de un nombre de hilo. Una corrida segada por el reaper llega state='failed' con
+    error 'worker-lost: …' y su evento run.state {reason:'worker-lost'} en la bitácora."""
     now = datetime.datetime.now(datetime.timezone.utc)
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
@@ -485,6 +489,14 @@ def _run_view(run):
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
     view["heartbeat_stale_after_s"] = HEARTBEAT_STALE_S
+    # ADR-0078 corrector: el POR QUÉ de un failed, tipado — 'worker-lost' (segada por el reaper) |
+    # 'pipeline' (excepción del worker) | null (no falló). La webapp ya no tiene que hacer startsWith
+    # sobre el string `error`.
+    err = run.get("error") or ""
+    if run.get("state") == "failed":
+        view["failure_reason"] = "worker-lost" if err.startswith("worker-lost") else "pipeline"
+    else:
+        view["failure_reason"] = None
     view["token_usage"] = json.loads(run["usage_json"]) if run.get("usage_json") else None
     view["plan_declared"] = bool(run.get("plan_json"))   # ADR-0061; el plan completo va en el registro
     # ADR-0076: run_no (el NÚMERO de corrida) viaja tal cual — es columna asignada al nacer, no derivación
@@ -927,12 +939,20 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     totals = {"input_tokens": 0, "output_tokens": 0, "embedding_tokens": 0, "estimated_cost_usd": 0.0}
     by_user, by_model, most = {}, {}, None
     n_with = 0
+    # ADR-0078: modelos con gasto medido pero SIN precio en la tabla — antes se cotizaban a 0 en silencio
+    missing_price = set()
+    n_incomplete = 0    # corridas que al congelarse declararon cost_projection_complete=False
+    n_unknown = 0       # corridas anteriores a la llave: no declararon; no se les inventa un estado
     for r in rows:
         u = json.loads(r["usage_json"]) if r.get("usage_json") else None
         if not u:
             continue
         n_with += 1
         cost = float(u.get("estimated_cost_usd") or 0.0)
+        if u.get("cost_projection_complete") is False:
+            n_incomplete += 1
+        elif "cost_projection_complete" not in u:
+            n_unknown += 1
         totals["input_tokens"] += u.get("input_tokens", 0)
         totals["output_tokens"] += u.get("output_tokens", 0)
         totals["embedding_tokens"] += (u.get("embedding") or {}).get("total_tokens", 0)
@@ -947,7 +967,12 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
             bm = by_model.setdefault(model, {"in": 0, "out": 0, "estimated_cost_usd": 0.0})
             bm["in"] += m.get("in", 0)
             bm["out"] += m.get("out", 0)
-            pi, po = runs_mod.PRICES_PER_MTOK_USD.get(model, (0.0, 0.0))
+            if model not in runs_mod.PRICES_PER_MTOK_USD:
+                missing_price.add(model)
+                bm["estimated_cost_usd"] = None   # sin precio: ausente-declarado, jamás 0.0
+                bm["price_state"] = "missing"
+                continue
+            pi, po = runs_mod.PRICES_PER_MTOK_USD[model]
             bm["estimated_cost_usd"] = round(bm["estimated_cost_usd"]
                                              + (m.get("in", 0) * pi + m.get("out", 0) * po) / 1e6, 4)
         if most is None or cost > most["estimated_cost_usd"]:
@@ -968,8 +993,23 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     return {"from": from_, "to": to, "n_runs": len(rows), "n_runs_with_usage": n_with,
             "totals": totals, "by_user": by_user, "by_model": by_model, "most_expensive": most,
             "rack_embeddings": rack,
+            # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la
+            # tabla de HOY y (b) NINGUNA corrida sumada se congeló declarándose incompleta — totals suma el
+            # estimated_cost_usd CONGELADO de cada corrida, así que un modelo que hoy sí tiene precio no
+            # repara el gasto que aquella corrida excluyó. n_runs_cost_unknown: corridas anteriores a la
+            # llave (no declararon; se cuentan aparte, no como completas por omisión).
+            "missing_price_models": sorted(missing_price),
+            "cost_projection_complete": (not missing_price) and n_incomplete == 0,
+            "n_runs_cost_incomplete": n_incomplete,
+            "n_runs_cost_unknown": n_unknown,
             "cost_class": f"PROJECTION (calculated from measured tokens x per-Mtok prices as of "
-                          f"{runs_mod.PRICES_AS_OF}; the token counts are measurements, the dollars are not)"}
+                          f"{runs_mod.PRICES_AS_OF}; the token counts are measurements, the dollars are not"
+                          + ("" if not missing_price else
+                             f"; INCOMPLETE — sin precio para {sorted(missing_price)}")
+                          + ("" if not n_incomplete else
+                             f"; INCOMPLETE — {n_incomplete} corrida(s) congeladas sin precio en su momento")
+                          + ("" if not n_unknown else
+                             f"; {n_unknown} corrida(s) anteriores a la llave, estado no declarado") + ")"}
 
 
 # --- config history (LOTE-02·5, M6/SISTEMA): the catalog has history ---------------------------------

@@ -145,6 +145,7 @@ or external references that informed the decision.
 | [0075](0075-m5-v2-dos-notas-y-cortes-declarados.md) | 2026-08-26 | M5 v2: dos notas separadas, anclas con palabra, y los cortes que declaran de qué descansa el ECE | Accepted |
 | [0076](0076-numero-de-corrida.md) | 2026-09-05 | Número de corrida: la identidad legible nace en el backend, no en la vista | Accepted |
 | [0077](0077-comentarios-de-corrida.md) | 2026-09-06 | Comentarios de corrida: la conversación sobre la pregunta como anexo append-only, público y fuera del registro | Accepted |
+| [0078](0078-higiene-ruta-a-y-b.md) | 2026-09-14 | Higiene de Ruta A y B: el sintetizador lee el contenido (2400 chars/hit, abstracts, excerpts), queries nativas por índice, ledger por fuente con estados (`ledger_version 2`), identidad + throttle NCBI/EPMC, ZFIN con esquema nuevo, reaper `worker-lost`, citas y precios declarados | Accepted |
 
 ---
 

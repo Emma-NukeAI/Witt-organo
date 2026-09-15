@@ -100,6 +100,13 @@ contenedor los trae; en dev cualquier venv desechable — **no** el `.venv` del 
 Ratings + calibración: `python rag_index/query_service/smoke_ratings_calibration.py` (mismo régimen
 offline; ADR-0064).
 
+**Todos los gates del directorio** (`smoke_*.py`) corren offline con la máscara
+`WITT_BACKEND_DB_URL="sqlite:///<tmp>/smoke-<nombre>.db" NEO4J_URI="" RAG_BACKEND=sparse OPENAI_API_KEY=""
+ANTHROPIC_API_KEY=""` — cero red, cero modelo, cero mutación de `mcp_cache`. Los de ADR-0078 (
+`smoke_zfin_tool.py` sirve el fixture REAL `fixtures/alliance_phenotypes_wt1a_20260913.json`;
+`smoke_pubmed_tool.py`, `smoke_fetch_paper.py`, `smoke_search_queries.py`, `smoke_run_recovery.py`) se
+corren junto a `smoke_run_pipeline.py` (que además integra los cinco en la corrida).
+
 ## Corridas (bloque 3, ADR-0049/0050)
 
 Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`, instrumentada por
@@ -107,8 +114,11 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (112/112 offline; `smoke_query_service.py`
-29/29). Contrato del registro: `render_contract_version 1.6` (ADR-0067, adopción VB #2: **ciclo de
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (181/181 offline; `smoke_query_service.py`
+47/47). Contrato del registro: `render_contract_version 1.7` (ADR-0078: `+citations_schema`,
+`+evidence_cited_raw`, `token_usage.{missing_price_models, cost_projection_complete}`; la vista de corrida
+gana `claimed_by`/`claimed_at`/`failure_reason` — la webapp tipa los campos nuevos como opcionales, eso ES
+la paridad front↔back). 1.6 (ADR-0067, adopción VB #2: **ciclo de
 revisión acotado post-REVISE** — UNA pasada de corrección con los hallazgos del panel como insumo
 tipado, re-gate determinista, re-auditoría terminal, tope DURO=1, kill-switch `WITT_REVISION_CYCLE=0`;
 NADA se borra: `answer_initial`+`audit_initial`+`revision{...}`+`confidence.revision` persisten; la
@@ -145,6 +155,129 @@ igual que "la búsqueda falló". Acotado por `WITT_ZFIN_BUDGET_S` (45) · `WITT_
 `WITT_ZFIN_MAX_STATEMENTS` (12), y todo recorte se declara. `_search_tooluniverse` sigue devolviendo
 `[]`: las tools del PAQUETE esperan el SDK. `path_b_bundle`/`path_b_event_payload` son el único
 constructor del bloque y del evento (los dos disparadores no mantienen copias).
+
+### Higiene de Ruta A y B (ADR-0078, 2026-09-14)
+
+Lo que la auditoría 2026-09-13 midió: Ruta A entregaba **140 chars por hit** al sintetizador; la
+Ruta B mandaba símbolos ANDeados como texto libre (`osr1 prkci pax2a` → PubMed 0, EPMC 1); el abstract
+y el texto de cada paper se **bajaban y se tiraban**; ZFIN leía una llave muerta del payload de Alliance
+(`references=[]` bajo `success`); PubMed sin `tool`/`email` ni pacing (NCBI: `X-RateLimit-Limit: 3`);
+una excepción de EPMC mataba `path_b` entero; `evidence_cited` en string se iteraba por caracteres;
+sonnet-5 cobraba 1.5×; una corrida `running` huérfana lo era para siempre. El bloque `path_b` declara
+**`ledger_version: "2"`** y conserva sus llaves previas; los cambios de TIPO/DOMINIO que sí hay están
+listados en el ADR (Consequences) y aquí: `query_sent: str → str|null`, `query_source` con literales
+nuevos, `anatomy_filter` multi-raíz, `anatomy_filter_source` literal nuevo, contadores `int → int|null`.
+
+**Corrector final (2026-09-14, tres revisiones cruzadas)** — lo que cambió respecto a la primera entrega
+de la obra: (a) el correo de `WITT_NCBI_EMAIL` vive SOLO en el User-Agent — el ledger declara
+`contact: "declared"|"unset"` (viajaba al bundle, a la API y al prompt de cinco modelos); (b) ZFIN:
+`filter.termName=a|b` se midió **HTTP 400** en vivo — el tool ya no une raíces con `|` (una GET por raíz,
+unión en cliente) y `server_filter` es **False por default** (`WITT_ZFIN_SERVER_FILTER=1` lo activa cuando
+se mida la forma de una raíz); el respaldo cliente es por PREFIJO DE PALABRA (`\bduct` no casa
+`reduction`); `n_phenotypes_total_scope: "gene"|"server-filtered"` declara qué total es; (c) UNA política
+de anatomía para los tres índices (unión pregunta original + formulación EN, `notes.anatomy ∈
+from-question|from-question-en|from-both|none-in-question` + `anatomy_text_source`); la pregunta original
+JAMÁS se tokeniza como texto libre (sin símbolos ni EN → `empty` → `not-searched`); (d) contadores
+`n_returned/n_new/n_candidates` son `null` cuando la fuente no corrió (not-searched / not-requested /
+tool-unavailable / error) y `n_papers<=0` no dispara red (`not-requested`); `n_found` jamás se rellena con
+el tamaño de página (`null` + `n_found_note`); (e) el reaper y el worker ya no se pisan: `db.finish_run`
+(cierre `WHERE state='running'`, conflicto → evento `run.state.conflict`), el reaper exige que el latido
+siga siendo el medido y deja `cancel_requested` para que un hilo vivo aborte; **al arrancar el proceso TODA
+`running` cae a failed/worker-lost** (`reason: worker-lost-restart`); latido por juez (`stage.audit.judge`)
+para que un panel legítimamente largo no rebase el umbral; `claimed_by = "<boot_id>:<pid>:<hilo>"`;
+`WITT_REAP_STALE_S` vacía/basura → 900 declarado (ya no tumba el import); (f) citas: `evidence_cited`
+ausente se declara `citations_schema.source: "absent"` (no se rellena con `[]`) y el re-parseo tiene UNA sede
+(el registro ya no dice `list` junto a un `evidence_cited_raw` string); (g) `/usage`:
+`cost_projection_complete` exige además `n_runs_cost_incomplete == 0` y declara `n_runs_cost_unknown`; (h) el
+sintetizador y el panel reciben `path_b` PROYECTADO (evidencia y estados; sin `query_builder`, throttles,
+`search_ledger` anidado, `dedup_keys`) — el bloque íntegro sigue en `bundle_json`; (i) el evento
+`stage.path_b` gana un resumen por paper (`evidence_id, source, text_provenance, fetched.cache_hit/cached_at,
+selection_rank`), `epmc_query` y `selection.not_selected` — lo que la Traza SÍ puede leer, porque el bloque
+`path_b` no viaja en el registro congelado; (j) `text_cap_source`/`n_papers_source`/`retmax_source`
+declaran la procedencia real del tope (`env:…` | `default-unset:…` | `default-invalid-env:…` | `caller`).
+
+- **Ruta A**: cada hit viaja con hasta `WITT_PATH_A_CHARS` (2400) chars y declara su corte:
+  `text_offsets [0,n]`, `text_sha256` del fragmento, `text_omitted`, `text_hit_chars`,
+  `text_source: "index-hit"`; el tope efectivo va en `path_a.text_cap_chars`.
+- **Queries por fuente** (`analysis/scripts/lib/search_queries.py`, determinista, `builder_version "1"`):
+  `epmc_query` (`TITLE:/ABSTRACT:` + `MESH:"Zebrafish"` + anatomía), `pubmed_query` (`[tiab]`/`[mh]`),
+  `zfin_filter` (raíces unidas con `|` SOLO como representación en el ledger; el tool las recibe como
+  lista); `query_builder` completo con `inputs` (la formulación EN del sintetizador entra como
+  `question_en`, `question_en_source: "synthesizer"`). Anatomía: UNA política para los tres índices —
+  unión de la pregunta original y de `question_en`, procedencia en `notes.anatomy` y
+  `notes.anatomy_text_source`; los términos de texto libre (`question_terms`) salen SOLO de `question_en`.
+  `query_sent` sigue siendo la de EPMC (`query_sent_scope: "europepmc"`); `query_source` =
+  `query-builder-v1:<symbols|question-only|empty>`. Query `null` = nada que buscar → fuente
+  `not-searched`, jamás cadena vacía.
+- **`europepmc_searched`** (nuevo): `status ∈ success|no-match|error|not-searched|not-requested|
+  tool-unavailable`, `query_sent`, `n_found` (hitCount, medición; `null` + `n_found_note` si el payload no
+  lo trae), `n_returned`/`n_candidates` (`int` solo en success|no-match; `null` si la fuente no corrió),
+  `retmax_sent`, `elapsed_s`, `throttle`, `throttle_slept_s` (de ESTA llamada), `contact:
+  "declared"|"unset"` (estado, jamás el correo), `error?`. Una caída deja `error` y la corrida sigue (§6).
+- **Pool + dedup + selección**: `WITT_PATH_B_RETMAX` (20) candidatos POR fuente; dedup por PMID, PMCID y
+  DOI normalizado (lower, sin `https://doi.org/`); `WITT_PATH_B_N_PAPERS` (5) elegidos con
+  `selection.rule = "oa-with-pmcid-first, then source order"`; `selection` lleva `n_requested`,
+  `n_candidates`, `n_selected`, `n_duplicates`, `duplicates[{duplicate, of, matched_key, source}]`,
+  `not_selected[]`. Solo los elegidos se bajan. `n_papers_requested`/`retmax_requested` en el bloque.
+- **Contenido al bundle** (cada paper): `abstract`, `text_excerpt` (≤ `WITT_PATH_B_EXCERPT_CHARS` 1500),
+  `text_provenance ∈ abstract|fulltext-excerpt|none`, `text_excerpt_rule ∈ full|head|
+  top-paragraphs-by-lexical-overlap|none` (párrafos con más términos de la query, en orden del
+  documento), `text_excerpt_chars`, `text_excerpt_omitted`, `text_source_chars`, `selection_rank`,
+  `dedup_keys`. `fetched` gana `cache_hit`, `cached_at`, `cached_at_source`, `cache_age_days`,
+  `fetched_at`, `search_ledger` SOLO cuando el fetch los midió (ausente ≠ false).
+- **`pubmed_searched`** gana `query_sent`, `retmax_sent`, `n_returned`, `n_candidates`, `n_new` (los tres
+  `int|null`: `null` cuando la fuente no corrió), `duplicates_of_europepmc: list|null`, `ncbi_identity`
+  (`declared|missing`), `throttle{host, min_interval_s, min_interval_source, api_key_present, waited_s}`,
+  `retries_429`, `rate_limit_headers` (de UNA respuesta, la última que las trajo) +
+  `rate_limit_headers_from: esearch|esummary|null`, `http_status` (en error); `status` gana
+  `not-searched` y `not-requested`.
+- **`zfin_searched[]`** gana el estado `success-no-references` (statements sin PMIDs parseables ≠ error),
+  `references_schema ∈ pubmedPublications|pubmedPubModIDs|none|mixed`, `phenotypes_capped_at_300`,
+  `references_truncated`, `n_returned_by_api`, `statements_truncated`, `anatomy_terms`,
+  `anatomy_filter_mode ∈ none|client|server+client` (default `client`), `anatomy_filter_semantics`,
+  `n_phenotypes_total_scope ∈ gene|server-filtered`, `n_http_gets`, `server_filter_totals?`,
+  `timeout_s` (= min(10, presupuesto restante / 2)) + `timeout_s_scope: "per-http-get"`, `detail?`
+  (cero producido por el filtro del servidor); el item `zfin` lleva `status`, `has_references` y los
+  mismos campos.
+- **Modelo de corrida**: `claimed_by` (`"<boot_id>:<pid>:<hilo>"`)/`claimed_at` en lista y detalle;
+  `failure_reason ∈ worker-lost|pipeline|null` en la vista; al ARRANCAR el proceso toda `running` cae a
+  `failed` (`reason: worker-lost-restart`), y el hilo `run-reaper` pasa a `failed` con `error:
+  "worker-lost: sin latido por >N s (ADR-0078)"` toda `running` sin latido por `WITT_REAP_STALE_S`
+  (900 = 3× el umbral de la vista; vacía/basura → 900 declarado; nunca re-encola; la segada queda con
+  `cancel_requested` para que un hilo vivo aborte); el worker cierra con `db.finish_run` (`WHERE
+  state='running'`) y si la fila ya no es suya deja `run.state.conflict` en vez de pisarla; el panel emite
+  un latido por juez (`stage.audit.judge`). El registro congelado gana `citations_schema{source ∈
+  list|string-reparsed|string-unparseable|absent|unsupported-type, n_raw, n_valid}` (un `evidence_cited`
+  AUSENTE se declara `absent`, no se rellena con `[]`) y `evidence_cited_raw` (`null` = no llegó string);
+  `token_usage` gana `missing_price_models[]` y `cost_projection_complete` (un modelo sin precio se
+  EXCLUYE y se declara, jamás cotiza 0); `/usage` idem + `n_runs_cost_incomplete`, `n_runs_cost_unknown`
+  y `by_model[m].estimated_cost_usd: null` con `price_state: "missing"` — `cost_projection_complete` es
+  `true` SOLO sin modelos sin precio Y sin corridas congeladas incompletas. Precios: sonnet-5 (2.0, 10.0);
+  consejo en tabla; `PRICES_AS_OF "2026-09"`.
+
+**Variables de entorno nuevas (ADR-0078)** — default declarado en código; el valor efectivo viaja en el
+bundle/ledger:
+
+| Variable | Default | Dónde se lee | Efecto |
+|---|---|---|---|
+| `WITT_PATH_A_CHARS` | 2400 | `answer_pipeline.path_a` | chars por hit de Ruta A al bundle/sintetizador |
+| `WITT_PATH_B_N_PAPERS` | 5 | `answer_pipeline.path_b(_bundle)` | papers de literatura seleccionados (top-n) |
+| `WITT_PATH_B_RETMAX` | 20 | `answer_pipeline` · `pubmed_literature.resolve_retmax` | candidatos pedidos a cada fuente |
+| `WITT_PATH_B_EXCERPT_CHARS` | 1500 | `answer_pipeline._paper_content` | tope del `text_excerpt` |
+| `WITT_NCBI_EMAIL` | — (sin default) | `pubmed_literature` · `fetch_paper` (UA) | `email=` a E-utilities y contacto del UA; si falta NO se inventa: `ncbi_identity: "missing"` / `contact: "unset"` |
+| `NCBI_API_KEY` | — (ya existía) | `pubmed_literature` | sube el límite de NCBI; deriva el intervalo 0.10 s |
+| `WITT_NCBI_MIN_INTERVAL_S` | derivado: 0.34 sin llave / 0.10 con llave | `pubmed_literature.resolve_min_interval_s` | pacing por proceso en `eutils.ncbi.nlm.nih.gov` (`throttle.min_interval_source: env|derived`) |
+| `WITT_EPMC_MIN_INTERVAL_S` | 0.2 | `fetch_paper` | pacing por proceso en `www.ebi.ac.uk` |
+| `WITT_CACHE_TTL_DAYS` | 7 | `fetch_paper.fetch_external` | caché de LECTURA de `raw_paper_*.json` (`cache_hit` declarado; ≤0 = nunca confiar) |
+| `WITT_REAP_STALE_S` | 900 | `runs.REAP_STALE_S` (import, tolerante: vacía/basura → 900 declarado; `REAP_STALE_S_SOURCE`) | segador de `running` huérfanas; el hilo repite cada N/3 s; al arrancar se siega TODA `running` (umbral 0) |
+| `WITT_ZFIN_SERVER_FILTER` | 0 | `answer_pipeline._search_zfin` | 1 = una GET `filter.termName=<raíz>` por raíz en Alliance (sin medir en vivo; `a|b` = HTTP 400 medido); 0 = filtro cliente por prefijo de palabra |
+
+El throttle es de PROCESO (`lib/net_throttle.py`, `--workers 1` obligatorio): si algún día el servicio
+corre en varios procesos o réplicas, el pacing deja de cubrirlos — frontera documentada, no supuesto oculto.
+Con `WITT_NCBI_EMAIL` sin fijar en Dokploy, cada corrida declarará `ncbi_identity: "missing"` (correcto y
+visible). Gates (tras el corrector): `smoke_run_pipeline.py` 181/181 · `smoke_zfin_tool.py` 26/26 ·
+`smoke_pubmed_tool.py` 32/32 · `smoke_fetch_paper.py` 41/41 · `smoke_search_queries.py` 163/163 ·
+`smoke_run_recovery.py` 40/40.
 
 Pass 1 es SIEMPRE DI-only (mide "¿mi store alcanza?"); si `pass1 < τ` (`WITT_FALLBACK_CONF_TAU`,
 default 0.5) o la confianza viene ausente, dispara la Ruta B y corre pass 2 con la evidencia externa —

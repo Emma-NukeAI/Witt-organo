@@ -73,6 +73,8 @@ runs = Table(
     Column("frozen_at", DateTime(timezone=True)),             # closure stamp (explicit, user-driven)
     Column("closed_by", String(64)),
     Column("last_event_at", DateTime(timezone=True)),         # heartbeat: 'no event for N min' detector
+    Column("claimed_by", String(64)),                         # ADR-0078: QUÉ worker (nombre de hilo) la
+    Column("claimed_at", DateTime(timezone=True)),            # reclamó y CUÁNDO — null = nadie declaró
     Column("cancel_requested", Boolean, nullable=False, default=False),
     Column("cancelled_by", String(64)),                       # LOTE-01·A3: a cancellation without an author
     Column("cancel_reason", Text),                            # is a hole in the registry (ERP rule)
@@ -239,6 +241,10 @@ def _migrate():
     when the column exists (works on SQLite and Postgres). Additive-only by policy; a destructive
     migration would need its own ADR."""
     from sqlalchemy import text
+    # ADR-0078: el tipo fecha se compila con el DIALECTO (SQLite -> DATETIME, Postgres -> TIMESTAMP WITH
+    # TIME ZONE). Un literal DATETIME fallaría en Postgres, el except lo callaría, la columna no existiría
+    # y claim_next_queued rompería en prod — un fallback disfrazado de migración idempotente.
+    _dt_type = DateTime(timezone=True).compile(dialect=engine().dialect)
     for stmt in ("ALTER TABLE runs ADD COLUMN cancelled_by VARCHAR(64)",
                  "ALTER TABLE runs ADD COLUMN cancel_reason TEXT",
                  "ALTER TABLE runs ADD COLUMN usage_json TEXT",
@@ -251,7 +257,10 @@ def _migrate():
                  # producción (la calificación real de 4d046355) sin reescribirla — y para que esa fila
                  # quede con '' = "el instrumento no lo pidió", jamás confundible con "no tenía nada que
                  # decir": las filas pre-v2 se distinguen porque su `note` es la única que existió.
-                 "ALTER TABLE run_ratings ADD COLUMN note_question TEXT DEFAULT ''"):
+                 "ALTER TABLE run_ratings ADD COLUMN note_question TEXT DEFAULT ''",
+                 # ADR-0078: quién reclamó la corrida y cuándo — el insumo del reaper y de la vista.
+                 "ALTER TABLE runs ADD COLUMN claimed_by VARCHAR(64)",
+                 f"ALTER TABLE runs ADD COLUMN claimed_at {_dt_type}"):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
@@ -479,20 +488,96 @@ def plan_history(limit=200):
     return out
 
 
-def claim_next_queued():
+def claim_next_queued(worker_id=None):
     """Atomically claim the oldest queued run (optimistic UPDATE ... WHERE state='queued'). Returns the
-    run row (dict) or None. FIFO by created_at."""
+    run row (dict) or None. FIFO by created_at.
+
+    ADR-0078: `worker_id` (el nombre del hilo) queda en runs.claimed_by y el instante en claimed_at —
+    la procedencia del reclamo. Sin worker_id (llamadores viejos: smokes, harness) claimed_by queda
+    NULL = "nadie declaró quién", que es distinto de un nombre y se sirve así. El dict devuelto lleva
+    los valores ESCRITOS (no el SELECT previo al UPDATE), para que el llamador vea lo que quedó."""
     with engine().begin() as cx:
         row = cx.execute(select(runs).where(runs.c.state == "queued")
                          .order_by(runs.c.created_at).limit(1)).first()
         if row is None:
             return None
+        ahora = _now()
         n = cx.execute(runs.update()
                        .where(runs.c.run_id == row._mapping["run_id"], runs.c.state == "queued")
-                       .values(state="running", started_at=_now())).rowcount
+                       .values(state="running", started_at=ahora,
+                               claimed_by=worker_id, claimed_at=ahora)).rowcount
         if n != 1:  # another worker won the race
             return None
-        return dict(row._mapping)
+        d = dict(row._mapping)
+        d.update(state="running", started_at=ahora, claimed_by=worker_id, claimed_at=ahora)
+        return d
+
+
+REAP_REASONS = ("worker-lost", "worker-lost-restart")
+
+
+def reap_stale_running(stale_s, now=None, reason="worker-lost", stale_s_source=None):
+    """ADR-0078 — el segador de corridas huérfanas. Una corrida 'running' cuyo último latido
+    (last_event_at; si es null, started_at; si también, created_at) es más viejo que `stale_s` segundos
+    perdió a su worker (proceso reiniciado, hilo muerto): pasa a state='failed' con finished_at, error
+    'worker-lost: …' y UN evento run.state {state:'failed', reason, stale_s, stale_s_source, idle_s,
+    ref_field} vía add_event — la misma bitácora que lee la traza.
+
+    `reason` ∈ REAP_REASONS: 'worker-lost' (ronda periódica: sin latido por > stale_s) |
+    'worker-lost-restart' (arranque del proceso: con `--workers 1`, ADR-0048, NINGUNA fila running tiene
+    worker en un proceso recién nacido — se llama con stale_s=0). El prefijo del error es SIEMPRE
+    'worker-lost:' para que la vista lo distinga de un fallo del pipeline (failure_reason en _run_view).
+
+    Corrector ADR-0078 (2026-09-14), la carrera reaper ↔ worker vivo, en las DOS direcciones:
+      (a) el UPDATE exige que el campo de referencia siga valiendo lo que se midió (WHERE state='running'
+          AND <ref_field> = <valor leído>): si el worker latió entre el SELECT y el UPDATE, rowcount 0 y
+          no se toca;
+      (b) la fila segada queda con cancel_requested=True (cancelled_by 'run-reaper', cancel_reason =
+          reason): si el hilo seguía vivo, _check_cancel lo aborta en la siguiente frontera de etapa y
+          deja de gastar modelo; su cierre pasa por finish_run (WHERE state='running'), que ya no pisa.
+
+    NUNCA re-encola: re-ejecutar solo sería gastar modelo sin que nadie lo pidiera (la casa: nada se
+    re-ejecuta solo). El usage_json de la corrida se deja como esté (lo que gastó antes de morir, si
+    quedó escrito; si no, ausente-declarado — no se inventa). Devuelve la lista de run_ids segados
+    (vacía = nada que segar). `now` inyectable para pruebas offline."""
+    if reason not in REAP_REASONS:
+        raise ValueError(f"reap reason {reason!r} not in {REAP_REASONS}")
+    ahora = now or _now()
+    stale_s = float(stale_s)
+    with engine().begin() as cx:
+        vivas = cx.execute(select(runs.c.run_id, runs.c.last_event_at, runs.c.started_at,
+                                  runs.c.created_at)
+                           .where(runs.c.state == "running")).all()
+    segadas = []
+    for r in vivas:
+        m = r._mapping
+        ref_field = next((k for k in ("last_event_at", "started_at", "created_at") if m[k] is not None),
+                         None)
+        if ref_field is None:   # fila sin ninguna fecha: no se puede medir la edad — no se toca
+            continue
+        idle_s = (ahora - _dt_utc(m[ref_field])).total_seconds()
+        if idle_s <= stale_s:
+            continue
+        if reason == "worker-lost-restart":
+            error = "worker-lost: proceso reiniciado, la corrida running no tiene worker (ADR-0078)"
+        else:
+            error = f"worker-lost: sin latido por >{int(stale_s)} s (ADR-0078)"
+        with engine().begin() as cx:
+            n = cx.execute(runs.update()
+                           .where(runs.c.run_id == m["run_id"], runs.c.state == "running",
+                                  getattr(runs.c, ref_field) == m[ref_field])
+                           .values(state="failed", finished_at=ahora, error=error,
+                                   cancel_requested=True, cancelled_by="run-reaper",
+                                   cancel_reason=reason)).rowcount
+        if n != 1:   # el worker sí vivía (latió o cerró la corrida en medio): no se pisa
+            continue
+        add_event(m["run_id"], "run.state",
+                  payload={"state": "failed", "reason": reason, "stale_s": stale_s,
+                           "stale_s_source": stale_s_source, "idle_s": round(idle_s, 1),
+                           "ref_field": ref_field, "error": error},
+                  agent="run-reaper", level="error")
+        segadas.append(m["run_id"])
+    return segadas
 
 
 def get_run(run_id: str):
@@ -501,7 +586,7 @@ def get_run(run_id: str):
     if row is None:
         return None
     d = dict(row._mapping)
-    for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at"):
+    for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at", "claimed_at"):
         d[k] = _dt_utc(d.get(k))
     return d
 
@@ -515,12 +600,15 @@ def list_runs(user_id=None, limit=50):
     derivados (genes por renglón, plan_declared, plan_niches) salían vacíos SOLO en la lista
     mientras el detalle sí los servía: la promesa misma-vista de este docstring estaba rota
     para esos campos. _run_view deriva y DESCARTA el blob (plan_json jamás viaja al renglón).
-    2026-09-05 (ADR-0076): run_no ENTRA al SELECT — mismo riesgo, misma lección."""
+    2026-09-05 (ADR-0076): run_no ENTRA al SELECT — mismo riesgo, misma lección.
+    2026-09-14 (ADR-0078): claimed_by/claimed_at ENTRAN al SELECT — la lista debe poder decir qué
+    worker tiene cada corrida, igual que el detalle."""
     with engine().begin() as cx:
         q = select(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
                    runs.c.state,
                    runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
-                   runs.c.last_event_at, runs.c.cancelled_by, runs.c.cancel_reason,
+                   runs.c.last_event_at, runs.c.claimed_by, runs.c.claimed_at,
+                   runs.c.cancelled_by, runs.c.cancel_reason,
                    runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json)
         if user_id:
             q = q.where(runs.c.user_id == user_id)
@@ -528,7 +616,7 @@ def list_runs(user_id=None, limit=50):
     out = []
     for r in rows:
         d = dict(r._mapping)
-        for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at"):
+        for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at", "claimed_at"):
             d[k] = _dt_utc(d.get(k))
         out.append(d)
     return out
@@ -537,6 +625,18 @@ def list_runs(user_id=None, limit=50):
 def update_run(run_id: str, **values):
     with engine().begin() as cx:
         cx.execute(runs.update().where(runs.c.run_id == run_id).values(**values))
+
+
+def finish_run(run_id: str, expected_state="running", **values) -> bool:
+    """ADR-0078 corrector — cierre OPTIMISTA de una corrida por su worker: UPDATE … WHERE run_id=? AND
+    state=expected_state. Devuelve True si la fila se escribió; False si el estado ya no era el esperado
+    (el reaper la segó, alguien la canceló…): el llamador NO pisa y deja un evento run.state.conflict.
+    Un registro con dos veredictos terminales contradictorios era el hueco que update_run permitía."""
+    with engine().begin() as cx:
+        n = cx.execute(runs.update()
+                       .where(runs.c.run_id == run_id, runs.c.state == expected_state)
+                       .values(**values)).rowcount
+    return n == 1
 
 
 def request_cancel(run_id: str, by=None, reason=None) -> bool:

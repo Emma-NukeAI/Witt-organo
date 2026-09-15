@@ -90,7 +90,9 @@ _stub_synth = _mk_synth({"pass1": 0.8, "pass2": 0.85})
 
 _chunk = Hit(doc_id="CORPUS-2026-0003#c000", type="chunk", score=0.9, text="pronephros evidence",
              metadata={})
-answer_pipeline.path_b = lambda q, n=2, **kw: []
+_path_b_real = answer_pipeline.path_b          # ADR-0078: la seccion de Ruta B lo restaura con stubs de red
+_path_b_stub = lambda q, n=2, **kw: []
+answer_pipeline.path_b = _path_b_stub
 rag_backend.query = lambda text, k=6: HitList([_chunk], degraded=None)
 
 # ---- 1. reforma ADR-0049: DI_SUFFICIENT ya NO autoriza responder ------------------------------------
@@ -182,9 +184,18 @@ check("bitacora: eventos por etapa con seq monotonico (replay == traza viva)",
       and "stage.path_a" in types and "stage.assess_sufficiency" in types
       and "stage.synthesize.pass1" in types and "stage.deterministic_gate" in types
       and "stage.audit.verdict" in types, f"n={len(ev)}")
+check("corrector ADR-0078: latido POR JUEZ — 4 eventos stage.audit.judge antes del veredicto (el hueco sin evento "
+      "queda acotado a UN juez, nunca al panel entero)",
+      types.count("stage.audit.judge") == 4
+      and types.index("stage.audit.judge") < types.index("stage.audit.verdict")
+      and all(e["payload"].get("heartbeat") is True for e in ev if e["type"] == "stage.audit.judge"),
+      f"judge_events={types.count('stage.audit.judge')}")
+check("corrector ADR-0078: la vista tipa failure_reason (null cuando no falló) y claimed_by sin worker_id es null",
+      app.get_run(RID, authorization=AUTH)["failure_reason"] is None
+      and app.get_run(RID, authorization=AUTH)["claimed_by"] is None)
 rec = app.get_frozen_record(RID, authorization=AUTH)
-check("registro congelado persistido en backend: contrato + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == "1.6" and rec["audit"]["verdict"] == "APPROVE"
+check("registro congelado persistido en backend: contrato 1.7 (ADR-0078) + audit + store_at_retrieval + identidad",
+      rec["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.7" and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -416,9 +427,16 @@ check("by_subclaim sin escalar: gate usa min (0.05) DECLARADO como derived-min-o
 
 # ---- LOTE-03·1: la query externa se construye y se REGISTRA (jamas la pregunta ES verbatim a ciegas) --
 q_sent, q_src = answer_pipeline.build_external_query("¿Qué señal induce el pronefros?", ["osr1", "pax2a"])
-check("build_external_query: entidades (EN) primero; la fuente se declara",
-      q_sent == "osr1 pax2a" and q_src == "entities"
-      and answer_pipeline.build_external_query("solo pregunta", [])[1] == "question-verbatim")
+check("build_external_query (ADR-0078): sintaxis NATIVA de Europe PMC desde los símbolos + organismo + "
+      "anatomía detectada en ES; la fuente declara constructor y modo (ya no 'osr1 pax2a' como texto libre)",
+      "TITLE:osr1 OR ABSTRACT:osr1" in q_sent and "TITLE:pax2a" in q_sent
+      and 'MESH:"Zebrafish"' in q_sent and "pronephros" in q_sent and "ORGANISM:" not in q_sent
+      and q_src == "query-builder-v1:symbols"
+      # corrector: la pregunta ORIGINAL (sin formulación EN) jamás se tokeniza como texto libre -> 'empty'
+      and answer_pipeline.build_external_query("solo pregunta", []) == (None, "query-builder-v1:empty")
+      and answer_pipeline.build_external_query("solo pregunta", [], question_en="only question")[1]
+      == "query-builder-v1:question-only",
+      f"q={q_sent!r}")
 rv = app.create_run(app.RunBody(question="pregunta en español sin cobertura",
                                 entities=["osr1", "pax2a"]), authorization=AUTH)
 claimed = db.claim_next_queued()
@@ -428,10 +446,20 @@ runs_mod.execute_run(claimed, synthesizer=_mk_synth(
     panel_caller=_stub_caller_factory(ALL_A))
 ev_types = app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]
 pb = next(e for e in ev_types if e["type"] == "stage.path_b")
-check("conf-gated: la query del sintetizador (EN) se usa y queda AUDITABLE en el evento",
-      pb["payload"]["query_sent"] == "osr1 pax2a zebrafish pronephros induction"
-      and pb["payload"]["query_source"] == "synthesizer"
-      and "n_results_by_source" in pb["payload"])
+check("conf-gated: la formulación EN del sintetizador ALIMENTA al constructor (anatomía detectada en ella) "
+      "y queda AUDITABLE en el evento: query por fuente + question_en_source='synthesizer' (ADR-0078)",
+      "TITLE:osr1" in pb["payload"]["query_sent"] and "pronephros" in pb["payload"]["query_sent"]
+      and pb["payload"]["query_source"] == "query-builder-v1:symbols"
+      and pb["payload"]["question_en_source"] == "synthesizer"
+      and pb["payload"]["query_sent_scope"] == "europepmc"
+      and "[tiab]" in pb["payload"]["pubmed_query"]
+      # corrector ADR-0078: UNA política de anatomía para los tres índices — la pregunta ES no la trae,
+      # el EN del sintetizador sí ('pronephros') -> zfin_filter 'pronephr', procedencia 'from-question-en'
+      and pb["payload"]["zfin_filter"] == "pronephr"
+      and pb["payload"]["epmc_query"] == pb["payload"]["query_sent"]
+      and pb["payload"]["ledger_version"] == "2"
+      and "n_results_by_source" in pb["payload"],
+      f"payload_query={pb['payload']['query_sent']!r} zfin={pb['payload']['zfin_filter']!r}")
 
 # ---- LOTE-04 / tapon 1A: ZFIN como fuente de Ruta B (nativo pez cebra) -------------------------------
 # Todo offline: la tool se inyecta en el cache de carga por path, y CACHE se desvia al tmp del gate
@@ -445,7 +473,9 @@ check("filtro anatomico determinista: ES y EN caen al MISMO termino de ZFIN (lec
       and answer_pipeline.zfin_anatomy_filter("is wt1a required for pronephros") == ("pronephr", "question-keyword-table")
       and answer_pipeline.zfin_anatomy_filter("pregunta sin anatomia") == (None, "no-anatomy-term-in-question"))
 
-def _fake_zfin(symbol, anatomy=None, limit=50):
+def _fake_zfin(symbol, anatomy=None, limit=50, **kw):
+    # envelope VIEJO (sin los campos ADR-0078): el pipeline debe seguir funcionando y dejar AUSENTES
+    # (no null) las llaves que el tool no declaró
     if symbol == "boom":
         return {"status": "error", "error": "HTTPError: 500"}
     if symbol == "vacio":
@@ -487,54 +517,102 @@ check("tool ausente -> la fuente DEGRADA declarada (tool-unavailable), la corrid
 answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
 answer_pipeline.CACHE = _CACHE_REAL
 
-check("n_results_by_source: por fuente, y AMBAS fuentes de literatura SIEMPRE presentes "
+check("n_results_by_source: por fuente, y AMBAS fuentes de literatura presentes por default "
       "(0 explicito != fuente ausente)",
       answer_pipeline.n_results_by_source([{"source": "zfin"}, {"source": "zfin"}])
       == {"zfin": 2, "europepmc": 0, "pubmed": 0})
+check("corrector ADR-0078: el 0 explícito se estampa SOLO para las fuentes PEDIDAS — sources=('zfin',) deja "
+      "europepmc/pubmed AUSENTES ('no se pidió' != '0 medido')",
+      answer_pipeline.n_results_by_source([{"source": "zfin"}], sources=("zfin",)) == {"zfin": 1}
+      and answer_pipeline.n_results_by_source([], sources=("europepmc", "zfin")) == {"europepmc": 0})
 
 # ---- ADR-0062 / tapon 1B: PubMed en Layer 0 con dedup por PMID -----------------------------------------
-def _fake_pubmed(query, limit=8):
-    return {"status": "success", "data": {"query": query, "n_found_total": 9, "records": [
-        {"pmid": "19666820", "title": "RA responsive element controls wt1a", "year": "2009",
-         "journal": "Development"},
-        {"pmid": "42153456", "title": "ya vino por europepmc", "year": "2025", "journal": "X"},
-    ]}}
+_pubmed_calls = []
+
+
+def _fake_pubmed(query, limit=None, retmax=None):
+    # forma del tool ADR-0078 (identidad, throttle, retmax_sent declarados) — sin red
+    _pubmed_calls.append({"query": query, "limit": limit, "retmax": retmax})
+    return {"status": "success", "ncbi_identity": "missing",
+            "throttle": {"host": "eutils.ncbi.nlm.nih.gov", "min_interval_s": 0.34,
+                         "min_interval_source": "derived", "api_key_present": False, "waited_s": 0.0},
+            "retries_429": 0, "rate_limit_headers": None,
+            "data": {"query": query, "query_sent": query, "retmax_sent": retmax, "n_found_total": 9,
+                     "records": [
+                         {"pmid": "19666820", "title": "RA responsive element controls wt1a",
+                          "year": "2009", "journal": "Development"},
+                         {"pmid": "42153456", "title": "ya vino por europepmc", "year": "2025",
+                          "journal": "X"},
+                     ]}}
+
+
 answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed
-_fetch_real = answer_pipeline.fetch_paper.fetch_external
-answer_pipeline.fetch_paper.fetch_external = lambda ident, want_full_text=True: {"found": True}
-items, row = answer_pipeline._search_pubmed("wt1a zebrafish", 5, {"PMID:42153456"})
-answer_pipeline.fetch_paper.fetch_external = _fetch_real
+cands, row = answer_pipeline._search_pubmed("wt1a zebrafish", 20, {"PMID:42153456": "PMID:42153456"})
 check("pubmed: dedup por PMID contra europepmc DECLARADO — el duplicado ni entra dos veces ni se "
       "tira callado (EPMC indexa PubMed: sin esto el sintetizador cuenta doble)",
-      len(items) == 1 and items[0]["evidence_id"] == "PMID:19666820"
-      and items[0]["source"] == "pubmed"
+      len(cands) == 1 and cands[0]["evidence_id"] == "PMID:19666820"
+      and cands[0]["source"] == "pubmed" and "fetched" not in cands[0]   # candidato: aún no se baja
       and row["status"] == "success" and row["n_new"] == 1
       and row["duplicates_of_europepmc"] == ["PMID:42153456"])
-answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] =     lambda query, limit=8: {"status": "error", "error": "HTTPError: 500"}
-items_e, row_e = answer_pipeline._search_pubmed("q", 5, set())
-check("pubmed: la busqueda FALLIDA se declara error — jamas se ve igual que 'no hay resultados'",
-      items_e == [] and row_e["status"] == "error" and "500" in row_e["detail"])
+check("ADR-0078 pubmed: se pide retmax (no n) y el ledger copia lo que el tool DECLARA — "
+      "retmax_sent, query_sent, ncbi_identity 'missing', throttle, retries_429, rate_limit_headers",
+      _pubmed_calls[-1]["retmax"] == 20 and _pubmed_calls[-1]["limit"] is None
+      and row["retmax_sent"] == 20 and row["query_sent"] == "wt1a zebrafish"
+      and row["ncbi_identity"] == "missing" and row["throttle"]["host"] == "eutils.ncbi.nlm.nih.gov"
+      and row["retries_429"] == 0 and row["rate_limit_headers"] is None)
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = (
+    lambda query, limit=None, retmax=None: {"status": "error", "error": "HTTPError: 500 Server Error",
+                                            "http_status": 500, "ncbi_identity": "missing"})
+cands_e, row_e = answer_pipeline._search_pubmed("q", 20, {})
+check("pubmed: la busqueda FALLIDA se declara error (+ http_status del tool) — jamas se ve igual que "
+      "'no hay resultados'",
+      cands_e == [] and row_e["status"] == "error" and "500" in row_e["detail"]
+      and row_e["http_status"] == 500)
 answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = None
 check("pubmed: tool ausente -> tool-unavailable declarado, la corrida no truena (§6 no-hang)",
-      answer_pipeline._search_pubmed("q", 5, set())[1]["status"] == "tool-unavailable")
+      answer_pipeline._search_pubmed("q", 20, {})[1]["status"] == "tool-unavailable")
 answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
+_row_ns = answer_pipeline._search_pubmed(None, 20, {})[1]
+check("ADR-0078 pubmed: sin query (constructor vacío) -> 'not-searched' declarado, jamás una query vacía; "
+      "contadores None (no midió), no 0 (corrector)",
+      _row_ns["status"] == "not-searched" and _row_ns["n_returned"] is None and _row_ns["n_new"] is None
+      and _row_ns["duplicates_of_europepmc"] is None)
+check("corrector: pubmed en 'error' tampoco reporta 0: n_returned/n_new None",
+      row_e["n_returned"] is None and row_e["n_new"] is None)
 pl_ev = answer_pipeline.path_b_event_payload(
     {"papers": [], "query_sent": "q", "query_source": "entities",
      "n_results_by_source": {"europepmc": 2, "pubmed": 1, "zfin": 0},
      "pubmed_searched": {"status": "success", "n_found_total": 9, "n_new": 1,
                          "duplicates_of_europepmc": ["PMID:1"], "ranking": "x"}})
+
+
 def _boom_fetch(ident, want_full_text=True):
     raise TimeoutError("read timed out")
+
+
 _fetch_real2 = answer_pipeline.fetch_paper.fetch_external
+_epmc_ledger_real = answer_pipeline.fetch_paper.search_europepmc_ledger
 answer_pipeline.fetch_paper.fetch_external = _boom_fetch
+answer_pipeline.fetch_paper.search_europepmc_ledger = (
+    lambda query, n=5, sort=None, synonym=True: ([], {"source": "europepmc", "status": "no-match",
+                                                       "query_sent": query, "n_found": 0, "n_returned": 0}))
 answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed
-items_t, row_t = answer_pipeline._search_pubmed("q", 5, set())
+answer_pipeline.path_b = _path_b_real
+_led_t = {}
+items_t = answer_pipeline.path_b("q", n=5, entities=["wt1a"], sources=("europepmc", "pubmed"),
+                                 ledger_out=_led_t)
+answer_pipeline.path_b = _path_b_stub
 answer_pipeline.fetch_paper.fetch_external = _fetch_real2
+answer_pipeline.fetch_paper.search_europepmc_ledger = _epmc_ledger_real
 answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
 check("un timeout bajando UN paper degrada ESE item (found=false + fetch_error declarado) — "
       "jamas tumba path_b (§6 no-hang; lo destapo la verificacion en vivo)",
       len(items_t) == 2 and all(i["fetched"]["found"] is False for i in items_t)
-      and "TimeoutError" in items_t[0]["fetched"]["fetch_error"])
+      and "TimeoutError" in items_t[0]["fetched"]["fetch_error"]
+      and all(i["text_provenance"] == "none" and i["abstract"] is None for i in items_t)
+      and _led_t["europepmc_searched"]["status"] == "no-match"
+      and _led_t["selection"]["n_selected"] == 2,
+      f"n={len(items_t)} sel={_led_t.get('selection', {}).get('n_selected')}")
 
 check("el evento stage.path_b lleva el resumen de pubmed (dedup incluido) — un solo log",
       pl_ev["pubmed_searched"]["n_new"] == 1
@@ -542,10 +620,25 @@ check("el evento stage.path_b lleva el resumen de pubmed (dedup incluido) — un
 
 # path_b sigue stubbeado ([]) -> path_b_bundle es offline y el bloque queda completo y declarado
 blk = answer_pipeline.path_b_bundle("pregunta", entities=["osr1"], triggered_by=["motivo"])
-check("path_b_bundle: UN constructor del bloque, con fuentes pedidas + contadores + query declarada",
-      blk["triggered"] is True and blk["query_sent"] == "osr1" and blk["query_source"] == "entities"
+check("path_b_bundle: UN constructor del bloque, con fuentes pedidas + contadores + query declarada "
+      "(ADR-0078: query_sent = la de EPMC, scope declarado; ledger_version '2'; llaves previas intactas)",
+      blk["triggered"] is True and blk["query_sent"] == blk["epmc_query"]
+      and blk["query_sent"].startswith("(TITLE:osr1 OR ABSTRACT:osr1)")
+      and blk["query_sent_scope"] == "europepmc" and blk["query_source"] == "query-builder-v1:symbols"
+      and blk["ledger_version"] == "2" and blk["pubmed_query"].startswith("(osr1[tiab])")
+      and blk["zfin_filter"] is None            # 'pregunta' no menciona anatomía: sin filtro, declarado
+      and blk["query_builder"]["zfin"]["notes"]["mode"] == "no-filter"
+      and blk["n_papers_requested"] == 5 and blk["retmax_requested"] == 20
       and blk["sources_requested"] == list(answer_pipeline.PATH_B_SOURCES)
-      and blk["n_results_by_source"] == {"europepmc": 0, "pubmed": 0} and blk["triggered_by"] == ["motivo"])
+      and blk["n_results_by_source"] == {"europepmc": 0, "pubmed": 0} and blk["triggered_by"] == ["motivo"]
+      and all(k in blk for k in ("papers", "query_source", "tool_universe_directive")))
+os.environ["WITT_PATH_B_N_PAPERS"], os.environ["WITT_PATH_B_RETMAX"] = "3", "7"
+blk_env = answer_pipeline.path_b_bundle("pregunta", entities=["osr1"])
+del os.environ["WITT_PATH_B_N_PAPERS"], os.environ["WITT_PATH_B_RETMAX"]
+check("ADR-0078: WITT_PATH_B_N_PAPERS / WITT_PATH_B_RETMAX se leen en tiempo de llamada y el valor "
+      "EFECTIVO viaja en el bloque (defaults 5/20 declarados en código)",
+      blk_env["n_papers_requested"] == 3 and blk_env["retmax_requested"] == 7
+      and answer_pipeline.PATH_B_N_PAPERS_DEFAULT == 5 and answer_pipeline.PATH_B_RETMAX_DEFAULT == 20)
 pl = answer_pipeline.path_b_event_payload(
     {"papers": [], "query_sent": "q", "query_source": "entities",
      "n_results_by_source": {"europepmc": 0, "zfin": 1},
@@ -920,7 +1013,7 @@ check("ADR-0067b: NADA se borra — answer_initial + audit_initial persisten jun
       and rec_r["answer"]["direct_answer"].startswith("REVISED:")
       and rec_r["audit"]["verdict"] == "APPROVE"
       and rec_r["confidence"]["revision"] == 0.85 and rec_r["confidence"]["final"] == 0.85
-      and rec_r["render_contract_version"] == "1.6")
+      and rec_r["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION)
 check("ADR-0067c: la traza lleva las DOS rondas (revision_round 0/1) + stage.revision.start + "
       "stage.synthesize.revision (cap duro = 1)",
       ev_r.count("stage.audit.verdict") == 2 and "stage.revision.start" in ev_r
@@ -1013,6 +1106,598 @@ check("/usage: totales + by_user + by_model + most_expensive + costo PROJECTION"
 us2 = app.usage(from_="2099-01-01", authorization=AUTH)
 check("/usage con ventana vacia -> denominador honesto (0 corridas, 0 con usage)",
       us2["n_runs"] == 0 and us2["n_runs_with_usage"] == 0)
+
+# =====================================================================================================
+# ---- ADR-0078: higiene de Ruta A y B (integración de las rebanadas I1–I5) -----------------------------
+# Todo offline: red de EPMC/PubMed/Alliance stubbeada o servida desde el fixture REAL del repo; fetch
+# stubbeado con archivos en el tmp del gate; cero modelo, cero mutación de mcp_cache.
+# =====================================================================================================
+import datetime as _dt  # noqa: E402
+import urllib.parse  # noqa: E402
+
+# --- A. Ruta A: el fragmento que viaja al sintetizador ya no es [:140] ----------------------------------
+_long = Hit(doc_id="CORPUS-2026-0009#c001", type="chunk", score=0.8,
+            text=("x" * 3000) + " pronephros", metadata={})
+rag_backend.query = lambda text, k=6: HitList([_long, _chunk], degraded=None)
+pa = answer_pipeline.path_a("q")
+h0, h1 = pa["hits"][0], pa["hits"][1]
+check("ADR-0078 Ruta A: el hit viaja con WITT_PATH_A_CHARS (2400, no 140) y DECLARA el corte — "
+      "text_offsets [0,2400], text_sha256 del fragmento, text_omitted=True, text_hit_chars, text_source",
+      len(h0["text"]) == 2400 and h0["text_offsets"] == [0, 2400] and h0["text_omitted"] is True
+      and h0["text_hit_chars"] == 3011
+      and h0["text_sha256"] == hashlib.sha256(h0["text"].encode("utf-8")).hexdigest()
+      and h0["text_source"] == "index-hit" and pa["text_cap_chars"] == 2400
+      # corrector: la PROCEDENCIA del tope dice de verdad de dónde vino (default por env ausente, no 'env')
+      and pa["text_cap_source"] == "default-unset:WITT_PATH_A_CHARS" and answer_pipeline.PATH_A_CHARS_DEFAULT == 2400,
+      f"len={len(h0['text'])} omitted={h0['text_omitted']} src={pa['text_cap_source']}")
+check("Ruta A: un hit corto va ÍNTEGRO (text_omitted=False, offsets = su largo) — tres estados, no un "
+      "recorte silencioso",
+      h1["text"] == "pronephros evidence" and h1["text_omitted"] is False
+      and h1["text_offsets"] == [0, 19] and h1["text_hit_chars"] == 19)
+os.environ["WITT_PATH_A_CHARS"] = "100"
+pa100 = answer_pipeline.path_a("q")
+del os.environ["WITT_PATH_A_CHARS"]
+check("Ruta A: WITT_PATH_A_CHARS se lee en tiempo de llamada (100 -> fragmento de 100, cap declarado, fuente 'env:…')",
+      len(pa100["hits"][0]["text"]) == 100 and pa100["text_cap_chars"] == 100
+      and pa100["hits"][0]["text_offsets"] == [0, 100] and pa100["hits"][0]["text_omitted"] is True
+      and pa100["text_cap_source"] == "env:WITT_PATH_A_CHARS")
+os.environ["WITT_PATH_A_CHARS"] = "abc"
+pa_bad = answer_pipeline.path_a("q")
+del os.environ["WITT_PATH_A_CHARS"]
+check("corrector: env inválida ('abc') -> default 2400 con fuente 'default-invalid-env:WITT_PATH_A_CHARS' "
+      "(antes el bundle decía que vino de la env)",
+      pa_bad["text_cap_chars"] == 2400 and pa_bad["text_cap_source"] == "default-invalid-env:WITT_PATH_A_CHARS"
+      and answer_pipeline.path_a("q", max_chars=50)["text_cap_source"] == "caller")
+rag_backend.query = lambda text, k=6: HitList([_chunk], degraded=None)
+
+# --- B. el constructor de queries POR FUENTE (lib/search_queries cableado) -----------------------------
+qb_syn = answer_pipeline.build_source_queries("¿Qué induce el pronefros?", ["osr1"],
+                                              query="osr1 zebrafish glomerulus induction",
+                                              query_source="synthesizer")
+check("ADR-0078 queries: la formulación EN del sintetizador alimenta al constructor (anatomía detectada "
+      "en ELLA) y se declara en inputs; tres sintaxis distintas para tres índices",
+      qb_syn["inputs"]["question_en_source"] == "synthesizer"
+      and qb_syn["inputs"]["question_en"] == "osr1 zebrafish glomerulus induction"
+      and "glomerulus" in qb_syn["europepmc"]["query"] and "glomerulus[tiab]" in qb_syn["pubmed"]["query"]
+      # corrector: UNA política — ES aporta 'pronephr', EN aporta 'glomer'; los tres índices lo declaran 'from-both'
+      and qb_syn["zfin"]["query"] == "pronephr|glomer"
+      and all(qb_syn[i]["notes"]["anatomy"] == "from-both" for i in ("pubmed", "europepmc", "zfin"))
+      and "pronephros[tiab]" in qb_syn["pubmed"]["query"]
+      and qb_syn["query_source"] == "query-builder-v1:symbols"
+      and qb_syn["pubmed"]["query"] != qb_syn["europepmc"]["query"])
+qb_rt = answer_pipeline.build_source_queries("¿Qué induce el pronefros?", ["osr1"],
+                                             query=qb_syn["europepmc"]["query"],
+                                             query_source="query-builder-v1:symbols")
+check("queries: una query que ya salió del constructor (runs.py la devuelve) se RECONSTRUYE de la "
+      "pregunta+símbolos, no se usa como question_en (evitaría meter 'TITLE:' como término)",
+      qb_rt["inputs"]["question_en"] is None and qb_rt["inputs"]["question_en_source"] is None
+      and "TITLE:osr1" in qb_rt["europepmc"]["query"])
+qb_empty = answer_pipeline.build_source_queries("", [])
+check("queries: sin símbolos NI pregunta -> query None DECLARADA en las dos fuentes de literatura "
+      "(modo 'empty'), jamás una cadena vacía",
+      qb_empty["europepmc"]["query"] is None and qb_empty["pubmed"]["query"] is None
+      and qb_empty["query_source"] == "query-builder-v1:empty")
+
+# --- C. Ruta B de punta a punta con la red stubbeada: pool, dedup, selección, contenido, ledger v2 ------
+_FT_PATH = TMP / "mcp_cache" / "raw_paper_PMC111_20260914.txt"
+_P1 = ("Introduction. " + "Zebrafish embryos develop rapidly and are transparent, which makes them a "
+       "convenient model for wt1a studies. " * 5)
+_P2 = ("Methods. " + "Embryos were raised at 28.5 C and staged by hours post fertilization according "
+       "to standard tables. " * 6)
+_P3 = ("Results. wt1a morphants lacked pronephros glomerulus formation; the pronephric duct was present "
+       "but the glomerulus failed to form. Podocyte markers were absent in wt1a morphants.")
+_P4 = ("Discussion. " + "These observations suggest a conserved role in organ development that merits "
+       "further study in other vertebrates. " * 6)
+_FULLTEXT = "\n\n".join([_P1, _P2, _P3, _P4])
+assert len(_FULLTEXT) > 1500, "el texto de prueba debe exceder el tope para que el recorte aplique"
+
+_EPMC_RECS = [
+    {"epmc_id": "1", "source": "MED", "pmid": "11111111", "pmcid": "PMC111", "doi": "10.1000/AAA",
+     "title": "wt1a in pronephros", "year": "2020", "journal": "Development", "is_oa": True,
+     "abstract": "wt1a is required for pronephros formation in zebrafish.", "cited_by": 10},
+    {"epmc_id": "2", "source": "MED", "pmid": "22222222", "pmcid": None, "doi": "https://doi.org/10.1000/bbb",
+     "title": "closed access paper", "year": "2019", "journal": "X", "is_oa": False,
+     "abstract": None, "cited_by": 3},
+    {"epmc_id": "3", "source": "PPR", "pmid": None, "pmcid": None, "doi": "10.1000/BBB",
+     "title": "preprint duplicado por DOI", "year": "2019", "journal": None, "is_oa": True,
+     "abstract": "dup", "cited_by": 0},
+    {"epmc_id": "4", "source": "MED", "pmid": "44444444", "pmcid": "PMC444", "doi": None,
+     "title": "second OA", "year": "2021", "journal": "Dev Biol", "is_oa": True,
+     "abstract": "A glomerulus paper about podocytes.", "cited_by": 1},
+    {"epmc_id": "5", "source": "MED", "pmid": "55555555", "pmcid": None, "doi": None,
+     "title": "fifth", "year": "2018", "journal": "Y", "is_oa": False, "abstract": None, "cited_by": 0},
+    {"epmc_id": "6", "source": "MED", "pmid": "66666666", "pmcid": None, "doi": None,
+     "title": "sixth", "year": "2017", "journal": "Z", "is_oa": False, "abstract": None, "cited_by": 0},
+]
+_epmc_calls = []
+
+
+def _fake_epmc_ledger(query, n=5, sort=None, synonym=True):
+    _epmc_calls.append({"query": query, "n": n, "sort": sort, "synonym": synonym})
+    return list(_EPMC_RECS), {"source": "europepmc", "status": "success", "query_sent": query,
+                              "n_found": 6, "n_returned": 6, "elapsed_s": 0.01, "sort": "RELEVANCE",
+                              "synonym": True, "throttle": "net_throttle", "throttle_slept_s": 0.0,
+                              "contact": "unset"}
+
+
+def _fake_pubmed_pool(query, limit=None, retmax=None):
+    out = _fake_pubmed(query, limit, retmax)
+    out["data"]["records"] = [
+        {"pmid": "22222222", "title": "closed access paper", "year": "2019", "journal": "X"},
+        {"pmid": "77777777", "title": "solo en pubmed", "year": "2022", "journal": "W"},
+        {"pmid": "11111111", "title": "wt1a in pronephros", "year": "2020", "journal": "Development"},
+    ]
+    return out
+
+
+def _fake_fetch_content(ident, want_full_text=True):
+    if ident == "PMID:11111111":
+        _FT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _FT_PATH.write_text(_FULLTEXT, encoding="utf-8")
+        return {"found": True, "full_text": True, "n_chunks": 4, "raw_cached": [str(_FT_PATH)],
+                "raw_ref": {"filename": _FT_PATH.name},
+                "record": {"abstract": "wt1a is required for pronephros formation in zebrafish."},
+                "cache_hit": False, "cached_at": None, "fetched_at": "2026-09-14T00:00:00Z",
+                "cache_ttl_days": 7.0,
+                "search_ledger": {"source": "europepmc", "status": "success", "contact": "unset"}}
+    if ident == "PMID:44444444":
+        return {"found": True, "full_text": False, "n_chunks": 1, "raw_cached": [], "raw_ref": None,
+                "record": {"abstract": "A glomerulus paper about podocytes."},
+                "cache_hit": True, "cached_at": "2026-09-10T00:00:00Z", "cached_at_source": "fetched_at",
+                "cache_age_days": 4.0}
+    return {"found": False, "fetch_error": "TimeoutError: read timed out"}
+
+
+answer_pipeline.fetch_paper.search_europepmc_ledger = _fake_epmc_ledger
+answer_pipeline.fetch_paper.fetch_external = _fake_fetch_content
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed_pool
+answer_pipeline.path_b = _path_b_real
+blk_b = answer_pipeline.path_b_bundle("is wt1a required for pronephros glomerulus formation?",
+                                      entities=["wt1a"], n=3, sources=("europepmc", "pubmed"),
+                                      triggered_by=["smoke"])
+answer_pipeline.path_b = _path_b_stub
+
+ep = blk_b["europepmc_searched"]
+check("ADR-0078 EPMC: la búsqueda corre por search_europepmc_ledger -> `europepmc_searched` EXISTE en el "
+      "bloque con status + query_sent + n_found + n_candidates (antes no había ledger de EPMC)",
+      ep["status"] == "success" and ep["query_sent"] == blk_b["epmc_query"] and ep["n_found"] == 6
+      and ep["n_returned"] == 6 and ep["n_candidates"] == 5 and ep["retmax_sent"] == 20
+      and _epmc_calls[-1]["n"] == 20,
+      f"epmc={ {k: ep.get(k) for k in ('status', 'n_found', 'n_candidates')} }")
+sel = blk_b["selection"]
+check("ADR-0078 dedup: por PMID (pubmed vs EPMC) Y por DOI normalizado (https://doi.org/10.1000/bbb == "
+      "10.1000/BBB) — n_candidates 6, n_duplicates 3, cada duplicado dice DE QUIÉN y POR QUÉ llave",
+      sel["n_candidates"] == 6 and sel["n_duplicates"] == 3
+      and any(d["matched_key"] == "DOI:10.1000/bbb" and d["of"] == "PMID:22222222" for d in sel["duplicates"])
+      and blk_b["pubmed_searched"]["duplicates_of_europepmc"] == ["PMID:22222222", "PMID:11111111"]
+      and blk_b["pubmed_searched"]["n_new"] == 1 and blk_b["pubmed_searched"]["n_candidates"] == 1,
+      f"dups={[(d['duplicate'], d['matched_key']) for d in sel['duplicates']]}")
+ids_sel = [p["evidence_id"] for p in blk_b["papers"]]
+check("ADR-0078 selección: regla DECLARADA 'oa-with-pmcid-first, then source order' — n_selected 3 <= n, "
+      "OA+PMCID primero (rank 1-2), luego orden de fuente; los NO elegidos quedan listados",
+      sel["rule"] == "oa-with-pmcid-first, then source order" and sel["n_requested"] == 3
+      and sel["n_selected"] == 3 and len(blk_b["papers"]) == 3
+      and ids_sel == ["PMID:11111111", "PMID:44444444", "PMID:22222222"]
+      and [p["selection_rank"] for p in blk_b["papers"]] == [1, 2, 3]
+      and sel["not_selected"] == ["PMID:55555555", "PMID:66666666", "PMID:77777777"]
+      and blk_b["n_results_by_source"] == {"europepmc": 3, "pubmed": 0},
+      f"sel={ids_sel} not={sel['not_selected']}")
+p_ft, p_ab, p_none = blk_b["papers"]
+check("ADR-0078 contenido: con texto completo cacheado el item lleva `text_excerpt` por solapamiento "
+      "léxico (párrafos con términos de la query, en orden del documento, <= 1500), provenance "
+      "'fulltext-excerpt', regla y omisión declaradas",
+      p_ft["text_provenance"] == "fulltext-excerpt"
+      and p_ft["text_excerpt_rule"] == "top-paragraphs-by-lexical-overlap"
+      and p_ft["text_excerpt"].startswith("Introduction.") and "Results. wt1a morphants" in p_ft["text_excerpt"]
+      and "Methods." not in p_ft["text_excerpt"] and "Discussion." not in p_ft["text_excerpt"]
+      and len(p_ft["text_excerpt"]) <= 1500 and p_ft["text_excerpt_chars"] == len(p_ft["text_excerpt"])
+      and p_ft["text_excerpt_omitted"] is True and p_ft["text_source_chars"] == len(_FULLTEXT)
+      and p_ft["text_excerpt_cap_chars"] == 1500,
+      f"rule={p_ft['text_excerpt_rule']} chars={p_ft['text_excerpt_chars']}")
+check("ADR-0078 contenido: `abstract` viaja en el item (del search_rec de EPMC) — antes se descargaba y "
+      "se tiraba; el search_rec conserva sus 8 llaves de metadatos",
+      p_ft["abstract"] == "wt1a is required for pronephros formation in zebrafish."
+      and set(p_ft["search_rec"]) == {"pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by"})
+check("ADR-0078 contenido: sin texto completo el excerpt es el abstract entero (rule 'full', provenance "
+      "'abstract'); sin nada -> provenance 'none' con abstract null DECLARADO (tres estados)",
+      p_ab["text_provenance"] == "abstract" and p_ab["text_excerpt_rule"] == "full"
+      and p_ab["text_excerpt"] == "A glomerulus paper about podocytes." and p_ab["text_excerpt_omitted"] is False
+      and p_none["text_provenance"] == "none" and p_none["text_excerpt"] is None
+      and p_none["abstract"] is None and p_none["text_excerpt_rule"] == "none")
+check("ADR-0078 fetched: la caché de LECTURA se declara (cache_hit/cached_at/fetched_at) SOLO cuando el "
+      "fetch la midió — el item no bajado lleva fetch_error y NINGUNA llave de caché (ausente != false)",
+      p_ft["fetched"]["cache_hit"] is False and p_ft["fetched"]["fetched_at"] == "2026-09-14T00:00:00Z"
+      and p_ft["fetched"]["search_ledger"]["status"] == "success"
+      and p_ab["fetched"]["cache_hit"] is True and p_ab["fetched"]["cached_at"] == "2026-09-10T00:00:00Z"
+      and p_none["fetched"]["found"] is False and "TimeoutError" in p_none["fetched"]["fetch_error"]
+      and "cache_hit" not in p_none["fetched"])
+check("ADR-0078 ledger v2: llaves NUEVAS + TODAS las previas que la Traza lee (pubmed_searched, "
+      "zfin_searched si corrió, n_results_by_source, query_sent, query_source, sources_requested)",
+      blk_b["ledger_version"] == "2" and blk_b["query_sent_scope"] == "europepmc"
+      and blk_b["query_sent"] == blk_b["epmc_query"] and "[tiab]" in blk_b["pubmed_query"]
+      and blk_b["zfin_filter"] == "pronephr|glomer"
+      and blk_b["query_builder"]["builder_version"] == "1"
+      and all(k in blk_b for k in ("pubmed_searched", "n_results_by_source", "query_sent", "query_source",
+                                    "sources_requested", "papers", "triggered", "triggered_by",
+                                    "tool_universe_directive", "europepmc_searched", "selection")),
+      f"zfin_filter={blk_b['zfin_filter']!r}")
+pl_b = answer_pipeline.path_b_event_payload(blk_b, trigger="structural")
+check("el evento stage.path_b lleva el resumen NUEVO (europepmc_searched, selection, ledger_version) "
+      "junto al de siempre — un solo log para la traza viva y el replay",
+      pl_b["europepmc_searched"]["status"] == "success" and pl_b["europepmc_searched"]["n_candidates"] == 5
+      and pl_b["selection"]["n_selected"] == 3 and pl_b["selection"]["n_candidates"] == 6
+      and pl_b["ledger_version"] == "2" and pl_b["pubmed_searched"]["ncbi_identity"] == "missing"
+      and pl_b["pubmed_searched"]["n_new"] == 1 and pl_b["n_papers"] == 3)
+check("corrector ADR-0078 evento: resumen POR PAPER para la Traza (evidence_id, source, text_provenance, cache_hit/"
+      "cached_at, selection_rank — sin texto) + epmc_query + selection.not_selected (el bloque path_b no viaja congelado)",
+      [p["evidence_id"] for p in pl_b["papers"]] == ["PMID:11111111", "PMID:44444444", "PMID:22222222"]
+      and pl_b["papers"][0]["text_provenance"] == "fulltext-excerpt" and pl_b["papers"][0]["fetched"]["cache_hit"] is False
+      and pl_b["papers"][1]["fetched"]["cache_hit"] is True and pl_b["papers"][1]["fetched"]["cached_at"] == "2026-09-10T00:00:00Z"
+      and "cache_hit" not in pl_b["papers"][2]["fetched"] and "TimeoutError" in pl_b["papers"][2]["fetched"]["fetch_error"]
+      and all("text_excerpt" not in p and "abstract" not in p for p in pl_b["papers"])
+      and pl_b["epmc_query"] == blk_b["epmc_query"] and pl_b["selection"]["not_selected"] == blk_b["selection"]["not_selected"],
+      f"papers={pl_b['papers']}")
+# --- FORMA por bloque (reviewer: los checks por llave suelta dejaban pasar llaves nuevas/ausentes en silencio) ----
+check("corrector ADR-0078 FORMA europepmc_searched: exactamente el conjunto de llaves del contrato",
+      set(ep) == {"source", "status", "query_sent", "retmax_sent", "n_found", "n_returned", "n_candidates",
+                  "elapsed_s", "sort", "synonym", "throttle", "throttle_slept_s", "contact"},
+      repr(sorted(ep)))
+check("corrector ADR-0078 FORMA selection: exactamente el conjunto de llaves del contrato",
+      set(sel) == {"rule", "n_requested", "retmax", "n_candidates", "n_selected", "n_duplicates", "duplicates",
+                   "not_selected", "dedup_keys"}, repr(sorted(sel)))
+_PAPER_KEYS = {"source", "evidence_id", "search_rec", "fetched", "selection_rank", "dedup_keys", "abstract",
+               "text_excerpt", "text_provenance", "text_excerpt_rule", "text_excerpt_chars", "text_excerpt_omitted",
+               "text_source_chars", "text_excerpt_cap_chars"}
+check("corrector ADR-0078 FORMA papers[]: cada paper de literatura lleva exactamente las 14 llaves; dedup_keys con "
+      "valores (PMID/PMCID/DOI normalizado); fetched.cache_ttl_days propagado cuando el fetch lo midió",
+      all(set(p) == _PAPER_KEYS for p in blk_b["papers"])
+      and p_ft["dedup_keys"] == ["PMID:11111111", "PMCID:PMC111", "DOI:10.1000/aaa"]
+      and p_ab["dedup_keys"] == ["PMID:44444444", "PMCID:PMC444"]
+      and p_ft["fetched"]["cache_ttl_days"] == 7.0 and "cache_ttl_days" not in p_none["fetched"]
+      and set(p_none["fetched"]) == {"found", "full_text", "n_chunks", "raw_cached", "raw_ref", "fetch_error"},
+      repr([sorted(p) for p in blk_b["papers"]][:1]))
+check("corrector ADR-0078 FORMA bloque: llaves de nivel superior del path_b v2 (n_papers_source / retmax_source "
+      "declaran la procedencia de n y retmax: 'caller' aquí)",
+      set(blk_b) == {"triggered", "triggered_by", "ledger_version", "papers", "query_sent", "query_sent_scope",
+                     "query_source", "epmc_query", "pubmed_query", "zfin_filter", "query_builder",
+                     "n_papers_requested", "n_papers_source", "retmax_requested", "retmax_source",
+                     "n_results_by_source", "sources_requested", "tool_universe_directive",
+                     "europepmc_searched", "pubmed_searched", "selection"}
+      and blk_b["n_papers_source"] == "caller" and blk_b["retmax_source"] == "default-unset:WITT_PATH_B_RETMAX",
+      repr(sorted(blk_b)))
+# --- la vista de PROMPT del bloque: evidencia, no bitácora --------------------------------------------------------
+_ev_prompt = runs_mod._compact_evidence({"path_a": {"hits": [], "retrieval": {}}, "entities_checked": {},
+                                         "sufficiency": {}, "path_b": blk_b})["path_b"]
+check("corrector ADR-0078 prompt: el sintetizador/panel reciben path_b PROYECTADO — sin query_builder, throttle, "
+      "search_ledger anidado, dedup_keys ni duplicates; con estados por fuente, selección y UN texto por paper",
+      "query_builder" not in _ev_prompt and "tool_universe_directive" not in _ev_prompt
+      and set(_ev_prompt["europepmc_searched"]) <= {"status", "n_found", "n_returned", "n_candidates", "detail", "error"}
+      and "throttle" not in _ev_prompt["pubmed_searched"] and "duplicates" not in _ev_prompt["selection"]
+      and all("dedup_keys" not in p and "search_ledger" not in p["fetched"] for p in _ev_prompt["papers"])
+      and _ev_prompt["papers"][0]["text_excerpt"] == p_ft["text_excerpt"] and "abstract" in _ev_prompt["papers"][0]
+      and "abstract" not in _ev_prompt["papers"][1]      # provenance 'abstract': el excerpt YA es el abstract
+      and _ev_prompt["papers"][1]["text_excerpt"] == p_ab["abstract"]
+      and _ev_prompt["selection"]["not_selected"] == sel["not_selected"],
+      f"keys={sorted(_ev_prompt)}")
+
+# --- D. EPMC caída: status 'error' en el ledger y la corrida SIGUE con PubMed (§6 no-hang) --------------
+answer_pipeline.fetch_paper.search_europepmc_ledger = (
+    lambda query, n=5, sort=None, synonym=True: ([], {"source": "europepmc", "status": "error",
+                                                       "query_sent": query, "n_found": None, "n_returned": 0,
+                                                       "elapsed_s": 30.0, "sort": "RELEVANCE", "synonym": True,
+                                                       "throttle": "net_throttle", "throttle_slept_s": 0.0,
+                                                       "contact": "unset", "error": "URLError: timed out"}))
+answer_pipeline.path_b = _path_b_real
+blk_err = answer_pipeline.path_b_bundle("is wt1a required for pronephros?", entities=["wt1a"], n=3,
+                                        sources=("europepmc", "pubmed"))
+answer_pipeline.path_b = _path_b_stub
+check("ADR-0078 §6: Europe PMC caída -> europepmc_searched.status='error' con el mensaje, CERO candidatos "
+      "de EPMC, y PubMed sigue aportando (antes la excepción mataba path_b entero)",
+      blk_err["europepmc_searched"]["status"] == "error"
+      and "URLError" in blk_err["europepmc_searched"]["error"]
+      # corrector: una fuente que FALLÓ no midió 0 candidatos — None (ADR-0043); PubMed sí midió (3)
+      and blk_err["europepmc_searched"]["n_candidates"] is None
+      and blk_err["europepmc_searched"]["n_returned"] is None
+      and blk_err["pubmed_searched"]["n_candidates"] == 3
+      and blk_err["pubmed_searched"]["duplicates_of_europepmc"] == []
+      and [p["evidence_id"] for p in blk_err["papers"]] == ["PMID:22222222", "PMID:77777777", "PMID:11111111"]
+      and blk_err["n_results_by_source"] == {"europepmc": 0, "pubmed": 3},
+      f"papers={[p['evidence_id'] for p in blk_err['papers']]}")
+answer_pipeline.path_b = _path_b_real
+blk_ns = answer_pipeline.path_b_bundle("", entities=[], sources=("europepmc", "pubmed"))
+answer_pipeline.path_b = _path_b_stub
+check("ADR-0078: sin nada que buscar -> query_sent None DECLARADO + ambas fuentes 'not-searched' + "
+      "selection 0/0 (jamás se manda una query vacía al índice)",
+      blk_ns["query_sent"] is None and blk_ns["europepmc_searched"]["status"] == "not-searched"
+      and blk_ns["pubmed_searched"]["status"] == "not-searched"
+      and blk_ns["europepmc_searched"]["n_candidates"] is None and blk_ns["europepmc_searched"]["n_returned"] is None
+      and blk_ns["selection"]["n_candidates"] == 0 and blk_ns["papers"] == []
+      and blk_ns["query_source"] == "query-builder-v1:empty")
+
+
+def _boom_epmc(query, n=5, sort=None, synonym=True):
+    raise AssertionError("con n<=0 NO debe dispararse ninguna búsqueda de literatura")
+
+
+answer_pipeline.fetch_paper.search_europepmc_ledger = _boom_epmc
+answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = (
+    lambda *a, **k: (_ for _ in ()).throw(AssertionError("pubmed no debe llamarse con n<=0")))
+answer_pipeline.path_b = _path_b_real
+blk_n0 = answer_pipeline.path_b_bundle("is wt1a required for pronephros?", entities=["wt1a"], n=0,
+                                       sources=("europepmc", "pubmed"))
+answer_pipeline.path_b = _path_b_stub
+check("corrector ADR-0078: n_papers=0 -> CERO red de literatura; ambas fuentes 'not-requested' (detail n_papers=0), "
+      "contadores None, selection 0/0, papers [] (antes disparaba EPMC+esearch+esummary con retmax 20 para no elegir nada)",
+      blk_n0["europepmc_searched"]["status"] == "not-requested" and blk_n0["pubmed_searched"]["status"] == "not-requested"
+      and blk_n0["europepmc_searched"]["detail"] == "n_papers=0 <= 0" and blk_n0["europepmc_searched"]["n_candidates"] is None
+      and blk_n0["pubmed_searched"]["n_new"] is None and blk_n0["pubmed_searched"]["duplicates_of_europepmc"] is None
+      and blk_n0["selection"]["n_requested"] == 0 and blk_n0["selection"]["n_candidates"] == 0 and blk_n0["papers"] == []
+      and blk_n0["n_results_by_source"] == {"europepmc": 0, "pubmed": 0},
+      f"epmc={blk_n0['europepmc_searched']} pubmed={blk_n0['pubmed_searched']['status']}")
+answer_pipeline.fetch_paper.search_europepmc_ledger = _epmc_ledger_real
+answer_pipeline.fetch_paper.fetch_external = _fetch_real2
+answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
+
+# --- E. ZFIN con el TOOL REAL (cargado por ruta) servido desde el fixture REAL 2026-09-13 --------------
+_FIX_PATH = Path(__file__).resolve().parent / "fixtures" / "alliance_phenotypes_wt1a_20260913.json"
+_FIX = json.loads(_FIX_PATH.read_text(encoding="utf-8"))
+_FIX_NOREF = {"results": [{"phenotypeStatement": "pronephric duct absent, abnormal",
+                           "pubmedPublications": [], "references": []}],
+              "total": 1, "returnedRecords": 1}
+_zfin_mode = {"noref": False}
+_zfin_calls = []
+
+
+def _fake_alliance_get(url, timeout=30):
+    _zfin_calls.append({"url": url, "timeout": timeout})
+    if "search_autocomplete" in url:
+        return {"results": [{"category": "gene_search_result", "name": "wt1a",
+                             "curie": "ZFIN:ZDB-GENE-980526-558"}]}
+    if _zfin_mode["noref"]:
+        return _FIX_NOREF
+    if "filter.termName=" in url:   # el servidor filtra como Alliance: OR por subcadena
+        terms = urllib.parse.unquote(url.split("filter.termName=")[1]).split("|")
+        res = [r for r in _FIX["results"] if any(t in r["phenotypeStatement"].lower() for t in terms)]
+        return {"results": res, "total": len(res), "returnedRecords": len(res)}
+    return _FIX
+
+
+answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
+_zfin_real = answer_pipeline._workspace_tool("zfin_zebrafish.py", "query_zfin")
+_zfin_get_real = _zfin_real.__globals__["_get"]
+_zfin_real.__globals__["_get"] = _fake_alliance_get
+answer_pipeline.CACHE = TMP / "mcp_cache"
+items_z, ledger_z = answer_pipeline._search_zfin(["wt1a"], "is wt1a required for pronephros development?")
+row_z = ledger_z[0]
+check("ADR-0078 ZFIN: con el esquema NUEVO (pubmedPublications, fixture real 53/53) las referencias YA NO "
+      "son [] — PMIDs reales por statement, references_schema declarado en ledger e item",
+      row_z["status"] == "success" and row_z["references_schema"] == "pubmedPublications"
+      and len(items_z) == 1 and items_z[0]["zfin"]["has_references"] is True
+      and all(p["references"] and all(r.startswith("PMID:") for r in p["references"])
+              for p in items_z[0]["zfin"]["phenotypes"])
+      and items_z[0]["zfin"]["references_schema"] == "pubmedPublications"
+      and items_z[0]["evidence_id"] == "ZFIN:ZDB-GENE-980526-558",
+      f"status={row_z['status']} schema={row_z.get('references_schema')} "
+      f"refs0={items_z[0]['zfin']['phenotypes'][0]['references'] if items_z else None}")
+check("corrector ADR-0078 ZFIN: por DEFAULT el filtro anatómico de build_zfin_filter va en el CLIENTE (prefijo de "
+      "palabra) — la URL NO lleva filter.termName ('a|b' midió HTTP 400 en vivo; la forma de una raíz no está medida); "
+      "el timeout de cada GET es min(10, presupuesto restante / 2) y se declara con su alcance",
+      not any("filter.termName" in c["url"] for c in _zfin_calls)
+      and all(0 < c["timeout"] <= 10 for c in _zfin_calls) and len(_zfin_calls) == 2
+      and row_z["timeout_s"] <= 10 and row_z["timeout_s_scope"] == "per-http-get"
+      and row_z["anatomy_filter"] == "pronephr"
+      and row_z["anatomy_terms"] == ["pronephr"] and row_z["anatomy_filter_mode"] == "client"
+      and row_z["anatomy_filter_semantics"].startswith("word-prefix")
+      and row_z["n_phenotypes_total"] == 53 and row_z["n_phenotypes_total_scope"] == "gene",
+      f"calls={[(c['url'][-60:], c['timeout']) for c in _zfin_calls]}")
+check("ADR-0078 ZFIN: los cortes del tool se PROPAGAN — n_returned_by_api 53 (payload completo, filtro cliente), "
+      "phenotypes_capped_at_300 False, n_matched 16 > n_returned 12 truncado declarado, references_truncated",
+      row_z["n_returned_by_api"] == 53 and row_z["phenotypes_capped_at_300"] is False
+      and row_z["n_matched"] == 16 and items_z[0]["zfin"]["n_returned"] == 12
+      and items_z[0]["zfin"]["truncated"] is True and "references_truncated" in row_z
+      and row_z["n_statements_with_references"] == 16
+      and items_z[0]["zfin"]["anatomy_filter_source"] == "search_queries.build_zfin_filter:v1"
+      and items_z[0]["zfin"]["n_phenotypes_total_scope"] == "gene",
+      f"api={row_z.get('n_returned_by_api')} matched={row_z.get('n_matched')}")
+os.environ["WITT_ZFIN_SERVER_FILTER"] = "1"
+_zfin_calls.clear()
+items_sv, ledger_sv = answer_pipeline._search_zfin(["wt1a"], "is wt1a required for pronephros and glomerulus development?")
+del os.environ["WITT_ZFIN_SERVER_FILTER"]
+_urls_sv = [c["url"] for c in _zfin_calls if "/phenotypes" in c["url"]]
+check("corrector ADR-0078 ZFIN: con WITT_ZFIN_SERVER_FILTER=1 el filtro va al servidor UNA GET POR RAÍZ "
+      "(filter.termName=pronephr, =glomer; jamás 'a|b'), modo 'server+client', total del gen NO medido "
+      "(None, scope 'server-filtered', server_filter_totals por raíz), n_http_gets 3",
+      len(_urls_sv) == 2 and any(u.endswith("filter.termName=pronephr") for u in _urls_sv)
+      and any(u.endswith("filter.termName=glomer") for u in _urls_sv) and not any("|" in u for u in _urls_sv)
+      and ledger_sv[0]["anatomy_filter_mode"] == "server+client" and ledger_sv[0]["n_phenotypes_total"] is None
+      and ledger_sv[0]["n_phenotypes_total_scope"] == "server-filtered"
+      and set(ledger_sv[0]["server_filter_totals"]) == {"pronephr", "glomer"} and ledger_sv[0]["n_http_gets"] == 3
+      and ledger_sv[0]["n_matched"] >= 16 and ledger_sv[0]["anatomy_filter"] == "pronephr|glomer",
+      f"urls={[u[-45:] for u in _urls_sv]} row={ {k: ledger_sv[0].get(k) for k in ('n_matched', 'n_phenotypes_total_scope')} }")
+_zfin_mode["noref"] = True
+items_nr, ledger_nr = answer_pipeline._search_zfin(["wt1a"], "pronefros")
+_zfin_mode["noref"] = False
+check("ADR-0078 ZFIN: statements SIN PMIDs -> 'success-no-references' LITERAL en el ledger (no 'success', "
+      "no 'error') + item con has_references=false y references_schema 'none'",
+      ledger_nr[0]["status"] == "success-no-references" and ledger_nr[0]["references_schema"] == "none"
+      and len(items_nr) == 1 and items_nr[0]["zfin"]["has_references"] is False
+      and items_nr[0]["zfin"]["status"] == "success-no-references"
+      and items_nr[0]["zfin"]["phenotypes"][0]["references"] == [],
+      f"status={ledger_nr[0]['status']}")
+_zfin_real.__globals__["_get"] = _zfin_get_real
+answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
+answer_pipeline.CACHE = _CACHE_REAL
+check("mcp_cache del repo INTACTO tras la sección ZFIN (los envelopes fueron al tmp del gate)",
+      not list(_CACHE_REAL.glob(f"zfin_wt1a_{_dt.datetime.now(_dt.timezone.utc).strftime('%Y%m%d')}.json"))
+      and list((TMP / "mcp_cache").glob("zfin_wt1a_*.json")))
+
+# --- F. modelo de corrida (rebanada I5): citas, precios, claimed_by, reaper ------------------------------
+_CITAS_STR = '[{"kind": "di-record", "id": "CORPUS-2026-0001"}]'
+composite_auditor._anthropic_tool_call = _mk_fake_api({**_BASE_SYNTH, "evidence_cited": _CITAS_STR},
+                                                      elicit_out={"confidence": 0.4})
+ans_c = runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+composite_auditor._anthropic_tool_call = _orig_tool_call
+check("ADR-0078 citas (sintetizador real): evidence_cited como STRING JSON se re-parsea con dicts INTACTOS "
+      "(kind/id tipados, no kind='other'), el crudo queda en evidence_cited_raw y gap_flags lo declara",
+      ans_c["evidence_cited"] == [{"kind": "di-record", "id": "CORPUS-2026-0001"}]
+      and ans_c["evidence_cited_raw"] == _CITAS_STR
+      and any("SERIALIZADO" in f and "evidence_cited" in f for f in ans_c["gap_flags"]))
+rv_c = app.create_run(app.RunBody(question="citas serializadas", entities=[]), authorization=AUTH)
+claimed_c = db.claim_next_queued(worker_id="run-worker-smoke")
+runs_mod.execute_run(claimed_c, synthesizer=_mk_synth(
+    {"pass1": 0.8}, extra={"evidence_cited": _CITAS_STR, "evidence_cited_raw": _CITAS_STR}),
+    panel_caller=_stub_caller_factory(ALL_A))
+rec_c = app.get_frozen_record(rv_c["run_id"], authorization=AUTH)
+check("ADR-0078 citas (congelado): un string que llega hasta el freeze se re-parsea -> 1 cita tipada "
+      "(jamás N de un carácter) + citations_schema 'string-reparsed' + evidence_cited_raw en el registro",
+      rec_c["citations_schema"]["source"] == "string-reparsed" and rec_c["citations_schema"]["n_valid"] == 1
+      and rec_c["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      and rec_c["evidence_cited_raw"] == _CITAS_STR,
+      f"schema={rec_c['citations_schema']}")
+view_c = app.get_run(rv_c["run_id"], authorization=AUTH)
+check("ADR-0078 reclamo: claimed_by/claimed_at viajan en la vista (worker_id del hilo; sin él = null declarado)",
+      view_c["claimed_by"] == "run-worker-smoke" and view_c["claimed_at"] is not None
+      and claimed_c["claimed_by"] == "run-worker-smoke")
+# --- corrector: el CAMINO REAL de producción (wrapper _default_synthesizer -> execute_run -> congelado) ---------------
+composite_auditor._anthropic_tool_call = _mk_fake_api({**_BASE_SYNTH, "evidence_cited": _CITAS_STR},
+                                                      elicit_out={"confidence": 0.9})
+rv_real = app.create_run(app.RunBody(question="citas string por el wrapper real", entities=[]), authorization=AUTH)
+runs_mod.execute_run(db.claim_next_queued(worker_id="run-worker-smoke"), synthesizer=None,
+                     panel_caller=_stub_caller_factory(ALL_A))
+composite_auditor._anthropic_tool_call = _orig_tool_call
+rec_real = app.get_frozen_record(rv_real["run_id"], authorization=AUTH)
+check("corrector ADR-0078 citas (CAMINO REAL: _default_synthesizer re-parsea y execute_run congela): el registro dice "
+      "'string-reparsed' con el crudo — ya no 'list' junto a un evidence_cited_raw string",
+      db.get_run(rv_real["run_id"])["state"] == "awaiting_closure"
+      and rec_real["citations_schema"]["source"] == "string-reparsed" and rec_real["citations_schema"]["n_valid"] == 1
+      and rec_real["evidence_cited_raw"] == _CITAS_STR
+      and rec_real["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
+      f"schema={rec_real.get('citations_schema')} state={db.get_run(rv_real['run_id'])['state']}")
+composite_auditor._anthropic_tool_call = _mk_fake_api({k: v for k, v in _BASE_SYNTH.items() if k != "evidence_cited"},
+                                                      elicit_out={"confidence": 0.9})
+rv_abs = app.create_run(app.RunBody(question="modelo que omite evidence_cited", entities=[]), authorization=AUTH)
+runs_mod.execute_run(db.claim_next_queued(worker_id="run-worker-smoke"), synthesizer=None,
+                     panel_caller=_stub_caller_factory(ALL_A))
+composite_auditor._anthropic_tool_call = _orig_tool_call
+rec_abs = app.get_frozen_record(rv_abs["run_id"], authorization=AUTH)
+check("corrector ADR-0078 citas: el modelo NO emite evidence_cited -> citations_schema 'absent' (0/0) + gap_flag "
+      "'AUSENTE' — declarado, no rellenado con [] (que se leería 'citó 0'); la corrida termina",
+      db.get_run(rv_abs["run_id"])["state"] == "awaiting_closure"
+      and rec_abs["citations_schema"] == {"source": "absent", "n_raw": 0, "n_valid": 0}
+      and rec_abs["citations"] == [] and rec_abs["evidence_cited_raw"] is None
+      and any("evidence_cited AUSENTE" in f for f in rec_abs["answer"]["gap_flags"]),
+      f"schema={rec_abs.get('citations_schema')} gaps={rec_abs['answer']['gap_flags'][-1:]}")
+tu_c = rec_c["token_usage"]
+check("ADR-0078 precios: un modelo SIN precio (stub-synth) NO se cotiza a 0 — missing_price_models + "
+      "cost_projection_complete=False + cost_class INCOMPLETE; sonnet-5 corregido a (2.0, 10.0)",
+      tu_c["missing_price_models"] == ["stub-synth"] and tu_c["cost_projection_complete"] is False
+      and "INCOMPLETE" in tu_c["cost_class"] and tu_c["estimated_cost_usd"] > 0
+      and runs_mod.PRICES_PER_MTOK_USD["claude-sonnet-5"] == (2.0, 10.0)
+      and runs_mod.PRICES_AS_OF == "2026-09",
+      f"missing={tu_c['missing_price_models']} cost={tu_c['estimated_cost_usd']}")
+rv_u = app.create_run(app.RunBody(question="citas en prosa", entities=[]), authorization=AUTH)
+runs_mod.execute_run(db.claim_next_queued(), synthesizer=_mk_synth(
+    {"pass1": 0.8}, extra={"evidence_cited": "cito el registro CORPUS-2026-0001 y nada mas, en prosa"}),
+    panel_caller=_stub_caller_factory(ALL_A))
+rec_u = app.get_frozen_record(rv_u["run_id"], authorization=AUTH)
+check("ADR-0078 citas: string NO parseable -> citations=[] + 'string-unparseable' con raw_len_chars, la "
+      "corrida termina (awaiting_closure) y NINGUNA cita es de un carácter",
+      rec_u["citations"] == [] and rec_u["citations_schema"]["source"] == "string-unparseable"
+      and rec_u["citations_schema"]["n_valid"] == 0 and rec_u["citations_schema"]["raw_len_chars"] > 10
+      and db.get_run(rv_u["run_id"])["state"] == "awaiting_closure"
+      and not any(len(c["id"]) == 1 for c in rec_u["citations"]),
+      f"schema={rec_u['citations_schema']}")
+us3 = app.usage(authorization=AUTH)
+check("ADR-0078 /usage: missing_price_models agregado, cost_projection_complete=False, "
+      "by_model[stub-synth].estimated_cost_usd=null con price_state 'missing' (jamás 0.0)",
+      "stub-synth" in us3["missing_price_models"] and us3["cost_projection_complete"] is False
+      and us3["by_model"]["stub-synth"]["estimated_cost_usd"] is None
+      and us3["by_model"]["stub-synth"]["price_state"] == "missing"
+      and us3["n_runs_cost_incomplete"] >= 2,
+      f"missing={us3['missing_price_models']} incomplete={us3['n_runs_cost_incomplete']}")
+rv_w = app.create_run(app.RunBody(question="worker lost", entities=[]), authorization=AUTH)
+claimed_w = db.claim_next_queued(worker_id="run-worker-0")     # running, y el worker 'muere' sin latir
+_future = _dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(seconds=2000)
+segadas = db.reap_stale_running(900, now=_future)
+run_w = db.get_run(rv_w["run_id"])
+ev_w = app.get_events(rv_w["run_id"], after=0, authorization=AUTH)["events"]
+check("ADR-0078 reaper: running sin latido > 900 s -> failed 'worker-lost' + evento run.state "
+      "{reason: worker-lost} del agente run-reaper; NUNCA re-encolada (nada se re-ejecuta solo)",
+      segadas == [rv_w["run_id"]] and run_w["state"] == "failed" and "worker-lost" in run_w["error"]
+      and any(e["type"] == "run.state" and (e.get("payload") or {}).get("reason") == "worker-lost"
+              and e.get("agent") == "run-reaper" for e in ev_w)
+      and runs_mod.REAP_STALE_S == 900,
+      f"segadas={segadas} state={run_w['state']}")
+check("reaper: segunda pasada no toca nada (idempotente); una running FRESCA queda intacta",
+      db.reap_stale_running(900, now=_future) == []
+      and db.reap_stale_running(900) == [])
+check("ADR-0078: la vista distingue la corrida segada (error 'worker-lost: …', failure_reason 'worker-lost') de un "
+      "fallo del pipeline; la segada queda con cancel_requested para que un hilo vivo aborte en la siguiente frontera",
+      app.get_run(rv_w["run_id"], authorization=AUTH)["error"].startswith("worker-lost:")
+      and app.get_run(rv_w["run_id"], authorization=AUTH)["failure_reason"] == "worker-lost"
+      and app.get_run(rv_w["run_id"], authorization=AUTH)["claimed_by"] == "run-worker-0"
+      and db.cancel_requested(rv_w["run_id"]) is True
+      and db.get_run(rv_w["run_id"])["cancelled_by"] == "run-reaper")
+# --- corrector: la carrera reaper <-> worker vivo, dirección peligrosa: el worker NO pisa a la segada -------------------
+_ok_fin = runs_mod._finish(rv_w["run_id"], "awaiting_closure", {"verdict": "APPROVE"},
+                           frozen_record_json="{}", bundle_json="{}")
+_row_w = db.get_run(rv_w["run_id"])
+_ev_w2 = app.get_events(rv_w["run_id"], after=0, authorization=AUTH)["events"]
+check("corrector ADR-0078: el cierre del worker es CONDICIONAL (finish_run WHERE state='running') — tras la siega "
+      "devuelve False, la fila sigue failed/worker-lost sin frozen_record, y queda UN evento run.state.conflict "
+      "{attempted awaiting_closure, found failed, ignored true}",
+      _ok_fin is False and _row_w["state"] == "failed" and _row_w["error"].startswith("worker-lost")
+      and _row_w["frozen_record_json"] is None
+      and _ev_w2[-1]["type"] == "run.state.conflict" and _ev_w2[-1]["payload"]["attempted"] == "awaiting_closure"
+      and _ev_w2[-1]["payload"]["found"] == "failed" and _ev_w2[-1]["payload"]["ignored"] is True,
+      f"ok={_ok_fin} state={_row_w['state']} last={_ev_w2[-1]['type']}")
+_run_fail = db.get_run(rv_abs["run_id"])
+check("corrector ADR-0078: failure_reason 'pipeline' para un failed por excepción (no reaper)",
+      (lambda rid: (db.update_run(rid, state="failed", error="RuntimeError: boom"),
+                    app.get_run(rid, authorization=AUTH)["failure_reason"])[1] == "pipeline"
+       and (db.update_run(rid, state="awaiting_closure", error=None), True)[1])(rv_abs["run_id"]))
+check("corrector ADR-0078: worker_id lleva identidad de PROCESO (boot_id:pid:hilo, <= 64 chars) — dos generaciones "
+      "del proceso ya no comparten 'run-worker-0'",
+      runs_mod.worker_id_for("run-worker-0").endswith(":run-worker-0")
+      and runs_mod.worker_id_for("run-worker-0").split(":")[0] == runs_mod.WORKER_BOOT_ID
+      and runs_mod.worker_id_for("run-worker-0").split(":")[1] == str(os.getpid())
+      and len(runs_mod.worker_id_for("run-worker-0")) <= 64)
+os.environ["WITT_REAP_STALE_S"] = ""
+_tol_empty = runs_mod._env_int_tolerante("WITT_REAP_STALE_S", 900)
+os.environ["WITT_REAP_STALE_S"] = "abc"
+_tol_bad = runs_mod._env_int_tolerante("WITT_REAP_STALE_S", 900)
+os.environ["WITT_REAP_STALE_S"] = "120"
+_tol_ok = runs_mod._env_int_tolerante("WITT_REAP_STALE_S", 900)
+os.environ.pop("WITT_REAP_STALE_S", None)
+check("corrector ADR-0078: WITT_REAP_STALE_S vacía / basura -> 900 declarado (default-unset / default-invalid-env), "
+      "nunca una excepción al importar; '120' -> (120, 'env:…')",
+      _tol_empty == (900, "default-unset:WITT_REAP_STALE_S") and _tol_bad == (900, "default-invalid-env:WITT_REAP_STALE_S")
+      and _tol_ok == (120, "env:WITT_REAP_STALE_S") and runs_mod.REAP_STALE_S == 900
+      and runs_mod.REAP_STALE_S_SOURCE.endswith(":WITT_REAP_STALE_S"))
+us4 = app.usage(authorization=AUTH)
+check("corrector ADR-0078 /usage: cost_projection_complete es False mientras haya corridas congeladas incompletas "
+      "(aunque hoy todos los modelos tuvieran precio) y n_runs_cost_unknown declara las anteriores a la llave",
+      us4["cost_projection_complete"] is False and us4["n_runs_cost_incomplete"] >= 2
+      and "corrida(s) congeladas sin precio" in us4["cost_class"] and us4["n_runs_cost_unknown"] == 0
+      and "price_state" in us4["by_model"]["stub-synth"],
+      f"incomplete={us4['n_runs_cost_incomplete']} unknown={us4['n_runs_cost_unknown']}")
+os.environ["WITT_NCBI_EMAIL"] = "smoke-leak@example.invalid"
+_fp = answer_pipeline.fetch_paper
+_fp_get_real = _fp._get
+_fp._get = lambda url, parse_json=False, meta=None: {"hitCount": 1, "resultList": {"result": [
+    {"id": "1", "source": "MED", "pmid": "11111111", "title": "t", "pubYear": "2020", "isOpenAccess": "N"}]}}
+_items_leak, _led_leak = _fp.search_europepmc_ledger("leak test", n=1)
+_fp._get = _fp_get_real
+_ua_leak = _fp._ua()["User-Agent"]
+os.environ.pop("WITT_NCBI_EMAIL", None)
+_bundle_leak = {"path_a": {"hits": [], "retrieval": {}}, "entities_checked": {}, "sufficiency": {},
+                "path_b": {"triggered": True, "papers": [], "europepmc_searched": _led_leak}}
+check("corrector ADR-0078 FUGA: con WITT_NCBI_EMAIL fijada el correo vive SOLO en el User-Agent; el ledger declara "
+      "contact 'declared' y ni el ledger ni la vista de prompt llevan '@'",
+      "smoke-leak@example.invalid" in _ua_leak and _led_leak["contact"] == "declared"
+      and "@" not in json.dumps(_led_leak, ensure_ascii=False)
+      and "@" not in json.dumps(runs_mod._compact_evidence(_bundle_leak), ensure_ascii=False, default=str),
+      f"contact={_led_leak['contact']}")
 
 # ---- ADR-0076: al final de todo el gate, los números son únicos y consecutivos en la creación ---------
 _lista = db.list_runs(limit=1000)
