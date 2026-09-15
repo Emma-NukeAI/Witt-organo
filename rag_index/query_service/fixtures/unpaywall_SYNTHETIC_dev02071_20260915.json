@@ -1,0 +1,56 @@
+{
+ "_fixture": {
+  "recorded_by": "record_fixtures_c.py (ADR-0080 C5)",
+  "live": false,
+  "synthetic": true,
+  "note": "SYNTHETIC — no WITT_UNPAYWALL_EMAIL was available; shape follows the Unpaywall v2 documentation, values are NOT a measurement of the real record."
+ },
+ "fetched_at": null,
+ "url": "https://api.unpaywall.org/v2/10.1242/dev.02071",
+ "response": {
+  "doi": "10.1242/dev.02071",
+  "doi_url": "https://doi.org/10.1242/dev.02071",
+  "title": "SYNTHETIC title (not measured)",
+  "genre": "journal-article",
+  "is_paratext": false,
+  "published_date": "2005-01-01",
+  "year": 2005,
+  "journal_name": "SYNTHETIC journal",
+  "journal_issns": null,
+  "journal_is_oa": false,
+  "journal_is_in_doaj": false,
+  "publisher": "SYNTHETIC",
+  "is_oa": true,
+  "oa_status": "bronze",
+  "has_repository_copy": false,
+  "best_oa_location": {
+   "url": "https://example.invalid/synthetic-oa",
+   "url_for_pdf": null,
+   "url_for_landing_page": "https://example.invalid/synthetic-oa",
+   "host_type": "publisher",
+   "version": "publishedVersion",
+   "license": null,
+   "evidence": "SYNTHETIC",
+   "is_best": true,
+   "pmh_id": null,
+   "endpoint_id": null,
+   "repository_institution": null,
+   "oa_date": null,
+   "updated": null
+  },
+  "first_oa_location": null,
+  "oa_locations": [
+   {
+    "url": "https://example.invalid/synthetic-oa",
+    "host_type": "publisher",
+    "version": "publishedVersion",
+    "license": null,
+    "is_best": true
+   }
+  ],
+  "oa_locations_embargoed": [],
+  "updated": null,
+  "data_standard": 2,
+  "z_authors": null
+ }
+}

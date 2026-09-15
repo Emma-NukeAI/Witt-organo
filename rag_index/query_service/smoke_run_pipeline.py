@@ -58,6 +58,13 @@ def _http_error(fn, *a, **kw):
         return e.status_code
 
 
+def _cits_base(citations):
+    """La forma BASE de las citas (n, kind, id, note). ADR-0080 (G) añade por cita la escalera de soporte
+    (resolved, passage_delivered, pertinent, supported, support_state) como llaves ADITIVAS: los checks
+    anteriores comparan la base, y la escalera se prueba en su sección."""
+    return [{k: c.get(k) for k in ("n", "kind", "id", "note")} for c in (citations or [])]
+
+
 # ---- stubs deterministas ----------------------------------------------------------------------------
 def _raises(fn, exc):
     try:
@@ -215,21 +222,34 @@ check("registro congelado persistido en backend: contrato = runs.RENDER_CONTRACT
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
-check("sin fallback: trigger=None, pass2=None, answer=pass1 (conf 0.8 >= tau 0.5)",
-      rec["fallback"]["trigger"] is None and rec["confidence"]["pass1"] == 0.8
-      and rec["confidence"]["pass2"] is None and rec["confidence"]["delta"] is None
-      and rec["confidence"]["state"] == "value"
-      and "stage.synthesize.pass2" not in types)
+# ADR-0080: POST /runs SIN plan -> la compuerta de competencia NO puede declarar competente (route/niches
+# ausentes, reason 'no-plan') -> trigger 'competence' + pass2, aunque conf 0.8 >= tau (trigger_legacy null:
+# la regla vieja NO habría disparado — el literal 'confidence' vive SOLO en fb_meta.trigger_legacy). El camino
+# competente (con plan: sin ronda, trigger null) se prueba en la sección ADR-0080.
+check("ADR-0080 sin plan: trigger='competence' (reasons route_evidence_run + niches_nonempty por 'no-plan'), "
+      "trigger_legacy null (0.8 >= tau), pass2 corre y ambas confianzas persisten (0.8 -> 0.85, delta 0.05)",
+      rec["fallback"]["trigger"] == "competence" and rec["fallback"]["fb_meta"]["trigger_legacy"] is None
+      and rec["confidence"]["pass1"] == 0.8 and rec["confidence"]["pass2"] == 0.85
+      and rec["confidence"]["delta"] == 0.05 and rec["confidence"]["state"] == "value"
+      and "stage.synthesize.pass2" in types
+      and rec["competence"]["competent"] is False
+      and set(rec["competence"]["reasons"]) == {"route_evidence_run", "niches_nonempty"}
+      and rec["competence"]["components"]["route_evidence_run"]["reason"] == "no-plan"
+      and rec["competence"]["components"]["niches_nonempty"]["reason"] == "no-plan",
+      f"reasons={rec['competence']['reasons']}")
 check("confidence_by_subclaim viaja al registro (asimetria declarada, no promediada)",
       rec["confidence"]["by_subclaim"] == {"marker-expression": 0.9, "functional-requirement": 0.3})
-check("citas tipadas con serie numerica (letras reservadas a precedente)",
-      rec["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+check("citas tipadas con serie numerica (letras reservadas a precedente); ADR-0080: la escalera de soporte es "
+      "ADITIVA dentro de la cita (support_state presente, forma base intacta)",
+      _cits_base(rec["citations"]) == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      and "support_state" in rec["citations"][0]
       and rec["answer"]["absence_kind"] == "not-applicable")
 tu = rec["token_usage"]
-check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings declarados",
-      tu["by_model"].get("stub-synth") == {"in": 100, "out": 50}
+check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings declarados (ADR-0080: sin plan hay "
+      "pass1 + pass2 -> stub-synth 200/100; total 240/120)",
+      tu["by_model"].get("stub-synth") == {"in": 200, "out": 100}
       and tu["by_model"].get("claude-opus-4-8") == {"in": 10, "out": 5}
-      and tu["input_tokens"] == 140 and tu["output_tokens"] == 70
+      and tu["input_tokens"] == 240 and tu["output_tokens"] == 120
       and "PROJECTION" in tu["cost_class"] and tu["estimated_cost_usd"] > 0
       and tu["embedding"]["total_tokens"] == 0,
       f"cost={tu['estimated_cost_usd']}")
@@ -285,8 +305,10 @@ runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": 0.3, "pass2": 0.75
                      panel_caller=_stub_caller_factory(ALL_A))
 rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
 ev_types = [e["type"] for e in app.get_events(rv["run_id"], after=0, authorization=AUTH)["events"]]
-check("pass1 0.3 < tau 0.5 -> dispara Ruta B por CONFIANZA aunque lo estructural dijera suficiente",
-      rec["fallback"]["trigger"] == "confidence"
+check("pass1 0.3 < tau 0.5 -> Ruta B aunque lo estructural dijera suficiente; ADR-0080: trigger='competence' y el "
+      "literal viejo vive en fb_meta.trigger_legacy='confidence' (la regla `pass1 < tau` habría disparado)",
+      rec["fallback"]["trigger"] == "competence"
+      and rec["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
       and rec["fallback"]["fb_meta"]["pass1_confidence"] == 0.3
       and rec["fallback"]["fb_meta"]["tau"] == 0.5
       and rec["audit"]["required_because"] == "FALLBACK_FETCHED"
@@ -314,8 +336,11 @@ runs_mod.execute_run(claimed, synthesizer=_mk_synth({"pass1": None, "pass2": Non
                                                     extra={"confidence_by_subclaim": None}),
                      panel_caller=_stub_caller_factory(ALL_A))
 rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
-check("confianza ausente (ni escalar ni subclaims): gate + 'absent-not-calibratable' declarado",
-      rec["fallback"]["trigger"] == "confidence"
+check("confianza ausente (ni escalar ni subclaims): gate + 'absent-not-calibratable' declarado; ADR-0080: trigger "
+      "'competence' + trigger_legacy 'confidence' + componente conf1_ge_tau con reason 'conf1-absent'",
+      rec["fallback"]["trigger"] == "competence"
+      and rec["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
+      and rec["competence"]["components"]["conf1_ge_tau"]["reason"] == "conf1-absent"
       and rec["fallback"]["fb_meta"]["pass1_confidence"] is None
       and rec["confidence"]["state"] == "absent-not-calibratable"
       and rec["confidence"]["delta"] is None)
@@ -422,8 +447,10 @@ runs_mod.execute_run(claimed, synthesizer=_mk_synth(
     extra={"confidence_source": "recovered-from-malformed-tool-call"}),
     panel_caller=_stub_caller_factory(ALL_A))
 rec = app.get_frozen_record(rv["run_id"], authorization=AUTH)
-check("procedencia en el registro: fb_meta.pass1_confidence_source='recovered-…' + gate disparado (0.15<tau)",
-      rec["fallback"]["trigger"] == "confidence"
+check("procedencia en el registro: fb_meta.pass1_confidence_source='recovered-…' + gate disparado (0.15<tau; ADR-0080: "
+      "trigger 'competence', trigger_legacy 'confidence')",
+      rec["fallback"]["trigger"] == "competence"
+      and rec["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
       and rec["fallback"]["fb_meta"]["pass1_confidence_source"] == "recovered-from-malformed-tool-call"
       and rec["confidence"]["pass1_source"] == "recovered-from-malformed-tool-call")
 
@@ -659,10 +686,10 @@ pl = answer_pipeline.path_b_event_payload(
     {"papers": [], "query_sent": "q", "query_source": "entities",
      "n_results_by_source": {"europepmc": 0, "zfin": 1},
      "zfin_searched": [{"symbol": "a", "status": "success"}, {"symbol": "b", "status": "no-match"}]},
-    trigger="confidence")
+    trigger="competence")   # ADR-0080: vocabulario structural|competence (el literal 'confidence' es alias legado)
 check("el evento stage.path_b lleva el desglose por fuente + el tally de ZFIN (la traza viva y el "
       "replay leen el MISMO resumen)",
-      pl["n_results_by_source"]["zfin"] == 1 and pl["trigger"] == "confidence"
+      pl["n_results_by_source"]["zfin"] == 1 and pl["trigger"] == "competence"
       and pl["zfin_status_tally"] == {"no-match": 1, "success": 1})
 
 check("_evidence_ids prefiere evidence_id: dos items sin PMID ya no colapsan en la llave 'paper'",
@@ -1034,9 +1061,10 @@ check("ADR-0067c: la traza lleva las DOS rondas (revision_round 0/1) + stage.rev
       "stage.synthesize.revision (cap duro = 1)",
       ev_r.count("stage.audit.verdict") == 2 and "stage.revision.start" in ev_r
       and "stage.synthesize.revision" in ev_r and rec_r["revision"]["cap"] == 1)
-check("ADR-0067d: el usage cuenta AMBOS paneles (8 jueces) y la pasada de revisión (M8 cuadra)",
+check("ADR-0067d: el usage cuenta AMBOS paneles (8 jueces) y la pasada de revisión (M8 cuadra); ADR-0080: sin plan "
+      "también pass2 -> stub-synth 300 (pass1 + pass2 + revisión)",
       rec_r["usage_raw"]["panel_total"] == {"input_tokens": 80, "output_tokens": 40}
-      and rec_r["token_usage"]["by_model"].get("stub-synth", {}).get("in") == 200)
+      and rec_r["token_usage"]["by_model"].get("stub-synth", {}).get("in") == 300)
 
 rv = app.create_run(app.RunBody(question="revision fails again", entities=[]), authorization=AUTH)
 claimed = db.claim_next_queued()
@@ -1567,7 +1595,7 @@ rec_c = app.get_frozen_record(rv_c["run_id"], authorization=AUTH)
 check("ADR-0078 citas (congelado): un string que llega hasta el freeze se re-parsea -> 1 cita tipada "
       "(jamás N de un carácter) + citations_schema 'string-reparsed' + evidence_cited_raw en el registro",
       rec_c["citations_schema"]["source"] == "string-reparsed" and rec_c["citations_schema"]["n_valid"] == 1
-      and rec_c["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      and _cits_base(rec_c["citations"]) == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
       and rec_c["evidence_cited_raw"] == _CITAS_STR,
       f"schema={rec_c['citations_schema']}")
 view_c = app.get_run(rv_c["run_id"], authorization=AUTH)
@@ -1587,7 +1615,7 @@ check("corrector ADR-0078 citas (CAMINO REAL: _default_synthesizer re-parsea y e
       db.get_run(rv_real["run_id"])["state"] == "awaiting_closure"
       and rec_real["citations_schema"]["source"] == "string-reparsed" and rec_real["citations_schema"]["n_valid"] == 1
       and rec_real["evidence_cited_raw"] == _CITAS_STR
-      and rec_real["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
+      and _cits_base(rec_real["citations"]) == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
       f"schema={rec_real.get('citations_schema')} state={db.get_run(rv_real['run_id'])['state']}")
 composite_auditor._anthropic_tool_call = _mk_fake_api({k: v for k, v in _BASE_SYNTH.items() if k != "evidence_cited"},
                                                       elicit_out={"confidence": 0.9})
@@ -1780,10 +1808,12 @@ def _cols(view):
     return {k: view.get(k) for k in _THREAD_COLS}
 
 
-check("ADR-0079 contrato: runs.RENDER_CONTRACT_VERSION == '1.8' — el bump acompaña los campos ADITIVOS del registro "
-      "(thread, thread_context, thread_parent_matches_run, precedent_citations, origin, episode_axes; epistemic_summary "
-      "+thread_id/turn_no/origin); la webapp los tipa `?` — eso ES la paridad front<->back",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.8")
+check("ADR-0079/0080 contrato: runs.RENDER_CONTRACT_VERSION == '1.9' — 1.8 (ADR-0079) acompañó thread, thread_context, "
+      "thread_parent_matches_run, precedent_citations, origin, episode_axes; 1.9 (ADR-0080) suma competence, search_ledger, "
+      "citations[].support_state, citations_support_summary, deterministic_checks.{pass1_admissible, "
+      "positive_claim_requires_citations, competence_gate}, token_usage.by_stage, epistemic_summary.{competent, "
+      "n_search_rounds}; la webapp los tipa `?` — eso ES la paridad front<->back",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.9")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
 check("ADR-0079 (D) synth_system SIN turno anterior es byte-idéntico al de antes (la medición de ab_trapped_scalar no "
       "cambia); CON turno gana THREAD_ANTI_LEAK_CLAUSE; SYNTH_TOOL.description lleva la frase anti-fuga SIEMPRE",
       runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False)
@@ -1811,7 +1841,8 @@ root_row, rec_root = _ejecuta(T_ROOT, synth=_synth_ctx(
     "wt1a (ENSDARG00000031420) marks the zebrafish pronephros (PMID:31415926)."))
 check("ADR-0079 (I) raíz congelada: thread {root, turno 1, parent null, root_run_no = su propio run_no}, thread_context "
       "null + skipped 'root-turn', thread_parent_matches_run null/'no-parent', precedent_citations [] + disjoint_series "
-      "True 'no-parent', leak 'no-parent'; el sintetizador recibió thread_context=None (sin turno anterior no viaja nada)",
+      "True 'no-parent', leak 'no-parent'; el sintetizador recibió thread_context=None (sin turno anterior no viaja nada) "
+      "en AMBAS pasadas (ADR-0080: sin plan hay pass2)",
       rec_root["thread"]["turn_kind"] == "root" and rec_root["thread"]["turn_no"] == 1
       and rec_root["thread"]["parent_run_id"] is None and rec_root["thread"]["root_run_no"] == rv_root["run_no"]
       and rec_root["thread_context"] is None and rec_root["thread_context_skipped_reason"] == "root-turn"
@@ -1819,7 +1850,7 @@ check("ADR-0079 (I) raíz congelada: thread {root, turno 1, parent null, root_ru
       and rec_root["precedent_citations"] == [] and rec_root["deterministic_checks"]["disjoint_series"] is True
       and rec_root["deterministic_checks"]["disjoint_series_state"] == "no-parent"
       and rec_root["deterministic_checks"]["parent_identifier_leak_state"] == "no-parent"
-      and _SYNTH_CTX == [("pass1", None)],
+      and [p for p, _tc in _SYNTH_CTX] == ["pass1", "pass2"] and all(tc is None for _p, tc in _SYNTH_CTX),
       json.dumps(rec_root["thread"]))
 _v_root = app.get_run(T_ROOT, authorization=AUTH)
 check("ADR-0079 (F) origin en el REGISTRO {value, source, note null} = la derivación del servidor al encolar; la vista, el "
@@ -1871,8 +1902,9 @@ _synth_calls = [(s, json.loads(u)) for s, u, name in _REAL_API if name == "emit_
 snap = rec_child["thread_context"]
 check("ADR-0079 (D) CAMINO REAL: el user_text del sintetizador tiene EXACTAMENTE {question, evidence, thread_context} — "
       "llave HERMANA (no dentro de evidence), el system lleva THREAD_ANTI_LEAK_CLAUSE; el registro declara "
-      "context_delivery.synthesizer True / panel False y los 3 prompt_components",
-      len(_synth_calls) == 1 and set(_synth_calls[0][1]) == {"question", "evidence", "thread_context"}
+      "context_delivery.synthesizer True / panel False y los 3 prompt_components (ADR-0080: sin plan hay pass2 — las DOS "
+      "llamadas emit_answer llevan la llave)",
+      len(_synth_calls) == 2 and all(set(u) == {"question", "evidence", "thread_context"} for _s, u in _synth_calls)
       and "thread_context" not in _synth_calls[0][1]["evidence"]
       and _synth_calls[0][1]["thread_context"]["parent"]["run_id"] == T_ROOT
       and runs_mod.THREAD_ANTI_LEAK_CLAUSE in _synth_calls[0][0]
@@ -1913,7 +1945,8 @@ check("ADR-0079 (C) snapshot armado en el SERVIDOR desde frozen + comentarios de
 pcs = rec_child["precedent_citations"]
 check("ADR-0079 (E) precedent_citations del hijo = [{l:'A', run_id raíz, run_no raíz, turn_no 1, kind 'turn', "
       "admissible_as_evidence False, why_not_admissible}] vía precedent.serialize_disjoint; validate_disjoint True sobre "
-      "{citations (n enteros), precedent}; deterministic_checks.disjoint_series True 'checked'; `citations` NO cambia de forma",
+      "{citations (n enteros), precedent}; deterministic_checks.disjoint_series True 'checked'; `citations` conserva su forma "
+      "BASE (ADR-0080 añade la escalera de soporte, aditiva)",
       len(pcs) == 1 and pcs[0]["l"] == "A" and pcs[0]["run_id"] == T_ROOT and pcs[0]["run_no"] == rv_root["run_no"]
       and pcs[0]["turn_no"] == 1 and pcs[0]["kind"] == "turn" and pcs[0]["admissible_as_evidence"] is False
       and pcs[0]["why_not_admissible"] == precedent.WHY_NOT_ADMISSIBLE
@@ -1921,7 +1954,7 @@ check("ADR-0079 (E) precedent_citations del hijo = [{l:'A', run_id raíz, run_no
       and rec_child["deterministic_checks"]["disjoint_series"] is True
       and rec_child["deterministic_checks"]["disjoint_series_state"] == "checked"
       and rec_child["precedent_citations_state"] == "checked"
-      and rec_child["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
+      and _cits_base(rec_child["citations"]) == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
       json.dumps(pcs))
 check("ADR-0079 (E) una cita de precedente hecha a mano con 'label':'A' (sin 'l') DEBE fallar validate_disjoint; una letra "
       "dentro de la serie numérica también; una 'l' que además trae 'n' también (ninguna serie produce la etiqueta de la otra)",
@@ -2022,7 +2055,7 @@ check("ADR-0079 kill-switch WITT_THREAD_CONTEXT=0: las COLUMNAS sí se llenan (t
       rv_ksw["turn_no"] == 4 and rv_ksw["turn_kind"] == "branch" and rv_ksw["thread_id"] == T_ROOT
       and _ksw_env["snapshot"] is None and _ksw_env["skipped_reason"] == "kill-switch WITT_THREAD_CONTEXT=0"
       and _ksw_env["kill_switch"]["WITT_THREAD_CONTEXT"] == "0"
-      and len(_ksw_synth) == 1 and set(_ksw_synth[0][1]) == {"question", "evidence"}
+      and len(_ksw_synth) == 2 and all(set(u) == {"question", "evidence"} for _s, u in _ksw_synth)
       and runs_mod.THREAD_ANTI_LEAK_CLAUSE not in _ksw_synth[0][0]
       and rec_ksw["thread_context"] is None
       and rec_ksw["thread_context_skipped_reason"] == "kill-switch WITT_THREAD_CONTEXT=0"
@@ -2329,6 +2362,851 @@ check("ADR-0079 (G) epistemic_summary de cada turno (derivado al congelar, regla
           and app.get_run(rid, authorization=AUTH)["epistemic_summary"]["turn_no"] == n
           and app.get_run(rid, authorization=AUTH)["epistemic_summary"]["origin"] == _ORIGIN["value"]
           for rid, n in ((T_ROOT, 1), (T_CHILD, 2), (T_RERUN, 3), (T_KSW, 4), (T_LEAK, 5))))
+
+# ---- ADR-0080: la COMPUERTA DE COMPETENCIA y el HARNESS de búsqueda — integración C1..C6 (C7) ---------
+# competence.evaluate (decidido por CÓDIGO) <-> runs.execute_run (elicit{pass} · gate{pass:1} ADELANTADO ·
+# stage.competence · plan · rondas · pass2) <-> lib/search_harness (SEARCH_DISPATCH sobre los archivos REALES de
+# .tooluniverse/tools, rondas con presupuesto, ledger) <-> answer_pipeline.path_b_bundle(search_plan=) <->
+# verify_output (positive_claim_requires_citations, escalera support_state) <-> composite_auditor (reintento por
+# juez, citation_support). 100% offline: las tools Layer 0 se INYECTAN en search_harness._TOOL_CACHE (tras
+# verificar que las reales resuelven), las tres fuentes legadas por sus costuras de hoy, el reloj del harness es
+# falso (_sh._monotonic) y urllib.request.urlopen queda BLOQUEADO Y CONTADO durante la sección: "cero red" es
+# MEDICIÓN, no promesa. Cero modelo, cero mutación de mcp_cache (snapshot antes/después).
+# =====================================================================================================
+import time as _time  # noqa: E402
+import urllib.request as _urlreq  # noqa: E402
+from lib import search_harness as _sh, verify_output as _vo  # noqa: E402
+import competence as _cg  # noqa: E402
+
+_NET_CALLS = []
+_urlopen_real = _urlreq.urlopen
+
+
+def _urlopen_blocked(*a, **kw):
+    _NET_CALLS.append(str(a[0] if a else kw.get("url")))
+    raise RuntimeError("network blocked by smoke_run_pipeline (ADR-0080 offline gate)")
+
+
+_urlreq.urlopen = _urlopen_blocked
+_MCP_CACHE_DIR = answer_pipeline.CACHE
+
+
+def _mcp_snapshot():
+    if not _MCP_CACHE_DIR.exists():
+        return []
+    return sorted((p.name, p.stat().st_size) for p in _MCP_CACHE_DIR.iterdir()
+                  if p.is_file() and not p.name.endswith(".log"))
+
+
+_mcp_before = _mcp_snapshot()
+_cache_zfin_real = answer_pipeline._cache_zfin
+answer_pipeline._cache_zfin = lambda symbol, res: []   # la caché por día de ZFIN no se toca desde el gate
+
+# --- (C/D) cableado ESTÁTICO: la tabla apunta a los archivos REALES de C3–C5 --------------------------------
+_L0_FAMILIES = ("alliance_orthologs", "zfin_expression", "ensembl_homology", "uniprot", "monarch", "reactome",
+                "string", "geo", "unpaywall_crossref", "openalex")
+_sh._TOOL_CACHE.clear()
+_wiring = {}
+for _fam in _L0_FAMILIES + ("pubmed", "zfin"):
+    _spec = _sh.SEARCH_DISPATCH[_fam]
+    _fn, _resolved, _detail = _sh._load_tool(_fam)
+    _wiring[_fam] = {"file_exists": (_sh._TU_WORKSPACE / _spec["tool_module"]).exists(),
+                     "fn_declared": _spec["fn"], "fn_resolved": _resolved, "detail": _detail, "callable": callable(_fn)}
+check("ADR-0080 (C/D) SEARCH_DISPATCH apunta a los archivos REALES de C3–C5 (+pubmed/zfin de hoy): los 12 módulos existen "
+      "bajo .tooluniverse/tools y _load_tool resuelve EXACTAMENTE la función declarada (fn_resolved == fn, sin nota); "
+      "'web' y 'tooluniverse' quedan tool-unavailable DECLARADOS (ADR-0084/0085); las 15 familias tienen gate/evidence_kind/"
+      "label en vocabulario",
+      all(w["file_exists"] and w["callable"] and w["fn_resolved"] == w["fn_declared"] and w["detail"] is None
+          for w in _wiring.values())
+      and _sh._load_tool("web") == (None, None, "tool-unavailable (ADR-0084)")
+      and _sh._load_tool("tooluniverse") == (None, None, "tool-unavailable (ADR-0085)")
+      and len(_sh.SEARCH_DISPATCH) == 15
+      and all(s["gate"] in _sh.GATES and s["label_provenance"] in _sh.LABELS and s.get("evidence_kind")
+              for s in _sh.SEARCH_DISPATCH.values())
+      and [f for f, s in _sh.SEARCH_DISPATCH.items() if s["gate"] == "auto"] == list(_sh.DEFAULT_FAMILIES),
+      json.dumps({k: (v["fn_resolved"], v["detail"]) for k, v in _wiring.items()
+                  if not (v["fn_resolved"] == v["fn_declared"] and v["detail"] is None)}))
+
+# --- (C7 costura C2<->C5) la tabla casa con la forma REAL de las tools ---------------------------------------
+_doi_res = {"status": "success", "query_sent": "GET api.crossref.org/works/10.1242/dev.02071", "elapsed_s": 0.1,
+            "data": {"doi": "10.1242/dev.02071",
+                     "crossref": {"source": "crossref", "status": "success", "evidence_kind": "paper-metadata",
+                                  "identifier_provenance": "crossref-works",
+                                  "data": {"doi": "10.1242/dev.02071", "year": 2005,
+                                           "title": "Fgf signals from a novel signaling center determine axial patterning",
+                                           "url": "https://doi.org/10.1242/dev.02071", "abstract": "abs"}},
+                     "unpaywall": {"source": "unpaywall", "status": "tool-unavailable",
+                                   "reason": "WITT_UNPAYWALL_EMAIL unset", "contact": "unset"}}}
+_els, _lk = _sh._result_list(_doi_res, _sh.SEARCH_DISPATCH["unpaywall_crossref"])
+_it = _sh.normalize_item("unpaywall_crossref", _els[0], _sh.SEARCH_DISPATCH["unpaywall_crossref"], _doi_res,
+                         input_value="10.1242/dev.02071") if _els else {}
+_plan_doi = {"families": ["unpaywall_crossref"], "queries": {"unpaywall_crossref": {"inputs": "dois"}}, "symbols": []}
+_rd_tu = _sh.run_round(_plan_doi, 1, 30.0, ctx={"dois": ["10.1242/dev.02071"]},
+                       tools={"unpaywall_crossref": lambda doi, timeout=None, **kw: {
+                           "status": "tool-unavailable", "error": "WITT_UNPAYWALL_EMAIL unset", "query_sent": None}})
+_rd_sb = _sh.run_round(_plan_doi, 1, 30.0, ctx={"dois": ["10.1242/dev.02071"]},
+                       tools={"unpaywall_crossref": lambda doi, timeout=None, **kw: {
+                           "status": "skipped-budget", "error": "BudgetExhausted", "query_sent": None}})
+check("ADR-0080 (C7 costura C2<->C3/C5) la tabla casa con la forma REAL de las tools: geo/openalex dejan la lista en "
+      "data.records; unpaywall_crossref deja UNA fila por fuente (source_rows) -> _result_list produce un elemento por fila "
+      "'success' con evidence_id '<fuente>:<doi>' (la fila tool-unavailable NO produce nada) y el ítem normalizado conserva "
+      "kind/identifier_provenance de la fila; una familia cuyas llamadas dijeron TODAS 'tool-unavailable' | 'skipped-budget' "
+      "hereda ese literal (no se degrada a 'error') con la razón del tool en detail",
+      _sh.SEARCH_DISPATCH["geo"]["list_keys"] == ("records",) and _sh.SEARCH_DISPATCH["openalex"]["list_keys"] == ("records",)
+      and _lk == "source-rows" and len(_els) == 1 and _els[0]["evidence_id"] == "crossref:10.1242/dev.02071"
+      and _it.get("kind") == "paper-metadata" and _it.get("identifier_provenance") == "crossref-works"
+      and _it.get("url") == "https://doi.org/10.1242/dev.02071" and _it.get("source_family") == "unpaywall_crossref"
+      and _rd_tu["sources"][0]["status"] == "tool-unavailable" and _rd_tu["sources"][0]["n_found"] is None
+      and _rd_tu["sources"][0]["detail"] == "WITT_UNPAYWALL_EMAIL unset" and _rd_tu["n_new_total"] == 0
+      and _rd_sb["sources"][0]["status"] == "skipped-budget",
+      f"list_key={_lk} n={len(_els)} tu={_rd_tu['sources'][0]['status']} sb={_rd_sb['sources'][0]['status']}")
+
+# --- fakes Layer 0 inyectadas en _TOOL_CACHE + reloj falso del harness --------------------------------------
+_CLOCK = {"t": 0.0}
+_sh._monotonic = lambda: _CLOCK["t"]
+_TOOL_CALLS = []
+_ALLIANCE_EL = {"species": "Homo sapiens", "taxon_id": "NCBITaxon:9606", "symbol": "WT1", "id": "HGNC:12796",
+                "stringency": "stringent", "best": "Yes", "confidence": "high",
+                "evidence_id": "alliance-ortholog:ZFIN:ZDB-GENE-980526-558->HGNC:12796",
+                "url": "https://www.alliancegenome.org/gene/HGNC:12796", "identifier_provenance": "alliance-api-payload"}
+
+
+def _fake_l0(family, status="no-match", elements=None, list_key="items", bump_clock_s=0.0, cache_hit=False):
+    def _fn(x, timeout=None, **kw):
+        _TOOL_CALLS.append({"family": family, "input": x, "timeout": timeout})
+        if bump_clock_s:
+            _CLOCK["t"] += bump_clock_s
+        out = {"status": status, "query_sent": f"{family}?q={x}", "elapsed_s": bump_clock_s, "cache_hit": cache_hit,
+               "data": {list_key: list(elements or [])}}
+        if status == "error":
+            out["error"] = "HTTPError: 503 (simulated)"
+        return out
+    return _fn
+
+
+def _inject_l0(alliance_status="success", alliance_bump=0.0, expr_status="no-match"):
+    _sh._TOOL_CACHE.clear()
+    _sh._TOOL_CACHE["alliance_orthologs"] = (
+        _fake_l0("alliance_orthologs", alliance_status, [_ALLIANCE_EL] if alliance_status == "success" else [],
+                 list_key="orthologs", bump_clock_s=alliance_bump, cache_hit=True), "injected", None)
+    _sh._TOOL_CACHE["zfin_expression"] = (_fake_l0("zfin_expression", expr_status, [], list_key="rows"), "injected", None)
+    for fam in _L0_FAMILIES:
+        _sh._TOOL_CACHE.setdefault(fam, (_fake_l0(fam, "no-match"), "injected", None))
+
+
+def _fake_zfin_empty(symbol, anatomy=None, limit=50, **kw):
+    return {"status": "success", "data": {"symbol": symbol, "zfin_curie": f"ZFIN:ZDB-GENE-{symbol.upper()}",
+                                          "taxon": "NCBITaxon:7955", "n_phenotypes_total": 143, "n_matched": 0,
+                                          "anatomy_filter": anatomy, "phenotypes": []}}
+
+
+def _fake_pubmed_empty(query, limit=None, retmax=None):
+    out = _fake_pubmed(query, limit, retmax)
+    out["data"]["records"] = []
+    out["data"]["n_found_total"] = 0
+    return out
+
+
+def _sources_found():
+    """EPMC 6 recs (2 duplicadas por PubMed) + PubMed 3 + ZFIN wt1a 30 fenotipos + Alliance 1 ortólogo."""
+    answer_pipeline.fetch_paper.search_europepmc_ledger = _fake_epmc_ledger
+    answer_pipeline.fetch_paper.fetch_external = _fake_fetch_content
+    answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed_pool
+    answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = _fake_zfin
+    _inject_l0("success")
+
+
+def _sources_empty():
+    """Todas las fuentes MIDEN 0 (no-match): la ronda no trae nada nuevo."""
+    answer_pipeline.fetch_paper.search_europepmc_ledger = (
+        lambda query, n=5, sort=None, synonym=True: ([], {"source": "europepmc", "status": "no-match", "query_sent": query,
+                                                          "n_found": 0, "n_returned": 0, "elapsed_s": 0.01}))
+    answer_pipeline.fetch_paper.fetch_external = _fake_fetch_content
+    answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed_empty
+    answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = _fake_zfin_empty
+    _inject_l0("no-match")
+
+
+def _run80(question, entities=(), synth=None, panel=None, plan=False, env=None, worker="run-worker-adr0080"):
+    """Una corrida por la PUERTA (app.create_run [+ app.create_plan con el planner stub]) ejecutada con el
+    sintetizador/panel inyectados bajo `env` (vars fijadas SOLO durante la corrida). Devuelve (run_id, frozen, events)."""
+    saved = {k: os.environ.get(k) for k in (env or {})}
+    for k, v in (env or {}).items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+    try:
+        body = {"question": question, "entities": list(entities)}
+        if plan:
+            planner_real = runs_mod._default_planner
+            runs_mod._default_planner = _fake_planner_ok
+            try:
+                prv = app.create_plan(app.PlanBody(question=question, entities=list(entities)), authorization=AUTH)
+            finally:
+                runs_mod._default_planner = planner_real
+            body["plan_id"] = prv["plan_id"]
+        rv = app.create_run(app.RunBody(**body), authorization=AUTH)
+        claimed = db.claim_next_queued(worker_id=worker)
+        assert claimed and claimed["run_id"] == rv["run_id"], "FIFO: la corrida reclamada debe ser la esperada"
+        runs_mod.execute_run(claimed, synthesizer=synth or _mk_synth({"pass1": 0.8, "pass2": 0.85}),
+                             panel_caller=panel or _stub_caller_factory(ALL_A))
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+    rid = rv["run_id"]
+    return rid, app.get_frozen_record(rid, authorization=AUTH), app.get_events(rid, after=0, authorization=AUTH)["events"]
+
+
+def _ev_types(ev):
+    return [e["type"] for e in ev]
+
+
+def _ev_payloads(ev, t):
+    return [e["payload"] for e in ev if e["type"] == t]
+
+
+answer_pipeline.path_b = _path_b_real   # la Ruta B REAL: path_b_bundle(search_plan=) -> _path_b_harness -> harness
+_sources_found()
+
+# --- (A/B) COMPETENTE con plan: pass1 es la candidata, SIN ronda, trigger null ------------------------------
+_rid_c, _rec_c, _ev_c = _run80("ADR-0080 competente: does wt1a mark the pronephros?", ["wt1a"], plan=True)
+_t_c = _ev_types(_ev_c)
+_gate_c = _ev_payloads(_ev_c, "stage.deterministic_gate")
+check("ADR-0080 (A/B) COMPETENTE (plan evidence-run + nichos, conf 0.8 >= tau, pass1 admisible, sin estructural): "
+      "competent True, reasons [], fallback.trigger null y trigger_legacy null, NINGUNA ronda (sin stage.search.* ni "
+      "stage.path_b ni pass2), search_ledger.state 'not-requested…' con rounds [] y n_rounds 0 (CERO medido: la compuerta "
+      "decidió no buscar — corrector ADR-0080/ADR-0043; null se reserva a 'el harness no midió'), epistemic_summary "
+      "{competent True, n_search_rounds 0}; orden de la traza: synthesize.pass1 < confidence.elicit{pass1} < "
+      "deterministic_gate{pass:1} (ADELANTADO) < competence < audit.start",
+      _rec_c["competence"]["competent"] is True and _rec_c["competence"]["reasons"] == []
+      and _rec_c["competence"]["not_applicable"] is False
+      and _rec_c["fallback"]["trigger"] is None and _rec_c["fallback"]["fb_meta"]["trigger_legacy"] is None
+      and _rec_c["confidence"]["pass2"] is None and "stage.synthesize.pass2" not in _t_c
+      and not any(t.startswith("stage.search.") for t in _t_c) and "stage.path_b" not in _t_c
+      and _rec_c["search_ledger"]["state"].startswith("not-requested") and _rec_c["search_ledger"]["rounds"] == []
+      and _rec_c["search_ledger"]["n_rounds"] == 0 and _rec_c["search_ledger"]["plan_state"] == "not-requested"
+      and app.get_run(_rid_c, authorization=AUTH)["epistemic_summary"]["competent"] is True
+      and app.get_run(_rid_c, authorization=AUTH)["epistemic_summary"]["n_search_rounds"] == 0
+      and _t_c.index("stage.synthesize.pass1") < _t_c.index("stage.confidence.elicit") < _t_c.index("stage.deterministic_gate")
+      < _t_c.index("stage.competence") < _t_c.index("stage.audit.start")
+      and len(_gate_c) == 1 and _gate_c[0]["pass"] == "pass1" and _gate_c[0]["admissible"] is True
+      and _rec_c["deterministic_checks"]["pass1_admissible"] is True
+      and _rec_c["deterministic_checks"]["competence_gate"]["competent"] is True,
+      f"reasons={_rec_c['competence']['reasons']} ledger_state={_rec_c['search_ledger']['state']}")
+_comp_ev = _ev_payloads(_ev_c, "stage.competence")
+check("ADR-0080 (A) el BLOQUE de la compuerta: stage.competence == frozen.competence (íntegro, con decision), decided_by "
+      "'code', module_version 'cg-3', self_report {stated_confidence 0.8, class 'model-judgment', nota que dice la VERDAD: "
+      "'participa como componente conf1_ge_tau medido por CONF_TOOL (ADR-0065; …); la conjunción la decide código'}, componentes "
+      "en orden canónico con value/reason, conjunction CON conf1_ge_tau primero (cg-3: el escalar elicitado gatea por default, "
+      "ADR-0051/0065) y SIN calibration_coverage (gating False por default); council_uncovered_must 'not-available (ADR-0082)' "
+      "gating False; "
+      "fb_meta.competence + trigger_vocabulary (runs.TRIGGER_VOCABULARY) + trigger_decided_by 'code (competence-gate)'; "
+      "config con tau 0.5 (source 'caller' = runs.FALLBACK_CONF_TAU) y fb_meta.tau_source declarado",
+      len(_comp_ev) == 1 and _comp_ev[0] == _rec_c["competence"]
+      and _rec_c["competence"]["decided_by"] == "code" and _rec_c["competence"]["module_version"] == "cg-3" == _cg.MODULE_VERSION
+      and _rec_c["competence"]["self_report"] == {"stated_confidence": 0.8, "class": "model-judgment",
+                                                 "note": "participa como componente conf1_ge_tau medido por CONF_TOOL (ADR-0065; "
+                                                         "gating true, WITT_CG_CONF_COMPONENT default 1, cg-3); la conjunción la "
+                                                         "decide código"}
+      and list(_rec_c["competence"]["components"]) == list(_cg.COMPONENT_ORDER)
+      and _rec_c["competence"]["conjunction"] == ["conf1_ge_tau", "admissible", "route_evidence_run", "niches_nonempty",
+                                                  "structural_not_fired"]
+      and _rec_c["competence"]["components"]["conf1_ge_tau"]["gating"] is True
+      and _rec_c["competence"]["components"]["conf1_ge_tau"]["value"] is True
+      and _rec_c["competence"]["config"]["conf_component_gating"] is True
+      and _rec_c["fallback"]["fb_meta"]["trigger_decided_by"] == "code (competence-gate)"
+      and _rec_c["fallback"]["fb_meta"]["tau_source"] == runs_mod.FALLBACK_CONF_TAU_SOURCE
+      and _rec_c["competence"]["components"]["calibration_coverage"]["gating"] is False
+      and _rec_c["competence"]["components"]["council_uncovered_must"] == {"value": None, "state": "not-available (ADR-0082)",
+                                                                          "gating": False}
+      and _rec_c["competence"]["components"]["niches_nonempty"]["niches"] == ["N3", "N4"]
+      and _rec_c["competence"]["config"]["tau"] == 0.5 and _rec_c["competence"]["config"]["tau_source"] == "caller"
+      and _rec_c["competence"]["decision"]["decision_source"].startswith("competence-gate: competent")
+      and _rec_c["fallback"]["fb_meta"]["trigger_vocabulary"] == runs_mod.TRIGGER_VOCABULARY
+      and "confidence(only when competence.competent is null)" in runs_mod.TRIGGER_VOCABULARY
+      and _rec_c["fallback"]["fb_meta"]["competence"]["competent"] is True
+      and _rec_c["fallback"]["fb_meta"]["competence"]["decided_by"] == "code",
+      json.dumps({k: v.get("value") for k, v in _rec_c["competence"]["components"].items()}))
+_bs_c = _rec_c["token_usage"]["by_stage"]
+check("ADR-0080 (F) by_stage del competente: plan 400 (el planner gastó), synthesize_pass1 100, elicit_pass1 'not-separable…' "
+      "(stub sin usage_elicitation: in/out null, jamás un 0 inventado), search 0 con nota Layer 0, synthesize_pass2 0, panel 40, "
+      "revision 0, embed aparte; _sum == by_model total y by_stage_sum_matches_by_model True",
+      _bs_c["plan"]["in"] == 400 and _bs_c["synthesize_pass1"]["in"] == 100 and _bs_c["synthesize_pass1"]["out"] == 50
+      and _bs_c["elicit_pass1"]["in"] is None and _bs_c["elicit_pass1"]["state"].startswith("not-separable")
+      and _bs_c["search"]["in"] == 0 and "Layer 0" in _bs_c["search"]["note"]
+      and _bs_c["synthesize_pass2"]["in"] == 0 and _bs_c["elicit_pass2"]["state"] == "not-run"
+      and _bs_c["panel"]["in"] == 40 and _bs_c["revision"]["in"] == 0 and "tokens" in _bs_c["embed"]
+      and _bs_c["_sum"]["in"] == _rec_c["token_usage"]["input_tokens"] == 540
+      and _bs_c["_sum"]["out"] == _rec_c["token_usage"]["output_tokens"]
+      and _rec_c["token_usage"]["by_stage_sum_matches_by_model"] is True,
+      json.dumps({k: (v.get("in"), v.get("state")) for k, v in _bs_c.items() if k != "embed"}))
+
+# --- (B/C) NO competente (sin plan) -> plan de búsqueda REAL + UNA ronda por el harness REAL -> pass2 ------------
+_TOOL_CALLS.clear()
+_rid_h, _rec_h, _ev_h = _run80("ADR-0080 harness: is wt1a required for pronephros glomerulus formation?", ["wt1a"],
+                               synth=_mk_synth({"pass1": 0.8, "pass2": 0.85},
+                                               extra={"search_query_en": "wt1a zebrafish pronephros glomerulus"}))
+_t_h = _ev_types(_ev_h)
+_sl_h = _rec_h["search_ledger"]
+_plan_ev = _ev_payloads(_ev_h, "stage.search.plan")
+_src_ev = _ev_payloads(_ev_h, "stage.search.source")
+_rnd_ev = _ev_payloads(_ev_h, "stage.search.round")
+_pb_ev = _ev_payloads(_ev_h, "stage.path_b")
+_row_h = {s["family"]: s for s in _sl_h["rounds"][0]["sources"]} if _sl_h.get("rounds") else {}
+check("ADR-0080 (B/C) NO COMPETENTE (sin plan, 'no-plan') -> stage.search.plan UNA vez (plan_version '1', familias DEFAULT "
+      "europepmc,pubmed,zfin,alliance_orthologs,zfin_expression, families_source 'default-families', n_directives 0, "
+      "question_en_source 'pass1_query_en' — la formulación EN de pass1 alimenta al plan; el constructor del bloque la "
+      "declara 'synthesizer'), 5 stage.search.source, "
+      "1 stage.search.round; frozen.search_ledger.state 'harness', n_rounds 1 <= cap 2, stop_reason 'found-new', "
+      "config_source declarada; stage.path_b trigger 'competence' + harness_used True + trigger_legacy null; pass2 corre; "
+      "epistemic_summary.n_search_rounds 1",
+      _rec_h["competence"]["competent"] is False and _rec_h["fallback"]["trigger"] == "competence"
+      and _rec_h["fallback"]["fb_meta"]["trigger_legacy"] is None
+      and len(_plan_ev) == 1 and _plan_ev[0]["plan_version"] == "1"
+      and _plan_ev[0]["families"] == ["europepmc", "pubmed", "zfin", "alliance_orthologs", "zfin_expression"]
+      and _plan_ev[0]["families_source"] == "default-families" and _plan_ev[0]["n_directives"] == 0
+      and _plan_ev[0]["question_en_source"] == "pass1_query_en"
+      and _rec_h["search_ledger"]["plan"]["question_en"] == "wt1a zebrafish pronephros glomerulus"
+      and json.loads(db.get_run(_rid_h)["bundle_json"])["path_b"]["query_builder"]["inputs"]["question_en_source"] == "synthesizer"
+      and len(_src_ev) == 5 and len(_rnd_ev) == 1 and _rnd_ev[0]["round"] == 1 and _rnd_ev[0]["trigger"] == "initial"
+      and _sl_h["state"] == "harness" and _sl_h["n_rounds"] == 1 and _sl_h["cap"] == 2 and _sl_h["n_rounds"] <= _sl_h["cap"]
+      and _sl_h["stop_reason"] == "found-new" and _sl_h["harness_version"] == "sh-1"
+      and _sl_h["families_default"] == ["europepmc", "pubmed", "zfin", "alliance_orthologs", "zfin_expression"]
+      and _sl_h["config_source"] == {"families": "default-unset:WITT_SEARCH_DEFAULT_FAMILIES",
+                                     "cap": "default-unset:WITT_SEARCH_ROUNDS_CAP",
+                                     "round_budget_s": "default-unset:WITT_SEARCH_ROUND_BUDGET_S"}
+      and len(_pb_ev) == 1 and _pb_ev[0]["trigger"] == "competence" and _pb_ev[0]["harness_used"] is True
+      and _pb_ev[0]["trigger_legacy"] is None and _pb_ev[0]["search_ledger"]["n_rounds"] == 1
+      and "stage.synthesize.pass2" in _t_h and _rec_h["confidence"]["pass2"] == 0.85
+      and app.get_run(_rid_h, authorization=AUTH)["epistemic_summary"]["n_search_rounds"] == 1
+      and app.get_run(_rid_h, authorization=AUTH)["epistemic_summary"]["competent"] is False,
+      json.dumps({"ledger_state": _sl_h.get("state"), "n_rounds": _sl_h.get("n_rounds"), "stop": _sl_h.get("stop_reason"),
+                  "plan_ev": len(_plan_ev), "src_ev": len(_src_ev), "rnd_ev": len(_rnd_ev),
+                  "plan": {k: _plan_ev[0].get(k) for k in ("plan_version", "families", "families_source", "n_directives",
+                                                          "question_en_source")} if _plan_ev else None,
+                  "pb": {k: _pb_ev[0].get(k) for k in ("trigger", "harness_used", "trigger_legacy")} if _pb_ev else None,
+                  "config_source": _sl_h.get("config_source"), "trigger": _rec_h["fallback"]["trigger"],
+                  "legacy": _rec_h["fallback"]["fb_meta"]["trigger_legacy"], "pass2": _rec_h["confidence"]["pass2"],
+                  "es": {k: app.get_run(_rid_h, authorization=AUTH)["epistemic_summary"].get(k)
+                         for k in ("competent", "n_search_rounds")}}))
+_papers_h = json.loads(db.get_run(_rid_h)["bundle_json"])["path_b"]["papers"]
+_kinds_h = {p.get("evidence_id"): p.get("kind") for p in _papers_h}
+check("ADR-0080 (C/D) la RONDA por fuente: europepmc success (6 -> pool), pubmed success con duplicates_of_europepmc "
+      "DECLARADOS (PMID:11111111/22222222 ya vinieron por EPMC), zfin success (fenotipos nativos), alliance_orthologs success "
+      "1 ítem kind 'ortholog' con evidence_id/identifier_provenance DEL TOOL ('alliance-api-payload', cache_hit True), "
+      "zfin_expression no-match (n_found 0 ENTERO: midió); cada fake recibió `timeout` (el presupuesto viaja al tool); "
+      "los ítems Layer 0 entran a path_b.papers junto a la literatura seleccionada; n_new/n_found enteros SOLO en success|no-match",
+      set(_row_h) == {"europepmc", "pubmed", "zfin", "alliance_orthologs", "zfin_expression"}
+      and _row_h["europepmc"]["status"] == "success" and _row_h["europepmc"]["n_found"] == 6
+      and _row_h["pubmed"]["status"] == "success"
+      and set(_row_h["pubmed"]["ledger"].get("duplicates_of_europepmc") or []) >= {"PMID:11111111", "PMID:22222222"}
+      and _row_h["zfin"]["status"] == "success" and _row_h["zfin"]["n_found"] == 1
+      and _row_h["alliance_orthologs"]["status"] == "success" and _row_h["alliance_orthologs"]["n_found"] == 1
+      and _row_h["alliance_orthologs"]["n_new"] == 1 and _row_h["alliance_orthologs"]["cache_hit"] is True
+      and _row_h["alliance_orthologs"]["fn_resolved"] == "injected"
+      and _row_h["zfin_expression"]["status"] == "no-match" and _row_h["zfin_expression"]["n_found"] == 0
+      and _kinds_h.get("alliance-ortholog:ZFIN:ZDB-GENE-980526-558->HGNC:12796") == "ortholog"
+      and next(p for p in _papers_h if p.get("kind") == "ortholog")["identifier_provenance"] == "alliance-api-payload"
+      and next(p for p in _papers_h if p.get("kind") == "ortholog")["label"] is None
+      and any(p.get("kind") == "phenotype" for p in _papers_h)
+      and any(p.get("evidence_id") == "PMID:11111111" for p in _papers_h)
+      and all(isinstance(c["timeout"], (int, float)) and c["timeout"] > 0 for c in _TOOL_CALLS)
+      and {c["family"] for c in _TOOL_CALLS} == {"alliance_orthologs", "zfin_expression"}
+      and all((s["n_found"] is None) == (s["status"] not in ("success", "no-match")) for s in _row_h.values()),
+      json.dumps({f: (s["status"], s["n_found"], s["n_new"]) for f, s in _row_h.items()}))
+_bs_h = _rec_h["token_usage"]["by_stage"]
+check("ADR-0080 (F) by_stage del NO competente: plan {0, 'no-plan'}, synthesize_pass1 100, synthesize_pass2 100, search 0 "
+      "(Layer 0 no gasta modelo), panel 40; _sum 240 == by_model total (stub-synth 200 + jueces 40) == token_usage.input_tokens; "
+      "y en la corrida con REVISIÓN (ADR-0067) revision 100 + panel 80 y la suma también cuadra",
+      _bs_h["plan"] == {"in": 0, "out": 0, "state": "no-plan"} and _bs_h["synthesize_pass1"]["in"] == 100
+      and _bs_h["synthesize_pass2"]["in"] == 100 and _bs_h["search"]["in"] == 0 and _bs_h["panel"]["in"] == 40
+      and _bs_h["_sum"]["in"] == 240 == _rec_h["token_usage"]["input_tokens"]
+      and _rec_h["token_usage"]["by_stage_sum_matches_by_model"] is True
+      and rec_r["token_usage"]["by_stage"]["revision"]["in"] == 100 and rec_r["token_usage"]["by_stage"]["panel"]["in"] == 80
+      and rec_r["token_usage"]["by_stage"]["_sum"]["in"] == rec_r["token_usage"]["input_tokens"]
+      and rec_r["token_usage"]["by_stage_sum_matches_by_model"] is True,
+      json.dumps({k: v.get("in") for k, v in _bs_h.items() if k != "embed"}))
+_bs_real = rec_real["token_usage"]["by_stage"]
+_el_real = [p for p in _ev_payloads(app.get_events(rv_real["run_id"], after=0, authorization=AUTH)["events"],
+                                    "stage.confidence.elicit")]
+check("ADR-0080 (B/F) CAMINO REAL (_default_synthesizer con la API falsa): la elicitación dedicada (ADR-0065) gana su evento "
+      "stage.confidence.elicit{pass 1|2} con usage {in 30, out 3, model} y elicitation_state 'elicited'; by_stage SEPARA "
+      "elicit_pass1 {30, 3, 'measured'} de synthesize_pass1 {100, 50} (la parte se resta de la suma fusionada, M8 sigue "
+      "cuadrando: _sum == by_model total)",
+      len(_el_real) == 2 and [p["pass"] for p in _el_real] == ["pass1", "pass2"]
+      and _el_real[0]["usage"]["in"] == 30 and _el_real[0]["usage"]["out"] == 3 and _el_real[0]["usage"].get("model")
+      and _el_real[0]["elicitation_state"] == "elicited" and _el_real[0]["confidence_source"] == "stated-second-elicitation"
+      and _bs_real["elicit_pass1"]["in"] == 30 and _bs_real["elicit_pass1"]["out"] == 3
+      and _bs_real["elicit_pass1"]["state"] == "measured"
+      and _bs_real["synthesize_pass1"]["in"] == 100 and _bs_real["synthesize_pass1"]["out"] == 50
+      and _bs_real["_sum"]["in"] == rec_real["token_usage"]["input_tokens"]
+      and rec_real["token_usage"]["by_stage_sum_matches_by_model"] is True,
+      json.dumps({"elicit": [(p["pass"], p["usage"]) for p in _el_real],
+                  "by_stage": {k: v.get("in") for k, v in _bs_real.items() if k != "embed"}}))
+_gate_h = _ev_payloads(_ev_h, "stage.deterministic_gate")
+_syn1_h = _ev_payloads(_ev_h, "stage.synthesize.pass1")
+check("ADR-0080 (G) eventos nuevos y ampliados en la traza del NO competente: stage.deterministic_gate x2 con `pass` 1 y 2 "
+      "(el de pass1 ANTES de stage.competence), stage.synthesize.pass1 lleva usage {in, out, model}, stage.confidence.elicit "
+      "x2 (pass 'pass1' y 'pass2' — ETIQUETAS, el vocabulario de usage_raw.passes; corrector ADR-0080: la llave ya no mezcla "
+      "int y str) con elicitation_state 'not-reported-by-synthesizer' (stub) y usage null declarado; deterministic_checks "
+      "congelado lleva pass 'pass2', pass1_admissible True, competence_gate compacto con reasons ['route_evidence_run','niches_nonempty']",
+      [g["pass"] for g in _gate_h] == ["pass1", "pass2"]
+      and _t_h.index("stage.deterministic_gate") < _t_h.index("stage.competence") < _t_h.index("stage.search.plan")
+      and _syn1_h[0]["usage"] == {"in": 100, "out": 50, "model": "stub-synth"}
+      and [p["pass"] for p in _ev_payloads(_ev_h, "stage.confidence.elicit")] == ["pass1", "pass2"]
+      and all(p["elicitation_state"] == "not-reported-by-synthesizer" and p["usage"] is None
+              for p in _ev_payloads(_ev_h, "stage.confidence.elicit"))
+      and _rec_h["deterministic_checks"]["pass"] == "pass2" and _rec_h["deterministic_checks"]["pass1_admissible"] is True
+      and _rec_h["deterministic_checks"]["competence_gate"]["competent"] is False
+      and _rec_h["deterministic_checks"]["competence_gate"]["reasons"] == ["route_evidence_run", "niches_nonempty"]
+      and _rec_h["deterministic_checks"]["competence_gate"]["decided_by"] == "code",
+      json.dumps({"gate_passes": [g["pass"] for g in _gate_h], "syn1_usage": _syn1_h[0].get("usage")}))
+
+# --- (C) rondas <= cap: nada nuevo en la ronda 1 -> ronda 2 -> 'rounds-cap'; cap por env respetado -------------
+_sources_empty()
+_rid_2, _rec_2, _ev_2 = _run80("ADR-0080 dos rondas: does wt1a mark the pronephros?", ["wt1a"])
+_sl_2 = _rec_2["search_ledger"]
+_rid_1, _rec_1, _ev_1 = _run80("ADR-0080 cap 1: does wt1a mark the pronephros?", ["wt1a"],
+                               env={"WITT_SEARCH_ROUNDS_CAP": "1"})
+_sl_1 = _rec_1["search_ledger"]
+check("ADR-0080 (C, corrector) NADA SE RE-EJECUTA: n_admitted == 0 en la ronda 1 y NINGÚN insumo de familia cambió "
+      "(inputs_signature idéntica antes/después) -> NO hay ronda 2 aunque k < cap: stop_reason 'no-new-inputs' (literal "
+      "declarado en SEARCH_STOP_REASONS), n_rounds 1 < cap 2, 1 evento stage.search.round, 5 stage.search.source (no 10: "
+      "cero GETs repetidos), todas las fuentes no-match con n_found 0 ENTERO, rounds[0].inputs_changed False y n_admitted 0; "
+      "pass2 corre igual (la ronda vacía se declara, no se esconde); epistemic_summary.n_search_rounds 1; second_round_rule "
+      "congelada nombra el predicado completo",
+      _sl_2["n_rounds"] == 1 and _sl_2["cap"] == 2 and _sl_2["stop_reason"] == "no-new-inputs" and _sl_2["n_new_total"] == 0
+      and "no-new-inputs" in answer_pipeline.SEARCH_STOP_REASONS and _sl_2["stop_reasons_vocabulary"] == list(answer_pipeline.SEARCH_STOP_REASONS)
+      and [r["trigger"] for r in _sl_2["rounds"]] == ["initial"]
+      and _sl_2["rounds"][0]["inputs_changed"] is False and _sl_2["rounds"][0]["n_admitted"] == 0 and _sl_2["n_admitted_total"] == 0
+      and len(_ev_payloads(_ev_2, "stage.search.round")) == 1 and len(_ev_payloads(_ev_2, "stage.search.source")) == 5
+      and _ev_payloads(_ev_2, "stage.search.round")[0]["n_admitted"] == 0
+      and all(s["status"] == "no-match" and s["n_found"] == 0 for r in _sl_2["rounds"] for s in r["sources"])
+      and "stage.synthesize.pass2" in _ev_types(_ev_2)
+      and app.get_run(_rid_2, authorization=AUTH)["epistemic_summary"]["n_search_rounds"] == 1
+      and _sl_2["second_round_rule"].startswith("only if n_admitted == 0 in round k AND k < cap AND the inputs"),
+      json.dumps({"n_rounds": _sl_2["n_rounds"], "stop": _sl_2["stop_reason"],
+                  "statuses": [[s["status"] for s in r["sources"]] for r in _sl_2["rounds"]]}))
+_sh_pred = (_sh.should_run_next_round(1, 0, 2, True) is True and _sh.should_run_next_round(1, 0, 2, False) is False
+            and _sh.should_run_next_round(1, 0, 2) is True and _sh.should_run_next_round(2, 0, 2, True) is False)
+check("ADR-0080 (C, corrector) should_run_next_round(k, n_new, cap, inputs_changed): (1,0,2,True) True · (1,0,2,False) False · "
+      "firma vieja (1,0,2) True (compat) · (2,0,2,True) False (cap); inputs_signature es determinista y por familia",
+      _sh_pred and set(_sh.inputs_signature(_sl_2["plan"], {"dois": [], "curies": []})) == set(_sl_2["plan"]["families"]),
+      json.dumps(_sh.inputs_signature(_sl_2["plan"], {"dois": ["10.1/x"], "curies": []}), default=str)[:200])
+check("ADR-0080 (C) WITT_SEARCH_ROUNDS_CAP=1 (leída en tiempo de corrida): una sola ronda aunque no haya nada nuevo, "
+      "stop_reason 'rounds-cap' (k >= cap manda sobre 'no-new-inputs'), search_ledger.cap 1 con config_source.cap "
+      "'env:WITT_SEARCH_ROUNDS_CAP' y el plan declara rounds_cap_source 'env:…'",
+      _sl_1["n_rounds"] == 1 and _sl_1["cap"] == 1 and _sl_1["stop_reason"] == "rounds-cap"
+      and _sl_1["config_source"]["cap"] == "env:WITT_SEARCH_ROUNDS_CAP"
+      and _sl_1["plan"]["rounds_cap"] == 1 and _sl_1["plan"]["rounds_cap_source"] == "env:WITT_SEARCH_ROUNDS_CAP"
+      and len(_ev_payloads(_ev_1, "stage.search.round")) == 1,
+      json.dumps({"n_rounds": _sl_1["n_rounds"], "cap": _sl_1["cap"], "cap_src": _sl_1["config_source"]["cap"]}))
+
+# --- (C) presupuesto de RONDA: una fuente lenta consume el reloj -> la siguiente queda skipped-budget SIN red ------
+_sources_empty()
+_inject_l0("success", alliance_bump=500.0)
+_TOOL_CALLS.clear()
+_rid_b, _rec_b, _ev_b = _run80("ADR-0080 presupuesto: does wt1a mark the pronephros?", ["wt1a"],
+                               env={"WITT_SEARCH_ROUND_BUDGET_S": "10"})
+_sl_b = _rec_b["search_ledger"]
+_row_b = {s["family"]: s for s in _sl_b["rounds"][0]["sources"]}
+_src_b = {s["family"]: s for s in _ev_payloads(_ev_b, "stage.search.source")}
+check("ADR-0080 (C) presupuesto por RONDA (WITT_SEARCH_ROUND_BUDGET_S=10): alliance_orthologs tarda 500 s (reloj simulado) -> "
+      "over_budget True declarado en SU fila; zfin_expression queda 'skipped-budget' SIN llamar al tool (n_found/n_new null: "
+      "no midió; detail 'round budget 10.0s exhausted…'; budget_s 0.0) y el evento stage.search.source lo dice igual; la ronda "
+      "termina (§6 no-hang), search_ledger.round_budget_s 10 con config_source 'env:…' y la corrida llega a awaiting_closure",
+      _row_b["alliance_orthologs"]["status"] == "success" and _row_b["alliance_orthologs"]["over_budget"] is True
+      and _row_b["zfin_expression"]["status"] == "skipped-budget" and _row_b["zfin_expression"]["n_found"] is None
+      and _row_b["zfin_expression"]["n_new"] is None and _row_b["zfin_expression"]["budget_s"] == 0.0
+      and _row_b["zfin_expression"]["detail"].startswith("round budget 10.0s exhausted")
+      and _src_b["zfin_expression"]["status"] == "skipped-budget" and _src_b["alliance_orthologs"]["over_budget"] is True
+      and {c["family"] for c in _TOOL_CALLS} == {"alliance_orthologs"}
+      and _sl_b["round_budget_s"] == 10 and _sl_b["config_source"]["round_budget_s"] == "env:WITT_SEARCH_ROUND_BUDGET_S"
+      and _sl_b["rounds"][0]["budget_s"] == 10.0 and _sl_b["n_rounds"] == 1 and _sl_b["stop_reason"] == "found-new"
+      and db.get_run(_rid_b)["state"] == "awaiting_closure",
+      json.dumps({f: (s["status"], s.get("over_budget"), s.get("budget_s")) for f, s in _row_b.items()}))
+_CLOCK["t"] = 0.0
+_sources_found()
+
+# --- kill-switch WITT_COMPETENCE_GATE=0: competent null + skipped_reason; la regla por confianza de hoy decide ---------
+_rid_k, _rec_k, _ev_k = _run80("ADR-0080 kill-switch alto: does wt1a mark the pronephros?", ["wt1a"],
+                               env={"WITT_COMPETENCE_GATE": "0"})
+_rid_kl, _rec_kl, _ev_kl = _run80("ADR-0080 kill-switch bajo: does wt1a mark the pronephros?", ["wt1a"],
+                                  synth=_mk_synth({"pass1": 0.3, "pass2": 0.7}), env={"WITT_COMPETENCE_GATE": "0"})
+_pb_kl = _ev_payloads(_ev_kl, "stage.path_b")
+_sp_kl = _ev_payloads(_ev_kl, "stage.search.plan")
+check("ADR-0080 (A, corrector) kill-switch WITT_COMPETENCE_GATE=0 RESTAURA ADR-0078 byte a byte: competent null + skipped_reason "
+      "'kill-switch…' (los componentes se calculan y viajan igual), config.gate_enabled False; decide la regla legada y el "
+      "trigger lo dice con SU nombre: conf 0.8 >= tau -> trigger null, sin ronda ni pass2 (search_ledger 'not-requested', "
+      "n_rounds 0); conf 0.3 < tau -> trigger 'confidence' (literal válido SÓLO con competent null) + trigger_legacy "
+      "'confidence' + trigger_decided_by 'model-confidence (legacy…)' + decision_source 'legacy-confidence (…)' + Ruta B por "
+      "path_b_bundle SIN plan: harness_used False, NINGÚN stage.search.round/source, stage.search.plan con state "
+      "'kill-switch WITT_COMPETENCE_GATE=0', search_ledger.state 'legacy-path-b (kill-switch WITT_COMPETENCE_GATE=0)' con "
+      "n_rounds null (no midió), triggered_by con el literal de ADR-0051; pass2 corre; epistemic_summary.competent null en ambas",
+      _rec_k["competence"]["competent"] is None and _rec_k["competence"]["skipped_reason"].startswith("kill-switch")
+      and _rec_k["competence"]["config"]["gate_enabled"] is False
+      and _rec_k["competence"]["components"]["route_evidence_run"]["value"] is False
+      and _rec_k["fallback"]["trigger"] is None and _rec_k["fallback"]["fb_meta"]["trigger_legacy"] is None
+      and _rec_k["confidence"]["pass2"] is None and _rec_k["search_ledger"]["state"].startswith("not-requested")
+      and _rec_k["search_ledger"]["n_rounds"] == 0
+      and _rec_k["fallback"]["fb_meta"]["competence"]["skipped_reason"].startswith("kill-switch")
+      and app.get_run(_rid_k, authorization=AUTH)["epistemic_summary"]["competent"] is None
+      and _rec_kl["competence"]["competent"] is None and _rec_kl["fallback"]["trigger"] == "confidence"
+      and "confidence" in runs_mod.FALLBACK_TRIGGERS
+      and _rec_kl["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
+      and _rec_kl["fallback"]["fb_meta"]["trigger_decided_by"].startswith("model-confidence (legacy")
+      and _rec_kl["competence"]["decision"]["decision_source"].startswith("legacy-confidence")
+      and _rec_kl["competence"]["decision"]["legacy_confidence_fired"] is True
+      and _rec_kl["search_ledger"]["state"] == "legacy-path-b (kill-switch WITT_COMPETENCE_GATE=0)"
+      and _rec_kl["search_ledger"]["n_rounds"] is None and _rec_kl["search_ledger"]["rounds"] == []
+      and len(_pb_kl) == 1 and _pb_kl[0]["harness_used"] is False and _pb_kl[0]["trigger"] == "confidence"
+      and "stage.search.round" not in _ev_types(_ev_kl) and "stage.search.source" not in _ev_types(_ev_kl)
+      and len(_sp_kl) == 1 and _sp_kl[0]["state"] == "kill-switch WITT_COMPETENCE_GATE=0"
+      and _rec_kl["bundle_identity"] and _rec_kl["confidence"]["pass2"] == 0.7
+      and app.get_run(_rid_kl, authorization=AUTH)["epistemic_summary"]["n_search_rounds"] is None,
+      json.dumps({"alto": (_rec_k["fallback"]["trigger"], _rec_k["competence"]["skipped_reason"]),
+                  "bajo": (_rec_kl["fallback"]["trigger"], _rec_kl["fallback"]["fb_meta"]["trigger_legacy"],
+                           _rec_kl["search_ledger"]["state"], _rec_kl["fallback"]["fb_meta"]["trigger_decided_by"])}))
+_bd_kl = json.loads(db.get_run(_rid_kl)["bundle_json"])
+check("ADR-0080 (A, corrector) bajo kill-switch la Ruta B es el bloque LEGADO: bundle.path_b sin search_ledger ni "
+      "search_plan_version, sources_requested == answer_pipeline.PATH_B_SOURCES y triggered_by[0] empieza con "
+      "'confidence-gate: pass1_confidence=0.3 < tau=0.5' (el literal de ADR-0051)",
+      "search_ledger" not in _bd_kl["path_b"] and "search_plan_version" not in _bd_kl["path_b"]
+      and _bd_kl["path_b"]["sources_requested"] == list(answer_pipeline.PATH_B_SOURCES)
+      and _bd_kl["path_b"]["triggered_by"][0].startswith("confidence-gate: pass1_confidence=0.3 < tau=0.5"),
+      json.dumps(_bd_kl["path_b"]["triggered_by"]))
+# --- WITT_SEARCH_HARNESS=0: la compuerta decide, el harness no corre (corrector ADR-0080) ---------------------------
+_TOOL_CALLS.clear()
+_rid_nh, _rec_nh, _ev_nh = _run80("ADR-0080 sin harness: does wt1a mark the pronephros?", ["wt1a"],
+                                  env={"WITT_SEARCH_HARNESS": "0"})
+check("ADR-0080 (corrector) WITT_SEARCH_HARNESS=0 apaga SÓLO el harness: la compuerta sigue decidiendo (no-plan -> competent "
+      "False, trigger 'competence', decided_by code) pero la Ruta B corre por path_b_bundle SIN plan (harness_used False, "
+      "cero fakes Layer 0 llamadas, sin stage.search.round/source), stage.search.plan state 'kill-switch WITT_SEARCH_HARNESS=0', "
+      "search_ledger.state 'legacy-path-b (kill-switch WITT_SEARCH_HARNESS=0)', fb_meta.search_harness_enabled False con "
+      "fuente 'env:WITT_SEARCH_HARNESS'; pass2 corre",
+      _rec_nh["competence"]["competent"] is False and _rec_nh["fallback"]["trigger"] == "competence"
+      and _ev_payloads(_ev_nh, "stage.path_b")[0]["harness_used"] is False
+      and _TOOL_CALLS == [] and "stage.search.round" not in _ev_types(_ev_nh)
+      and _ev_payloads(_ev_nh, "stage.search.plan")[0]["state"] == "kill-switch WITT_SEARCH_HARNESS=0"
+      and _rec_nh["search_ledger"]["state"] == "legacy-path-b (kill-switch WITT_SEARCH_HARNESS=0)"
+      and _rec_nh["fallback"]["fb_meta"]["search_harness_enabled"] is False
+      and _rec_nh["fallback"]["fb_meta"]["search_harness_enabled_source"] == "env:WITT_SEARCH_HARNESS"
+      and _rec_nh["confidence"]["pass2"] == 0.85,
+      json.dumps({"state": _rec_nh["search_ledger"]["state"], "tool_calls": len(_TOOL_CALLS)}))
+# --- cg-3 (orquestador 2026-09-15): el escalar ELICITADO gatea POR DEFAULT; WITT_CG_CONF_COMPONENT=0 declarado lo apaga -----
+_rid_cc, _rec_cc, _ev_cc = _run80("ADR-0080 conf gatea por default (cg-3): does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  synth=_mk_synth({"pass1": 0.3, "pass2": 0.7}))
+_rid_cd, _rec_cd, _ev_cd = _run80("ADR-0080 conf apagado por env=0: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  synth=_mk_synth({"pass1": 0.3, "pass2": 0.7}), env={"WITT_CG_CONF_COMPONENT": "0"})
+check("ADR-0080 (A, cg-3) el escalar ELICITADO (CONF_TOOL, ADR-0065) gatea POR DEFAULT como decidió ADR-0051: con plan + pass1 "
+      "admisible + conf 0.3 < tau la corrida NO es competente (reasons ['conf1_ge_tau'], gating True, conf1_ge_tau primero en "
+      "conjunction, config.conf_component_gating True SIN env), trigger 'competence' + ronda + pass2 0.7 — el caso a361f566 "
+      "(0.15 → Ruta B) NO regresa; self_report.note dice 'participa como componente conf1_ge_tau medido por CONF_TOOL…; la "
+      "conjunción la decide código' y module_version 'cg-3'",
+      _rec_cc["competence"]["competent"] is False and _rec_cc["competence"]["reasons"] == ["conf1_ge_tau"]
+      and _rec_cc["competence"]["components"]["conf1_ge_tau"]["value"] is False
+      and _rec_cc["competence"]["components"]["conf1_ge_tau"]["gating"] is True
+      and _rec_cc["competence"]["conjunction"][0] == "conf1_ge_tau"
+      and _rec_cc["competence"]["config"]["conf_component_gating"] is True
+      and _rec_cc["competence"]["module_version"] == "cg-3"
+      and _rec_cc["fallback"]["trigger"] == "competence" and _rec_cc["confidence"]["pass2"] == 0.7
+      and _rec_cc["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
+      and _rec_cc["competence"]["self_report"]["note"].startswith("participa como componente conf1_ge_tau medido por CONF_TOOL")
+      and _rec_cc["competence"]["self_report"]["note"].endswith("la conjunción la decide código"),
+      json.dumps({"default": (_rec_cc["competence"]["competent"], _rec_cc["competence"]["reasons"])}))
+check("ADR-0080 (A, cg-3) APAGADO EXPLÍCITO WITT_CG_CONF_COMPONENT=0: la MISMA corrida (conf 0.3) es competente (trigger null), "
+      "conf1_ge_tau viaja informativo (value False, gating False, FUERA de conjunction, config.conf_component_gating False), "
+      "trigger_legacy 'confidence' declara que la regla vieja habría disparado, y self_report.note dice la verdad: "
+      "'no participa en la decisión (conf1_ge_tau informativo, WITT_CG_CONF_COMPONENT=0 declarado)' — la nota coincide con gating",
+      _rec_cd["competence"]["competent"] is True and _rec_cd["fallback"]["trigger"] is None
+      and _rec_cd["competence"]["components"]["conf1_ge_tau"]["value"] is False
+      and _rec_cd["competence"]["components"]["conf1_ge_tau"]["gating"] is False
+      and "conf1_ge_tau" not in _rec_cd["competence"]["conjunction"]
+      and _rec_cd["competence"]["config"]["conf_component_gating"] is False
+      and _rec_cd["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
+      and _rec_cd["competence"]["self_report"]["note"]
+      == "no participa en la decisión (conf1_ge_tau informativo, WITT_CG_CONF_COMPONENT=0 declarado)"
+      and _rec_cd["confidence"]["pass2"] is None,
+      json.dumps({"env0": (_rec_cd["competence"]["competent"], _rec_cd["fallback"]["trigger"])}))
+
+# --- calibration_coverage: medición de la BD; gatea SOLO con WITT_CG_REQUIRE_CALIBRATION=1 -------------------------
+_rid_g, _rec_g, _ev_g = _run80("ADR-0080 calibración gatea: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                               env={"WITT_CG_REQUIRE_CALIBRATION": "1"})
+_cal_g = _rec_g["competence"]["components"]["calibration_coverage"]
+check("ADR-0080 (A) WITT_CG_REQUIRE_CALIBRATION=1: calibration_coverage entra a la conjunción (gating True) y con < 10 corridas "
+      "CLOSED calificadas que intersequen N3/N4 la MISMA corrida que era competente deja de serlo — reasons == "
+      "['calibration_coverage'], n_closed_rated ENTERO medido (class 'medicion'), min_required 10 (source default-unset), "
+      "sufficient False -> trigger 'competence' + ronda; por default (gating False) el componente viaja informativo y no gatea",
+      _rec_g["competence"]["competent"] is False and _rec_g["competence"]["reasons"] == ["calibration_coverage"]
+      and _cal_g["gating"] is True and isinstance(_cal_g["n_closed_rated"], int) and _cal_g["n_closed_rated"] < 10
+      # corrector ADR-0080: la cobertura cuenta SÓLO producción por default (las corridas smoke de este gate NO son historia)
+      and _rec_g["competence"]["components"]["calibration_coverage"]["n_closed_rated"] == 0
+      and _cal_g["min_required"] == 10 and _cal_g["sufficient"] is False and _cal_g["class"].startswith("medicion")
+      and "calibration_coverage" in _rec_g["competence"]["conjunction"]
+      and _rec_g["competence"]["config"]["require_calibration"] is True
+      and _rec_g["fallback"]["trigger"] == "competence" and _rec_g["search_ledger"]["state"] == "harness"
+      and _rec_c["competence"]["components"]["calibration_coverage"]["gating"] is False
+      and "calibration_coverage" not in _rec_c["competence"]["conjunction"],
+      json.dumps(_cal_g))
+_cal_ev_g = _ev_payloads(_ev_g, "stage.competence")[0]["components"]["calibration_coverage"]
+_cov_prod = db.calibration_coverage(["N3", "N4"], 10, include_origins=["production"])
+_cov_all = db.calibration_coverage(["N3", "N4"], 10, include_origins=None)
+check("ADR-0080 (A, corrector) WITT_CG_CALIBRATION_ORIGINS default 'production': db.calibration_coverage se llama con "
+      "include_origins ['production'] (fuente 'default-unset:WITT_CG_CALIBRATION_ORIGINS' en el bloque) — las corridas de "
+      "origen smoke cerradas de esta BD quedan CONTADAS FUERA (n 0 con filtro, n_closed_rated_total con filtro <= sin filtro); "
+      "el lector CSV tolerante acepta 'all' como sin filtro declarado",
+      _cal_ev_g.get("include_origins") == ["production"] if "include_origins" in _cal_ev_g else True
+      and _cov_prod["include_origins"] == ["production"] and _cov_prod["n"] == 0
+      and _cov_prod["n_closed_rated_total"] <= _cov_all["n_closed_rated_total"]
+      and runs_mod._calibration_origins() == (["production"], "default-unset:WITT_CG_CALIBRATION_ORIGINS")
+      and (lambda saved: (os.environ.__setitem__("WITT_CG_CALIBRATION_ORIGINS", "all"),
+                          runs_mod._calibration_origins(),
+                          os.environ.pop("WITT_CG_CALIBRATION_ORIGINS"))[1])(None)[0] is None
+      and (lambda: (os.environ.__setitem__("WITT_CG_CALIBRATION_ORIGINS", "Production, smoke,smoke"),
+                    runs_mod._calibration_origins(),
+                    os.environ.pop("WITT_CG_CALIBRATION_ORIGINS"))[1])() == (["production", "smoke"], "env:WITT_CG_CALIBRATION_ORIGINS"),
+      json.dumps({"prod": _cov_prod, "all_total": _cov_all["n_closed_rated_total"]}, default=str)[:300])
+
+# --- (E/G) la ESCALERA de soporte por cita: nunca se funden los peldaños ---------------------------------------------
+def _panel_cs(verdicts, citation_support):
+    inner = _stub_caller_factory(verdicts)
+
+    def _caller(member, system, user_text):
+        out, usage = inner(member, system, user_text)
+        if member["lens"] == "evidence-grounding":
+            out["citation_support"] = list(citation_support)
+        return out, usage
+    return _caller
+
+
+_rid_s, _rec_s, _ev_s = _run80("ADR-0080 escalera: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                               synth=_mk_synth({"pass1": 0.8}, extra={"evidence_cited": [
+                                   {"kind": "di-chunk", "id": "CORPUS-2026-0003#c000"},
+                                   {"kind": "paper", "id": "PMID:99999999"}]}),
+                               panel=_panel_cs(ALL_A, [{"n": 1, "verdict": "supported"}, {"n": 2, "verdict": "supported"}]))
+_c1, _c2 = _rec_s["citations"][0], _rec_s["citations"][1]
+_css = _rec_s["citations_support_summary"]
+check("ADR-0080 (E/G) support_state por cita, ADITIVO y sin saltar peldaños: la cita [1] al chunk de Ruta A resuelve "
+      "(resolved True), tiene pasaje (passage_delivered True) y el juez evidence-grounding la marcó 'supported' -> "
+      "support_state 'supported'; la cita [2] PMID:99999999 NO está en el bundle -> 'unresolved' AUNQUE el juez dijera "
+      "'supported' (su palabra se conserva en `supported`, no eleva); pertinent 'not-available (ADR-0082)' en ambas; "
+      "citations_support_summary {n 2, by_state con los 5 peldaños, state 'checked', grounding_rows 2, ladder_rule}; forma BASE intacta",
+      _cits_base(_rec_s["citations"]) == [{"n": 1, "kind": "di-chunk", "id": "CORPUS-2026-0003#c000", "note": ""},
+                                          {"n": 2, "kind": "paper", "id": "PMID:99999999", "note": ""}]
+      and _c1["resolved"] is True and _c1["passage_delivered"] is True and _c1["supported"] == "supported"
+      and _c1["support_state"] == "supported" and _c1["pertinent"] == "not-available (ADR-0082)"
+      and _c2["resolved"] is False and _c2["passage_delivered"] is False and _c2["supported"] == "supported"
+      and _c2["support_state"] == "unresolved"
+      and _css["n"] == 2 and set(_css["by_state"]) == set(_vo.SUPPORT_LADDER)
+      and _css["by_state"]["supported"] == 1 and _css["by_state"]["unresolved"] == 1
+      and _css["state"] == "checked" and _css["grounding_rows"] == 2 and _css["ladder_rule"] == _vo.SUPPORT_LADDER_RULE
+      and _rec_s["audit"]["panel"][2]["lens"] == "evidence-grounding"
+      and _rec_s["audit"]["panel"][2]["citation_support"] == [{"n": 1, "verdict": "supported"}, {"n": 2, "verdict": "supported"}],
+      json.dumps({"c1": {k: _c1.get(k) for k in ("resolved", "passage_delivered", "supported", "support_state")},
+                  "c2": {k: _c2.get(k) for k in ("resolved", "passage_delivered", "supported", "support_state")},
+                  "summary": _css.get("by_state")}))
+_no_cs_ids = [c["support_state"] for c in _rec_c["citations"]]
+check("ADR-0080 (E/G) sin citation_support del panel (los otros jueces lo IGNORAN, la lente no lo emitió): supported "
+      "'not-evaluated' y el peldaño más alto es el DETERMINISTA; una cita a un id ausente del bundle queda 'unresolved' "
+      "(el stub cita CORPUS-2026-0001, que no está en la evidencia) — declarado, no rellenado",
+      _rec_c["citations"][0]["supported"] == "not-evaluated" and _no_cs_ids == ["unresolved"]
+      and _rec_c["citations_support_summary"]["grounding_rows"] == 0
+      and _rec_c["citations_support_summary"]["by_state"]["unresolved"] == 1
+      and "citation_support" not in _rec_c["audit"]["panel"][2],
+      json.dumps(_rec_c["citations_support_summary"]["by_state"]))
+
+# --- (E) positive_claim_requires_citations: afirmación positiva sin citas = inadmisible; la declinación puede no citar ---
+_rid_p, _rec_p, _ev_p = _run80("ADR-0080 positiva sin citas: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                               synth=_mk_synth({"pass1": 0.8, "pass2": 0.85}, extra={"evidence_cited": []}))
+_rid_d, _rec_d, _ev_d = _run80("ADR-0080 declinación sin citas: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                               synth=_mk_synth({"pass1": 0.8}, extra={"evidence_cited": [],
+                                                                    "absence_kind": "no-evidence-retrieved",
+                                                                    "direct_answer": "No evidence retrieved on wt1a and the pronephros; cannot answer."}))
+_rid_di, _rec_di, _ev_di = _run80("ADR-0080 declinación con ids resueltos: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  synth=_mk_synth({"pass1": 0.8, "pass2": 0.85}, extra={"evidence_cited": [],
+                                                                                    "absence_kind": "no-evidence-retrieved"}))
+_rid_ab, _rec_ab, _ev_ab = _run80("ADR-0080 absence_kind ausente sin citas: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  synth=_mk_synth({"pass1": 0.8, "pass2": 0.85}, extra={"evidence_cited": [], "absence_kind": None}))
+_pc_p = _rec_p["deterministic_checks"]["positive_claim_requires_citations_evaluation"]
+_pc_di = _rec_di["deterministic_checks"]["positive_claim_requires_citations_evaluation"]
+_pc_ab = _rec_ab["deterministic_checks"]["positive_claim_requires_citations_evaluation"]
+check("ADR-0080 (E, corrector) lectura CONSERVADORA por código: absence_kind AUSENTE se trata como afirmación positiva "
+      "(absence_kind_state 'absent -> treated-as-positive…') -> sin citas inadmisible -> no competente por 'admissible'; una "
+      "'declinación' (no-evidence-retrieved) cuyo texto nombra un identificador RESUELTO (ENSDARG00000031420, verified por "
+      "verify_identifiers del MISMO gate) sin citar también dispara (reason 'declination with resolved identifiers […] and 0 "
+      "citations', resolved_identifiers_state 'checked') -> ronda + pass2; el registro conserva la regla completa",
+      _pc_ab["positive_claim"] is True and _pc_ab["absence_kind"] is None
+      and _pc_ab["absence_kind_state"].startswith("absent -> treated-as-positive")
+      and _pc_ab["ok"] is False and _rec_ab["competence"]["reasons"] == ["admissible"] and _rec_ab["fallback"]["trigger"] == "competence"
+      and _pc_di["positive_claim"] is False and _pc_di["ok"] is False
+      and _pc_di["resolved_identifiers"] == ["ENSDARG00000031420"] and _pc_di["resolved_identifiers_state"] == "checked"
+      and _pc_di["reason"].startswith("declination with resolved identifiers")
+      and _rec_di["competence"]["reasons"] == ["admissible"] and _rec_di["fallback"]["trigger"] == "competence"
+      and "conservative" in _pc_di["rule"],
+      json.dumps({"ausente": _pc_ab["reason"], "declinacion_ids": _pc_di["reason"]}))
+check("ADR-0080 (E) positive_claim_requires_citations en el gate ADELANTADO: afirmación positiva (absence_kind not-applicable) "
+      "con 0 citas válidas -> inadmisible (predicado False, _state 'checked', evaluación congelada con n_citations_valid 0 y "
+      "decided_by 'code') -> pass1_admissible False -> la compuerta NO es competente (reasons ['admissible'], aunque conf 0.8 y "
+      "plan) -> ronda + pass2 (también sin citas -> el gate final sigue inadmisible); una DECLINACIÓN (no-evidence-retrieved) sin "
+      "citas y SIN identificadores resueltos en el texto es admisible -> competente, trigger null",
+      _rec_p["deterministic_checks"]["positive_claim_requires_citations"] is False
+      and _rec_p["deterministic_checks"]["positive_claim_requires_citations_state"] == "checked"
+      and _pc_p["ok"] is False and _pc_p["n_citations_valid"] == 0 and _pc_p["positive_claim"] is True
+      and _pc_p["decided_by"] == "code"
+      and _rec_p["deterministic_checks"]["pass1_admissible"] is False and _rec_p["deterministic_checks"]["admissible"] is False
+      and _rec_p["competence"]["competent"] is False and _rec_p["competence"]["reasons"] == ["admissible"]
+      and _rec_p["competence"]["components"]["admissible"]["reason"] == "pass1 inadmissible (verify_output)"
+      and _rec_p["fallback"]["trigger"] == "competence" and _rec_p["confidence"]["pass2"] == 0.85
+      and _rec_d["deterministic_checks"]["positive_claim_requires_citations"] is True
+      and _rec_d["deterministic_checks"]["admissible"] is True and _rec_d["competence"]["competent"] is True
+      and _rec_d["fallback"]["trigger"] is None,
+      json.dumps({"positiva": (_rec_p["deterministic_checks"]["admissible"], _rec_p["competence"]["reasons"]),
+                  "declinacion": (_rec_d["deterministic_checks"]["admissible"], _rec_d["fallback"]["trigger"])}))
+
+# --- (E) reintento por juez (WITT_JUDGE_RETRIES default 1): declarado en la fila, medido en la traza -------------------
+def _panel_fail_once(verdicts, lens_fail):
+    inner = _stub_caller_factory(verdicts)
+    seen = {"n": 0}
+
+    def _caller(member, system, user_text):
+        if member["lens"] == lens_fail:
+            seen["n"] += 1
+            if seen["n"] == 1:
+                raise RuntimeError("judge transport failure (simulated once)")
+        return inner(member, system, user_text)
+    return _caller
+
+
+_rid_j, _rec_j, _ev_j = _run80("ADR-0080 reintento por juez: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                               panel=_panel_fail_once(ALL_A, "overclaim"))
+_judge_ev = _ev_payloads(_ev_j, "stage.audit.judge")
+_row_j = next(r for r in _rec_j["audit"]["panel"] if r["lens"] == "overclaim")
+check("ADR-0080 (E) reintento por juez: el juez 'overclaim' cae en su primer intento y composite_auditor lo REINTENTA una vez "
+      "(WITT_JUDGE_RETRIES default 1, declarado en audit.judge_retries {value 1, source 'default-unset:…'}) -> 5 eventos "
+      "stage.audit.judge (uno con attempt 2 / retries_judge 1), la fila del juez lleva verdict APPROVE + retries_judge 1 + "
+      "attempts [errored, ok] (jamás fabricado), n_valid 4, y su usage cuenta UNA vez (panel 40)",
+      len(_judge_ev) == 5
+      and [(p["reviewer"] is not None, p["lens"], p["attempt"], p["retries_judge"]) for p in _judge_ev if p["lens"] == "overclaim"]
+      == [(True, "overclaim", 1, 0), (True, "overclaim", 2, 1)]
+      and _row_j["verdict"] == "APPROVE" and _row_j["retries_judge"] == 1
+      and [a["status"] for a in _row_j["attempts"]] == ["errored", "ok"] and "error" in _row_j["attempts"][0]
+      and _rec_j["audit"]["n_valid"] == 4 and _rec_j["audit"]["verdict"] == "APPROVE"
+      and {k: _rec_j["audit"]["judge_retries"].get(k) for k in ("value", "source")}
+      == {"value": 1, "source": "default-unset:WITT_JUDGE_RETRIES"}
+      and _rec_j["token_usage"]["by_stage"]["panel"]["in"] == 40 and _rec_j["usage_raw"]["panel_total"]["input_tokens"] == 40,
+      json.dumps({"judge_events": [(p["lens"], p["attempt"]) for p in _judge_ev],
+                  "row": {k: _row_j.get(k) for k in ("verdict", "retries_judge")},
+                  "judge_retries": _rec_j["audit"].get("judge_retries"), "n_valid": _rec_j["audit"]["n_valid"],
+                  "panel_in": _rec_j["token_usage"]["by_stage"]["panel"]["in"]}))
+
+
+def _panel_billed_errored(verdicts, lens_fail):
+    """Juez que devuelve SIEMPRE un veredicto ilegible pero COBRA tokens (la API respondió) — agota sus intentos."""
+    inner = _stub_caller_factory(verdicts)
+
+    def _caller(member, system, user_text):
+        if member["lens"] == lens_fail:
+            return ({"verdict": "MAYBE", "caught": "", "correction_applied": "", "confidence": 0.5, "reasons": []},
+                    {"input_tokens": 7, "output_tokens": 2})
+        return inner(member, system, user_text)
+    return _caller
+
+
+_rid_je, _rec_je, _ev_je = _run80("ADR-0080 juez agotado que cobró: does wt1a mark the pronephros?", ["wt1a"], plan=True,
+                                  panel=_panel_billed_errored(ALL_A, "overclaim"))
+_row_je = next(r for r in _rec_je["audit"]["panel"] if r["lens"] == "overclaim")
+_tu_je = _rec_je["token_usage"]
+_passes_in = sum(int((p or {}).get("input_tokens") or 0) for p in _rec_je["usage_raw"]["passes"].values())
+_plan_in = (_tu_je.get("plan_judgment") or {}).get("in") or 0
+check("ADR-0080 (E/F, corrector) M8 cuadra con un juez AGOTADO que cobró: 'overclaim' devuelve un veredicto ilegible dos veces "
+      "(attempts [errored, errored], usage 7+7 medido) -> fila status 'errored' CON usage 14; audit.usage lo suma y token_usage "
+      "también: by_model incluye al reviewer errado, by_stage.panel == 30 + 14 = 44, usage_raw.panel_total 44, "
+      "token_usage.input_tokens == pasadas + plan + audit.usage.input_tokens (antes el gasto entraba a audit.usage y NO a M8)",
+      _row_je.get("status") == "errored" and [a["status"] for a in _row_je["attempts"]] == ["errored", "errored"]
+      and _row_je["usage"]["input_tokens"] == 14
+      and _rec_je["audit"]["usage"]["input_tokens"] == 44
+      and _tu_je["by_stage"]["panel"]["in"] == 44 and _rec_je["usage_raw"]["panel_total"]["input_tokens"] == 44
+      and _row_je["reviewer"] in _tu_je["by_model"] and _tu_je["by_model"][_row_je["reviewer"]]["in"] == 14
+      and _tu_je["input_tokens"] == _passes_in + _plan_in + _rec_je["audit"]["usage"]["input_tokens"]
+      and _tu_je["by_stage_sum_matches_by_model"] is True,
+      json.dumps({"row_usage": _row_je.get("usage"), "audit_usage": _rec_je["audit"]["usage"],
+                  "panel_stage": _tu_je["by_stage"]["panel"], "total": _tu_je["input_tokens"],
+                  "passes": _passes_in, "plan": _plan_in}))
+# --- by_stage.plan: tres estados (corrector ADR-0080) ---
+_bs3 = runs_mod._usage_by_stage([("pass1", {"usage": {"input_tokens": 10, "output_tokens": 1}})],
+                                {"model": "planner-x"}, {"panel": []}, 0, plan_declared=True)
+_bs3n = runs_mod._usage_by_stage([], None, {"panel": []}, 0, plan_declared=False)
+check("ADR-0080 (F, corrector) by_stage.plan distingue TRES estados: plan declarado SIN usage del planner -> {in null, out null, "
+      "state 'plan-without-usage (planner reported no usage)', model} (no un 0 ni 'no-plan'); sin plan -> {0, 0, 'no-plan'}; "
+      "con usage -> medido (plan 400 en la corrida competente)",
+      _bs3["plan"] == {"in": None, "out": None, "state": "plan-without-usage (planner reported no usage)", "model": "planner-x"}
+      and _bs3n["plan"] == {"in": 0, "out": 0, "state": "no-plan"} and _bs_c["plan"]["in"] == 400
+      and _bs3["_sum"]["in"] == 10,
+      json.dumps({"declared_no_usage": _bs3["plan"], "no_plan": _bs3n["plan"]}))
+# --- una env, una verdad: familias en mayúsculas/duplicadas (corrector ADR-0080) ---
+_rid_f, _rec_f, _ev_f = _run80("ADR-0080 familias env: does wt1a mark the pronephros?", ["wt1a"],
+                               env={"WITT_SEARCH_DEFAULT_FAMILIES": "EuropePMC,pubmed,pubmed,Zfin"})
+check("ADR-0080 (C, corrector) UN lector de WITT_SEARCH_DEFAULT_FAMILIES: 'EuropePMC,pubmed,pubmed,Zfin' -> "
+      "search_ledger.families_default == plan.families_default == ['europepmc','pubmed','zfin'] (minúsculas, sin duplicados) "
+      "con config_source.families 'env:…' y config_reader 'search_harness'; round_budget_s es FLOTANTE del mismo parser",
+      _rec_f["search_ledger"]["families_default"] == ["europepmc", "pubmed", "zfin"]
+      and _rec_f["search_ledger"]["plan"]["families_default"] == ["europepmc", "pubmed", "zfin"]
+      and _rec_f["search_ledger"]["config_source"]["families"] == "env:WITT_SEARCH_DEFAULT_FAMILIES"
+      and _rec_f["search_ledger"]["config_reader"] == "search_harness"
+      and isinstance(_rec_f["search_ledger"]["round_budget_s"], float),
+      json.dumps({"ledger": _rec_f["search_ledger"]["families_default"], "plan": _rec_f["search_ledger"]["plan"]["families_default"]}))
+
+# --- (G) contrato 1.9: los campos ADITIVOS presentes en el registro (paridad front<->back: la webapp los tipa `?`) ------
+_REQ_19 = {"competence", "search_ledger", "citations_support_summary", "citations", "deterministic_checks", "token_usage",
+           "fallback", "render_contract_version"}
+check("ADR-0080 (G) contrato 1.9 en el registro: render_contract_version '1.9'; frozen.competence, frozen.search_ledger {plan, "
+      "rounds[], families_default, n_rounds, cap, state, plan_state, config_source}, citations[].support_state, "
+      "citations_support_summary, deterministic_checks.{pass, pass1_admissible, positive_claim_requires_citations(+_state), "
+      "competence_gate}, fallback.trigger en {structural, competence, null} + fb_meta.{trigger_legacy, trigger_vocabulary, "
+      "competence}, token_usage.by_stage con las 9 etapas + _sum, epistemic_summary.{competent, n_search_rounds} — en TODAS "
+      "las corridas de esta sección",
+      all(r["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION and _REQ_19 <= set(r)
+          and {"plan", "rounds", "families_default", "n_rounds", "cap", "state", "plan_state", "config_source"} <= set(r["search_ledger"])
+          and all("support_state" in c for c in r["citations"])
+          and {"pass", "pass1_admissible", "positive_claim_requires_citations", "positive_claim_requires_citations_state",
+               "competence_gate"} <= set(r["deterministic_checks"])
+          and r["fallback"]["trigger"] in runs_mod.FALLBACK_TRIGGERS
+          and {"trigger_legacy", "trigger_vocabulary", "competence"} <= set(r["fallback"]["fb_meta"])
+          and set(runs_mod.TOKEN_STAGES) | {"_sum"} <= set(r["token_usage"]["by_stage"])
+          and "by_stage_sum_matches_by_model" in r["token_usage"]
+          for r in (_rec_c, _rec_h, _rec_2, _rec_1, _rec_b, _rec_k, _rec_kl, _rec_g, _rec_s, _rec_p, _rec_d, _rec_j,
+                    _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f))
+      and all({"competent", "n_search_rounds"} <= set(app.get_run(rid, authorization=AUTH)["epistemic_summary"])
+              for rid in (_rid_c, _rid_h, _rid_2, _rid_k))
+      and all(r["deterministic_checks"]["pass"] in ("pass1", "pass2", "revision")
+              for r in (_rec_c, _rec_h, _rec_2, _rec_1, _rec_b, _rec_k, _rec_kl, _rec_g, _rec_s, _rec_p, _rec_d, _rec_j))
+      # corrector: 'confidence' vuelve al vocabulario SÓLO para competent null (kill-switch / not-applicable)
+      and runs_mod.FALLBACK_TRIGGERS == ("structural", "competence", "confidence", None)
+      and runs_mod.TRIGGER_LEGACY_CONFIDENCE == "confidence"
+      and all(r["fallback"]["trigger"] != "confidence" or r["competence"]["competent"] is None
+              for r in (_rec_c, _rec_h, _rec_2, _rec_1, _rec_b, _rec_k, _rec_kl, _rec_g, _rec_s, _rec_p, _rec_d, _rec_j,
+                        _rec_nh, _rec_cc, _rec_cd, _rec_di, _rec_ab, _rec_je, _rec_f)))
+
+# --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
+_mcp_after = _mcp_snapshot()
+check("ADR-0080 (H) la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y contado durante "
+      "20 corridas (0 llamadas), mcp_cache byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate), "
+      "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
+      _NET_CALLS == [] and _mcp_before == _mcp_after,
+      json.dumps({"net_calls": _NET_CALLS[:3], "mcp_changed": [x for x in _mcp_after if x not in _mcp_before][:3]}))
+_urlreq.urlopen = _urlopen_real
+_sh._monotonic = _time.monotonic
+_sh._TOOL_CACHE.clear()
+answer_pipeline._cache_zfin = _cache_zfin_real
+answer_pipeline.fetch_paper.search_europepmc_ledger = _epmc_ledger_real
+answer_pipeline.fetch_paper.fetch_external = _fetch_real2
+answer_pipeline._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
+answer_pipeline._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
+answer_pipeline.path_b = _path_b_stub
 
 # ---- ADR-0076: al final de todo el gate, los números son únicos y consecutivos en la creación ---------
 _lista = db.list_runs(limit=1000)

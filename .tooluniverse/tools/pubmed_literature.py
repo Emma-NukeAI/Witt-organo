@@ -160,13 +160,16 @@ def resolve_retmax(retmax=None, limit=None):
     return max(1, min(n, 10000))
 
 
-def query_pubmed(query, limit=None, retmax=None):
+def query_pubmed(query, limit=None, retmax=None, timeout=None):
     """Core logic (stdlib-only, importable for standalone testing).
 
     Returns {status, ncbi_identity, throttle, retries_429, rate_limit_headers,
              data:{query, query_sent, retmax_sent, n_found_total, records:[{pmid, title, year, journal}]}}.
     `limit` is the legacy alias of `retmax`; with neither, WITT_PATH_B_RETMAX (default 20) applies.
-    Records come back UP TO retmax in PubMed relevance order — the integrator picks its top-n."""
+    Records come back UP TO retmax in PubMed relevance order — the integrator picks its top-n.
+    `timeout` (ADR-0080 corrector): socket timeout per GET (esearch, esummary); None = the module default
+    (30 s). The search harness passes its family budget here so the round budget really bounds the call;
+    declared in `timeout_s` / `timeout_s_source`."""
     ident_frag, ncbi_identity = _identity_params()
     n_retmax = resolve_retmax(retmax, limit)
     min_interval_s, interval_src = resolve_min_interval_s()
@@ -174,7 +177,9 @@ def query_pubmed(query, limit=None, retmax=None):
                      "min_interval_source": interval_src,
                      "api_key_present": _api_key_present(), "waited_s": 0.0}
     base = {"ncbi_identity": ncbi_identity, "throttle": throttle_info,
-            "retries_429": 0, "rate_limit_headers": None, "rate_limit_headers_from": None}
+            "retries_429": 0, "rate_limit_headers": None, "rate_limit_headers_from": None,
+            "timeout_s": 30 if timeout is None else timeout,
+            "timeout_s_source": "module-default" if timeout is None else "caller"}
     term = (query or "").strip()
     if not term:
         return dict(base, status="error", error="empty query")
@@ -206,7 +211,7 @@ def query_pubmed(query, limit=None, retmax=None):
         def _once():
             throttle_info["waited_s"] += thr.wait()
             try:
-                js, rl = _get_with_headers(url)
+                js, rl = _get_with_headers(url, **({} if timeout is None else {"timeout": timeout}))
             except urllib.error.HTTPError as e:   # the throttled response IS the measurement
                 _record_headers(_headers_of_error(e), label)
                 raise

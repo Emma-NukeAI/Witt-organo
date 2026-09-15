@@ -1,0 +1,56 @@
+{
+ "tool": "ensembl_homology",
+ "recorded_at": "2026-09-15T09:40:48Z",
+ "url": "https://rest.ensembl.org/homology/symbol/danio_rerio/wt1a?target_species=homo_sapiens;content-type=application/json",
+ "symbol": "wt1a",
+ "http_status": 200,
+ "rate_limit_headers": {
+  "X-RateLimit-Limit": "55000",
+  "X-RateLimit-Reset": "1151",
+  "X-RateLimit-Period": "3600",
+  "X-RateLimit-Remaining": "54999"
+ },
+ "elapsed_s": 2.328,
+ "cut": {
+  "alignment_fields_dropped": 4,
+  "fields": [
+   "align_seq",
+   "cigar_line"
+  ]
+ },
+ "payload": {
+  "data": [
+   {
+    "id": "ENSDARG00000031420",
+    "homologies": [
+     {
+      "method_link_type": "ENSEMBL_ORTHOLOGUES",
+      "dn_ds": null,
+      "source": {
+       "taxon_id": 7955,
+       "cigar_line": "<dropped-from-fixture:cigar_line>",
+       "protein_id": "ENSDARP00000029174",
+       "perc_pos": 83.7709,
+       "species": "danio_rerio",
+       "perc_id": 76.1337,
+       "align_seq": "<dropped-from-fixture:align_seq>",
+       "id": "ENSDARG00000031420"
+      },
+      "taxonomy_level": "Euteleostomi",
+      "type": "ortholog_one2one",
+      "target": {
+       "perc_pos": 67.2414,
+       "species": "homo_sapiens",
+       "perc_id": 61.1111,
+       "align_seq": "<dropped-from-fixture:align_seq>",
+       "id": "ENSG00000184937",
+       "taxon_id": 9606,
+       "cigar_line": "<dropped-from-fixture:cigar_line>",
+       "protein_id": "ENSP00000415516"
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -248,6 +248,274 @@ def admissible(text_or_obj, store=None, extra_predicates=None, reingest_cache=No
     return (len(reasons) == 0), reasons
 
 
+# --- ADR-0080 (E): afirmación positiva sin citas es INADMISIBLE + escalera de soporte por cita ---------
+# La compuerta de competencia (ADR-0080 §4) y el panel necesitan dos cosas que hoy nadie calcula por código:
+#   (1) un predicado DURO para H(c): una AFIRMACIÓN POSITIVA (absence_kind == 'not-applicable' — o AUSENTE:
+#       lectura conservadora del corrector ADR-0080, la omisión del campo no puede ser la vía de escape) con
+#       CERO citas válidas es inadmisible — el modelo afirmó algo y no señaló evidencia; una DECLINACIÓN
+#       (absence_kind declarado != 'not-applicable') puede no citar: declarar una ausencia no exige una cita…
+#       salvo que la "declinación" afirme identificadores RESUELTOS (verify_identifiers) sin citar: eso es
+#       afirmar cosas concretas bajo la etiqueta de ausencia, y dispara igual (corrector ADR-0080).
+#   (2) por cada cita, el peldaño más alto que ALCANZÓ en la escalera de soporte:
+#         unresolved -> resolved -> passage_delivered -> supported | unsupported
+#       Cada peldaño es una medición distinta (¿el id resuelve a un ítem del bundle? ¿el bundle entregó
+#       texto para ese ítem? ¿un juez lo evaluó?) y NUNCA se funden: `resolved`, `passage_delivered`,
+#       `pertinent` y `supported` viajan como campos separados junto al `support_state` derivado.
+POSITIVE_CLAIM_ABSENCE_KIND = "not-applicable"
+PREDICATE_POSITIVE_CLAIM_REQUIRES_CITATIONS = "positive_claim_requires_citations"
+SUPPORT_LADDER = ("unresolved", "resolved", "passage_delivered", "supported", "unsupported")
+SUPPORT_VERDICTS = ("supported", "unsupported", "not-assessable")
+PERTINENT_NOT_AVAILABLE = "not-available (ADR-0082)"
+SUPPORT_LADDER_RULE = ("support_state = highest rung REACHED, rungs are sequential: a judge verdict "
+                       "(supported|unsupported) only lifts a citation whose passage was delivered; "
+                       "'not-assessable' or 'not-evaluated' leave the state at the deterministic rung; "
+                       "the raw judge word is kept in `supported` regardless (fields never fuse). ADR-0080")
+
+
+def count_valid_citations(citations):
+    """n de citas VÁLIDAS (id no vacío) — misma regla que runs._normalize_citations.n_valid (ADR-0078).
+    Acepta un entero ya contado, una lista de citas tipadas ({n, kind, id, note}) o de ids crudos.
+    Devuelve (n: int, state) con state ∈ 'counted' | 'given' | 'absent' (None → 0 declarado como
+    'absent': no medido, no rellenado en silencio — ADR-0043)."""
+    if citations is None or isinstance(citations, bool):
+        return 0, "absent"
+    if isinstance(citations, int):
+        return max(0, citations), "given"
+    if isinstance(citations, (list, tuple)):
+        n = 0
+        for c in citations:
+            ident = c.get("id") if isinstance(c, dict) else c
+            if ident is not None and str(ident).strip():
+                n += 1
+        return n, "counted"
+    return 0, "absent"
+
+
+POSITIVE_CLAIM_RULE = ("inadmissible iff (absence_kind == 'not-applicable' OR absence_kind absent — conservative "
+                       "default) and n_citations_valid == 0; ALSO inadmissible iff a declination names resolved "
+                       "identifiers (verify_identifiers verified_raw|verified_derived) and n_citations_valid == 0 "
+                       "(ADR-0080, corrector)")
+
+
+def _resolved_ids_of(identifier_report):
+    """Identificadores RESUELTOS del informe de verify_identifiers (as_dict o VerificationReport): los que el
+    store conoce (verified_raw | verified_derived). None = no se recibió informe (declarado, no inferido)."""
+    if identifier_report is None:
+        return None
+    rep = identifier_report.as_dict() if hasattr(identifier_report, "as_dict") else identifier_report
+    if not isinstance(rep, dict):
+        return None
+    out = []
+    for key in ("verified_raw", "verified_derived"):
+        for ident in rep.get(key) or []:
+            if ident not in out:
+                out.append(str(ident))
+    return sorted(out)
+
+
+def evaluate_positive_claim_citations(absence_kind, citations_valid, resolved_identifiers=None):
+    """Evaluación PURA del predicado (ADR-0080 §4, corrector): dict con la decisión y su porqué, sin efectos.
+
+    positive_claim = (absence_kind is None) ∨ (absence_kind == 'not-applicable') — un absence_kind AUSENTE se
+    trata como afirmación positiva (lectura CONSERVADORA declarada en `absence_kind_state`: la omisión del campo
+    era la vía de escape más barata para pasar el gate sin citar; el eje `world` del episodio sigue llevándolo a
+    indeterminate — aquí sólo se exige evidencia). ok = ¬positive_claim ∨ n_citations_valid > 0, y además una
+    DECLINACIÓN que nombra identificadores resueltos (`resolved_identifiers`, de verify_identifiers) con 0 citas
+    también es inadmisible: afirma cosas concretas bajo la etiqueta de ausencia. `resolved_identifiers` None =
+    informe no recibido (`resolved_identifiers_state 'not-provided'`), la segunda regla no se evalúa."""
+    n_valid, cit_state = count_valid_citations(citations_valid)
+    kind_state = ("absent -> treated-as-positive (ADR-0080 conservative default)" if absence_kind is None
+                  else "declared")
+    positive = absence_kind is None or absence_kind == POSITIVE_CLAIM_ABSENCE_KIND
+    resolved = list(resolved_identifiers) if isinstance(resolved_identifiers, (list, tuple, set)) else None
+    resolved_state = "not-provided" if resolved is None else "checked"
+    declination_with_ids = (not positive) and bool(resolved) and n_valid == 0
+    ok = ((not positive) or n_valid > 0) and not declination_with_ids
+    if positive and not ok:
+        reason = ("positive claim (absence_kind 'not-applicable') with 0 valid citations" if absence_kind is not None
+                  else "absence_kind absent -> treated as positive claim (conservative default) with 0 valid citations")
+    elif positive:
+        reason = f"positive claim with {n_valid} valid citation(s)" + (" (absence_kind absent)" if absence_kind is None else "")
+    elif declination_with_ids:
+        reason = f"declination with resolved identifiers {sorted(resolved)} and 0 citations"
+    else:
+        reason = f"declination (absence_kind {absence_kind!r}) may go uncited"
+    return {"name": PREDICATE_POSITIVE_CLAIM_REQUIRES_CITATIONS, "ok": ok,
+            "positive_claim": positive, "absence_kind": absence_kind, "absence_kind_state": kind_state,
+            "n_citations_valid": n_valid, "citations_state": cit_state,
+            "resolved_identifiers": sorted(resolved) if resolved is not None else None,
+            "resolved_identifiers_state": resolved_state,
+            "reason": reason, "rule": POSITIVE_CLAIM_RULE, "decided_by": "code"}
+
+
+def positive_claim_requires_citations(answer, citations_valid, identifier_report=None):
+    """Predicado DURO para admissible(extra_predicates=[...]) (ADR-0080 §4).
+
+    `answer` es el dict del sintetizador (se lee `absence_kind` y, para la segunda regla, `direct_answer`);
+    `citations_valid` es el n de citas válidas ya contado (int), la lista de citas normalizadas, o None
+    (declarado 'absent' → 0); `identifier_report` (corrector ADR-0080) es el informe de verify_identifiers que
+    el gate ya midió sobre la misma respuesta (as_dict) — si no llega y hay `direct_answer`, se mide aquí
+    (offline, determinista); sin texto queda 'not-provided'. Devuelve el callable (text_or_obj, report) ->
+    (name, ok) que admissible() ANDea; la evaluación completa queda en `pred.evaluation` para que el caller la
+    congele en deterministic_checks sin recalcular. Recibe NINGUNA confianza — la conjunción H sigue hecha sólo
+    de invariantes duros (R2 / ADR-0024)."""
+    absence_kind = answer.get("absence_kind") if isinstance(answer, dict) else None
+    if identifier_report is None and isinstance(answer, dict) and isinstance(answer.get("direct_answer"), str):
+        try:
+            identifier_report = verify_identifiers(answer["direct_answer"]).as_dict()
+        except Exception:   # el informe es insumo opcional; su fallo no tumba el predicado (queda not-provided)
+            identifier_report = None
+    evaluation = evaluate_positive_claim_citations(absence_kind, citations_valid,
+                                                   resolved_identifiers=_resolved_ids_of(identifier_report))
+
+    def _pred(_text_or_obj, _report):
+        return evaluation["name"], evaluation["ok"]
+
+    _pred.evaluation = evaluation
+    _pred.__name__ = PREDICATE_POSITIVE_CLAIM_REQUIRES_CITATIONS
+    return _pred
+
+
+def _citation_keys(cit):
+    """Variantes DETERMINISTAS bajo las que una cita puede nombrar un ítem del bundle: el id tal cual, en
+    mayúsculas, con/sin prefijo 'PMID:' cuando es numérico, DOI sin 'https://doi.org/'. Nada se infiere del
+    texto libre de la nota."""
+    ident = cit.get("id") if isinstance(cit, dict) else cit
+    s = str(ident or "").strip()
+    if not s:
+        return set()
+    up = s.upper()
+    keys = {s, up}
+    if up.startswith("PMID:"):
+        keys.add(up[5:].strip())
+    elif re.fullmatch(r"\d{4,9}", s):
+        keys.add(f"PMID:{s}")
+    if up.startswith("HTTPS://DOI.ORG/"):
+        keys.add(up[len("HTTPS://DOI.ORG/"):])
+    return keys
+
+
+def _bundle_evidence_index(bundle):
+    """{clave normalizada -> (evidence_id canónico, passage_delivered: bool)} para todo ítem del bundle:
+    path_a.hits (doc_id; texto = `text`), path_b.papers (evidence_id + pmid/pmcid/doi del search_rec;
+    texto = abstract | text_excerpt | statement; para zfin ≥1 `phenotypes[].statement`)."""
+    idx = {}
+    b = bundle or {}
+
+    def _put(key, ident, delivered):
+        k = str(key or "").strip()
+        if not k:
+            return
+        for var in (k, k.upper()):
+            idx.setdefault(var, (ident, delivered))
+
+    for h in ((b.get("path_a") or {}).get("hits") or []):
+        if not isinstance(h, dict):
+            continue
+        ident = h.get("doc_id")
+        _put(ident, ident, bool(str(h.get("text") or "").strip()))
+    for p in ((b.get("path_b") or {}).get("papers") or []):
+        if not isinstance(p, dict):
+            continue
+        ident = p.get("evidence_id")
+        delivered = any(str(p.get(k) or "").strip() for k in ("abstract", "text_excerpt", "statement"))
+        z = p.get("zfin")
+        if not delivered and isinstance(z, dict):
+            delivered = any(str((ph or {}).get("statement") or "").strip()
+                            for ph in (z.get("phenotypes") or []) if isinstance(ph, dict))
+        _put(ident, ident, delivered)
+        rec = p.get("search_rec") or {}
+        if rec.get("pmid"):
+            _put(f"PMID:{rec['pmid']}", ident, delivered)
+            _put(str(rec["pmid"]), ident, delivered)
+        if rec.get("pmcid"):
+            _put(rec["pmcid"], ident, delivered)
+        if rec.get("doi"):
+            _put(str(rec["doi"]).lower().replace("https://doi.org/", ""), ident, delivered)
+    return idx
+
+
+def _grounding_by_n(grounding):
+    """{n -> verdict} desde la salida OPCIONAL de la lente evidence-grounding (composite_auditor
+    VERDICT_TOOL.citation_support: [{n, verdict}]) o de un dict {n: verdict}. Un veredicto fuera del
+    vocabulario o un n no entero se DESCARTA y se cuenta (nunca se corrige en silencio)."""
+    out, dropped = {}, 0
+    if grounding is None:
+        return out, dropped
+    if isinstance(grounding, dict):
+        items = list(grounding.items())
+    elif isinstance(grounding, (list, tuple)):
+        items = [(g.get("n"), g.get("verdict")) for g in grounding if isinstance(g, dict)]
+    else:
+        items = []
+    for n, v in items:
+        try:
+            n_int = int(n)
+        except (TypeError, ValueError):
+            dropped += 1
+            continue
+        if v in SUPPORT_VERDICTS and n_int not in out:
+            out[n_int] = v
+        else:
+            dropped += 1
+    return out, dropped
+
+
+def support_state_for(citations, bundle, grounding=None):
+    """Escalera de soporte POR CITA (ADR-0080 §4 / hallazgo de la auditoría externa: 'citas explotadas').
+
+    Por cada cita normalizada {n, kind, id, note} devuelve
+      {n, id, resolved: bool, resolved_to, passage_delivered: bool, pertinent: 'not-available (ADR-0082)',
+       supported: 'supported'|'unsupported'|'not-assessable'|'not-evaluated', support_state, ladder_rule}
+    - resolved: el id nombra un ítem del bundle (path_a hit / path_b paper / zfin) por clave determinista.
+    - passage_delivered: ese ítem trae abstract | text_excerpt | statement (o ≥1 statement zfin) no vacío.
+    - pertinent: NO disponible hasta ADR-0082 (el consejo no juzga pertinencia todavía) — literal declarado.
+    - supported: la palabra del juez evidence-grounding para ese n, o 'not-evaluated' (sin grounding /
+      sin entrada para ese n). Jamás se fabrica.
+    - support_state: el peldaño más alto ALCANZADO (SUPPORT_LADDER_RULE): un veredicto sólo eleva una cita
+      con pasaje entregado; los campos nunca se funden.
+    grounding: lista [{n, verdict}] (citation_support del panel) o dict {n: verdict}; None = no evaluado."""
+    idx = _bundle_evidence_index(bundle)
+    verdicts, _dropped = _grounding_by_n(grounding)
+    rows = []
+    for c in (citations or []):
+        cit = c if isinstance(c, dict) else {"id": c}
+        n = cit.get("n")
+        hit = next((idx[k] for k in _citation_keys(cit) if k in idx), None)
+        resolved = hit is not None
+        delivered = bool(hit[1]) if resolved else False
+        try:
+            judged = verdicts.get(int(n)) if n is not None else None
+        except (TypeError, ValueError):
+            judged = None
+        supported = judged if judged in SUPPORT_VERDICTS else "not-evaluated"
+        if not resolved:
+            state = "unresolved"
+        elif not delivered:
+            state = "resolved"
+        elif supported in ("supported", "unsupported"):
+            state = supported
+        else:
+            state = "passage_delivered"
+        rows.append({"n": n, "id": str(cit.get("id", "")), "resolved": resolved,
+                     "resolved_to": hit[0] if resolved else None,
+                     "passage_delivered": delivered, "pertinent": PERTINENT_NOT_AVAILABLE,
+                     "supported": supported, "support_state": state, "ladder_rule": SUPPORT_LADDER_RULE})
+    return rows
+
+
+def support_summary(rows):
+    """frozen.citations_support_summary (ADR-0080 §13): {n, by_state} con TODOS los peldaños presentes
+    (un 0 aquí es medido: la escalera se corrió sobre n citas; sin citas n=0 y todo 0)."""
+    by_state = {s: 0 for s in SUPPORT_LADDER}
+    for r in (rows or []):
+        s = r.get("support_state")
+        if s in by_state:
+            by_state[s] += 1
+    return {"n": len(rows or []), "by_state": by_state, "ladder": list(SUPPORT_LADDER),
+            "pertinent": PERTINENT_NOT_AVAILABLE}
+
+
 def info_priority_order(candidates, store=None):
     """v1 PLACEHOLDER ordering over candidates (NOT a calibrated EVPI — see ADR-0024 'honest limits').
 

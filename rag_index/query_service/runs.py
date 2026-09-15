@@ -33,13 +33,28 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import competence  # noqa: E402  — ADR-0080: la compuerta de competencia (código puro; runs.py sólo la cablea)
 import db  # noqa: E402
 import niche_catalog  # noqa: E402
 import precedent  # noqa: E402  — ADR-0079: la serie de letras del precedente la produce precedent.py, no runs.py
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
+try:
+    # ADR-0080 (C), rebanada C2: el harness de búsqueda. Import TOLERANTE — si la rebanada aún no aterrizó,
+    # runs.py declara `search_ledger.state 'harness-unavailable'` y la Ruta B corre por el camino de hoy.
+    from lib import search_harness  # noqa: E402
+except ImportError:   # pragma: no cover — depende del árbol
+    search_harness = None
 
-RENDER_CONTRACT_VERSION = "1.8"   # ADR-0079 (investigación = turnos encadenados sobre una raíz): +thread
+RENDER_CONTRACT_VERSION = "1.9"   # ADR-0080 (compuerta de competencia + lazo de búsqueda): +competence (bloque
+                                  # de competence.evaluate: competent|null, components, decided_by 'code') +
+                                  # search_ledger {plan, rounds[], families_default, n_rounds, cap, state} +
+                                  # citations[].support_state (aditivo por cita) + citations_support_summary +
+                                  # deterministic_checks.{pass1_admissible, positive_claim_requires_citations,
+                                  # competence_gate} + fallback.trigger ∈ {structural, competence, null} (el
+                                  # literal viejo 'confidence' vive en fb_meta.trigger_legacy) + fb_meta.competence
+                                  # + token_usage.by_stage + epistemic_summary.{competent, n_search_rounds}.
+                                  # 1.8 = ADR-0079 (investigación = turnos encadenados sobre una raíz): +thread
                                   # {thread_id, parent_run_id, turn_no, turn_kind, parent_state, parent_run_no,
                                   # root_question_id, root_run_no, context_delivery} + thread_context (el snapshot del turno
                                   # anterior que el modelo VIO; null con thread_context_skipped_reason) +
@@ -78,7 +93,10 @@ SYNTH_MODEL = "claude-opus-4-8"   # best-tier policy (2026-06-13 directive) — 
 # tau (ADR-0051): pass-1 confidence below this triggers the Path B fallback — the model's own "is my
 # store enough?" signal, the decider the eval harness recommends (run_held_out --conf-threshold 0.5)
 # over the structural check the repo documents as fooled-by-any-chunk-present (run #1 confirmed it live).
-FALLBACK_CONF_TAU = float(os.environ.get("WITT_FALLBACK_CONF_TAU", "0.5"))
+# corrector ADR-0080: lector TOLERANTE (una env presente y vacía en el compose tumbaba el import con ValueError);
+# la misma función que competence.env_config usa, así ambos lectores de WITT_FALLBACK_CONF_TAU coinciden.
+FALLBACK_CONF_TAU, FALLBACK_CONF_TAU_SOURCE = competence._env_float_tolerante(
+    os.environ, competence.TAU_ENV, competence.TAU_DEFAULT)
 
 SYNTH_TOOL = {
     "name": "emit_answer",
@@ -1360,6 +1378,11 @@ def _default_synthesizer(question, evidence, pass_label, thread_context=None):
                              "'string-unparseable', no se inventan (ADR-0078)")
     return {"direct_answer": out["direct_answer"], "stated_confidence": conf,
             "confidence_source": conf_source,
+            # ADR-0080 (F): el gasto de la elicitación viaja APARTE (usage sigue siendo la suma — M8 cuadra);
+            # runs._token_usage lo reparte en by_stage.{synthesize_*, elicit_*}. Tres estados declarados.
+            "usage_elicitation": e_usage,
+            "elicitation_state": ("elicited" if elicited is not None
+                                  else "failed" if e_usage is None else "elicited-out-of-range"),
             "stated_confidence_inline": inline_conf,   # el instrumento previo persiste (continuidad)
             "confidence_by_subclaim": e_subs or out.get("confidence_by_subclaim"),
             "absence_kind": out.get("absence_kind"),
@@ -1460,6 +1483,70 @@ def _usage_in_out(usage):
             int(u.get("output_tokens") or u.get("completion_tokens") or 0))
 
 
+TOKEN_STAGES = ("plan", "synthesize_pass1", "elicit_pass1", "search", "synthesize_pass2", "elicit_pass2",
+                "panel", "revision", "embed")
+_PASS_STAGE = {"pass1": ("synthesize_pass1", "elicit_pass1"), "pass2": ("synthesize_pass2", "elicit_pass2"),
+               "revision": ("revision", "revision")}   # la elicitación de la revisión se atribuye a 'revision'
+
+
+def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False):
+    """ADR-0080 (F): reparto del gasto MEDIDO por etapa. Insumos: cada pasada trae `usage` (síntesis +
+    elicitación fusionadas — M8) y, desde ADR-0080, `usage_elicitation` aparte: la etapa synthesize_* es la
+    resta y elicit_* la parte. Un sintetizador que no separa (stub, firma vieja) deja elicit_* con in/out null
+    + state 'not-separable' — no se inventa un 0 — y todo su gasto va a synthesize_*. `search` no gasta modelo
+    (tools Layer 0): 0 medido con nota. `_sum` es la suma sobre las etapas de MODELO (embed aparte).
+    Corrector ADR-0080: `plan` distingue TRES estados — medido (planner con usage), `plan-without-usage`
+    (plan declarado pero el planner no reportó gasto: in/out null, no 0) y `no-plan`; y el panel cuenta el gasto
+    de TODA fila con `usage` medido, incluida la de un juez agotado (`errored`) cuyos intentos cobraron —
+    composite_auditor lo suma en audit.usage y M8 debe cuadrar contra el mismo número."""
+    stages = {s: {"in": 0, "out": 0} for s in TOKEN_STAGES if s != "embed"}
+    stages["search"]["note"] = "Layer 0 tools — no model call (ADR-0080)"
+    stages["elicit_pass1"] = {"in": None, "out": None, "state": "not-run"}
+    stages["elicit_pass2"] = {"in": None, "out": None, "state": "not-run"}
+    for label, p in passes:
+        synth_stage, elicit_stage = _PASS_STAGE.get(label, ("revision", "revision"))
+        ti, to = _usage_in_out(p.get("usage"))
+        e_usage = p.get("usage_elicitation")
+        if "usage_elicitation" in p and isinstance(e_usage, dict):
+            ei, eo = _usage_in_out(e_usage)
+            ei, eo = min(ei, ti), min(eo, to)   # la parte jamás excede la suma fusionada
+            if elicit_stage == synth_stage:
+                stages[synth_stage]["in"] += ti
+                stages[synth_stage]["out"] += to
+            else:
+                stages[synth_stage]["in"] += ti - ei
+                stages[synth_stage]["out"] += to - eo
+                stages[elicit_stage] = {"in": ei, "out": eo, "state": "measured",
+                                        "model": p.get("model") or SYNTH_MODEL}
+        else:
+            stages[synth_stage]["in"] += ti
+            stages[synth_stage]["out"] += to
+            if elicit_stage != synth_stage:
+                stages[elicit_stage] = {"in": None, "out": None,
+                                        "state": ("not-separable (synthesizer did not report usage_elicitation)"
+                                                  if "usage_elicitation" not in p else "elicitation-failed")}
+        if synth_stage in ("synthesize_pass1", "synthesize_pass2", "revision"):
+            stages[synth_stage]["model"] = p.get("model") or SYNTH_MODEL
+    if planner_meta and planner_meta.get("usage"):
+        pi, po = _usage_in_out(planner_meta.get("usage"))
+        stages["plan"] = {"in": pi, "out": po, "model": planner_meta.get("model") or SYNTH_MODEL}
+    elif plan_declared:
+        stages["plan"] = {"in": None, "out": None, "state": "plan-without-usage (planner reported no usage)",
+                          "model": (planner_meta or {}).get("model")}
+    else:
+        stages["plan"] = {"in": 0, "out": 0, "state": "no-plan"}
+    for row in audit_result.get("panel", []):
+        if isinstance(row.get("usage"), dict) and row["usage"]:
+            i, o = _usage_in_out(row["usage"])
+            stages["panel"]["in"] += i
+            stages["panel"]["out"] += o
+    stages["embed"] = {"tokens": embed_tokens, "unit": "embedding tokens (not chat tokens; excluded from _sum)"}
+    stages["_sum"] = {"in": sum(v["in"] for k, v in stages.items() if k != "embed" and isinstance(v.get("in"), int)),
+                      "out": sum(v["out"] for k, v in stages.items() if k != "embed" and isinstance(v.get("out"), int)),
+                      "rule": "sum over model stages (embed excluded); must equal by_model totals"}
+    return stages
+
+
 def _token_usage(passes, audit_result, embed_tokens, plan=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
     `passes` = [(label, answer_dict)] for the synthesis passes that ran.
@@ -1482,8 +1569,10 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
     if planner_usage:
         _add(planner_meta.get("model") or SYNTH_MODEL, planner_usage)
     for row in audit_result.get("panel", []):
-        if "usage" in row and "verdict" in row:
-            _add(row["reviewer"], row["usage"])
+        # corrector ADR-0080: un juez agotado (`errored`) cuyos intentos cobraron trae `usage` medido; entra a
+        # by_model bajo su reviewer (composite_auditor ya lo suma en audit.usage — M8 cuadra contra ese número)
+        if isinstance(row.get("usage"), dict) and row["usage"]:
+            _add(row.get("reviewer") or "unknown-reviewer", row["usage"])
     embed_model = os.environ.get("OPENAI_EMBED_MODEL", "text-embedding-3-small")
     # ADR-0078: un modelo sin precio en la tabla NO se cotiza a 0 — se EXCLUYE de la proyección y se
     # declara en missing_price_models; cost_projection_complete dice si el número cubre todo el gasto.
@@ -1501,10 +1590,19 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
         else:
             missing.append(embed_model)
     pi, po = _usage_in_out(planner_usage)
+    by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
+                               plan_declared=plan is not None)
+    total_in, total_out = sum(m["in"] for m in by_model.values()), sum(m["out"] for m in by_model.values())
     return {
-        "input_tokens": sum(m["in"] for m in by_model.values()),
-        "output_tokens": sum(m["out"] for m in by_model.values()),
+        "input_tokens": total_in,
+        "output_tokens": total_out,
         "by_model": by_model,
+        # ADR-0080 (F): el MISMO gasto repartido por ETAPA (plan, synthesize_pass1, elicit_pass1, search,
+        # synthesize_pass2, elicit_pass2, panel, revision, embed). suma(by_stage) == by_model total — el check
+        # viaja con el dato; embed se cuenta aparte (tokens de embedding, no tokens de modelo de chat).
+        "by_stage": by_stage,
+        "by_stage_sum_matches_by_model": (by_stage["_sum"]["in"] == total_in
+                                          and by_stage["_sum"]["out"] == total_out),
         # el gasto del plan va DENTRO del total (M8 cuadra) y ADEMÁS aparte, para que se pueda
         # responder "¿cuánto cuesta declarar un plan?" sin re-derivarlo
         "plan_judgment": ({"model": planner_meta.get("model"), "in": pi, "out": po}
@@ -1531,9 +1629,353 @@ def _embed_usage_snapshot():
         return 0
 
 
+# --- ADR-0080: compuerta de competencia + lazo de búsqueda ----------------------------------------------
+# La decisión "¿basta la pasada 1 o se busca afuera?" deja de ser `pass1 < tau` (ADR-0051) y pasa a
+# competence.evaluate: una CONJUNCIÓN de componentes deterministas decidida por CÓDIGO (la confianza del
+# modelo es UN componente, jamás la decisión). No competente → stage.search.plan + rondas del harness
+# (lib/search_harness, rebanada C2) → pass2. Competente → pass1 es la candidata, fallback.trigger null.
+# El literal viejo 'confidence' NO desaparece: vive en fb_meta.trigger_legacy (la regla `pass1 < tau` se
+# sigue evaluando y declarando) y fb_meta.competence explica quién decidió.
+SEARCH_ROUNDS_CAP_DEFAULT = 2                       # WITT_SEARCH_ROUNDS_CAP
+SEARCH_ROUND_BUDGET_S_DEFAULT = 120                 # WITT_SEARCH_ROUND_BUDGET_S
+SEARCH_DEFAULT_FAMILIES_DEFAULT = "europepmc,pubmed,zfin,alliance_orthologs,zfin_expression"   # WITT_SEARCH_DEFAULT_FAMILIES
+# corrector ADR-0080: 'confidence' es literal VÁLIDO de nuevo, pero SÓLO cuando `competence.competent is None`
+# (kill-switch WITT_COMPETENCE_GATE=0 o ruta store-consultation): ahí decide la regla legada `pass1 < tau`
+# (texto del modelo) y el trigger lo dice con su propio nombre — 'competence' se reserva a la decisión por
+# código. fb_meta.trigger_decided_by nombra al decisor en los tres casos.
+FALLBACK_TRIGGERS = ("structural", "competence", "confidence", None)
+TRIGGER_LEGACY_CONFIDENCE = "confidence"            # el literal pre-ADR-0080 (ADR-0051), conservado como alias declarado
+TRIGGER_VOCABULARY = "structural|competence|confidence(only when competence.competent is null)|null (ADR-0080)"
+SEARCH_HARNESS_ENV = "WITT_SEARCH_HARNESS"          # 1 (default) | 0 = la Ruta B no competente corre por path_b_bundle SIN plan
+CG_CALIBRATION_ORIGINS_ENV = "WITT_CG_CALIBRATION_ORIGINS"   # 'production' (default) | lista CSV | 'all' = sin filtro
+CG_CALIBRATION_ORIGINS_DEFAULT = "production"
+
+
+def _search_config():
+    """Configuración EFECTIVA del lazo de búsqueda con la fuente de cada valor. Corrector ADR-0080: UN solo
+    lector — cuando lib/search_harness está en el árbol se delega en sus parsers (budget FLOTANTE, familias en
+    minúsculas y sin duplicados), para que search_ledger.config_source y plan.*_source digan lo mismo de la misma
+    env; el parser propio (entero, ADR-0078) queda sólo como respaldo `harness-unavailable`."""
+    if search_harness is not None and hasattr(search_harness, "resolve_default_families"):
+        cap, cap_src = search_harness._env_int_src("WITT_SEARCH_ROUNDS_CAP", search_harness.ROUNDS_CAP_DEFAULT)
+        budget, b_src = search_harness._env_float_src("WITT_SEARCH_ROUND_BUDGET_S", search_harness.ROUND_BUDGET_S_DEFAULT)
+        fams, f_src = search_harness.resolve_default_families()
+        return {"rounds_cap": cap, "rounds_cap_source": cap_src,
+                "round_budget_s": budget, "round_budget_s_source": b_src,
+                "families_default": list(fams), "families_source": f_src,
+                "config_reader": "search_harness"}
+    cap, cap_src = _env_int_tolerante("WITT_SEARCH_ROUNDS_CAP", SEARCH_ROUNDS_CAP_DEFAULT)
+    budget, b_src = _env_int_tolerante("WITT_SEARCH_ROUND_BUDGET_S", SEARCH_ROUND_BUDGET_S_DEFAULT)
+    raw = os.environ.get("WITT_SEARCH_DEFAULT_FAMILIES", "").strip()
+    fams = []
+    for f in (raw or SEARCH_DEFAULT_FAMILIES_DEFAULT).split(","):
+        f = f.strip().lower()
+        if f and f not in fams:
+            fams.append(f)
+    return {"rounds_cap": cap, "rounds_cap_source": cap_src,
+            "round_budget_s": budget, "round_budget_s_source": b_src,
+            "families_default": fams,
+            "families_source": ("env:WITT_SEARCH_DEFAULT_FAMILIES" if raw
+                                else "default-unset:WITT_SEARCH_DEFAULT_FAMILIES"),
+            "config_reader": "runs (search_harness unavailable)"}
+
+
+def _search_harness_enabled():
+    """(bool, fuente) — WITT_SEARCH_HARNESS (corrector ADR-0080): 0 apaga SÓLO el harness (la compuerta sigue
+    decidiendo); la Ruta B no competente corre por path_b_bundle SIN plan, camino ADR-0078 byte a byte."""
+    raw = os.environ.get(SEARCH_HARNESS_ENV, "").strip()
+    if not raw:
+        return True, f"default-unset:{SEARCH_HARNESS_ENV}"
+    return raw != "0", f"env:{SEARCH_HARNESS_ENV}"
+
+
+def _calibration_origins():
+    """(include_origins | None, fuente) — WITT_CG_CALIBRATION_ORIGINS (corrector ADR-0080): la cobertura de
+    calibración que alimenta la compuerta cuenta por default SÓLO corridas `production` (ADR-0079: smoke /
+    simulation / fixture jamás son historia de competencia). CSV tolerante; 'all' | '*' = sin filtro, declarado."""
+    raw = os.environ.get(CG_CALIBRATION_ORIGINS_ENV, "").strip()
+    if not raw:
+        return [CG_CALIBRATION_ORIGINS_DEFAULT], f"default-unset:{CG_CALIBRATION_ORIGINS_ENV}"
+    toks = []
+    for t in raw.split(","):
+        t = t.strip().lower()
+        if t and t not in toks:
+            toks.append(t)
+    if not toks:
+        return [CG_CALIBRATION_ORIGINS_DEFAULT], f"default-invalid-env:{CG_CALIBRATION_ORIGINS_ENV}"
+    if toks in (["all"], ["*"]):
+        return None, f"env:{CG_CALIBRATION_ORIGINS_ENV} (all origins, no filter)"
+    return toks, f"env:{CG_CALIBRATION_ORIGINS_ENV}"
+
+
+def _competence_min_history():
+    return _env_int_tolerante(competence.MIN_HISTORY_ENV, competence.MIN_HISTORY_DEFAULT)
+
+
+def _citations_of(answer):
+    """(citations, citations_schema, ev_raw) — UNA sede de re-parseo (ADR-0078 corrector), usada por el gate
+    de cada pasada (n_valid para positive_claim_requires_citations) y al congelar."""
+    ev_raw = answer.get("evidence_cited_raw")
+    if ev_raw is None and isinstance(answer.get("evidence_cited"), str):
+        ev_raw = answer["evidence_cited"]
+    citations, schema = _normalize_citations(
+        ev_raw if isinstance(ev_raw, str) else answer.get("evidence_cited"), with_schema=True)
+    return citations, schema, ev_raw
+
+
+def _positive_claim_check(answer, n_citations_valid, identifier_report=None):
+    """(E) positive_claim_requires_citations vive en verify_output (rebanada E). Aquí se cablea SI existe en
+    el árbol; si no, se declara 'tool-unavailable' — jamás se re-implementa en runs.py ni se rellena.
+    Corrector ADR-0080: el informe de identificadores del MISMO gate (verify_identifiers) viaja al predicado
+    cuando su firma lo acepta — una declinación que afirma identificadores resueltos sin citar también dispara.
+    Devuelve (fragmento para deterministic_checks, predicado para extra_predicates | None)."""
+    fn = getattr(verify_output, "positive_claim_requires_citations", None)
+    if fn is None:
+        return ({"positive_claim_requires_citations": None,
+                 "positive_claim_requires_citations_state":
+                     "tool-unavailable (verify_output.positive_claim_requires_citations not in tree — ADR-0080 E)"},
+                None)
+    try:
+        try:
+            accepts_report = "identifier_report" in inspect.signature(fn).parameters
+        except (TypeError, ValueError):
+            accepts_report = False
+        res = (fn(answer, n_citations_valid, identifier_report=identifier_report) if accepts_report
+               else fn(answer, n_citations_valid))
+    except Exception as e:   # el predicado no puede tumbar la corrida (§6 no-hang); se declara
+        return ({"positive_claim_requires_citations": None,
+                 "positive_claim_requires_citations_state": f"error: {type(e).__name__}: {str(e)[:120]}"}, None)
+    if callable(res):
+        # la interfaz de verify_output (rebanada E): devuelve el PREDICADO (text_or_obj, report) -> (name, ok)
+        # con la evaluación completa colgada en `.evaluation` — se congela tal cual, sin recalcular.
+        evaluation = getattr(res, "evaluation", None)
+        if not isinstance(evaluation, dict):
+            _name, ok = res(None, None)
+            evaluation = {"ok": ok}
+        return ({"positive_claim_requires_citations": bool(evaluation.get("ok")),
+                 "positive_claim_requires_citations_state": "checked",
+                 "positive_claim_requires_citations_evaluation": evaluation}, [res])
+    ok = bool(res[1]) if isinstance(res, tuple) and len(res) >= 2 else bool(res)
+    return ({"positive_claim_requires_citations": ok, "positive_claim_requires_citations_state": "checked",
+             "positive_claim_requires_citations_inputs": {"absence_kind": answer.get("absence_kind"),
+                                                          "n_citations_valid": n_citations_valid}},
+            [lambda _obj, _report: ("positive_claim_requires_citations", ok)])
+
+
+def _gate(answer, bundle, thread_snapshot, run, pass_no):
+    """El gate determinista (verify_output.admissible, clase Logic-LM) sobre UNA pasada: predicados duros
+    de identificadores + parent_identifier_leak (ADR-0079) + positive_claim_requires_citations (ADR-0080 E,
+    si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre pass1 (su admisibilidad es un componente de
+    la compuerta) y de nuevo sobre pass2/revisión. `pass_no` viaja en el payload del evento como ETIQUETA
+    ('pass1' | 'pass2' | 'revision' — el mismo vocabulario que usage_raw.passes; corrector ADR-0080: antes
+    mezclaba int y str en la misma llave)."""
+    leak_frag, leak_preds = _leak_check(thread_snapshot, answer["direct_answer"], bundle, run)
+    _cits, schema, _raw = _citations_of(answer)
+    # el informe de identificadores se mide UNA vez y alimenta también al predicado de citas (corrector ADR-0080)
+    report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
+    pc_frag, pc_preds = _positive_claim_check(answer, schema.get("n_valid"), identifier_report=report)
+    preds = list(leak_preds or []) + list(pc_preds or [])
+    adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
+                                             "evidence_cited": answer.get("evidence_cited") or [],
+                                             "absence_kind": answer.get("absence_kind")},
+                                            extra_predicates=preds or None)
+    return {"pass": pass_no, "admissible": adm, "reasons": reasons, "identifier_report": report,
+            **leak_frag, **pc_frag,
+            # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
+            "thread": _thread_checks_summary(run, thread_snapshot)}
+
+
+def _usage_payload(usage, model):
+    """payload.usage {in, out, model} de un evento que GASTA (ADR-0080 F). None declarado si no se midió."""
+    if not isinstance(usage, dict):
+        return None
+    i, o = _usage_in_out(usage)
+    return {"in": i, "out": o, "model": model}
+
+
+def _synth_usage_payload(answer):
+    """El gasto de la SÍNTESIS sola (usage fusionado menos la elicitación separada, cuando la hay)."""
+    ti, to = _usage_in_out(answer.get("usage"))
+    e = answer.get("usage_elicitation")
+    if isinstance(e, dict):
+        ei, eo = _usage_in_out(e)
+        ti, to = ti - min(ei, ti), to - min(eo, to)
+    if not isinstance(answer.get("usage"), dict):
+        return None
+    return {"in": ti, "out": to, "model": answer.get("model") or SYNTH_MODEL}
+
+
+def _elicit_event_payload(answer, pass_no, conf, source):
+    return {"pass": pass_no, "stated_confidence": conf, "confidence_source": source,
+            "stated_confidence_inline": answer.get("stated_confidence_inline"),
+            "elicitation_state": answer.get("elicitation_state") or "not-reported-by-synthesizer",
+            "usage": _usage_payload(answer.get("usage_elicitation"), answer.get("model") or SYNTH_MODEL)}
+
+
+def _build_search_plan(question, entities, pass1_query_en, cfg):
+    """(C) El plan de búsqueda lo arma search_harness.build_search_plan (rebanada C2). Sin el módulo en el
+    árbol se devuelve un plan-sobre DECLARADO (state 'harness-unavailable') para que el registro diga qué
+    faltó; nada se inventa. Devuelve (plan, state)."""
+    if search_harness is None or not hasattr(search_harness, "build_search_plan"):
+        return ({"plan_version": None, "rounds_cap": cfg["rounds_cap"], "families": list(cfg["families_default"]),
+                 "queries": None, "directives": [], "source": "default-families",
+                 "state": "harness-unavailable (lib.search_harness not in tree — ADR-0080 C2)"},
+                "harness-unavailable")
+    try:
+        # families=None: el harness resuelve WITT_SEARCH_DEFAULT_FAMILIES (con su fuente declarada) y deja fuera
+        # las familias gate 'directive-only' hasta que haya directivas del consejo (ADR-0082)
+        plan = search_harness.build_search_plan(question, entities, pass1_query_en, directives=None,
+                                                families=None)
+        plan.setdefault("rounds_cap", cfg["rounds_cap"])
+        return plan, "built"
+    except Exception as e:   # §6 no-hang: un plan que falla deja fila 'error' y la Ruta B corre por el camino de hoy
+        return ({"plan_version": None, "rounds_cap": cfg["rounds_cap"], "families": list(cfg["families_default"]),
+                 "queries": None, "directives": [], "source": "default-families",
+                 "state": f"error: {type(e).__name__}: {str(e)[:160]}"}, "error")
+
+
+def _path_b_bundle_accepts():
+    """Qué llaves ADR-0080 acepta answer_pipeline.path_b_bundle (search_plan, on_stage, existing_ids) —
+    por inspección de firma, no por try/except (patrón _call_with_optional)."""
+    try:
+        params = inspect.signature(answer_pipeline.path_b_bundle).parameters
+        has_varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+        return {n for n in ("search_plan", "on_stage", "existing_ids") if n in params or has_varkw}
+    except (TypeError, ValueError):
+        return set()
+
+
+def _path_b_via_harness(question, entities, q_sent, q_source, triggered_by, search_plan, on_stage,
+                        existing_ids=None):
+    """La Ruta B por el harness: answer_pipeline.path_b_bundle(..., search_plan=, on_stage=, existing_ids=)
+    cuando la firma lo acepta (rebanada C2); si no, el path_b_bundle de hoy y `harness_used False` declarado.
+    Devuelve (block, harness_used: bool, on_stage_delivered: bool)."""
+    kwargs = {"entities": entities, "query": q_sent, "query_source": q_source, "triggered_by": triggered_by}
+    accepts = _path_b_bundle_accepts()
+    if search_plan is not None and "search_plan" in accepts:
+        kwargs["search_plan"] = search_plan
+        if "on_stage" in accepts:
+            kwargs["on_stage"] = on_stage
+        if "existing_ids" in accepts and existing_ids is not None:
+            kwargs["existing_ids"] = list(existing_ids)
+        block = answer_pipeline.path_b_bundle(question, **kwargs)
+        return block, True, "on_stage" in accepts
+    block = answer_pipeline.path_b_bundle(question, **kwargs)
+    return block, False, False
+
+
+def _search_ledger_of(block, search_plan, plan_state, harness_used, cfg):
+    """frozen.search_ledger {plan, rounds[], families_default, n_rounds, cap, state, …} — el ledger que dejó
+    el harness en block.search_ledger (answer_pipeline._path_b_harness: harness_version, plan sin
+    query_builder, rounds sin items, n_rounds, cap, round_budget_s, stop_reason, n_new_total, n_items) más
+    la procedencia de la configuración; o declarado ausente (rounds [], n_rounds null) cuando la Ruta B no
+    corrió por el harness. El bundle.path_b íntegro sigue en bundle_json."""
+    led = block.get("search_ledger") if isinstance(block, dict) else None
+    if harness_used and isinstance(led, dict):
+        out = dict(led)
+        out.setdefault("plan", {k: v for k, v in (search_plan or {}).items() if k != "query_builder"})
+        out["rounds"] = list(out.get("rounds") or [])
+        out["n_rounds"] = len(out["rounds"]) if out.get("n_rounds") is None else out["n_rounds"]
+        out["state"] = "harness"
+    else:
+        if harness_used:
+            state = "harness-without-ledger (path_b_bundle accepted search_plan but returned no search_ledger)"
+        elif plan_state == "not-requested":
+            state = "not-requested (no search round: competent or structural route)"
+        elif plan_state != "built":
+            state = f"legacy-path-b ({plan_state})"
+        else:
+            state = "legacy-path-b (path_b_bundle without search_plan — ADR-0080 C2)"
+        # corrector ADR-0080 (ADR-0043): 'not-requested' es CERO rondas MEDIDO (la compuerta o lo estructural
+        # decidieron no buscar) → n_rounds 0; null se reserva a cuando el harness NO midió (ausente, error,
+        # camino legado, kill-switch)
+        out = {"plan": ({k: v for k, v in search_plan.items() if k != "query_builder"}
+                        if isinstance(search_plan, dict) else None),
+               "rounds": [], "n_rounds": 0 if plan_state == "not-requested" else None,
+               "cap": cfg["rounds_cap"], "state": state}
+    out["plan_state"] = plan_state
+    out.setdefault("families_default", list(cfg["families_default"]))
+    out.setdefault("cap", cfg["rounds_cap"])
+    out.setdefault("round_budget_s", cfg["round_budget_s"])
+    out["config_source"] = {"families": cfg["families_source"], "cap": cfg["rounds_cap_source"],
+                            "round_budget_s": cfg["round_budget_s_source"]}
+    out["second_round_rule"] = ("only if n_admitted == 0 in round k AND k < cap AND the inputs of some family "
+                                "changed since round k (dois/curies resolved in the round); with the default "
+                                "families the inputs only change when items are admitted, so today a round "
+                                "is never re-executed with identical inputs (stop_reason 'no-new-inputs'; "
+                                "until ADR-0082 directives)")
+    out["config_reader"] = cfg.get("config_reader")
+    return out
+
+
+def _support_states(citations, bundle, audit_result):
+    """(E/G) support_state por cita — verify_output.support_state_for (rebanada E) si está en el árbol; el
+    grounding viene de la lente evidence-grounding (citation_support opcional en su fila). Devuelve
+    (citations con support_state aditivo, citations_support_summary). Sin el helper: support_state None por
+    cita + summary.state 'tool-unavailable' — nunca se funden los peldaños."""
+    fn = getattr(verify_output, "support_state_for", None)
+    ladder = tuple(getattr(verify_output, "SUPPORT_LADDER", None)
+                   or ("unresolved", "resolved", "passage_delivered", "supported", "unsupported"))
+    # corrector ADR-0080 (G): la forma degradada conserva la FORMA — los 5 peldaños con null (no medido), no un
+    # dict vacío; ladder/pertinent viajan igual para que el front tipe UNA forma
+    summary = {"n": len(citations), "by_state": {rung: None for rung in ladder}, "ladder": list(ladder),
+               "pertinent": getattr(verify_output, "PERTINENT_NOT_AVAILABLE", "not-available (ADR-0082)")}
+    if fn is None:
+        for c in citations:
+            c.setdefault("support_state", None)
+        summary["state"] = "tool-unavailable (verify_output.support_state_for not in tree — ADR-0080 E)"
+        return citations, summary
+    # el grounding lo extrae composite_auditor (la lente evidence-grounding, ADR-0080 E) cuando existe el
+    # helper; si no, se recogen las filas que traigan citation_support
+    picker = getattr(composite_auditor, "citation_support_from_panel", None)
+    rows = (audit_result or {}).get("panel", [])
+    if callable(picker):
+        grounding = picker(rows)
+    else:
+        grounding = []
+        for row in rows:
+            if isinstance(row.get("citation_support"), list):
+                grounding.extend(row["citation_support"])
+    try:
+        per = fn(citations, bundle, grounding=grounding or None)
+    except Exception as e:
+        for c in citations:
+            c.setdefault("support_state", None)
+        summary["state"] = f"error: {type(e).__name__}: {str(e)[:120]}"
+        return citations, summary
+    by_n = {p.get("n"): p for p in (per or []) if isinstance(p, dict)}
+    for c in citations:
+        p = by_n.get(c.get("n"))
+        if p is None:
+            c.setdefault("support_state", None)
+            continue
+        # los peldaños viajan SEPARADOS dentro de la cita (aditivo, ADR-0080 G); la regla de la escalera va UNA
+        # vez en el resumen, no repetida por cita
+        for k in ("resolved", "resolved_to", "passage_delivered", "pertinent", "supported", "support_state"):
+            if k in p:
+                c[k] = p[k]
+        c.setdefault("support_state", None)
+    summarizer = getattr(verify_output, "support_summary", None)
+    if callable(summarizer):
+        summary = dict(summarizer(per or []))
+    else:
+        for c in citations:
+            key = str(c.get("support_state"))
+            summary["by_state"][key] = summary["by_state"].get(key, 0) + 1
+    summary["state"] = "checked"
+    summary["grounding_rows"] = len(grounding or [])
+    summary["ladder_rule"] = getattr(verify_output, "SUPPORT_LADDER_RULE", None)
+    return citations, summary
+
+
 def execute_run(run, synthesizer=None, panel_caller=None):
     """Execute one claimed run end-to-end. Deterministic under injected synthesizer/panel_caller (the
-    offline gate); live otherwise. Never raises — every exit is a recorded terminal state + event."""
+    offline gate); live otherwise. Never raises — every exit is a recorded terminal state + event.
+
+    ADR-0080: tras pass1 → stage.confidence.elicit{pass:1} → stage.deterministic_gate{pass:1} (adelantado) →
+    stage.competence (competence.evaluate, decidido por código). Competente → pass1 es la candidata, sin ronda
+    extra, fallback.trigger null. No competente (o kill-switch con `pass1 < tau`) → stage.search.plan + Ruta B
+    por el harness (C2) → pass2 → elicit{pass:2} → gate{pass:2}. Estructural → trigger 'structural' como hoy."""
     run_id = run["run_id"]
     synthesizer = synthesizer or _default_synthesizer
 
@@ -1546,7 +1988,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         if name == "path_a":
             mode = payload.get("retrieval", {}).get("mode")
             degraded = None if mode == "semantic" else mode
-        db.add_event(run_id, f"stage.{name}", payload=payload, agent="answer_pipeline",
+        # corrector ADR-0080: los eventos search.* que el harness emite en vivo llevan el MISMO agent que la
+        # forma que runs emite cuando no corre ('search_harness') — un tipo de evento, un agente
+        db.add_event(run_id, f"stage.{name}", payload=payload,
+                     agent="search_harness" if name.startswith("search.") else "answer_pipeline",
                      degraded=degraded)
         _check_cancel()
 
@@ -1556,11 +2001,18 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     # Un evento stage.audit.judge ANTES de cada juez acota el hueco a un juez (≤ 240 s). Se envuelve el
     # caller inyectable — composite_auditor no se toca; el caller por default sigue siendo el suyo.
     inner_caller = panel_caller or composite_auditor._default_caller
+    judge_attempts = {}   # ADR-0080 (E): composite_auditor puede REINTENTAR un juez caído (WITT_JUDGE_RETRIES);
+                          # cada invocación del caller deja su evento con attempt / retries_judge MEDIDOS aquí
 
     def panel_caller(member, system, user_text):   # noqa: F811 — envuelve al inyectado
+        key = (member.get("reviewer"), member.get("lens"))
+        judge_attempts[key] = judge_attempts.get(key, 0) + 1
+        # composite_auditor (E) entrega `attempt` en el member; si un caller viejo no lo trae, se cuenta aquí
+        attempt = member.get("attempt") if isinstance(member.get("attempt"), int) else judge_attempts[key]
         db.add_event(run_id, "stage.audit.judge", agent="composite-auditor",
                      payload={"reviewer": member.get("reviewer"), "lens": member.get("lens"),
-                              "phase": "start", "heartbeat": True})
+                              "phase": "start", "heartbeat": True,
+                              "attempt": attempt, "retries_judge": max(0, attempt - 1)})
         return inner_caller(member, system, user_text)
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
@@ -1648,16 +2100,59 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         db.add_event(run_id, "stage.synthesize.pass1", agent=pass1.get("model"),
                      payload={"stated_confidence": conf1, "confidence_source": conf1_source,
                               "absence_kind": pass1.get("absence_kind"),
-                              "gap_flags": pass1.get("gap_flags", [])})
+                              "gap_flags": pass1.get("gap_flags", []),
+                              "usage": _synth_usage_payload(pass1)})   # ADR-0080 (F): el evento que gasta lo dice
+        # ADR-0080 (B): la elicitación dedicada (ADR-0065) gana su propio evento — el escalar autoritativo
+        # con su procedencia y su gasto, separado de la síntesis.
+        db.add_event(run_id, "stage.confidence.elicit", agent=pass1.get("model"),
+                     payload=_elicit_event_payload(pass1, "pass1", conf1, conf1_source))
         _check_cancel()
 
-        # 3) fallback decision — TWO deciders, and the record says WHICH fired (handoff §5.7):
-        # structural (assess_sufficiency, documented as fooled-by-any-chunk-present) already fetched
-        # Path B inside retrieve(); the confidence gate (pass1 < tau, or absent) fires it now.
+        # 2b) ADR-0080 (B): el gate determinista ADELANTADO sobre pass1 — su admisibilidad es un componente
+        # de la compuerta (una pasada inadmisible no puede ser candidata por competente que se declare).
+        checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1")
+        db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
+                     payload=checks1, level="info" if checks1["admissible"] else "warning")
+        _check_cancel()
+
+        # 3) ADR-0080 (A/B): la COMPUERTA DE COMPETENCIA decide — por código — si pass1 basta. Sustituye al
+        # disparador `pass1 < tau` de ADR-0051, que sigue evaluándose como REGLA LEGADA declarada
+        # (fb_meta.trigger_legacy) y gobierna sólo bajo kill-switch / ruta no aplicable. Lo estructural
+        # (assess_sufficiency, ya disparó Ruta B dentro de retrieve) manda sobre todo, como hoy.
         structural_fired = bundle["path_b"]["triggered"]
-        conf_fired = (not structural_fired) and (conf1 is None or conf1 < FALLBACK_CONF_TAU)
-        trigger = "structural" if structural_fired else ("confidence" if conf_fired else None)
-        if conf_fired:
+        min_hist, min_hist_src = _competence_min_history()
+        niche_codes = competence.plan_niches(plan)
+        cal_origins, cal_origins_src = _calibration_origins()
+        cal_cov = db.calibration_coverage(niche_codes, min_hist, include_origins=cal_origins)
+        cal_cov["min_required_source"] = min_hist_src
+        cal_cov["include_origins_source"] = cal_origins_src
+        comp = competence.evaluate(conf1, checks1["admissible"], plan, structural_fired, cal_cov,
+                                   council_coverage=None, tau=FALLBACK_CONF_TAU)
+        legacy_conf_fired = (not structural_fired) and (conf1 is None or conf1 < FALLBACK_CONF_TAU)
+        if structural_fired:
+            trigger, decision_source = "structural", "structural (assess_sufficiency, inside retrieve)"
+            trigger_decided_by = "structural (assess_sufficiency, code)"
+        elif comp["competent"] is True:
+            trigger, decision_source = None, "competence-gate: competent (pass1 is the candidate)"
+            trigger_decided_by = "code (competence-gate)"
+        elif comp["competent"] is False:
+            trigger, decision_source = "competence", "competence-gate: not competent"
+            trigger_decided_by = "code (competence-gate)"
+        else:   # None: kill-switch o ruta store-consultation → la regla por confianza de hoy decide, y el
+                # trigger lo dice con SU nombre ('confidence', ADR-0051) — jamás 'competence' (corrector ADR-0080)
+            trigger = TRIGGER_LEGACY_CONFIDENCE if legacy_conf_fired else None
+            decision_source = (f"legacy-confidence ({comp.get('skipped_reason')})")
+            trigger_decided_by = "model-confidence (legacy rule pass1 < tau; competence.competent is null)"
+        comp["decision"] = {"trigger": trigger, "decision_source": decision_source,
+                            "legacy_confidence_fired": legacy_conf_fired, "trigger_decided_by": trigger_decided_by}
+        db.add_event(run_id, "stage.competence", agent="competence-gate", tool="competence",
+                     payload=comp, level="info" if trigger not in ("competence", "confidence") else "warning")
+        _check_cancel()
+
+        search_cfg = _search_config()
+        harness_enabled, harness_enabled_src = _search_harness_enabled()
+        search_plan, search_plan_state, harness_used = None, "not-requested", False
+        if trigger in ("competence", TRIGGER_LEGACY_CONFIDENCE):
             # ADR-0057: the query SENT to the English index is never the raw (Spanish) question when a
             # better source exists — the synthesizer's English keywords first, entities second.
             entities = [e for e in run["entities_csv"].split(",") if e]
@@ -1665,31 +2160,102 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 q_sent, q_source = pass1["search_query_en"].strip(), "synthesizer"
             else:
                 q_sent, q_source = answer_pipeline.build_external_query(run["question"], entities)
+            if trigger == TRIGGER_LEGACY_CONFIDENCE or not harness_enabled:
+                # corrector ADR-0080: bajo kill-switch / ruta no aplicable (competent null) o con
+                # WITT_SEARCH_HARNESS=0 la Ruta B es la de ADR-0078 BYTE A BYTE — path_b_bundle SIN plan, sin
+                # harness, sin stage.search.round/source; el plan-sobre lo dice y el ledger queda 'legacy-path-b (…)'
+                if trigger == TRIGGER_LEGACY_CONFIDENCE:
+                    search_plan_state = ("kill-switch WITT_COMPETENCE_GATE=0" if comp.get("config", {}).get("gate_enabled") is False
+                                         else f"not-applicable ({comp.get('skipped_reason')})")
+                else:
+                    search_plan_state = f"kill-switch {SEARCH_HARNESS_ENV}=0"
+                search_plan = {"plan_version": None, "rounds_cap": search_cfg["rounds_cap"],
+                               "families": list(answer_pipeline.PATH_B_SOURCES), "queries": None, "directives": [],
+                               "source": "legacy-path-b (answer_pipeline.PATH_B_SOURCES)", "state": search_plan_state}
+                accepts = _path_b_bundle_accepts()
+                harness_live = False
+            else:
+                # ADR-0080 (C): el plan de búsqueda (familias por default o directivas — vacías hasta ADR-0082)
+                search_plan, search_plan_state = _build_search_plan(run["question"], entities,
+                                                                    pass1.get("search_query_en"), search_cfg)
+                accepts = _path_b_bundle_accepts()
+                harness_live = search_plan_state == "built" and {"search_plan", "on_stage"} <= accepts
+            if not harness_live:
+                # el harness emite stage.search.plan/round/source por on_stage cuando corre en vivo (C2); si
+                # no va a correr, el plan-sobre (declarado: unavailable/error/legacy/kill-switch) se emite desde aquí
+                db.add_event(run_id, "stage.search.plan", agent="search_harness",
+                             payload={"state": search_plan_state, "plan_version": search_plan.get("plan_version"),
+                                      "harness_version": search_plan.get("harness_version"),
+                                      "families": search_plan.get("families"),
+                                      "rounds_cap": search_plan.get("rounds_cap"),
+                                      "source": search_plan.get("source") or search_plan.get("families_source"),
+                                      "n_directives": len(search_plan.get("directives") or []),
+                                      "round_budget_s": search_cfg["round_budget_s"],
+                                      "families_source": search_cfg["families_source"],
+                                      "harness_enabled": harness_enabled, "harness_enabled_source": harness_enabled_src,
+                                      "path_b_bundle_accepts": sorted(accepts),
+                                      "pass1_query_en_present": bool((pass1.get("search_query_en") or "").strip())})
+            _check_cancel()
             # ONE builder for the block (answer_pipeline.path_b_bundle) — the structural trigger inside
-            # retrieve() and this confidence-gated one must not maintain two copies of the same dict.
+            # retrieve() and this competence-gated one must not maintain two copies of the same dict.
             # `entities` travels: the zfin source keys on gene SYMBOLS, not on a free-text query.
-            bundle["path_b"] = answer_pipeline.path_b_bundle(
-                run["question"], entities=entities, query=q_sent, query_source=q_source,
-                triggered_by=[f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU}"
-                              if conf1 is not None else
-                              f"confidence-gate: pass1_confidence ABSENT (tau={FALLBACK_CONF_TAU})"])
+            # existing_ids = los doc_ids de la Ruta A ya presentes (dedup declarado por el harness).
+            if trigger == TRIGGER_LEGACY_CONFIDENCE:
+                # el literal de ADR-0051, intacto: quien lea triggered_by sabe que decidió el escalar
+                triggered_by = [f"confidence-gate: pass1_confidence={conf1} < tau={FALLBACK_CONF_TAU} "
+                                f"(legacy rule; {comp.get('skipped_reason')})"]
+            else:
+                triggered_by = [f"competence-gate: {decision_source}; reasons={comp.get('reasons')}; "
+                                f"pass1_confidence={conf1} tau={FALLBACK_CONF_TAU}"]
+            block, harness_used, on_stage_delivered = _path_b_via_harness(
+                run["question"], entities, q_sent, q_source, triggered_by,
+                search_plan if search_plan_state == "built" else None, _on_stage,
+                existing_ids=[h["doc_id"] for h in bundle["path_a"]["hits"]])
+            bundle["path_b"] = block
+            if harness_used and not on_stage_delivered:
+                # el harness no pudo emitir en vivo: la traza gana los rounds desde el ledger (replay == traza)
+                for rnd in ((block.get("search_ledger") or {}).get("rounds") or []):
+                    db.add_event(run_id, "stage.search.round", agent="search_harness",
+                                 payload={k: rnd.get(k) for k in ("round", "trigger", "budget_s", "elapsed_s")}
+                                 | {"n_sources": len(rnd.get("sources") or []),
+                                    "sources": [{k: s.get(k) for k in ("family", "status", "n_found", "n_new",
+                                                                        "elapsed_s", "cache_hit")}
+                                                for s in (rnd.get("sources") or [])]})
             # external evidence entered the run -> the honest state is FALLBACK_FETCHED (same
             # constructor, same literals — never a re-invented machine)
             bundle["decision_state"] = answer_pipeline._state(
                 "FALLBACK_FETCHED", may_answer=False, may_propose=False,
                 required_next="AUDIT — composite-auditor Mode 1 (>=3 adversarial) MUST verdict the "
-                              "externally-augmented answer BEFORE it may be shown (confidence-gated "
-                              "fallback, ADR-0051; audit on 100% of runs, ADR-0049).")
-            db.add_event(run_id, "stage.path_b", agent="answer_pipeline",
-                         payload=answer_pipeline.path_b_event_payload(bundle["path_b"],
-                                                                     trigger="confidence"))
+                              "externally-augmented answer BEFORE it may be shown (competence-gated "
+                              "fallback, ADR-0080; audit on 100% of runs, ADR-0049).")
+            pb_payload = answer_pipeline.path_b_event_payload(bundle["path_b"], trigger=trigger)
+            pb_payload["trigger_legacy"] = TRIGGER_LEGACY_CONFIDENCE if legacy_conf_fired else None
+            pb_payload["trigger_decided_by"] = trigger_decided_by
+            pb_payload["harness_used"] = harness_used
+            db.add_event(run_id, "stage.path_b", agent="answer_pipeline", payload=pb_payload)
             _check_cancel()
+        bundle["search_ledger"] = _search_ledger_of(bundle["path_b"], search_plan, search_plan_state,
+                                                    harness_used, search_cfg)
         bundle["fallback"] = {"trigger": trigger,
                               "fb_meta": {"pass1_confidence": conf1,
                                           "pass1_confidence_source": conf1_source,
-                                          "tau": FALLBACK_CONF_TAU,
+                                          "tau": FALLBACK_CONF_TAU, "tau_source": FALLBACK_CONF_TAU_SOURCE,
                                           "structural_sufficient": not structural_fired,
-                                          "absence_kind": pass1.get("absence_kind")}}
+                                          "absence_kind": pass1.get("absence_kind"),
+                                          # ADR-0080: el literal viejo como ALIAS declarado + quién decidió
+                                          "trigger_legacy": (TRIGGER_LEGACY_CONFIDENCE if legacy_conf_fired
+                                                             else ("structural" if structural_fired else None)),
+                                          "trigger_vocabulary": TRIGGER_VOCABULARY,
+                                          "trigger_decided_by": trigger_decided_by,
+                                          "search_harness_enabled": harness_enabled,
+                                          "search_harness_enabled_source": harness_enabled_src,
+                                          "competence": {"competent": comp["competent"],
+                                                         "not_applicable": comp["not_applicable"],
+                                                         "reasons": comp["reasons"],
+                                                         "decision_source": decision_source,
+                                                         "skipped_reason": comp.get("skipped_reason"),
+                                                         "decided_by": comp["decided_by"],
+                                                         "module_version": comp["module_version"]}}}
 
         # 4) PASS 2 — only when a fallback fired: re-synthesize with the external evidence
         # incorporated. BOTH confidences persist; the delta is the run's most informative datum
@@ -1703,7 +2269,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             db.add_event(run_id, "stage.synthesize.pass2", agent=pass2.get("model"),
                          payload={"stated_confidence": conf2, "confidence_source": conf2_source,
                                   "delta_vs_pass1": delta,
-                                  "absence_kind": pass2.get("absence_kind")})
+                                  "absence_kind": pass2.get("absence_kind"),
+                                  "usage": _synth_usage_payload(pass2)})
+            db.add_event(run_id, "stage.confidence.elicit", agent=pass2.get("model"),
+                         payload=_elicit_event_payload(pass2, "pass2", conf2, conf2_source))
             answer = pass2
             final_conf, final_source = conf2, conf2_source
         else:
@@ -1717,16 +2286,16 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # ADR-0079: predicado DURO parent_identifier_leak — un identificador que sólo existe en el turno
         # anterior (precedente) y reaparece en la respuesta sin estar en la evidencia del hijo = fuga →
         # inadmisible (extra_predicates de verify_output.admissible; la clase Logic-LM no cambia).
-        leak_frag, leak_preds = _leak_check(thread_snapshot, answer["direct_answer"], bundle, run)
-        adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
-                                                 "evidence_cited": answer.get("evidence_cited") or []},
-                                                extra_predicates=leak_preds)
-        report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
-        checks = {"admissible": adm, "reasons": reasons, "identifier_report": report, **leak_frag,
-                  # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
-                  "thread": _thread_checks_summary(run, thread_snapshot)}
-        db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
-                     payload=checks, level="info" if adm else "warning")
+        # ADR-0080: sobre pass1 YA corrió (checks1, evento pass:1); competente → la candidata ES pass1 y sus
+        # checks son los del gate adelantado (no se re-mide lo mismo dos veces); con pass2 → gate{pass:2}.
+        if trigger:
+            checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2")
+            db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
+                         payload=checks, level="info" if checks["admissible"] else "warning")
+        else:
+            checks = dict(checks1)
+        checks["pass1_admissible"] = checks1["admissible"]
+        checks["competence_gate"] = competence.compact(comp)
         _check_cancel()
 
         # 6) composite audit — 100% of runs (ADR-0049), the terminal transition
@@ -1777,13 +2346,12 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                          payload={"stated_confidence": conf_rev, "confidence_source": conf_rev_source,
                                   "n_findings_input": len(findings)})
             _check_cancel()
-            leak_frag2, leak_preds2 = _leak_check(thread_snapshot, answer_rev["direct_answer"], bundle)
-            adm2, reasons2 = verify_output.admissible({"direct_answer": answer_rev["direct_answer"],
-                                                       "evidence_cited": answer_rev.get("evidence_cited") or []},
-                                                      extra_predicates=leak_preds2)
-            report2 = verify_output.verify_identifiers(answer_rev["direct_answer"]).as_dict()
-            checks2 = {"admissible": adm2, "reasons": reasons2, "identifier_report": report2, **leak_frag2,
-                       "thread": _thread_checks_summary(run, thread_snapshot)}
+            # ADR-0080: el MISMO gate (_gate) que corrió sobre pass1/pass2 — predicados de identificadores +
+            # fuga del padre + positive_claim_requires_citations; conserva pass1_admissible y competence_gate.
+            checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision")
+            checks2["pass1_admissible"] = checks1["admissible"]
+            checks2["competence_gate"] = competence.compact(comp)
+            adm2 = checks2["admissible"]
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                          payload=checks2, level="info" if adm2 else "warning")
             _check_cancel()
@@ -1825,11 +2393,11 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # _normalize_citations recibe ESE string y declara 'string-reparsed' | 'string-unparseable'; si
         # llegó lista, 'list'; si no vino, 'absent'. El registro ya no puede decir "llegó lista" junto a
         # un crudo string.
-        ev_raw = answer.get("evidence_cited_raw")
-        if ev_raw is None and isinstance(answer.get("evidence_cited"), str):
-            ev_raw = answer["evidence_cited"]
-        citations, citations_schema = _normalize_citations(
-            ev_raw if isinstance(ev_raw, str) else answer.get("evidence_cited"), with_schema=True)
+        citations, citations_schema, ev_raw = _citations_of(answer)
+        # ADR-0080 (E/G): la ESCALERA de soporte por cita (unresolved → resolved → passage_delivered →
+        # supported|unsupported), aditiva dentro de cada cita, jamás fundida en un solo bool; el resumen
+        # cuenta por peldaño. El helper vive en verify_output (rebanada E); su ausencia se declara.
+        citations, citations_support_summary = _support_states(citations, bundle, audit_result)
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -1898,16 +2466,23 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             # ADR-0078: cómo llegó evidence_cited (lista / string re-parseado / string no parseable /
             # ausente) y cuántas citas válidas salieron — el lector distingue "citó 0" de "citó y se perdió"
             "citations_schema": citations_schema,
+            "citations_support_summary": citations_support_summary,   # ADR-0080: {n, by_state, state}
             "evidence_cited_raw": ev_raw,   # el string crudo tal cual llegó; None = NO llegó string
+            # --- ADR-0080 (G): la compuerta y el lazo, congelados ---------------------------------------
+            # competence = el bloque ÍNTEGRO de competence.evaluate (+decision); search_ledger = el plan y
+            # las rondas (el bundle.path_b íntegro sigue en bundle_json). Sin ronda: rounds [] y state.
+            "competence": comp,
+            "search_ledger": bundle["search_ledger"],
             "deterministic_checks": checks,
             "token_usage": token_usage,
             "usage_raw": {"passes": {label: p.get("usage", {}) for label, p in passes},
                           # suma de TODOS los paneles (con revisión hay dos — ADR-0067)
+                          # corrector ADR-0080: TODA fila con usage medido (también un juez agotado que cobró)
                           "panel_total": {
                               "input_tokens": sum(_usage_in_out(r.get("usage"))[0]
-                                                  for r in panel_rows_all if "verdict" in r),
+                                                  for r in panel_rows_all if isinstance(r.get("usage"), dict)),
                               "output_tokens": sum(_usage_in_out(r.get("usage"))[1]
-                                                   for r in panel_rows_all if "verdict" in r)}},
+                                                   for r in panel_rows_all if isinstance(r.get("usage"), dict))}},
             "bundle_identity": bundle["bundle_identity"],
             "question_matches_run": bundle["question"] == run["question"],
         }
@@ -2039,7 +2614,11 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                              "niches": nichos,
                              # ADR-0079 (regla frozen-counter: derivado AQUÍ, la lista no re-deriva)
                              "thread_id": run.get("thread_id"), "turn_no": run.get("turn_no"),
-                             "origin": run.get("origin")}
+                             "origin": run.get("origin"),
+                             # ADR-0080: competente (True|False|null con razón en frozen.competence) y
+                             # cuántas rondas de búsqueda corrieron (null = el harness no midió)
+                             "competent": comp["competent"],
+                             "n_search_rounds": bundle["search_ledger"].get("n_rounds")}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),

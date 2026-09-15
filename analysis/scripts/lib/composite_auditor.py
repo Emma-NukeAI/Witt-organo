@@ -27,6 +27,18 @@ anyone caught something real must not average away the catch.
 
 LLM calls are stdlib urllib (Anthropic) / openai SDK (OpenAI) — the exact pattern battle-tested in
 evaluation/run_held_out.py. The caller is INJECTABLE so gates run offline and deterministic.
+
+ADR-0080 (E — gate y panel):
+  - VERDICT_TOOL gains the OPTIONAL property `citation_support: [{n, verdict}]` — only the
+    evidence-grounding lens is charged with filling it (per numbered citation of the claim); every other
+    judge ignores it. It feeds verify_output.support_state_for (the per-citation support ladder) and is
+    parsed deterministically (parse_citation_support): an off-vocabulary entry is DROPPED and counted,
+    never corrected in silence.
+  - one ADDITIONAL attempt per errored/unparseable judge before excluding it (WITT_JUDGE_RETRIES,
+    default 1; resolve_judge_retries declares the effective value + source). The row carries
+    `retries_judge: n` (extra attempts actually made) and `attempts: [{attempt, status, error?}]` —
+    a retried judge is visible, an exhausted one is `errored`; nothing is fabricated (ADR-0038).
+  - families_valid / lenses_valid are NOT here (ADR-0081).
 """
 import json
 import os
@@ -54,6 +66,64 @@ DEFAULT_PANEL = [
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
+
+# ADR-0080 (E): vocabulario del soporte por cita (mismo que verify_output.SUPPORT_VERDICTS — se
+# duplica como literal para que este módulo siga sin importar lib.verify_output; el smoke los compara).
+CITATION_SUPPORT_VERDICTS = ("supported", "unsupported", "not-assessable")
+CITATION_SUPPORT_LENS = "evidence-grounding"
+
+# ADR-0080 (E): UN reintento adicional por juez caído/ilegible antes de excluirlo. Lector: audit().
+# Vacío o basura en la env → default DECLARADO (patrón _env_int_tolerante de ADR-0078), nunca tumba el import.
+JUDGE_RETRIES_DEFAULT = 1
+JUDGE_RETRIES_ENV = "WITT_JUDGE_RETRIES"
+
+
+def resolve_judge_retries(env=None):
+    """(n_retries, source) con source ∈ 'env:WITT_JUDGE_RETRIES' | 'default-unset:WITT_JUDGE_RETRIES' |
+    'default-invalid-env:WITT_JUDGE_RETRIES' | 'caller'. Negativos son inválidos (→ default declarado)."""
+    raw = (os.environ if env is None else env).get(JUDGE_RETRIES_ENV)
+    if raw is None or str(raw).strip() == "":
+        return JUDGE_RETRIES_DEFAULT, f"default-unset:{JUDGE_RETRIES_ENV}"
+    try:
+        n = int(str(raw).strip())
+    except ValueError:
+        return JUDGE_RETRIES_DEFAULT, f"default-invalid-env:{JUDGE_RETRIES_ENV}"
+    if n < 0:
+        return JUDGE_RETRIES_DEFAULT, f"default-invalid-env:{JUDGE_RETRIES_ENV}"
+    return n, f"env:{JUDGE_RETRIES_ENV}"
+
+
+def parse_citation_support(raw):
+    """Parseo DETERMINISTA de `citation_support` tal como lo emitió el juez: (válidos, n_dropped).
+    Válido = dict con n entero ≥1 y verdict del vocabulario; el primer veredicto por n gana, los demás y
+    todo lo fuera de forma se DESCARTAN y se cuentan (ADR-0080: nada se corrige en silencio).
+    raw que no es lista → ([], 0) con `emitted=False` decidido por el caller (no emitió ≠ emitió vacío)."""
+    if not isinstance(raw, list):
+        return [], 0
+    out, seen, dropped = [], set(), 0
+    for item in raw:
+        if not isinstance(item, dict):
+            dropped += 1
+            continue
+        n, v = item.get("n"), item.get("verdict")
+        if isinstance(n, bool) or not isinstance(n, (int, float)) or int(n) != n or int(n) < 1 \
+                or v not in CITATION_SUPPORT_VERDICTS or int(n) in seen:
+            dropped += 1
+            continue
+        seen.add(int(n))
+        out.append({"n": int(n), "verdict": v})
+    return out, dropped
+
+
+def citation_support_from_panel(rows):
+    """La lista `citation_support` del juez de la lente evidence-grounding, para verify_output.
+    support_state_for(grounding=...). None cuando ese juez erró o no la emitió (→ cada cita queda
+    'not-evaluated': declarado, no rellenado). Si hubiera varios jueces con esa lente, se toma el
+    primero con veredicto válido (el panel por default trae uno)."""
+    for r in (rows or []):
+        if r.get("lens") == CITATION_SUPPORT_LENS and "verdict" in r and isinstance(r.get("citation_support"), list):
+            return r["citation_support"]
+    return None
 
 VERDICT_TOOL = {
     "name": "emit_audit_verdict",
@@ -91,6 +161,24 @@ VERDICT_TOOL = {
                                 "worth more than a guess. This is the DOMAIN axis (what field), never the "
                                 "data-type axis (RN*) — that one is read from the catalog, not judged."),
             },
+            # ADR-0080 (E): soporte POR CITA — sólo la lente evidence-grounding lo emite (su charge lo
+            # pide); los demás jueces lo omiten. OPCIONAL en `required`: un juez que no lo emite "no
+            # evaluó las citas" (support_state se queda en el peldaño determinista), que es distinto de
+            # evaluar mal. verify_output.support_state_for lo consume; nunca se fabrica.
+            "citation_support": {
+                "type": "array",
+                "items": {"type": "object",
+                          "properties": {"n": {"type": "integer", "minimum": 1},
+                                         "verdict": {"type": "string",
+                                                     "enum": list(CITATION_SUPPORT_VERDICTS)}},
+                          "required": ["n", "verdict"]},
+                "description": ("evidence-grounding lens ONLY (other lenses: omit). For EACH numbered "
+                                "citation [n] the claim makes, judge whether the passage delivered for "
+                                "that citation in `evidence` supports the sentence it is attached to: "
+                                "'supported' | 'unsupported' | 'not-assessable' (no passage shown for it, "
+                                "or the claim sentence cannot be located). Judge ONLY citations whose "
+                                "passage you were shown; never assert support from memory."),
+            },
         },
         "required": ["verdict", "confidence"],
     },
@@ -104,7 +192,13 @@ _LENS_CHARGES = {
                   "history shows over-claiming is its most recurrent failure."),
     "evidence-grounding": ("Check GROUNDING: does every asserted identifier/citation trace to the provided "
                            "evidence and the deterministic check results? Flag anything asserted from memory. "
-                           "An identifier the deterministic gate marked unresolved is an automatic REVISE."),
+                           "An identifier the deterministic gate marked unresolved is an automatic REVISE. "
+                           "ADDITIONALLY (ADR-0080) fill `citation_support`: for EACH numbered citation [n] "
+                           "in the claim, emit {n, verdict} with verdict 'supported' (the passage delivered "
+                           "for it in `evidence` supports the sentence it is attached to), 'unsupported' "
+                           "(the passage does not), or 'not-assessable' (no passage was delivered for that "
+                           "citation, or the sentence cannot be located). Judge ONLY passages you were "
+                           "shown; a citation with no passage is 'not-assessable', never 'supported'."),
     "reproducibility": ("As a cross-provider reviewer, check the reasoning chain END-TO-END: could an "
                         "independent reader reproduce the conclusion from the evidence shown? Flag leaps, "
                         "missing steps, and reliance on unstated knowledge. An honest decline IS "
@@ -297,7 +391,7 @@ def _default_caller(member, system, user_text):
 
 
 def audit(claim, evidence, deterministic_checks=None, required_because="", panel=None,
-          caller=None, min_valid=3):
+          caller=None, min_valid=3, judge_retries=None):
     """Run the Mode 1 split-and-vote panel over (claim, evidence). Returns the audit object the §5
     contract and the frozen record carry VISIBLY:
 
@@ -308,9 +402,22 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     `deterministic_checks` (dict) is verify_output/resolve_id output — handed to every judge so nobody
     invents verification (ADR-0038). `caller(member, system, user_text) -> (verdict_dict, usage)` is
     injectable for offline gates; default = live Anthropic/OpenAI calls.
+
+    ADR-0080 (E): `judge_retries` = ADDITIONAL attempts per errored/unparseable judge before it is
+    excluded (None → WITT_JUDGE_RETRIES, default 1; declared in out["judge_retries"] {value, source}).
+    Every row carries `retries_judge` (extra attempts actually made) and `attempts` [{attempt, status,
+    error?}]; the `member` handed to the caller carries `attempt: k` (1-based) so a heartbeat wrapper
+    (runs.panel_caller → stage.audit.judge) can declare which attempt it announces. A judge that errors
+    on every attempt stays `status: 'errored'` with the LAST error — never fabricated. The
+    evidence-grounding judge's OPTIONAL `citation_support` is parsed (parse_citation_support) onto its
+    row as `citation_support` + `citation_support_dropped`; a judge that did not emit it has no key.
     """
     panel = panel or DEFAULT_PANEL
     caller = caller or _default_caller
+    if judge_retries is None:
+        judge_retries, retries_source = resolve_judge_retries()
+    else:
+        judge_retries, retries_source = max(0, int(judge_retries)), "caller"
     user_text = json.dumps({
         "claim": claim,
         "evidence": evidence,
@@ -330,31 +437,77 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                   f"You are handed deterministic verification results in the input — cite them; NEVER claim "
                   f"a verification you did not run. Vote independently; other reviewers cover other lenses."
                   f"\n\n{_niche_table()}")
-        try:
-            verdict, usage = caller(member, system, user_text)
-            rows.append({"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
-                         "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
-                         "correction_applied": verdict.get("correction_applied", ""),
-                         "confidence": verdict.get("confidence"),
-                         "reasons": verdict.get("reasons", []),
-                         # el eje de dominio POR JUEZ: se conserva crudo para que el consenso se
-                         # pueda auditar renglón por renglón (y un código fuera de la tabla quede
-                         # visible, no corregido en silencio)
-                         **({"domain_niches": verdict["domain_niches"]}
-                            if isinstance(verdict.get("domain_niches"), list) else {}),
-                         "usage": usage or {}})   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
+        # ADR-0080 (E): hasta 1 + judge_retries intentos por juez; cada intento queda en `attempts`.
+        # El gasto MEDIDO de cada intento que devolvió usage (incluido un intento ILEGIBLE: la API cobró
+        # esos tokens aunque el veredicto se descarte) se conserva por intento y se SUMA en la fila
+        # (`usage`) — nunca se tira una medición (ADR-0051 / M8 reconcilia contra el gasto real).
+        attempts, verdict, last_error, judge_usage = [], None, None, {}
+
+        def _acc(into, usage):
+            for k, v in (usage or {}).items():
+                if isinstance(v, (int, float)):
+                    into[k] = into.get(k, 0) + v
+
+        for attempt in range(1, judge_retries + 2):
+            entry = {"attempt": attempt}
+            try:
+                out_v, usage = caller(dict(member, attempt=attempt), system, user_text)
+                if isinstance(usage, dict) and usage:
+                    entry["usage"] = usage
+                    _acc(judge_usage, usage)
+                got = out_v.get("verdict") if isinstance(out_v, dict) else None
+                if got not in VOCABULARY:
+                    raise RuntimeError(f"unparseable judge output: verdict={got!r}")
+                verdict = out_v
+                entry["status"] = "ok"
+                attempts.append(entry)
+                break
+            except Exception as e:
+                last_error = f"{type(e).__name__}: {str(e)[:200]}"
+                entry.update({"status": "errored", "error": last_error})
+                attempts.append(entry)
+                verdict = None
+        retries_used = len(attempts) - 1
+        usage = judge_usage
+        if verdict is not None:
+            row = {"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
+                   "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
+                   "correction_applied": verdict.get("correction_applied", ""),
+                   "confidence": verdict.get("confidence"),
+                   "reasons": verdict.get("reasons", []),
+                   # el eje de dominio POR JUEZ: se conserva crudo para que el consenso se
+                   # pueda auditar renglón por renglón (y un código fuera de la tabla quede
+                   # visible, no corregido en silencio)
+                   **({"domain_niches": verdict["domain_niches"]}
+                      if isinstance(verdict.get("domain_niches"), list) else {}),
+                   "retries_judge": retries_used, "attempts": attempts,
+                   "usage": usage or {}}   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
+            # ADR-0080 (E): soporte por cita — sólo si el juez lo EMITIÓ como lista (no emitir ≠ emitir [])
+            if isinstance(verdict.get("citation_support"), list):
+                parsed, dropped = parse_citation_support(verdict["citation_support"])
+                row["citation_support"] = parsed
+                row["citation_support_dropped"] = dropped
+            rows.append(row)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):
                     usage_total[k] = usage_total.get(k, 0) + v
-        except Exception as e:  # errored judge: EXCLUDED and recorded — never fabricated (ADR-0038)
-            rows.append({"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
-                         "status": "errored", "error": f"{type(e).__name__}: {str(e)[:200]}"})
+        else:  # errored judge: EXCLUDED and recorded — never fabricated (ADR-0038)
+            row = {"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
+                   "status": "errored", "error": last_error,
+                   "retries_judge": retries_used, "attempts": attempts}
+            if judge_usage:   # un intento ilegible que SÍ cobró tokens: gasto medido, declarado aquí también
+                row["usage"] = judge_usage
+                _acc(usage_total, judge_usage)
+            rows.append(row)
 
     valid = [r for r in rows if "verdict" in r]
     tally = {v: sum(1 for r in valid if r["verdict"] == v) for v in VOCABULARY}
     out = {"required": True, "required_because": required_because, "panel": rows, "tally": tally,
            "source_vocabulary": SOURCE_VOCABULARY, "n_valid": len(valid), "usage": usage_total,
-           "domain_niches": tally_domain_niches(rows, len(valid))}
+           "domain_niches": tally_domain_niches(rows, len(valid)),
+           # ADR-0080 (E): el reintento por juez viaja DECLARADO (valor efectivo + procedencia)
+           "judge_retries": {"value": judge_retries, "source": retries_source,
+                             "scope": "judge-call (additional attempts before exclusion)"}}
     if len(valid) < min_valid:
         # a thin panel can NEVER approve — conservative by construction (Mode 1 minimum >=3)
         out["verdict"] = "REVISE"
@@ -383,6 +536,11 @@ def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=N
     bundle["audit"].update({k: audit_result[k] for k in
                             ("required", "required_because", "panel", "tally", "verdict",
                              "source_vocabulary", "n_valid", "usage")})
+    if "judge_retries" in audit_result:
+        # ADR-0080 (E) C7 costura: la declaración {value, source} de los reintentos por juez acompaña a las
+        # filas (retries_judge / attempts) hasta el registro congelado — sin ella el lector ve el reintento
+        # pero no la regla que lo permitió
+        bundle["audit"]["judge_retries"] = audit_result["judge_retries"]
     if audit_result.get("panel_incomplete"):
         bundle["audit"]["panel_incomplete"] = True
     bundle["bundle_identity"] = answer_pipeline_module._identity(bundle)

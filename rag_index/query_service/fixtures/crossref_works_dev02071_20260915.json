@@ -1,0 +1,602 @@
+{
+ "fetched_at": "2026-09-15T09:40:50+00:00",
+ "url": "https://api.crossref.org/works/10.1242/dev.02071",
+ "response": {
+  "status": "ok",
+  "message-type": "work",
+  "message-version": "1.0.0",
+  "message": {
+   "indexed": {
+    "date-parts": [
+     [
+      2026,
+      9,
+      15
+     ]
+    ],
+    "date-time": "2026-09-15T05:16:14Z",
+    "timestamp": 1789449374161,
+    "version": "build-2803163510"
+   },
+   "reference-count": 70,
+   "publisher": "The Company of Biologists",
+   "issue": "22",
+   "content-domain": {
+    "domain": [],
+    "crossmark-restriction": false
+   },
+   "short-container-title": [],
+   "published-print": {
+    "date-parts": [
+     [
+      2005,
+      11,
+      15
+     ]
+    ]
+   },
+   "abstract": "<jats:p>Axial eye patterning determines the positional code of retinal ganglion cells (RGCs), which is crucial for their topographic projection to the midbrain. Several asymmetrically expressed determinants of retinal patterning are known, but it is unclear how axial polarity is first established. We find that Fgf signals, including Fgf8, determine retinal patterning along the nasotemporal (NT) axis during early zebrafish embryogenesis: Fgf8 induces nasal and/or suppresses temporal retinal cell fates; and inhibition of all Fgf-receptor signaling leads to complete retinal temporalization and concomitant loss of all nasal fates. Misprojections of RGCs with Fgf-dependent alterations in retinal patterning to the midbrain demonstrate the importance of this early patterning process for late topographic map formation. The crucial period of Fgf-dependent patterning is at the onset of eye morphogenesis. Fgf8 expression, the restricted temporal requirement for Fgf-receptor signaling and target gene expression at this stage suggests that the telencephalic primordium is the source of Fgf8 and acts as novel signaling center for non-autonomous axial patterning of the prospective neural retina.</jats:p>",
+   "DOI": "10.1242/dev.02071",
+   "type": "journal-article",
+   "created": {
+    "date-parts": [
+     [
+      2005,
+      10,
+      20
+     ]
+    ],
+    "date-time": "2005-10-20T13:46:39Z",
+    "timestamp": 1129815999000
+   },
+   "page": "4951-4962",
+   "source": "Crossref",
+   "is-referenced-by-count": 68,
+   "title": [
+    "Fgf signals from a novel signaling center determine axial patterning of the prospective neural retina"
+   ],
+   "prefix": "10.1242",
+   "volume": "132",
+   "author": [
+    {
+     "given": "Alexander",
+     "family": "Picker",
+     "sequence": "first",
+     "affiliation": [
+      {
+       "name": "University of Technology, Department of Genetics, c/o Max Planck Institute of Molecular Cell Biology and Genetics, Pfotenhauer Strasse 108,01307 Dresden, Germany"
+      }
+     ],
+     "role": [
+      {
+       "vocabulary": "crossref",
+       "role": "author"
+      }
+     ]
+    },
+    {
+     "given": "Michael",
+     "family": "Brand",
+     "sequence": "additional",
+     "affiliation": [
+      {
+       "name": "University of Technology, Department of Genetics, c/o Max Planck Institute of Molecular Cell Biology and Genetics, Pfotenhauer Strasse 108,01307 Dresden, Germany"
+      }
+     ],
+     "role": [
+      {
+       "vocabulary": "crossref",
+       "role": "author"
+      }
+     ]
+    }
+   ],
+   "member": "237",
+   "reference": [
+    {
+     "key": "2021042605183072800_REF1",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Barbieri, A. M., Lupo, G., Bulfone, A., Andreazzoli, M.,Mariani, M., Fougerousse, F., Consalez, G. G., Borsani, G., Beckmann,J. S., Barsacchi, G. et al. (1999). A homeobox gene, vax2,controls the patterning of the eye dorsal-ventral axis. Proc. Natl. Acad. Sci. USA96,10729-10734.",
+     "DOI": "10.1073/pnas.96.19.10729"
+    },
+    {
+     "key": "2021042605183072800_REF2",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Brand, M., Heisenberg, C. P., Jiang, Y. J., Beuchle, D., Lun,K., Furutani-Seiki, M., Granato, M., Haffter, P., Hammerschmidt, M., Kane, D. A. et al. (1996). Mutations in zebrafish genes affecting the formation of the boundary between midbrain and hindbrain. Development123,179-190.",
+     "DOI": "10.1242/dev.123.1.179"
+    },
+    {
+     "key": "2021042605183072800_REF3",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Brennan, C., Monschau, B., Lindberg, R., Guthrie, B., Drescher,U., Bonhoeffer, F. and Holder, N. (1997). Two Eph receptor tyrosine kinase ligands control axon growth and may be involved in the creation of the retinotectal map in the zebrafish. Development124,655-664.",
+     "DOI": "10.1242/dev.124.3.655"
+    },
+    {
+     "key": "2021042605183072800_REF4",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Cao, Y., Zhao, J., Sun, Z., Zhao, Z., Postlethwait, J. and Meng,A. (2004). fgf17b, a novel member of Fgf family, helps patterning zebrafish embryos. Dev. Biol.271,130-143.",
+     "DOI": "10.1016/j.ydbio.2004.03.032"
+    },
+    {
+     "key": "2021042605183072800_REF5",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Cheng, H. J. and Flanagan, J. G. (1994). Identification and cloning of ELF-1, a developmentally expressed ligand for the Mek4 and Sek receptor tyrosine kinases. Cell79,157-168.",
+     "DOI": "10.1016/0092-8674(94)90408-1"
+    },
+    {
+     "key": "2021042605183072800_REF6",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Cheng, H. J., Nakamoto, M., Bergemann, A. D. and Flanagan, J. G. (1995). Complementary gradients in expression and binding of ELF-1 and Mek4 in development of the topographic retinotectal projection map. Cell82,371-381.",
+     "DOI": "10.1016/0092-8674(95)90426-3"
+    },
+    {
+     "key": "2021042605183072800_REF7",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Chow, R. L. and Lang, R. A. (2001). Early eye development in vertebrates. Annu. Rev. Cell Dev. Biol.17,255-296.",
+     "DOI": "10.1146/annurev.cellbio.17.1.255"
+    },
+    {
+     "key": "2021042605183072800_REF8",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Chuang, J. C. and Raymond, P. A. (2002). Embryonic origin of the eyes in teleost fish. BioEssays24,519-529.",
+     "DOI": "10.1002/bies.10097"
+    },
+    {
+     "key": "2021042605183072800_REF9",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Crossley, P. H., Martinez, S. and Martin, G. R.(1996). Midbrain development induced by FGF8 in the chick embryo. Nature380,66-68.",
+     "DOI": "10.1038/380066a0"
+    },
+    {
+     "key": "2021042605183072800_REF10",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Deitcher, D. L., Fekete, D. M. and Cepko, C. L.(1994). Asymmetric expression of a novel homeobox gene in vertebrate sensory organs. J. Neurosci.14,486-498.",
+     "DOI": "10.1523/JNEUROSCI.14-02-00486.1994"
+    },
+    {
+     "key": "2021042605183072800_REF11",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Draper, B. W., Stock, D. W. and Kimmel, C. B.(2003). Zebrafish fgf24 functions with fgf8 to promote posterior mesodermal development. Development130,4639-4654.",
+     "DOI": "10.1242/dev.00671"
+    },
+    {
+     "key": "2021042605183072800_REF12",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Drescher, U., Kremoser, C., Handwerker, C., Loschinger, J.,Noda, M. and Bonhoeffer, F. (1995). In vitro guidance of retinal ganglion cell axons by RAGS, a 25 kDa tectal protein related to ligands for Eph receptor tyrosine kinases. Cell82,359-370.",
+     "DOI": "10.1016/0092-8674(95)90425-5"
+    },
+    {
+     "key": "2021042605183072800_REF13",
+     "unstructured": "Dutting, D. and Meyer, S. U. (1995). Transplantations of the chick eye anlage reveal an early deterimination of nasotemporal polarity. Int. J. Dev. Biol.39,921-931."
+    },
+    {
+     "key": "2021042605183072800_REF14",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Feldheim, D. A., Kim, Y. I., Bergemann, A. D., Frisen, J.,Barbacid, M. and Flanagan, J. G. (2000). Genetic analysis of ephrin-A2 and ephrin-A5 shows their requirement in multiple aspects of retinocollicular mapping. Neuron25,563-574.",
+     "DOI": "10.1016/S0896-6273(00)81060-0"
+    },
+    {
+     "key": "2021042605183072800_REF15",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Flanagan, J. G. and Vanderhaeghen, P. (1998). The ephrins and Eph receptors in neural development. Annu. Rev. Neurosci.21,309-345.",
+     "DOI": "10.1146/annurev.neuro.21.1.309"
+    },
+    {
+     "key": "2021042605183072800_REF16",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Friedman, G. C. and O'Leary, D. D. (1996). Retroviral misexpression of engrailed genes in the chick optic tectum perturbs the topographic targeting of retinal axons. J. Neurosci.16,5498-5509.",
+     "DOI": "10.1523/JNEUROSCI.16-17-05498.1996"
+    },
+    {
+     "key": "2021042605183072800_REF17",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Frisen, J., Yates, P. A., McLaughlin, T., Friedman, G. C.,O'Leary, D. D. and Barbacid, M. (1998). Ephrin-A5 (AL-1/RAGS)is essential for proper retinal axon guidance and topographic mapping in the mammalian visual system. Neuron20,235-243.",
+     "DOI": "10.1016/S0896-6273(00)80452-3"
+    },
+    {
+     "key": "2021042605183072800_REF18",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Fuhrmann, S., Levine, E. M. and Reh, T. A.(2000). Extraocular mesenchyme patterns the optic vesicle during early eye development in the embryonic chick. Development127,4599-4609.",
+     "DOI": "10.1242/dev.127.21.4599"
+    },
+    {
+     "key": "2021042605183072800_REF19",
+     "unstructured": "Furthauer, M., Reifers, F., Brand, M., Thisse, B. and Thisse,C. (2001). sprouty4 acts in vivo as a feedback-induced antagonist of FGF signaling in zebrafish. Development128,2175-2186."
+    },
+    {
+     "key": "2021042605183072800_REF20",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Furthauer, M., Lin, W., Ang, S. L., Thisse, B. and Thisse,C. (2002). Sef is a feedback-induced antagonist of Ras/MAPK-mediated FGF signalling. Nat. Cell Biol.4, 170-174.",
+     "DOI": "10.1038/ncb750"
+    },
+    {
+     "key": "2021042605183072800_REF21",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Hatini, V., Tao, W. and Lai, E. (1994). Expression of winged helix genes, BF-1 and BF-2, define adjacent domains within the developing forebrain and retina. J. Neurobiol.25,1293-1309.",
+     "DOI": "10.1002/neu.480251010"
+    },
+    {
+     "key": "2021042605183072800_REF22",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Heisenberg, C. P., Brennan, C. and Wilson, S. W.(1999). Zebrafish aussicht mutant embryos exhibit widespread overexpression of ace (fgf8) and coincident defects in CNS development. Development126,2129-2140.",
+     "DOI": "10.1242/dev.126.10.2129"
+    },
+    {
+     "key": "2021042605183072800_REF23",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Herzog, W., Sonntag, C., von der Hardt, S., Roehl, H. H., Varga,Z. M. and Hammerschmidt, M. (2004). Fgf3 signaling from the ventral diencephalon is required for early specification and subsequent survival of the zebrafish adenohypophysis. Development131,3681-3692.",
+     "DOI": "10.1242/dev.01235"
+    },
+    {
+     "key": "2021042605183072800_REF24",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Huh, S., Hatini, V., Marcus, R. C., Li, S. C. and Lai, E.(1999). Dorsal-ventral patterning defects in the eye of BF-1-deficient mice associated with a restricted loss of shh expression. Dev. Biol.211,53-63.",
+     "DOI": "10.1006/dbio.1999.9303"
+    },
+    {
+     "key": "2021042605183072800_REF25",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Hyatt, G. A., Schmitt, E. A., Marsh-Armstrong, N. R. and Dowling, J. E. (1992). Retinoic acid-induced duplication of the zebrafish retina. Proc. Natl. Acad. Sci. USA89,8293-8297.",
+     "DOI": "10.1073/pnas.89.17.8293"
+    },
+    {
+     "key": "2021042605183072800_REF26",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Hyatt, G. A., Schmitt, E. A., Marsh-Armstrong, N., McCaffery,P., Drager, U. C. and Dowling, J. E. (1996). Retinoic acid establishes ventral retinal characteristics. Development122,195-204.",
+     "DOI": "10.1242/dev.122.1.195"
+    },
+    {
+     "key": "2021042605183072800_REF27",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Itasaki, N. and Nakamura, H. (1996). A role for gradient en expression in positional specification on the optic tectum. Neuron16,55-62.",
+     "DOI": "10.1016/S0896-6273(00)80023-9"
+    },
+    {
+     "key": "2021042605183072800_REF28",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Jaszai, J., Reifers, F., Picker, A., Langenberg, T. and Brand,M. (2003). Isthmus-to-midbrain transformation in the absence of midbrain-hindbrain organizer activity. Development130,6611-6623.",
+     "DOI": "10.1242/dev.00899"
+    },
+    {
+     "key": "2021042605183072800_REF29",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Kastner, P., Grondona, J. M., Mark, M., Gansmuller, A., LeMeur,M., Decimo, D., Vonesch, J. L., Dolle, P. and Chambon, P.(1994). Genetic analysis of RXR alpha developmental function:convergence of RXR and RAR signaling pathways in heart and eye morphogenesis. Cell78,987-1003.",
+     "DOI": "10.1016/0092-8674(94)90274-7"
+    },
+    {
+     "key": "2021042605183072800_REF30",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Kimmel, C. B., Ballard, W. W., Kimmel, S. R., Ullmann, B. and Schilling, T. F. (1995). Stages of embryonic development of the zebrafish. Dev. Dyn.203,253-310.",
+     "DOI": "10.1002/aja.1002030302"
+    },
+    {
+     "key": "2021042605183072800_REF31",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Koshiba-Takeuchi, K., Takeuchi, J. K., Matsumoto, K., Momose,T., Uno, K., Hoepker, V., Ogura, K., Takahashi, N., Nakamura, H.,Yasuda, K. et al. (2000). Tbx5 and the retinotectum projection. Science287,134-137.",
+     "DOI": "10.1126/science.287.5450.134"
+    },
+    {
+     "key": "2021042605183072800_REF32",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Lee, S. M., Danielian, P. S., Fritzsch, B. and McMahon, A. P. (1997). Evidence that FGF8 signalling from the midbrain-hindbrain junction regulates growth and polarity in the developing midbrain. Development124,959-969.",
+     "DOI": "10.1242/dev.124.5.959"
+    },
+    {
+     "key": "2021042605183072800_REF33",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Leger, S. and Brand, M. (2002). Fgf8 and Fgf3 are required for zebrafish ear placode induction, maintenance and inner ear patterning. Mech. Dev.119,91-108.",
+     "DOI": "10.1016/S0925-4773(02)00343-X"
+    },
+    {
+     "key": "2021042605183072800_REF34",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Li, Z., Joseph, N. M. and Easter, S. S., Jr(2000). The morphogenesis of the zebrafish eye, including a fate map of the optic vesicle. Dev. Dyn.218,175-188.",
+     "DOI": "10.1002/(SICI)1097-0177(200005)218:1<175::AID-DVDY15>3.0.CO;2-K"
+    },
+    {
+     "key": "2021042605183072800_REF35",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Lin, W., Furthauer, M., Thisse, B., Thisse, C., Jing, N. and Ang, S. L. (2002). Cloning of the mouse Sef gene and comparative analysis of its expression with Fgf8 and Spry2 during embryogenesis. Mech. Dev.113,163-168.",
+     "DOI": "10.1016/S0925-4773(02)00018-7"
+    },
+    {
+     "key": "2021042605183072800_REF36",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Logan, C., Wizenmann, A., Drescher, U., Monschau, B.,Bonhoeffer, F. and Lumsden, A. (1996). Rostral optic tectum acquires caudal characteristics following ectopic engrailed expression. Curr. Biol.6,1006-1014.",
+     "DOI": "10.1016/S0960-9822(02)00645-0"
+    },
+    {
+     "key": "2021042605183072800_REF37",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Lupo, G., Liu, Y., Qiu, R., Chandraratna, R. A., Barsacchi, G.,He, R. Q. and Harris, W. A. (2005). Dorsoventral patterning of the Xenopus eye: a collaboration of Retinoid, Hedgehog and FGF receptor signaling. Development132,1737-1748.",
+     "DOI": "10.1242/dev.01726"
+    },
+    {
+     "key": "2021042605183072800_REF38",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Marsh-Armstrong, N., McCaffery, P., Gilbert, W., Dowling, J. E. and Drager, U. C. (1994). Retinoic acid is necessary for development of the ventral retina in zebrafish. Proc. Natl. Acad. Sci. USA91,7286-7290.",
+     "DOI": "10.1073/pnas.91.15.7286"
+    },
+    {
+     "key": "2021042605183072800_REF39",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Martinez, S., Crossley, P. H., Cobos, I., Rubenstein, J. L. and Martin, G. R. (1999). FGF8 induces formation of an ectopic isthmic organizer and isthmocerebellar development via a repressive effect on Otx2 expression. Development126,1189-1200.",
+     "DOI": "10.1242/dev.126.6.1189"
+    },
+    {
+     "key": "2021042605183072800_REF40",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Martinez-Morales, J. R., Del Bene, F., Nica, G., Hammerschmidt,M., Bovolenta, P. and Wittbrodt, J. (2005). Differentiation of the Vertebrate Retina Is Coordinated by an FGF Signaling Center. Dev. Cell8,565-574.",
+     "DOI": "10.1016/j.devcel.2005.01.022"
+    },
+    {
+     "key": "2021042605183072800_REF41",
+     "doi-asserted-by": "crossref",
+     "unstructured": "McCabe, K. L., Gunther, E. C. and Reh, T. A.(1999). The development of the pattern of retinal ganglion cells in the chick retina: mechanisms that control differentiation. Development126,5713-5724.",
+     "DOI": "10.1242/dev.126.24.5713"
+    },
+    {
+     "key": "2021042605183072800_REF42",
+     "doi-asserted-by": "crossref",
+     "unstructured": "McLaughlin, T., Hindges, R. and O'Leary, D. D.(2003). Regulation of axial patterning of the retina and its topographic mapping in the brain. Curr. Opin. Neurobiol.13,57-69.",
+     "DOI": "10.1016/S0959-4388(03)00014-X"
+    },
+    {
+     "key": "2021042605183072800_REF43",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Mohammadi, M., McMahon, G., Sun, L., Tang, C., Hirth, P., Yeh,B. K., Hubbard, S. R. and Schlessinger, J. (1997). Structures of the tyrosine kinase domain of fibroblast growth factor receptor in complex with inhibitors. Science276,955-960.",
+     "DOI": "10.1126/science.276.5314.955"
+    },
+    {
+     "key": "2021042605183072800_REF44",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Mui, S. H., Hindges, R., O'Leary, D. D., Lemke, G. and Bertuzzi,S. (2002). The homeodomain protein Vax2 patterns the dorsoventral and nasotemporal axes of the eye. Development129,797-804.",
+     "DOI": "10.1242/dev.129.3.797"
+    },
+    {
+     "key": "2021042605183072800_REF45",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Murali, D., Yoshikawa, S., Corrigan, R. R., Plas, D. J., Crair,M. C., Oliver, G., Lyons, K. M., Mishina, Y. and Furuta, Y.(2005). Distinct developmental programs require different levels of Bmp signaling during mouse retinal development. Development132,913-923.",
+     "DOI": "10.1242/dev.01673"
+    },
+    {
+     "key": "2021042605183072800_REF46",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Nakamura, H. and Sugiyama, S. (2004). Polarity and laminar formation of the optic tectum in relation to retinal projection. J. Neurobiol.59,48-56.",
+     "DOI": "10.1002/neu.10339"
+    },
+    {
+     "key": "2021042605183072800_REF47",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Peters, M. A. (2002). Patterning the neural retina. Curr. Opin. Neurobiol.12, 43-48.",
+     "DOI": "10.1016/S0959-4388(02)00288-X"
+    },
+    {
+     "key": "2021042605183072800_REF48",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Picker, A., Brennan, C., Reifers, F., Clarke, J. D., Holder, N. and Brand, M. (1999). Requirement for the zebrafish mid-hindbrain boundary in midbrain polarisation, mapping and confinement of the retinotectal projection. Development126,2967-2978.",
+     "DOI": "10.1242/dev.126.13.2967"
+    },
+    {
+     "key": "2021042605183072800_REF49",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Pittack, C., Grunwald, G. B. and Reh, T. A.(1997). Fibroblast growth factors are necessary for neural retina but not pigmented epithelium differentiation in chick embryos. Development124,805-816.",
+     "DOI": "10.1242/dev.124.4.805"
+    },
+    {
+     "key": "2021042605183072800_REF50",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Raible, F. and Brand, M. (2001). Tight transcriptional control of the ETS domain factors Erm and Pea3 by Fgf signaling during early zebrafish development. Mech. Dev.107,105-117.",
+     "DOI": "10.1016/S0925-4773(01)00456-7"
+    },
+    {
+     "key": "2021042605183072800_REF51",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Raible, F. and Brand, M. (2004). Divide et Impera – the midbrain-hindbrain boundary and its organizer. Trends Neurosci.27,727-734.",
+     "DOI": "10.1016/j.tins.2004.10.003"
+    },
+    {
+     "key": "2021042605183072800_REF52",
+     "unstructured": "Reifers, F., Bohli, H., Walsh, E. C., Crossley, P. H., Stainier,D. Y. and Brand, M. (1998). Fgf8 is mutated in zebrafish acerebellar (ace) mutants and is required for maintenance of midbrain-hindbrain boundary development and somitogenesis. Development125,2381-2395."
+    },
+    {
+     "key": "2021042605183072800_REF53",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Reifers, F., Walsh, E. C., Leger, S., Stainier, D. Y. and Brand,M. (2000). Induction and differentiation of the zebrafish heart requires fibroblast growth factor 8 (fgf8/acerebellar). Development127,225-235.",
+     "DOI": "10.1242/dev.127.2.225"
+    },
+    {
+     "key": "2021042605183072800_REF54",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Russell, C. (2003). The roles of Hedgehogs and Fibroblast Growth Factors in eye development and retinal cell rescue. Vision Res.43,899-912.",
+     "DOI": "10.1016/S0042-6989(02)00416-9"
+    },
+    {
+     "key": "2021042605183072800_REF55",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Sakuta, H., Suzuki, R., Takahashi, H., Kato, A., Shintani, T.,Iemura, S., Yamamoto, T. S., Ueno, N. and Noda, M.(2001). Ventroptin: a BMP-4 antagonist expressed in a double-gradient pattern in the retina. Science293,111-115.",
+     "DOI": "10.1126/science.1058379"
+    },
+    {
+     "key": "2021042605183072800_REF56",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Sasagawa, S., Takabatake, T., Takabatake, Y., Muramatsu, T. and Takeshima, K. (2002). Axes establishment during eye morphogenesis in Xenopus by coordinate and antagonistic actions of BMP4,Shh, and RA. Genesis33,86-96.",
+     "DOI": "10.1002/gene.10095"
+    },
+    {
+     "key": "2021042605183072800_REF57",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Schmitt, E. A. and Dowling, J. E. (1994). Early eye morphogenesis in the zebrafish, Brachydanio rerio. J. Comp. Neurol.344,532-542.",
+     "DOI": "10.1002/cne.903440404"
+    },
+    {
+     "key": "2021042605183072800_REF58",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Schulte, D. and Cepko, C. L. (2000). Two homeobox genes define the domain of EphA3 expression in the developing chick retina. Development127,5033-5045.",
+     "DOI": "10.1242/dev.127.23.5033"
+    },
+    {
+     "key": "2021042605183072800_REF59",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Schulte, D., Furukawa, T., Peters, M. A., Kozak, C. A. and Cepko, C. L. (1999). Misexpression of the Emx-related homeobox genes cVax and mVax2 ventralizes the retina and perturbs the retinotectal map. Neuron24,541-553.",
+     "DOI": "10.1016/S0896-6273(00)81111-3"
+    },
+    {
+     "key": "2021042605183072800_REF60",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Shanmugalingam, S., Houart, C., Picker, A., Reifers, F.,Macdonald, R., Barth, A., Griffin, K., Brand, M. and Wilson, S. W.(2000). Ace/Fgf8 is required for forebrain commissure formation and patterning of the telencephalon. Development127,2549-2561.",
+     "DOI": "10.1242/dev.127.12.2549"
+    },
+    {
+     "key": "2021042605183072800_REF61",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Sivak, J. M., Petersen, L. F. and Amaya, E.(2005). FGF signal interpretation is directed by Sprouty and Spred proteins during mesoderm formation. Dev. Cell8, 689-701.",
+     "DOI": "10.1016/j.devcel.2005.02.011"
+    },
+    {
+     "key": "2021042605183072800_REF62",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Stadler, H. S. and Solursh, M. (1994). Characterization of the homeobox-containing gene GH6 identifies novel regions of homeobox gene expression in the developing chick embryo. Dev. Biol.161,251-262.",
+     "DOI": "10.1006/dbio.1994.1025"
+    },
+    {
+     "key": "2021042605183072800_REF63",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Takahashi, H., Shintani, T., Sakuta, H. and Noda, M.(2003). CBF1 controls the retinotectal topographical map along the anteroposterior axis through multiple mechanisms. Development130,5203-5215.",
+     "DOI": "10.1242/dev.00724"
+    },
+    {
+     "key": "2021042605183072800_REF64",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Take-uchi, M., Clarke, J. D. and Wilson, S. W.(2003). Hedgehog signalling maintains the optic stalk-retinal interface through the regulation of Vax gene activity. Development130,955-968.",
+     "DOI": "10.1242/dev.00305"
+    },
+    {
+     "key": "2021042605183072800_REF65",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Uemonsa, T., Sakagami, K., Yasuda, K. and Araki, M.(2002). Development of dorsal-ventral polarity in the optic vesicle and its presumptive role in eye morphogenesis as shown by embryonic transplantation and in ovo explant culturing. Dev. Biol.248,319-330.",
+     "DOI": "10.1006/dbio.2002.0737"
+    },
+    {
+     "key": "2021042605183072800_REF66",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Walshe, J. and Mason, I. (2003). Unique and combinatorial functions of Fgf3 and Fgf8 during zebrafish forebrain development. Development130,4337-4349.",
+     "DOI": "10.1242/dev.00660"
+    },
+    {
+     "key": "2021042605183072800_REF67",
+     "unstructured": "Westerfield, M. (2000). The zebrafish book.A guide for the laboratory use of zebrafish (Danio rerio). Eugene: University of Oregon Press."
+    },
+    {
+     "key": "2021042605183072800_REF68",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Whitlock, K. E. and Westerfield, M. (2000). The olfactory placodes of the zebrafish form by convergence of cellular fields at the edge of the neural plate. Development127,3645-3653.",
+     "DOI": "10.1242/dev.127.17.3645"
+    },
+    {
+     "key": "2021042605183072800_REF69",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Yang, X. J. (2004). Roles of cell-extrinsic growth factors in vertebrate eye pattern formation and retinogenesis. Semin. Cell Dev. Biol.15, 91-103.",
+     "DOI": "10.1016/j.semcdb.2003.09.004"
+    },
+    {
+     "key": "2021042605183072800_REF70",
+     "doi-asserted-by": "crossref",
+     "unstructured": "Yuasa, J., Hirano, S., Yamagata, M. and Noda, M.(1996). Visual projection map specified by topographic expression of transcription factors in the retina. Nature382,632-635.",
+     "DOI": "10.1038/382632a0"
+    }
+   ],
+   "container-title": [
+    "Development"
+   ],
+   "original-title": [],
+   "language": "en",
+   "link": [
+    {
+     "URL": "http://journals.biologists.com/dev/article-pdf/132/22/4951/1151910/4951.pdf",
+     "content-type": "application/pdf",
+     "content-version": "vor",
+     "intended-application": "syndication"
+    },
+    {
+     "URL": "http://journals.biologists.com/dev/article-pdf/132/22/4951/1151910/4951.pdf",
+     "content-type": "unspecified",
+     "content-version": "vor",
+     "intended-application": "similarity-checking"
+    }
+   ],
+   "deposited": {
+    "date-parts": [
+     [
+      2023,
+      5,
+      5
+     ]
+    ],
+    "date-time": "2023-05-05T04:34:44Z",
+    "timestamp": 1683261284000
+   },
+   "score": 1,
+   "resource": {
+    "primary": {
+     "URL": "https://journals.biologists.com/dev/article/132/22/4951/42937/Fgf-signals-from-a-novel-signaling-center"
+    }
+   },
+   "subtitle": [],
+   "short-title": [],
+   "issued": {
+    "date-parts": [
+     [
+      2005,
+      11,
+      15
+     ]
+    ]
+   },
+   "references-count": 70,
+   "journal-issue": {
+    "issue": "22",
+    "published-print": {
+     "date-parts": [
+      [
+       2005,
+       11,
+       15
+      ]
+     ]
+    }
+   },
+   "URL": "https://doi.org/10.1242/dev.02071",
+   "relation": {},
+   "ISSN": [
+    "1477-9129",
+    "0950-1991"
+   ],
+   "issn-type": [
+    {
+     "value": "1477-9129",
+     "type": "electronic"
+    },
+    {
+     "value": "0950-1991",
+     "type": "print"
+    }
+   ],
+   "subject": [],
+   "published": {
+    "date-parts": [
+     [
+      2005,
+      11,
+      15
+     ]
+    ]
+   }
+  }
+ },
+ "_fixture": {
+  "recorded_by": "record_fixtures_c.py (ADR-0080 C5)",
+  "live": true,
+  "source_file": "raw_crossref_10-1242-dev-02071_20260915.json"
+ }
+}

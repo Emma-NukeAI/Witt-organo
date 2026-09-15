@@ -146,14 +146,15 @@ def _stamp(dt):
     return dt.strftime("%Y%m%d")
 
 
-def _get(url, parse_json=False, meta=None):
+def _get(url, parse_json=False, meta=None, timeout=None):
     """One throttled GET. Raises on network / JSON / pacing failure — callers decide whether to declare.
-    `meta` (dict, optional) receives throttle/throttle_slept_s for THIS call (per-call measurement)."""
+    `meta` (dict, optional) receives throttle/throttle_slept_s for THIS call (per-call measurement).
+    `timeout` (ADR-0080 corrector): socket timeout for THIS call; None = HTTP_TIMEOUT_S (module default)."""
     backend, slept = _throttle()
     if meta is not None:
         meta["throttle"], meta["throttle_slept_s"] = backend, slept
     req = urllib.request.Request(url, headers=_ua())
-    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_S) as r:
+    with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_S if timeout is None else timeout) as r:
         data = r.read().decode("utf-8", errors="replace")
     return json.loads(data) if parse_json else data
 
@@ -185,7 +186,7 @@ def search_europepmc(query, n=5, sort=None, synonym=True):
     return [_normalize_hit(r) for r in (js.get("resultList", {}) or {}).get("result", []) or []]
 
 
-def search_europepmc_ledger(query, n=5, sort=None, synonym=True):
+def search_europepmc_ledger(query, n=5, sort=None, synonym=True, timeout=None):
     """ADR-0078: the same search, returning (items, ledger) and NEVER raising (§6 no-hang).
 
     ledger = {source:'europepmc', status: 'success'|'no-match'|'error', query_sent, n_found (EPMC
@@ -198,18 +199,23 @@ def search_europepmc_ledger(query, n=5, sort=None, synonym=True):
     - 'error'    == timeout / URLError / HTTPError / bad JSON / pacing failure; items=[], n_returned
                     None and the message is declared.
     sort ∈ {None|'RELEVANCE', 'CITED', 'P_PDATE_D'} (EPMC vocabulary; None = EPMC default ranking).
-    synonym: EPMC's MeSH/synonym expansion flag (True = EPMC default)."""
+    synonym: EPMC's MeSH/synonym expansion flag (True = EPMC default).
+    timeout (ADR-0080 corrector): socket timeout of the search GET; None = HTTP_TIMEOUT_S. The harness passes
+    the family budget here so a slow index cannot consume the whole round; declared in `timeout_s`."""
     sort_norm = (sort or "RELEVANCE").upper()
     ledger = {"source": "europepmc", "status": "error", "query_sent": query, "n_found": None,
               "n_returned": None, "elapsed_s": None, "sort": sort_norm, "synonym": bool(synonym),
-              "throttle": _THROTTLE_BACKEND, "throttle_slept_s": None, "contact": _contact_state()}
+              "throttle": _THROTTLE_BACKEND, "throttle_slept_s": None, "contact": _contact_state(),
+              "timeout_s": HTTP_TIMEOUT_S if timeout is None else timeout,
+              "timeout_s_source": "module-default (HTTP_TIMEOUT_S)" if timeout is None else "caller"}
     if sort_norm not in EPMC_SORTS:
         ledger["error"] = f"ValueError: unknown sort {sort!r} (allowed: {sorted(EPMC_SORTS)})"
         ledger["elapsed_s"] = 0.0
         return [], ledger
     t0 = time.monotonic()
     try:
-        js = _get(_search_url(query, n, sort_norm, synonym), parse_json=True, meta=ledger)
+        js = _get(_search_url(query, n, sort_norm, synonym), parse_json=True, meta=ledger,
+                  **({} if timeout is None else {"timeout": timeout}))
         if not isinstance(js, dict):
             raise ValueError(f"unexpected Europe PMC payload type {type(js).__name__}")
         items = [_normalize_hit(r) for r in (js.get("resultList", {}) or {}).get("result", []) or []]

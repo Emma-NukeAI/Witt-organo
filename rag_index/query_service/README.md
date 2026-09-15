@@ -112,7 +112,12 @@ corren junto a `smoke_run_pipeline.py` (que además integra los cinco en la corr
 (28/28) y `smoke_ratings_calibration.py` (44/44), y la sección ADR-0079 de `smoke_run_pipeline.py` (211/211)
 que integra las cinco rebanadas. Todos fijan `WITT_RUN_ORIGIN=smoke` y piden `include_origins=smoke` explícito
 cuando el check depende de sus propias corridas cerradas (el default `production` se prueba comprobando que
-quedan CONTADAS fuera).
+quedan CONTADAS fuera). Los de ADR-0080 — `smoke_competence.py` (27/27, la compuerta y su cableado),
+`smoke_search_harness.py` (45/45, plan/rondas/presupuesto/dedup/no-re-ejecución), `smoke_tools_a.py` · `smoke_tools_b.py` ·
+`smoke_tools_c.py` (45/45 · 69/69 · 68/68, las 10 tools Layer 0 sobre sus fixtures REALES del 2026-09-15 con `_get`
+monkeypatcheada; transversal: CERO correos en `fixtures/`), `smoke_gate_citations.py` (48/48, predicado + escalera + reintento) — y la sección ADR-0080 de
+`smoke_run_pipeline.py` (238/238), que además MIDE que la sección no toca la red (urlopen bloqueado y contado) ni
+`mcp_cache`.
 
 ## Corridas (bloque 3, ADR-0049/0050)
 
@@ -297,7 +302,11 @@ default 0.5) o la confianza viene ausente, dispara la Ruta B y corre pass 2 con 
 ambas confianzas + el **delta** quedan en el registro (`confidence {pass1, pass2, delta, by_subclaim,
 state}`), junto con `fallback.trigger` (structural|confidence), `absence_kind`, citas tipadas
 (`citations[{n, kind, id}]`) y `token_usage` (by_model medido, embeddings incluidos, costo etiquetado
-como proyección). `render_contract_version: 1.1`.
+como proyección). `render_contract_version: 1.1`. **Desde ADR-0080** el disparador por confianza es UN componente de
+la compuerta de competencia y `fallback.trigger ∈ {structural, competence, confidence, null}`: `'confidence'` aparece
+SÓLO cuando `competence.competent` es `null` (kill-switch `WITT_COMPETENCE_GATE=0` o ruta `store-consultation`) — ahí
+decide la regla legada y la Ruta B es la de ADR-0078 sin harness; en todo otro caso vive en `fb_meta.trigger_legacy` y
+`fb_meta.trigger_decided_by` nombra al decisor (ver la sección ADR-0080 más abajo).
 
 ### La investigación: turnos encadenados y el origen de la corrida (ADR-0079, 2026-09-15)
 
@@ -352,6 +361,120 @@ estado y añade la sección INVESTIGACION (`T-<run_no raíz>`, `[A]` NO ADMISIBL
 Gates (tras el corrector final): `smoke_threads_db.py` 42/42 · `smoke_thread_context.py` 36/36 · `smoke_runs_thread_http.py`
 54/54 · `smoke_precedent.py` 30/30 · `smoke_ratings_calibration.py` 44/44 · `smoke_question_agent_http.py` 35/35 ·
 `smoke_run_pipeline.py` 217/217.
+
+### La compuerta de competencia y el harness de búsqueda (ADR-0080, 2026-09-15)
+
+**La decisión "¿basta la pasada 1 o se busca afuera?" la toma CÓDIGO.** `pass1 < τ` (ADR-0051) deja de ser el
+disparador ÚNICO (`rag_index/query_service/competence.py`, `competence.evaluate`, `module_version cg-3`): la conjunción es
+`conf1 ≥ τ ∧ pass1 admisible ∧ plan.route == 'evidence-run' ∧ plan.niches ≠ [] ∧ ¬estructural ∧
+(calibration_coverage.sufficient SI WITT_CG_REQUIRE_CALIBRATION=1)`. El componente `conf1_ge_tau` (el escalar ELICITADO
+por `CONF_TOOL`, ADR-0065 — medido y calibrable, no prosa) GATEA POR DEFAULT (`cg-3`, corrección del orquestador
+2026-09-15: ADR-0051 lo eligió decisor de la Ruta B por encima del estructural; el `cg-2` del corrector lo había vuelto
+informativo y con ello una corrida con conf1 0.15 y suficiencia estructural quedaba "competente" — la regresión del caso
+a361f566, 0.15 → Ruta B → 0.86, ADR-0059). Se apaga SÓLO con `WITT_CG_CONF_COMPONENT=0` declarado
+(`config.conf_component_gating False`, fuera de `conjunction`); `self_report.note` dice literalmente si participa, según
+`gating`. Un componente sin insumo
+es `False` con `reason` (jamás un `True` vacío). Orden de la traza tras pass1: `stage.confidence.elicit{pass 'pass1'}` →
+`stage.deterministic_gate{pass 'pass1'}` (ADELANTADO: la admisibilidad de pass1 es componente) → `stage.competence` (el
+bloque íntegro). **Competente** → pass1 es la candidata, `fallback.trigger null`, ninguna ronda (`search_ledger.n_rounds
+0`: cero MEDIDO). **No competente** → `stage.search.plan` + rondas del harness → pass2 → `elicit{pass2}` → `gate{pass2}`,
+`fallback.trigger 'competence'`, `fb_meta.trigger_decided_by 'code (competence-gate)'`. Lo estructural
+(`assess_sufficiency`) manda como hoy (`'structural'`). **`POST /runs` SIN plan** (sin `plan_id`) es `no-plan` → no
+competente → ronda + pass2 SIEMPRE, aunque la confianza sea alta: la webapp encola con plan (M3);
+`evaluation/run_held_out_v2.py` y `gen_fixtures` encolan directo (decisión abierta en el ADR). `route
+'store-consultation'` → `not_applicable` (no hay compuerta). **Kill-switch `WITT_COMPETENCE_GATE=0`** → `competent null`
++ `skipped_reason`, la regla legada por confianza gobierna y el registro lo dice con su nombre: `fallback.trigger
+'confidence'` (literal válido SÓLO con `competent null`), `trigger_decided_by 'model-confidence (legacy…)'`, y la Ruta B
+corre por `path_b_bundle` SIN plan — el camino de ADR-0078 byte a byte, sin harness ni `stage.search.round/source`
+(`search_ledger.state 'legacy-path-b (kill-switch WITT_COMPETENCE_GATE=0)'`, `n_rounds null`). `WITT_SEARCH_HARNESS=0`
+apaga SÓLO el harness (la compuerta sigue decidiendo). `calibration_coverage` (`db.calibration_coverage`: corridas
+CLOSED con ≥1 rating cuyos `frozen.niches` intersecan los del plan, contando por default SÓLO `origin 'production'` —
+`WITT_CG_CALIBRATION_ORIGINS`; smoke/simulation/fixture jamás son historia de competencia) se MIDE y viaja siempre, pero
+sólo gatea con `WITT_CG_REQUIRE_CALIBRATION=1` (hoy 0 corridas cerradas calificadas en producción: gatear ya sería
+negarlo todo). `council_uncovered_must` existe como llave `'not-available (ADR-0082)'`, `gating false`, para que el
+contrato no cambie de forma cuando el consejo aterrice.
+
+**La Ruta B corre por un HARNESS** (`analysis/scripts/lib/search_harness.py`, `harness_version sh-1`): UNA tabla
+`SEARCH_DISPATCH` de 15 familias `{tool_module, fn, inputs, budget_s, host, key_env, evidence_kind, gate, label_provenance}`
+— las tres de hoy (`europepmc`, `pubmed`, `zfin`, envueltas sin reescribir; sus ledgers `*_searched` siguen
+byte-compatibles) + 10 tools Layer 0 NUEVAS y stdlib-puras en `.tooluniverse/tools/`: `alliance_orthologs.py`,
+`zfin_expression_tsv.py`, `ensembl_homology.py`, `uniprot_search.py`, `monarch_associations.py`, `reactome_search.py`
+(`label 'inferred-by-orthology'`), `string_partners.py` (`label 'predictive'`), `geo_gds.py`, `unpaywall_crossref.py`,
+`openalex_search.py`; `web` y `tooluniverse` son `tool-unavailable` declarados (ADR-0084/0085). `gate 'auto'` =
+corre por default (`WITT_SEARCH_DEFAULT_FAMILIES`: `europepmc,pubmed,zfin,alliance_orthologs,zfin_expression`);
+`'directive-only'` = sólo por directiva del consejo (ADR-0082, hueco `directives: []`) o nombrada en esa env. El plan lo
+arma código (`build_search_plan`: familias, queries por familia vía `search_queries.build_all`, `rounds_cap`,
+`round_budget_s`, cada valor con su fuente); la ronda la ejecuta código (`run_round`: presupuesto de RONDA repartido entre
+las familias que faltan, la que no alcanza queda `skipped-budget` sin tocar la red; `timeout` viaja al tool cuando su
+firma lo acepta — también a Europe PMC y PubMed, `timeout_s_scope 'per-call'`; la ronda declara `round_over_budget`);
+**nada se re-ejecuta**: otra ronda SOLO si la anterior no admitió nada (`n_admitted == 0`: lo que ENTRÓ al pool, no el
+conteo de evidence_ids), `k < WITT_SEARCH_ROUNDS_CAP` y alguna familia tiene INSUMOS nuevos (una curie ZFIN o un DOI
+resueltos en la ronda, o una familia que quedó `skipped-budget`); en esa ronda las familias con los mismos insumos quedan
+`skipped-cap` con detail `'same inputs as round k (not re-executed)'` sin tocar la red; sin insumos nuevos → `stop_reason
+'no-new-inputs'`. Cada fuente deja UNA fila `status ∈ success | no-match | error | skipped-budget |
+skipped-cap | tool-unavailable | not-requested` con `n_found`/`n_new` ENTEROS sólo cuando midió (un `success` cuya
+lista el harness no supo leer es `error 'shape-mismatch…'`, jamás un 0); cada ítem lleva
+`evidence_id` del tool con `identifier_provenance` (o uno DERIVADO `<family>:sha256:…` + `gap_flag`), `kind`,
+`source_family`, `label`, `url`, `statement|text|abstract`. Caché de lectura por día bajo `mcp_cache/`
+(`WITT_MCP_CACHE_DIR`; el TSV de expresión de ZFIN pesa 43.7 MB — el contenedor necesita escritura). Eventos:
+`stage.search.plan`, `stage.search.source` (por familia), `stage.search.round` (por ronda); `stage.path_b` gana
+`trigger 'competence'`, `trigger_legacy`, `harness_used` y un resumen `search_ledger`.
+
+**Gate y panel.** `verify_output.positive_claim_requires_citations`: una afirmación positiva (`absence_kind
+'not-applicable'` — o AUSENTE: lectura conservadora por código, la omisión del campo no es vía de escape) con 0 citas
+válidas es INADMISIBLE; una declinación puede no citar, salvo que nombre identificadores RESUELTOS por
+`verify_identifiers` (el mismo informe del gate viaja al predicado): entonces también dispara. La ESCALERA de soporte por cita
+(`verify_output.support_state_for`): `unresolved → resolved → passage_delivered → supported|unsupported`, peldaños que
+NUNCA se funden (`resolved`, `passage_delivered`, `pertinent 'not-available (ADR-0082)'`, `supported`, `support_state`
+viajan separados dentro de cada cita; el veredicto de la lente `evidence-grounding` — `citation_support [{n, verdict}]`,
+OPCIONAL en `VERDICT_TOOL`, ignorado por las otras lentes — sólo eleva una cita que ya tiene pasaje). El panel REINTENTA
+una vez a un juez caído/ilegible (`WITT_JUDGE_RETRIES`, default 1; `retries_judge` + `attempts[]` en la fila,
+`audit.judge_retries {value, source}`, `stage.audit.judge` con `attempt`), jamás fabrica. **Gasto por etapa**:
+`token_usage.by_stage {plan, synthesize_pass1, elicit_pass1, search, synthesize_pass2, elicit_pass2, panel, revision,
+embed, _sum}` desde el `usage` que cada llamada devuelve (los eventos que gastan lo llevan); `_sum == by_model` se
+comprueba y se declara (`by_stage_sum_matches_by_model`); un sintetizador que no separa la elicitación deja
+`elicit_* {in null, state 'not-separable…'}`, nunca un 0 inventado; `plan` distingue `no-plan` de `plan-without-usage
+(planner reported no usage)` (in/out null); el gasto de un juez AGOTADO que cobró entra a `by_model`/`panel` igual que
+a `audit.usage` (M8 cuadra en el caso del reintento fallido).
+
+**Registro congelado 1.9** (aditivo): `competence` (bloque íntegro + `decision`), `search_ledger {plan, rounds[],
+families_default, n_rounds, cap, round_budget_s, state, plan_state, config_source, stop_reason}`,
+`citations[].{resolved, passage_delivered, pertinent, supported, support_state}`, `citations_support_summary {n,
+by_state (los 5 peldaños siempre: enteros si `checked`, null si degradado), ladder, pertinent, state}`,
+`deterministic_checks.{pass ('pass1'|'pass2'|'revision'), pass1_admissible, positive_claim_requires_citations(+_state,
++_evaluation), competence_gate}`, `fallback.trigger ∈ {structural, competence, confidence, null}` +
+`fb_meta.{trigger_legacy, trigger_vocabulary, trigger_decided_by, tau_source, search_harness_enabled, competence}`,
+`token_usage.by_stage`, `epistemic_summary.{competent, n_search_rounds (0 = no se buscó; null = el harness no midió)}`.
+El PDF (`record_pdf.py`) imprime `trigger_decided_by` + el veredicto de la compuerta, el estado del `search_ledger` y el
+`support_state` por cita (ausente = `NO INSTRUMENTADO (contrato < 1.9)`). **La webapp debe tipar (`?`) y pintar** — ver
+*Consequences* del ADR.
+
+| Variable | Default | Lector | Efecto |
+|---|---|---|---|
+| `WITT_COMPETENCE_GATE` | `1` | `competence.env_config` (en cada `evaluate`) | `0` = kill-switch: `competent null` + `skipped_reason`; la regla legada `pass1 < τ` decide, `fallback.trigger 'confidence'` y la Ruta B corre SIN harness (ADR-0078 byte a byte) |
+| `WITT_CG_REQUIRE_CALIBRATION` | `0` | idem | `1` = `calibration_coverage.sufficient` entra a la conjunción (`components.calibration_coverage.gating`) |
+| `WITT_CG_CONF_COMPONENT` | `1` | idem | `1` (default, `cg-3`) = `conf1_ge_tau` (la confianza ELICITADA por `CONF_TOOL`, ADR-0065) gatea en la conjunción como decidió ADR-0051; `0` declarado = se mide y viaja informativo (`gating false`, fuera de `conjunction`), la nota de `self_report` lo dice |
+| `WITT_CG_CALIBRATION_ORIGINS` | `production` | `runs._calibration_origins` → `db.calibration_coverage(include_origins=)` | orígenes que cuentan como historia de calibración (CSV tolerante; `all` = sin filtro declarado) |
+| `WITT_COMPETENCE_MIN_HISTORY` | 10 | `runs._competence_min_history` → `db.calibration_coverage` (tolerante) | corridas CLOSED calificadas que intersecan los nichos del plan para `sufficient` |
+| `WITT_FALLBACK_CONF_TAU` | 0.5 (ya existía) | `runs.FALLBACK_CONF_TAU` (lector tolerante, `fb_meta.tau_source`) → `evaluate(tau=)` (`tau_source 'caller'`) | el τ del componente `conf1_ge_tau` y de la regla legada |
+| `WITT_SEARCH_HARNESS` | `1` | `runs._search_harness_enabled` | `0` = la compuerta decide pero la Ruta B corre por `path_b_bundle` SIN plan (sin familias Layer 0 ni rondas): el freno del operador |
+| `WITT_SEARCH_ROUNDS_CAP` | 2 | `runs._search_config` (delega en `search_harness`) · `search_harness.build_search_plan` | rondas máximas por corrida; una 2ª ronda sólo para familias con INSUMOS nuevos; `search_ledger.cap` + `config_source.cap` |
+| `WITT_SEARCH_ROUND_BUDGET_S` | 120 | idem | presupuesto de reloj por RONDA (repartido; `skipped-budget` declarado) |
+| `WITT_SEARCH_DEFAULT_FAMILIES` | `europepmc,pubmed,zfin,alliance_orthologs,zfin_expression` | idem | familias que corren sin directivas; nombrar una `directive-only` aquí ES la directiva del operador; desconocidas → `families_excluded 'unknown-family'` |
+| `WITT_JUDGE_RETRIES` | 1 | `composite_auditor.resolve_judge_retries` (en cada `audit`) | intentos ADICIONALES por juez caído/ilegible; declarado en `audit.judge_retries` |
+| `WITT_MCP_CACHE_DIR` | `<repo>/mcp_cache` | tools Layer 0 (declarado en `plan.cache_dir`) | caché de lectura por día; necesita escritura en el contenedor |
+| `OPENALEX_API_KEY` | — (opcional) | `openalex_search` | sin llave OpenAlex cobra créditos (medido: 10 créditos / 0.001 USD por llamada, 1000/día) |
+| `WITT_UNPAYWALL_EMAIL` | — (opcional) | `unpaywall_crossref` (también primer `mailto` de Crossref/OpenAlex) | sin él la fila Unpaywall es `tool-unavailable` declarada; JAMÁS se inventa correo |
+| `WITT_ENSEMBL_MIN_INTERVAL_S` | 0.07 | `ensembl_homology` (`net_throttle`) | pacing de `rest.ensembl.org` |
+| `WITT_ZFIN_EXPR_DOWNLOAD_BUDGET_S` · `WITT_ZFIN_EXPR_MAX_MB` · `WITT_ZFIN_EXPR_SCAN_BUDGET_S` | 180 · 500 · 60 | `zfin_expression_tsv` | presupuesto/tope de la descarga diaria del TSV y del escaneo local (exceso → `error BudgetExhausted` declarado) |
+| `WITT_GEO_RETMAX` · `WITT_GEO_ORGANISM` · `WITT_OPENALEX_PER_PAGE` | 10 · `'Danio rerio'` · 5 | `geo_gds` · `openalex_search` | uids por esearch; bloque `[Organism]` (una env PRESENTE y vacía lo DESACTIVA — por eso el compose no la declara); works por llamada |
+
+Gates (offline, máscara de siempre + `WITT_RUN_ORIGIN=smoke`, 2026-09-15, tras el corrector final): `smoke_competence.py`
+27/27 · `smoke_search_harness.py` 45/45 · `smoke_tools_a.py` 45/45 · `smoke_tools_b.py` 69/69 · `smoke_tools_c.py` 68/68 ·
+`smoke_gate_citations.py` 48/48 · `smoke_run_pipeline.py` 247/247 (sección ADR-0080: 31 checks; la sección bloquea y
+CUENTA `urllib.request.urlopen` — 0 llamadas — y compara `mcp_cache` antes/después) · `smoke_thread_context.py` 37/37
+(kill-switch declarado para los conteos de pasadas + UNA corrida encadenada con la compuerta ENCENDIDA) ·
+`smoke_run_recovery.py` 40/40 · resto del directorio verde (25/25 gates).
 
 ## Pendiente
 

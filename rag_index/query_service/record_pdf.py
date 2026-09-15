@@ -441,6 +441,20 @@ def build_pdf(record, compress=True):
     if fb:
         _p(pdf, f"fallback.trigger: {fb.get('trigger')}"
                 + (f" (tau={((fb.get('fb_meta') or {}).get('tau'))})" if fb.get("fb_meta") else ""), size=8)
+        # ADR-0080 (corrector): QUIEN decidio el trigger — la compuerta (codigo), lo estructural o la regla legada por
+        # confianza (kill-switch) — y el veredicto de la compuerta; ausente = registro anterior al contrato 1.9
+        fbm = fb.get("fb_meta") or {}
+        comp_meta = fbm.get("competence") if isinstance(fbm.get("competence"), dict) else None
+        if comp_meta is not None or "trigger_decided_by" in fbm:
+            _p(pdf, f"  decidido por: {fbm.get('trigger_decided_by') or 'NO DECLARADO'}"
+                    + (f" | competence: {comp_meta.get('competent')} ({comp_meta.get('decision_source')})"
+                       if comp_meta else ""), size=7)
+        else:
+            _p(pdf, "  [?] compuerta de competencia NO INSTRUMENTADA (contrato < 1.9)", style="I", size=7)
+    sl = record.get("search_ledger")
+    if isinstance(sl, dict):
+        _p(pdf, f"search_ledger: state {sl.get('state')} | rondas {sl.get('n_rounds')} / cap {sl.get('cap')}"
+                + (f" | stop {sl.get('stop_reason')}" if sl.get("stop_reason") else ""), size=7)
     _rule(pdf)
 
     # --- 5. evidencia, huecos, alternativas --------------------------------------------------------
@@ -448,8 +462,11 @@ def build_pdf(record, compress=True):
     cits = record.get("citations") or []
     if cits:
         for c in cits:
+            # ADR-0080 (corrector): el peldano de soporte alcanzado por la cita cuando el registro lo trae (>= 1.9)
+            support = (f"  [soporte: {c.get('support_state')}]" if "support_state" in c
+                       else "  [soporte: NO INSTRUMENTADO (contrato < 1.9)]")
             _p(pdf, f"  [{c.get('n')}] {c.get('kind')}: {c.get('id')}"
-                    + (f" - {c.get('note')}" if c.get("note") else ""), size=8)
+                    + (f" - {c.get('note')}" if c.get("note") else "") + support, size=8)
     else:
         _p(pdf, "[?] citas tipadas no constan (contrato pre-1.1) - no se rellena", style="I", size=8)
     gaps = ans.get("gap_flags") or []

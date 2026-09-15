@@ -1,0 +1,50 @@
+{
+ "_fixture": {
+  "api": "reactome",
+  "case": "wt1a",
+  "recorded": "2026-09-15",
+  "url_sent": "https://reactome.org/ContentService/search/query?query=wt1a&species=Danio%20rerio&types=Pathway",
+  "http_status": 200,
+  "elapsed_s": 0.406,
+  "headers_subset": {
+   "content-type": "application/json;charset=UTF-8"
+  }
+ },
+ "response": {
+  "results": [
+   {
+    "entries": [
+     {
+      "dbId": "10649053",
+      "stId": "R-DRE-452420",
+      "id": "R-DRE-452420",
+      "name": "<span class=\"highlighting\" >wt1a</span>",
+      "type": "Protein",
+      "exactType": "ReferenceGeneProduct",
+      "species": [
+       "Danio rerio"
+      ],
+      "referenceIdentifier": "Q9PUT7",
+      "compartmentNames": [
+       "nucleoplasm"
+      ],
+      "compartmentAccession": [
+       "0005654"
+      ],
+      "isDisease": false,
+      "hasReferenceEntity": true,
+      "databaseName": "UniProt",
+      "referenceURL": "http://purl.uniprot.org/uniprot/Q9PUT7",
+      "disease": false
+     }
+    ],
+    "typeName": "Protein",
+    "entriesCount": 1,
+    "rowCount": 1
+   }
+  ],
+  "rowCount": 1,
+  "numberOfGroups": 1,
+  "numberOfMatches": 1
+ }
+}

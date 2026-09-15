@@ -263,7 +263,11 @@ r_f = _corre("corrida cuyo sintetizador devuelve evidence_cited como string",
              _mk_synth('[{"kind":"di-record","id":"CORPUS-2026-0001"}]'))
 rec_f = app.get_frozen_record(r_f, authorization=AUTH)
 check("registro congelado: citations re-parseadas (1 válida) + citations_schema string-reparsed + evidence_cited_raw declarado",
-      rec_f["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      # ADR-0080 (C7): la escalera de soporte (resolved, passage_delivered, pertinent, supported, support_state) es
+      # ADITIVA dentro de cada cita -> se compara la forma BASE
+      [{k: c.get(k) for k in ("n", "kind", "id", "note")} for c in rec_f["citations"]]
+      == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}]
+      and "support_state" in rec_f["citations"][0]
       and rec_f["citations_schema"] == {"source": "string-reparsed", "n_raw": 1, "n_valid": 1}
       and "evidence_cited_raw" in rec_f,
       f"schema={rec_f.get('citations_schema')} state={db.get_run(r_f)['state']}")

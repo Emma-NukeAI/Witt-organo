@@ -1060,6 +1060,55 @@ def runs_pending_rating(user_id: str, limit: int = 100):
     return out
 
 
+def _frozen_niche_codes(frozen_record_json):
+    """ADR-0080: los códigos de nicho de dominio (N*) que un registro congelado DECLARA en `frozen.niches`
+    — los DOS ejes (2026-09-05): `catalogo.domain_niches.{primary,secondary}` (medición del catálogo) ∪
+    `panel.counts` (juicio del panel). Ninguno se inventa: un registro sin la llave, o ilegible, → set()."""
+    if not frozen_record_json:
+        return set()
+    try:
+        rec = json.loads(frozen_record_json)
+    except (ValueError, TypeError):
+        return set()
+    nich = (rec.get("niches") or {}) if isinstance(rec, dict) else {}
+    out = set()
+    cat = nich.get("catalogo") or {}
+    for axis in ((cat.get("domain_niches") or {}).get("primary") or {},
+                 (cat.get("domain_niches") or {}).get("secondary") or {}):
+        out.update(str(k).strip() for k in axis if str(k).strip())
+    panel = nich.get("panel") or {}
+    out.update(str(k).strip() for k in (panel.get("counts") or {}) if str(k).strip())
+    return out
+
+
+def calibration_coverage(niche_codes, min_required, include_origins=None):
+    """ADR-0080 (A) — MEDICIÓN para la compuerta de competencia: cuántas corridas CLOSED con >=1 rating
+    (run_ratings) tienen `frozen.niches` (catálogo o panel) que INTERSECA los nichos del plan.
+
+        {n: int|None, min_required, sufficient: bool, niche_codes, n_closed_rated_total, reason?,
+         include_origins, class: 'medicion'}
+
+    Sin nichos (plan ausente, juicio errado o niches=[]) → {n: None, sufficient: False, reason: 'no-niches'}:
+    no hay contra qué medir, y eso se declara — jamás un 0 que se leería como 'cero corridas'.
+    `include_origins` None = SIN filtro por procedencia (declarado en la salida; ADR-0079: el filtro es
+    decisión del consumidor). Sólo cuenta: no promedia calificaciones (ADR-0064/0075)."""
+    codes = sorted({str(c).strip() for c in (niche_codes or []) if str(c).strip()})
+    base = {"min_required": min_required, "niche_codes": codes, "include_origins": include_origins,
+            "class": "medicion"}
+    if not codes:
+        return {**base, "n": None, "sufficient": False, "reason": "no-niches"}
+    with engine().begin() as cx:
+        rated = select(run_ratings.c.run_id).distinct()
+        q = (select(runs.c.run_id, runs.c.frozen_record_json)
+             .where(runs.c.state == "closed", runs.c.run_id.in_(rated)))
+        q = _origin_where(q, include_origins)
+        rows = cx.execute(q).all()
+    wanted = set(codes)
+    n = sum(1 for r in rows if _frozen_niche_codes(r._mapping["frozen_record_json"]) & wanted)
+    return {**base, "n": n, "n_closed_rated_total": len(rows),
+            "sufficient": isinstance(min_required, int) and n >= min_required}
+
+
 # --- APUNTES (2026-09-04) -----------------------------------------------------------------------
 # El cuaderno de teorías. Reglas de la casa que el store hace cumplir: escribir es SÓLO del autor
 # (un apunte compartido se lee, no se edita), y los enlaces se guardan verbatim — resolverlos es

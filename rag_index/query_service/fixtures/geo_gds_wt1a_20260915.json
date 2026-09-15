@@ -1,0 +1,1154 @@
+{
+ "fetched_at": "2026-09-15T09:40:50+00:00",
+ "esearch": {
+  "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=gds&term=%28wt1a%29%20AND%20%22Danio%20rerio%22%5BOrganism%5D&retmode=json&retmax=10&tool=witt-organogenesis",
+  "response": {
+   "header": {
+    "type": "esearch",
+    "version": "0.3"
+   },
+   "esearchresult": {
+    "count": "48",
+    "retmax": "10",
+    "retstart": "0",
+    "idlist": [
+     "200178751",
+     "200179521",
+     "200179520",
+     "200117820",
+     "200117807",
+     "200116358",
+     "200116360",
+     "200115721",
+     "200115720",
+     "200101204"
+    ],
+    "translationset": [],
+    "translationstack": [
+     {
+      "term": "wt1a[All Fields]",
+      "field": "All Fields",
+      "count": "100",
+      "explode": "N"
+     },
+     {
+      "term": "\"Danio rerio\"[Organism]",
+      "field": "Organism",
+      "count": "58538",
+      "explode": "Y"
+     },
+     "AND"
+    ],
+    "querytranslation": "wt1a[All Fields] AND \"Danio rerio\"[Organism]"
+   }
+  }
+ },
+ "esummary": {
+  "url": "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=gds&id=200178751,200179521,200179520,200117820,200117807,200116358,200116360,200115721,200115720,200101204&retmode=json&tool=witt-organogenesis",
+  "response": {
+   "header": {
+    "type": "esummary",
+    "version": "0.3"
+   },
+   "result": {
+    "uids": [
+     "200178751",
+     "200179521",
+     "200179520",
+     "200117820",
+     "200117807",
+     "200116358",
+     "200116360",
+     "200115721",
+     "200115720",
+     "200101204"
+    ],
+    "200178751": {
+     "uid": "200178751",
+     "accession": "GSE178751",
+     "gds": "",
+     "title": "Distinct epicardial gene regulatory programmes drive development and regeneration of the zebrafish heart",
+     "summary": "Unlike the adult mammalian heart, which has limited regenerative capacity, the zebrafish heart can fully regenerate following injury. Reactivation of cardiac developmental programmes is considered key to successfully regenerating the heart, yet the regulatory elements underlying the response triggered upon injury and during development remain elusive. Organ-wide activation of the epicardium is essential for zebrafish heart regeneration and is considered a potential regenerative source to target in the mammalian heart. Here we compared the transcriptome and epigenome of the developing and regenerating zebrafish epicardium by integrating gene expression profiles with open chromatin ATAC-seq data. We identified epicardial enhancer elements with specific activity during development or during adult heart regeneration. By generating gene regulatory networks associated with epicardial development and regeneration, we inferred genetic programmes driving each of these processes, which were largely distinct. We identified Wt1a, Wt1b, and the AP-1 subunits Junbb, Fosab and Fosb as central regulators of the developing network, whereas Hif1ab, Nrf1, Tbx2b and Zbtb7a featured as putative central regulators of the regenerating epicardial network. Targeting hif1ab, nrf1, tbx2b and zbtb7a using CRISPR/Cas9 in injured hearts resulted in elevated epicardial cell numbers infiltrating the wound and excess fibrosis after cryoinjury, illustrating the functional importance of these regulatory factors during zebrafish heart regeneration. Our work reveals striking differences between the regulatory blueprint deployed during epicardial development and regeneration. These findings underline that heart regeneration goes beyond the reactivation of developmental programmes and provide important insights into epicardial regulation.",
+     "gpl": "20828",
+     "gse": "178751",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing; Genome binding/occupancy profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2023/12/01",
+     "suppfile": "TXT",
+     "samples": [
+      {
+       "accession": "GSM5396900",
+       "title": "ATAC-tcf21-control-2"
+      },
+      {
+       "accession": "GSM5396903",
+       "title": "ATAC-tcf21-cryo-1"
+      },
+      {
+       "accession": "GSM5396897",
+       "title": "ATAC-tbx18-larval-1"
+      },
+      {
+       "accession": "GSM5396917",
+       "title": "RNA_tcf21_cryo_9"
+      },
+      {
+       "accession": "GSM5396911",
+       "title": "RNA_tcf21_control_3"
+      },
+      {
+       "accession": "GSM5396914",
+       "title": "RNA_tcf21_larval_3"
+      },
+      {
+       "accession": "GSM5396898",
+       "title": "ATAC-tbx18-larval-2"
+      },
+      {
+       "accession": "GSM5396915",
+       "title": "RNA_tcf21_cryo_7"
+      },
+      {
+       "accession": "GSM5396918",
+       "title": "RNA_tcf21_sham_4"
+      },
+      {
+       "accession": "GSM5396906",
+       "title": "ATAC-tcf21-cryo-4"
+      },
+      {
+       "accession": "GSM5396909",
+       "title": "RNA_tcf21_control_1"
+      },
+      {
+       "accession": "GSM5396895",
+       "title": "ATAC-tbx18-control-1"
+      },
+      {
+       "accession": "GSM5396912",
+       "title": "RNA_tcf21_larval_1"
+      },
+      {
+       "accession": "GSM5396910",
+       "title": "RNA_tcf21_control_2"
+      },
+      {
+       "accession": "GSM5396913",
+       "title": "RNA_tcf21_larval_2"
+      },
+      {
+       "accession": "GSM5396907",
+       "title": "ATAC-tcf21-sham-1"
+      },
+      {
+       "accession": "GSM5396901",
+       "title": "ATAC-tcf21-larval-1"
+      },
+      {
+       "accession": "GSM5396919",
+       "title": "RNA_tcf21_sham_12"
+      },
+      {
+       "accession": "GSM5396899",
+       "title": "ATAC-tcf21-control-1"
+      },
+      {
+       "accession": "GSM5396916",
+       "title": "RNA_tcf21_cryo_8"
+      },
+      {
+       "accession": "GSM5396904",
+       "title": "ATAC-tcf21-cryo-2"
+      },
+      {
+       "accession": "GSM5396896",
+       "title": "ATAC-tbx18-control-2"
+      },
+      {
+       "accession": "GSM5396908",
+       "title": "ATAC-tcf21-sham-2"
+      },
+      {
+       "accession": "GSM5396905",
+       "title": "ATAC-tcf21-cryo-3"
+      },
+      {
+       "accession": "GSM5396902",
+       "title": "ATAC-tcf21-larval-2"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP325322",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP325/SRP325322/"
+      }
+     ],
+     "n_samples": 25,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "38237592"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE178nnn/GSE178751/",
+     "geo2r": "no",
+     "bioproject": "PRJNA740283"
+    },
+    "200179521": {
+     "uid": "200179521",
+     "accession": "GSE179521",
+     "gds": "",
+     "title": "Downregulation of WT1 transcription factor gene expression is required to promote myocardial fate [ATAC-seq]",
+     "summary": "During cardiac development, cells from the precardiac mesoderm fuse to form the primordial heart tube, which then grows by addition of further progenitors to the venous and arterial poles. In the zebrafish, wilms tumor 1 transcription factor a (wt1a) and b (wt1b) are expressed in the pericardial mesoderm at the venous pole of the forming heart tube. The pericardial mesoderm forms a single layered mesothelial sheet that contributes to further the growth of the myocardium, and forms the proepicardium. Proepicardial cells are subsequently transferred to the myocardial surface and give rise to the epicardium, the outer layer covering the myocardium in the adult heart. wt1a/b expression is downregulated during the transition from pericardium to myocardium, but remains high in proepicardial cells. Here we show that sustained wt1 expression impaired cardiomyocyte maturation including sarcomere assembly, ultimately affecting heart morphology and cardiac function. ATAC-seq data analysis of cardiomyocytes overexpressing wt1 revealed that chromatin regions associated with myocardial differentiation genes remain closed upon wt1b overexpression in cardiomyocytes, suggesting that wt1 represses a myocardial differentiation program. Indeed, a subset of wt1a/b-expressing cardiomyocytes changed their cell adhesion properties, delaminated from the myocardial epithelium, and upregulated the expression of epicardial genes, as confirmed by in vivo imaging. Thus, we conclude that wt1 acts as a break for cardiomyocyte differentiation by repressing chromatin opening at specific genomic loci and that sustained ectopic expression of wt1 in cardiomyocytes can lead to their transformation into epicardial cells.",
+     "gpl": "24995",
+     "gse": "179521",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Genome binding/occupancy profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2022/03/08",
+     "suppfile": "BED, BW",
+     "samples": [
+      {
+       "accession": "GSM5419686",
+       "title": "ATAC-seq_Wt1b Over expression replicate 2"
+      },
+      {
+       "accession": "GSM5419683",
+       "title": "ATAC-seq_Control replicate 2"
+      },
+      {
+       "accession": "GSM5419684",
+       "title": "ATAC-seq_Control replicate 3"
+      },
+      {
+       "accession": "GSM5419682",
+       "title": "ATAC-seq_Control replicate 1"
+      },
+      {
+       "accession": "GSM5419687",
+       "title": "ATAC-seq_Wt1b Over expression replicate 3"
+      },
+      {
+       "accession": "GSM5419685",
+       "title": "ATAC-seq_Wt1b Over expression replicate 1"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP327146",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP327/SRP327146/"
+      }
+     ],
+     "n_samples": 6,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "35312773"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE179nnn/GSE179521/",
+     "geo2r": "no",
+     "bioproject": "PRJNA744144"
+    },
+    "200179520": {
+     "uid": "200179520",
+     "accession": "GSE179520",
+     "gds": "",
+     "title": "Downregulation of WT1 transcription factor gene expression is required to promote myocardial fate [RNA-seq]",
+     "summary": "During cardiac development, cells from the precardiac mesoderm fuse to form the primordial heart tube, which then grows by addition of further progenitors to the venous and arterial poles. In the zebrafish, wilms tumor 1 transcription factor a (wt1a) and b (wt1b) are expressed in the pericardial mesoderm at the venous pole of the forming heart tube. The pericardial mesoderm forms a single layered mesothelial sheet that contributes to further the growth of the myocardium, and forms the proepicardium. Proepicardial cells are subsequently transferred to the myocardial surface and give rise to the epicardium, the outer layer covering the myocardium in the adult heart. wt1a/b expression is downregulated during the transition from pericardium to myocardium, but remains high in proepicardial cells. Here we show that sustained wt1 expression impaired cardiomyocyte maturation including sarcomere assembly, ultimately affecting heart morphology and cardiac function. ATAC-seq data analysis of cardiomyocytes overexpressing wt1 revealed that chromatin regions associated with myocardial differentiation genes remain closed upon wt1b overexpression in cardiomyocytes, suggesting that wt1 represses a myocardial differentiation program. Indeed, a subset of wt1a/b-expressing cardiomyocytes changed their cell adhesion properties, delaminated from the myocardial epithelium, and upregulated the expression of epicardial genes, as confirmed by in vivo imaging. Thus, we conclude that wt1 acts as a break for cardiomyocyte differentiation by repressing chromatin opening at specific genomic loci and that sustained ectopic expression of wt1 in cardiomyocytes can lead to their transformation into epicardial cells.",
+     "gpl": "18413",
+     "gse": "179520",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2022/03/08",
+     "suppfile": "CSV",
+     "samples": [
+      {
+       "accession": "GSM5419679",
+       "title": "RNA-seq_Heart tube replicate 3"
+      },
+      {
+       "accession": "GSM5419676",
+       "title": "RNA-seq_Proepicardium replicate 4"
+      },
+      {
+       "accession": "GSM5419674",
+       "title": "RNA-seq_Proepicardium replicate 2"
+      },
+      {
+       "accession": "GSM5419673",
+       "title": "RNA-seq_Proepicardium replicate 1"
+      },
+      {
+       "accession": "GSM5419680",
+       "title": "RNA-seq_Pericardium replicate 1"
+      },
+      {
+       "accession": "GSM5419677",
+       "title": "RNA-seq_Heart tube replicate 1"
+      },
+      {
+       "accession": "GSM5419675",
+       "title": "RNA-seq_Proepicardium replicate 3"
+      },
+      {
+       "accession": "GSM5419678",
+       "title": "RNA-seq_Heart tube replicate 2"
+      },
+      {
+       "accession": "GSM5419681",
+       "title": "RNA-seq_Pericardium replicate 2"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP327145",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP327/SRP327145/"
+      }
+     ],
+     "n_samples": 9,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "35312773"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE179nnn/GSE179520/",
+     "geo2r": "no",
+     "bioproject": "PRJNA744141"
+    },
+    "200117820": {
+     "uid": "200117820",
+     "accession": "GSE117820",
+     "gds": "",
+     "title": "Sequencing of Danio rerio skin for 5 age groups",
+     "summary": "Comparison of temporal small RNA gene expression profiles from Danio rerio skin. The smallRNA-seq data comprise 5 age groups at 6, 12, 24, 36 and 42 months.    Jena Centre for Systems Biology of Ageing - JenAge (www.jenage.de)",
+     "gpl": "18413",
+     "gse": "117820",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Non-coding RNA profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2021/10/19",
+     "suppfile": "XLS",
+     "samples": [
+      {
+       "accession": "GSM3309715",
+       "title": "NH_FLI_125_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309718",
+       "title": "NH_FLI_135_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309709",
+       "title": "NH_FLI_96_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309712",
+       "title": "NH_FLI_120_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309726",
+       "title": "NH_FLI_106_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309729",
+       "title": "NH_FLI_109_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309707",
+       "title": "NH_FLI_85_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309710",
+       "title": "NH_FLI_98_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309730",
+       "title": "NH_FLI_111_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309713",
+       "title": "NH_FLI_121_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309727",
+       "title": "NH_FLI_107_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309721",
+       "title": "NH_FLI_145_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309725",
+       "title": "NH_FLI_150_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309724",
+       "title": "NH_FLI_149_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309728",
+       "title": "NH_FLI_108_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309708",
+       "title": "NH_FLI_94_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309722",
+       "title": "NH_FLI_146_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309716",
+       "title": "NH_FLI_133_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309719",
+       "title": "NH_FLI_136_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309731",
+       "title": "NH_FLI_100_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309711",
+       "title": "NH_FLI_119_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309720",
+       "title": "NH_FLI_137_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309723",
+       "title": "NH_FLI_147_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309717",
+       "title": "NH_FLI_134_ZF_skin_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309714",
+       "title": "NH_FLI_122_ZF_skin_smallRNAseq"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP155559",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP155/SRP155559/"
+      }
+     ],
+     "n_samples": 25,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE117nnn/GSE117820/",
+     "geo2r": "no",
+     "bioproject": "PRJNA483229"
+    },
+    "200117807": {
+     "uid": "200117807",
+     "accession": "GSE117807",
+     "gds": "",
+     "title": "Sequencing of Danio rerio brain for 5 age groups",
+     "summary": "Comparison of temporal small RNA gene expression profiles from Danio rerio brain. The smallRNA-seq data comprise 5 age groups at 6, 12, 24, 36 and 42 months.    Jena Centre for Systems Biology of Ageing - JenAge (www.jenage.de)",
+     "gpl": "18413",
+     "gse": "117807",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Non-coding RNA profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2021/10/19",
+     "suppfile": "XLS",
+     "samples": [
+      {
+       "accession": "GSM3309602",
+       "title": "NH_FLI_143_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309585",
+       "title": "NH_FLI_111_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309605",
+       "title": "NH_FLI_153_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309593",
+       "title": "NH_FLI_124_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309596",
+       "title": "NH_FLI_128_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309599",
+       "title": "NH_FLI_139_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309597",
+       "title": "NH_FLI_129_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309594",
+       "title": "NH_FLI_125_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309600",
+       "title": "NH_FLI_140_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309588",
+       "title": "NH_FLI_95_96_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309591",
+       "title": "NH_FLI_109_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309595",
+       "title": "NH_FLI_127_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309592",
+       "title": "NH_FLI_114_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309584",
+       "title": "NH_FLI_103_104_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309589",
+       "title": "NH_FLI_97_98_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309583",
+       "title": "NH_FLI_101_102_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309607",
+       "title": "NH_FLI_156_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309603",
+       "title": "NH_FLI_150_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309586",
+       "title": "NH_FLI_112_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309606",
+       "title": "NH_FLI_154_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309604",
+       "title": "NH_FLI_152_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309587",
+       "title": "NH_FLI_116_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309598",
+       "title": "NH_FLI_138_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309601",
+       "title": "NH_FLI_142_ZF_brain_smallRNAseq"
+      },
+      {
+       "accession": "GSM3309590",
+       "title": "NH_FLI_99_100_ZF_brain_smallRNAseq"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP155545",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP155/SRP155545/"
+      }
+     ],
+     "n_samples": 25,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE117nnn/GSE117807/",
+     "geo2r": "no",
+     "bioproject": "PRJNA483217"
+    },
+    "200116358": {
+     "uid": "200116358",
+     "accession": "GSE116358",
+     "gds": "",
+     "title": "Pericentromeric hypomethylation elicits an interferon response in an animal model of ICF syndrome [ssRNA-seq]",
+     "summary": "The goal of this study was to investigate DNA methylation and gene expression changes in a zebrafish model of ICF Syndrome which were generated by mutation of ICF-gene zbtb24. Comparison of gene expression changes between wildtype and zbtb24 homozygous mutants revealed upregulation of interferon response genes following zbtb24 deletion. Upregulation of interferon response genes was blocked by mutation of the dsRNA helicase Mda5.",
+     "gpl": "18413",
+     "gse": "116358",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2018/11/28",
+     "suppfile": "TXT",
+     "samples": [
+      {
+       "accession": "GSM3229933",
+       "title": "Mut3"
+      },
+      {
+       "accession": "GSM3229931",
+       "title": "Mut1"
+      },
+      {
+       "accession": "GSM3229932",
+       "title": "Mut2"
+      },
+      {
+       "accession": "GSM3229929",
+       "title": "WT1A"
+      },
+      {
+       "accession": "GSM3229930",
+       "title": "WT2A"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP151493",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP151/SRP151493/"
+      }
+     ],
+     "n_samples": 5,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "30484769"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE116nnn/GSE116358/",
+     "geo2r": "no",
+     "bioproject": "PRJNA478247"
+    },
+    "200116360": {
+     "uid": "200116360",
+     "accession": "GSE116360",
+     "gds": "",
+     "title": "Pericentromeric hypomethylation elicits an interferon response in an animal model of ICF syndrome",
+     "summary": "This SuperSeries is composed of the SubSeries listed below.",
+     "gpl": "18413;14875",
+     "gse": "116360",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing; Methylation profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2018/11/27",
+     "suppfile": "TXT",
+     "samples": [
+      {
+       "accession": "GSM3229930",
+       "title": "WT2A"
+      },
+      {
+       "accession": "GSM3229933",
+       "title": "Mut3"
+      },
+      {
+       "accession": "GSM3229936",
+       "title": "ifih1Mu_z24Mu_2"
+      },
+      {
+       "accession": "GSM3229715",
+       "title": "WT 3"
+      },
+      {
+       "accession": "GSM3229944",
+       "title": "ifih1WT_z24WT_1"
+      },
+      {
+       "accession": "GSM3229945",
+       "title": "ifih1WT_z24WT_2"
+      },
+      {
+       "accession": "GSM3229939",
+       "title": "ifih1Mu_z24WT_2"
+      },
+      {
+       "accession": "GSM3229940",
+       "title": "ifih1Mu_z24WT_3"
+      },
+      {
+       "accession": "GSM3229710",
+       "title": "zbtb24 mutant 1"
+      },
+      {
+       "accession": "GSM3229942",
+       "title": "ifih1WT_z24Mu_2"
+      },
+      {
+       "accession": "GSM3229943",
+       "title": "ifih1WT_z24Mu_3"
+      },
+      {
+       "accession": "GSM3229713",
+       "title": "WT 1"
+      },
+      {
+       "accession": "GSM3229946",
+       "title": "ifih1WT_z24WT_3"
+      },
+      {
+       "accession": "GSM3229931",
+       "title": "Mut1"
+      },
+      {
+       "accession": "GSM3229711",
+       "title": "zbtb24 mutant 2"
+      },
+      {
+       "accession": "GSM3229714",
+       "title": "WT 2"
+      },
+      {
+       "accession": "GSM3229937",
+       "title": "ifih1Mu_z24Mu_3"
+      },
+      {
+       "accession": "GSM3229712",
+       "title": "zbtb24 mutant 3"
+      },
+      {
+       "accession": "GSM3229941",
+       "title": "ifih1WT_z24Mu_1"
+      },
+      {
+       "accession": "GSM3229935",
+       "title": "ifih1Mu_z24Mu_1"
+      },
+      {
+       "accession": "GSM3229938",
+       "title": "ifih1Mu_z24WT_1"
+      },
+      {
+       "accession": "GSM3229929",
+       "title": "WT1A"
+      },
+      {
+       "accession": "GSM3229932",
+       "title": "Mut2"
+      }
+     ],
+     "relations": [],
+     "extrelations": [],
+     "n_samples": 23,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "30484769"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE116nnn/GSE116360/",
+     "geo2r": "no",
+     "bioproject": "PRJNA478246"
+    },
+    "200115721": {
+     "uid": "200115721",
+     "accession": "GSE115721",
+     "gds": "",
+     "title": "Transcriptome analysis of zebrafish wildtype adult brain and rb1-embryonal brain tumors, and wildtype and rb1-/- zebrafish larval head tissue, by RNA-Seq",
+     "summary": "This SuperSeries is composed of the SubSeries listed below.",
+     "gpl": "18413",
+     "gse": "115721",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2018/06/13",
+     "suppfile": "",
+     "samples": [
+      {
+       "accession": "GSM3188301",
+       "title": "Tumor9b"
+      },
+      {
+       "accession": "GSM3188284",
+       "title": "Tumor1a"
+      },
+      {
+       "accession": "GSM3188304",
+       "title": "Control1a"
+      },
+      {
+       "accession": "GSM3188292",
+       "title": "Tumor5a"
+      },
+      {
+       "accession": "GSM3188315",
+       "title": "WT1b"
+      },
+      {
+       "accession": "GSM3188312",
+       "title": "Mut3a"
+      },
+      {
+       "accession": "GSM3188318",
+       "title": "WT3a"
+      },
+      {
+       "accession": "GSM3188319",
+       "title": "WT3b"
+      },
+      {
+       "accession": "GSM3188298",
+       "title": "Tumor8a"
+      },
+      {
+       "accession": "GSM3188299",
+       "title": "Tumor8b"
+      },
+      {
+       "accession": "GSM3188295",
+       "title": "Tumor6b"
+      },
+      {
+       "accession": "GSM3188296",
+       "title": "Tumor7a"
+      },
+      {
+       "accession": "GSM3188316",
+       "title": "WT2a"
+      },
+      {
+       "accession": "GSM3188293",
+       "title": "Tumor5b"
+      },
+      {
+       "accession": "GSM3188310",
+       "title": "Mut2a"
+      },
+      {
+       "accession": "GSM3188290",
+       "title": "Tumor4a"
+      },
+      {
+       "accession": "GSM3188287",
+       "title": "Tumor2b"
+      },
+      {
+       "accession": "GSM3188313",
+       "title": "Mut3b"
+      },
+      {
+       "accession": "GSM3188307",
+       "title": "Control2b"
+      },
+      {
+       "accession": "GSM3188294",
+       "title": "Tumor6a"
+      },
+      {
+       "accession": "GSM3188311",
+       "title": "Mut2b"
+      },
+      {
+       "accession": "GSM3188291",
+       "title": "Tumor4b"
+      },
+      {
+       "accession": "GSM3188288",
+       "title": "Tumor3a"
+      },
+      {
+       "accession": "GSM3188314",
+       "title": "WT1a"
+      },
+      {
+       "accession": "GSM3188309",
+       "title": "Mut1b"
+      },
+      {
+       "accession": "GSM3188306",
+       "title": "Control2a"
+      },
+      {
+       "accession": "GSM3188302",
+       "title": "Tumor10a"
+      },
+      {
+       "accession": "GSM3188308",
+       "title": "Mut1a"
+      },
+      {
+       "accession": "GSM3188285",
+       "title": "Tumor1b"
+      },
+      {
+       "accession": "GSM3188305",
+       "title": "Control1b"
+      },
+      {
+       "accession": "GSM3188300",
+       "title": "Tumor9a"
+      },
+      {
+       "accession": "GSM3188289",
+       "title": "Tumor3b"
+      },
+      {
+       "accession": "GSM3188297",
+       "title": "Tumor7b"
+      },
+      {
+       "accession": "GSM3188303",
+       "title": "Tumor10b"
+      },
+      {
+       "accession": "GSM3188286",
+       "title": "Tumor2a"
+      },
+      {
+       "accession": "GSM3188317",
+       "title": "WT2b"
+      }
+     ],
+     "relations": [],
+     "extrelations": [],
+     "n_samples": 36,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "29914980"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE115nnn/GSE115721/",
+     "geo2r": "no",
+     "bioproject": "PRJNA475805"
+    },
+    "200115720": {
+     "uid": "200115720",
+     "accession": "GSE115720",
+     "gds": "",
+     "title": "Transcriptome analysis of wildtype and rb1-/- zebrafish larval head tissue by RNA-Seq",
+     "summary": "The wild type and rb1 mutant transcriptomes were used to identify molecular pathways and epigenetic regulators altered in rb1 mutant brain cells. The data was also used for comparative analysis with zebrafish rb1-embryonal brain tumor transcriptome, to identify molecular pathways that distinguish transformed rb1- tumor cells from non-transformed rb1-/- mutant cells.",
+     "gpl": "18413",
+     "gse": "115720",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2018/06/13",
+     "suppfile": "TXT",
+     "samples": [
+      {
+       "accession": "GSM3188314",
+       "title": "WT1a"
+      },
+      {
+       "accession": "GSM3188317",
+       "title": "WT2b"
+      },
+      {
+       "accession": "GSM3188311",
+       "title": "Mut2b"
+      },
+      {
+       "accession": "GSM3188308",
+       "title": "Mut1a"
+      },
+      {
+       "accession": "GSM3188315",
+       "title": "WT1b"
+      },
+      {
+       "accession": "GSM3188312",
+       "title": "Mut3a"
+      },
+      {
+       "accession": "GSM3188309",
+       "title": "Mut1b"
+      },
+      {
+       "accession": "GSM3188310",
+       "title": "Mut2a"
+      },
+      {
+       "accession": "GSM3188318",
+       "title": "WT3a"
+      },
+      {
+       "accession": "GSM3188316",
+       "title": "WT2a"
+      },
+      {
+       "accession": "GSM3188313",
+       "title": "Mut3b"
+      },
+      {
+       "accession": "GSM3188319",
+       "title": "WT3b"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP150379",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP150/SRP150379/"
+      }
+     ],
+     "n_samples": 12,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "29914980"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE115nnn/GSE115720/",
+     "geo2r": "no",
+     "bioproject": "PRJNA475808"
+    },
+    "200101204": {
+     "uid": "200101204",
+     "accession": "GSE101204",
+     "gds": "",
+     "title": "Comparison of the expression profile of GFP-positive cells from Tg(-6.8wt1a:EGFP) with the rest of the cells in adult zebrafish cardiac ventricles",
+     "summary": "wt1a:GFP labels a population of subepicardial cells in the uninjured ventricle. Here we compare the expression profile of wt1a:GFP-positive cells to the rest of the cells of the ventricle.",
+     "gpl": "18413",
+     "gse": "101204",
+     "taxon": "Danio rerio",
+     "entrytype": "GSE",
+     "gdstype": "Expression profiling by high throughput sequencing",
+     "ptechtype": "",
+     "valtype": "",
+     "ssinfo": "",
+     "subsetinfo": "",
+     "pdat": "2018/03/21",
+     "suppfile": "XLSX",
+     "samples": [
+      {
+       "accession": "GSM2700326",
+       "title": "wt1aGFP_1_neg"
+      },
+      {
+       "accession": "GSM2700332",
+       "title": "wt1aGFP_4_neg"
+      },
+      {
+       "accession": "GSM2700329",
+       "title": "wt1aGFP_2_pos"
+      },
+      {
+       "accession": "GSM2700327",
+       "title": "wt1aGFP_1_pos"
+      },
+      {
+       "accession": "GSM2700333",
+       "title": "wt1aGFP_4_pos"
+      },
+      {
+       "accession": "GSM2700330",
+       "title": "wt1aGFP_3_neg"
+      },
+      {
+       "accession": "GSM2700328",
+       "title": "wt1aGFP_2_neg"
+      },
+      {
+       "accession": "GSM2700331",
+       "title": "wt1aGFP_3_pos"
+      }
+     ],
+     "relations": [],
+     "extrelations": [
+      {
+       "relationtype": "SRA",
+       "targetobject": "SRP111553",
+       "targetftplink": "ftp://ftp-trace.ncbi.nlm.nih.gov/sra/sra-instant/reads/ByStudy/sra/SRP/SRP111/SRP111553/"
+      }
+     ],
+     "n_samples": 8,
+     "seriestitle": "",
+     "platformtitle": "",
+     "platformtaxa": "",
+     "samplestaxa": "",
+     "pubmedids": [
+      "29610343"
+     ],
+     "projects": [],
+     "ftplink": "ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE101nnn/GSE101204/",
+     "geo2r": "no",
+     "bioproject": "PRJNA393878"
+    }
+   }
+  }
+ },
+ "_fixture": {
+  "recorded_by": "record_fixtures_c.py (ADR-0080 C5)",
+  "live": true,
+  "source_file": "raw_geo_gds_wt1a-and-danio-rerio-organism_1ccce133_20260915.json"
+ }
+}

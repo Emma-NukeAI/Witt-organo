@@ -40,6 +40,12 @@ os.environ["ANTHROPIC_API_KEY"] = ""
 os.environ["WITT_RUN_ORIGIN"] = "smoke"
 os.environ["WITT_ALLOW_RUNS_OFFLINE"] = "1"
 os.environ["WITT_THREAD_CONTEXT"] = "1"
+# ADR-0080 (C7): este gate prueba la INVESTIGACIÓN, no la compuerta de competencia. Sus corridas nacen por new_run
+# SIN plan y bajo la compuerta serían 'no-plan' -> ronda + pass2 (eso lo prueban smoke_competence.py y la sección
+# ADR-0080 de smoke_run_pipeline.py). El kill-switch DECLARADO deja gobernar la regla legada `pass1 < tau` (conf
+# 0.8 -> UNA pasada), que es lo que estos checks miden (len(SYNTH_CALLS) == 1); frozen.competence queda
+# {competent: null, skipped_reason: 'kill-switch …'} en todas las corridas de este gate.
+os.environ["WITT_COMPETENCE_GATE"] = "0"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import db  # noqa: E402
@@ -602,6 +608,32 @@ check("(D) CAMINO REAL del planner: con snapshot user_text = {question, entities
       "{question, entities} exacto",
       set(json.loads(REAL[0][1])) == {"question", "entities", "thread_context"}
       and json.loads(REAL[1][1]) == {"question": "q?", "entities": ["wt1a"]})
+
+# ---- (corrector ADR-0080) UNA corrida encadenada con la compuerta ENCENDIDA: el camino de prod ---------------------------------
+os.environ["WITT_COMPETENCE_GATE"] = "1"
+GATED = runs_mod.new_run("natalia", "gated child: does wt1a mark the pronephros at 72 hpf?", ["wt1a"], parent_run_id=CHILD)
+SYNTH_CALLS.clear()
+gated_row, gated_frozen = _run(GATED, _synth_new("wt1a marks the pronephros at 72 hpf as well."))
+os.environ["WITT_COMPETENCE_GATE"] = "0"
+check("(corrector ADR-0080) turno hijo con WITT_COMPETENCE_GATE=1 (el camino de prod): sin plan -> competence.reasons "
+      "['route_evidence_run','niches_nonempty'] -> trigger 'competence' -> DOS pasadas, AMBAS con el snapshot del padre inyectado "
+      "(thread_context como llave hermana en pass1 y pass2), deterministic_checks.pass 'pass2' y parent_identifier_leak evaluado "
+      "sobre la candidata (pass2) con state 'checked'; frozen.competence.competent False, path_b_bundle aceptó el plan "
+      "(harness_used True; el stub devuelve [] -> search_ledger 'harness-without-ledger…' declarado)",
+      gated_row["state"] == "awaiting_closure"
+      and gated_frozen["competence"]["competent"] is False
+      and gated_frozen["competence"]["reasons"] == ["route_evidence_run", "niches_nonempty"]
+      and gated_frozen["fallback"]["trigger"] == "competence"
+      and [lbl for lbl, _tc in SYNTH_CALLS] == ["pass1", "pass2"]
+      and all(tc is not None and tc["parent"]["run_id"] == CHILD for _l, tc in SYNTH_CALLS)
+      and gated_frozen["deterministic_checks"]["pass"] == "pass2"
+      and gated_frozen["deterministic_checks"]["parent_identifier_leak_state"] == "checked"
+      and gated_frozen["deterministic_checks"]["parent_identifier_leak"] == []
+      and gated_frozen["thread_context"] is not None
+      and gated_frozen["search_ledger"]["state"].startswith("harness-without-ledger"),
+      json.dumps({"reasons": gated_frozen["competence"]["reasons"], "passes": [l for l, _ in SYNTH_CALLS],
+                  "gate_reasons": gated_frozen["deterministic_checks"]["reasons"],
+                  "ledger": gated_frozen["search_ledger"]["state"]}))
 
 # ---- lista y detalle: mismas columnas de investigación (T1) vistas desde runs.py ----------------------------------------------
 lst = {r["run_id"]: r for r in db.list_runs(limit=1000)}

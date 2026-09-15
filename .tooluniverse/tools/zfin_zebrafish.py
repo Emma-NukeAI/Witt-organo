@@ -55,11 +55,46 @@ Offline gate: rag_index/query_service/smoke_zfin_tool.py
 """
 import json
 import re
+import sys
 import urllib.request
 import urllib.parse
+from pathlib import Path
+
+# ADR-0080 corrector: pacing of www.alliancegenome.org shared with alliance_orthologs (same host, same process,
+# up to 6 symbols x 2 GETs per round with 2 workers): lib/net_throttle, 0.2 s between admitted calls. The import
+# is tolerant — a missing limiter is DECLARED in `throttle.available`, never disguised, and the call still goes out.
+_ROOT = Path(__file__).resolve().parents[2]
+_LIB_PARENT = str(_ROOT / "analysis" / "scripts")
+if _LIB_PARENT not in sys.path:
+    sys.path.insert(0, _LIB_PARENT)
+try:
+    from lib import net_throttle  # noqa: E402
+    _THROTTLE_IMPORT_ERROR = None
+except Exception as _e:
+    net_throttle = None
+    _THROTTLE_IMPORT_ERROR = f"{type(_e).__name__}: {_e}"
 
 _BASE = "https://www.alliancegenome.org/api"
+_HOST = "www.alliancegenome.org"
+MIN_INTERVAL_S = 0.2
 _UA = {"User-Agent": "witt-organo/1.0 (zfin-tool)", "Accept": "application/json"}
+_THROTTLE_STATS = {"waited_s": 0.0, "n_waits": 0}   # process-wide measurement, declared per result in `throttle`
+
+
+def _paced_get(url, timeout):
+    """net_throttle.wait() (measured, declared) then the module's ONLY network seam `_get` — kept as a
+    separate name so the offline smokes keep monkeypatching `_get` and the pacing still runs around it."""
+    if net_throttle is not None:
+        _THROTTLE_STATS["waited_s"] = round(_THROTTLE_STATS["waited_s"] + net_throttle.get_throttle(_HOST, MIN_INTERVAL_S).wait(), 3)
+        _THROTTLE_STATS["n_waits"] += 1
+    return _get(url, timeout=timeout)
+
+
+def throttle_declaration(waited_before):
+    """The `throttle` block of ONE result: seconds slept by THIS call (delta since `waited_before`)."""
+    return {"host": _HOST, "min_interval_s": MIN_INTERVAL_S, "available": net_throttle is not None,
+            "waited_s": round(max(0.0, _THROTTLE_STATS["waited_s"] - waited_before), 3),
+            **({"import_error": _THROTTLE_IMPORT_ERROR} if net_throttle is None else {})}
 
 # ADR-0078: both caps are constants so the smoke can assert their DECLARATION, not their value.
 PHENOTYPES_API_LIMIT = 300   # `?limit=300` sent to the Alliance API; more than that is NOT fetched
@@ -82,7 +117,7 @@ def _get(url, timeout=DEFAULT_TIMEOUT_S):
 
 def _resolve_curie(symbol, timeout=DEFAULT_TIMEOUT_S):
     """Zebrafish gene SYMBOL -> ZFIN curie (ZFIN:ZDB-GENE-...), live. Exact gene-name match preferred."""
-    j = _get(f"{_BASE}/search_autocomplete?q={urllib.parse.quote(symbol)}", timeout=timeout)
+    j = _paced_get(f"{_BASE}/search_autocomplete?q={urllib.parse.quote(symbol)}", timeout=timeout)
     genes = [r for r in j.get("results", []) if r.get("category") == "gene_search_result"]
     for r in genes:                                   # exact symbol match first
         if str(r.get("name", "")).lower() == symbol.lower():
@@ -178,6 +213,7 @@ def query_zfin(symbol, anatomy=None, limit=50, anatomy_terms=None, server_filter
                               references_truncated}]}.
     n_matched == 0 with status 'success' is "searched, nothing on this anatomy" (no-match), not an error.
     """
+    waited_before = _THROTTLE_STATS["waited_s"]   # ADR-0080 corrector: `throttle.waited_s` of THIS call
     try:
         if timeout is not None and timeout <= 0:
             return {"status": "error",
@@ -193,7 +229,7 @@ def query_zfin(symbol, anatomy=None, limit=50, anatomy_terms=None, server_filter
             # statement; the gene total is NOT measured on this path (every payload is filtered).
             results, seen, server_totals, per_term_n = [], set(), {}, {}
             for term in terms:
-                jt = _get(_phenotypes_url(curie, term), timeout=timeout)
+                jt = _paced_get(_phenotypes_url(curie, term), timeout=timeout)
                 n_gets += 1
                 server_totals[term] = jt.get("total")
                 per_term_n[term] = len(jt.get("results") or [])
@@ -204,7 +240,7 @@ def query_zfin(symbol, anatomy=None, limit=50, anatomy_terms=None, server_filter
                         results.append(r)
             total, total_scope = None, "server-filtered"
         else:
-            j = _get(_phenotypes_url(curie), timeout=timeout)
+            j = _paced_get(_phenotypes_url(curie), timeout=timeout)
             n_gets += 1
             results = j.get("results") or []
             total, total_scope = j.get("total"), "gene"
@@ -273,7 +309,7 @@ def query_zfin(symbol, anatomy=None, limit=50, anatomy_terms=None, server_filter
         }
         if server_totals is not None:
             data["server_filter_totals"] = server_totals   # per-term `total` as the API declared it
-        return {"status": status, "data": data}
+        return {"status": status, "data": data, "throttle": throttle_declaration(waited_before)}
     except Exception as e:
         return {"status": "error", "error": f"{type(e).__name__}: {e}"}
 

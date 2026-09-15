@@ -62,6 +62,41 @@ services:
       - WITT_THREAD_COMMENTS_CHARS=${WITT_THREAD_COMMENTS_CHARS:-8000}   # TOTAL chars of those comments
       - WITT_THREAD_ANSWER_CHARS=${WITT_THREAD_ANSWER_CHARS:-1200}     # chars of the parent's direct_answer in the snapshot
       - WITT_PIVOT_TURNS=${WITT_PIVOT_TURNS:-3}         # GET /threads: consecutive flat turns (gap_flags not reduced) => pivot_suggested
+      # ADR-0080 — competence gate + search harness. Placeholders only: defaults DECLARED in code (competence.py /
+      # runs.py / lib/search_harness.py / composite_auditor.py / .tooluniverse/tools); the effective value + its
+      # provenance ('env:…' | 'default-unset:…' | 'default-invalid-env:…') travel in frozen.competence.config,
+      # frozen.search_ledger.config_source and audit.judge_retries. EMPTY = declared default, never a crash.
+      - WITT_COMPETENCE_GATE=${WITT_COMPETENCE_GATE:-1}          # 0 = kill-switch: competent null + skipped_reason; the legacy
+                                                                 # `pass1 < tau` rule (ADR-0051) decides the route again and Path B runs
+                                                                 # WITHOUT the harness (fallback.trigger 'confidence', ADR-0078 path byte for byte)
+      - WITT_CG_REQUIRE_CALIBRATION=${WITT_CG_REQUIRE_CALIBRATION:-0}   # 1 = calibration_coverage.sufficient joins the conjunction
+      - WITT_CG_CONF_COMPONENT=${WITT_CG_CONF_COMPONENT:-1}       # 1 (default, cg-3) = the elicited confidence (CONF_TOOL, ADR-0065; conf1 >= tau)
+                                                                 # GATES in the conjunction as ADR-0051 decided; 0 = measured and declared only
+                                                                 # (informative, outside the conjunction). cg-2's default 0 was reverted 2026-09-15:
+                                                                 # it let conf1 0.15 + structural sufficiency skip Path B (case a361f566, ADR-0059)
+      - WITT_CG_CALIBRATION_ORIGINS=${WITT_CG_CALIBRATION_ORIGINS:-production}   # run origins counted as calibration history (CSV; 'all' = no filter)
+      - WITT_COMPETENCE_MIN_HISTORY=${WITT_COMPETENCE_MIN_HISTORY:-10}  # CLOSED+rated runs intersecting the plan's niches for 'sufficient'
+      - WITT_FALLBACK_CONF_TAU=${WITT_FALLBACK_CONF_TAU:-0.5}     # tau of conf1_ge_tau and of the legacy rule (tolerant reader: empty => 0.5)
+      - WITT_SEARCH_HARNESS=${WITT_SEARCH_HARNESS:-1}             # 0 = the gate still decides, but Path B runs by path_b_bundle WITHOUT a plan
+                                                                 # (no Layer 0 families, no rounds) — the operator's brake if a tool misbehaves
+      - WITT_SEARCH_ROUNDS_CAP=${WITT_SEARCH_ROUNDS_CAP:-2}       # max harness rounds per run (a 2nd round only for families whose INPUTS changed;
+                                                                 # identical inputs are never re-executed: stop_reason 'no-new-inputs')
+      - WITT_SEARCH_ROUND_BUDGET_S=${WITT_SEARCH_ROUND_BUDGET_S:-120}   # wall-clock budget per ROUND (shared across families; skipped-budget declared)
+      - WITT_SEARCH_DEFAULT_FAMILIES=${WITT_SEARCH_DEFAULT_FAMILIES:-}  # empty => europepmc,pubmed,zfin,alliance_orthologs,zfin_expression;
+                                                                 # naming a 'directive-only' family here IS the operator's directive
+      - WITT_JUDGE_RETRIES=${WITT_JUDGE_RETRIES:-1}               # additional attempts per errored/unparseable judge (declared per row)
+      - WITT_MCP_CACHE_DIR=${WITT_MCP_CACHE_DIR:-}               # per-day read cache of the Layer 0 tools; empty => <repo>/mcp_cache
+                                                                 # (needs WRITE permission in the container: the ZFIN expression TSV is ~44 MB)
+      - OPENALEX_API_KEY=${OPENALEX_API_KEY:-}                   # optional; without it OpenAlex bills credits (~10/call, 1000/day measured 2026-09-15)
+      - WITT_UNPAYWALL_EMAIL=${WITT_UNPAYWALL_EMAIL:-}           # REQUIRED by Unpaywall; empty => that source row is 'tool-unavailable' (declared)
+      - WITT_ENSEMBL_MIN_INTERVAL_S=${WITT_ENSEMBL_MIN_INTERVAL_S:-0.07}      # rest.ensembl.org pacing (15 req/s documented)
+      - WITT_ZFIN_EXPR_DOWNLOAD_BUDGET_S=${WITT_ZFIN_EXPR_DOWNLOAD_BUDGET_S:-180}   # once-a-day TSV download budget (43.7 MB measured, 27 s)
+      - WITT_ZFIN_EXPR_MAX_MB=${WITT_ZFIN_EXPR_MAX_MB:-500}       # hard cap on that download
+      - WITT_ZFIN_EXPR_SCAN_BUDGET_S=${WITT_ZFIN_EXPR_SCAN_BUDGET_S:-60}     # local scan budget of the cached TSV (243k lines, 0.5 s measured)
+      - WITT_GEO_RETMAX=${WITT_GEO_RETMAX:-10}                   # GEO DataSets uids per esearch (clamp 1..500)
+      # WITT_GEO_ORGANISM is deliberately NOT declared here: geo_gds treats a PRESENT-but-empty value as "disable the
+      # [Organism] block" (declared organism_sent null); unset => 'Danio rerio'. Set it in Dokploy only when you mean it.
+      - WITT_OPENALEX_PER_PAGE=${WITT_OPENALEX_PER_PAGE:-5}      # OpenAlex works per call (clamp 1..200)
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

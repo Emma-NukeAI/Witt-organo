@@ -1,0 +1,479 @@
+{
+ "tool": "alliance_orthologs",
+ "recorded_at": "2026-09-15T09:36:10Z",
+ "url": "https://www.alliancegenome.org/api/gene/ZFIN:ZDB-GENE-980526-558/orthologs?filter.stringency=stringent&limit=200",
+ "symbol": "wt1a",
+ "curie": "ZFIN:ZDB-GENE-980526-558",
+ "elapsed_s": 0.531,
+ "payload": {
+  "results": [
+   {
+    "category": "gene_to_gene_orthology",
+    "searchable": false,
+    "stringencyFilter": "stringent",
+    "geneAnnotations": [
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     },
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "Xenbase:XB-GENE-484999"
+     }
+    ],
+    "geneAnnotationsMap": {
+     "Xenbase:XB-GENE-484999": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "Xenbase:XB-GENE-484999"
+     },
+     "ZFIN:ZDB-GENE-980526-558": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     }
+    },
+    "geneToGeneOrthologyGenerated": {
+     "subjectGene": {
+      "type": "Gene",
+      "primaryExternalId": "ZFIN:ZDB-GENE-980526-558",
+      "taxon": {
+       "curie": "NCBITaxon:7955",
+       "name": "Danio rerio",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Danio rerio",
+        "abbreviation": "Dre",
+        "displayName": "ZFIN"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "wt1a"
+      }
+     },
+     "objectGene": {
+      "type": "Gene",
+      "primaryExternalId": "Xenbase:XB-GENE-484999",
+      "taxon": {
+       "curie": "NCBITaxon:8364",
+       "name": "Xenopus tropicalis",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Xenopus tropicalis",
+        "abbreviation": "Xtr",
+        "displayName": "XBXT"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "wt1"
+      }
+     },
+     "isBestScore": {
+      "name": "Yes"
+     },
+     "isBestScoreReverse": {
+      "name": "Yes"
+     },
+     "confidence": {
+      "name": "high"
+     },
+     "strictFilter": true,
+     "moderateFilter": false,
+     "predictionMethodsMatched": [
+      {
+       "name": "Ensembl Compara"
+      },
+      {
+       "name": "Hieranoid"
+      },
+      {
+       "name": "InParanoid"
+      },
+      {
+       "name": "OMA"
+      },
+      {
+       "name": "OrthoFinder"
+      },
+      {
+       "name": "OrthoInspector"
+      },
+      {
+       "name": "PANTHER"
+      },
+      {
+       "name": "PhylomeDB"
+      },
+      {
+       "name": "SonicParanoid"
+      }
+     ],
+     "predictionMethodsNotCalled": [
+      {
+       "name": "Xenbase"
+      },
+      {
+       "name": "ZFIN"
+      },
+      {
+       "name": "HGNC"
+      }
+     ]
+    }
+   },
+   {
+    "category": "gene_to_gene_orthology",
+    "searchable": false,
+    "stringencyFilter": "stringent",
+    "geneAnnotations": [
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     },
+     {
+      "hasDiseaseAnnotations": true,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "HGNC:12796"
+     }
+    ],
+    "geneAnnotationsMap": {
+     "ZFIN:ZDB-GENE-980526-558": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     },
+     "HGNC:12796": {
+      "hasDiseaseAnnotations": true,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "HGNC:12796"
+     }
+    },
+    "geneToGeneOrthologyGenerated": {
+     "subjectGene": {
+      "type": "Gene",
+      "primaryExternalId": "ZFIN:ZDB-GENE-980526-558",
+      "taxon": {
+       "curie": "NCBITaxon:7955",
+       "name": "Danio rerio",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Danio rerio",
+        "abbreviation": "Dre",
+        "displayName": "ZFIN"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "wt1a"
+      }
+     },
+     "objectGene": {
+      "type": "Gene",
+      "primaryExternalId": "HGNC:12796",
+      "taxon": {
+       "curie": "NCBITaxon:9606",
+       "name": "Homo sapiens",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Homo sapiens",
+        "abbreviation": "Hsa",
+        "displayName": "HUMAN"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "WT1"
+      }
+     },
+     "isBestScore": {
+      "name": "Yes"
+     },
+     "isBestScoreReverse": {
+      "name": "Yes"
+     },
+     "confidence": {
+      "name": "high"
+     },
+     "strictFilter": true,
+     "moderateFilter": true,
+     "predictionMethodsMatched": [
+      {
+       "name": "Ensembl Compara"
+      },
+      {
+       "name": "Hieranoid"
+      },
+      {
+       "name": "InParanoid"
+      },
+      {
+       "name": "OMA"
+      },
+      {
+       "name": "OrthoFinder"
+      },
+      {
+       "name": "OrthoInspector"
+      },
+      {
+       "name": "PANTHER"
+      },
+      {
+       "name": "PhylomeDB"
+      },
+      {
+       "name": "SonicParanoid"
+      },
+      {
+       "name": "ZFIN"
+      }
+     ],
+     "predictionMethodsNotCalled": [
+      {
+       "name": "Xenbase"
+      },
+      {
+       "name": "HGNC"
+      }
+     ]
+    }
+   },
+   {
+    "category": "gene_to_gene_orthology",
+    "searchable": false,
+    "stringencyFilter": "stringent",
+    "geneAnnotations": [
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     },
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "RGD:3974"
+     }
+    ],
+    "geneAnnotationsMap": {
+     "RGD:3974": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": false,
+      "geneIdentifier": "RGD:3974"
+     },
+     "ZFIN:ZDB-GENE-980526-558": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     }
+    },
+    "geneToGeneOrthologyGenerated": {
+     "subjectGene": {
+      "type": "Gene",
+      "primaryExternalId": "ZFIN:ZDB-GENE-980526-558",
+      "taxon": {
+       "curie": "NCBITaxon:7955",
+       "name": "Danio rerio",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Danio rerio",
+        "abbreviation": "Dre",
+        "displayName": "ZFIN"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "wt1a"
+      }
+     },
+     "objectGene": {
+      "type": "Gene",
+      "primaryExternalId": "RGD:3974",
+      "taxon": {
+       "curie": "NCBITaxon:10116",
+       "name": "Rattus norvegicus",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Rattus norvegicus",
+        "abbreviation": "Rno",
+        "displayName": "RGD"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "Wt1"
+      }
+     },
+     "isBestScore": {
+      "name": "Yes"
+     },
+     "isBestScoreReverse": {
+      "name": "Yes"
+     },
+     "confidence": {
+      "name": "high"
+     },
+     "strictFilter": true,
+     "moderateFilter": false,
+     "predictionMethodsMatched": [
+      {
+       "name": "Ensembl Compara"
+      },
+      {
+       "name": "Hieranoid"
+      },
+      {
+       "name": "InParanoid"
+      },
+      {
+       "name": "OMA"
+      },
+      {
+       "name": "OrthoFinder"
+      },
+      {
+       "name": "OrthoInspector"
+      },
+      {
+       "name": "PANTHER"
+      },
+      {
+       "name": "PhylomeDB"
+      },
+      {
+       "name": "SonicParanoid"
+      }
+     ],
+     "predictionMethodsNotCalled": [
+      {
+       "name": "Xenbase"
+      },
+      {
+       "name": "ZFIN"
+      },
+      {
+       "name": "HGNC"
+      }
+     ]
+    }
+   },
+   {
+    "category": "gene_to_gene_orthology",
+    "searchable": false,
+    "stringencyFilter": "stringent",
+    "geneAnnotations": [
+     {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     },
+     {
+      "hasDiseaseAnnotations": true,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "MGI:98968"
+     }
+    ],
+    "geneAnnotationsMap": {
+     "MGI:98968": {
+      "hasDiseaseAnnotations": true,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "MGI:98968"
+     },
+     "ZFIN:ZDB-GENE-980526-558": {
+      "hasDiseaseAnnotations": false,
+      "hasExpressionAnnotations": true,
+      "geneIdentifier": "ZFIN:ZDB-GENE-980526-558"
+     }
+    },
+    "geneToGeneOrthologyGenerated": {
+     "subjectGene": {
+      "type": "Gene",
+      "primaryExternalId": "ZFIN:ZDB-GENE-980526-558",
+      "taxon": {
+       "curie": "NCBITaxon:7955",
+       "name": "Danio rerio",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Danio rerio",
+        "abbreviation": "Dre",
+        "displayName": "ZFIN"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "wt1a"
+      }
+     },
+     "objectGene": {
+      "type": "Gene",
+      "primaryExternalId": "MGI:98968",
+      "taxon": {
+       "curie": "NCBITaxon:10090",
+       "name": "Mus musculus",
+       "descendantCount": 0,
+       "species": {
+        "fullName": "Mus musculus",
+        "abbreviation": "Mmu",
+        "displayName": "MGI"
+       }
+      },
+      "geneSymbol": {
+       "displayText": "Wt1"
+      }
+     },
+     "isBestScore": {
+      "name": "Yes"
+     },
+     "isBestScoreReverse": {
+      "name": "Yes"
+     },
+     "confidence": {
+      "name": "high"
+     },
+     "strictFilter": true,
+     "moderateFilter": true,
+     "predictionMethodsMatched": [
+      {
+       "name": "Ensembl Compara"
+      },
+      {
+       "name": "Hieranoid"
+      },
+      {
+       "name": "InParanoid"
+      },
+      {
+       "name": "OMA"
+      },
+      {
+       "name": "OrthoFinder"
+      },
+      {
+       "name": "OrthoInspector"
+      },
+      {
+       "name": "PANTHER"
+      },
+      {
+       "name": "PhylomeDB"
+      },
+      {
+       "name": "SonicParanoid"
+      },
+      {
+       "name": "ZFIN"
+      }
+     ],
+     "predictionMethodsNotCalled": [
+      {
+       "name": "Xenbase"
+      },
+      {
+       "name": "HGNC"
+      }
+     ]
+    }
+   }
+  ],
+  "total": 4,
+  "returnedRecords": 4,
+  "requestDate": "2026/09/15 09:36:11"
+ }
+}

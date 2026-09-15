@@ -77,6 +77,22 @@ la procedencia del valor efectivo viaja en el bundle: 'env:<VAR>' | 'default-uns
   WITT_ZFIN_SERVER_FILTER    default 0    — 1 = mandar filter.termName (una GET por raíz) a Alliance
   (WITT_ZFIN_BUDGET_S 45 · WITT_ZFIN_MAX_ENTITIES 6 · WITT_ZFIN_MAX_STATEMENTS 12 ya existían, ADR-0059)
 
+ADR-0080 (compuerta de competencia + harness, 2026-09-15) — lo que cambió en este módulo:
+  * retrieve(..., search_plan=None) / path_b_bundle(..., search_plan=None, on_stage=None, existing_ids=None):
+    con `search_plan` (dict de lib/search_harness.build_search_plan) la Ruta B corre por el HARNESS —
+    rondas con presupuesto de reloj (WITT_SEARCH_ROUND_BUDGET_S), familias del plan (SEARCH_DISPATCH:
+    europepmc, pubmed, zfin + las Layer 0 nuevas), dedup contra lo ya presente — y emite los eventos
+    stage.search.plan / stage.search.round / stage.search.source vía on_stage. Los ledgers de hoy
+    (europepmc_searched, pubmed_searched, zfin_searched, selection) se CONSERVAN (los llena la fila de la
+    familia en la primera ronda en que corrió) y el bloque gana `search_ledger` {plan, rounds[],
+    families_default, n_rounds, cap, round_budget_s, stop_reason}. Sin search_plan: comportamiento actual,
+    byte a byte.
+  * Segunda ronda SOLO si la primera no trajo nada nuevo (n_new_total == 0) y k < WITT_SEARCH_ROUNDS_CAP
+    (search_harness.should_run_next_round, predicado declarado; con directivas en ADR-0082 cambiará).
+  * Los ítems no-literatura del harness (ortólogos, expresión, ...) entran a `papers` con su `kind`,
+    `source_family`, `label` ('predictive' | 'inferred-by-orthology' | null) e `identifier_provenance`; los
+    candidatos de literatura entran al MISMO pool/dedup/selección de ADR-0078.
+
 Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent).
 REFORMED by ADR-0049 (founder decision 2026-08-09: the audit runs on 100% of runs, DI-sufficient included;
 cost is measured, never capped). DI_SUFFICIENT and FALLBACK_FETCHED are now INTERMEDIATE states; the
@@ -97,6 +113,7 @@ CLI:
 import argparse
 import datetime
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -116,7 +133,7 @@ if not os.environ.get("NEO4J_URI") and _env.exists():
             os.environ.setdefault(_k.strip(), _v.strip())
 os.environ.setdefault("RAG_BACKEND", "neo4j")
 
-from lib import rag_backend, resolve_id, fetch_paper, search_queries  # noqa: E402
+from lib import rag_backend, resolve_id, fetch_paper, search_queries, search_harness  # noqa: E402
 
 CACHE = ROOT / "mcp_cache"
 
@@ -486,14 +503,19 @@ def _cache_zfin(symbol, res):
         return []
 
 
-def n_results_by_source(papers, sources=None):
+def n_results_by_source(papers, sources=None, ran_sources=None):
     """Per-source result counts for the bundle + the event payload (ADR-0057 made the total auditable;
     per-source is what distinguishes 'this source found nothing' from 'this source never ran'). ONE
     implementation, called from both Path-B trigger sites — a re-derived counter drifts.
 
     ADR-0078 corrector: the explicit 0 is stamped ONLY for the literature sources that were REQUESTED
     (`sources`; default = both, the legacy behaviour): a source that was not asked for is ABSENT from
-    the dict, not a 0 ('0 explícito' ≠ 'no se pidió')."""
+    the dict, not a 0 ('0 explícito' ≠ 'no se pidió').
+
+    ADR-0080 corrector: with the harness, `ran_sources` = the families whose ledger row MEASURED
+    (status success | no-match) — each of them gets its explicit 0 too (zfin_expression that scanned the
+    table and found nothing is a 0, not an absence); families that were skipped / unavailable / errored
+    stay ABSENT (they did not measure)."""
     counts = {}
     for p in papers or []:
         src = p.get("source") or "unknown"
@@ -502,6 +524,8 @@ def n_results_by_source(papers, sources=None):
     for src in ("europepmc", "pubmed"):
         if src in requested:
             counts.setdefault(src, 0)   # la fuente corrió (o se declaró) en este path_b: 0 explícito
+    for src in ran_sources or ():
+        counts.setdefault(src, 0)       # ADR-0080: la familia MIDIÓ (success | no-match) -> 0 explícito
     return counts
 
 
@@ -571,11 +595,13 @@ PATH_B_SOURCES = ("europepmc", "pubmed", "zfin", "tooluniverse")
 _SEARCH_REC_KEYS = ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")
 
 
-def _search_europepmc(query, retmax):
+def _search_europepmc(query, retmax, timeout=None):
     """(records, ledger) — Europe PMC vía fetch_paper.search_europepmc_ledger (ADR-0078): NUNCA lanza.
     status ∈ success | no-match | error | not-searched | tool-unavailable. `not-searched` = el
     constructor no produjo query (nada que buscar, declarado); `error` = la red/JSON falló y la corrida
-    sigue con las demás fuentes (§6 no-hang)."""
+    sigue con las demás fuentes (§6 no-hang). `timeout` (ADR-0080 corrector): tope de socket por GET que el
+    harness deriva del presupuesto de la familia; None = el default del módulo (fetch_paper.HTTP_TIMEOUT_S);
+    viaja sólo si la función lo acepta (los fakes de los smokes conservan la firma vieja)."""
     # ADR-0078 corrector: n_returned es un ENTERO solo cuando la búsqueda corrió; None = no medido
     base = {"source": "europepmc", "query_sent": query, "retmax_sent": retmax,
             "n_found": None, "n_returned": None}
@@ -587,11 +613,16 @@ def _search_europepmc(query, retmax):
         return [], dict(base, status="tool-unavailable",
                         detail="fetch_paper.search_europepmc_ledger not available")
     try:
-        recs, led = fn(query, n=retmax, sort=None, synonym=True)
+        kw = {}
+        if timeout is not None and _fn_accepts(fn, "timeout"):
+            kw["timeout"] = timeout
+        recs, led = fn(query, n=retmax, sort=None, synonym=True, **kw)
     except Exception as e:   # la función promete no lanzar; la corrida no depende de la promesa (§6)
         return [], dict(base, status="error", detail=f"{type(e).__name__}: {str(e)[:200]}")
     out = dict(led or {})
     out.setdefault("source", "europepmc")
+    if timeout is not None:
+        out["timeout_s_sent"] = timeout if _fn_accepts(fn, "timeout") else None
     out.setdefault("query_sent", query)
     out["retmax_sent"] = retmax
     if out.get("status") == "error":
@@ -601,7 +632,16 @@ def _search_europepmc(query, retmax):
     return list(recs or []), out
 
 
-def _search_pubmed(query, retmax, existing_ids):
+def _fn_accepts(fn, name):
+    """¿La firma de `fn` acepta la llave `name` (o **kwargs)? Inspección, no try/except (patrón _call_with_optional)."""
+    try:
+        params = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    return name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+
+
+def _search_pubmed(query, retmax, existing_ids, timeout=None):
     """PubMed directo (tapón 1·B, ADR-0062) vía la workspace tool — la primera llamada que nombra el
     directive (`PubMed_search_articles`), corriendo en Layer 0 en vez del SDK (medido y rechazado:
     173 paquetes, y la versión pineada ni resuelve en 3.12).
@@ -629,10 +669,15 @@ def _search_pubmed(query, retmax, existing_ids):
         return [], dict(row, status="tool-unavailable",
                         detail=f"{_TU_WORKSPACE / 'pubmed_literature.py'} not importable")
     try:
-        res = query_pubmed(query, retmax=retmax)
+        kw = {}
+        if timeout is not None and _fn_accepts(query_pubmed, "timeout"):
+            kw["timeout"] = timeout   # ADR-0080 corrector: el presupuesto de la familia acota cada GET del tool
+        res = query_pubmed(query, retmax=retmax, **kw)
     except Exception as e:   # cinturón §6
         res = {"status": "error", "error": f"{type(e).__name__}: {e}"}
     data = res.get("data") or {}
+    if timeout is not None:
+        row["timeout_s_sent"] = timeout if _fn_accepts(query_pubmed, "timeout") else None
     row["query_sent"] = data.get("query_sent", query)
     row["retmax_sent"] = data.get("retmax_sent", retmax)
     for k in ("ncbi_identity", "throttle", "retries_429", "rate_limit_headers", "http_status"):
@@ -860,7 +905,8 @@ def _paper_item(cand, full_text, terms, excerpt_chars):
 
 
 def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None, entities=None,
-           ledger_out=None, query_source=None, queries=None, retmax=None):
+           ledger_out=None, query_source=None, queries=None, retmax=None, search_plan=None, on_stage=None,
+           existing_ids=None):
     """External fallback — MULTI-SOURCE, never a stopper. Each item records its `source`:
       europepmc   — literature (built-in, dependency-free)
       pubmed      — literatura vía NCBI E-utilities (tapón 1·B, ADR-0062): MISMA pregunta, sintaxis y
@@ -879,11 +925,19 @@ def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None,
     pubmed_searched, zfin_searched, selection — the diagnostic that keeps "searched and found nothing"
     distinguishable from "the search failed".
 
+    ADR-0080: `search_plan` (dict de search_harness.build_search_plan) desvía la Ruta B al harness
+    (_path_b_harness): rondas con presupuesto, familias del plan, eventos stage.search.* vía `on_stage`,
+    dedup contra `existing_ids`. Sin plan, este cuerpo es el de ADR-0078 sin cambios.
+
     This function is the ONE seam the offline gates stub: everything that touches the network lives
     here, so a stubbed path_b is a genuinely offline run."""
     n = _env_int("WITT_PATH_B_N_PAPERS", PATH_B_N_PAPERS_DEFAULT) if n is None else int(n)
     retmax = _env_int("WITT_PATH_B_RETMAX", PATH_B_RETMAX_DEFAULT) if retmax is None else int(retmax)
     excerpt_chars = _env_int("WITT_PATH_B_EXCERPT_CHARS", PATH_B_EXCERPT_CHARS_DEFAULT)
+    if search_plan is not None:
+        return _path_b_harness(question, search_plan, n=n, full_text=full_text, retmax=retmax,
+                               excerpt_chars=excerpt_chars, ledger_out=ledger_out, on_stage=on_stage,
+                               existing_ids=existing_ids, qb=queries)
     qb = queries or build_source_queries(question, entities, query=query, query_source=query_source)
     ledger = ledger_out if ledger_out is not None else {}
     terms = _query_terms(qb)
@@ -927,8 +981,155 @@ def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None,
     return papers
 
 
+# --- ADR-0080: la Ruta B por el harness (rondas con presupuesto, familias del plan) -----------------
+_LEGACY_LEDGER_KEYS = {"europepmc": "europepmc_searched", "pubmed": "pubmed_searched", "zfin": "zfin_searched"}
+SEARCH_STOP_REASONS = ("found-new", "rounds-cap", "no-families", "no-new-inputs")
+# 'no-new-inputs' (ADR-0080 corrector): la ronda k no admitió nada Y ningún insumo de familia cambió -> la ronda
+# k+1 sería la MISMA búsqueda byte a byte; no se re-ejecuta (k < cap y todo).
+
+
+def _plan_with_queries(plan, qb):
+    """Copia superficial del plan con el dict del constructor `qb` como ÚNICA fuente de las queries de
+    literatura/ZFIN (ADR-0078: una query que ya salió del constructor se reconstruye, no se reinterpreta).
+    Las cadenas del plan y las de qb son byte-idénticas cuando ambos nacieron de los mismos insumos; si el
+    llamador trajo una formulación EN distinta (query/query_source), la de qb manda y se declara."""
+    out = dict(plan)
+    out["query_builder"] = qb
+    queries = dict(plan.get("queries") or {})
+    for fam, key in (("europepmc", "europepmc"), ("pubmed", "pubmed")):
+        if fam in queries:
+            q = dict(queries[fam])
+            new_q = (qb.get(key) or {}).get("query")
+            if q.get("query") != new_q:
+                q["query_plan"], q["query_replaced_by"] = q.get("query"), "path_b_bundle:query_builder"
+            q["query"] = new_q
+            queries[fam] = q
+    if "zfin" in queries:
+        q = dict(queries["zfin"])
+        q["anatomy_filter"] = (qb.get("zfin") or {}).get("query")
+        queries["zfin"] = q
+    out["queries"] = queries
+    return out
+
+
+def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_out=None, on_stage=None,
+                    existing_ids=None, qb=None):
+    """Ruta B vía lib/search_harness (ADR-0080 C). Devuelve `papers` y llena `ledger_out` con los ledgers de hoy
+    (europepmc_searched / pubmed_searched / zfin_searched / selection) + `search_ledger`.
+
+    Lazo de rondas (código, no modelo): k = 1..cap; tras cada ronda, otra SOLO si
+    search_harness.should_run_next_round(k, n_admitted, cap, inputs_changed) — n_admitted = lo que ENTRÓ al pool
+    o a los ítems (un candidato rechazado por _pool_add por PMID/PMCID/DOI no cuenta como nuevo aunque su
+    evidence_id fuera distinto) e inputs_changed = la firma de insumos por familia (search_harness.inputs_signature)
+    cambió durante la ronda (corrector ADR-0080; sin insumos nuevos no hay ronda 2: stop_reason
+    'no-new-inputs'). Cada familia deja su fila; los candidatos de
+    literatura ('literature-candidate') entran al pool/dedup/selección de ADR-0078 y solo los elegidos se
+    bajan; los ítems de las demás familias entran a `papers` tal cual (normalizados, con kind/label/
+    identifier_provenance). Los ledgers legados los llena la PRIMERA ronda en que la familia corrió; las
+    rondas completas viven en search_ledger.rounds[]. Eventos (vía on_stage(name, payload)): 'search.plan',
+    'search.source' (por familia), 'search.round' (por ronda)."""
+    def _stage(name, payload):
+        if on_stage:
+            on_stage(name, payload)
+
+    ledger = ledger_out if ledger_out is not None else {}
+    if qb is None:
+        qb = plan.get("query_builder") or build_source_queries(question, plan.get("symbols") or [],
+                                                                query=plan.get("question_en"), query_source=None)
+    plan = _plan_with_queries(plan, qb)
+    terms = _query_terms(qb)
+    cap = int(plan.get("rounds_cap") or search_harness.ROUNDS_CAP_DEFAULT)
+    round_budget = float(plan.get("round_budget_s") or search_harness.ROUND_BUDGET_S_DEFAULT)
+    families = list(plan.get("families") or [])
+    _stage("search.plan", search_harness.plan_event_payload(plan))
+
+    pool, seen, duplicates = [], {}, []
+    other_items, rounds = [], []
+    present = set(existing_ids or [])
+    # pubmed_seen es un dict PROPIO de la ronda (evidence_id -> evidence_id): `seen` del pool va por llaves
+    # PMID/PMCID/DOI y compartirlo haría que _pool_add leyera como duplicado lo que la propia ronda admitió
+    # 'curies' se pre-crea (corrector ADR-0080): run_round copia el ctx superficialmente y una llave ausente se
+    # creaba sólo en la copia — las curies ZFIN resueltas se perdían entre rondas (monarch jamás las veía)
+    ctx = {"retmax": retmax, "n_papers": n, "literature_requested": n > 0, "pubmed_seen": {}, "dois": [], "curies": []}
+    stop_reason = "no-families" if not families else None
+    dup_seen = set()
+    prev_inputs = {}   # {familia: insumos consumidos en rondas anteriores} — lo que NO se re-ejecuta
+    k = 0
+    while families:
+        k += 1
+        rd = search_harness.run_round(plan, k, round_budget,
+                                      on_source=lambda row: _stage("search.source", search_harness.source_event_payload(row)),
+                                      existing_ids=present, trigger="initial" if k == 1 else "no-new-in-previous-round",
+                                      ctx=ctx, previous_inputs=prev_inputs or None)
+        for row in rd["sources"]:
+            key = _LEGACY_LEDGER_KEYS.get(row.get("family"))
+            if key and key not in ledger and "ledger" in row:
+                ledger[key] = row["ledger"]
+            if row.get("family") == "pubmed" and isinstance(row.get("ledger"), dict):
+                for d in row["ledger"].get("duplicates_of_europepmc") or []:
+                    if d not in dup_seen:   # un mismo PMID declarado en dos rondas cuenta UNA vez
+                        dup_seen.add(d)
+                        duplicates.append({"duplicate": d, "source": "pubmed", "of": d, "matched_key": d})
+        n_admitted = 0
+        for it in rd["items"]:
+            if it.get("kind") == "literature-candidate":
+                if _pool_add(pool, seen, it, duplicates):
+                    n_admitted += 1
+                # entró o fue rechazado por llave PMID/PMCID/DOI: en ambos casos ya está PRESENTE en la corrida
+                present.add(it.get("evidence_id"))
+            else:
+                other_items.append(it)
+                present.add(it.get("evidence_id"))
+                n_admitted += 1
+        rd["n_admitted"] = n_admitted
+        # ¿qué familias tendrían insumos NUEVOS en la ronda k+1? (las que aún no corrieron por presupuesto también)
+        prev_inputs.update(search_harness.inputs_used_by_round(rd))
+        pending = [s["family"] for s in rd["sources"] if s.get("status") == "skipped-budget"]
+        new_inputs = search_harness.families_with_new_inputs(plan, ctx, prev_inputs)
+        rd["families_with_new_inputs"] = sorted(set(new_inputs) | set(pending))
+        inputs_changed = bool(rd["families_with_new_inputs"])
+        rd["inputs_changed"] = inputs_changed
+        rounds.append(rd)
+        _stage("search.round", search_harness.round_event_payload(rd))
+        if not search_harness.should_run_next_round(k, n_admitted, cap, inputs_changed):
+            if n_admitted > 0:
+                stop_reason = "found-new"
+            elif k >= cap:
+                stop_reason = "rounds-cap"
+            else:
+                stop_reason = "no-new-inputs"
+            break
+
+    # n <= 0: cero red de literatura (ADR-0078 corrector); las filas 'not-requested' las dejó el adaptador
+    selected, not_selected = _select_top_n(pool, n, families)
+    ledger["selection"] = {"rule": PATH_B_SELECTION_RULE, "n_requested": n, "retmax": retmax,
+                           "n_candidates": len(pool), "n_selected": len(selected),
+                           "n_duplicates": len(duplicates), "duplicates": duplicates,
+                           "not_selected": not_selected,
+                           "dedup_keys": "PMID · PMCID · DOI (lower, sin prefijo https://doi.org/)"}
+    papers = []
+    for c in selected:
+        item = _paper_item(c, full_text, terms, excerpt_chars)
+        for key in ("kind", "source_family", "label", "identifier_provenance", "url", "round"):
+            if key in c:
+                item[key] = c[key]
+        papers.append(item)
+    papers += other_items
+    ledger["search_ledger"] = {
+        "harness_version": search_harness.HARNESS_VERSION,
+        "plan": {k2: v for k2, v in plan.items() if k2 != "query_builder"},
+        "rounds": [{k2: v for k2, v in rd.items() if k2 != "items"} for rd in rounds],
+        "families_default": list(plan.get("families_default") or []),
+        "n_rounds": len(rounds), "cap": cap, "round_budget_s": round_budget,
+        "stop_reason": stop_reason, "stop_reasons_vocabulary": list(SEARCH_STOP_REASONS),
+        "n_new_total": sum(int(rd.get("n_new_total") or 0) for rd in rounds),
+        "n_admitted_total": sum(int(rd.get("n_admitted") or 0) for rd in rounds),
+        "n_items": len(papers)}
+    return papers
+
+
 def path_b_bundle(question, entities=None, n=None, query=None, query_source=None, triggered_by=None,
-                  sources=PATH_B_SOURCES, retmax=None):
+                  sources=PATH_B_SOURCES, retmax=None, search_plan=None, on_stage=None, existing_ids=None):
     """The `path_b` block of the bundle, built in ONE place. Both trigger sites (structural, inside
     retrieve(); confidence-gated, inside runs.execute_run) call this — a re-assembled block is how the
     per-source counters drift apart, and drifting counters are how a broken search looks like an empty
@@ -939,7 +1140,12 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
     pubmed_searched, zfin_searched) y suma: query_sent_scope 'europepmc' (query_sent ES la de EPMC),
     epmc_query / pubmed_query / zfin_filter (lo que se mandó a cada índice), query_builder (el dict
     completo del constructor, con inputs), n_papers_requested / retmax_requested, europepmc_searched,
-    selection."""
+    selection.
+
+    ADR-0080: con `search_plan` las fuentes son las FAMILIAS del plan (sources_requested = plan.families),
+    la búsqueda corre por el harness (ver _path_b_harness) y el bloque gana `search_ledger` +
+    `search_plan_version`; `on_stage` recibe los eventos search.*; `existing_ids` = evidence_ids ya
+    presentes en la corrida (dedup declarado)."""
     if n is None:
         n, n_src = _env_int_src("WITT_PATH_B_N_PAPERS", PATH_B_N_PAPERS_DEFAULT)
     else:
@@ -948,10 +1154,25 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
         retmax, retmax_src = _env_int_src("WITT_PATH_B_RETMAX", PATH_B_RETMAX_DEFAULT)
     else:
         retmax, retmax_src = int(retmax), "caller"
+    # ADR-0080: también con plan hay UN constructor de queries (el de hoy, con la formulación EN y su
+    # procedencia declarada por el llamador); el plan aporta familias, rondas y presupuesto. El harness
+    # recibe este mismo qb (_plan_with_queries) para que adaptadores, bloque y evento coincidan byte a byte.
     qb = build_source_queries(question, entities, query=query, query_source=query_source)
+    if search_plan is not None:
+        sources = tuple(search_plan.get("families") or [])
     ledger = {}
     papers = path_b(question, n=n, query=query, entities=entities, sources=sources, ledger_out=ledger,
-                    query_source=query_source, queries=qb, retmax=retmax)
+                    query_source=query_source, queries=qb, retmax=retmax, search_plan=search_plan,
+                    on_stage=on_stage, existing_ids=existing_ids)
+    # ADR-0080 corrector: con plan, las familias que MIDIERON (success | no-match en alguna ronda) reciben su 0
+    # explícito en n_results_by_source; las que no corrieron quedan ausentes ('0 explícito' != 'no se pidió')
+    ran_sources = None
+    if search_plan is not None:
+        ran_sources = []
+        for rd in ((ledger.get("search_ledger") or {}).get("rounds") or []):
+            for s in rd.get("sources") or []:
+                if s.get("status") in ("success", "no-match") and s.get("family") not in ran_sources:
+                    ran_sources.append(s.get("family"))
     block = {"triggered": True,
              "triggered_by": list(triggered_by or []),
              "ledger_version": PATH_B_LEDGER_VERSION,
@@ -966,10 +1187,12 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
              "query_builder": qb,
              "n_papers_requested": n, "n_papers_source": n_src,
              "retmax_requested": retmax, "retmax_source": retmax_src,
-             "n_results_by_source": n_results_by_source(papers, sources),
+             "n_results_by_source": n_results_by_source(papers, sources, ran_sources=ran_sources),
              "sources_requested": list(sources),
              "tool_universe_directive": tool_universe_directive(question, n)}
-    block.update(ledger)   # europepmc_searched / pubmed_searched / zfin_searched / selection, cuando corrieron
+    if search_plan is not None:
+        block["search_plan_version"] = search_plan.get("plan_version")
+    block.update(ledger)   # europepmc_searched / pubmed_searched / zfin_searched / selection (+ search_ledger, ADR-0080)
     return block
 
 
@@ -1026,6 +1249,13 @@ def path_b_event_payload(block, trigger=None):
         sel = block["selection"]
         p["selection"] = {k: sel.get(k) for k in ("rule", "n_requested", "n_candidates", "n_selected",
                                                   "n_duplicates", "not_selected")}
+    if "search_ledger" in block:
+        # ADR-0080: resumen del harness para la Traza — sin ítems ni ledgers anidados (viven en el bundle)
+        sl = block["search_ledger"]
+        p["search_ledger"] = {k: sl.get(k) for k in ("harness_version", "n_rounds", "cap", "round_budget_s",
+                                                     "stop_reason", "n_new_total", "n_items", "families_default")}
+        p["search_ledger"]["families"] = list((sl.get("plan") or {}).get("families") or [])
+        p["search_ledger"]["rounds"] = [search_harness.round_event_payload(rd) for rd in sl.get("rounds") or []]
     return p
 
 
@@ -1035,7 +1265,7 @@ def _state(name, may_answer, may_propose, required_next):
             "required_next_action": required_next}
 
 
-def retrieve(question, entities=None, n_papers=None, on_stage=None):
+def retrieve(question, entities=None, n_papers=None, on_stage=None, search_plan=None):
     """The orchestrator: Path A, then Path B iff A is insufficient. Never a stopper. The returned bundle
     carries an explicit `decision_state` that GATES what may happen next — answering (on EITHER branch,
     ADR-0049) is blocked until an audit verdict is recorded (record_audit()).
@@ -1044,7 +1274,11 @@ def retrieve(question, entities=None, n_papers=None, on_stage=None):
     `on_stage(stage_name, payload)` (optional) is called after each stage — the event-emission hook the
     run model uses (ADR-0050) so the live trace and the replay read ONE state machine, not a re-built
     copy of it (the run_held_out.py re-assembly is exactly what left 31 historic runs without a
-    decision_state). It may raise to abort (e.g. cancellation): the exception propagates."""
+    decision_state). It may raise to abort (e.g. cancellation): the exception propagates.
+
+    `search_plan` (ADR-0080, optional): dict de search_harness.build_search_plan. Si viene y la Ruta B se
+    dispara (estructural), corre por el harness y emite stage.search.plan / .round / .source; los doc_ids de
+    la Ruta A viajan como `existing_ids` (dedup declarado). Sin plan: comportamiento actual."""
     def _stage(name, payload):
         if on_stage:
             on_stage(name, payload)
@@ -1073,7 +1307,9 @@ def retrieve(question, entities=None, n_papers=None, on_stage=None):
                           "invokable panel.")
     else:
         bundle["path_b"] = path_b_bundle(question, entities=entities, n=n_papers,
-                                         triggered_by=suf["reasons"])
+                                         triggered_by=suf["reasons"], search_plan=search_plan,
+                                         on_stage=_stage if search_plan is not None else None,
+                                         existing_ids=[h["doc_id"] for h in a["hits"]] if search_plan is not None else None)
         _stage("path_b", path_b_event_payload(bundle["path_b"], trigger="structural"))
         bundle["decision_state"] = _state(
             "FALLBACK_FETCHED", may_answer=False, may_propose=False,

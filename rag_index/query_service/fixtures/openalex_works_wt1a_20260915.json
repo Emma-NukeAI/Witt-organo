@@ -1,0 +1,3143 @@
+{
+ "fetched_at": "2026-09-15T09:40:51+00:00",
+ "url": "https://api.openalex.org/works?search=wt1a%20zebrafish%20pronephros&per-page=5&select=id,doi,title,display_name,publication_year,type,cited_by_count,primary_location,open_access,ids,authorships,abstract_inverted_index",
+ "headers": {
+  "X-RateLimit-Cost-USD": "0.001",
+  "X-RateLimit-Credits-Used": "10",
+  "X-RateLimit-Limit": "1000",
+  "X-RateLimit-Limit-USD": "0.1",
+  "X-RateLimit-Onetime-Remaining": "0",
+  "X-RateLimit-Prepaid-Remaining-USD": "0",
+  "X-RateLimit-Remaining": "990",
+  "X-RateLimit-Remaining-USD": "0.099",
+  "X-RateLimit-Reset": "51548"
+ },
+ "response": {
+  "meta": {
+   "count": 225,
+   "db_response_time_ms": 101,
+   "page": 1,
+   "per_page": 5,
+   "groups_count": null,
+   "x_query": {
+    "oql": "works where full text has (wt1a zebrafish pronephros)",
+    "oqo": {
+     "get_rows": "works",
+     "filter_rows": [
+      {
+       "column_id": "fulltext.search",
+       "value": "wt1a zebrafish pronephros",
+       "operator": "has"
+      }
+     ]
+    },
+    "url": "/works?filter=fulltext.search:wt1a zebrafish pronephros&per_page=5"
+   },
+   "cost_usd": 0.001
+  },
+  "results": [
+   {
+    "id": "https://openalex.org/W1993074652",
+    "doi": "https://doi.org/10.1016/j.ydbio.2007.06.022",
+    "title": "The Wilms tumor genes wt1a and wt1b control different steps during formation of the zebrafish pronephros",
+    "display_name": "The Wilms tumor genes wt1a and wt1b control different steps during formation of the zebrafish pronephros",
+    "publication_year": 2007,
+    "type": "article",
+    "cited_by_count": 271,
+    "primary_location": {
+     "id": "doi:10.1016/j.ydbio.2007.06.022",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1016/j.ydbio.2007.06.022",
+     "pdf_url": "https://www.sciencedirect.com/science/article/pii/S0012160607011608/pdf",
+     "source": {
+      "id": "https://openalex.org/S136634221",
+      "display_name": "Developmental Biology",
+      "issn_l": "0012-1606",
+      "issn": [
+       "0012-1606",
+       "1095-564X"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "host_organization": "https://openalex.org/P4310320990",
+      "host_organization_name": "Elsevier BV",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310320990"
+      ],
+      "host_organization_lineage_names": [
+       "Elsevier BV"
+      ],
+      "type": "journal"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Developmental Biology",
+     "raw_type": "journal-article"
+    },
+    "open_access": {
+     "is_oa": true,
+     "oa_status": "bronze",
+     "oa_url": "https://www.sciencedirect.com/science/article/pii/S0012160607011608/pdf",
+     "any_repository_has_fulltext": false
+    },
+    "ids": {
+     "openalex": "https://openalex.org/W1993074652",
+     "doi": "https://doi.org/10.1016/j.ydbio.2007.06.022",
+     "mag": "1993074652",
+     "pmid": "https://pubmed.ncbi.nlm.nih.gov/17651719"
+    },
+    "authorships": [
+     {
+      "author_position": "first",
+      "author": {
+       "id": "https://openalex.org/A5000950875",
+       "display_name": "Birgit Perner",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Birgit Perner",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5028310893",
+       "display_name": "Christoph Englert",
+       "orcid": "https://orcid.org/0000-0002-5931-3189"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       },
+       {
+        "id": "https://openalex.org/I76198965",
+        "display_name": "Friedrich Schiller University Jena",
+        "ror": "https://ror.org/05qpz1x62",
+        "country_code": "DE",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I76198965"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Christoph Englert",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I76198965"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "last",
+      "author": {
+       "id": "https://openalex.org/A5033312056",
+       "display_name": "Frank Bollig",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Frank Bollig",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     }
+    ],
+    "abstract_inverted_index": null
+   },
+   {
+    "id": "https://openalex.org/W2151367032",
+    "doi": "https://doi.org/10.1242/dev.031773",
+    "title": "A highly conserved retinoic acid responsive element controls wt1a expression in the zebrafish pronephros",
+    "display_name": "A highly conserved retinoic acid responsive element controls wt1a expression in the zebrafish pronephros",
+    "publication_year": 2009,
+    "type": "article",
+    "cited_by_count": 92,
+    "primary_location": {
+     "id": "doi:10.1242/dev.031773",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1242/dev.031773",
+     "pdf_url": "https://journals.biologists.com/dev/article-pdf/136/17/2883/1548859/2883.pdf",
+     "source": {
+      "id": "https://openalex.org/S86558740",
+      "display_name": "Development",
+      "issn_l": "0950-1991",
+      "issn": [
+       "0950-1991",
+       "1477-9129"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "host_organization": "https://openalex.org/P4310311847",
+      "host_organization_name": "The Company of Biologists",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310311847"
+      ],
+      "host_organization_lineage_names": [
+       "The Company of Biologists"
+      ],
+      "type": "journal"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Development",
+     "raw_type": "journal-article"
+    },
+    "open_access": {
+     "is_oa": true,
+     "oa_status": "bronze",
+     "oa_url": "https://journals.biologists.com/dev/article-pdf/136/17/2883/1548859/2883.pdf",
+     "any_repository_has_fulltext": false
+    },
+    "ids": {
+     "openalex": "https://openalex.org/W2151367032",
+     "doi": "https://doi.org/10.1242/dev.031773",
+     "mag": "2151367032",
+     "pmid": "https://pubmed.ncbi.nlm.nih.gov/19666820"
+    },
+    "authorships": [
+     {
+      "author_position": "first",
+      "author": {
+       "id": "https://openalex.org/A5033312056",
+       "display_name": "Frank Bollig",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Frank Bollig",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5000950875",
+       "display_name": "Birgit Perner",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Birgit Perner",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5080263701",
+       "display_name": "Birgit Besenbeck",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Birgit Besenbeck",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5110594333",
+       "display_name": "Susanne Köthe",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Susanne Köthe",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5081030603",
+       "display_name": "Christina Ebert",
+       "orcid": "https://orcid.org/0000-0003-0985-3547"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Christina Ebert",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5061072048",
+       "display_name": "Stefan Taudien",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Stefan Taudien",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "last",
+      "author": {
+       "id": "https://openalex.org/A5028310893",
+       "display_name": "Christoph Englert",
+       "orcid": "https://orcid.org/0000-0002-5931-3189"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210127789",
+        "display_name": "Leibniz Institute on Aging - Fritz Lipmann Institute (FLI)",
+        "ror": "https://ror.org/039a53269",
+        "country_code": "DE",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I315704651",
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ],
+      "countries": [
+       "DE"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Christoph Englert",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210127789"
+        ]
+       }
+      ]
+     }
+    ],
+    "abstract_inverted_index": {
+     "The": [
+      0,
+      210
+     ],
+     "Wilms'": [
+      1
+     ],
+     "tumor": [
+      2
+     ],
+     "suppressor": [
+      3
+     ],
+     "gene": [
+      4,
+      115
+     ],
+     "Wt1": [
+      5,
+      34,
+      206
+     ],
+     "encodes": [
+      6
+     ],
+     "a": [
+      7
+     ],
+     "zinc-finger": [
+      8
+     ],
+     "transcription": [
+      9,
+      173
+     ],
+     "factor": [
+      10
+     ],
+     "that": [
+      11,
+      58,
+      100,
+      108,
+      129,
+      141
+     ],
+     "plays": [
+      12
+     ],
+     "an": [
+      13,
+      98,
+      127
+     ],
+     "essential": [
+      14
+     ],
+     "role": [
+      15
+     ],
+     "in": [
+      16,
+      43,
+      52,
+      62,
+      103,
+      117,
+      146,
+      175,
+      186,
+      189,
+      208,
+      230
+     ],
+     "organ": [
+      17
+     ],
+     "development,": [
+      18
+     ],
+     "most": [
+      19
+     ],
+     "notably": [
+      20
+     ],
+     "of": [
+      21,
+      30,
+      33,
+      72,
+      77,
+      86,
+      93,
+      136,
+      166,
+      172,
+      201,
+      212,
+      224
+     ],
+     "the": [
+      22,
+      31,
+      63,
+      73,
+      87,
+      91,
+      104,
+      118,
+      137,
+      147,
+      167,
+      197,
+      222
+     ],
+     "kidney.": [
+      23,
+      64
+     ],
+     "Despite": [
+      24
+     ],
+     "its": [
+      25
+     ],
+     "importance": [
+      26
+     ],
+     "for": [
+      27,
+      113,
+      144
+     ],
+     "organogenesis,": [
+      28
+     ],
+     "knowledge": [
+      29
+     ],
+     "regulation": [
+      32
+     ],
+     "expression": [
+      35,
+      61,
+      85,
+      116,
+      145,
+      207
+     ],
+     "is": [
+      36,
+      101,
+      109,
+      130,
+      142,
+      155,
+      162,
+      196
+     ],
+     "scarce.": [
+      37
+     ],
+     "Here,": [
+      38
+     ],
+     "we": [
+      39,
+      95,
+      123
+     ],
+     "have": [
+      40,
+      96
+     ],
+     "used": [
+      41
+     ],
+     "transgenesis": [
+      42
+     ],
+     "zebrafish": [
+      44
+     ],
+     "harboring": [
+      45
+     ],
+     "two": [
+      46
+     ],
+     "wt1": [
+      47,
+      60,
+      88
+     ],
+     "genes,": [
+      48
+     ],
+     "wt1a": [
+      49,
+      78
+     ],
+     "and": [
+      50,
+      111,
+      160,
+      179,
+      188
+     ],
+     "wt1b,": [
+      51,
+      94
+     ],
+     "order": [
+      53
+     ],
+     "to": [
+      54,
+      182,
+      219
+     ],
+     "define": [
+      55
+     ],
+     "regulatory": [
+      56,
+      203
+     ],
+     "elements": [
+      57,
+      204,
+      215
+     ],
+     "drive": [
+      59
+     ],
+     "Stable": [
+      65
+     ],
+     "transgenic": [
+      66
+     ],
+     "lines": [
+      67
+     ],
+     "with": [
+      68
+     ],
+     "approximately": [
+      69,
+      132
+     ],
+     "30": [
+      70
+     ],
+     "kb": [
+      71,
+      134
+     ],
+     "upstream": [
+      74,
+      106,
+      135
+     ],
+     "genomic": [
+      75
+     ],
+     "regions": [
+      76
+     ],
+     "or": [
+      79
+     ],
+     "wt1b": [
+      80
+     ],
+     "almost": [
+      81
+     ],
+     "exactly": [
+      82
+     ],
+     "recapitulated": [
+      83
+     ],
+     "endogenous": [
+      84
+     ],
+     "paralogs.": [
+      89
+     ],
+     "In": [
+      90
+     ],
+     "case": [
+      92
+     ],
+     "identified": [
+      97
+     ],
+     "enhancer": [
+      99,
+      128,
+      154,
+      214
+     ],
+     "located": [
+      102,
+      131
+     ],
+     "far": [
+      105
+     ],
+     "region": [
+      107
+     ],
+     "necessary": [
+      110
+     ],
+     "sufficient": [
+      112
+     ],
+     "reporter": [
+      114
+     ],
+     "pronephric": [
+      119
+     ],
+     "glomeruli.": [
+      120
+     ],
+     "Regarding": [
+      121
+     ],
+     "wt1a,": [
+      122
+     ],
+     "could": [
+      124
+     ],
+     "also": [
+      125
+     ],
+     "identify": [
+      126
+     ],
+     "4": [
+      133
+     ],
+     "transcriptional": [
+      138
+     ],
+     "start": [
+      139
+     ],
+     "site": [
+      140
+     ],
+     "required": [
+      143
+     ],
+     "intermediate": [
+      148,
+      152
+     ],
+     "mesoderm.": [
+      149
+     ],
+     "Interestingly,": [
+      150
+     ],
+     "this": [
+      151,
+      195
+     ],
+     "mesoderm": [
+      153
+     ],
+     "highly": [
+      156
+     ],
+     "conserved": [
+      157
+     ],
+     "between": [
+      158
+     ],
+     "fish": [
+      159
+     ],
+     "mammals,": [
+      161
+     ],
+     "bound": [
+      163
+     ],
+     "by": [
+      164
+     ],
+     "members": [
+      165
+     ],
+     "retinoic": [
+      168,
+      183
+     ],
+     "acid": [
+      169,
+      184
+     ],
+     "receptor": [
+      170
+     ],
+     "family": [
+      171
+     ],
+     "factors": [
+      174
+     ],
+     "gel": [
+      176
+     ],
+     "shift": [
+      177
+     ],
+     "experiments": [
+      178
+     ],
+     "mediates": [
+      180
+     ],
+     "responsiveness": [
+      181
+     ],
+     "both": [
+      185
+     ],
+     "vivo": [
+      187
+     ],
+     "cell": [
+      190
+     ],
+     "culture.": [
+      191
+     ],
+     "To": [
+      192
+     ],
+     "our": [
+      193
+     ],
+     "knowledge,": [
+      194
+     ],
+     "first": [
+      198
+     ],
+     "functional": [
+      199
+     ],
+     "demonstration": [
+      200
+     ],
+     "defined": [
+      202
+     ],
+     "controlling": [
+      205
+     ],
+     "vivo.": [
+      209
+     ],
+     "identification": [
+      211
+     ],
+     "kidney-specific": [
+      213
+     ],
+     "will": [
+      216
+     ],
+     "help": [
+      217
+     ],
+     "us": [
+      218
+     ],
+     "better": [
+      220
+     ],
+     "understand": [
+      221
+     ],
+     "integration": [
+      223
+     ],
+     "extracellular": [
+      225
+     ],
+     "signals": [
+      226
+     ],
+     "into": [
+      227
+     ],
+     "intracellular": [
+      228
+     ],
+     "networks": [
+      229
+     ],
+     "nephrogenesis.": [
+      231
+     ]
+    }
+   },
+   {
+    "id": "https://openalex.org/W2152976830",
+    "doi": "https://doi.org/10.1371/journal.pgen.0030189",
+    "title": "The cdx Genes and Retinoic Acid Control the Positioning and Segmentation of the Zebrafish Pronephros",
+    "display_name": "The cdx Genes and Retinoic Acid Control the Positioning and Segmentation of the Zebrafish Pronephros",
+    "publication_year": 2007,
+    "type": "article",
+    "cited_by_count": 341,
+    "primary_location": {
+     "id": "doi:10.1371/journal.pgen.0030189",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1371/journal.pgen.0030189",
+     "pdf_url": "https://journals.plos.org/plosgenetics/article/file?id=10.1371/journal.pgen.0030189&type=printable",
+     "source": {
+      "id": "https://openalex.org/S103870658",
+      "display_name": "PLoS Genetics",
+      "issn_l": "1553-7390",
+      "issn": [
+       "1553-7390",
+       "1553-7404"
+      ],
+      "is_oa": true,
+      "is_in_doaj": true,
+      "is_core": true,
+      "host_organization": "https://openalex.org/P4310315706",
+      "host_organization_name": "Public Library of Science",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310315706"
+      ],
+      "host_organization_lineage_names": [
+       "Public Library of Science"
+      ],
+      "type": "journal"
+     },
+     "license": "cc-by",
+     "license_id": "https://openalex.org/licenses/cc-by",
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "PLoS Genetics",
+     "raw_type": "journal-article"
+    },
+    "open_access": {
+     "is_oa": true,
+     "oa_status": "gold",
+     "oa_url": "https://journals.plos.org/plosgenetics/article/file?id=10.1371/journal.pgen.0030189&type=printable",
+     "any_repository_has_fulltext": true
+    },
+    "ids": {
+     "openalex": "https://openalex.org/W2152976830",
+     "doi": "https://doi.org/10.1371/journal.pgen.0030189",
+     "mag": "2152976830",
+     "pmid": "https://pubmed.ncbi.nlm.nih.gov/17953490"
+    },
+    "authorships": [
+     {
+      "author_position": "first",
+      "author": {
+       "id": "https://openalex.org/A5086699590",
+       "display_name": "Rebecca A. Wingert",
+       "orcid": "https://orcid.org/0000-0003-3133-7549"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210087915",
+        "display_name": "Massachusetts General Hospital",
+        "ror": "https://ror.org/002pd6e78",
+        "country_code": "US",
+        "type": "healthcare",
+        "lineage": [
+         "https://openalex.org/I4210087915",
+         "https://openalex.org/I48633490"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Rebecca A Wingert",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210087915"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210087915"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5052638084",
+       "display_name": "Rori Selleck",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210087915",
+        "display_name": "Massachusetts General Hospital",
+        "ror": "https://ror.org/002pd6e78",
+        "country_code": "US",
+        "type": "healthcare",
+        "lineage": [
+         "https://openalex.org/I4210087915",
+         "https://openalex.org/I48633490"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Rori Selleck",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210087915"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5100652167",
+       "display_name": "Jing Yu",
+       "orcid": "https://orcid.org/0000-0003-3119-0890"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I136199984",
+        "display_name": "Harvard University",
+        "ror": "https://ror.org/03vek6s52",
+        "country_code": "US",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I136199984"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Jing Yu",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I136199984"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5100775397",
+       "display_name": "Huai‐Dong Song",
+       "orcid": "https://orcid.org/0000-0002-9609-5803"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210147369",
+        "display_name": "Shanghai Institute of Hematology",
+        "ror": "https://ror.org/03fz4ce66",
+        "country_code": "CN",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I4210147369"
+        ]
+       }
+      ],
+      "countries": [
+       "CN"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Huai-Dong Song",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210147369"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5100355252",
+       "display_name": "Zhu Chen",
+       "orcid": "https://orcid.org/0000-0003-4629-4799"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210147369",
+        "display_name": "Shanghai Institute of Hematology",
+        "ror": "https://ror.org/03fz4ce66",
+        "country_code": "CN",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I4210147369"
+        ]
+       }
+      ],
+      "countries": [
+       "CN"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Zhu Chen",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210147369"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5089967407",
+       "display_name": "Anhua Song",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I1288882113",
+        "display_name": "Boston Children's Hospital",
+        "ror": "https://ror.org/00dvg7y05",
+        "country_code": "US",
+        "type": "healthcare",
+        "lineage": [
+         "https://openalex.org/I1288882113"
+        ]
+       },
+       {
+        "id": "https://openalex.org/I4210117453",
+        "display_name": "Dana-Farber Cancer Institute",
+        "ror": "https://ror.org/02jzgtq86",
+        "country_code": "US",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I4210117453"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Anhua Song",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": []
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210117453"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I1288882113"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5101636470",
+       "display_name": "Yi Zhou",
+       "orcid": "https://orcid.org/0009-0009-1104-917X"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I1288882113",
+        "display_name": "Boston Children's Hospital",
+        "ror": "https://ror.org/00dvg7y05",
+        "country_code": "US",
+        "type": "healthcare",
+        "lineage": [
+         "https://openalex.org/I1288882113"
+        ]
+       },
+       {
+        "id": "https://openalex.org/I4210117453",
+        "display_name": "Dana-Farber Cancer Institute",
+        "ror": "https://ror.org/02jzgtq86",
+        "country_code": "US",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I4210117453"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Yi Zhou",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": []
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210117453"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I1288882113"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5061832568",
+       "display_name": "Bernard Thisse",
+       "orcid": "https://orcid.org/0000-0002-8365-1081"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210086872",
+        "display_name": "Institut de génétique et de biologie moléculaire et cellulaire",
+        "ror": "https://ror.org/0015ws592",
+        "country_code": "FR",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I1294671590",
+         "https://openalex.org/I1294671590",
+         "https://openalex.org/I154526488",
+         "https://openalex.org/I4210086872",
+         "https://openalex.org/I4210096427",
+         "https://openalex.org/I68947357"
+        ]
+       }
+      ],
+      "countries": [
+       "FR"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Bernard Thisse",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210086872"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5056105192",
+       "display_name": "Christine Thisse",
+       "orcid": "https://orcid.org/0000-0002-8684-1681"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210086872",
+        "display_name": "Institut de génétique et de biologie moléculaire et cellulaire",
+        "ror": "https://ror.org/0015ws592",
+        "country_code": "FR",
+        "type": "facility",
+        "lineage": [
+         "https://openalex.org/I1294671590",
+         "https://openalex.org/I1294671590",
+         "https://openalex.org/I154526488",
+         "https://openalex.org/I4210086872",
+         "https://openalex.org/I4210096427",
+         "https://openalex.org/I68947357"
+        ]
+       }
+      ],
+      "countries": [
+       "FR"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Christine Thisse",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210086872"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5003394161",
+       "display_name": "Andrew P. McMahon",
+       "orcid": "https://orcid.org/0000-0002-3779-1729"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I136199984",
+        "display_name": "Harvard University",
+        "ror": "https://ror.org/03vek6s52",
+        "country_code": "US",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I136199984"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Andrew P McMahon",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I136199984"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "last",
+      "author": {
+       "id": "https://openalex.org/A5102896185",
+       "display_name": "Alan J. Davidson",
+       "orcid": "https://orcid.org/0000-0002-5732-1193"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I4210087915",
+        "display_name": "Massachusetts General Hospital",
+        "ror": "https://ror.org/002pd6e78",
+        "country_code": "US",
+        "type": "healthcare",
+        "lineage": [
+         "https://openalex.org/I4210087915",
+         "https://openalex.org/I48633490"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Alan J Davidson",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I4210087915"
+        ]
+       }
+      ]
+     }
+    ],
+    "abstract_inverted_index": {
+     "Kidney": [
+      0
+     ],
+     "function": [
+      1,
+      140
+     ],
+     "depends": [
+      2
+     ],
+     "on": [
+      3
+     ],
+     "the": [
+      4,
+      44,
+      48,
+      51,
+      72,
+      75,
+      90,
+      113,
+      120,
+      132,
+      150,
+      153,
+      158,
+      178,
+      184,
+      189,
+      194,
+      200,
+      204,
+      226,
+      244
+     ],
+     "nephron,": [
+      5
+     ],
+     "which": [
+      6,
+      95,
+      165
+     ],
+     "comprises": [
+      7
+     ],
+     "a": [
+      8,
+      11,
+      21,
+      110,
+      146,
+      222,
+      233
+     ],
+     "blood": [
+      9
+     ],
+     "filter,": [
+      10
+     ],
+     "tubule": [
+      12,
+      68,
+      208
+     ],
+     "that": [
+      13,
+      41,
+      70,
+      168,
+      177
+     ],
+     "is": [
+      14,
+      30,
+      83
+     ],
+     "subdivided": [
+      15
+     ],
+     "into": [
+      16
+     ],
+     "functionally": [
+      17
+     ],
+     "distinct": [
+      18
+     ],
+     "segments,": [
+      19,
+      122,
+      145
+     ],
+     "and": [
+      20,
+      66,
+      89,
+      116,
+      155,
+      163,
+      170,
+      203,
+      217,
+      228,
+      231,
+      241
+     ],
+     "collecting": [
+      22
+     ],
+     "duct.": [
+      23
+     ],
+     "How": [
+      24
+     ],
+     "these": [
+      25,
+      61
+     ],
+     "regions": [
+      26
+     ],
+     "arise": [
+      27
+     ],
+     "during": [
+      28,
+      102
+     ],
+     "development": [
+      29
+     ],
+     "poorly": [
+      31
+     ],
+     "understood.": [
+      32
+     ],
+     "The": [
+      33
+     ],
+     "zebrafish": [
+      34
+     ],
+     "pronephros": [
+      35,
+      195
+     ],
+     "consists": [
+      36
+     ],
+     "of": [
+      37,
+      50,
+      74,
+      99,
+      105,
+      112,
+      119,
+      134,
+      138,
+      143,
+      152,
+      161,
+      186,
+      206
+     ],
+     "two": [
+      38
+     ],
+     "linear": [
+      39
+     ],
+     "nephrons": [
+      40,
+      62,
+      238
+     ],
+     "develop": [
+      42
+     ],
+     "from": [
+      43
+     ],
+     "intermediate": [
+      45
+     ],
+     "mesoderm": [
+      46
+     ],
+     "along": [
+      47,
+      188,
+      243
+     ],
+     "length": [
+      49
+     ],
+     "trunk.": [
+      52
+     ],
+     "Here": [
+      53
+     ],
+     "we": [
+      54
+     ],
+     "show": [
+      55
+     ],
+     "that,": [
+      56
+     ],
+     "contrary": [
+      57
+     ],
+     "to": [
+      58,
+      182
+     ],
+     "current": [
+      59
+     ],
+     "dogma,": [
+      60
+     ],
+     "possess": [
+      63
+     ],
+     "multiple": [
+      64
+     ],
+     "proximal": [
+      65,
+      114,
+      128
+     ],
+     "distal": [
+      67,
+      121,
+      135,
+      144,
+      207
+     ],
+     "domains": [
+      69
+     ],
+     "resemble": [
+      71
+     ],
+     "organization": [
+      73
+     ],
+     "mammalian": [
+      76
+     ],
+     "nephron.": [
+      77
+     ],
+     "We": [
+      78
+     ],
+     "examined": [
+      79
+     ],
+     "whether": [
+      80
+     ],
+     "pronephric": [
+      81,
+      237
+     ],
+     "segmentation": [
+      82
+     ],
+     "mediated": [
+      84
+     ],
+     "by": [
+      85
+     ],
+     "retinoic": [
+      86
+     ],
+     "acid": [
+      87
+     ],
+     "(RA)": [
+      88
+     ],
+     "caudal": [
+      91
+     ],
+     "(cdx)": [
+      92
+     ],
+     "transcription": [
+      93
+     ],
+     "factors,": [
+      94
+     ],
+     "are": [
+      96,
+      239
+     ],
+     "known": [
+      97
+     ],
+     "regulators": [
+      98
+     ],
+     "segmental": [
+      100
+     ],
+     "identity": [
+      101
+     ],
+     "development.": [
+      103
+     ],
+     "Inhibition": [
+      104
+     ],
+     "RA": [
+      106,
+      125,
+      187,
+      227
+     ],
+     "signaling": [
+      107
+     ],
+     "resulted": [
+      108
+     ],
+     "in": [
+      109,
+      149,
+      157,
+      212
+     ],
+     "loss": [
+      111,
+      205
+     ],
+     "segments": [
+      115
+     ],
+     "an": [
+      117
+     ],
+     "expansion": [
+      118
+     ],
+     "while": [
+      123
+     ],
+     "exogenous": [
+      124
+     ],
+     "treatment": [
+      126
+     ],
+     "induced": [
+      127
+     ],
+     "segment": [
+      129
+     ],
+     "fates": [
+      130
+     ],
+     "at": [
+      131
+     ],
+     "expense": [
+      133
+     ],
+     "fates.": [
+      136
+     ],
+     "Loss": [
+      137
+     ],
+     "cdx": [
+      139,
+      179,
+      216,
+      229
+     ],
+     "caused": [
+      141
+     ],
+     "abrogation": [
+      142
+     ],
+     "posterior": [
+      147
+     ],
+     "shift": [
+      148
+     ],
+     "position": [
+      151
+     ],
+     "pronephros,": [
+      154
+     ],
+     "alterations": [
+      156
+     ],
+     "expression": [
+      159
+     ],
+     "boundaries": [
+      160
+     ],
+     "raldh2": [
+      162
+     ],
+     "cyp26a1,": [
+      164
+     ],
+     "encode": [
+      166
+     ],
+     "enzymes": [
+      167
+     ],
+     "synthesize": [
+      169
+     ],
+     "degrade": [
+      171
+     ],
+     "RA,": [
+      172
+     ],
+     "respectively.": [
+      173
+     ],
+     "These": [
+      174,
+      219
+     ],
+     "results": [
+      175
+     ],
+     "suggest": [
+      176
+     ],
+     "genes": [
+      180
+     ],
+     "act": [
+      181
+     ],
+     "localize": [
+      183
+     ],
+     "activity": [
+      185
+     ],
+     "axis,": [
+      190
+     ],
+     "thereby": [
+      191
+     ],
+     "determining": [
+      192
+     ],
+     "where": [
+      193
+     ],
+     "forms.": [
+      196
+     ],
+     "Consistent": [
+      197
+     ],
+     "with": [
+      198
+     ],
+     "this,": [
+      199
+     ],
+     "pronephric-positioning": [
+      201
+     ],
+     "defect": [
+      202
+     ],
+     "fate": [
+      209
+     ],
+     "were": [
+      210
+     ],
+     "rescued": [
+      211
+     ],
+     "embryos": [
+      213
+     ],
+     "doubly-deficient": [
+      214
+     ],
+     "for": [
+      215,
+      235
+     ],
+     "RA.": [
+      218
+     ],
+     "findings": [
+      220
+     ],
+     "reveal": [
+      221
+     ],
+     "novel": [
+      223
+     ],
+     "link": [
+      224
+     ],
+     "between": [
+      225
+     ],
+     "pathways": [
+      230
+     ],
+     "provide": [
+      232
+     ],
+     "model": [
+      234
+     ],
+     "how": [
+      236
+     ],
+     "segmented": [
+      240
+     ],
+     "positioned": [
+      242
+     ],
+     "embryonic": [
+      245
+     ],
+     "axis.": [
+      246
+     ]
+    }
+   },
+   {
+    "id": "https://openalex.org/W2607330350",
+    "doi": "https://doi.org/10.1007/978-3-319-51436-9_2",
+    "title": "Zebrafish Pronephros Development",
+    "display_name": "Zebrafish Pronephros Development",
+    "publication_year": 2017,
+    "type": "book-chapter",
+    "cited_by_count": 51,
+    "primary_location": {
+     "id": "doi:10.1007/978-3-319-51436-9_2",
+     "is_oa": false,
+     "landing_page_url": "https://doi.org/10.1007/978-3-319-51436-9_2",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S2754189475",
+      "display_name": "Results and problems in cell differentiation",
+      "issn_l": "0080-1844",
+      "issn": [
+       "0080-1844",
+       "1861-0412"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "host_organization": "https://openalex.org/P4310319900",
+      "host_organization_name": "Springer Science+Business Media",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310319900",
+       "https://openalex.org/P4310319965"
+      ],
+      "host_organization_lineage_names": [
+       "Springer Science+Business Media",
+       "Springer Nature"
+      ],
+      "type": "book series"
+     },
+     "license": null,
+     "license_id": null,
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Results and Problems in Cell Differentiation",
+     "raw_type": "book-chapter"
+    },
+    "open_access": {
+     "is_oa": false,
+     "oa_status": "closed",
+     "oa_url": null,
+     "any_repository_has_fulltext": false
+    },
+    "ids": {
+     "openalex": "https://openalex.org/W2607330350",
+     "doi": "https://doi.org/10.1007/978-3-319-51436-9_2",
+     "mag": "2607330350",
+     "pmid": "https://pubmed.ncbi.nlm.nih.gov/28409341"
+    },
+    "authorships": [
+     {
+      "author_position": "first",
+      "author": {
+       "id": "https://openalex.org/A5045920777",
+       "display_name": "Richard W. Naylor",
+       "orcid": "https://orcid.org/0000-0003-2901-7677"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I154130895",
+        "display_name": "University of Auckland",
+        "ror": "https://ror.org/03b94tp07",
+        "country_code": "NZ",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ],
+      "countries": [
+       "NZ"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Richard W. Naylor",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "middle",
+      "author": {
+       "id": "https://openalex.org/A5085340902",
+       "display_name": "Sarah Qubisi",
+       "orcid": null
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I154130895",
+        "display_name": "University of Auckland",
+        "ror": "https://ror.org/03b94tp07",
+        "country_code": "NZ",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ],
+      "countries": [
+       "NZ"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Sarah S. Qubisi",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "last",
+      "author": {
+       "id": "https://openalex.org/A5102896185",
+       "display_name": "Alan J. Davidson",
+       "orcid": "https://orcid.org/0000-0002-5732-1193"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I154130895",
+        "display_name": "University of Auckland",
+        "ror": "https://ror.org/03b94tp07",
+        "country_code": "NZ",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ],
+      "countries": [
+       "NZ"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Alan J. Davidson",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I154130895"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I154130895"
+        ]
+       }
+      ]
+     }
+    ],
+    "abstract_inverted_index": null
+   },
+   {
+    "id": "https://openalex.org/W2083097467",
+    "doi": "https://doi.org/10.1016/j.ydbio.2014.08.038",
+    "title": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta",
+    "display_name": "Zebrafish pronephros tubulogenesis and epithelial identity maintenance are reliant on the polarity proteins Prkc iota and zeta",
+    "publication_year": 2014,
+    "type": "article",
+    "cited_by_count": 75,
+    "primary_location": {
+     "id": "doi:10.1016/j.ydbio.2014.08.038",
+     "is_oa": true,
+     "landing_page_url": "https://doi.org/10.1016/j.ydbio.2014.08.038",
+     "pdf_url": null,
+     "source": {
+      "id": "https://openalex.org/S136634221",
+      "display_name": "Developmental Biology",
+      "issn_l": "0012-1606",
+      "issn": [
+       "0012-1606",
+       "1095-564X"
+      ],
+      "is_oa": false,
+      "is_in_doaj": false,
+      "is_core": true,
+      "host_organization": "https://openalex.org/P4310320990",
+      "host_organization_name": "Elsevier BV",
+      "host_organization_lineage": [
+       "https://openalex.org/P4310320990"
+      ],
+      "host_organization_lineage_names": [
+       "Elsevier BV"
+      ],
+      "type": "journal"
+     },
+     "license": "cc-by-nc-sa",
+     "license_id": "https://openalex.org/licenses/cc-by-nc-sa",
+     "version": "publishedVersion",
+     "is_accepted": true,
+     "is_published": true,
+     "raw_source_name": "Developmental Biology",
+     "raw_type": "journal-article"
+    },
+    "open_access": {
+     "is_oa": true,
+     "oa_status": "hybrid",
+     "oa_url": "https://doi.org/10.1016/j.ydbio.2014.08.038",
+     "any_repository_has_fulltext": true
+    },
+    "ids": {
+     "openalex": "https://openalex.org/W2083097467",
+     "doi": "https://doi.org/10.1016/j.ydbio.2014.08.038",
+     "mag": "2083097467",
+     "pmid": "https://pubmed.ncbi.nlm.nih.gov/25446529"
+    },
+    "authorships": [
+     {
+      "author_position": "first",
+      "author": {
+       "id": "https://openalex.org/A5054540193",
+       "display_name": "Gary F. Gerlach",
+       "orcid": "https://orcid.org/0000-0002-1474-4831"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I107639228",
+        "display_name": "University of Notre Dame",
+        "ror": "https://ror.org/00mkhxb43",
+        "country_code": "US",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I107639228"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": false,
+      "raw_author_name": "Gary F. Gerlach",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I107639228"
+        ]
+       }
+      ]
+     },
+     {
+      "author_position": "last",
+      "author": {
+       "id": "https://openalex.org/A5086699590",
+       "display_name": "Rebecca A. Wingert",
+       "orcid": "https://orcid.org/0000-0003-3133-7549"
+      },
+      "institutions": [
+       {
+        "id": "https://openalex.org/I107639228",
+        "display_name": "University of Notre Dame",
+        "ror": "https://ror.org/00mkhxb43",
+        "country_code": "US",
+        "type": "education",
+        "lineage": [
+         "https://openalex.org/I107639228"
+        ]
+       }
+      ],
+      "countries": [
+       "US"
+      ],
+      "is_corresponding": true,
+      "raw_author_name": "Rebecca A. Wingert",
+      "raw_affiliation_strings": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+      "raw_orcid": null,
+      "affiliations": [
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I107639228"
+        ]
+       },
+       {
+        "raw_affiliation_string": "<dropped-from-fixture: may contain author emails (ADR-0080)>",
+        "institution_ids": [
+         "https://openalex.org/I107639228"
+        ]
+       }
+      ]
+     }
+    ],
+    "abstract_inverted_index": {
+     "The": [
+      0
+     ],
+     "zebrafish": [
+      1,
+      24
+     ],
+     "pronephros": [
+      2,
+      60,
+      111,
+      196,
+      212
+     ],
+     "provides": [
+      3
+     ],
+     "an": [
+      4,
+      68
+     ],
+     "excellent": [
+      5
+     ],
+     "in": [
+      6,
+      22,
+      59,
+      148,
+      222,
+      252,
+      260,
+      286
+     ],
+     "vivo": [
+      7
+     ],
+     "system": [
+      8
+     ],
+     "to": [
+      9,
+      28,
+      37,
+      41,
+      82,
+      109,
+      134,
+      142,
+      172,
+      187,
+      233,
+      246,
+      271,
+      279
+     ],
+     "study": [
+      10
+     ],
+     "the": [
+      11,
+      23,
+      46,
+      53,
+      63,
+      84,
+      87,
+      116,
+      121,
+      143,
+      155,
+      160,
+      188,
+      202,
+      229,
+      262,
+      287,
+      311
+     ],
+     "mechanisms": [
+      12
+     ],
+     "of": [
+      13,
+      48,
+      56,
+      71,
+      86,
+      118,
+      124,
+      154,
+      178,
+      195,
+      201,
+      231,
+      239,
+      265,
+      302
+     ],
+     "vertebrate": [
+      14
+     ],
+     "nephron": [
+      15,
+      315
+     ],
+     "development.": [
+      16
+     ],
+     "When": [
+      17
+     ],
+     "and": [
+      18,
+      45,
+      95,
+      103,
+      130,
+      159,
+      165,
+      184,
+      267,
+      276,
+      306,
+      321
+     ],
+     "how": [
+      19
+     ],
+     "renal": [
+      20,
+      174,
+      234
+     ],
+     "progenitors": [
+      21
+     ],
+     "embryo": [
+      25
+     ],
+     "undergo": [
+      26
+     ],
+     "tubulogenesis": [
+      27
+     ],
+     "form": [
+      29
+     ],
+     "nephrons": [
+      30
+     ],
+     "is": [
+      31,
+      35,
+      67
+     ],
+     "poorly": [
+      32
+     ],
+     "understood,": [
+      33
+     ],
+     "but": [
+      34,
+      241
+     ],
+     "known": [
+      36
+     ],
+     "involve": [
+      38
+     ],
+     "a": [
+      39,
+      217,
+      258,
+      296
+     ],
+     "mesenchymal": [
+      40
+     ],
+     "epithelial": [
+      42,
+      72,
+      175,
+      225,
+      274,
+      282,
+      316
+     ],
+     "transition": [
+      43
+     ],
+     "(MET)": [
+      44
+     ],
+     "acquisition": [
+      47
+     ],
+     "polarity.": [
+      49,
+      114
+     ],
+     "Here,": [
+      50
+     ],
+     "we": [
+      51,
+      77
+     ],
+     "determined": [
+      52
+     ],
+     "precise": [
+      54
+     ],
+     "timing": [
+      55
+     ],
+     "these": [
+      57
+     ],
+     "events": [
+      58
+     ],
+     "tubulogenesis.": [
+      61
+     ],
+     "As": [
+      62
+     ],
+     "ternary": [
+      64
+     ],
+     "polarity": [
+      65,
+      74,
+      275
+     ],
+     "complex": [
+      66
+     ],
+     "essential": [
+      69,
+      180,
+      270
+     ],
+     "regulator": [
+      70
+     ],
+     "cell": [
+      73,
+      283
+     ],
+     "across": [
+      75
+     ],
+     "tissues,": [
+      76
+     ],
+     "performed": [
+      78
+     ],
+     "gene": [
+      79,
+      205,
+      213,
+      250
+     ],
+     "knockdown": [
+      80,
+      123,
+      200,
+      238
+     ],
+     "studies": [
+      81,
+      294
+     ],
+     "assess": [
+      83
+     ],
+     "roles": [
+      85
+     ],
+     "related": [
+      88
+     ],
+     "factors": [
+      89
+     ],
+     "atypical": [
+      90
+     ],
+     "protein": [
+      91
+     ],
+     "kinase": [
+      92
+     ],
+     "C": [
+      93
+     ],
+     "iota": [
+      94
+     ],
+     "zeta": [
+      96
+     ],
+     "(prkcι,": [
+      97
+     ],
+     "prkcζ).": [
+      98
+     ],
+     "We": [
+      99
+     ],
+     "found": [
+      100
+     ],
+     "that": [
+      101,
+      137,
+      168,
+      313
+     ],
+     "prkcι": [
+      102,
+      119,
+      266
+     ],
+     "prkcζ": [
+      104,
+      268
+     ],
+     "serve": [
+      105,
+      278
+     ],
+     "partially": [
+      106
+     ],
+     "redundant": [
+      107,
+      263
+     ],
+     "functions": [
+      108
+     ],
+     "establish": [
+      110,
+      272
+     ],
+     "tubule": [
+      112,
+      128,
+      146,
+      224,
+      249,
+      273,
+      288
+     ],
+     "epithelium": [
+      113
+     ],
+     "Further,": [
+      115
+     ],
+     "loss": [
+      117
+     ],
+     "or": [
+      120,
+      193
+     ],
+     "combined": [
+      122
+     ],
+     "prkcι/ζ": [
+      125,
+      149,
+      169,
+      221,
+      253
+     ],
+     "disrupted": [
+      126
+     ],
+     "proximal": [
+      127
+     ],
+     "morphogenesis": [
+      129
+     ],
+     "podocyte": [
+      131
+     ],
+     "migration": [
+      132
+     ],
+     "due": [
+      133
+     ],
+     "cardiac": [
+      135,
+      182
+     ],
+     "defects": [
+      136
+     ],
+     "prevented": [
+      138
+     ],
+     "normal": [
+      139
+     ],
+     "fluid": [
+      140,
+      197,
+      235
+     ],
+     "flow": [
+      141,
+      186
+     ],
+     "kidney.": [
+      144
+     ],
+     "Surprisingly,": [
+      145
+     ],
+     "cells": [
+      147,
+      317
+     ],
+     "morphants": [
+      150
+     ],
+     "displayed": [
+      151
+     ],
+     "ectopic": [
+      152,
+      211,
+      248
+     ],
+     "expression": [
+      153,
+      251
+     ],
+     "transcription": [
+      156
+     ],
+     "factor": [
+      157
+     ],
+     "pax2a": [
+      158,
+      291
+     ],
+     "podocyte-associated": [
+      161
+     ],
+     "genes": [
+      162,
+      179
+     ],
+     "wt1a,": [
+      163,
+      243
+     ],
+     "wt1b,": [
+      164
+     ],
+     "podxl,": [
+      166
+     ],
+     "suggesting": [
+      167,
+      216
+     ],
+     "are": [
+      170,
+      269
+     ],
+     "needed": [
+      171
+     ],
+     "maintain": [
+      173,
+      280
+     ],
+     "identity.": [
+      176
+     ],
+     "Knockdown": [
+      177
+     ],
+     "for": [
+      181,
+      220,
+      299,
+      309
+     ],
+     "contractility": [
+      183
+     ],
+     "vascular": [
+      185
+     ],
+     "kidney,": [
+      189
+     ],
+     "such": [
+      190
+     ],
+     "as": [
+      191
+     ],
+     "tnnt2a,": [
+      192
+     ],
+     "elimination": [
+      194
+     ],
+     "output": [
+      198
+     ],
+     "through": [
+      199
+     ],
+     "intraflagellar": [
+      203
+     ],
+     "transport": [
+      204
+     ],
+     "ift88,": [
+      206
+     ],
+     "was": [
+      207,
+      244
+     ],
+     "not": [
+      208,
+      242
+     ],
+     "associated": [
+      209
+     ],
+     "with": [
+      210
+     ],
+     "expression,": [
+      214
+     ],
+     "thus": [
+      215
+     ],
+     "unique": [
+      218
+     ],
+     "role": [
+      219
+     ],
+     "maintaining": [
+      223
+     ],
+     "identity": [
+      226,
+      285
+     ],
+     "separate": [
+      227
+     ],
+     "from": [
+      228
+     ],
+     "consequence": [
+      230
+     ],
+     "disruptions": [
+      232
+     ],
+     "flow.": [
+      236
+     ],
+     "Interestingly,": [
+      237
+     ],
+     "pax2a,": [
+      240
+     ],
+     "sufficient": [
+      245
+     ],
+     "rescue": [
+      247
+     ],
+     "morphants.": [
+      254
+     ],
+     "These": [
+      255,
+      293
+     ],
+     "data": [
+      256
+     ],
+     "suggest": [
+      257
+     ],
+     "model": [
+      259
+     ],
+     "which": [
+      261
+     ],
+     "activities": [
+      264
+     ],
+     "also": [
+      277
+     ],
+     "proper": [
+      281
+     ],
+     "type": [
+      284
+     ],
+     "by": [
+      289
+     ],
+     "inhibiting": [
+      290
+     ],
+     "expression.": [
+      292
+     ],
+     "provide": [
+      295
+     ],
+     "valuable": [
+      297
+     ],
+     "foundation": [
+      298
+     ],
+     "further": [
+      300
+     ],
+     "analysis": [
+      301
+     ],
+     "MET": [
+      303
+     ],
+     "during": [
+      304,
+      318
+     ],
+     "nephrogenesis,": [
+      305
+     ],
+     "have": [
+      307
+     ],
+     "implications": [
+      308
+     ],
+     "understanding": [
+      310
+     ],
+     "pathways": [
+      312
+     ],
+     "affect": [
+      314
+     ],
+     "kidney": [
+      319
+     ],
+     "disease": [
+      320
+     ],
+     "regeneration.": [
+      322
+     ]
+    }
+   }
+  ],
+  "group_by": []
+ },
+ "_fixture": {
+  "recorded_by": "record_fixtures_c.py (ADR-0080 C5)",
+  "live": true,
+  "source_file": "raw_openalex_wt1a-zebrafish-pronephros_f1660981_20260915.json",
+  "cut": {
+   "fields": [
+    "raw_affiliation_strings",
+    "raw_affiliation_string"
+   ],
+   "n_fields_dropped": 63,
+   "reason": "may contain author emails (2 addresses found on 2026-09-15 and removed by the ADR-0080 corrector); structured institutions/countries/author kept, n_authors unchanged",
+   "applied_at": "2026-09-15",
+   "live_payload_otherwise_untouched": true
+  }
+ }
+}

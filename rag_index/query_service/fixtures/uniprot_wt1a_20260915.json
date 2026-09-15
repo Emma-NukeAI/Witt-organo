@@ -1,0 +1,5778 @@
+{
+ "_fixture": {
+  "api": "uniprot",
+  "case": "wt1a",
+  "recorded": "2026-09-15",
+  "url_sent": "https://rest.uniprot.org/uniprotkb/search?query=gene_exact%3Awt1a%20AND%20organism_id%3A7955&format=json&size=5",
+  "http_status": 200,
+  "elapsed_s": 1.234,
+  "headers_subset": {
+   "content-type": "application/json",
+   "link": "<https://rest.uniprot.org/uniprotkb/search?format=json&query=gene_exact%3Awt1a%20AND%20organism_id%3A7955&cursor=xyr56e61h5s6x6e67okkzxgv0o9d5d6mcy5420yzf7q1j1&size=5>; rel=\"next\"",
+   "x-total-results": "6"
+  }
+ },
+ "response": {
+  "results": [
+   {
+    "entryType": "UniProtKB unreviewed (TrEMBL)",
+    "primaryAccession": "Q9PUT7",
+    "secondaryAccessions": [
+     "B3DGC5"
+    ],
+    "uniProtkbId": "Q9PUT7_DANRE",
+    "entryAudit": {
+     "firstPublicDate": "2000-05-01",
+     "lastAnnotationUpdateDate": "2026-09-02",
+     "lastSequenceUpdateDate": "2000-05-01",
+     "entryVersion": 176,
+     "sequenceVersion": 1
+    },
+    "annotationScore": 5.0,
+    "organism": {
+     "scientificName": "Danio rerio",
+     "commonName": "Zebrafish",
+     "synonyms": [
+      "Brachydanio rerio"
+     ],
+     "taxonId": 7955,
+     "evidences": [
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "EMBL",
+       "id": "AAI62349.1"
+      }
+     ],
+     "lineage": [
+      "Eukaryota",
+      "Metazoa",
+      "Chordata",
+      "Craniata",
+      "Vertebrata",
+      "Euteleostomi",
+      "Actinopterygii",
+      "Neopterygii",
+      "Teleostei",
+      "Ostariophysi",
+      "Cypriniformes",
+      "Danionidae",
+      "Danioninae",
+      "Danio"
+     ]
+    },
+    "proteinExistence": "2: Evidence at transcript level",
+    "proteinDescription": {
+     "recommendedName": {
+      "fullName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000256",
+         "source": "ARBA",
+         "id": "ARBA00069242"
+        }
+       ],
+       "value": "Wilms tumor protein homolog"
+      }
+     }
+    },
+    "genes": [
+     {
+      "geneName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "EMBL",
+         "id": "AAI62349.1"
+        },
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "ZFIN",
+         "id": "ZDB-GENE-980526-558"
+        }
+       ],
+       "value": "wt1a"
+      }
+     }
+    ],
+    "comments": [
+     {
+      "commentType": "SUBCELLULAR LOCATION",
+      "subcellularLocations": [
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004496"
+          }
+         ],
+         "value": "Cytoplasm",
+         "id": "SL-0086"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004324"
+          }
+         ],
+         "value": "Nucleus speckle",
+         "id": "SL-0186"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004604"
+          }
+         ],
+         "value": "Nucleus, nucleolus",
+         "id": "SL-0188"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004642"
+          }
+         ],
+         "value": "Nucleus, nucleoplasm",
+         "id": "SL-0190"
+        }
+       }
+      ]
+     },
+     {
+      "texts": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000256",
+          "source": "ARBA",
+          "id": "ARBA00005682"
+         }
+        ],
+        "value": "Belongs to the EGR C2H2-type zinc-finger protein family"
+       }
+      ],
+      "commentType": "SIMILARITY"
+     }
+    ],
+    "features": [
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 293,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 322,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 323,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 352,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 353,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 380,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 384,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 413,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Region",
+      "location": {
+       "start": {
+        "value": 100,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 178,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Disordered",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 111,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 134,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 145,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 158,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     }
+    ],
+    "keywords": [
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022490"
+       }
+      ],
+      "id": "KW-0963",
+      "category": "Cellular component",
+      "name": "Cytoplasm"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023125"
+       }
+      ],
+      "id": "KW-0238",
+      "category": "Molecular function",
+      "name": "DNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022499"
+       }
+      ],
+      "id": "KW-1017",
+      "category": "PTM",
+      "name": "Isopeptide bond"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022723"
+       }
+      ],
+      "id": "KW-0479",
+      "category": "Ligand",
+      "name": "Metal-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023242"
+       }
+      ],
+      "id": "KW-0539",
+      "category": "Cellular component",
+      "name": "Nucleus"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022737"
+       }
+      ],
+      "id": "KW-0677",
+      "category": "Domain",
+      "name": "Repeat"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022884"
+       }
+      ],
+      "id": "KW-0694",
+      "category": "Molecular function",
+      "name": "RNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023163"
+       }
+      ],
+      "id": "KW-0804",
+      "category": "Biological process",
+      "name": "Transcription"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023015"
+       }
+      ],
+      "id": "KW-0805",
+      "category": "Biological process",
+      "name": "Transcription regulation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022843"
+       }
+      ],
+      "id": "KW-0832",
+      "category": "PTM",
+      "name": "Ubl conjugation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022833"
+       }
+      ],
+      "id": "KW-0862",
+      "category": "Ligand",
+      "name": "Zinc"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022771"
+       },
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "PROSITE-ProRule",
+        "id": "PRU00042"
+       }
+      ],
+      "id": "KW-0863",
+      "category": "Domain",
+      "name": "Zinc-finger"
+     }
+    ],
+    "references": [
+     {
+      "referenceNumber": 1,
+      "citation": {
+       "id": "CI-470FSL98K6NR5",
+       "citationType": "submission",
+       "authors": [
+        "Smith S.I.",
+        "Down M.",
+        "Power M.",
+        "Boyd A.W."
+       ],
+       "title": "Isolation and characterization of a cDNA encoding zebrafish (Danio rerio) WT-1.",
+       "publicationDate": "APR-1999",
+       "submissionDatabase": "EMBL/GenBank/DDBJ databases"
+      },
+      "referencePositions": [
+       "NUCLEOTIDE SEQUENCE"
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "EMBL",
+        "id": "AAF00123.1"
+       }
+      ]
+     },
+     {
+      "referenceNumber": 2,
+      "citation": {
+       "id": "CI-5PS8FM2MCGPG7",
+       "citationType": "submission",
+       "authoringGroup": [
+        "NIH - Zebrafish Gene Collection (ZGC) project"
+       ],
+       "publicationDate": "APR-2008",
+       "submissionDatabase": "EMBL/GenBank/DDBJ databases"
+      },
+      "referencePositions": [
+       "NUCLEOTIDE SEQUENCE [LARGE SCALE MRNA]"
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "EMBL",
+        "id": "AAI62349.1"
+       }
+      ]
+     }
+    ],
+    "uniProtKBCrossReferences": [
+     {
+      "database": "EMBL",
+      "id": "AF144550",
+      "properties": [
+       {
+        "key": "ProteinId",
+        "value": "AAF00123.1"
+       },
+       {
+        "key": "Status",
+        "value": "-"
+       },
+       {
+        "key": "MoleculeType",
+        "value": "mRNA"
+       }
+      ]
+     },
+     {
+      "database": "EMBL",
+      "id": "BC162349",
+      "properties": [
+       {
+        "key": "ProteinId",
+        "value": "AAI62349.1"
+       },
+       {
+        "key": "Status",
+        "value": "-"
+       },
+       {
+        "key": "MoleculeType",
+        "value": "mRNA"
+       }
+      ]
+     },
+     {
+      "database": "EMBL",
+      "id": "BC162638",
+      "properties": [
+       {
+        "key": "ProteinId",
+        "value": "AAI62638.1"
+       },
+       {
+        "key": "Status",
+        "value": "-"
+       },
+       {
+        "key": "MoleculeType",
+        "value": "mRNA"
+       }
+      ]
+     },
+     {
+      "database": "RefSeq",
+      "id": "NP_571121.1",
+      "properties": [
+       {
+        "key": "NucleotideSequenceId",
+        "value": "NM_131046.2"
+       }
+      ]
+     },
+     {
+      "database": "AlphaFoldDB",
+      "id": "Q9PUT7",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "SMR",
+      "id": "Q9PUT7",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "STRING",
+      "id": "7955.ENSDARP00000029174",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "PaxDb",
+      "id": "7955-ENSDARP00000029174",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "GeneID",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "KEGG",
+      "id": "dre:30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "AGR",
+      "id": "ZFIN:ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "CTD",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "ZFIN",
+      "id": "ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "GeneName",
+        "value": "wt1a"
+       }
+      ]
+     },
+     {
+      "database": "eggNOG",
+      "id": "KOG1721",
+      "properties": [
+       {
+        "key": "ToxonomicScope",
+        "value": "Eukaryota"
+       }
+      ]
+     },
+     {
+      "database": "GeneTree",
+      "id": "ENSGT00940000156734",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "HOGENOM",
+      "id": "CLU_002678_42_27_1",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "OMA",
+      "id": "QARMFTN",
+      "properties": [
+       {
+        "key": "Fingerprint",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "OrthoDB",
+      "id": "8922241at2759",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "Bgee",
+      "id": "ENSDARG00000031420",
+      "properties": [
+       {
+        "key": "ExpressionPatterns",
+        "value": "Expressed in nephron and 25 other cell types or tissues"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005737",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:cytoplasm"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0016607",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nuclear speck"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005730",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleolus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005634",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0000981",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:DNA-binding transcription factor activity, RNA polymerase II-specific"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0000978",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:RNA polymerase II cis-regulatory region sequence-specific DNA binding"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0030325",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:adrenal gland development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0032835",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0043066",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:negative regulation of apoptotic process"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0008285",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:negative regulation of cell population proliferation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072149",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte cell fate commitment"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072112",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte differentiation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0045944",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:positive regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039022",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric duct development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039021",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0048793",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephros development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27078207"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1905603",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of blood-brain barrier permeability"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "35087838"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0006357",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IBA:GO_Central"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0061032",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:visceral serous pericardium development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27484451"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000018",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Krueppel-like factor 15"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000063",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000228",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Gene3D",
+      "id": "3.30.160.60",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Classic Zinc Finger"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR000976",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms_tumour_N"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR036236",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_sf"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR013087",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_type"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "KRUEPPEL-LIKE TRANSCRIPTION FACTOR"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235:SF172",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1 TRANSCRIPTION FACTOR A"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF02165",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF00096",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "zf-C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "PRINTS",
+      "id": "PR00049",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WILMSTUMOUR"
+       }
+      ]
+     },
+     {
+      "database": "SMART",
+      "id": "SM00355",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZnF_C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "SUPFAM",
+      "id": "SSF57667",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "beta-beta-alpha zinc fingers"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS00028",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS50157",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     }
+    ],
+    "sequence": {
+     "value": "MGSDVRDLNTLLPPVPPLPGGNGNCTLPVSSTPQWPPMLDFHTGAPYGSLAQHSFIKQEPSWGTADPHEDPHCGLSAFTVHFSGQFTGTGACRYGAFGAPAASQPPPSQPRMFSNSPYLSNCMDSQSSSRNQGYGTVAFDGASNYGHTPSHHTPQFPNHSFKHEDSITQQSNMGDQQYPVPPPVYGCHTPSDSCTGSQALLLRNPYNSSDNLYQMASQLECMGWNPVNSLASTIKSHPGGYESDPSTPMVYSCSTQYRIHTHGVFRGLQDVRRVPGITPAIVRSTETNEKRPFMCAYPGCNKRYFKLSHLQMHSRKHTGEKPYQCDFTDCGRRFSRSDQLKRHQRRHTGVKPFQCETCQRKFSRSDHLKTHTRTHTGKTSEKPFNCRWPNCQKKFARSDELVRHHNMHQRNLTKLQLTI",
+     "length": 419,
+     "molWeight": 46925,
+     "crc64": "606ADFEDA619EECD",
+     "md5": "2BBDBD8CD21EAF6DC5CA547582C447A9"
+    },
+    "extraAttributes": {
+     "countByCommentType": {
+      "SUBCELLULAR LOCATION": 1,
+      "SIMILARITY": 1
+     },
+     "countByFeatureType": {
+      "Domain": 4,
+      "Region": 1,
+      "Compositional bias": 2
+     },
+     "uniParcId": "UPI00000FD191"
+    }
+   },
+   {
+    "entryType": "UniProtKB unreviewed (TrEMBL)",
+    "primaryAccession": "A0AB32TC13",
+    "uniProtkbId": "A0AB32TC13_DANRE",
+    "entryAudit": {
+     "firstPublicDate": "2025-02-05",
+     "lastAnnotationUpdateDate": "2026-09-02",
+     "lastSequenceUpdateDate": "2025-02-05",
+     "entryVersion": 7,
+     "sequenceVersion": 1
+    },
+    "annotationScore": 4.0,
+    "organism": {
+     "scientificName": "Danio rerio",
+     "commonName": "Zebrafish",
+     "synonyms": [
+      "Brachydanio rerio"
+     ],
+     "taxonId": 7955,
+     "evidences": [
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "Proteomes",
+       "id": "UP000000437"
+      },
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "RefSeq",
+       "id": "XP_068073410.1"
+      }
+     ],
+     "lineage": [
+      "Eukaryota",
+      "Metazoa",
+      "Chordata",
+      "Craniata",
+      "Vertebrata",
+      "Euteleostomi",
+      "Actinopterygii",
+      "Neopterygii",
+      "Teleostei",
+      "Ostariophysi",
+      "Cypriniformes",
+      "Danionidae",
+      "Danioninae",
+      "Danio"
+     ]
+    },
+    "proteinExistence": "3: Inferred from homology",
+    "proteinDescription": {
+     "recommendedName": {
+      "fullName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000256",
+         "source": "ARBA",
+         "id": "ARBA00069242"
+        }
+       ],
+       "value": "Wilms tumor protein homolog"
+      }
+     }
+    },
+    "genes": [
+     {
+      "geneName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "RefSeq",
+         "id": "XP_068073410.1"
+        },
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "ZFIN",
+         "id": "ZDB-GENE-980526-558"
+        }
+       ],
+       "value": "wt1a"
+      },
+      "synonyms": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073410.1"
+         }
+        ],
+        "value": "wt1"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073410.1"
+         }
+        ],
+        "value": "zwt1"
+       }
+      ]
+     }
+    ],
+    "comments": [
+     {
+      "commentType": "SUBCELLULAR LOCATION",
+      "subcellularLocations": [
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004496"
+          }
+         ],
+         "value": "Cytoplasm",
+         "id": "SL-0086"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004324"
+          }
+         ],
+         "value": "Nucleus speckle",
+         "id": "SL-0186"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004604"
+          }
+         ],
+         "value": "Nucleus, nucleolus",
+         "id": "SL-0188"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004642"
+          }
+         ],
+         "value": "Nucleus, nucleoplasm",
+         "id": "SL-0190"
+        }
+       }
+      ]
+     },
+     {
+      "texts": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000256",
+          "source": "ARBA",
+          "id": "ARBA00005682"
+         }
+        ],
+        "value": "Belongs to the EGR C2H2-type zinc-finger protein family"
+       }
+      ],
+      "commentType": "SIMILARITY"
+     }
+    ],
+    "features": [
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 293,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 322,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 323,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 352,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 353,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 380,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 381,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 410,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Region",
+      "location": {
+       "start": {
+        "value": 100,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 178,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Disordered",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 111,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 134,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 145,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 158,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     }
+    ],
+    "keywords": [
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022490"
+       }
+      ],
+      "id": "KW-0963",
+      "category": "Cellular component",
+      "name": "Cytoplasm"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023125"
+       }
+      ],
+      "id": "KW-0238",
+      "category": "Molecular function",
+      "name": "DNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022499"
+       }
+      ],
+      "id": "KW-1017",
+      "category": "PTM",
+      "name": "Isopeptide bond"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022723"
+       }
+      ],
+      "id": "KW-0479",
+      "category": "Ligand",
+      "name": "Metal-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023242"
+       }
+      ],
+      "id": "KW-0539",
+      "category": "Cellular component",
+      "name": "Nucleus"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "Proteomes",
+        "id": "UP000000437"
+       }
+      ],
+      "id": "KW-1185",
+      "category": "Technical term",
+      "name": "Reference proteome"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022737"
+       }
+      ],
+      "id": "KW-0677",
+      "category": "Domain",
+      "name": "Repeat"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022884"
+       }
+      ],
+      "id": "KW-0694",
+      "category": "Molecular function",
+      "name": "RNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023163"
+       }
+      ],
+      "id": "KW-0804",
+      "category": "Biological process",
+      "name": "Transcription"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023015"
+       }
+      ],
+      "id": "KW-0805",
+      "category": "Biological process",
+      "name": "Transcription regulation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022843"
+       }
+      ],
+      "id": "KW-0832",
+      "category": "PTM",
+      "name": "Ubl conjugation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022833"
+       }
+      ],
+      "id": "KW-0862",
+      "category": "Ligand",
+      "name": "Zinc"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022771"
+       },
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "PROSITE-ProRule",
+        "id": "PRU00042"
+       }
+      ],
+      "id": "KW-0863",
+      "category": "Domain",
+      "name": "Zinc-finger"
+     }
+    ],
+    "references": [
+     {
+      "referenceNumber": 1,
+      "citation": {
+       "id": "CI-FT6ASB9QRK3SG",
+       "citationType": "submission",
+       "authoringGroup": [
+        "RefSeq"
+       ],
+       "publicationDate": "JAN-2026",
+       "submissionDatabase": "UniProtKB"
+      },
+      "referencePositions": [
+       "IDENTIFICATION"
+      ],
+      "referenceComments": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073410.1"
+         }
+        ],
+        "value": "Tuebingen",
+        "type": "STRAIN"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073410.1"
+         }
+        ],
+        "value": "Fibroblasts and whole tissue",
+        "type": "TISSUE"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "RefSeq",
+        "id": "XP_068073410.1"
+       }
+      ]
+     }
+    ],
+    "uniProtKBCrossReferences": [
+     {
+      "database": "RefSeq",
+      "id": "XP_068073410.1",
+      "properties": [
+       {
+        "key": "NucleotideSequenceId",
+        "value": "XM_068217309.1"
+       }
+      ]
+     },
+     {
+      "database": "AlphaFoldDB",
+      "id": "A0AB32TC13",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "GeneID",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "AGR",
+      "id": "ZFIN:ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "CTD",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "ZFIN",
+      "id": "ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "GeneName",
+        "value": "wt1a"
+       }
+      ]
+     },
+     {
+      "database": "Proteomes",
+      "id": "UP000000437",
+      "properties": [
+       {
+        "key": "Component",
+        "value": "Chromosome 25"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005737",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:cytoplasm"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0016607",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nuclear speck"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005730",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleolus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0003677",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:DNA binding"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0030325",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:adrenal gland development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0032835",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072149",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte cell fate commitment"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072112",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte differentiation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0045944",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:positive regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039022",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric duct development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039021",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0048793",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephros development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27078207"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1905603",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of blood-brain barrier permeability"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "35087838"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0061032",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:visceral serous pericardium development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27484451"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000018",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Krueppel-like factor 15"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000063",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000228",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Gene3D",
+      "id": "3.30.160.60",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Classic Zinc Finger"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR000976",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms_tumour_N"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR036236",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_sf"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR013087",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_type"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "KRUEPPEL-LIKE TRANSCRIPTION FACTOR"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235:SF172",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1 TRANSCRIPTION FACTOR A"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF02165",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF00096",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "zf-C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "PRINTS",
+      "id": "PR00049",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WILMSTUMOUR"
+       }
+      ]
+     },
+     {
+      "database": "SMART",
+      "id": "SM00355",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZnF_C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "SUPFAM",
+      "id": "SSF57667",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "beta-beta-alpha zinc fingers"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS00028",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS50157",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     }
+    ],
+    "sequence": {
+     "value": "MGSDVRDLNTLLPPVPPLPGGNGNCTLPVSSTPQWPPMLDFHTGAPYGSLAQHSFIKQEPSWGTADPHEDPHCGLSAFTVHFSGQFTGTGACRYGAFGAPAASQPPPSQPRMFSNSPYLSNCMDSQSSSRNQGYGTVAFDGASNYGHTPSHHTPQFPNHSFKHEDSITQQSNMGDQQYPVPPPVYGCHTPSDSCTGSQALLLRNPYNSSDNLYQMASQLECMGWNPVNSLASTIKSHPGGYESDPSTPMVYSCSTQYRIHTHGVFRGLQDVRRVPGITPAIVRSTETNEKRPFMCAYPGCNKRYFKLSHLQMHSRKHTGEKPYQCDFTDCGRRFSRSDQLKRHQRRHTGVKPFQCETCQRKFSRSDHLKTHTRTHTGEKPFNCRWPNCQKKFARSDELVRHHNMHQRNLTKLQLTI",
+     "length": 416,
+     "molWeight": 46609,
+     "crc64": "306B3956D74C5F2D",
+     "md5": "708A913B4701A4B46BFF0A3A35D71DA4"
+    },
+    "extraAttributes": {
+     "countByCommentType": {
+      "SUBCELLULAR LOCATION": 1,
+      "SIMILARITY": 1
+     },
+     "countByFeatureType": {
+      "Domain": 4,
+      "Region": 1,
+      "Compositional bias": 2
+     },
+     "uniParcId": "UPI00359FCB21"
+    }
+   },
+   {
+    "entryType": "UniProtKB unreviewed (TrEMBL)",
+    "primaryAccession": "A0AB32TC36",
+    "uniProtkbId": "A0AB32TC36_DANRE",
+    "entryAudit": {
+     "firstPublicDate": "2025-02-05",
+     "lastAnnotationUpdateDate": "2026-09-02",
+     "lastSequenceUpdateDate": "2025-02-05",
+     "entryVersion": 7,
+     "sequenceVersion": 1
+    },
+    "annotationScore": 4.0,
+    "organism": {
+     "scientificName": "Danio rerio",
+     "commonName": "Zebrafish",
+     "synonyms": [
+      "Brachydanio rerio"
+     ],
+     "taxonId": 7955,
+     "evidences": [
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "Proteomes",
+       "id": "UP000000437"
+      },
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "RefSeq",
+       "id": "XP_068073409.1"
+      }
+     ],
+     "lineage": [
+      "Eukaryota",
+      "Metazoa",
+      "Chordata",
+      "Craniata",
+      "Vertebrata",
+      "Euteleostomi",
+      "Actinopterygii",
+      "Neopterygii",
+      "Teleostei",
+      "Ostariophysi",
+      "Cypriniformes",
+      "Danionidae",
+      "Danioninae",
+      "Danio"
+     ]
+    },
+    "proteinExistence": "3: Inferred from homology",
+    "proteinDescription": {
+     "recommendedName": {
+      "fullName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000256",
+         "source": "ARBA",
+         "id": "ARBA00069242"
+        }
+       ],
+       "value": "Wilms tumor protein homolog"
+      }
+     }
+    },
+    "genes": [
+     {
+      "geneName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "RefSeq",
+         "id": "XP_068073409.1"
+        },
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "ZFIN",
+         "id": "ZDB-GENE-980526-558"
+        }
+       ],
+       "value": "wt1a"
+      },
+      "synonyms": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073409.1"
+         }
+        ],
+        "value": "wt1"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073409.1"
+         }
+        ],
+        "value": "zwt1"
+       }
+      ]
+     }
+    ],
+    "comments": [
+     {
+      "commentType": "SUBCELLULAR LOCATION",
+      "subcellularLocations": [
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004496"
+          }
+         ],
+         "value": "Cytoplasm",
+         "id": "SL-0086"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004324"
+          }
+         ],
+         "value": "Nucleus speckle",
+         "id": "SL-0186"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004604"
+          }
+         ],
+         "value": "Nucleus, nucleolus",
+         "id": "SL-0188"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004642"
+          }
+         ],
+         "value": "Nucleus, nucleoplasm",
+         "id": "SL-0190"
+        }
+       }
+      ]
+     },
+     {
+      "texts": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000256",
+          "source": "ARBA",
+          "id": "ARBA00005682"
+         }
+        ],
+        "value": "Belongs to the EGR C2H2-type zinc-finger protein family"
+       }
+      ],
+      "commentType": "SIMILARITY"
+     }
+    ],
+    "features": [
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 292,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 321,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 322,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 351,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 352,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 379,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 383,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 412,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Region",
+      "location": {
+       "start": {
+        "value": 100,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 178,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Disordered",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 111,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 134,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 145,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 158,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     }
+    ],
+    "keywords": [
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022490"
+       }
+      ],
+      "id": "KW-0963",
+      "category": "Cellular component",
+      "name": "Cytoplasm"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023125"
+       }
+      ],
+      "id": "KW-0238",
+      "category": "Molecular function",
+      "name": "DNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022499"
+       }
+      ],
+      "id": "KW-1017",
+      "category": "PTM",
+      "name": "Isopeptide bond"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022723"
+       }
+      ],
+      "id": "KW-0479",
+      "category": "Ligand",
+      "name": "Metal-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023242"
+       }
+      ],
+      "id": "KW-0539",
+      "category": "Cellular component",
+      "name": "Nucleus"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "Proteomes",
+        "id": "UP000000437"
+       }
+      ],
+      "id": "KW-1185",
+      "category": "Technical term",
+      "name": "Reference proteome"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022737"
+       }
+      ],
+      "id": "KW-0677",
+      "category": "Domain",
+      "name": "Repeat"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022884"
+       }
+      ],
+      "id": "KW-0694",
+      "category": "Molecular function",
+      "name": "RNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023163"
+       }
+      ],
+      "id": "KW-0804",
+      "category": "Biological process",
+      "name": "Transcription"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023015"
+       }
+      ],
+      "id": "KW-0805",
+      "category": "Biological process",
+      "name": "Transcription regulation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022843"
+       }
+      ],
+      "id": "KW-0832",
+      "category": "PTM",
+      "name": "Ubl conjugation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022833"
+       }
+      ],
+      "id": "KW-0862",
+      "category": "Ligand",
+      "name": "Zinc"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022771"
+       },
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "PROSITE-ProRule",
+        "id": "PRU00042"
+       }
+      ],
+      "id": "KW-0863",
+      "category": "Domain",
+      "name": "Zinc-finger"
+     }
+    ],
+    "references": [
+     {
+      "referenceNumber": 1,
+      "citation": {
+       "id": "CI-FT6ASB9QRK3SG",
+       "citationType": "submission",
+       "authoringGroup": [
+        "RefSeq"
+       ],
+       "publicationDate": "JAN-2026",
+       "submissionDatabase": "UniProtKB"
+      },
+      "referencePositions": [
+       "IDENTIFICATION"
+      ],
+      "referenceComments": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073409.1"
+         }
+        ],
+        "value": "Tuebingen",
+        "type": "STRAIN"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073409.1"
+         }
+        ],
+        "value": "Fibroblasts and whole tissue",
+        "type": "TISSUE"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "RefSeq",
+        "id": "XP_068073409.1"
+       }
+      ]
+     }
+    ],
+    "uniProtKBCrossReferences": [
+     {
+      "database": "RefSeq",
+      "id": "XP_068073409.1",
+      "properties": [
+       {
+        "key": "NucleotideSequenceId",
+        "value": "XM_068217308.1"
+       }
+      ]
+     },
+     {
+      "database": "AlphaFoldDB",
+      "id": "A0AB32TC36",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "GeneID",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "AGR",
+      "id": "ZFIN:ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "CTD",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "ZFIN",
+      "id": "ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "GeneName",
+        "value": "wt1a"
+       }
+      ]
+     },
+     {
+      "database": "Proteomes",
+      "id": "UP000000437",
+      "properties": [
+       {
+        "key": "Component",
+        "value": "Chromosome 25"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005737",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:cytoplasm"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0016607",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nuclear speck"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005730",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleolus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0003677",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:DNA binding"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0030325",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:adrenal gland development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0032835",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072149",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte cell fate commitment"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072112",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte differentiation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0045944",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:positive regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039022",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric duct development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039021",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0048793",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephros development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27078207"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1905603",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of blood-brain barrier permeability"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "35087838"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0061032",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:visceral serous pericardium development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27484451"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000018",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Krueppel-like factor 15"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000063",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000228",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Gene3D",
+      "id": "3.30.160.60",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Classic Zinc Finger"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR000976",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms_tumour_N"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR036236",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_sf"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR013087",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_type"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "KRUEPPEL-LIKE TRANSCRIPTION FACTOR"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235:SF172",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1 TRANSCRIPTION FACTOR A"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF02165",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF00096",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "zf-C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "PRINTS",
+      "id": "PR00049",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WILMSTUMOUR"
+       }
+      ]
+     },
+     {
+      "database": "SMART",
+      "id": "SM00355",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZnF_C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "SUPFAM",
+      "id": "SSF57667",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "beta-beta-alpha zinc fingers"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS00028",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS50157",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     }
+    ],
+    "sequence": {
+     "value": "MGSDVRDLNTLLPPVPPLPGGNGNCTLPVSSTPQWPPMLDFHTGAPYGSLAQHSFIKQEPSWGTADPHEDPHCGLSAFTVHFSGQFTGTGACRYGAFGAPAASQPPPSQPRMFSNSPYLSNCMDSQSSSRNQGYGTVAFDGASNYGHTPSHHTPQFPNHSFKHEDSITQQSNMGDQQYPVPPPVYGCHTPSDSCTGSQALLLRNPYNSDNLYQMASQLECMGWNPVNSLASTIKSHPGGYESDPSTPMVYSCSTQYRIHTHGVFRGLQDVRRVPGITPAIVRSTETNEKRPFMCAYPGCNKRYFKLSHLQMHSRKHTGEKPYQCDFTDCGRRFSRSDQLKRHQRRHTGVKPFQCETCQRKFSRSDHLKTHTRTHTGKTSEKPFNCRWPNCQKKFARSDELVRHHNMHQRNLTKLQLTI",
+     "length": 418,
+     "molWeight": 46838,
+     "crc64": "B7C508425BC219F0",
+     "md5": "CAC058019733E2B7F9DE9E52B92A7C94"
+    },
+    "extraAttributes": {
+     "countByCommentType": {
+      "SUBCELLULAR LOCATION": 1,
+      "SIMILARITY": 1
+     },
+     "countByFeatureType": {
+      "Domain": 4,
+      "Region": 1,
+      "Compositional bias": 2
+     },
+     "uniParcId": "UPI00359FC713"
+    }
+   },
+   {
+    "entryType": "UniProtKB unreviewed (TrEMBL)",
+    "primaryAccession": "A0AB32TEZ4",
+    "uniProtkbId": "A0AB32TEZ4_DANRE",
+    "entryAudit": {
+     "firstPublicDate": "2025-02-05",
+     "lastAnnotationUpdateDate": "2026-09-02",
+     "lastSequenceUpdateDate": "2025-02-05",
+     "entryVersion": 7,
+     "sequenceVersion": 1
+    },
+    "annotationScore": 4.0,
+    "organism": {
+     "scientificName": "Danio rerio",
+     "commonName": "Zebrafish",
+     "synonyms": [
+      "Brachydanio rerio"
+     ],
+     "taxonId": 7955,
+     "evidences": [
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "Proteomes",
+       "id": "UP000000437"
+      },
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "RefSeq",
+       "id": "XP_068073411.1"
+      }
+     ],
+     "lineage": [
+      "Eukaryota",
+      "Metazoa",
+      "Chordata",
+      "Craniata",
+      "Vertebrata",
+      "Euteleostomi",
+      "Actinopterygii",
+      "Neopterygii",
+      "Teleostei",
+      "Ostariophysi",
+      "Cypriniformes",
+      "Danionidae",
+      "Danioninae",
+      "Danio"
+     ]
+    },
+    "proteinExistence": "3: Inferred from homology",
+    "proteinDescription": {
+     "recommendedName": {
+      "fullName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000256",
+         "source": "ARBA",
+         "id": "ARBA00069242"
+        }
+       ],
+       "value": "Wilms tumor protein homolog"
+      }
+     }
+    },
+    "genes": [
+     {
+      "geneName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "RefSeq",
+         "id": "XP_068073411.1"
+        },
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "ZFIN",
+         "id": "ZDB-GENE-980526-558"
+        }
+       ],
+       "value": "wt1a"
+      },
+      "synonyms": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073411.1"
+         }
+        ],
+        "value": "wt1"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073411.1"
+         }
+        ],
+        "value": "zwt1"
+       }
+      ]
+     }
+    ],
+    "comments": [
+     {
+      "commentType": "SUBCELLULAR LOCATION",
+      "subcellularLocations": [
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004496"
+          }
+         ],
+         "value": "Cytoplasm",
+         "id": "SL-0086"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004324"
+          }
+         ],
+         "value": "Nucleus speckle",
+         "id": "SL-0186"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004604"
+          }
+         ],
+         "value": "Nucleus, nucleolus",
+         "id": "SL-0188"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004642"
+          }
+         ],
+         "value": "Nucleus, nucleoplasm",
+         "id": "SL-0190"
+        }
+       }
+      ]
+     },
+     {
+      "texts": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000256",
+          "source": "ARBA",
+          "id": "ARBA00005682"
+         }
+        ],
+        "value": "Belongs to the EGR C2H2-type zinc-finger protein family"
+       }
+      ],
+      "commentType": "SIMILARITY"
+     }
+    ],
+    "features": [
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 292,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 321,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 322,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 351,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 352,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 379,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 380,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 409,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Region",
+      "location": {
+       "start": {
+        "value": 100,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 178,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Disordered",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 111,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 134,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 145,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 158,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     }
+    ],
+    "keywords": [
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022490"
+       }
+      ],
+      "id": "KW-0963",
+      "category": "Cellular component",
+      "name": "Cytoplasm"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023125"
+       }
+      ],
+      "id": "KW-0238",
+      "category": "Molecular function",
+      "name": "DNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022499"
+       }
+      ],
+      "id": "KW-1017",
+      "category": "PTM",
+      "name": "Isopeptide bond"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022723"
+       }
+      ],
+      "id": "KW-0479",
+      "category": "Ligand",
+      "name": "Metal-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023242"
+       }
+      ],
+      "id": "KW-0539",
+      "category": "Cellular component",
+      "name": "Nucleus"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "Proteomes",
+        "id": "UP000000437"
+       }
+      ],
+      "id": "KW-1185",
+      "category": "Technical term",
+      "name": "Reference proteome"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022737"
+       }
+      ],
+      "id": "KW-0677",
+      "category": "Domain",
+      "name": "Repeat"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022884"
+       }
+      ],
+      "id": "KW-0694",
+      "category": "Molecular function",
+      "name": "RNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023163"
+       }
+      ],
+      "id": "KW-0804",
+      "category": "Biological process",
+      "name": "Transcription"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023015"
+       }
+      ],
+      "id": "KW-0805",
+      "category": "Biological process",
+      "name": "Transcription regulation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022843"
+       }
+      ],
+      "id": "KW-0832",
+      "category": "PTM",
+      "name": "Ubl conjugation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022833"
+       }
+      ],
+      "id": "KW-0862",
+      "category": "Ligand",
+      "name": "Zinc"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022771"
+       },
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "PROSITE-ProRule",
+        "id": "PRU00042"
+       }
+      ],
+      "id": "KW-0863",
+      "category": "Domain",
+      "name": "Zinc-finger"
+     }
+    ],
+    "references": [
+     {
+      "referenceNumber": 1,
+      "citation": {
+       "id": "CI-FT6ASB9QRK3SG",
+       "citationType": "submission",
+       "authoringGroup": [
+        "RefSeq"
+       ],
+       "publicationDate": "JAN-2026",
+       "submissionDatabase": "UniProtKB"
+      },
+      "referencePositions": [
+       "IDENTIFICATION"
+      ],
+      "referenceComments": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073411.1"
+         }
+        ],
+        "value": "Tuebingen",
+        "type": "STRAIN"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073411.1"
+         }
+        ],
+        "value": "Fibroblasts and whole tissue",
+        "type": "TISSUE"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "RefSeq",
+        "id": "XP_068073411.1"
+       }
+      ]
+     }
+    ],
+    "uniProtKBCrossReferences": [
+     {
+      "database": "RefSeq",
+      "id": "XP_068073411.1",
+      "properties": [
+       {
+        "key": "NucleotideSequenceId",
+        "value": "XM_068217310.1"
+       }
+      ]
+     },
+     {
+      "database": "AlphaFoldDB",
+      "id": "A0AB32TEZ4",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "GeneID",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "AGR",
+      "id": "ZFIN:ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "CTD",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "ZFIN",
+      "id": "ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "GeneName",
+        "value": "wt1a"
+       }
+      ]
+     },
+     {
+      "database": "Proteomes",
+      "id": "UP000000437",
+      "properties": [
+       {
+        "key": "Component",
+        "value": "Chromosome 25"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005737",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:cytoplasm"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0016607",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nuclear speck"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005730",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleolus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0003677",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:DNA binding"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0030325",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:adrenal gland development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0032835",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072149",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte cell fate commitment"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072112",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte differentiation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0045944",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:positive regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039022",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric duct development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039021",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0048793",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephros development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27078207"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1905603",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of blood-brain barrier permeability"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "35087838"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0061032",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:visceral serous pericardium development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27484451"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000018",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Krueppel-like factor 15"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000063",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000228",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Gene3D",
+      "id": "3.30.160.60",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Classic Zinc Finger"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR000976",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms_tumour_N"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR036236",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_sf"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR013087",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_type"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "KRUEPPEL-LIKE TRANSCRIPTION FACTOR"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235:SF172",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1 TRANSCRIPTION FACTOR A"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF02165",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF00096",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "zf-C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "PRINTS",
+      "id": "PR00049",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WILMSTUMOUR"
+       }
+      ]
+     },
+     {
+      "database": "SMART",
+      "id": "SM00355",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZnF_C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "SUPFAM",
+      "id": "SSF57667",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "beta-beta-alpha zinc fingers"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS00028",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS50157",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "4"
+       }
+      ]
+     }
+    ],
+    "sequence": {
+     "value": "MGSDVRDLNTLLPPVPPLPGGNGNCTLPVSSTPQWPPMLDFHTGAPYGSLAQHSFIKQEPSWGTADPHEDPHCGLSAFTVHFSGQFTGTGACRYGAFGAPAASQPPPSQPRMFSNSPYLSNCMDSQSSSRNQGYGTVAFDGASNYGHTPSHHTPQFPNHSFKHEDSITQQSNMGDQQYPVPPPVYGCHTPSDSCTGSQALLLRNPYNSDNLYQMASQLECMGWNPVNSLASTIKSHPGGYESDPSTPMVYSCSTQYRIHTHGVFRGLQDVRRVPGITPAIVRSTETNEKRPFMCAYPGCNKRYFKLSHLQMHSRKHTGEKPYQCDFTDCGRRFSRSDQLKRHQRRHTGVKPFQCETCQRKFSRSDHLKTHTRTHTGEKPFNCRWPNCQKKFARSDELVRHHNMHQRNLTKLQLTI",
+     "length": 415,
+     "molWeight": 46522,
+     "crc64": "6F96E2A1EAC7E210",
+     "md5": "F4BD5A2625306DAFE2F6515BECE70775"
+    },
+    "extraAttributes": {
+     "countByCommentType": {
+      "SUBCELLULAR LOCATION": 1,
+      "SIMILARITY": 1
+     },
+     "countByFeatureType": {
+      "Domain": 4,
+      "Region": 1,
+      "Compositional bias": 2
+     },
+     "uniParcId": "UPI00359F5782"
+    }
+   },
+   {
+    "entryType": "UniProtKB unreviewed (TrEMBL)",
+    "primaryAccession": "A0AB32THJ0",
+    "uniProtkbId": "A0AB32THJ0_DANRE",
+    "entryAudit": {
+     "firstPublicDate": "2025-02-05",
+     "lastAnnotationUpdateDate": "2026-09-02",
+     "lastSequenceUpdateDate": "2025-02-05",
+     "entryVersion": 7,
+     "sequenceVersion": 1
+    },
+    "annotationScore": 4.0,
+    "organism": {
+     "scientificName": "Danio rerio",
+     "commonName": "Zebrafish",
+     "synonyms": [
+      "Brachydanio rerio"
+     ],
+     "taxonId": 7955,
+     "evidences": [
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "Proteomes",
+       "id": "UP000000437"
+      },
+      {
+       "evidenceCode": "ECO:0000313",
+       "source": "RefSeq",
+       "id": "XP_068073412.1"
+      }
+     ],
+     "lineage": [
+      "Eukaryota",
+      "Metazoa",
+      "Chordata",
+      "Craniata",
+      "Vertebrata",
+      "Euteleostomi",
+      "Actinopterygii",
+      "Neopterygii",
+      "Teleostei",
+      "Ostariophysi",
+      "Cypriniformes",
+      "Danionidae",
+      "Danioninae",
+      "Danio"
+     ]
+    },
+    "proteinExistence": "3: Inferred from homology",
+    "proteinDescription": {
+     "submissionNames": [
+      {
+       "fullName": {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073412.1"
+         }
+        ],
+        "value": "WT1 transcription factor a isoform X4"
+       }
+      }
+     ]
+    },
+    "genes": [
+     {
+      "geneName": {
+       "evidences": [
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "RefSeq",
+         "id": "XP_068073412.1"
+        },
+        {
+         "evidenceCode": "ECO:0000313",
+         "source": "ZFIN",
+         "id": "ZDB-GENE-980526-558"
+        }
+       ],
+       "value": "wt1a"
+      },
+      "synonyms": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073412.1"
+         }
+        ],
+        "value": "wt1"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073412.1"
+         }
+        ],
+        "value": "zwt1"
+       }
+      ]
+     }
+    ],
+    "comments": [
+     {
+      "commentType": "SUBCELLULAR LOCATION",
+      "subcellularLocations": [
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004496"
+          }
+         ],
+         "value": "Cytoplasm",
+         "id": "SL-0086"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004324"
+          }
+         ],
+         "value": "Nucleus speckle",
+         "id": "SL-0186"
+        }
+       },
+       {
+        "location": {
+         "evidences": [
+          {
+           "evidenceCode": "ECO:0000256",
+           "source": "ARBA",
+           "id": "ARBA00004604"
+          }
+         ],
+         "value": "Nucleus, nucleolus",
+         "id": "SL-0188"
+        }
+       }
+      ]
+     },
+     {
+      "texts": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000256",
+          "source": "ARBA",
+          "id": "ARBA00005682"
+         }
+        ],
+        "value": "Belongs to the EGR C2H2-type zinc-finger protein family"
+       }
+      ],
+      "commentType": "SIMILARITY"
+     }
+    ],
+    "features": [
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 293,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 322,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 323,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 352,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Domain",
+      "location": {
+       "start": {
+        "value": 353,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 380,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "C2H2-type",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000259",
+        "source": "PROSITE",
+        "id": "PS50157"
+       }
+      ]
+     },
+     {
+      "type": "Region",
+      "location": {
+       "start": {
+        "value": 100,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 178,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Disordered",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 111,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 134,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     },
+     {
+      "type": "Compositional bias",
+      "location": {
+       "start": {
+        "value": 145,
+        "modifier": "EXACT"
+       },
+       "end": {
+        "value": 158,
+        "modifier": "EXACT"
+       }
+      },
+      "description": "Polar residues",
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "SAM",
+        "id": "MobiDB-lite"
+       }
+      ]
+     }
+    ],
+    "keywords": [
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022490"
+       }
+      ],
+      "id": "KW-0963",
+      "category": "Cellular component",
+      "name": "Cytoplasm"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023125"
+       }
+      ],
+      "id": "KW-0238",
+      "category": "Molecular function",
+      "name": "DNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022723"
+       }
+      ],
+      "id": "KW-0479",
+      "category": "Ligand",
+      "name": "Metal-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023242"
+       }
+      ],
+      "id": "KW-0539",
+      "category": "Cellular component",
+      "name": "Nucleus"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "Proteomes",
+        "id": "UP000000437"
+       }
+      ],
+      "id": "KW-1185",
+      "category": "Technical term",
+      "name": "Reference proteome"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022737"
+       }
+      ],
+      "id": "KW-0677",
+      "category": "Domain",
+      "name": "Repeat"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022884"
+       }
+      ],
+      "id": "KW-0694",
+      "category": "Molecular function",
+      "name": "RNA-binding"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023163"
+       }
+      ],
+      "id": "KW-0804",
+      "category": "Biological process",
+      "name": "Transcription"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00023015"
+       }
+      ],
+      "id": "KW-0805",
+      "category": "Biological process",
+      "name": "Transcription regulation"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022833"
+       }
+      ],
+      "id": "KW-0862",
+      "category": "Ligand",
+      "name": "Zinc"
+     },
+     {
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "ARBA",
+        "id": "ARBA00022771"
+       },
+       {
+        "evidenceCode": "ECO:0000256",
+        "source": "PROSITE-ProRule",
+        "id": "PRU00042"
+       }
+      ],
+      "id": "KW-0863",
+      "category": "Domain",
+      "name": "Zinc-finger"
+     }
+    ],
+    "references": [
+     {
+      "referenceNumber": 1,
+      "citation": {
+       "id": "CI-FT6ASB9QRK3SG",
+       "citationType": "submission",
+       "authoringGroup": [
+        "RefSeq"
+       ],
+       "publicationDate": "JAN-2026",
+       "submissionDatabase": "UniProtKB"
+      },
+      "referencePositions": [
+       "IDENTIFICATION"
+      ],
+      "referenceComments": [
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073412.1"
+         }
+        ],
+        "value": "Tuebingen",
+        "type": "STRAIN"
+       },
+       {
+        "evidences": [
+         {
+          "evidenceCode": "ECO:0000313",
+          "source": "RefSeq",
+          "id": "XP_068073412.1"
+         }
+        ],
+        "value": "Fibroblasts and whole tissue",
+        "type": "TISSUE"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000313",
+        "source": "RefSeq",
+        "id": "XP_068073412.1"
+       }
+      ]
+     }
+    ],
+    "uniProtKBCrossReferences": [
+     {
+      "database": "RefSeq",
+      "id": "XP_068073412.1",
+      "properties": [
+       {
+        "key": "NucleotideSequenceId",
+        "value": "XM_068217311.1"
+       }
+      ]
+     },
+     {
+      "database": "AlphaFoldDB",
+      "id": "A0AB32THJ0",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "GeneID",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "AGR",
+      "id": "ZFIN:ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "CTD",
+      "id": "30245",
+      "properties": [
+       {
+        "key": "Description",
+        "value": "-"
+       }
+      ]
+     },
+     {
+      "database": "ZFIN",
+      "id": "ZDB-GENE-980526-558",
+      "properties": [
+       {
+        "key": "GeneName",
+        "value": "wt1a"
+       }
+      ]
+     },
+     {
+      "database": "Proteomes",
+      "id": "UP000000437",
+      "properties": [
+       {
+        "key": "Component",
+        "value": "Chromosome 25"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005737",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:cytoplasm"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0016607",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nuclear speck"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0005730",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "C:nucleolus"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-SubCell"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1990837",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "F:sequence-specific double-stranded DNA binding"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0030325",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:adrenal gland development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0032835",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072149",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte cell fate commitment"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0072112",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:podocyte differentiation"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25145932"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039022",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric duct development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IGI:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000316",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0039021",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephric glomerulus development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "21871448"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0048793",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:pronephros development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "12668625"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "17651719"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "25014653"
+       },
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27078207"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:1905603",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of blood-brain barrier permeability"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "35087838"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0006357",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:regulation of transcription by RNA polymerase II"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IEA:UniProtKB-ARBA"
+       }
+      ]
+     },
+     {
+      "database": "GO",
+      "id": "GO:0061032",
+      "properties": [
+       {
+        "key": "GoTerm",
+        "value": "P:visceral serous pericardium development"
+       },
+       {
+        "key": "GoEvidenceType",
+        "value": "IMP:ZFIN"
+       }
+      ],
+      "evidences": [
+       {
+        "evidenceCode": "ECO:0000315",
+        "source": "PubMed",
+        "id": "27484451"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000018",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Krueppel-like factor 15"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000228",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms tumor 1-KTS isoform"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "FunFam",
+      "id": "3.30.160.60:FF:000303",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Zinc finger protein 41"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Gene3D",
+      "id": "3.30.160.60",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Classic Zinc Finger"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR000976",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Wilms_tumour_N"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR036236",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_sf"
+       }
+      ]
+     },
+     {
+      "database": "InterPro",
+      "id": "IPR013087",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "Znf_C2H2_type"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "KRUEPPEL-LIKE TRANSCRIPTION FACTOR"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "PANTHER",
+      "id": "PTHR23235:SF172",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1 TRANSCRIPTION FACTOR A"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF02165",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WT1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "1"
+       }
+      ]
+     },
+     {
+      "database": "Pfam",
+      "id": "PF00096",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "zf-C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PRINTS",
+      "id": "PR00049",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "WILMSTUMOUR"
+       }
+      ]
+     },
+     {
+      "database": "SMART",
+      "id": "SM00355",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZnF_C2H2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "SUPFAM",
+      "id": "SSF57667",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "beta-beta-alpha zinc fingers"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "2"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS00028",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_1"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     },
+     {
+      "database": "PROSITE",
+      "id": "PS50157",
+      "properties": [
+       {
+        "key": "EntryName",
+        "value": "ZINC_FINGER_C2H2_2"
+       },
+       {
+        "key": "MatchStatus",
+        "value": "3"
+       }
+      ]
+     }
+    ],
+    "sequence": {
+     "value": "MGSDVRDLNTLLPPVPPLPGGNGNCTLPVSSTPQWPPMLDFHTGAPYGSLAQHSFIKQEPSWGTADPHEDPHCGLSAFTVHFSGQFTGTGACRYGAFGAPAASQPPPSQPRMFSNSPYLSNCMDSQSSSRNQGYGTVAFDGASNYGHTPSHHTPQFPNHSFKHEDSITQQSNMGDQQYPVPPPVYGCHTPSDSCTGSQALLLRNPYNSSDNLYQMASQLECMGWNPVNSLASTIKSHPGGYESDPSTPMVYSCSTQYRIHTHGVFRGLQDVRRVPGITPAIVRSTETNEKRPFMCAYPGCNKRYFKLSHLQMHSRKHTGEKPYQCDFTDCGRRFSRSDQLKRHQRRHTGVKPFQCETCQRKFSRSDHLKTHTRTHTGKTSA",
+     "length": 381,
+     "molWeight": 42196,
+     "crc64": "9AD7AB2FD73A6549",
+     "md5": "1157E5B43F0AF488A2815E87A3753964"
+    },
+    "extraAttributes": {
+     "countByCommentType": {
+      "SUBCELLULAR LOCATION": 1,
+      "SIMILARITY": 1
+     },
+     "countByFeatureType": {
+      "Domain": 3,
+      "Region": 1,
+      "Compositional bias": 2
+     },
+     "uniParcId": "UPI0035A13CD7"
+    }
+   }
+  ]
+ }
+}
