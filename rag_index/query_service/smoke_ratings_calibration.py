@@ -7,6 +7,12 @@ scores), consenso que cuenta sin promediar, la cola de pendientes, y el reporte 
 declarado, poder declarado con n<umbral (jamás un número ciego), la ruta n>=10 con isotonic, y la
 separación médico/dev.
 
+ADR-0079 (F): el reporte se acota por `runs.origin` (default: solo 'production' + NULL pre-ADR declarado
+en origin_unknown_included), `include_origins` amplía de forma explícita, y excluded_by_origin cuenta lo
+que quedó fuera. Decisión de origen para ESTE smoke: las corridas sintéticas van directo a BD sin servidor
+que derive origen -> NULL (honesto), incluidas y declaradas; la exclusión se prueba con corridas marcadas
+'smoke'/'simulation' explícitamente (la BD es SQLite temporal: nada que contaminar).
+
 100% offline: BD = SQLite tmp; cero red, cero OpenAI, cero mutación de la DATA INAMOVIBLE.
 Corre:  python rag_index/query_service/smoke_ratings_calibration.py   (venv del servicio, NO el del MCP)
 """
@@ -61,10 +67,17 @@ AUTH_MAR = "Bearer " + app.login(app.LoginBody(username="marcelo", password="pw-
 AUTH_EMM = "Bearer " + app.login(app.LoginBody(username="emmanuel", password="pw-emm"))["token"]
 
 
-def mk_run(author, state="closed", conf=0.9, conf_state="value", conf_source="stated", frozen=True):
-    """Corrida sintética directa a BD (el pipeline real lo cubre smoke_run_pipeline.py)."""
+def mk_run(author, state="closed", conf=0.9, conf_state="value", conf_source="stated", frozen=True,
+           origin=None):
+    """Corrida sintética directa a BD (el pipeline real lo cubre smoke_run_pipeline.py).
+
+    ADR-0079: `origin` por default None = NULL en la fila. Estas corridas no pasan por el servidor que
+    deriva el origen (runs.run_origin), así que NULL es su estado honesto — 'unknown-pre-adr-0079' —
+    y /calibration las INCLUYE declarándolas en origin_unknown_included. Por eso los checks previos no
+    cambian aunque WITT_RUN_ORIGIN=smoke esté en el entorno; la exclusión por origen se prueba abajo
+    con corridas marcadas explícitamente."""
     rid = uuid.uuid4().hex
-    db.create_run(rid, author, f"q-{rid[:8]}")
+    db.create_run(rid, author, f"q-{rid[:8]}", origin=origin)
     values = {"state": state}
     if frozen:
         rec = {"run_id": rid, "confidence": {"final": conf, "state": conf_state, "source": conf_source},
@@ -297,6 +310,43 @@ check("M5 v2: la declinación honesta bien calificada SÍ entra al titular pero 
       cal_d["ece_excluding_declines"]["n_excluded_declines"] >= 1
       and cal_d["ece_excluding_declines"]["n"] == cal_d["n_scored"]
                                                   - cal_d["ece_excluding_declines"]["n_excluded_declines"])
+
+# ---- 10. ADR-0079 (F): el reporte se acota por ORIGEN y lo DECLARA — misma disciplina que `power` ---------
+# Hasta aquí todas las corridas cerradas nacieron con origin NULL (directas a BD, sin servidor que derive):
+# entran por default y se cuentan como desconocidas. Nada se excluyó todavía.
+check("ADR-0079a: por default origins_included=['production'], excluded_by_origin={} y TODAS las cerradas "
+      "de este smoke se declaran origin_unknown_included (NULL = pre-ADR, incluidas y contadas)",
+      cal_d["origins_included"] == ["production"] and cal_d["excluded_by_origin"] == {}
+      and cal_d["origin_unknown_included"] == cal_d["n_closed"] and cal_d["n_closed"] > 0
+      and "ADR-0074" in cal_d["origin_policy"] and "origin" in cal_d["scope"],
+      f"n_closed={cal_d['n_closed']} unknown={cal_d['origin_unknown_included']}")
+# una corrida de SMOKE cerrada, con confianza y calificación positiva: por default NO entra al ECE
+r_smk = mk_run("natalia", state="closed", conf=0.95, origin="smoke")
+app.add_rating(r_smk, app.RatingBody(rating_input=4, rating_output=5), authorization=AUTH_MAR)
+r_sim = mk_run("natalia", state="closed", conf=0.95, origin="simulation")
+app.add_rating(r_sim, app.RatingBody(rating_input=4, rating_output=5), authorization=AUTH_MAR)
+cal_o = app.calibration_report(authorization=AUTH_EMM)
+check("ADR-0079b: la corrida 'smoke' y la 'simulation' se EXCLUYEN del titular y se CUENTAN "
+      "(excluded_by_origin={'simulation':1,'smoke':1}); n_scored y n_closed NO las incluyen",
+      cal_o["excluded_by_origin"] == {"simulation": 1, "smoke": 1}
+      and cal_o["n_scored"] == cal_d["n_scored"] and cal_o["n_closed"] == cal_d["n_closed"],
+      f"excl={cal_o['excluded_by_origin']} n_scored={cal_o['n_scored']} (antes {cal_d['n_scored']})")
+cal_i = calibration.report(include_origins=["production", "smoke"])
+check("ADR-0079c: include_origins=['production','smoke'] amplía EXPLÍCITAMENTE: la smoke entra al par "
+      "(n_scored+1, n_closed+1), la simulation sigue excluida y declarada, el alcance viaja en la respuesta",
+      cal_i["n_scored"] == cal_d["n_scored"] + 1 and cal_i["n_closed"] == cal_d["n_closed"] + 1
+      and cal_i["origins_included"] == ["production", "smoke"]
+      and cal_i["excluded_by_origin"] == {"simulation": 1}
+      and cal_i["origin_unknown_included"] == cal_d["origin_unknown_included"],
+      f"n_scored={cal_i['n_scored']} excl={cal_i['excluded_by_origin']}")
+check("ADR-0079d: por el endpoint, include_origins como CSV ('smoke') acota a smoke + NULL declarado; "
+      "un origen fuera del enum -> 400 (un corpus vacío no debe confundirse con 'no hay corridas')",
+      app.calibration_report(include_origins="smoke", authorization=AUTH_EMM)["origins_included"] == ["smoke"]
+      and app.calibration_report(include_origins="smoke",
+                                 authorization=AUTH_EMM)["excluded_by_origin"] == {"simulation": 1}
+      and _http_error(app.calibration_report, include_origins="pruebita", authorization=AUTH_EMM) == 400)
+check("ADR-0079e: el TITULAR sigue siendo NO-SPEND y auto-declarado tras el filtro (ece.n == n_scored)",
+      cal_o["ece"]["n"] == cal_o["n_scored"] and "NO-SPEND" in cal_o["cost_class"])
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))

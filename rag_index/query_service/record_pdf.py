@@ -14,6 +14,10 @@ este producto existe para hacer imposible. Reglas del contrato (decisión del fu
   3. El estado epistémico va ARRIBA de la respuesta (el orden de lectura es el orden de confianza).
   4. La identidad manda: `question_matches_run == false` ⇒ el PDF NO SE GENERA (misma regla que
      la hoja, ADR-0044).
+  5. ADR-0079: dos secciones nuevas — 'EJES DEL EPISODIO' (junto al estado, arriba) e 'INVESTIGACION'
+     (turno, padre, precedente en LETRAS marcado NO ADMISIBLE COMO EVIDENCIA, origen, identidad del
+     padre). Tres estados por llave: registro sin la llave ⇒ 'NO INSTRUMENTADO (contrato < 1.8)';
+     null-declarado con razón; valor. Nada se rellena.
 
 Tipografía: fuentes core (latin-1) con saneo DECLARADO de caracteres fuera de latin-1 (em-dash→'-',
 etc.) — la fidelidad exigida es EPISTÉMICA (el estado viaja), no tipográfica; embeber un TTF queda
@@ -70,6 +74,203 @@ _ABSENCE_GLOSS = {
     "no-evidence-retrieved": "el store no sabe - NO dice nada del mundo (dispara re-ingesta, no conclusion)",
     "evidence-of-no-effect": "evidencia ACTIVA de efecto nulo - estado OPUESTO a no-encontrado",
 }
+
+# --- ADR-0079: la investigacion (T-<run_no raiz>) y los ejes del episodio, EN PALABRAS ----------------
+# Tres estados por llave (ADR-0074): la llave NO EXISTE en el registro -> 'NO INSTRUMENTADO (contrato
+# < 1.8)' (la corrida nacio antes del contrato; jamas se rellena); null-declarado con razon; valor.
+_NOT_INSTRUMENTED = "NO INSTRUMENTADO (contrato < 1.8) - el registro nacio antes de ADR-0079; no se rellena"
+
+_TURN_KIND_GLOSS = {
+    "root": "raiz - abre la investigacion",
+    "refine": "refinamiento - pregunta o entidades cambiaron respecto al padre",
+    "rerun": "re-ejecucion - misma pregunta y entidades que el padre",
+    "branch": "rama - el padre ya tenia otro hijo",
+}
+
+_ORIGIN_GLOSS = {
+    "production": "produccion - cuenta como precedente y para calibracion",
+    "dev-offline": "desarrollo sin red - NO cuenta como precedente ni para calibracion",
+    "replay": "re-ejecucion de registro - NO cuenta",
+    "smoke": "prueba automatizada - NO cuenta",
+    "simulation": "simulacion - NO cuenta",
+    "fixture": "fixture de prueba - NO cuenta",
+    None: "unknown-pre-adr-0079 - anterior a la columna origin; incluida en precedente y DECLARADA como desconocida",
+}
+
+# Tabla de mapeo de los cuatro ejes (ADR-0079 G, clase 'derived-at-freeze'): la palabra viene del enum,
+# el enum viene del registro. Un literal fuera de tabla se imprime tal cual y se marca.
+_AXIS_WORDS = {
+    "world": {
+        "effect-claimed": "MUNDO: se afirma un efecto (aprobada, evidencia positiva)",
+        "null-bounded": "MUNDO: efecto nulo ACOTADO por evidencia activa (opuesto a no-encontrado)",
+        "indeterminate": "MUNDO: INDETERMINADO - el store no sabe; no dice nada del mundo",
+        "not-established": "MUNDO: NO ESTABLECIDO - la auditoria rechazo la respuesta",
+        "not-assessed": "MUNDO: SIN EVALUAR - no hubo auditoria",
+    },
+    "inference": {
+        "supported": "INFERENCIA: sostenida (APPROVE)",
+        "minor-issues": "INFERENCIA: sostenida con observaciones menores (APPROVE_MINOR)",
+        "honest-decline": "INFERENCIA: declinacion honesta (APPROVE_DECLINE) - el sistema hizo lo correcto",
+        "insufficient": "INFERENCIA: insuficiente (REVISE)",
+        "not-evaluated": "INFERENCIA: sin veredicto",
+    },
+    "technical": {
+        "completed": "TECNICO: completada con recuperacion semantica",
+        "degraded": "TECNICO: DEGRADADA - termino, pero la recuperacion no fue semantica",
+        "failed": "TECNICO: fallo",
+        "cancelled": "TECNICO: cancelada",
+    },
+}
+
+
+# Corrector ADR-0079: por que thread_parent_matches_run es null — tres estados, cada uno con su glosa
+_PARENT_MATCH_NULL_GLOSS = {
+    "no-parent": "no aplica (turno raiz)",
+    "no-snapshot": "no verificable: el snapshot no viajo (ver thread_context_skipped_reason)",
+    "parent-without-frozen-record": "no verificable: el padre no tiene registro congelado",
+}
+# Corrector ADR-0079: por que precedent_citations esta vacio (la letra solo se emite con padre 'closed')
+_PRECEDENT_EMPTY_GLOSS = {
+    "no-parent": "sin turno previo",
+    "parent-not-closed": "el padre no esta cerrado - no es precedente (ADR-0053) aunque su snapshot viaje",
+    "parent-without-frozen-record": "el padre no tiene registro congelado (failed/cancelled)",
+}
+
+
+def _thread_label(record, thread):
+    """'T-<run_no de la raiz>' leido UNICAMENTE de thread.root_run_no (costura T5: runs._root_run_no lo sella
+    en todo turno); si no consta, se DECLARA — jamas se infiere del run_id, del parent_run_no ni del turn_no.
+    Corrector ADR-0079: se quitaron los dos fallbacks que inferian (turn_kind 'root' -> record.run_no, llave
+    que el registro no lleva en la raiz; turn_no 2 -> parent_run_no): un PDF que promete no inferir no
+    tiene ramas que infieren."""
+    root_no = thread.get("root_run_no")
+    if root_no is not None:
+        return f"T-{root_no}"
+    return f"T-? (el run_no de la raiz no consta en el registro; thread_id={thread.get('thread_id')})"
+
+
+def _section_investigacion(pdf, record):
+    """ADR-0079: la investigacion a la que pertenece la corrida + precedente en LETRAS + origen."""
+    _h(pdf, "INVESTIGACION (ADR-0079) - turnos encadenados; el turno previo es PRECEDENTE, jamas evidencia")
+    if "thread" not in record:
+        _p(pdf, f"[?] {_NOT_INSTRUMENTED}", style="I", size=8)
+    else:
+        thread = record.get("thread") or {}
+        if not thread:
+            _p(pdf, "thread: null declarado - la corrida no pertenece a ninguna investigacion", style="I", size=8)
+        else:
+            kind = thread.get("turn_kind")
+            _p(pdf, f"investigacion {_thread_label(record, thread)}   |   turno {thread.get('turn_no')} - "
+                    f"{_TURN_KIND_GLOSS.get(kind, f'clase fuera de tabla: {kind}')}", style="B", size=9)
+            if thread.get("parent_run_id"):
+                _p(pdf, f"padre: corrida #{thread.get('parent_run_no')} ({thread.get('parent_run_id')}) en estado "
+                        f"{thread.get('parent_state')}", size=8)
+            else:
+                _p(pdf, "padre: ninguno (turno raiz)", size=8)
+            if thread.get("root_question_id"):
+                _p(pdf, f"pregunta raiz (apunte): {thread.get('root_question_id')}", size=8)
+        # el snapshot que el modelo vio: se declara si viajo o por que no (nunca se imprime entero)
+        if "thread_context" in record:
+            tc = record.get("thread_context")
+            skipped = ((tc or {}).get("skipped_reason") or thread.get("thread_context_skipped_reason")
+                       or thread.get("skipped_reason") or record.get("thread_context_skipped_reason"))
+            if tc is None:
+                _p(pdf, f"thread_context: null declarado - razon: {skipped or 'no consta'}", size=8)
+            else:
+                ks = tc.get("kill_switch") or {}
+                hc = tc.get("human_comments")
+                # T5 (integrador, ADR-0079 C): runs.py persiste human_comments como SOBRE {items, n_total,
+                # n_included, truncated, class 'atestiguada'}; una lista cruda se tolera (lectura ADR-0074);
+                # cualquier otra forma = 'no consta' (jamas se cuenta lo que no se sabe contar).
+                if isinstance(hc, dict):
+                    n_hc = f"{hc.get('n_included', '?')} de {hc.get('n_total', '?')}"
+                    hc_trunc = bool(hc.get("truncated"))
+                elif isinstance(hc, list):
+                    n_hc, hc_trunc = str(len(hc)), bool(tc.get("truncated"))
+                else:
+                    n_hc, hc_trunc = "no consta", False
+                _p(pdf, f"thread_context: viajo al modelo ({tc.get('bytes', '?')} bytes, snapshot {tc.get('snapshot_at')})"
+                        f" - comentarios humanos: {n_hc}"
+                        f"{' (TRUNCADOS al tope)' if hc_trunc else ''}"
+                        f" - kill_switch WITT_THREAD_CONTEXT={ks.get('WITT_THREAD_CONTEXT', 'no consta')}"
+                        + (f" - {skipped}" if skipped else "")
+                        + (" - PADRE PRE-ADR-0079 (raiz virtual)" if tc.get("parent_pre_adr_0079") else ""),
+                   size=8)
+                _p(pdf, "excluido del snapshot por regla: valores y notas de calificacion (enmascarados por "
+                        "solicitante, jamas promediados)", size=7)
+        if "thread_parent_matches_run" in record:
+            m = record.get("thread_parent_matches_run")
+            if m is None:
+                # corrector ADR-0079: null NO es 'turno raiz' — el estado dice por que es null (un hijo con
+                # kill-switch o con padre failed tambien trae null); estado ausente = no consta
+                st = record.get("thread_parent_matches_run_state")
+                glosa = _PARENT_MATCH_NULL_GLOSS.get(st, f"estado fuera de tabla: {st}" if st else "estado no consta")
+                _p(pdf, f"identidad del padre: {glosa} - null declarado", size=8)
+            else:
+                _p(pdf, "identidad del padre: " + ("COINCIDE - el snapshot que vio el modelo es el registro "
+                                                    "congelado del padre (sha256 sobre el blob sin frozen_at/closed_by)"
+                                                    if m else
+                                                    "NO COINCIDE - el snapshot NO corresponde al registro del padre"),
+                   style="B" if m is False else "", size=8)
+    # precedente en LETRAS: la serie que no puede producir numeros
+    if "precedent_citations" not in record:
+        _p(pdf, f"precedente citado: [?] {_NOT_INSTRUMENTED}", style="I", size=8)
+    else:
+        pcs = record.get("precedent_citations") or []
+        if not pcs:
+            pst = record.get("precedent_citations_state")
+            razon = _PRECEDENT_EMPTY_GLOSS.get(pst, f"estado fuera de tabla: {pst}" if pst else "razon no consta")
+            _p(pdf, f"precedente citado: ninguno (lista vacia declarada - {razon})", size=8)
+        for c in pcs:
+            who = f"turno {c.get('turn_no')} - " if c.get("turn_no") is not None else ""
+            no = f"corrida #{c.get('run_no')}" if c.get("run_no") is not None else c.get("run_id")
+            _p(pdf, f"  [{c.get('l')}] {c.get('kind') or 'precedente'}: {who}{no} - {c.get('question')}"
+                    f"  -  NO ADMISIBLE COMO EVIDENCIA", size=8)
+    # origen
+    if "origin" not in record:
+        _p(pdf, f"origen: [?] {_NOT_INSTRUMENTED}", style="I", size=8)
+    else:
+        og = record.get("origin") or {}
+        val = og.get("value") if isinstance(og, dict) else og
+        src = og.get("source") if isinstance(og, dict) else "no consta"
+        gloss = _ORIGIN_GLOSS.get(val, f"fuera del enum ({val}) - declarado, la corrida se creo igual")
+        _p(pdf, f"origen: {val if val is not None else 'null'} - {gloss}   |   fuente (al encolar): {src}", size=8)
+        sae = og.get("source_at_execution") if isinstance(og, dict) else None
+        if isinstance(sae, dict) and sae.get("same_value_as_column") is False:
+            # corrector ADR-0079: el entorno al ejecutar derivaba OTRO valor — se declara, no se funde en `source`
+            _p(pdf, f"  al ejecutar el entorno derivaba {sae.get('value')!r} ({sae.get('source')}) - "
+                    "distinto de la columna; la columna manda", size=7)
+    _rule(pdf)
+
+
+def _section_ejes(pdf, record):
+    """ADR-0079 G: los cuatro ejes del episodio en palabras (clase derived-at-freeze, tabla de mapeo)."""
+    _h(pdf, "EJES DEL EPISODIO (ADR-0079) - derivados al congelar, cuatro ejes, jamas un enum unico")
+    if "episode_axes" not in record:
+        _p(pdf, f"[?] {_NOT_INSTRUMENTED}", style="I", size=8)
+        _rule(pdf)
+        return
+    axes = record.get("episode_axes")
+    if not axes:
+        _p(pdf, "episode_axes: null declarado - los ejes no se derivaron", style="I", size=8)
+        _rule(pdf)
+        return
+    for axis in ("world", "inference", "technical"):
+        v = axes.get(axis)
+        words = _AXIS_WORDS[axis].get(v)
+        if words is None:
+            words = (f"{axis.upper()}: {'null declarado' if v is None else f'LITERAL FUERA DE TABLA: {v}'}")
+        _p(pdf, "  - " + words, size=8)
+    prov = axes.get("provenance") or {}
+    gates = prov.get("human_gates") or {}
+    turn = prov.get("turn") or {}
+    _p(pdf, f"  - PROCEDENCIA: origen {prov.get('origin') if prov.get('origin') is not None else 'null'}   |   "
+            f"plan declarado: {'SI' if gates.get('plan_declared') else 'NO'}   |   "
+            f"cerrada por humano: {'SI' if gates.get('closed') else 'NO'}   |   "
+            f"turno {turn.get('turn_no')} ({turn.get('turn_kind')}) de {turn.get('thread_id')}", size=8)
+    _p(pdf, "clase: derived-at-freeze - cada eje sale de una tabla de mapeo declarada (decision_state x "
+            "absence_kind x veredicto x estado x modo de recuperacion); no es medicion nueva", size=7)
+    _rule(pdf)
 
 
 class _Doc(FPDF):
@@ -154,6 +355,9 @@ def build_pdf(record, compress=True):
             f"   |   may_answer_now: {'SI' if ds.get('may_answer_now') else 'NO'}"
             f"   |   may_propose_now: {'SI' if ds.get('may_propose_now') else 'NO'}")
     _rule(pdf)
+
+    # --- 1b. los ejes del episodio (ADR-0079 G) van con el estado, ARRIBA de la respuesta -----------
+    _section_ejes(pdf, record)
 
     # --- 2. auditoria adversarial (siempre; el estado sano tambien se declara) --------------------
     audit = record.get("audit") or {}
@@ -263,6 +467,9 @@ def build_pdf(record, compress=True):
         for a in alts:
             _p(pdf, f"  - {a}", size=8)
     _rule(pdf)
+
+    # --- 5b. la investigacion (ADR-0079): turnos, precedente en LETRAS, origen ----------------------
+    _section_investigacion(pdf, record)
 
     # --- 6. costo + consenso + pie ------------------------------------------------------------------
     tu = record.get("token_usage")

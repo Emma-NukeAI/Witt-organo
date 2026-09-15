@@ -57,6 +57,16 @@ sessions = Table(
 
 RUN_STATES = ("queued", "running", "awaiting_closure", "closed", "failed", "cancelled")
 
+# ADR-0079 (investigación = cadena de turnos sobre una raíz). db SÓLO persiste y consulta estas
+# columnas; la DERIVACIÓN (thread_id, turn_no, turn_kind, origin, snapshot de contexto) es de runs.py
+# al encolar — jamás del cliente. Los enums viven aquí porque la columna vive aquí.
+TURN_KINDS = ("root", "refine", "rerun", "branch")
+RUN_ORIGINS = ("production", "dev-offline", "replay", "smoke", "simulation", "fixture")
+# Columnas que nacen con ADR-0079. Las filas anteriores quedan NULL en TODAS = "sin investigación" /
+# origin NULL = 'unknown-pre-adr-0079': ausencia DECLARADA (ADR-0074: nada se backfillea en silencio).
+THREAD_COLUMNS = ("parent_run_id", "thread_id", "turn_no", "turn_kind", "thread_context_json",
+                  "origin", "root_question_id")
+
 runs = Table(
     "runs", metadata,
     Column("run_id", String(64), primary_key=True),
@@ -84,6 +94,14 @@ runs = Table(
     Column("plan_json", Text),                                # ADR-0061: el plan declarado, copiado al encolar
     Column("bundle_json", Text),                              # the full evidence bundle (ADR-0043/0044)
     Column("frozen_record_json", Text),                       # the frozen record the UI renders (read-only)
+    # ADR-0079 — la investigación (T-<run_no raíz>): una corrida puede nacer DESDE otra terminada.
+    Column("parent_run_id", String(64)),                      # la corrida de la que nace; NULL = raíz o pre-ADR
+    Column("thread_id", String(64)),                          # run_id de la raíz; la raíz apunta a sí misma
+    Column("turn_no", Integer),                               # 1 en la raíz; max(hilo)+1 en cada hijo
+    Column("turn_kind", String(16)),                          # TURN_KINDS
+    Column("thread_context_json", Text),                      # snapshot del padre que el modelo VIO (servidor)
+    Column("origin", String(24)),                             # RUN_ORIGINS | 'invalid-env:<v>'; NULL = pre-ADR
+    Column("root_question_id", String(64)),                   # apunte->pregunta raíz, conservada por investigación
 )
 
 plans = Table(
@@ -260,12 +278,36 @@ def _migrate():
                  "ALTER TABLE run_ratings ADD COLUMN note_question TEXT DEFAULT ''",
                  # ADR-0078: quién reclamó la corrida y cuándo — el insumo del reaper y de la vista.
                  "ALTER TABLE runs ADD COLUMN claimed_by VARCHAR(64)",
-                 f"ALTER TABLE runs ADD COLUMN claimed_at {_dt_type}"):
+                 f"ALTER TABLE runs ADD COLUMN claimed_at {_dt_type}",
+                 # ADR-0079: la investigación. Aditivas, SIN backfill: una corrida anterior queda NULL en
+                 # todas = "sin investigación" (ausencia declarada, no se le inventa raíz ni origen).
+                 "ALTER TABLE runs ADD COLUMN parent_run_id VARCHAR(64)",
+                 "ALTER TABLE runs ADD COLUMN thread_id VARCHAR(64)",
+                 "ALTER TABLE runs ADD COLUMN turn_no INTEGER",
+                 "ALTER TABLE runs ADD COLUMN turn_kind VARCHAR(16)",
+                 "ALTER TABLE runs ADD COLUMN thread_context_json TEXT",
+                 "ALTER TABLE runs ADD COLUMN origin VARCHAR(24)",
+                 "ALTER TABLE runs ADD COLUMN root_question_id VARCHAR(64)"):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
         except Exception:
             pass  # column already there
+    # ADR-0079: índices de consulta de la investigación (hijos de una corrida, turnos de un hilo). No
+    # únicos: un padre tiene N hijos (branch) y un hilo N turnos. IF NOT EXISTS = idempotente.
+    # Corrector ADR-0079: índice ÚNICO (thread_id, turn_no) — el mismo patrón que ix_runs_run_no: dos hijos
+    # encolados a la vez que leyeran el mismo máximo del hilo compartirían turn_no (y el cursor `after` =
+    # turn_no exclusivo perdería uno de los dos); el índice rechaza al segundo y runs.new_run re-deriva.
+    # Las filas pre-ADR (NULL, NULL) no chocan: NULL es distinto de NULL en SQLite y Postgres.
+    for stmt in ("CREATE INDEX IF NOT EXISTS ix_runs_thread_id ON runs (thread_id)",
+                 "CREATE INDEX IF NOT EXISTS ix_runs_parent_run_id ON runs (parent_run_id)",
+                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_runs_thread_turn ON runs (thread_id, turn_no)"):
+        try:
+            with engine().begin() as cx:
+                cx.execute(text(stmt))
+        except Exception as e:
+            import sys as _sys
+            print(f"[db._migrate] ADR-0079 índice no aplicó: {e!r}", file=_sys.stderr)
     # ADR-0076 — backfill del NÚMERO de corrida para las que nacieron antes de la columna: en orden de
     # creación (la más vieja = 1; empate por run_id, así el resultado es determinista), continuando
     # después del máximo que ya exista. Es asignación de identidad sobre un hecho que ya estaba en el
@@ -411,13 +453,24 @@ def _dt_utc(v):
     return v
 
 
-def create_run(run_id: str, user_id: str, question: str, entities=None, plan_json=None):
+def create_run(run_id: str, user_id: str, question: str, entities=None, plan_json=None,
+               parent_run_id=None, thread_id=None, turn_no=None, turn_kind=None,
+               thread_context_json=None, origin=None, root_question_id=None):
     """ADR-0076: el NÚMERO de corrida se asigna AQUÍ, al nacer — MAX(run_no)+1 dentro de la misma
     transacción del INSERT. Si dos corridas se encolan a la vez y leen el mismo máximo (Postgres en
     READ COMMITTED lo permite), el índice único ix_runs_run_no rechaza a la segunda y ésta reintenta
     con el número siguiente. Sin fallback a null: una corrida sin número sería la ambigüedad que el
-    número elimina. Devuelve el número asignado."""
+    número elimina. Devuelve el número asignado.
+
+    ADR-0079: los campos de la investigación (THREAD_COLUMNS) se PERSISTEN tal como los deriva el
+    llamador (runs.py, servidor) — db no deriva thread_id ni turn_kind. Default None en todos para no
+    romper a los llamadores actuales; un None aquí queda NULL = ausencia declarada, así que el llamador
+    que encola una RAÍZ debe pasar explícitamente thread_id=run_id, turn_no=1, turn_kind='root' y su
+    origin. Lo único que db valida es el enum de turn_kind (una fila con un tipo fuera de TURN_KINDS
+    sería un hueco en el registro)."""
     from sqlalchemy.exc import IntegrityError
+    if turn_kind is not None and turn_kind not in TURN_KINDS:
+        raise ValueError(f"turn_kind {turn_kind!r} not in {TURN_KINDS} (ADR-0079)")
     ultimo_error = None
     for _intento in range(5):
         try:
@@ -427,7 +480,11 @@ def create_run(run_id: str, user_id: str, question: str, entities=None, plan_jso
                                                 question=question,
                                                 entities_csv=",".join(entities or []), state="queued",
                                                 created_at=_now(), cancel_requested=False,
-                                                plan_json=plan_json))
+                                                plan_json=plan_json,
+                                                parent_run_id=parent_run_id, thread_id=thread_id,
+                                                turn_no=turn_no, turn_kind=turn_kind,
+                                                thread_context_json=thread_context_json,
+                                                origin=origin, root_question_id=root_question_id))
             return siguiente
         except IntegrityError as e:
             # sólo se reintenta la CARRERA del número; un run_id repetido es otro defecto y sube tal cual
@@ -460,16 +517,69 @@ def mark_plan_used(plan_id: str, run_id: str):
     return n == 1
 
 
-def plan_history(limit=200):
+def _origin_where(q, include_origins, include_unknown=True):
+    """ADR-0079 — filtro OPCIONAL por procedencia de la corrida. include_origins=None = sin filtro (el
+    llamador decide; db no impone 'production'). Con lista: origin IN lista, y las filas con origin NULL
+    (anteriores al ADR, 'unknown-pre-adr-0079') se INCLUYEN por default — su ausencia se declara con
+    excluded_by_origin(), no se esconde. include_unknown=False las saca también."""
+    if include_origins is None:
+        return q
+    cond = runs.c.origin.in_(list(include_origins))
+    if include_unknown:
+        cond = cond | runs.c.origin.is_(None)
+    return q.where(cond)
+
+
+def excluded_by_origin(include_origins, states=None, frm=None, to=None, run_ids=None):
+    """ADR-0079 — el CONTADOR que acompaña a todo filtro por origin: lo que un consumidor dejó fuera
+    se DECLARA en su respuesta, jamás desaparece en silencio. Sobre la misma base que el consumidor
+    (mismos states / rango de fechas / run_ids) devuelve:
+      {origins_included: [...], excluded_by_origin: {origin: n}, origin_unknown_included: n, n_included: n}
+    origin_unknown_included = filas con origin NULL (pre-ADR) que el filtro sí dejó pasar. Con
+    include_origins=None no hay exclusión: excluded_by_origin={} y origins_included=None (declarado)."""
+    q = select(runs.c.origin, func.count())
+    if states is not None:
+        q = q.where(runs.c.state.in_(tuple(states)))
+    if frm is not None:
+        q = q.where(runs.c.created_at >= frm)
+    if to is not None:
+        q = q.where(runs.c.created_at <= to)
+    if run_ids is not None:
+        ids = [r for r in run_ids if r]
+        if not ids:
+            return {"origins_included": (sorted(include_origins) if include_origins is not None else None),
+                    "excluded_by_origin": {}, "origin_unknown_included": 0, "n_included": 0}
+        q = q.where(runs.c.run_id.in_(ids))
+    with engine().begin() as cx:
+        rows = cx.execute(q.group_by(runs.c.origin)).all()
+    incl = set(include_origins) if include_origins is not None else None
+    excluded, unknown, n_incl = {}, 0, 0
+    for origin, n in rows:
+        n = int(n)
+        if origin is None:
+            unknown += n
+            n_incl += n
+        elif incl is None or origin in incl:
+            n_incl += n
+        else:
+            excluded[origin] = excluded.get(origin, 0) + n
+    return {"origins_included": (sorted(incl) if incl is not None else None),
+            "excluded_by_origin": dict(sorted(excluded.items())),
+            "origin_unknown_included": unknown, "n_included": n_incl}
+
+
+def plan_history(limit=200, include_origins=None):
     """Insumo DETERMINISTA de las estimaciones del plan (LOTE-01: 'estimaciones con historia').
     Corridas que completaron el pipeline (awaiting_closure/closed), con costo, duración y qué decisor
     de fallback disparó — la mediana se calcula en runs.plan_estimates(), NUNCA la estima un modelo
-    (constitución: proyección = tool/script desde insumos declarados)."""
+    (constitución: proyección = tool/script desde insumos declarados).
+    ADR-0079: include_origins opcional (None = sin filtro) — una mediana de producción no debería
+    absorber corridas de smoke; el llamador decide y declara con excluded_by_origin()."""
     with engine().begin() as cx:
-        rows = cx.execute(select(runs.c.started_at, runs.c.finished_at, runs.c.usage_json,
-                                 runs.c.frozen_record_json)
-                          .where(runs.c.state.in_(("awaiting_closure", "closed")))
-                          .order_by(runs.c.created_at.desc()).limit(limit)).all()
+        q = (select(runs.c.started_at, runs.c.finished_at, runs.c.usage_json, runs.c.frozen_record_json)
+             .where(runs.c.state.in_(("awaiting_closure", "closed"))))
+        q = _origin_where(q, include_origins)
+        rows = cx.execute(q.order_by(runs.c.created_at.desc()).limit(limit)).all()
     out = []
     for r in rows:
         d = r._mapping
@@ -591,7 +701,7 @@ def get_run(run_id: str):
     return d
 
 
-def list_runs(user_id=None, limit=50):
+def list_runs(user_id=None, limit=50, thread_id=None, after=None):
     """List rows carry the SAME field set the detail view derives from (LOTE-01·A1): heartbeat inputs,
     cancellation authorship and usage — a stuck run must be distinguishable from the LIST, and the
     datetime normalization must match the detail (SQLite drops tzinfo).
@@ -602,24 +712,133 @@ def list_runs(user_id=None, limit=50):
     para esos campos. _run_view deriva y DESCARTA el blob (plan_json jamás viaja al renglón).
     2026-09-05 (ADR-0076): run_no ENTRA al SELECT — mismo riesgo, misma lección.
     2026-09-14 (ADR-0078): claimed_by/claimed_at ENTRAN al SELECT — la lista debe poder decir qué
-    worker tiene cada corrida, igual que el detalle."""
+    worker tiene cada corrida, igual que el detalle.
+    2026-09-15 (ADR-0079): las SIETE columnas de la investigación (THREAD_COLUMNS) ENTRAN al SELECT —
+    tercera vez la misma lección (ADR-0055/0076). thread_context_json viaja aquí como plan_json: la
+    lista y el detalle comparten columnas, y _run_view lo deriva y DESCARTA (va a su lista de exclusión;
+    el snapshot jamás viaja por renglón).
+
+    ADR-0079 — `thread_id`: la lista se vuelve la de los TURNOS de esa investigación, orden turn_no ASC
+    (empate por run_no: ambos nacen juntos y crecen juntos), y `after` es el cursor = turn_no EXCLUSIVO
+    (turnos con turn_no > after). Sin thread_id el orden sigue siendo created_at DESC y `after` no
+    aplica (ValueError: el cursor de turno no tiene sentido sobre la lista general). limit=None = sin
+    tope (GET /runs?thread= lee la investigación entera; el llamador pide limit+1 para medir has_more).
+    runs_by_thread() es la variante con cursor por run_no/created_at y has_more ya medido."""
+    if after is not None and thread_id is None:
+        raise ValueError("after (cursor de turn_no) sólo aplica con thread_id (ADR-0079)")
+    if limit is not None and int(limit) < 1:
+        # corrector ADR-0079: LIMIT -1 es "sin tope" en SQLite y error de sintaxis en Postgres — un tope
+        # negativo no es un tope; se rechaza aquí igual que en runs_by_thread
+        raise ValueError("limit must be >= 1")
     with engine().begin() as cx:
-        q = select(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
-                   runs.c.state,
-                   runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
-                   runs.c.last_event_at, runs.c.claimed_by, runs.c.claimed_at,
-                   runs.c.cancelled_by, runs.c.cancel_reason,
-                   runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json)
+        q = _list_select()
         if user_id:
             q = q.where(runs.c.user_id == user_id)
-        rows = cx.execute(q.order_by(runs.c.created_at.desc()).limit(limit)).all()
-    out = []
-    for r in rows:
-        d = dict(r._mapping)
-        for k in ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at", "claimed_at"):
-            d[k] = _dt_utc(d.get(k))
-        out.append(d)
-    return out
+        if thread_id is not None:
+            q = q.where(runs.c.thread_id == thread_id)
+            if after is not None:
+                q = q.where(runs.c.turn_no > int(after))
+            q = q.order_by(runs.c.turn_no.asc(), runs.c.run_no.asc())
+        else:
+            q = q.order_by(runs.c.created_at.desc())
+        if limit is not None:
+            q = q.limit(int(limit))
+        rows = cx.execute(q).all()
+    return [_list_row(r) for r in rows]
+
+
+_RUN_DT_KEYS = ("created_at", "started_at", "finished_at", "frozen_at", "last_event_at", "claimed_at")
+
+
+def _list_select():
+    """El SELECT de la LISTA — una sola definición para list_runs y las consultas de la investigación
+    (ADR-0079: get_children / thread_turns / runs_by_thread), así ninguna se queda sin una columna que
+    la otra sí sirve. Todo lo que no es bundle/registro congelado; get_run (select(runs)) es el detalle."""
+    return select(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
+                  runs.c.state,
+                  runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
+                  runs.c.last_event_at, runs.c.claimed_by, runs.c.claimed_at,
+                  runs.c.cancelled_by, runs.c.cancel_reason,
+                  runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json,
+                  runs.c.closed_by,
+                  # ADR-0079
+                  runs.c.parent_run_id, runs.c.thread_id, runs.c.turn_no, runs.c.turn_kind,
+                  runs.c.thread_context_json, runs.c.origin, runs.c.root_question_id)
+
+
+def _list_row(r) -> dict:
+    d = dict(r._mapping)
+    for k in _RUN_DT_KEYS:
+        d[k] = _dt_utc(d.get(k))
+    return d
+
+
+# --- investigación (ADR-0079): consultas de hijos y turnos. db NO deriva thread_id/turn_no/turn_kind —
+# eso lo hace runs.py al encolar; aquí sólo se lee lo persistido. -------------------------------------
+
+def get_children(run_id: str):
+    """Corridas cuyo parent_run_id es ESTA corrida, en orden de creación (empate por run_id:
+    determinista). Insumo de turn_kind='branch' (el padre ya tenía otro hijo) — pero la decisión es del
+    llamador. Lista vacía = sin hijos."""
+    with engine().begin() as cx:
+        rows = cx.execute(_list_select().where(runs.c.parent_run_id == run_id)
+                          .order_by(runs.c.created_at.asc(), runs.c.run_id.asc())).all()
+    return [_list_row(r) for r in rows]
+
+
+def has_children(run_id: str) -> bool:
+    """Corrector ADR-0079: ¿esta corrida ya tiene algún hijo? Insumo de turn_kind='branch' en runs.derive_thread.
+    Un EXISTS en vez de get_children: aquélla cargaba _list_select completo (con el blob thread_context_json)
+    sólo para probar no-vacío."""
+    with engine().begin() as cx:
+        v = cx.execute(select(func.count()).select_from(runs).where(runs.c.parent_run_id == run_id)).scalar()
+    return bool(v)
+
+
+def thread_turns(thread_id: str):
+    """Todos los turnos de una investigación, por turn_no y luego created_at (empate por run_id). Una
+    corrida pre-ADR no está en ningún hilo (thread_id NULL) y por eso no sale aquí — su ausencia se
+    declara en la vista, no se le inventa hilo."""
+    with engine().begin() as cx:
+        rows = cx.execute(_list_select().where(runs.c.thread_id == thread_id)
+                          .order_by(runs.c.turn_no.asc(), runs.c.created_at.asc(),
+                                    runs.c.run_id.asc())).all()
+    return [_list_row(r) for r in rows]
+
+
+def max_turn_no(thread_id: str):
+    """MAX(turn_no) del hilo, o None si el hilo no tiene turnos (ausencia declarada: el llamador hace
+    (max_turn_no(...) or 0) + 1 y decide el caso del padre pre-ADR sin thread_id)."""
+    with engine().begin() as cx:
+        v = cx.execute(select(func.max(runs.c.turn_no)).where(runs.c.thread_id == thread_id)).scalar()
+    return int(v) if v is not None else None
+
+
+def runs_by_thread(thread_id: str, limit=None, after_run_no=None):
+    """Turnos de una investigación PAGINABLES por run_no — variante de biblioteca; NO es la puerta HTTP.
+    Corrector ADR-0079: `GET /runs?thread=&after=` pagina con db.list_runs(thread_id, after) y su cursor es
+    turn_no EXCLUSIVO; aquí el cursor se llama `after_run_no` (int, run_no del último renglón visto) para que
+    los dos no se confundan — antes ambos se llamaban `after` con semánticas distintas. Orden estable turn_no,
+    run_no (ambos se asignan al nacer y crecen juntos; run_no desempata sin ambigüedad). limit=None = sin tope.
+    Devuelve {items, n, limit, has_more, next_after (run_no del último; None si no hay más)}: se lee limit+1
+    para saber si queda página, sin un COUNT extra."""
+    q = _list_select().where(runs.c.thread_id == thread_id)
+    if after_run_no is not None:
+        if isinstance(after_run_no, bool) or not isinstance(after_run_no, int):
+            raise ValueError("after_run_no must be a run_no (int)")
+        q = q.where(runs.c.run_no > after_run_no)
+    q = q.order_by(runs.c.turn_no.asc(), runs.c.run_no.asc())
+    if limit is not None:
+        limit = int(limit)
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+        q = q.limit(limit + 1)
+    with engine().begin() as cx:
+        rows = [_list_row(r) for r in cx.execute(q).all()]
+    has_more = limit is not None and len(rows) > limit
+    items = rows[:limit] if limit is not None else rows
+    return {"items": items, "n": len(items), "limit": limit, "has_more": has_more,
+            "next_after": (items[-1]["run_no"] if has_more and items else None)}
 
 
 def update_run(run_id: str, **values):
@@ -661,16 +880,19 @@ def cancel_requested(run_id: str) -> bool:
     return bool(row and row._mapping["cancel_requested"])
 
 
-def runs_usage(frm=None, to=None):
+def runs_usage(frm=None, to=None, include_origins=None):
     """All runs (no cap) with their usage for the M8 aggregation (LOTE-02·2) — the LIST serves max 50;
-    a client-side total would be a figure without its full denominator, so the sum lives here."""
+    a client-side total would be a figure without its full denominator, so the sum lives here.
+    ADR-0079: include_origins opcional (None = sin filtro); cada renglón trae su origin para que el
+    agregador declare lo que sumó (y excluded_by_origin(frm=, to=) lo que no)."""
     with engine().begin() as cx:
         q = select(runs.c.run_id, runs.c.user_id, runs.c.question, runs.c.state,
-                   runs.c.created_at, runs.c.usage_json)
+                   runs.c.created_at, runs.c.usage_json, runs.c.origin, runs.c.thread_id)
         if frm is not None:
             q = q.where(runs.c.created_at >= frm)
         if to is not None:
             q = q.where(runs.c.created_at <= to)
+        q = _origin_where(q, include_origins)
         rows = cx.execute(q).all()
     out = []
     for r in rows:
@@ -688,14 +910,25 @@ def run_state_tally():
     return {r[0]: r[1] for r in rows}
 
 
-def closed_runs(limit=1000):
+def closed_runs(limit=1000, include_origins=None):
     """CLOSED runs only — the precedent corpus (block 6, ADR-0053): a run becomes precedent ONLY after
-    explicit closure (frozen_at stamped), never before."""
+    explicit closure (frozen_at stamped), never before.
+    ADR-0079: include_origins opcional (None = sin filtro). El corpus de precedente y la calibración
+    por default sólo deben ver 'production' — esa decisión es del consumidor (precedent/calibration),
+    que la declara junto con excluded_by_origin(include_origins, states=('closed',)). Cada renglón
+    trae run_no, origin, thread_id, turn_no, turn_kind y parent_run_id para que el consumidor los exponga
+    sin otra consulta (T5: turn_kind/parent_run_id faltaban — el item de precedente salía turn_kind NULL
+    en una raíz REAL, que se lee 'sin investigación'; la lesión lista/detalle de ADR-0055/0076)."""
     with engine().begin() as cx:
-        rows = cx.execute(select(runs.c.run_id, runs.c.question, runs.c.user_id, runs.c.frozen_at,
-                                 runs.c.closed_by, runs.c.frozen_record_json)
-                          .where(runs.c.state == "closed")
-                          .order_by(runs.c.frozen_at.desc()).limit(limit)).all()
+        q = (select(runs.c.run_id, runs.c.run_no, runs.c.question, runs.c.user_id, runs.c.frozen_at,
+                    runs.c.closed_by, runs.c.frozen_record_json, runs.c.origin, runs.c.thread_id,
+                    runs.c.turn_no,
+                    # T5 (integrador, ADR-0079): las dos columnas de investigación que faltaban en este
+                    # SELECT — medido por smoke_precedent 'ADR-0079b' (turn_kind None en una raíz real).
+                    runs.c.turn_kind, runs.c.parent_run_id)
+             .where(runs.c.state == "closed"))
+        q = _origin_where(q, include_origins)
+        rows = cx.execute(q.order_by(runs.c.frozen_at.desc()).limit(limit)).all()
     out = []
     for r in rows:
         d = dict(r._mapping)
@@ -1035,13 +1268,18 @@ def mark_question_used(question_id: str, run_id: str) -> bool:
     return n == 1
 
 
-def question_calibration():
+def question_calibration(include_origins=None):
     """El tablero de depuración del AGENTE, por versión de spec. Enfrenta lo que el agente AFIRMÓ
     (fits_one_run) con lo que el humano MIDIÓ (rating_input = el eje pregunta, re-anclado al
     TAMAÑO en ADR-0075). Todo son CONTEOS: promediar calificaciones ordinales sería inventar.
 
     Un borrador sin corrida, o con corrida sin calificar, no se cuenta como acierto ni como
-    fallo — se declara pendiente. La ausencia jamás se rellena."""
+    fallo — se declara pendiente. La ausencia jamás se rellena.
+
+    ADR-0079: include_origins opcional (None = sin filtro). Con lista, un borrador cuya corrida tiene
+    origin fuera de la lista se SACA del tablero (no cuenta ni como usado ni como pendiente) y se
+    declara en 'excluded_by_origin'; las corridas con origin NULL (pre-ADR) se incluyen y se cuentan en
+    'origin_unknown_included'. Un borrador sin corrida no tiene origen que filtrar: sigue pendiente."""
     with engine().begin() as cx:
         rows = cx.execute(select(note_questions.c.question_id, note_questions.c.spec_version,
                                  note_questions.c.state, note_questions.c.draft_json,
@@ -1055,8 +1293,23 @@ def question_calibration():
     for r in califs:
         ultima[r.run_id] = (r.rating_input, r.rating_input_state)
 
+    usados = [r.run_id for r in rows if r.run_id]
+    origen_tally = excluded_by_origin(include_origins, run_ids=usados)
+    origen_de = {}
+    if usados:
+        with engine().begin() as cx:
+            for rid, org in cx.execute(select(runs.c.run_id, runs.c.origin)
+                                       .where(runs.c.run_id.in_(usados))).all():
+                origen_de[rid] = org
+    incl = set(include_origins) if include_origins is not None else None
+    n_excluidos_por_origen = 0
+
     por_version = {}
     for r in rows:
+        if (incl is not None and r.run_id and origen_de.get(r.run_id) is not None
+                and origen_de[r.run_id] not in incl):
+            n_excluidos_por_origen += 1
+            continue
         v = por_version.setdefault(r.spec_version, {
             "spec_version": r.spec_version, "n_borradores": 0, "n_errored": 0,
             "n_usados": 0, "n_calificados": 0,
@@ -1101,4 +1354,9 @@ def question_calibration():
                    "1": "pedía muchísimo de más"},
         "corte_declarado": "cupo = nota >= 4; el 3 cuenta como NO cupo (su ancla ya dice 'partida en dos')",
         "note": "conteos, jamás promedios: promediar una escala ordinal de 5 anclas inventa una medición",
+        # ADR-0079: lo que el filtro por procedencia dejó fuera, declarado (jamás en silencio)
+        "origins_included": origen_tally["origins_included"],
+        "excluded_by_origin": origen_tally["excluded_by_origin"],
+        "n_borradores_excluidos_por_origen": n_excluidos_por_origen,
+        "origin_unknown_included": origen_tally["origin_unknown_included"],
     }

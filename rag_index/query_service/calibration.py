@@ -25,6 +25,12 @@ allowed only DECLARED. This report mixes m5-cierre + m5-consenso and says so; th
 (banco_calibracion_v1, 0-2 categorical axes) is a DIFFERENT instrument and never enters here.
 
 NO-SPEND by construction: pure DB reads + arithmetic — no embeds, no model calls, no network.
+
+Origin discipline (ADR-0079 F): the corpus is scoped by `runs.origin` through the SAME door as the
+precedent layer (precedent.closed_runs_scoped) — by default only 'production' runs are calibrated;
+smoke/simulation/fixture/replay/dev-offline runs are excluded AND COUNTED (`excluded_by_origin`), NULL
+origins (born before the column) are included AND DECLARED (`origin_unknown_included`). Same
+discipline as `power`: the number never travels without the scope it stands on (`origins_included`).
 """
 import datetime
 import json
@@ -34,6 +40,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 import db  # noqa: E402
+import precedent  # noqa: E402  (ADR-0079: ONE origin filter for both consumers — never two rules)
 
 MIN_N = 10          # ADR-0005/0030 threshold: below this, no aggregate claim — descriptive only
 POSITIVE_MIN = 4    # rating_output >= 4 -> positive
@@ -129,9 +136,14 @@ def _pairs_to_block(pairs):
     return block
 
 
-def report():
-    """The /calibration payload. Deterministic, NO-SPEND, self-declaring."""
-    closed = db.closed_runs(limit=1000)
+def report(include_origins=None):
+    """The /calibration payload. Deterministic, NO-SPEND, self-declaring.
+
+    ADR-0079: `include_origins` (list | CSV | None) widens the origin scope; None = default
+    ('production' + NULL declared). The scope and the exclusions travel in the response
+    (origins_included / excluded_by_origin / origin_unknown_included) — n_closed counts the runs
+    that ENTERED the scope; the excluded ones are counted next to it, never silently dropped."""
+    closed, origin_meta = precedent.closed_runs_scoped(include_origins, limit=1000)
     n_with_conf = n_with_label = 0
     excluded = {"no_confidence": 0, "no_ratings": 0, "no_majority_or_tie": 0}
     conf_sources = {}
@@ -204,8 +216,14 @@ def report():
     n_scored = len(pairs_all)
     return {
         "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
-        "scope": "corridas CERRADAS con registro congelado (el corpus de precedente, ADR-0053)",
+        "scope": "corridas CERRADAS con registro congelado (el corpus de precedente, ADR-0053), "
+                 "acotadas por origin (ADR-0079: ver origins_included / excluded_by_origin)",
         "n_closed": len(closed),
+        # --- ADR-0079 F: el alcance por origen viaja con el numero (misma disciplina que `power`) ---
+        "origins_included": origin_meta["origins_included"],
+        "excluded_by_origin": origin_meta["excluded_by_origin"],
+        "origin_unknown_included": origin_meta["origin_unknown_included"],
+        "origin_policy": origin_meta["origin_policy"],
         "n_with_confidence": n_with_conf,
         "n_with_human_label": n_with_label,
         "n_scored": n_scored,

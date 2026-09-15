@@ -61,6 +61,10 @@ HARNESS_VERSION = "run_held_out-2.0 (run-model, ADR-0072)"
 # jamás puede capturar las corridas de eval. Override explícito SOLO vía WITT_EVAL_DB_URL.
 os.environ["WITT_BACKEND_DB_URL"] = os.environ.get(
     "WITT_EVAL_DB_URL", f"sqlite:///{ROOT / 'evaluation' / 'eval_runs.db'}")
+# ADR-0079: toda corrida del harness nace con origin 'replay' — el precedente, /calibration y el consejo
+# la EXCLUYEN por default y lo declaran; una corrida de eval jamás se confunde con una de producción.
+# Se fuerza (no setdefault) por la misma razón que la BD: el shell no decide la procedencia.
+os.environ["WITT_RUN_ORIGIN"] = "replay"
 
 sys.path.insert(0, str(ROOT / "rag_index" / "query_service"))
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))

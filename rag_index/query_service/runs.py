@@ -18,8 +18,11 @@ ingest path.
 Spend per run (authorized, measured, never capped — ADR-0047 d.3): 1 query embed (path_a) + 1 synthesis
 (opus) + the 4-reviewer panel (~1-2.50 USD). Usage is accumulated into the frozen record.
 """
+import hashlib
+import inspect
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -32,10 +35,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import db  # noqa: E402
 import niche_catalog  # noqa: E402
+import precedent  # noqa: E402  — ADR-0079: la serie de letras del precedente la produce precedent.py, no runs.py
 from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 
-RENDER_CONTRACT_VERSION = "1.7"   # ADR-0078 (higiene de Ruta A y B): +citations_schema {source, n_raw,
+RENDER_CONTRACT_VERSION = "1.8"   # ADR-0079 (investigación = turnos encadenados sobre una raíz): +thread
+                                  # {thread_id, parent_run_id, turn_no, turn_kind, parent_state, parent_run_no,
+                                  # root_question_id, root_run_no, context_delivery} + thread_context (el snapshot del turno
+                                  # anterior que el modelo VIO; null con thread_context_skipped_reason) +
+                                  # thread_parent_matches_run + precedent_citations (serie de LETRAS 'l',
+                                  # admissible_as_evidence False — jamás en `citations`) + origin {value,
+                                  # source} + episode_axes {world, inference, technical, provenance} +
+                                  # deterministic_checks.{thread, parent_identifier_leak, disjoint_series};
+                                  # epistemic_summary +thread_id/turn_no/origin. `citations` NO cambia de forma.
+                                  # Corrector ADR-0079 (mismo 1.8, aún sin desplegar): +precedent_citations_state
+                                  # (la letra sólo con padre 'closed') + origin.source COPIADA del sobre de
+                                  # encolado (+source_at_execution) + plan_parent_matches_run /
+                                  # plan_snapshot_matches_run (+_state) + parent_identifier_leak_state 'no-snapshot'
+                                  # + disjoint_series_state 'parent-not-precedent'.
+                                  # 1.7 = ADR-0078 (higiene de Ruta A y B): +citations_schema {source, n_raw,
                                   # n_valid, raw_len_chars?, raw_type?, note?} + evidence_cited_raw +
                                   # token_usage.{missing_price_models, cost_projection_complete} (+ la
                                   # vista de corrida gana claimed_by/claimed_at/failure_reason). El bump
@@ -66,7 +84,10 @@ SYNTH_TOOL = {
     "name": "emit_answer",
     "description": ("Answer the biology question using ONLY the provided evidence. If the evidence is "
                     "thin, say so in gap_flags and keep confidence honest. NEVER invent identifiers: "
-                    "only assert gene IDs that appear in the evidence or the verified-store resolutions."),
+                    "only assert gene IDs that appear in the evidence or the verified-store resolutions. "
+                    # ADR-0079 — instrucción anti-fuga: el turno anterior es precedente, no evidencia
+                    "The previous turn (thread_context), when present, is PRIOR ART, not evidence; never "
+                    "cite or reuse an identifier from it unless it appears in evidence."),
     "input_schema": {
         "type": "object",
         "properties": {
@@ -293,13 +314,21 @@ def _data_landscape(question, entities):
     return land
 
 
-def _default_planner(question, entities):
+def _default_planner(question, entities, thread_context=None):
     """One SMALL model call (SYNTH_MODEL, best-tier policy) that judges work-type/nichos/agentes contra
-    la matriz. Inyectable en los gates. Devuelve (judgment_dict, usage)."""
+    la matriz. Inyectable en los gates. Devuelve (judgment_dict, usage).
+
+    ADR-0079: `thread_context` (snapshot del turno anterior, armado por el SERVIDOR) viaja como llave
+    APARTE del user_text — el planner ve qué se preguntó antes y qué faltó (gap_flags, comentarios),
+    nunca mezclado con la pregunta. Sin padre (None) la llave no aparece: el prompt de una raíz es el
+    de siempre."""
     system = ("You are the §11 agent-invocation preflight of the Witt × Organogenesis webapp: classify "
               "the incoming question BEFORE the pipeline runs. Judge strictly against the matrix and "
               "niches below; do NOT answer the question itself.\n\n" + agent_matrix.digest())
-    user_text = json.dumps({"question": question, "entities": entities or []}, ensure_ascii=False)
+    payload = {"question": question, "entities": entities or []}
+    if thread_context is not None:
+        payload["thread_context"] = thread_context
+    user_text = json.dumps(payload, ensure_ascii=False, default=str)
     return composite_auditor._anthropic_tool_call(SYNTH_MODEL, system, user_text,
                                                   tool=PLAN_TOOL, max_tokens=1200)
 
@@ -349,17 +378,35 @@ def plan_estimates(history_rows):
             "with_fallback": _scenario(fallback, "with-fallback")}
 
 
-def build_plan(question, entities=None, planner=None, history_rows=None):
+def build_plan(question, entities=None, planner=None, history_rows=None, thread_context=None):
     """El plan completo. El juicio del modelo puede FALLAR sin tumbar nada (§6 no-hang): un plan con
     judgment.state=errored sigue siendo un plan — declara que el juicio no se pudo hacer, que es
-    distinto de no haberlo intentado."""
+    distinto de no haberlo intentado.
+
+    ADR-0079: `thread_context` (el sobre {snapshot, skipped_reason} de plan_thread_context, o el
+    snapshot directo) llega al planner como llave hermana. El plan DECLARA si el planner lo vio
+    (plan.thread_context_declared) — un componente que cambia el prompt lo dice en el registro."""
     planner = planner or _default_planner
     entities = [e for e in (entities or []) if e and e.strip()]
+    snapshot = _snapshot_of(thread_context)
 
     plan = {
         "plan_version": PLAN_VERSION,
         "matrix": f"{agent_matrix.MATRIX_PATH} {agent_matrix.MATRIX_VERSION}",
         "question": question, "entities": entities,
+        # ADR-0079: tres estados — False (raíz: no había turno anterior) / True (el planner lo vio) /
+        # el skipped_reason cuando había padre pero el snapshot no se armó (identidad inválida, kill-switch)
+        "thread_context_declared": snapshot is not None,
+        "thread_context_skipped_reason": ((thread_context or {}).get("skipped_reason")
+                                         if isinstance(thread_context, dict) and snapshot is None
+                                         else None),
+        # corrector ADR-0079: QUÉ padre y QUÉ registro (sha) vio el planner — al congelar la corrida se
+        # derivan plan_parent_matches_run / plan_snapshot_matches_run (un plan hecho con el padre X no puede
+        # respaldar en silencio una corrida con padre Y; misma disciplina que plan_question_matches_run).
+        "thread_parent_run_id": (((thread_context or {}).get("parent_run_id")
+                                  if isinstance(thread_context, dict) else None)
+                                 or ((snapshot or {}).get("parent") or {}).get("run_id")),
+        "thread_parent_frozen_sha256": (snapshot or {}).get("parent_frozen_sha256"),
         "route": {
             "class": "structural",
             "path_a": "DATA INAMOVIBLE primero — siempre",
@@ -380,7 +427,10 @@ def build_plan(question, entities=None, planner=None, history_rows=None):
     plan["data_landscape"] = _data_landscape(question, entities)
 
     try:
-        out, usage = planner(question, entities)
+        # ADR-0079: el snapshot viaja al planner SOLO si existe; un planner inyectado con la firma vieja
+        # (question, entities) sigue funcionando y el plan declara que no lo recibió.
+        (out, usage), ctx_delivered = _call_with_optional(planner, (question, entities),
+                                                          "thread_context", snapshot)
         niches = [{"code": c, **agent_matrix.NICHES[c]} for c in out.get("niches", [])
                   if c in agent_matrix.NICHES]
         agents = []
@@ -441,7 +491,9 @@ def build_plan(question, entities=None, planner=None, history_rows=None):
             # JAMÁS bloquean — responderlas refina un plan FUTURO, no es un gate.
             "clarifying_questions": out.get("clarifying_questions") or [],
             "planner": {"model": SYNTH_MODEL, "usage": usage, "class": "self-report",
-                        "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)"},
+                        "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)",
+                        # ADR-0079: None = no había snapshot; True/False = lo recibió / firma sin la llave
+                        "thread_context_delivered": (ctx_delivered if snapshot is not None else None)},
         }
     except Exception as e:
         plan["judgment"] = {"class": "model-judgment", "state": "errored",
@@ -568,6 +620,497 @@ def _panel_findings(audit_result):
     return out
 
 
+# --- investigación: turnos encadenados sobre una raíz (ADR-0079) ---------------------------------------
+# Una corrida puede NACER desde otra terminada. La derivación (thread_id, turn_no, turn_kind, origin,
+# snapshot del turno anterior) la hace el SERVIDOR al encolar (ADR-0056: procedencia derivada, jamás del
+# cliente); db sólo persiste (T1). Vocabulario en código: thread_id / turn_no / turn_kind / parent_run_id;
+# en docs y mensajes al humano: "investigación" (T-<run_no raíz>) — "hilo" ya nombra los comentarios
+# (ADR-0077). Doctrina: el turno anterior es PRECEDENTE (serie de letras, ADR-0053), nunca evidencia; lo
+# ausente se declara (tres estados); el registro congelado del padre es INMUTABLE (ADR-0074) y por eso
+# su sha al encolar debe coincidir con su sha al congelar al hijo (thread_parent_matches_run).
+THREAD_CONTEXT_ENV = "WITT_THREAD_CONTEXT"            # default 1; 0 = kill-switch (columnas sí, contexto no)
+THREAD_COMMENTS_MAX_DEFAULT = 8                        # WITT_THREAD_COMMENTS_MAX
+THREAD_COMMENTS_CHARS_DEFAULT = 8000                   # WITT_THREAD_COMMENTS_CHARS (total, todos los cuerpos)
+THREAD_ANSWER_CHARS_DEFAULT = 1200                     # WITT_THREAD_ANSWER_CHARS (direct_answer del padre)
+THREAD_CONTEXT_EXCLUDED = ["ratings values and notes (masked per requester, never averaged)"]
+THREAD_SHA_EXCLUDED_KEYS = ("frozen_at", "closed_by")  # las DOS únicas llaves que close_run añade al blob
+THREAD_SHA_RULE = ("sha256 of json.dumps(frozen_record minus {frozen_at, closed_by}, sort_keys=True): the "
+                   "frozen blob is immutable (ADR-0074); closure only appends those two keys (ADR-0079)")
+# identificadores cuya presencia en el contexto del padre + en la respuesta del hijo + AUSENCIA de la
+# evidencia del hijo = fuga (parent_identifier_leak). Patrones declarados junto al resultado.
+IDENTIFIER_PATTERNS = {
+    "ensdarg": re.compile(r"ENSDARG\d+", re.I),
+    "pmid": re.compile(r"PMID:\s?\d+", re.I),
+    "pmc": re.compile(r"PMC\d+", re.I),
+    "doi": re.compile(r"10\.\d{4,9}/[^\s\"',;)\]}>]+"),   # 'DOI 10\.\S+' sin arrastrar puntuación JSON
+    "zdb": re.compile(r"ZDB-[A-Z]+-\d+-\d+"),
+}
+
+
+class ThreadError(Exception):
+    """ADR-0079 — error de derivación de investigación al encolar. `status` y `detail` son lo que la
+    capa HTTP (app.py, T3) traduce a HTTPException; runs.py no importa fastapi."""
+    def __init__(self, status, detail):
+        super().__init__(detail.get("state") if isinstance(detail, dict) else str(detail))
+        self.status = status
+        self.detail = detail
+
+
+class ParentNotFound(ThreadError):
+    def __init__(self, parent_run_id):
+        super().__init__(404, {"state": "parent_not_found", "parent_run_id": parent_run_id,
+                               "note": "parent_run_id no existe (ADR-0079)"})
+
+
+class ParentNotTerminal(ThreadError):
+    def __init__(self, parent_run_id, parent_state):
+        super().__init__(409, {"state": "parent_not_terminal", "parent_run_id": parent_run_id,
+                               "parent_state": parent_state,
+                               "note": (f"la corrida padre está '{parent_state}'; sólo una corrida terminal "
+                                        f"{db.RATABLE_STATES} puede tener un turno siguiente (ADR-0079)")})
+
+
+def _thread_context_enabled():
+    """Kill-switch operativo (leído en tiempo de corrida, patrón WITT_REVISION_CYCLE): WITT_THREAD_CONTEXT=0
+    → las columnas de investigación SÍ se llenan, el snapshot NO se arma ni viaja, skipped_reason declarado."""
+    return os.environ.get(THREAD_CONTEXT_ENV, "1").strip() != "0"
+
+
+def _kill_switch_view():
+    return {THREAD_CONTEXT_ENV: os.environ.get(THREAD_CONTEXT_ENV, "1"),
+            "default": "1", "enabled": _thread_context_enabled()}
+
+
+def _thread_limits():
+    """Topes del snapshot, leídos en tiempo de corrida con fuente declarada (_env_int_tolerante: env
+    vacía / no numérica / <= 0 → default DECLARADO, nunca un int() que tumbe el proceso — ADR-0078)."""
+    out = {}
+    for key, env, default in (("comments_max", "WITT_THREAD_COMMENTS_MAX", THREAD_COMMENTS_MAX_DEFAULT),
+                              ("comments_chars", "WITT_THREAD_COMMENTS_CHARS", THREAD_COMMENTS_CHARS_DEFAULT),
+                              ("answer_chars", "WITT_THREAD_ANSWER_CHARS", THREAD_ANSWER_CHARS_DEFAULT)):
+        v, src = _env_int_tolerante(env, default)
+        out[key], out[key + "_source"] = v, src
+    return out
+
+
+def run_origin():
+    """(F) La PROCEDENCIA de la corrida, derivada por el servidor al encolar: {value, source}.
+    WITT_RUN_ORIGIN definida y en db.RUN_ORIGINS → ese valor (source 'env:WITT_RUN_ORIGIN'); fuera del enum
+    → 'invalid-env:<valor>' DECLARADO (la corrida se crea igual — no se corrige en silencio ni se tumba);
+    sin env: 'dev-offline' cuando WITT_ALLOW_RUNS_OFFLINE == '1' (source 'derived:offline-mask'), si no
+    'production' (source 'default:production'). La columna runs.origin mide 24 chars: un valor inválido
+    largo se recorta y se declara `truncated`."""
+    raw = os.environ.get("WITT_RUN_ORIGIN")
+    if raw is not None and raw.strip():
+        v = raw.strip()
+        if v in db.RUN_ORIGINS:
+            return {"value": v, "source": "env:WITT_RUN_ORIGIN"}
+        full = f"invalid-env:{v}"
+        out = {"value": full[:24], "source": "env:WITT_RUN_ORIGIN", "raw": v,
+               "note": f"WITT_RUN_ORIGIN fuera del enum {db.RUN_ORIGINS} — declarado, la corrida se crea igual"}
+        if len(full) > 24:
+            out["truncated"] = True
+        return out
+    if os.environ.get("WITT_ALLOW_RUNS_OFFLINE") == "1":
+        return {"value": "dev-offline", "source": "derived:offline-mask"}
+    return {"value": "production", "source": "default:production"}
+
+
+def frozen_sha256(frozen_json):
+    """Sha del registro congelado SIN frozen_at/closed_by (THREAD_SHA_RULE). None cuando no hay blob; un
+    blob no-JSON se hashea tal cual y se declara con el prefijo 'raw:' (jamás se finge la regla)."""
+    if not frozen_json:
+        return None
+    try:
+        rec = json.loads(frozen_json)
+    except ValueError:
+        return "raw:" + hashlib.sha256(frozen_json.encode("utf-8")).hexdigest()
+    if not isinstance(rec, dict):
+        return "raw:" + hashlib.sha256(frozen_json.encode("utf-8")).hexdigest()
+    body = {k: v for k, v in rec.items() if k not in THREAD_SHA_EXCLUDED_KEYS}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False,
+                                     default=str).encode("utf-8")).hexdigest()
+
+
+def _gap_flags_tolerante(raw):
+    """Lectura TOLERANTE (ADR-0074) de gap_flags del registro del padre: lista → íntegra; string → JSON de
+    lista parseado o el string como UN elemento; None → None (ausente declarado, no [])."""
+    if raw is None:
+        return None
+    if isinstance(raw, list):
+        return list(raw)
+    if isinstance(raw, str):
+        parsed = _lista_serializada(raw)
+        return parsed if parsed is not None else [raw]
+    return [json.dumps(raw, ensure_ascii=False, default=str)]
+
+
+def _human_comments(comments_rows, limits):
+    """Los comentarios del padre (ADR-0077) como insumo ATESTIGUADO: orden determinista, tope en número y en
+    caracteres totales, `truncated` declarado. Los cuerpos son de humanos: viajan verbatim (recortados si
+    hace falta), jamás resumidos por el modelo aquí.
+    Corrector ADR-0079 — orden: db.list_run_comments ya viene en (created_at con microsegundos, comment_id);
+    la vista sólo trae created_at a SEGUNDOS, así que aquí se ordena ESTABLE por ese string y el empate
+    conserva el orden de llegada. Desempatar por comment_id (uuid aleatorio) barajaba dos comentarios del
+    mismo segundo — el gate lo midió (orden 50/50)."""
+    rows = sorted(comments_rows or [], key=lambda c: str(c.get("created_at") or ""))
+    out, used, truncated = [], 0, False
+    for c in rows:
+        if len(out) >= limits["comments_max"]:
+            truncated = True
+            break
+        body = c.get("body") or ""
+        room = limits["comments_chars"] - used
+        if room <= 0:
+            truncated = True
+            break
+        if len(body) > room:
+            body, truncated = body[:room], True
+        used += len(body)
+        out.append({"author_name": c.get("author_name"), "created_at": c.get("created_at"), "body": body})
+    return {"items": out, "n_total": len(rows), "n_included": len(out), "chars_included": used,
+            "truncated": truncated, "class": "atestiguada",
+            # corrector ADR-0079: el tope es en CARACTERES (code points); snapshot.bytes mide UTF-8 — dos
+            # unidades distintas, ambas etiquetadas para que nadie las compare entre sí
+            "limits": {"max": limits["comments_max"], "chars": limits["comments_chars"],
+                       "unit": "chars (code points)"}}
+
+
+def build_thread_context(parent_run_row, comments_rows, now):
+    """(C) El snapshot del turno anterior, armado en el SERVIDOR al encolar desde frozen_record_json +
+    run_comments del padre (jamás del cliente). PURO: no toca la BD — los renglones llegan como
+    argumentos, así que se prueba sin motor. Devuelve el SOBRE {snapshot: dict|null, skipped_reason:
+    str|null, kill_switch, built_at} — tres estados por construcción:
+      · padre con question_matches_run === false → snapshot null, skipped_reason 'parent-identity-invalid'
+        (la corrida hija SÍ se crea; el llamador decide).
+      · padre sin registro congelado (failed/cancelled) → snapshot CON previous_answer null y previous_audit
+        null declarados (frozen_absent_reason 'parent-without-frozen-record').
+      · snapshot completo en el resto.
+    evidence_hints son PISTAS para RE-RECUPERAR (el texto se vuelve a leer de la fuente); las
+    calificaciones quedan fuera por diseño (excluded). `bytes` mide el snapshot serializado."""
+    limits = _thread_limits()
+    parent = parent_run_row or {}
+    frozen_json = parent.get("frozen_record_json")
+    frozen, frozen_state = None, "absent"
+    if frozen_json:
+        try:
+            frozen = json.loads(frozen_json)
+            frozen_state = "present" if isinstance(frozen, dict) else "unparseable"
+            if not isinstance(frozen, dict):
+                frozen = None
+        except ValueError:
+            frozen, frozen_state = None, "unparseable"
+    envelope = {"snapshot": None, "skipped_reason": None, "kill_switch": _kill_switch_view(),
+                "built_at": now.isoformat(timespec="seconds") if hasattr(now, "isoformat") else str(now)}
+    if frozen is not None and frozen.get("question_matches_run") is False:
+        envelope["skipped_reason"] = "parent-identity-invalid"
+        envelope["note"] = ("el registro del padre declara question_matches_run=false (ADR-0044): su "
+                            "respuesta no es de su pregunta y no puede ser contexto de nadie")
+        return envelope
+
+    ans = (frozen or {}).get("answer") or {}
+    audit = (frozen or {}).get("audit") or {}
+    conf = (frozen or {}).get("confidence") or {}
+    snap = {
+        "parent": {"run_id": parent.get("run_id"), "run_no": parent.get("run_no"),
+                   "question": parent.get("question"), "entities_csv": parent.get("entities_csv"),
+                   "state": parent.get("state"), "verdict": audit.get("verdict"),
+                   "decision_state": ((frozen or {}).get("decision_state") or {}).get("state")},
+        "previous_answer": None, "previous_audit": None,
+        "human_comments": _human_comments(comments_rows, limits),
+        "evidence_hints": {"entities": [e for e in (parent.get("entities_csv") or "").split(",") if e],
+                           "approved_evidence_ids": list(audit.get("approved") or []),
+                           "note": "hints to RE-RETRIEVE only — the text is re-read from the source"},
+        "excluded": list(THREAD_CONTEXT_EXCLUDED),
+        "snapshot_at": envelope["built_at"],
+        "parent_frozen_sha256": frozen_sha256(frozen_json),
+        "parent_frozen_sha256_rule": THREAD_SHA_RULE,
+        "kill_switch": {THREAD_CONTEXT_ENV: os.environ.get(THREAD_CONTEXT_ENV, "1")},
+    }
+    if frozen is None:
+        snap["frozen_absent_reason"] = ("parent-without-frozen-record" if frozen_state == "absent"
+                                        else "parent-frozen-record-unparseable")
+    else:
+        da = ans.get("direct_answer") or ""
+        snap["previous_answer"] = {
+            "direct_answer": da[:limits["answer_chars"]],
+            "direct_answer_truncated": len(da) > limits["answer_chars"],
+            "direct_answer_chars_total": len(da),
+            "stated_confidence": ans.get("stated_confidence", conf.get("final")),
+            "absence_kind": ans.get("absence_kind"),
+            "gap_flags": _gap_flags_tolerante(ans.get("gap_flags")),
+            "confidence_by_subclaim": conf.get("by_subclaim"),
+        }
+        snap["previous_audit"] = {"verdict": audit.get("verdict"), "n_valid": audit.get("n_valid"),
+                                  "findings": _panel_findings(audit)[:5]}
+    if parent.get("thread_id") is None:
+        snap["parent_pre_adr_0079"] = True   # el padre nació antes del contrato: raíz VIRTUAL (turn_no 2)
+    snap["bytes_unit"] = "utf-8 bytes"   # corrector ADR-0079: la unidad viaja junto a la cifra
+    snap["bytes"] = len(json.dumps(snap, ensure_ascii=False, default=str).encode("utf-8"))
+    envelope["snapshot"] = snap
+    return envelope
+
+
+def _snapshot_of(thread_context):
+    """El snapshot dentro de un sobre {snapshot, skipped_reason}, o el snapshot mismo si llegó crudo."""
+    if not isinstance(thread_context, dict):
+        return None
+    if "snapshot" in thread_context and "skipped_reason" in thread_context:
+        return thread_context.get("snapshot")
+    return thread_context
+
+
+def _thread_envelope(run):
+    """El sobre persistido en runs.thread_context_json (tres estados): NULL/ausente = corrida pre-ADR o
+    encolada sin derivación → sobre vacío con skipped_reason declarado; si no, el JSON tal cual."""
+    raw = run.get("thread_context_json") if isinstance(run, dict) else None
+    if not raw:
+        return {"snapshot": None,
+                "skipped_reason": ("root-turn" if run.get("turn_kind") == "root"
+                                   else "thread_context_json-absent (pre-ADR-0079 row or undeclared)")}
+    try:
+        env = json.loads(raw)
+    except ValueError:
+        return {"snapshot": None, "skipped_reason": "thread_context_json-unparseable"}
+    if not isinstance(env, dict):
+        return {"snapshot": None, "skipped_reason": "thread_context_json-unparseable"}
+    if "snapshot" not in env:
+        env = {"snapshot": env, "skipped_reason": None}
+    return env
+
+
+def _call_with_optional(fn, args, name, value):
+    """Llama fn(*args, name=value) si la firma acepta `name` (o **kwargs); si no, fn(*args). Devuelve
+    (resultado, entregado: bool). Determinista por inspección de firma — NO un try/except TypeError que
+    enmascararía errores reales del callable (ADR-0079: los stubs con la firma vieja siguen válidos y el
+    registro declara que no recibieron el contexto)."""
+    accepts = False
+    try:
+        params = inspect.signature(fn).parameters
+        accepts = name in params or any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    except (TypeError, ValueError):
+        accepts = False
+    if accepts:
+        return fn(*args, **{name: value}), True
+    return fn(*args), False
+
+
+def extract_identifiers(text):
+    """Identificadores (IDENTIFIER_PATTERNS) presentes en un texto, normalizados (mayúsculas, sin espacio
+    tras 'PMID:'), como conjunto ordenable."""
+    found = set()
+    for pat in IDENTIFIER_PATTERNS.values():
+        for m in pat.findall(text or ""):
+            # corrector ADR-0079: el patrón DOI arrastraba el punto/coma final de la prosa ("… 10.1242/dev.1.")
+            # → el token no casaba con el mismo DOI en la evidencia → falso positivo del predicado DURO.
+            found.add(re.sub(r"^PMID:\s+", "PMID:", m.rstrip(".,").upper()))
+    return found
+
+
+def parent_identifier_leak(thread_snapshot, direct_answer, evidence_ids, evidence_text=""):
+    """(E) Identificadores presentes en el TEXTO del snapshot del padre Y en la respuesta del hijo Y
+    AUSENTES de la evidencia del hijo (sus evidence_ids y el texto de la evidencia que el modelo vio).
+    Lista ordenada; [] sin snapshot (el llamador declara 'no-parent'). Regla declarada en el registro:
+    un identificador que sí está en la evidencia del hijo no es fuga aunque el padre también lo tuviera."""
+    if not thread_snapshot:
+        return []
+    ctx_ids = extract_identifiers(json.dumps(thread_snapshot, ensure_ascii=False, default=str))
+    ans_ids = extract_identifiers(direct_answer or "")
+    ev_ids = extract_identifiers(" ".join(str(i) for i in (evidence_ids or []))) | extract_identifiers(evidence_text)
+    ev_ids |= {str(i).upper() for i in (evidence_ids or [])}
+    return sorted((ctx_ids & ans_ids) - ev_ids)
+
+
+def _leak_check(thread_snapshot, direct_answer, bundle, run=None):
+    """(checks_dict_fragment, extra_predicates) para verify_output.admissible. Predicado DURO: fuga no vacía
+    → inadmisible (declarado en reasons como 'hard predicate failed: parent_identifier_leak').
+    Corrector ADR-0079 — TRES estados en parent_identifier_leak_state (mismo vocabulario que
+    thread_parent_matches_run_state): 'no-parent' sólo sin padre; 'no-snapshot' cuando HAY padre pero el
+    snapshot no viajó (kill-switch, identidad inválida): no se midió, no se declara 'sin padre'."""
+    if not thread_snapshot:
+        state = "no-snapshot" if (run or {}).get("parent_run_id") else "no-parent"
+        return ({"parent_identifier_leak": [], "parent_identifier_leak_state": state}, None)
+    ev_text = json.dumps(_compact_evidence(bundle), ensure_ascii=False, default=str)
+    leak = parent_identifier_leak(thread_snapshot, direct_answer, _evidence_ids(bundle), ev_text)
+    frag = {"parent_identifier_leak": leak, "parent_identifier_leak_state": "checked",
+            "parent_identifier_leak_rule": ("ids in thread_context AND in direct_answer AND absent from the "
+                                            "child's evidence_ids + evidence text; patterns: "
+                                            + ", ".join(f"{k}={v.pattern}" for k, v in IDENTIFIER_PATTERNS.items()))}
+    return frag, [lambda _obj, _report: ("parent_identifier_leak", not leak)]
+
+
+def _thread_checks_summary(run, thread_snapshot):
+    """deterministic_checks.thread para el PANEL: resumen sin prosa — el panel sabe que hubo turno previo,
+    no lee su texto (la evidencia que recibe va LIMPIA)."""
+    parent = (thread_snapshot or {}).get("parent") or {}
+    return {"thread_id": run.get("thread_id"), "turn_no": run.get("turn_no"),
+            "turn_kind": run.get("turn_kind"), "parent_run_id": run.get("parent_run_id"),
+            "parent_run_no": parent.get("run_no"), "parent_verdict": parent.get("verdict"),
+            "context_available": thread_snapshot is not None}
+
+
+# (G) Ejes del episodio — DERIVADOS AL CONGELAR (clase 'derived-at-freeze') por TABLA, jamás un enum único
+# que mezcle mundo, inferencia y técnica. La tabla vive aquí y en el ADR; el registro cita la regla.
+EPISODE_AXES_MAP = {
+    "class": "derived-at-freeze",
+    "world": {
+        "rule": "decision_state.state × answer.absence_kind × audit.verdict",
+        "AUDIT_APPROVED × not-applicable": "effect-claimed",
+        "AUDIT_APPROVED × evidence-of-no-effect": "null-bounded",
+        "AUDIT_APPROVED × no-evidence-retrieved": "indeterminate",
+        "AUDIT_APPROVED × <absence_kind absent>": "indeterminate (declared: absence_kind absent)",
+        "AUDIT_REJECTED": "not-established",
+        # corrector ADR-0079: la PRECEDENCIA es la del código — sin veredicto manda sobre decision_state
+        # (un AUDIT_REJECTED sin veredicto sale not-assessed), y un veredicto sobre un decision_state no
+        # terminal de auditoría también cae a not-assessed (declarado en notes).
+        "<no audit verdict> (precede a decision_state)": "not-assessed",
+        "<verdict present> × decision_state ∉ {AUDIT_APPROVED, AUDIT_REJECTED}": "not-assessed (declared in notes)",
+    },
+    "inference": {"rule": "audit.verdict", "APPROVE": "supported", "APPROVE_MINOR": "minor-issues",
+                  "APPROVE_DECLINE": "honest-decline", "REVISE": "insufficient", "<none>": "not-evaluated"},
+    "technical": {"rule": "run.state × retrieval_summary.mode",
+                  "awaiting_closure|closed × semantic": "completed",
+                  "awaiting_closure|closed × <mode != semantic>": "degraded",
+                  "failed": "failed", "cancelled": "cancelled"},
+    "provenance": {"rule": "origin + human_gates {plan_declared, closed} + turn {thread_id, turn_no, turn_kind}"},
+}
+
+
+def episode_axes(decision_state, absence_kind, verdict, run_state, retrieval_mode, origin,
+                 plan_declared, closed, thread):
+    """(G) Los cuatro ejes del episodio según EPISODE_AXES_MAP. Puro y determinista."""
+    notes = []
+    if verdict is None:
+        world, inference = "not-assessed", "not-evaluated"
+    else:
+        inference = {"APPROVE": "supported", "APPROVE_MINOR": "minor-issues",
+                     "APPROVE_DECLINE": "honest-decline", "REVISE": "insufficient"}.get(verdict)
+        if inference is None:
+            inference = "not-evaluated"
+            notes.append(f"verdict '{verdict}' fuera del vocabulario — inference not-evaluated (declarado)")
+        if decision_state == "AUDIT_APPROVED":
+            world = {"not-applicable": "effect-claimed", "evidence-of-no-effect": "null-bounded",
+                     "no-evidence-retrieved": "indeterminate"}.get(absence_kind)
+            if world is None:
+                world = "indeterminate"
+                notes.append(f"absence_kind {absence_kind!r} ausente/fuera del enum → world indeterminate (declarado)")
+        elif decision_state == "AUDIT_REJECTED":
+            world = "not-established"
+        else:
+            world = "not-assessed"
+            notes.append(f"decision_state {decision_state!r} no es terminal de auditoría → world not-assessed")
+    if run_state in ("failed", "cancelled"):
+        technical = run_state
+    elif run_state in ("awaiting_closure", "closed"):
+        technical = "completed" if retrieval_mode == "semantic" else "degraded"
+        if technical == "degraded":
+            notes.append(f"retrieval_summary.mode={retrieval_mode!r} ≠ semantic → technical degraded")
+    else:
+        technical = "degraded"
+        notes.append(f"run.state {run_state!r} no terminal al derivar → technical degraded (declarado)")
+    return {"class": EPISODE_AXES_MAP["class"], "world": world, "inference": inference,
+            "technical": technical,
+            "provenance": {"origin": origin,
+                           "human_gates": {"plan_declared": bool(plan_declared), "closed": bool(closed),
+                                           "closed_note": ("at-freeze value: closure happens AFTER the freeze "
+                                                           "and lives in frozen_at/closed_by")},
+                           "turn": {"thread_id": (thread or {}).get("thread_id"),
+                                    "turn_no": (thread or {}).get("turn_no"),
+                                    "turn_kind": (thread or {}).get("turn_kind")}},
+            "map": "runs.EPISODE_AXES_MAP (ADR-0079)", "notes": notes}
+
+
+def _question_of_run(run_id):
+    """question_id del borrador (note_questions) que respalda una corrida, o None. Lectura directa de la
+    tabla de db (sin función nueva en db.py); su fallo no bloquea encolar (§6 no-hang)."""
+    try:
+        from sqlalchemy import select
+        with db.engine().begin() as cx:
+            row = cx.execute(select(db.note_questions.c.question_id)
+                             .where(db.note_questions.c.run_id == run_id)
+                             .order_by(db.note_questions.c.created_at.asc())).first()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
+def _root_run_no(run):
+    """ADR-0079 (T5, integrador): run_no de la RAÍZ de la investigación de `run` — la propia corrida cuando
+    thread_id == run_id; si no, la fila thread_id (la raíz, real o VIRTUAL pre-ADR, que conserva su run_no
+    aunque sus columnas de investigación sean NULL). None declarado cuando no consta — jamás se infiere."""
+    tid = run.get("thread_id")
+    if not tid:
+        return None
+    if tid == run.get("run_id"):
+        return run.get("run_no")
+    root = db.get_run(tid)
+    return root.get("run_no") if root else None
+
+
+def derive_thread(run_id, question, entities, parent_run_id=None, from_question_id=None, now=None):
+    """(B) La derivación de investigación al ENCOLAR (servidor). Devuelve las columnas THREAD_COLUMNS
+    (menos origin) + el sobre del contexto. Raíz: thread_id = run_id, turn_no 1, 'root', sobre con
+    skipped_reason 'root-turn'. Con padre: 404 ParentNotFound · 409 ParentNotTerminal (state ∉
+    RATABLE_STATES) · thread_id = parent.thread_id or parent.run_id (padre pre-ADR = raíz VIRTUAL, se
+    declara parent_pre_adr_0079 en el snapshot) · turn_no = max(turno del hilo, 1) + 1 · turn_kind:
+    'rerun' (misma pregunta + entities_csv), 'branch' (el padre ya tenía otro hijo), 'refine' (resto) ·
+    root_question_id = parent.root_question_id or borrador del padre or None (corrector ADR-0079: en un turno
+    con padre JAMÁS se siembra desde el from_question_id del hijo — la llave dice 'raíz' y ese borrador es del
+    turno 2..N; el borrador propio ya vive en note_questions.run_id). Kill-switch WITT_THREAD_CONTEXT=0:
+    columnas sí, snapshot no (skipped_reason).
+    Carreras (corrector ADR-0079): turn_no y turn_kind se derivan FUERA de la transacción del INSERT; dos hijos
+    encolados a la vez podrían leer el mismo máximo. El índice ÚNICO (thread_id, turn_no) — db._migrate,
+    patrón de run_no — rechaza al segundo y new_run RE-DERIVA (turn_no siguiente; turn_kind vuelve a mirar si
+    el padre ya tiene hijos → 'branch'). Nada se corrige en silencio: se re-deriva desde la BD."""
+    now = now or db._now()
+    entities_csv = ",".join(entities or [])
+    if not parent_run_id:
+        return {"parent_run_id": None, "thread_id": run_id, "turn_no": 1, "turn_kind": "root",
+                "root_question_id": from_question_id,
+                "envelope": {"snapshot": None, "skipped_reason": "root-turn",
+                             "kill_switch": _kill_switch_view(),
+                             "built_at": now.isoformat(timespec="seconds")}}
+    parent = db.get_run(parent_run_id)
+    if parent is None:
+        raise ParentNotFound(parent_run_id)
+    if parent.get("state") not in db.RATABLE_STATES:
+        raise ParentNotTerminal(parent_run_id, parent.get("state"))
+    thread_id = parent.get("thread_id") or parent["run_id"]
+    turn_no = max(db.max_turn_no(thread_id) or 0, 1) + 1
+    if question == parent.get("question") and entities_csv == (parent.get("entities_csv") or ""):
+        turn_kind = "rerun"
+    elif db.has_children(parent_run_id):
+        turn_kind = "branch"
+    else:
+        turn_kind = "refine"
+    root_question_id = parent.get("root_question_id") or _question_of_run(parent_run_id)
+    if _thread_context_enabled():
+        envelope = build_thread_context(parent, db.list_run_comments(parent_run_id), now)
+    else:
+        envelope = {"snapshot": None, "skipped_reason": f"kill-switch {THREAD_CONTEXT_ENV}=0",
+                    "kill_switch": _kill_switch_view(), "built_at": now.isoformat(timespec="seconds")}
+    if parent.get("thread_id") is None:
+        envelope["parent_pre_adr_0079"] = True
+    return {"parent_run_id": parent_run_id, "thread_id": thread_id, "turn_no": turn_no,
+            "turn_kind": turn_kind, "root_question_id": root_question_id, "envelope": envelope}
+
+
+def plan_thread_context(parent_run_id):
+    """Para POST /runs/plan con parent_run_id (T3): valida al padre igual que new_run (404/409) y devuelve
+    el sobre {snapshot, skipped_reason} que build_plan pasa al planner. Kill-switch respetado."""
+    parent = db.get_run(parent_run_id)
+    if parent is None:
+        raise ParentNotFound(parent_run_id)
+    if parent.get("state") not in db.RATABLE_STATES:
+        raise ParentNotTerminal(parent_run_id, parent.get("state"))
+    if not _thread_context_enabled():
+        return {"snapshot": None, "skipped_reason": f"kill-switch {THREAD_CONTEXT_ENV}=0",
+                "kill_switch": _kill_switch_view(), "parent_run_id": parent_run_id}
+    env = build_thread_context(parent, db.list_run_comments(parent_run_id), db._now())
+    env["parent_run_id"] = parent_run_id   # corrector ADR-0079: el plan declara QUÉ padre vio (plan↔padre)
+    return env
+
+
 class RunCancelled(Exception):
     pass
 
@@ -656,9 +1199,20 @@ def _evidence_ids(bundle):
     return ids
 
 
-def synth_system(pass_label):
+# ADR-0079 — la cláusula anti-fuga del sistema de síntesis. Va en synth_system (cuando hay turno anterior)
+# Y en SYNTH_TOOL.description (siempre): el turno anterior es PRECEDENTE, no evidencia.
+THREAD_ANTI_LEAK_CLAUSE = ("The previous turn (thread_context) is PRIOR ART, not evidence; never cite or "
+                           "reuse an identifier from it unless it appears in evidence. Use it only to "
+                           "understand what was asked before, what was missing (gap_flags) and what the "
+                           "humans commented — then answer THIS question from THIS evidence.")
+
+
+def synth_system(pass_label, thread_context=False):
     """The EXACT production system prompt of a synthesis pass — factored out so diagnostics
-    (evaluation/scripts/ab_trapped_scalar.py) measure against the real string, never a replica."""
+    (evaluation/scripts/ab_trapped_scalar.py) measure against the real string, never a replica.
+
+    ADR-0079: `thread_context=True` añade la cláusula anti-fuga (THREAD_ANTI_LEAK_CLAUSE). Sin turno
+    anterior el string es EXACTAMENTE el de antes — la medición de ab_trapped_scalar no cambia."""
     return ("You answer zebrafish pronephros research questions for a medical team, from a curated "
             "evidence bundle (DATA INAMOVIBLE"
             + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
@@ -666,7 +1220,8 @@ def synth_system(pass_label):
             "LOW confidence + explicit gap_flags); when sub-claims have asymmetric evidence strength, "
             "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
             "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
-            "identifier that is not in the evidence.\n\n"
+            "identifier that is not in the evidence."
+            + (" " + THREAD_ANTI_LEAK_CLAUSE if thread_context else "") + "\n\n"
             # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
             # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
             # fabrica números de sección, que es peor que no pedir nada.
@@ -695,12 +1250,19 @@ def _lista_serializada(raw, keep_dicts=False):
             else json.dumps(x, ensure_ascii=False) for x in v]
 
 
-def _default_synthesizer(question, evidence, pass_label):
+def _default_synthesizer(question, evidence, pass_label, thread_context=None):
     """One synthesis pass over an evidence view (pass1 = DI-only, pass2 = DI + Path B). Returns
     {direct_answer, stated_confidence, confidence_by_subclaim, absence_kind, gap_flags,
-    evidence_cited, model, usage}."""
-    system = synth_system(pass_label)
-    user_text = json.dumps({"question": question, "evidence": evidence}, ensure_ascii=False, default=str)
+    evidence_cited, model, usage}.
+
+    ADR-0079: `thread_context` (snapshot del turno anterior) viaja como LLAVE HERMANA de evidence en el
+    user_text — {question, evidence, thread_context} — nunca dentro de evidence (patrón revision_input).
+    Con snapshot, el system gana la cláusula anti-fuga. None = raíz: prompt idéntico al de siempre."""
+    system = synth_system(pass_label, thread_context=thread_context is not None)
+    payload = {"question": question, "evidence": evidence}
+    if thread_context is not None:
+        payload["thread_context"] = thread_context
+    user_text = json.dumps(payload, ensure_ascii=False, default=str)
     out, usage = composite_auditor._anthropic_tool_call(
         SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
     # ADR-0074 (corrida real 9b3140ab): los campos-lista pueden llegar SERIALIZADOS como string.
@@ -1029,6 +1591,46 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             db.add_event(run_id, "stage.plan", agent="planner", payload=plan_event_payload(plan))
             _check_cancel()
 
+        # 0b) investigación (ADR-0079): el sobre del turno anterior se armó al ENCOLAR (servidor) y vive en
+        # runs.thread_context_json. Aquí se decide si VIAJA: el kill-switch se relee en tiempo de corrida
+        # (patrón WITT_REVISION_CYCLE) — un snapshot persistido pero apagado al ejecutar NO llega al modelo
+        # y frozen.thread_context queda null con la razón. Al PANEL jamás viaja el texto: sólo el resumen
+        # deterministic_checks.thread.
+        thread_env = _thread_envelope(run)
+        thread_snapshot = thread_env.get("snapshot")
+        thread_delivery = {"synthesizer": None, "panel": False,
+                           "skipped_reason": thread_env.get("skipped_reason"),
+                           "prompt_components": []}
+        if thread_snapshot is not None and not _thread_context_enabled():
+            thread_snapshot = None
+            thread_delivery["skipped_reason"] = (f"kill-switch {THREAD_CONTEXT_ENV}=0 at execution (snapshot "
+                                                 "persisted at enqueue, NOT delivered)")
+        if thread_snapshot is not None:
+            thread_delivery["prompt_components"] = ["user_text.thread_context (sibling of evidence)",
+                                                    "synth_system: THREAD_ANTI_LEAK_CLAUSE",
+                                                    "SYNTH_TOOL.description: anti-leak sentence"]
+            hc = thread_snapshot.get("human_comments") or {}
+            db.add_event(run_id, "stage.thread_context", agent="runs",
+                         payload={"turn_no": run.get("turn_no"), "turn_kind": run.get("turn_kind"),
+                                  "parent_run_no": (thread_snapshot.get("parent") or {}).get("run_no"),
+                                  "bytes": thread_snapshot.get("bytes"),
+                                  "n_comments_included": hc.get("n_included"),
+                                  "comments_truncated": hc.get("truncated"),
+                                  "previous_answer_present": thread_snapshot.get("previous_answer") is not None})
+            _check_cancel()
+
+        def _synth(evidence, label):
+            """Cada pasada recibe el snapshot como LLAVE HERMANA si existe; un stub con la firma vieja
+            (question, evidence, pass_label) sigue válido y el registro declara que no lo recibió."""
+            if thread_snapshot is None:
+                return synthesizer(run["question"], evidence, label)
+            out, delivered = _call_with_optional(synthesizer, (run["question"], evidence, label),
+                                                 "thread_context", thread_snapshot)
+            thread_delivery["synthesizer"] = delivered
+            if not delivered:
+                thread_delivery["synthesizer_note"] = "synthesizer signature without thread_context — not delivered"
+            return out
+
         # 1) retrieve — the ONE state machine, instrumented via on_stage (never re-assembled)
         bundle = answer_pipeline.retrieve(run["question"],
                                           entities=[e for e in run["entities_csv"].split(",") if e],
@@ -1040,7 +1642,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # 2) PASS 1 — DI-only synthesis. Its confidence is the real "is my store enough?" signal
         # (ADR-0051), measured even when structural insufficiency already fetched Path B.
         db.add_event(run_id, "stage.synthesize.start", agent=SYNTH_MODEL)
-        pass1 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=False), "pass1")
+        pass1 = _synth(_compact_evidence(bundle, include_path_b=False), "pass1")
         passes.append(("pass1", pass1))
         conf1, conf1_source = _resolve_confidence(pass1)
         db.add_event(run_id, "stage.synthesize.pass1", agent=pass1.get("model"),
@@ -1093,7 +1695,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # incorporated. BOTH confidences persist; the delta is the run's most informative datum
         # (the 0.14 -> 0.71 Level-2 measurement).
         if trigger:
-            pass2 = synthesizer(run["question"], _compact_evidence(bundle, include_path_b=True), "pass2")
+            pass2 = _synth(_compact_evidence(bundle, include_path_b=True), "pass2")
             passes.append(("pass2", pass2))
             conf2, conf2_source = _resolve_confidence(pass2)
             delta = (round(conf2 - conf1, 4) if isinstance(conf1, (int, float))
@@ -1112,10 +1714,17 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         _check_cancel()
 
         # 5) deterministic anti-fabrication gate over the FINAL answer (Logic-LM-class, NOT an LLM)
+        # ADR-0079: predicado DURO parent_identifier_leak — un identificador que sólo existe en el turno
+        # anterior (precedente) y reaparece en la respuesta sin estar en la evidencia del hijo = fuga →
+        # inadmisible (extra_predicates de verify_output.admissible; la clase Logic-LM no cambia).
+        leak_frag, leak_preds = _leak_check(thread_snapshot, answer["direct_answer"], bundle, run)
         adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
-                                                 "evidence_cited": answer.get("evidence_cited") or []})
+                                                 "evidence_cited": answer.get("evidence_cited") or []},
+                                                extra_predicates=leak_preds)
         report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
-        checks = {"admissible": adm, "reasons": reasons, "identifier_report": report}
+        checks = {"admissible": adm, "reasons": reasons, "identifier_report": report, **leak_frag,
+                  # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
+                  "thread": _thread_checks_summary(run, thread_snapshot)}
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                      payload=checks, level="info" if adm else "warning")
         _check_cancel()
@@ -1161,17 +1770,20 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                                 "the evidence shown — fixing a finding never licenses new claims or new "
                                 "identifiers; if a finding cannot be resolved from this evidence, say so "
                                 "explicitly (honest-decline doctrine, ADR-0058)")}}
-            answer_rev = synthesizer(run["question"], rev_evidence, "revision")
+            answer_rev = _synth(rev_evidence, "revision")
             passes.append(("revision", answer_rev))
             conf_rev, conf_rev_source = _resolve_confidence(answer_rev)
             db.add_event(run_id, "stage.synthesize.revision", agent=answer_rev.get("model"),
                          payload={"stated_confidence": conf_rev, "confidence_source": conf_rev_source,
                                   "n_findings_input": len(findings)})
             _check_cancel()
+            leak_frag2, leak_preds2 = _leak_check(thread_snapshot, answer_rev["direct_answer"], bundle)
             adm2, reasons2 = verify_output.admissible({"direct_answer": answer_rev["direct_answer"],
-                                                       "evidence_cited": answer_rev.get("evidence_cited") or []})
+                                                       "evidence_cited": answer_rev.get("evidence_cited") or []},
+                                                      extra_predicates=leak_preds2)
             report2 = verify_output.verify_identifiers(answer_rev["direct_answer"]).as_dict()
-            checks2 = {"admissible": adm2, "reasons": reasons2, "identifier_report": report2}
+            checks2 = {"admissible": adm2, "reasons": reasons2, "identifier_report": report2, **leak_frag2,
+                       "thread": _thread_checks_summary(run, thread_snapshot)}
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                          payload=checks2, level="info" if adm2 else "warning")
             _check_cancel()
@@ -1299,6 +1911,109 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             "bundle_identity": bundle["bundle_identity"],
             "question_matches_run": bundle["question"] == run["question"],
         }
+        # --- investigación (ADR-0079) — derivado AL CONGELAR desde las columnas + el sobre persistido ---
+        parent_row = db.get_run(run["parent_run_id"]) if run.get("parent_run_id") else None
+        frozen["thread"] = {
+            "thread_id": run.get("thread_id"), "parent_run_id": run.get("parent_run_id"),
+            "turn_no": run.get("turn_no"), "turn_kind": run.get("turn_kind"),
+            "parent_state": parent_row.get("state") if parent_row else None,
+            "parent_run_no": parent_row.get("run_no") if parent_row else None,
+            "root_question_id": run.get("root_question_id"),
+            # T5 (integrador, ADR-0079): el run_no de la RAÍZ — insumo de la etiqueta 'T-<run_no raíz>' que el
+            # PDF (record_pdf._thread_label) imprime en CUALQUIER turno; sin él declara 'T-?'. Raíz real o
+            # VIRTUAL (padre pre-ADR): la fila cuyo run_id es thread_id. None declarado si no consta.
+            "root_run_no": _root_run_no(run),
+            # qué componente recibió el snapshot (None = no había; False = firma sin la llave) — el panel
+            # NUNCA (por diseño: evidencia limpia + deterministic_checks.thread)
+            "context_delivery": thread_delivery,
+        }
+        # el INSUMO que el modelo vio (igual que `plan`): null con razón cuando no viajó — tres estados
+        frozen["thread_context"] = thread_snapshot
+        frozen["thread_context_skipped_reason"] = (None if thread_snapshot is not None
+                                                   else thread_delivery["skipped_reason"])
+        # el padre es INMUTABLE: el sha que el snapshot tomó al encolar debe ser el sha del padre AHORA
+        # (sobre el blob sin frozen_at/closed_by — THREAD_SHA_RULE). None declarado sin snapshot/padre.
+        if parent_row is None:
+            matches, matches_state = None, "no-parent"
+        elif thread_snapshot is None:
+            matches, matches_state = None, "no-snapshot"
+        elif thread_snapshot.get("parent_frozen_sha256") is None:
+            # None == None sería un True vacío: sin blob del padre no hay nada que casar — se declara
+            matches, matches_state = None, "parent-without-frozen-record"
+        else:
+            matches = thread_snapshot["parent_frozen_sha256"] == frozen_sha256(parent_row.get("frozen_record_json"))
+            matches_state = "checked"
+        frozen["thread_parent_matches_run"] = matches
+        frozen["thread_parent_matches_run_state"] = matches_state
+        frozen["thread_parent_matches_run_rule"] = THREAD_SHA_RULE
+        # (E) PRECEDENTE ≠ EVIDENCIA: el turno anterior entra en la serie de LETRAS (precedent.serialize_disjoint
+        # sobre precedent.turn_item, 'l'='A', admissible_as_evidence False); `citations` (números) NO cambia de
+        # forma. validate_disjoint es el gate determinista de que ninguna serie produjo la etiqueta de la otra.
+        # Corrector ADR-0079 — precedente SÓLO si el padre está 'closed' (ADR-0053 / db.closed_runs: una corrida
+        # es precedente únicamente tras la clausura humana explícita). Un padre awaiting_closure / failed /
+        # cancelled sigue siendo padre válido (su snapshot viaja como thread_context, declarado en §B) pero NO
+        # lleva letra: precedent_citations [] + precedent_citations_state declarado (tres estados).
+        if parent_row is None:
+            pc_state = "no-parent"
+        elif parent_row.get("state") == "closed":
+            pc_state = "checked"
+        elif parent_row.get("frozen_record_json"):
+            pc_state = "parent-not-closed"
+        else:
+            pc_state = "parent-without-frozen-record"
+        parent_items = [precedent.turn_item(parent_row)] if pc_state == "checked" else []
+        serialized = precedent.serialize_disjoint(citations, parent_items)
+        frozen["precedent_citations"] = serialized["precedent"]
+        frozen["precedent_citations_state"] = pc_state
+        checks["disjoint_series"] = precedent.validate_disjoint(
+            {"evidence": citations, "precedent": frozen["precedent_citations"]})
+        checks["disjoint_series_state"] = ("no-parent" if parent_row is None
+                                           else "checked" if pc_state == "checked" else "parent-not-precedent")
+        # (F) procedencia: el valor es el de la columna (derivado al encolar). Corrector ADR-0079: la FUENTE
+        # también es la de encolar — new_run la persiste en el sobre (envelope.origin) y aquí se COPIA; la
+        # re-derivación al ejecutar viaja aparte como source_at_execution (dato secundario), jamás en `source`.
+        # Sobre sin origin (encolado antes de este corrector) → source 'unknown-at-enqueue' declarado.
+        origin_now = run_origin()
+        origin_enq = thread_env.get("origin") if isinstance(thread_env.get("origin"), dict) else None
+        frozen["origin"] = {"value": run.get("origin"),
+                            "source": (origin_enq["source"]
+                                       if origin_enq and origin_enq.get("value") == run.get("origin")
+                                       else "unknown-at-enqueue (envelope without origin)"
+                                       if run.get("origin") is not None else None),
+                            "source_at_execution": {"value": origin_now["value"], "source": origin_now["source"],
+                                                    "same_value_as_column": origin_now["value"] == run.get("origin")},
+                            "note": None if run.get("origin") is not None else "unknown-pre-adr-0079"}
+        # corrector ADR-0079: procedencia plan↔padre — el plan declaró un padre y un sha (build_plan); la
+        # corrida tiene los suyos. Tres estados: None con estado cuando no hay plan, el plan es anterior a la
+        # declaración, o no hay padre/snapshot en ninguno de los dos lados.
+        env_snapshot = thread_env.get("snapshot") if isinstance(thread_env.get("snapshot"), dict) else None
+        if plan is None:
+            ppm, ppm_state = None, "no-plan"
+        elif "thread_parent_run_id" not in plan:
+            ppm, ppm_state = None, "plan-predates-thread-declaration"
+        elif plan.get("thread_parent_run_id") is None and run.get("parent_run_id") is None:
+            ppm, ppm_state = None, "no-parent"
+        else:
+            ppm, ppm_state = plan.get("thread_parent_run_id") == run.get("parent_run_id"), "checked"
+        frozen["plan_parent_matches_run"] = ppm
+        frozen["plan_parent_matches_run_state"] = ppm_state
+        run_sha = (env_snapshot or {}).get("parent_frozen_sha256")
+        if plan is None:
+            psm, psm_state = None, "no-plan"
+        elif "thread_parent_frozen_sha256" not in plan:
+            psm, psm_state = None, "plan-predates-thread-declaration"
+        elif plan.get("thread_parent_frozen_sha256") is None and run_sha is None:
+            psm, psm_state = None, "no-snapshot"
+        else:
+            psm, psm_state = plan.get("thread_parent_frozen_sha256") == run_sha, "checked"
+        frozen["plan_snapshot_matches_run"] = psm
+        frozen["plan_snapshot_matches_run_state"] = psm_state
+        # (G) ejes del episodio — por tabla (EPISODE_AXES_MAP), clase derived-at-freeze
+        frozen["episode_axes"] = episode_axes(
+            decision_state=bundle["decision_state"]["state"], absence_kind=answer.get("absence_kind"),
+            verdict=audit_result.get("verdict"), run_state="awaiting_closure",
+            retrieval_mode=bundle["retrieval_summary"].get("mode"), origin=run.get("origin"),
+            plan_declared=plan is not None, closed=False, thread=frozen["thread"])
         # LOTE-02·3: the list-row epistemic summary is derived HERE, at freeze — never at serve time
         # (the frozen-counter discipline: a list row must not re-derive what the record froze).
         # LOS DOS EJES DE NICHO (2026-09-05, decisión del fundador: "catálogo medido + panel para
@@ -1321,7 +2036,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                              "verdict": audit_result["verdict"],
                              "confidence_state": frozen["confidence"]["state"],
                              "panel_n_valid": audit_result["n_valid"],
-                             "niches": nichos}
+                             "niches": nichos,
+                             # ADR-0079 (regla frozen-counter: derivado AQUÍ, la lista no re-deriva)
+                             "thread_id": run.get("thread_id"), "turn_no": run.get("turn_no"),
+                             "origin": run.get("origin")}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
@@ -1392,10 +2110,51 @@ def close_run(run_id, by):
     return {"closed": True, "run_id": run_id, "frozen_at": frozen["frozen_at"]}
 
 
-def new_run(user_id, question, entities=None, plan_json=None):
+def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None, from_question_id=None):
+    """Encola una corrida. ADR-0079: la investigación se DERIVA aquí (derive_thread — servidor, jamás del
+    cliente) y la procedencia también (run_origin). Con parent_run_id: ParentNotFound (404) /
+    ParentNotTerminal (409) suben ANTES de insertar — la capa HTTP las traduce. `from_question_id` sólo
+    siembra root_question_id de una RAÍZ (el sello mark_question_used sigue siendo de app.py). El plan:
+    un plan_id se consume por UNA corrida (409 plan_already_used en app.py) — el hijo declara plan nuevo
+    o el llamador copia plan_json; aquí sólo se persiste lo que llegue."""
+    from sqlalchemy.exc import IntegrityError
     run_id = uuid.uuid4().hex
-    db.create_run(run_id, user_id, question, entities, plan_json=plan_json)
-    db.add_event(run_id, "run.state", payload={"state": "queued"})
+    entities = list(entities or [])
+    origin = run_origin()
+    ultimo_error = None
+    for _intento in range(5):
+        thread = derive_thread(run_id, question, entities, parent_run_id=parent_run_id,
+                               from_question_id=from_question_id)
+        envelope = thread["envelope"]
+        # corrector ADR-0079: la PROCEDENCIA completa ({value, source, raw?, truncated?}) se persiste al
+        # encolar dentro del sobre — el registro congelado copia esta fuente en vez de re-derivarla.
+        envelope["origin"] = origin
+        try:
+            db.create_run(run_id, user_id, question, entities, plan_json=plan_json,
+                          parent_run_id=thread["parent_run_id"], thread_id=thread["thread_id"],
+                          turn_no=thread["turn_no"], turn_kind=thread["turn_kind"],
+                          thread_context_json=json.dumps(envelope, ensure_ascii=False, default=str),
+                          origin=origin["value"], root_question_id=thread["root_question_id"])
+            break
+        except IntegrityError as e:
+            # corrector ADR-0079: SÓLO la carrera de turn_no (índice único ux_runs_thread_turn) se reintenta
+            # re-derivando desde la BD; cualquier otra violación sube tal cual (SQLite: 'runs.thread_id,
+            # runs.turn_no'; Postgres: 'ux_runs_thread_turn').
+            msg = str(e.orig).lower()
+            if "turn_no" not in msg and "ux_runs_thread_turn" not in msg:
+                raise
+            ultimo_error = e
+    else:
+        raise ultimo_error
+    snap = envelope.get("snapshot") or {}
+    db.add_event(run_id, "run.state", payload={
+        "state": "queued", "origin": origin,
+        "thread": {"thread_id": thread["thread_id"], "turn_no": thread["turn_no"],
+                   "turn_kind": thread["turn_kind"], "parent_run_id": thread["parent_run_id"],
+                   "context": ("built" if envelope.get("snapshot") is not None else "skipped"),
+                   "context_skipped_reason": envelope.get("skipped_reason"),
+                   "context_bytes": snap.get("bytes"),
+                   "n_comments_included": ((snap.get("human_comments") or {}).get("n_included"))}})
     return run_id
 
 

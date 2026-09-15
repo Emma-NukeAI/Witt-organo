@@ -146,6 +146,7 @@ or external references that informed the decision.
 | [0076](0076-numero-de-corrida.md) | 2026-09-05 | Número de corrida: la identidad legible nace en el backend, no en la vista | Accepted |
 | [0077](0077-comentarios-de-corrida.md) | 2026-09-06 | Comentarios de corrida: la conversación sobre la pregunta como anexo append-only, público y fuera del registro | Accepted |
 | [0078](0078-higiene-ruta-a-y-b.md) | 2026-09-14 | Higiene de Ruta A y B: el sintetizador lee el contenido (2400 chars/hit, abstracts, excerpts), queries nativas por índice, ledger por fuente con estados (`ledger_version 2`), identidad + throttle NCBI/EPMC, ZFIN con esquema nuevo, reaper `worker-lost`, citas y precios declarados | Accepted |
+| [0079](0079-investigacion-turnos-y-origen.md) | 2026-09-15 | La investigación: turnos encadenados sobre una raíz (`parent_run_id` → `thread_id`/`turn_no`/`turn_kind` derivados en el servidor), el turno anterior como PRECEDENTE en letras (jamás evidencia; fuga de identificadores del padre = inadmisible), `thread_context` armado en el servidor e inyectado como llave hermana (nunca al panel), `origin` por corrida con precedente/calibración acotados a producción por default, cuatro ejes del episodio por tabla, `GET /threads/{id}`, contrato 1.8 | Accepted |
 
 ---
 

@@ -27,9 +27,10 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/artifacts/report/{name}` | ✓ | sirve un HTML histórico (path-safe por membresía) |
 | GET | `/artifacts/run/{set}/{name}` | ✓ | un run histórico (JSON; `instrumented: false` = sin `decision_state`) |
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
-| POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061; **plan v3** por ADR-0066): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla + **0-3 `clarifying_questions` never-stopper**) + **`data_landscape`** estructural (preview DI sparse NO-SPEND + qué fuentes Ruta B aplican) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`) |
-| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`) |
-| GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) |
+| POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061; **plan v3** por ADR-0066): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla + **0-3 `clarifying_questions` never-stopper**) + **`data_landscape`** estructural (preview DI sparse NO-SPEND + qué fuentes Ruta B aplican) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`). **`parent_run_id`** (ADR-0079): el planner recibe el `thread_context` del padre (armado en el servidor); la respuesta declara `thread_context_passed` / `thread_context_skipped_reason` |
+| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`). **`parent_run_id`** (ADR-0079): el turno siguiente de una investigación — 404 `parent_not_found` · 409 `parent_not_terminal` (queued/running); `thread_id`/`turn_no`/`turn_kind`/`origin`/`thread_context` los deriva el SERVIDOR, jamás el cliente |
+| GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) + **columnas de investigación** (ADR-0079: `parent_run_id`, `thread_id`, `turn_no`, `turn_kind`, `origin`, `root_question_id` — NULL = anterior al contrato, sin backfill). **`GET /runs?thread=<thread_id>&limit=&after=`** lista los TURNOS de una investigación (orden `turn_no ASC`, sin el tope 50, cursor `after` = turn_no exclusivo, `has_more` medido, `next_after`); la lista general declara `limit`/`limit_cap` |
+| GET | `/threads/{thread_id}` | ✓ | **la investigación T-<run_no raíz> como UNA unidad** (ADR-0079): `turns[]` en orden con veredicto/decision_state/origin/costo por turno, `gap_flags_union` (conteos con igualdad normalizada, jamás prosa nueva), `total_cost_usd` PROYECCIÓN con `complete`, `pivot_suggested` (regla `WITT_PIVOT_TURNS` declarada), `origins`, `authors`, `root_pre_adr_0079` (raíz virtual anterior al contrato); 404 `thread_not_found` |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
 | GET | `/runs/{id}/record.pdf` | ✓ | **el PDF de servidor** (M4, ADR-0073): generado DEL JSON congelado con plantilla propia — jamás "imprimir la página"; bandas con palabras completas, procedencia del escalar en palabras, ambas rondas de la revisión, identidad rota = 409; el ÚNICO canal autorizado de exportación |
 | GET · POST | `/runs/{id}/comments` | ✓ | **los COMENTARIOS de la corrida** (ADR-0077): la conversación del equipo sobre la pregunta — anexo append-only y público (toda sesión lee y escribe; sin PATCH ni DELETE), fuera del registro congelado, de M5 y de los apuntes; autor y hora los pone el servidor; `body_max` declarado (4000); `n_comments` viaja en toda vista de corrida |
@@ -41,11 +42,11 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
-| GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente) |
+| GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente). **`include_origins`** (CSV, ADR-0079): por default SOLO origin `production` (+ pre-ADR NULL, incluidas y declaradas); la respuesta trae `origins_included` / `excluded_by_origin` / `origin_unknown_included`; fuera del enum = 400 |
 | POST | `/runs/{id}/ratings` | ✓ | **calificación M5** (ADR-0064): append-only (una corrección = fila nueva), procedencia DERIVADA de la sesión (`is_author`/`rater_profile`/`instrument`, jamás del cliente), ejes 1-5 con `[?]` explícito (`cannot-rate`/`not-applicable` — nunca un 1); solo corridas terminadas (409 en queued/running) |
 | GET | `/runs/{id}/ratings` | ✓ | ratings + consenso con la **independencia M5 aplicada en el servidor**: scores ajenos enmascarados hasta que emitas el tuyo; el consenso cuenta sin promediar (`{invited, received, open, missing}`) |
 | GET | `/ratings/pending` | ✓ | la cola "PENDIENTES DE CALIFICAR" del usuario de la sesión, con consenso y resumen epistémico por fila |
-| GET | `/calibration` | ✓ | **ECE sobre corridas CERRADAS anclado en ratings humanos** (tapón 4, ADR-0064): reutiliza `compute_ece.py`, mapeo de outcomes DECLARADO en la respuesta, poder declarado (`n<10` = case capture, descriptivo, jamás un número ciego; `n>=10` agrega isotonic), desglose médico/dev; NO-SPEND |
+| GET | `/calibration` | ✓ | **ECE sobre corridas CERRADAS anclado en ratings humanos** (tapón 4, ADR-0064): reutiliza `compute_ece.py`, mapeo de outcomes DECLARADO en la respuesta, poder declarado (`n<10` = case capture, descriptivo, jamás un número ciego; `n>=10` agrega isotonic), desglose médico/dev; NO-SPEND. **`include_origins`** (CSV, ADR-0079) con la misma declaración de alcance que el precedente (también en `GET /notes/questions/calibration`) |
 
 **`/status` es NO-SPEND por construcción** (receta `liveness.py`): lee el JSON del store + el manifest
 del índice y hace solo Cypher de conteo (jamás un embed). Con `WITT_STATUS_TTL_SECONDS` (default 60),
@@ -105,7 +106,13 @@ offline; ADR-0064).
 ANTHROPIC_API_KEY=""` — cero red, cero modelo, cero mutación de `mcp_cache`. Los de ADR-0078 (
 `smoke_zfin_tool.py` sirve el fixture REAL `fixtures/alliance_phenotypes_wt1a_20260913.json`;
 `smoke_pubmed_tool.py`, `smoke_fetch_paper.py`, `smoke_search_queries.py`, `smoke_run_recovery.py`) se
-corren junto a `smoke_run_pipeline.py` (que además integra los cinco en la corrida).
+corren junto a `smoke_run_pipeline.py` (que además integra los cinco en la corrida). Los de ADR-0079 —
+`smoke_threads_db.py` (39/39, la capa de datos), `smoke_thread_context.py` (35/35, runs.py),
+`smoke_runs_thread_http.py` (51/51, la puerta por ASGI TestClient) — más los ampliados `smoke_precedent.py`
+(28/28) y `smoke_ratings_calibration.py` (44/44), y la sección ADR-0079 de `smoke_run_pipeline.py` (211/211)
+que integra las cinco rebanadas. Todos fijan `WITT_RUN_ORIGIN=smoke` y piden `include_origins=smoke` explícito
+cuando el check depende de sus propias corridas cerradas (el default `production` se prueba comprobando que
+quedan CONTADAS fuera).
 
 ## Corridas (bloque 3, ADR-0049/0050)
 
@@ -114,8 +121,14 @@ Una corrida ejecuta: retrieve (la máquina de estados real de `answer_pipeline`,
 composite-auditor** (Opus+Sonnet+Haiku+gpt-4o, 100% de las corridas) → `AUDIT_APPROVED|REJECTED` →
 registro congelado en Postgres. Estados: `queued|running|awaiting_closure|closed|failed|cancelled`.
 Gasto por corrida ~1–2.50 USD (medido en `usage`, sin caps — ADR-0047). Requiere `ANTHROPIC_API_KEY`
-en el Environment del servicio. Gate: `smoke_run_pipeline.py` (181/181 offline; `smoke_query_service.py`
-47/47). Contrato del registro: `render_contract_version 1.7` (ADR-0078: `+citations_schema`,
+en el Environment del servicio. Gate: `smoke_run_pipeline.py` (211/211 offline; `smoke_query_service.py`
+47/47). Contrato del registro: `render_contract_version 1.8` (ADR-0079: `+thread {thread_id, parent_run_id,
+turn_no, turn_kind, parent_state, parent_run_no, root_question_id, root_run_no, context_delivery}`, `+thread_context`
+(el snapshot que el modelo VIO | null + `thread_context_skipped_reason`), `+thread_parent_matches_run` (+`_state`,
++`_rule`), `+precedent_citations` (letras `l`, `admissible_as_evidence false`), `+origin {value, source}`,
+`+episode_axes {world, inference, technical, provenance}`, `deterministic_checks.{thread, parent_identifier_leak,
+disjoint_series}`; `epistemic_summary +thread_id/turn_no/origin`; `citations` NO cambia de forma — la webapp tipa
+los campos nuevos como opcionales). 1.7 (ADR-0078: `+citations_schema`,
 `+evidence_cited_raw`, `token_usage.{missing_price_models, cost_projection_complete}`; la vista de corrida
 gana `claimed_by`/`claimed_at`/`failure_reason` — la webapp tipa los campos nuevos como opcionales, eso ES
 la paridad front↔back). 1.6 (ADR-0067, adopción VB #2: **ciclo de
@@ -285,6 +298,60 @@ ambas confianzas + el **delta** quedan en el registro (`confidence {pass1, pass2
 state}`), junto con `fallback.trigger` (structural|confidence), `absence_kind`, citas tipadas
 (`citations[{n, kind, id}]`) y `token_usage` (by_model medido, embeddings incluidos, costo etiquetado
 como proyección). `render_contract_version: 1.1`.
+
+### La investigación: turnos encadenados y el origen de la corrida (ADR-0079, 2026-09-15)
+
+Una corrida puede NACER desde otra terminada (`POST /runs {parent_run_id}`): el servidor deriva `thread_id`
+(= run_id de la raíz), `turn_no` (max del hilo + 1), `turn_kind` (`refine` · `rerun` = misma pregunta+entities ·
+`branch` = el padre ya tenía otro hijo) y `root_question_id`; arma el **snapshot del turno anterior**
+(`thread_context`) desde el registro congelado + los comentarios del padre — respuesta recortada, `gap_flags`
+íntegros, hallazgos del panel, comentarios (clase atestiguada, topes declarados), pistas para RE-RECUPERAR;
+JAMÁS valores ni notas de calificación — y lo persiste como sobre `{snapshot, skipped_reason}`. Al ejecutar viaja al
+SINTETIZADOR y al PLANNER como llave hermana `{question, evidence, thread_context}` con la cláusula anti-fuga
+(`THREAD_ANTI_LEAK_CLAUSE`); el PANEL recibe evidencia limpia + `deterministic_checks.thread` (resumen sin prosa).
+Al congelar: el padre entra a `precedent_citations` en LETRAS (`precedent.turn_item` → `serialize_disjoint`,
+`admissible_as_evidence false`) **sólo si está `closed`** (ADR-0053: precedente = clausura humana explícita; un padre
+awaiting_closure/failed/cancelled sigue siendo padre válido pero `precedent_citations []` +
+`precedent_citations_state ∈ checked | no-parent | parent-not-closed | parent-without-frozen-record`), `validate_disjoint`
+es gate, y **un identificador presente en el contexto del padre y en la respuesta del hijo pero AUSENTE de la evidencia
+del hijo = `parent_identifier_leak` → inadmisible** (predicado duro, declarado; `_state ∈ checked | no-parent |
+no-snapshot`). `thread_parent_matches_run` compara el sha del padre al encolar vs. al congelar (sin
+`frozen_at`/`closed_by`). El plan con padre declara `thread_parent_run_id` + `thread_parent_frozen_sha256` y el registro
+los casa: `plan_parent_matches_run` / `plan_snapshot_matches_run` (+`_state`). La carrera de `turn_no` la cierra el
+índice ÚNICO `ux_runs_thread_turn (thread_id, turn_no)` + re-derivación en `runs.new_run`.
+Padre inexistente 404 · padre queued/running 409 · padre con `question_matches_run false` → hija sin contexto
+(`parent-identity-invalid`) · padre failed → `previous_answer null` declarado · padre anterior al contrato = raíz
+VIRTUAL (turno 2, `parent_pre_adr_0079`). Vocabulario: en código `thread_id`/`turn_no`/`turn_kind`; ante el humano
+**investigación T-<run_no raíz>** ("hilo" ya nombra los comentarios de ADR-0077).
+
+**Origen** (`runs.origin`, derivado por `runs.run_origin()` al encolar): `WITT_RUN_ORIGIN` ∈ `production |
+dev-offline | replay | smoke | simulation | fixture` (fuera del enum → `invalid-env:<v>` declarado); sin env →
+`dev-offline` con `WITT_ALLOW_RUNS_OFFLINE=1`, si no `production`. **Precedente y calibración sólo ven
+`production` por default**; smoke/simulation/… se EXCLUYEN y se CUENTAN (`excluded_by_origin`), origin NULL (pre-ADR)
+se INCLUYE y se DECLARA (`origin_unknown_included`); `include_origins` amplía — el default se aplica en la PUERTA
+(también en `GET /notes/questions/calibration`, vía `precedent.normalize_origins`). `/usage` y `plan_history` NO filtran
+(decisión declarada en el ADR). `frozen.origin.source` es la fuente AL ENCOLAR (persistida en el sobre
+`thread_context_json.origin`); la re-derivación al ejecutar viaja aparte en `origin.source_at_execution`. **Ejes del episodio** (`frozen.episode_axes`, derivados al congelar por
+`runs.EPISODE_AXES_MAP`): `world ∈ effect-claimed | null-bounded | indeterminate | not-established | not-assessed`
+· `inference ∈ supported | minor-issues | honest-decline | insufficient | not-evaluated` · `technical ∈ completed |
+degraded | failed | cancelled` · `provenance {origin, human_gates, turn}`; el PDF los imprime en palabras junto al
+estado y añade la sección INVESTIGACION (`T-<run_no raíz>`, `[A]` NO ADMISIBLE, identidad del padre, origen).
+
+| Variable | Default | Dónde se lee | Efecto |
+|---|---|---|---|
+| `WITT_THREAD_CONTEXT` | 1 | `runs._thread_context_enabled` (al encolar Y al ejecutar) | 0 = kill-switch: columnas sí, snapshot no; `skipped_reason` declarado |
+| `WITT_THREAD_COMMENTS_MAX` | 8 | `runs._thread_limits` (tolerante) | comentarios del padre en el snapshot; `truncated` declarado |
+| `WITT_THREAD_COMMENTS_CHARS` | 8000 | idem | chars totales de esos comentarios |
+| `WITT_THREAD_ANSWER_CHARS` | 1200 | idem | recorte del `direct_answer` del padre (`direct_answer_truncated`) |
+| `WITT_RUN_ORIGIN` | — (derivación) | `runs.run_origin` | `runs.origin` + `frozen.origin {value, source}` |
+| `WITT_ALLOW_RUNS_OFFLINE` | — (sólo dev) | `runs.run_origin` (insumo) · `app.create_run` | `'1'` → origin `dev-offline` (source `derived:offline-mask`) cuando `WITT_RUN_ORIGIN` no está y esas corridas quedan FUERA de precedente/calibración por default; **jamás en prod** (el compose no la declara a propósito) |
+| `WITT_PIVOT_TURNS` | 3 | `app.PIVOT_TURNS` (`runs._env_int_tolerante`: vacía / no numérica / ≤ 0 → 3, fuente declarada en `pivot_suggested.threshold_source`) | ventana de `pivot_suggested` en `GET /threads` |
+
+`GET /runs?limit=` valida el signo en ambos ramales (`limit < 1` → 400; `limit > 50` → 50 declarado).
+
+Gates (tras el corrector final): `smoke_threads_db.py` 42/42 · `smoke_thread_context.py` 36/36 · `smoke_runs_thread_http.py`
+54/54 · `smoke_precedent.py` 30/30 · `smoke_ratings_calibration.py` 44/44 · `smoke_question_agent_http.py` 35/35 ·
+`smoke_run_pipeline.py` 217/217.
 
 ## Pendiente
 

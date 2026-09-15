@@ -5,6 +5,10 @@ Cubre: la reforma de la maquina de estados (DI_SUFFICIENT ya NO autoriza respond
 panel delgado NUNCA aprueba, jueces errados excluidos y registrados), record_audit con su PRIMER
 llamador real, el modelo de corrida end-to-end (queued -> running -> awaiting_closure -> closed),
 cancelacion como estado de primera clase, latido, y la bitacora UNICA (replay == traza viva).
+ADR-0079 (seccion final): la INVESTIGACION integrada de punta a punta — raiz/refine/rerun/branch por la
+puerta, snapshot del turno anterior como llave hermana al sintetizador (camino REAL capturado) y jamas al
+panel, precedente en LETRAS != evidencia, fuga de identificadores del padre -> inadmisible, origen, ejes del
+episodio por tabla, GET /threads y GET /runs?thread=, include_origins en precedente/calibracion, PDF.
 
 100% offline: SQLite tmp, rag_backend/path_b/sintetizador/panel monkeypatcheados — cero red, cero
 OpenAI/Anthropic, cero mutacion de la DATA INAMOVIBLE. Exit 0 = todo PASS.
@@ -55,6 +59,16 @@ def _http_error(fn, *a, **kw):
 
 
 # ---- stubs deterministas ----------------------------------------------------------------------------
+def _raises(fn, exc):
+    try:
+        fn()
+    except exc:
+        return True
+    except Exception:
+        return False
+    return False
+
+
 def _stub_caller_factory(verdicts):
     """caller inyectado: devuelve verdicts[lens] o lanza si el valor es una excepcion."""
     def _caller(member, system, user_text):
@@ -194,8 +208,10 @@ check("corrector ADR-0078: la vista tipa failure_reason (null cuando no falló) 
       app.get_run(RID, authorization=AUTH)["failure_reason"] is None
       and app.get_run(RID, authorization=AUTH)["claimed_by"] is None)
 rec = app.get_frozen_record(RID, authorization=AUTH)
-check("registro congelado persistido en backend: contrato 1.7 (ADR-0078) + audit + store_at_retrieval + identidad",
-      rec["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.7" and rec["audit"]["verdict"] == "APPROVE"
+check("registro congelado persistido en backend: contrato = runs.RENDER_CONTRACT_VERSION (la versión vigente la fija "
+      "runs.py — 1.7 ADR-0078, 1.8 ADR-0079; el literal se asserta UNA vez, en la sección ADR-0079) + audit + "
+      "store_at_retrieval + identidad",
+      rec["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION and rec["audit"]["verdict"] == "APPROVE"
       and rec["question_matches_run"] is True and rec["decision_state"]["state"] == "AUDIT_APPROVED"
       and "store_version" in rec["store_at_retrieval"] and rec["bundle_identity"]["run_id"] == RID)
 # --- bloque 4 (ADR-0051): confianza alta + DI suficiente -> SIN fallback, una sola pasada -----------
@@ -1698,6 +1714,621 @@ check("corrector ADR-0078 FUGA: con WITT_NCBI_EMAIL fijada el correo vive SOLO e
       and "@" not in json.dumps(_led_leak, ensure_ascii=False)
       and "@" not in json.dumps(runs_mod._compact_evidence(_bundle_leak), ensure_ascii=False, default=str),
       f"contact={_led_leak['contact']}")
+
+# =====================================================================================================
+# ---- ADR-0079: la INVESTIGACIÓN (turnos encadenados sobre una raíz) — integración T1..T4 -------------
+# db (columnas) <-> runs (derivación al encolar, snapshot, inyección, precedente != evidencia, origen, ejes)
+# <-> app (404/409, vista, GET /threads, GET /runs?thread=, include_origins) <-> consumidores (precedent,
+# calibration, record_pdf). Todo offline: sintetizador/panel inyectados, o el camino REAL de
+# _default_synthesizer con composite_auditor._anthropic_tool_call CAPTURADO; cero red, cero modelo.
+# El ORIGEN de estas corridas lo deriva runs.run_origin() del entorno: 'smoke' bajo la máscara de los gates
+# (WITT_RUN_ORIGIN=smoke) o 'dev-offline' (WITT_ALLOW_RUNS_OFFLINE=1) sin ella. Los checks comparan contra
+# esa derivación — en ambos casos el origen es ∉ 'production', que es lo que precedente/calibración
+# excluyen por default (y cuentan). Vocabulario: en código thread_id/turn_no/turn_kind; al humano
+# "investigación" T-<run_no raíz> ("hilo" ya nombra los comentarios de ADR-0077).
+# =====================================================================================================
+import precedent  # noqa: E402
+
+_ORIGIN = runs_mod.run_origin()
+assert _ORIGIN["value"] in db.RUN_ORIGINS, _ORIGIN
+_SYNTH_CTX = []     # (pass_label, thread_context) que recibió el sintetizador stub con la firma NUEVA
+_PANEL_TXT = []     # user_text de cada juez: el panel NUNCA debe recibir el texto del turno anterior
+_REAL_API = []      # (system, user_text, tool_name) capturados del camino REAL (_default_synthesizer)
+_THREAD_COLS = ("parent_run_id", "thread_id", "turn_no", "turn_kind", "origin", "root_question_id")
+
+
+def _panel_capture(verdicts):
+    inner = _stub_caller_factory(verdicts)
+
+    def _caller(member, system, user_text):
+        _PANEL_TXT.append(user_text)
+        return inner(member, system, user_text)
+    return _caller
+
+
+def _synth_ctx(answer_text, gap_flags=("thin coverage of late stages",), **extra):
+    """Sintetizador stub con la firma NUEVA (acepta thread_context): registra qué recibió."""
+    def _s(question, evidence, pass_label, thread_context=None):
+        _SYNTH_CTX.append((pass_label, thread_context))
+        assert "thread_context" not in (evidence or {}), "thread_context jamás DENTRO de evidence"
+        out = _mk_synth({"pass1": 0.8, "pass2": 0.85})(question, evidence, pass_label)
+        out.update({"direct_answer": answer_text, "gap_flags": list(gap_flags)})
+        out.update(extra)
+        return out
+    return _s
+
+
+def _mk_capture_api(synth_out, elicit_out, sink):
+    """La API de Anthropic FALSA que además graba lo que el sintetizador REAL le mandó (system, user_text)."""
+    def fake(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200):
+        sink.append((system, user_text, (tool or {}).get("name")))
+        if tool and tool["name"] == "emit_confidence":
+            return dict(elicit_out), {"input_tokens": 30, "output_tokens": 3}
+        return dict(synth_out), {"input_tokens": 100, "output_tokens": 50}
+    return fake
+
+
+def _ejecuta(run_id, synth=None, panel=None):
+    claimed = db.claim_next_queued(worker_id="run-worker-adr0079")
+    assert claimed and claimed["run_id"] == run_id, \
+        f"FIFO: se esperaba {run_id}, se reclamó {claimed and claimed['run_id']}"
+    runs_mod.execute_run(claimed, synthesizer=synth, panel_caller=panel or _panel_capture(ALL_A))
+    return db.get_run(run_id), app.get_frozen_record(run_id, authorization=AUTH)
+
+
+def _cols(view):
+    return {k: view.get(k) for k in _THREAD_COLS}
+
+
+check("ADR-0079 contrato: runs.RENDER_CONTRACT_VERSION == '1.8' — el bump acompaña los campos ADITIVOS del registro "
+      "(thread, thread_context, thread_parent_matches_run, precedent_citations, origin, episode_axes; epistemic_summary "
+      "+thread_id/turn_no/origin); la webapp los tipa `?` — eso ES la paridad front<->back",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.8")
+check("ADR-0079 (D) synth_system SIN turno anterior es byte-idéntico al de antes (la medición de ab_trapped_scalar no "
+      "cambia); CON turno gana THREAD_ANTI_LEAK_CLAUSE; SYNTH_TOOL.description lleva la frase anti-fuga SIEMPRE",
+      runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False)
+      and runs_mod.THREAD_ANTI_LEAK_CLAUSE not in runs_mod.synth_system("pass1")
+      and runs_mod.THREAD_ANTI_LEAK_CLAUSE in runs_mod.synth_system("pass1", thread_context=True)
+      and "PRIOR ART" in runs_mod.SYNTH_TOOL["description"])
+
+# --- la RAÍZ por la PUERTA (app.create_run -> runs.new_run -> db.create_run): la derivación es del servidor -----
+rv_root = app.create_run(app.RunBody(question="ADR-0079 raiz: does wt1a mark the pronephros?", entities=["wt1a"]),
+                         authorization=AUTH)
+T_ROOT = rv_root["run_id"]
+check("ADR-0079 (A/B) la RAÍZ nace en la vista con thread_id=run_id, turn_no 1, turn_kind 'root', parent_run_id null, "
+      f"origin derivado por el SERVIDOR ({_ORIGIN['value']!r} via {_ORIGIN['source']}), root_question_id null declarado; "
+      "el blob thread_context_json NO viaja por renglón",
+      rv_root["thread_id"] == T_ROOT and rv_root["turn_no"] == 1 and rv_root["turn_kind"] == "root"
+      and rv_root["parent_run_id"] is None and rv_root["origin"] == _ORIGIN["value"]
+      and rv_root["root_question_id"] is None and "thread_context_json" not in rv_root,
+      json.dumps(_cols(rv_root)))
+check("ADR-0079 (B) por la puerta: parent_run_id inexistente -> 404 parent_not_found; padre 'queued' (la raíz aún no "
+      "corrió) -> 409 parent_not_terminal — validado UNA vez en runs.py (ThreadError) y traducido en app.py",
+      _http_error(app.create_run, app.RunBody(question="x", parent_run_id="no-such-parent"), authorization=AUTH) == 404
+      and _http_error(app.create_run, app.RunBody(question="x", parent_run_id=T_ROOT), authorization=AUTH) == 409)
+_SYNTH_CTX.clear(); _PANEL_TXT.clear()
+root_row, rec_root = _ejecuta(T_ROOT, synth=_synth_ctx(
+    "wt1a (ENSDARG00000031420) marks the zebrafish pronephros (PMID:31415926)."))
+check("ADR-0079 (I) raíz congelada: thread {root, turno 1, parent null, root_run_no = su propio run_no}, thread_context "
+      "null + skipped 'root-turn', thread_parent_matches_run null/'no-parent', precedent_citations [] + disjoint_series "
+      "True 'no-parent', leak 'no-parent'; el sintetizador recibió thread_context=None (sin turno anterior no viaja nada)",
+      rec_root["thread"]["turn_kind"] == "root" and rec_root["thread"]["turn_no"] == 1
+      and rec_root["thread"]["parent_run_id"] is None and rec_root["thread"]["root_run_no"] == rv_root["run_no"]
+      and rec_root["thread_context"] is None and rec_root["thread_context_skipped_reason"] == "root-turn"
+      and rec_root["thread_parent_matches_run"] is None and rec_root["thread_parent_matches_run_state"] == "no-parent"
+      and rec_root["precedent_citations"] == [] and rec_root["deterministic_checks"]["disjoint_series"] is True
+      and rec_root["deterministic_checks"]["disjoint_series_state"] == "no-parent"
+      and rec_root["deterministic_checks"]["parent_identifier_leak_state"] == "no-parent"
+      and _SYNTH_CTX == [("pass1", None)],
+      json.dumps(rec_root["thread"]))
+_v_root = app.get_run(T_ROOT, authorization=AUTH)
+check("ADR-0079 (F) origin en el REGISTRO {value, source, note null} = la derivación del servidor al encolar; la vista, el "
+      "epistemic_summary (derivado al congelar) y episode_axes.provenance.origin dicen lo MISMO",
+      rec_root["origin"]["value"] == _ORIGIN["value"] and rec_root["origin"]["source"] == _ORIGIN["source"]
+      and rec_root["origin"]["note"] is None
+      # corrector: la re-derivación al ejecutar viaja APARTE (mismo entorno aquí → mismo valor y fuente)
+      and rec_root["origin"]["source_at_execution"] == {**_ORIGIN, "same_value_as_column": True}
+      and _v_root["origin"] == _ORIGIN["value"] and _v_root["epistemic_summary"]["origin"] == _ORIGIN["value"]
+      and _v_root["epistemic_summary"]["thread_id"] == T_ROOT and _v_root["epistemic_summary"]["turn_no"] == 1
+      and rec_root["episode_axes"]["provenance"]["origin"] == _ORIGIN["value"],
+      json.dumps(rec_root["origin"]))
+
+# el padre gana conversación (ADR-0077) y una calificación (M5): la conversación SÍ entra al snapshot (clase
+# atestiguada); la calificación JAMÁS (enmascarada por solicitante, nunca promediada)
+app.create_run_comment(T_ROOT, app.RunCommentBody(body="COMENTARIO-0079-A: falta el estadio tardío (48 hpf)"),
+                       authorization=AUTH)
+app.create_run_comment(T_ROOT, app.RunCommentBody(body="COMENTARIO-0079-B: revisar wt1b como parálogo"),
+                       authorization=AUTH)
+db.add_rating(db.get_run(T_ROOT), {"user_id": "natalia", "role": "medico"}, 4, "value", 5, "value",
+              note="NOTA-DE-CALIFICACION-SECRETA-0079", note_question="")
+
+# --- hijo 'refine' por el CAMINO REAL: _default_synthesizer (API capturada) + panel capturado ------------------
+rv_child = app.create_run(app.RunBody(question="ADR-0079 refine: does wt1a mark the pronephros at 48 hpf?",
+                                      entities=["wt1a"], parent_run_id=T_ROOT), authorization=AUTH)
+T_CHILD = rv_child["run_id"]
+_lista = {r["run_id"]: r for r in app.list_runs(authorization=AUTH)["runs"]}
+check("ADR-0079 (B) hijo con pregunta distinta por la puerta: turn_no 2, 'refine', thread_id = raíz, parent = raíz, "
+      "mismo origin; LISTA y DETALLE traen las MISMAS 6 columnas para raíz e hijo (ADR-0055/0076: sin setdefault)",
+      rv_child["turn_no"] == 2 and rv_child["turn_kind"] == "refine" and rv_child["thread_id"] == T_ROOT
+      and rv_child["parent_run_id"] == T_ROOT and rv_child["origin"] == _ORIGIN["value"]
+      and all(_cols(_lista[rid]) == _cols(app.get_run(rid, authorization=AUTH)) for rid in (T_ROOT, T_CHILD))
+      and _cols(_lista[T_CHILD])["turn_no"] == 2,
+      json.dumps(_cols(rv_child)))
+# corrector ADR-0079: la raíz se CIERRA entre el encolado del hijo (snapshot + sha tomados sobre el blob
+# pre-clausura) y su ejecución — THREAD_SHA_RULE debe casar igual, y sólo un padre 'closed' es precedente (letra)
+app.close_run(T_ROOT, authorization=AUTH)
+_REAL_API.clear(); _PANEL_TXT.clear()
+composite_auditor._anthropic_tool_call = _mk_capture_api(
+    {**_BASE_SYNTH, "direct_answer": "wt1a marks the pronephros at 48 hpf as well.", "confidence": 0.8,
+     "gap_flags": ["thin coverage of late stages"],
+     "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}]},
+    {"confidence": 0.8}, _REAL_API)
+try:
+    child_row, rec_child = _ejecuta(T_CHILD, synth=None)     # synthesizer=None = _default_synthesizer REAL
+finally:
+    composite_auditor._anthropic_tool_call = _orig_tool_call
+_synth_calls = [(s, json.loads(u)) for s, u, name in _REAL_API if name == "emit_answer"]
+snap = rec_child["thread_context"]
+check("ADR-0079 (D) CAMINO REAL: el user_text del sintetizador tiene EXACTAMENTE {question, evidence, thread_context} — "
+      "llave HERMANA (no dentro de evidence), el system lleva THREAD_ANTI_LEAK_CLAUSE; el registro declara "
+      "context_delivery.synthesizer True / panel False y los 3 prompt_components",
+      len(_synth_calls) == 1 and set(_synth_calls[0][1]) == {"question", "evidence", "thread_context"}
+      and "thread_context" not in _synth_calls[0][1]["evidence"]
+      and _synth_calls[0][1]["thread_context"]["parent"]["run_id"] == T_ROOT
+      and runs_mod.THREAD_ANTI_LEAK_CLAUSE in _synth_calls[0][0]
+      and rec_child["thread"]["context_delivery"]["synthesizer"] is True
+      and rec_child["thread"]["context_delivery"]["panel"] is False
+      and len(rec_child["thread"]["context_delivery"]["prompt_components"]) == 3,
+      f"keys={sorted(_synth_calls[0][1]) if _synth_calls else None}")
+_panel_thread = [json.loads(t)["deterministic_checks"]["thread"] for t in _PANEL_TXT]
+check("ADR-0079 (D) el PANEL (4 jueces) recibe evidencia LIMPIA: sin llave 'thread_context', sin los comentarios ni la nota "
+      "de calificación del padre; SÍ deterministic_checks.thread {turn_no 2, parent_run_no raíz, parent_verdict APPROVE, "
+      "context_available} — sabe que hubo turno previo, no lee su texto",
+      len(_PANEL_TXT) == 4 and all('"thread_context"' not in t for t in _PANEL_TXT)
+      and all("COMENTARIO-0079" not in t and "SECRETA-0079" not in t for t in _PANEL_TXT)
+      and all(pt["turn_no"] == 2 and pt["parent_run_no"] == rv_root["run_no"] and pt["parent_verdict"] == "APPROVE"
+              and pt["context_available"] is True and pt["thread_id"] == T_ROOT for pt in _panel_thread),
+      json.dumps(_panel_thread[:1]))
+_snapc = {
+    "parent_identity": snap["parent"]["run_id"] == T_ROOT and snap["parent"]["run_no"] == rv_root["run_no"],
+    "parent_verdict": snap["parent"]["verdict"] == "APPROVE" and snap["parent"]["decision_state"] == "AUDIT_APPROVED",
+    "previous_answer": snap["previous_answer"]["direct_answer"].startswith("wt1a (ENSDARG00000031420)")
+    and snap["previous_answer"]["gap_flags"] == ["thin coverage of late stages"],
+    "previous_audit": snap["previous_audit"]["verdict"] == "APPROVE" and snap["previous_audit"]["n_valid"] == 4,
+    "comments_2_of_2": snap["human_comments"]["n_included"] == 2 and snap["human_comments"]["n_total"] == 2
+    and snap["human_comments"]["truncated"] is False and snap["human_comments"]["class"] == "atestiguada",
+    "comments_order": [c["body"][:18] for c in snap["human_comments"]["items"]] == ["COMENTARIO-0079-A:", "COMENTARIO-0079-B:"],
+    "comments_author": snap["human_comments"]["items"][0]["author_name"] == "Natalia",
+    # corrector: las unidades viajan declaradas (chars del tope vs bytes del snapshot)
+    "units_declared": snap["human_comments"]["limits"]["unit"] == "chars (code points)" and snap["bytes_unit"] == "utf-8 bytes",
+    "hints_excluded": snap["evidence_hints"]["entities"] == ["wt1a"] and snap["excluded"] == runs_mod.THREAD_CONTEXT_EXCLUDED,
+    "no_rating_note": "SECRETA-0079" not in json.dumps(snap),
+    "sha": len(snap["parent_frozen_sha256"]) == 64,
+}
+check("ADR-0079 (C) snapshot armado en el SERVIDOR desde frozen + comentarios del padre: parent {run_no raíz, verdict, "
+      "decision_state}, previous_answer (gap_flags íntegros), previous_audit {verdict, n_valid}, human_comments {2 de 2, "
+      "orden determinista, class 'atestiguada', truncated False}, evidence_hints (pistas para RE-RECUPERAR), excluded "
+      "declara ratings — y la NOTA de calificación NO está en el snapshot",
+      all(_snapc.values()), json.dumps({k: v for k, v in _snapc.items() if not v}) + " " + json.dumps(snap["parent"]))
+pcs = rec_child["precedent_citations"]
+check("ADR-0079 (E) precedent_citations del hijo = [{l:'A', run_id raíz, run_no raíz, turn_no 1, kind 'turn', "
+      "admissible_as_evidence False, why_not_admissible}] vía precedent.serialize_disjoint; validate_disjoint True sobre "
+      "{citations (n enteros), precedent}; deterministic_checks.disjoint_series True 'checked'; `citations` NO cambia de forma",
+      len(pcs) == 1 and pcs[0]["l"] == "A" and pcs[0]["run_id"] == T_ROOT and pcs[0]["run_no"] == rv_root["run_no"]
+      and pcs[0]["turn_no"] == 1 and pcs[0]["kind"] == "turn" and pcs[0]["admissible_as_evidence"] is False
+      and pcs[0]["why_not_admissible"] == precedent.WHY_NOT_ADMISSIBLE
+      and precedent.validate_disjoint({"evidence": rec_child["citations"], "precedent": pcs}) is True
+      and rec_child["deterministic_checks"]["disjoint_series"] is True
+      and rec_child["deterministic_checks"]["disjoint_series_state"] == "checked"
+      and rec_child["precedent_citations_state"] == "checked"
+      and rec_child["citations"] == [{"n": 1, "kind": "di-record", "id": "CORPUS-2026-0001", "note": ""}],
+      json.dumps(pcs))
+check("ADR-0079 (E) una cita de precedente hecha a mano con 'label':'A' (sin 'l') DEBE fallar validate_disjoint; una letra "
+      "dentro de la serie numérica también; una 'l' que además trae 'n' también (ninguna serie produce la etiqueta de la otra)",
+      precedent.validate_disjoint({"evidence": [], "precedent": [{"label": "A", "run_id": T_ROOT,
+                                                                 "admissible_as_evidence": False}]}) is False
+      and precedent.validate_disjoint({"evidence": [{"n": 1, "l": "A", "id": "x"}], "precedent": []}) is False
+      and precedent.validate_disjoint({"evidence": [], "precedent": [{"l": "A", "n": 1, "run_id": T_ROOT,
+                                                                     "admissible_as_evidence": False}]}) is False)
+check("ADR-0079 (I) thread_parent_matches_run True ('checked', regla THREAD_SHA_RULE en el registro): el sha que el snapshot "
+      "tomó al ENCOLAR (pre-clausura) == sha del frozen del padre al CONGELAR al hijo (cerrado entre ambos: la clausura "
+      "sólo añade frozen_at/closed_by — padre inmutable, ADR-0074); thread.root_run_no = "
+      "run_no de la raíz (T5: insumo de 'T-<run_no raíz>' en el PDF); parent_run_no/parent_state declarados",
+      rec_child["thread_parent_matches_run"] is True and rec_child["thread_parent_matches_run_state"] == "checked"
+      and rec_child["thread_parent_matches_run_rule"] == runs_mod.THREAD_SHA_RULE
+      and rec_child["thread_context"]["parent_frozen_sha256"]
+      == runs_mod.frozen_sha256(db.get_run(T_ROOT)["frozen_record_json"])
+      and rec_child["thread"]["root_run_no"] == rv_root["run_no"]
+      and rec_child["thread"]["parent_run_no"] == rv_root["run_no"]
+      and rec_child["thread"]["parent_state"] == "closed"
+      and rec_child["plan_parent_matches_run"] is None and rec_child["plan_parent_matches_run_state"] == "no-plan",
+      json.dumps({k: rec_child.get(k) for k in ("thread_parent_matches_run", "thread_parent_matches_run_state")}))
+# --- el PDF del hijo (ADR-0073): INVESTIGACION + EJES en palabras, leídos del JSON congelado -------------------------
+_pdf_lines = []
+_orig_pdf_p = record_pdf._p
+
+
+def _p_capture(pdf, text, style="", size=9):
+    _pdf_lines.append(text)
+    return _orig_pdf_p(pdf, text, style=style, size=size)
+
+
+record_pdf._p = _p_capture
+try:
+    pdf_child = record_pdf.build_pdf(rec_child, compress=False)
+finally:
+    record_pdf._p = _orig_pdf_p
+_pdf_txt = "\n".join(_pdf_lines)
+check("ADR-0079 (PDF) el registro del hijo imprime INVESTIGACION con la etiqueta 'T-<run_no raíz>' (de thread.root_run_no), "
+      "'turno 2 - refinamiento', precedente '[A] turn: turno 1' NO ADMISIBLE COMO EVIDENCIA, 'identidad del padre: COINCIDE', "
+      "comentarios humanos '2 de 2' (T5: el sobre dict de runs.py), el origen con su glosa; y EJES DEL EPISODIO en palabras",
+      pdf_child[:5] == b"%PDF-" and f"investigacion T-{rv_root['run_no']}" in _pdf_txt
+      and "turno 2 - refinamiento" in _pdf_txt and "[A] turn: turno 1" in _pdf_txt
+      and "NO ADMISIBLE COMO EVIDENCIA" in _pdf_txt and "identidad del padre: COINCIDE" in _pdf_txt
+      and "comentarios humanos: 2 de 2" in _pdf_txt and f"origen: {_ORIGIN['value']}" in _pdf_txt
+      and "MUNDO: se afirma un efecto" in _pdf_txt and "INFERENCIA: sostenida (APPROVE)" in _pdf_txt
+      and "TECNICO: completada" in _pdf_txt,
+      " | ".join(l for l in _pdf_lines if "investigacion T-" in l or "comentarios humanos" in l or "[A]" in l)[:300])
+
+# --- rerun: MISMA pregunta + entities que su padre (el refine) ---------------------------------------------------------
+rv_rerun = app.create_run(app.RunBody(question="ADR-0079 refine: does wt1a mark the pronephros at 48 hpf?",
+                                      entities=["wt1a"], parent_run_id=T_CHILD), authorization=AUTH)
+T_RERUN = rv_rerun["run_id"]
+_SYNTH_CTX.clear(); _PANEL_TXT.clear()
+rerun_row, rec_rerun = _ejecuta(T_RERUN, synth=_synth_ctx("wt1a marks the pronephros at 48 hpf (re-run)."))
+check("ADR-0079 (B) misma pregunta + entities que el padre -> turn_kind 'rerun', turn_no 3 (max del hilo + 1), thread_id = "
+      "raíz (heredado, no el padre); el snapshot trae los gap_flags del padre. Corrector (E): el padre (refine) está "
+      "awaiting_closure -> NO es precedente: precedent_citations [] + precedent_citations_state 'parent-not-closed', "
+      "disjoint_series True con estado 'parent-not-precedent' (tres estados; la letra sólo con padre 'closed')",
+      rv_rerun["turn_kind"] == "rerun" and rv_rerun["turn_no"] == 3 and rv_rerun["thread_id"] == T_ROOT
+      and rv_rerun["parent_run_id"] == T_CHILD
+      and rec_rerun["precedent_citations"] == [] and rec_rerun["precedent_citations_state"] == "parent-not-closed"
+      and rec_rerun["thread"]["parent_state"] == "awaiting_closure"
+      and rec_rerun["deterministic_checks"]["disjoint_series"] is True
+      and rec_rerun["deterministic_checks"]["disjoint_series_state"] == "parent-not-precedent"
+      and rec_rerun["thread_context"]["previous_answer"]["gap_flags"] == ["thin coverage of late stages"]
+      and rec_rerun["thread"]["root_run_no"] == rv_root["run_no"]
+      and _SYNTH_CTX[0][1]["parent"]["run_id"] == T_CHILD,
+      json.dumps(_cols(rv_rerun)))
+
+# --- kill-switch WITT_THREAD_CONTEXT=0 (al encolar Y al ejecutar), camino REAL ----------------------------------------
+_prev_tc = os.environ.get("WITT_THREAD_CONTEXT")
+os.environ["WITT_THREAD_CONTEXT"] = "0"
+_REAL_API.clear()
+try:
+    rv_ksw = app.create_run(app.RunBody(question="ADR-0079 kill-switch: is wt1a required for glomerulus formation?",
+                                        entities=["wt1a"], parent_run_id=T_ROOT), authorization=AUTH)
+    T_KSW = rv_ksw["run_id"]
+    composite_auditor._anthropic_tool_call = _mk_capture_api(
+        {**_BASE_SYNTH, "direct_answer": "wt1a is required for glomerulus formation.", "confidence": 0.7,
+         "gap_flags": ["thin coverage of late stages"],
+         "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}]},
+        {"confidence": 0.7}, _REAL_API)
+    ksw_row, rec_ksw = _ejecuta(T_KSW, synth=None)
+finally:
+    composite_auditor._anthropic_tool_call = _orig_tool_call
+    if _prev_tc is None:
+        os.environ.pop("WITT_THREAD_CONTEXT", None)
+    else:
+        os.environ["WITT_THREAD_CONTEXT"] = _prev_tc
+_ksw_synth = [(s, json.loads(u)) for s, u, name in _REAL_API if name == "emit_answer"]
+_ksw_env = json.loads(db.get_run(T_KSW)["thread_context_json"])
+check("ADR-0079 kill-switch WITT_THREAD_CONTEXT=0: las COLUMNAS sí se llenan (turno 4, 'branch' — la raíz ya tenía hijo —, "
+      "thread raíz), el sobre persistido declara snapshot null + skipped 'kill-switch WITT_THREAD_CONTEXT=0'; en el CAMINO "
+      "REAL el user_text es EXACTAMENTE {question, evidence} (SIN la llave) y el system sin cláusula; frozen.thread_context "
+      "null + skipped_reason, context_delivery.synthesizer null + prompt_components [], thread_parent_matches_run "
+      "null/'no-snapshot' y parent_identifier_leak_state 'no-snapshot' (corrector: hay padre, no se midió — no es 'no-parent'); "
+      "precedent_citations sigue con 'A' (el padre está CERRADO aunque el contexto no viaje)",
+      rv_ksw["turn_no"] == 4 and rv_ksw["turn_kind"] == "branch" and rv_ksw["thread_id"] == T_ROOT
+      and _ksw_env["snapshot"] is None and _ksw_env["skipped_reason"] == "kill-switch WITT_THREAD_CONTEXT=0"
+      and _ksw_env["kill_switch"]["WITT_THREAD_CONTEXT"] == "0"
+      and len(_ksw_synth) == 1 and set(_ksw_synth[0][1]) == {"question", "evidence"}
+      and runs_mod.THREAD_ANTI_LEAK_CLAUSE not in _ksw_synth[0][0]
+      and rec_ksw["thread_context"] is None
+      and rec_ksw["thread_context_skipped_reason"] == "kill-switch WITT_THREAD_CONTEXT=0"
+      and rec_ksw["thread"]["context_delivery"]["synthesizer"] is None
+      and rec_ksw["thread"]["context_delivery"]["prompt_components"] == []
+      and rec_ksw["thread_parent_matches_run"] is None and rec_ksw["thread_parent_matches_run_state"] == "no-snapshot"
+      and rec_ksw["deterministic_checks"]["parent_identifier_leak_state"] == "no-snapshot"
+      and rec_ksw["precedent_citations"][0]["l"] == "A" and rec_ksw["precedent_citations"][0]["run_id"] == T_ROOT,
+      json.dumps({"env": _ksw_env.get("skipped_reason"), "frozen": rec_ksw.get("thread_context_skipped_reason"),
+                  "keys": sorted(_ksw_synth[0][1]) if _ksw_synth else None}))
+
+# --- (E) FUGA: un identificador que SOLO vive en el turno anterior y reaparece en la respuesta -> inadmisible -------
+# PMID:31415926 lo citó la RAÍZ (está en previous_answer del snapshot); NO está en la evidencia de este hijo. El
+# ENSDARG de wt1a también viene del padre pero SÍ está en la evidencia del hijo (entities_checked lo resuelve) -> no es
+# fuga: la regla mira la evidencia que el modelo VIO, no sólo los evidence_ids (declarada en parent_identifier_leak_rule).
+rv_leak = app.create_run(app.RunBody(question="ADR-0079 branch: is wt1a marking conserved at 72 hpf?",
+                                     entities=["wt1a"], parent_run_id=T_ROOT), authorization=AUTH)
+T_LEAK = rv_leak["run_id"]
+_SYNTH_CTX.clear(); _PANEL_TXT.clear()
+leak_row, rec_leak = _ejecuta(T_LEAK, synth=_synth_ctx(
+    "wt1a (ENSDARG00000031420) marking is conserved at 72 hpf (PMID:31415926)."))
+dc_l = rec_leak["deterministic_checks"]
+check("ADR-0079 (B) segundo hijo de la raíz con pregunta nueva -> 'branch', turno 5, thread raíz (la raíz ya tenía a refine "
+      "y kill-switch)",
+      rv_leak["turn_kind"] == "branch" and rv_leak["turn_no"] == 5 and rv_leak["thread_id"] == T_ROOT
+      and rv_leak["parent_run_id"] == T_ROOT)
+check("ADR-0079 (E) PMID:31415926 en el thread_context Y en direct_answer Y AUSENTE de la evidencia del hijo -> "
+      "parent_identifier_leak ['PMID:31415926'] -> predicado DURO -> admissible False con la razón declarada; el ENSDARG "
+      "resuelto por el store NO figura (está en la evidencia del hijo); la corrida TERMINA (inadmisible se declara, no "
+      "tumba) y el PANEL vio el hallazgo en deterministic_checks",
+      dc_l["parent_identifier_leak"] == ["PMID:31415926"] and dc_l["parent_identifier_leak_state"] == "checked"
+      and dc_l["admissible"] is False and any("parent_identifier_leak" in r for r in dc_l["reasons"])
+      and "PMID" in dc_l["parent_identifier_leak_rule"] and "evidence text" in dc_l["parent_identifier_leak_rule"]
+      and leak_row["state"] == "awaiting_closure"
+      and "PMID:31415926" in rec_leak["thread_context"]["previous_answer"]["direct_answer"]
+      and all(json.loads(t)["deterministic_checks"]["parent_identifier_leak"] == ["PMID:31415926"]
+              for t in _PANEL_TXT[:4]),
+      json.dumps({"leak": dc_l["parent_identifier_leak"], "reasons": dc_l["reasons"]}))
+
+# --- (H) GET /threads/{raíz}: la investigación como UNA unidad, todo calculado en código -------------------------------
+th = app.get_thread(T_ROOT, authorization=AUTH)
+_turnos = {t["turn_no"]: t for t in th["turns"]}
+_suma = round(sum(float(t["estimated_cost_usd"] or 0.0) for t in th["turns"]), 4)
+check("ADR-0079 (H) GET /threads/{raíz}: label 'T-<run_no raíz>', 5 turnos en orden [root, refine, rerun, branch, branch] "
+      "con veredicto/decision_state del registro congelado, origins {origen: 5}, authors ['natalia'], todos con registro, "
+      "n_closed 1 (la raíz se cerró antes de ejecutar a su hijo)",
+      th["label"] == f"T-{rv_root['run_no']}" and th["root_run_id"] == T_ROOT and th["root_run_no"] == rv_root["run_no"]
+      and th["n_turns"] == 5 and [t["turn_no"] for t in th["turns"]] == [1, 2, 3, 4, 5]
+      and [t["turn_kind"] for t in th["turns"]] == ["root", "refine", "rerun", "branch", "branch"]
+      and _turnos[1]["verdict"] == "APPROVE" and _turnos[2]["verdict"] == "APPROVE" and _turnos[4]["verdict"] == "APPROVE"
+      and _turnos[5]["decision_state"] in ("AUDIT_APPROVED", "AUDIT_REJECTED")
+      and th["origins"] == {_ORIGIN["value"]: 5} and th["authors"] == ["natalia"]
+      and th["n_turns_without_record"] == 0 and th["root_pre_adr_0079"] is False and th["n_closed"] == 1,
+      json.dumps({"label": th["label"], "kinds": [t["turn_kind"] for t in th["turns"]], "origins": th["origins"]}))
+_gu = th["gap_flags_union"]
+check("ADR-0079 (H) gap_flags_union agrega SIN duplicar (igualdad lower/strip; conteo POR TURNO; texto de la PRIMERA "
+      "aparición): 'thin coverage of late stages' count 5, first_turn 1, last_turn 5; textos normalizados únicos",
+      any(g["text"] == "thin coverage of late stages" and g["count"] == 5 and g["first_turn"] == 1 and g["last_turn"] == 5
+          for g in _gu)
+      and len({g["text"].strip().lower() for g in _gu}) == len(_gu),
+      json.dumps(_gu))
+check("ADR-0079 (H) total_cost_usd = SUMA de los estimated_cost_usd CONGELADOS por turno, etiquetada PROJECTION y declarada "
+      "INCOMPLETA: 3 turnos con stub-synth (sin precio) -> n_turns_cost_incomplete 3, complete False, 0 sin usage",
+      th["total_cost_usd"]["value"] == _suma and th["total_cost_usd"]["complete"] is False
+      and th["total_cost_usd"]["n_turns_cost_incomplete"] == 3 and th["total_cost_usd"]["n_turns_without_usage"] == 0
+      and "PROJECTION" in th["total_cost_usd"]["cost_class"]
+      and all(t["cost_projection_complete"] in (True, False) for t in th["turns"]),
+      json.dumps(th["total_cost_usd"]))
+check("ADR-0079 (H) pivot_suggested True con 3 turnos PLANOS consecutivos (turnos 3-4-5: el mismo conjunto de gap_flags, "
+      "nada se cerró) — regla WITT_PIVOT_TURNS declarada, threshold 3, turns_considered [3,4,5]; es sugerencia calculada",
+      th["pivot_suggested"]["value"] is True and th["pivot_suggested"]["threshold"] == app.PIVOT_TURNS == 3
+      and th["pivot_suggested"]["turns_considered"] == [3, 4, 5] and th["pivot_suggested"]["rule"] == app.PIVOT_RULE
+      and th["pivot_suggested"]["reason"] is None,
+      json.dumps(th["pivot_suggested"]))
+check("ADR-0079 (H) investigación inexistente -> 404 thread_not_found",
+      _http_error(app.get_thread, "no-such-thread", authorization=AUTH) == 404)
+p1 = app.list_runs(thread=T_ROOT, limit=2, authorization=AUTH)
+p2 = app.list_runs(thread=T_ROOT, limit=2, after=p1["next_after"], authorization=AUTH)
+p3 = app.list_runs(thread=T_ROOT, limit=2, after=p2["next_after"], authorization=AUTH)
+check("ADR-0079 (H) GET /runs?thread=&limit=2 pagina por turn_no (cursor EXCLUSIVO, has_more MEDIDO con limit+1): "
+      "[1,2] next_after 2 -> [3,4] next_after 4 -> [5] has_more False; sin limit = la investigación entera (5, sin tope 50); "
+      "`after` sin thread = 400; los renglones son la MISMA vista que el detalle",
+      [r["turn_no"] for r in p1["runs"]] == [1, 2] and p1["has_more"] is True and p1["next_after"] == 2
+      and [r["turn_no"] for r in p2["runs"]] == [3, 4] and p2["has_more"] is True and p2["next_after"] == 4
+      and [r["turn_no"] for r in p3["runs"]] == [5] and p3["has_more"] is False and p3["next_after"] is None
+      and app.list_runs(thread=T_ROOT, authorization=AUTH)["n"] == 5
+      and _http_error(app.list_runs, after=1, authorization=AUTH) == 400
+      and _cols(p1["runs"][1]) == _cols(app.get_run(T_CHILD, authorization=AUTH)),
+      json.dumps({"p1": [r["turn_no"] for r in p1["runs"]], "next": p1["next_after"]}))
+check("ADR-0079 corrector (H) la lista general valida el signo ANTES de consultar: limit=-1 -> 400 (antes llegaba a LIMIT -1 = "
+      "sin tope en SQLite / 500 en Postgres); limit=500 -> limit 50 declarado con limit_cap 50; db.list_runs(limit=0) -> ValueError",
+      _http_error(app.list_runs, limit=-1, authorization=AUTH) == 400
+      and _http_error(app.list_runs, thread=T_ROOT, limit=0, authorization=AUTH) == 400
+      and app.list_runs(limit=500, authorization=AUTH)["limit"] == 50
+      and _raises(lambda: db.list_runs(limit=0), ValueError))
+
+check("ADR-0079 corrector (E) un DOI con punto final de prosa en el snapshot y en la respuesta, PRESENTE en la evidencia del "
+      "hijo -> NO es fuga (extract_identifiers recorta './,' finales; antes el token '…456.' no casaba y el predicado DURO "
+      "vetaba una respuesta legítima); el mismo DOI AUSENTE de la evidencia sí es fuga",
+      runs_mod.parent_identifier_leak({"previous_answer": "see doi 10.1242/dev.123456."}, "as shown in 10.1242/dev.123456.",
+                                      [], '{"doi": "10.1242/dev.123456"}') == []
+      and runs_mod.parent_identifier_leak({"previous_answer": "see doi 10.1242/dev.123456."}, "as shown in 10.1242/dev.123456.",
+                                          [], "") == ["10.1242/DEV.123456"]
+      and runs_mod.extract_identifiers("cited PMID: 123, doi 10.1000/abc.1,") == {"PMID:123", "10.1000/ABC.1"})
+
+# --- (F) consumidores del ORIGEN: precedente y calibración excluyen este gate por default y lo CUENTAN ---------------
+# (la raíz T_ROOT ya se cerró antes de ejecutar a su hijo; las cerradas de este gate son RID y T_ROOT = 2)
+precedent._IDX["key"] = None
+ps_def = app.precedent_search(q="ADR-0079 raiz wt1a pronephros", k=10, authorization=AUTH)
+ps_inc = app.precedent_search(q="ADR-0079 raiz wt1a pronephros", k=10, include_origins=_ORIGIN["value"],
+                              authorization=AUTH)
+_item = next((i for i in ps_inc["items"] if i["run_id"] == T_ROOT), None)
+check("ADR-0079 (F) /precedent/search por DEFAULT excluye y CUENTA las corridas cerradas de este gate (origin ∉ production): "
+      "origins_included ['production'], excluded_by_origin {origen: 2}, items [] (n_closed_runs 0), origin_unknown_included 0; "
+      "con include_origins=<origen> entra la raíz cerrada con run_no/thread_id/turn_no 1/turn_kind 'root' (T5: db.closed_runs "
+      "SELECTea turn_kind) y origin — admissible_as_evidence False",
+      ps_def["origins_included"] == ["production"] and ps_def["excluded_by_origin"].get(_ORIGIN["value"]) == 2
+      and ps_def["items"] == [] and ps_def["n_closed_runs"] == 0 and ps_def["origin_unknown_included"] == 0
+      and ps_inc["origins_included"] == [_ORIGIN["value"]] and ps_inc["n_closed_runs"] == 2
+      and _item is not None and _item["turn_kind"] == "root" and _item["turn_no"] == 1 and _item["thread_id"] == T_ROOT
+      and _item["origin"] == _ORIGIN["value"] and _item["run_no"] == rv_root["run_no"]
+      and _item["admissible_as_evidence"] is False,
+      json.dumps({"def": {k: ps_def.get(k) for k in ("origins_included", "excluded_by_origin", "n_closed_runs")},
+                  "item": {k: (_item or {}).get(k) for k in ("turn_kind", "turn_no", "origin", "run_no")}}))
+cal_def = app.calibration_report(authorization=AUTH)
+cal_inc = app.calibration_report(include_origins=_ORIGIN["value"], authorization=AUTH)
+check("ADR-0079 (F) /calibration declara su alcance por origen: default origins_included ['production'] con este gate excluido "
+      "y contado (n_closed 0); include_origins=<origen> lo incluye (n_closed 2); origen fuera del enum -> 400 invalid-origin",
+      cal_def["origins_included"] == ["production"] and cal_def["excluded_by_origin"].get(_ORIGIN["value"]) == 2
+      and cal_def["n_closed"] == 0 and cal_inc["origins_included"] == [_ORIGIN["value"]] and cal_inc["n_closed"] == 2
+      and _http_error(app.calibration_report, include_origins="marte", authorization=AUTH) == 400,
+      json.dumps({k: cal_def.get(k) for k in ("origins_included", "excluded_by_origin", "n_closed")}))
+
+# --- (F) corrector: la FUENTE del origen es la de ENCOLAR, persistida en el sobre; la re-derivación viaja aparte -------
+_prev_ro = os.environ.get("WITT_RUN_ORIGIN")
+os.environ["WITT_RUN_ORIGIN"] = "dev-offline"          # encolada con la env (source env:WITT_RUN_ORIGIN)
+try:
+    rv_src = app.create_run(app.RunBody(question="ADR-0079 corrector: fuente del origen al encolar", entities=[]),
+                            authorization=AUTH)
+    os.environ.pop("WITT_RUN_ORIGIN", None)            # ejecutada SIN la env: la máscara deriva el MISMO valor…
+    assert runs_mod.run_origin() == {"value": "dev-offline", "source": "derived:offline-mask"}
+    _SYNTH_CTX.clear(); _PANEL_TXT.clear()
+    src_row, rec_src = _ejecuta(rv_src["run_id"], synth=_synth_ctx("origin source probe."))
+finally:
+    if _prev_ro is None:
+        os.environ.pop("WITT_RUN_ORIGIN", None)
+    else:
+        os.environ["WITT_RUN_ORIGIN"] = _prev_ro
+_env_src = json.loads(db.get_run(rv_src["run_id"])["thread_context_json"])
+check("ADR-0079 corrector (F) mismo VALOR, distinta FUENTE entre encolar y ejecutar: frozen.origin.source = 'env:WITT_RUN_ORIGIN' "
+      "(copiada del sobre thread_context_json.origin persistido al encolar), source_at_execution declara "
+      "'derived:offline-mask' con same_value_as_column True — la procedencia registrada no se re-deriva",
+      _env_src["origin"] == {"value": "dev-offline", "source": "env:WITT_RUN_ORIGIN"}
+      and rec_src["origin"]["value"] == "dev-offline" and rec_src["origin"]["source"] == "env:WITT_RUN_ORIGIN"
+      and rec_src["origin"]["source_at_execution"] == {"value": "dev-offline", "source": "derived:offline-mask",
+                                                       "same_value_as_column": True}
+      and rec_src["origin"]["note"] is None,
+      json.dumps(rec_src["origin"]))
+
+# --- corrector: procedencia plan<->padre — el plan declara QUÉ padre/sha vio; el registro lo casa con la corrida ------
+_pl_ok = app.create_plan(app.PlanBody(question="ADR-0079 plan con padre: wt1a at 96 hpf?", entities=["wt1a"],
+                                      parent_run_id=T_ROOT), authorization=AUTH)
+rv_plan_ok = app.create_run(app.RunBody(question="ADR-0079 plan con padre: wt1a at 96 hpf?", entities=["wt1a"],
+                                        parent_run_id=T_ROOT, plan_id=_pl_ok["plan_id"]), authorization=AUTH)
+_SYNTH_CTX.clear(); _PANEL_TXT.clear()
+_, rec_plan_ok = _ejecuta(rv_plan_ok["run_id"], synth=_synth_ctx("wt1a at 96 hpf: sustained."))
+_pl_x = app.create_plan(app.PlanBody(question="ADR-0079 plan con OTRO padre", entities=["wt1a"], parent_run_id=T_ROOT),
+                        authorization=AUTH)
+rv_plan_x = app.create_run(app.RunBody(question="ADR-0079 plan con OTRO padre", entities=["wt1a"],
+                                       parent_run_id=T_CHILD, plan_id=_pl_x["plan_id"]), authorization=AUTH)
+_SYNTH_CTX.clear(); _PANEL_TXT.clear()
+_, rec_plan_x = _ejecuta(rv_plan_x["run_id"], synth=_synth_ctx("mismatch probe."))
+check("ADR-0079 corrector (B/I) plan<->padre: el plan guarda thread_parent_run_id + thread_parent_frozen_sha256 (lo que el "
+      "planner VIO); al congelar, plan_parent_matches_run True/'checked' y plan_snapshot_matches_run True/'checked' cuando "
+      "plan y corrida declaran el MISMO padre; un plan hecho con el padre X respaldando una corrida con padre Y -> "
+      "plan_parent_matches_run False y plan_snapshot_matches_run False (declarado, jamás silencioso); la raíz sin plan -> "
+      "None/'no-plan'",
+      _pl_ok["plan"]["thread_parent_run_id"] == T_ROOT and len(_pl_ok["plan"]["thread_parent_frozen_sha256"]) == 64
+      and rec_plan_ok["plan_parent_matches_run"] is True and rec_plan_ok["plan_parent_matches_run_state"] == "checked"
+      and rec_plan_ok["plan_snapshot_matches_run"] is True and rec_plan_ok["plan_snapshot_matches_run_state"] == "checked"
+      and rec_plan_ok["plan_declared"] is True and rec_plan_ok["plan_question_matches_run"] is True
+      and rec_plan_x["plan_parent_matches_run"] is False and rec_plan_x["plan_parent_matches_run_state"] == "checked"
+      and rec_plan_x["plan_snapshot_matches_run"] is False and rec_plan_x["plan_snapshot_matches_run_state"] == "checked"
+      and rec_root["plan_parent_matches_run"] is None and rec_root["plan_parent_matches_run_state"] == "no-plan"
+      and rec_root["plan_snapshot_matches_run_state"] == "no-plan",
+      json.dumps({k: rec_plan_x.get(k) for k in ("plan_parent_matches_run", "plan_snapshot_matches_run")}))
+
+# --- corrector: la CARRERA de turn_no la cierra el índice único (thread_id, turn_no) + re-derivación en new_run --------
+_orig_max_turn = db.max_turn_no
+_stale_calls = []
+
+
+def _max_turn_stale(thread_id):
+    """La primera lectura devuelve un máximo VIEJO (como si otro hijo hubiera entrado entre leer e insertar)."""
+    real = _orig_max_turn(thread_id)
+    _stale_calls.append(real)
+    return (real - 1) if len(_stale_calls) == 1 else real
+
+
+_max_before = db.max_turn_no(T_ROOT)
+db.max_turn_no = _max_turn_stale
+try:
+    rv_race = app.create_run(app.RunBody(question="ADR-0079 corrector: carrera de turn_no", entities=["wt1a"],
+                                         parent_run_id=T_ROOT), authorization=AUTH)
+finally:
+    db.max_turn_no = _orig_max_turn
+check("ADR-0079 corrector (A/B) carrera de turn_no RESUELTA: con un máximo viejo el INSERT choca contra ux_runs_thread_turn "
+      "(índice único thread_id, turn_no), new_run RE-DERIVA (2 lecturas) y la corrida nace con el turn_no siguiente; el "
+      "índice rechaza un duplicado directo (IntegrityError); GET /runs?thread= sigue sin huecos",
+      len(_stale_calls) == 2 and rv_race["turn_no"] == _max_before + 1 and rv_race["turn_kind"] == "branch"
+      and _raises(lambda: db.create_run("dup" + "c" * 29, "natalia", "dup turn", [], thread_id=T_ROOT,
+                                        turn_no=rv_race["turn_no"], turn_kind="branch", parent_run_id=T_ROOT),
+                  __import__("sqlalchemy.exc", fromlist=["IntegrityError"]).IntegrityError)
+      and [r["turn_no"] for r in app.list_runs(thread=T_ROOT, authorization=AUTH)["runs"]]
+      == list(range(1, rv_race["turn_no"] + 1)),
+      json.dumps({"stale_calls": _stale_calls, "turn_no": rv_race["turn_no"]}))
+db.update_run(rv_race["run_id"], state="cancelled")   # que el FIFO de abajo no la reclame
+
+# --- (A) una fila ANTERIOR al contrato: NULL en todo, sin backfill; raíz VIRTUAL al servir ---------------------------
+PRE_0079 = "pre0079" + "b" * 25
+db.create_run(PRE_0079, "natalia", "pre-ADR question (fila anterior al contrato)", ["wt1a"])
+db.update_run(PRE_0079, state="awaiting_closure")   # terminal SIN registro (como una corrida vieja): que el FIFO
+                                                      # de las _ejecuta de abajo no la reclame
+v_pre = app.get_run(PRE_0079, authorization=AUTH)
+th_pre = app.get_thread(PRE_0079, authorization=AUTH)
+check("ADR-0079 (A) una fila anterior al contrato queda NULL en las 6 columnas de la vista (ausencia declarada: 'sin "
+      "investigación' / origin unknown-pre-adr-0079; sin backfill), idéntica en lista y detalle; GET /threads la LEE como raíz "
+      "VIRTUAL (root_pre_adr_0079 True, turn_no null — derivación al servir, cero escritura)",
+      all(v_pre[k] is None for k in _THREAD_COLS)
+      and _cols(next(r for r in app.list_runs(authorization=AUTH)["runs"] if r["run_id"] == PRE_0079)) == _cols(v_pre)
+      and th_pre["root_pre_adr_0079"] is True and th_pre["turns"][0]["turn_no"] is None
+      and th_pre["turns"][0]["root_pre_adr_0079"] is True and th_pre["origins"] == {app.ORIGIN_UNKNOWN: 1}
+      and db.get_run(PRE_0079)["thread_id"] is None,
+      json.dumps(_cols(v_pre)))
+
+# --- (G) los EJES del episodio por TABLA (EPISODE_AXES_MAP) sobre registros REALES del gate + fixtures nuevos ----------
+rv_nb = app.create_run(app.RunBody(question="ADR-0079 ejes: null-bounded", entities=[]), authorization=AUTH)
+_, rec_nb = _ejecuta(rv_nb["run_id"], synth=_mk_synth({"pass1": 0.8}, extra={"absence_kind": "evidence-of-no-effect"}))
+rv_ind = app.create_run(app.RunBody(question="ADR-0079 ejes: indeterminate + honest decline", entities=[]),
+                        authorization=AUTH)
+_, rec_ind = _ejecuta(rv_ind["run_id"], synth=_mk_synth({"pass1": 0.8}, extra={"absence_kind": "no-evidence-retrieved"}),
+                      panel=_panel_capture({k: "APPROVE_DECLINE" for k in ALL_A}))
+rag_backend.query = lambda text, k=6: HitList([_chunk], degraded="sparse-by-config")
+rv_deg = app.create_run(app.RunBody(question="ADR-0079 ejes: degraded retrieval", entities=[]), authorization=AUTH)
+_, rec_deg = _ejecuta(rv_deg["run_id"], synth=_mk_synth({"pass1": 0.8}))
+rag_backend.query = lambda text, k=6: HitList([_chunk], degraded=None)
+
+
+def _axes(r):
+    return (r["episode_axes"]["world"], r["episode_axes"]["inference"], r["episode_axes"]["technical"])
+
+
+check("ADR-0079 (G) episode_axes por TABLA sobre 6 registros del gate: APPROVED×not-applicable×APPROVE -> effect-claimed/"
+      "supported/completed · evidence-of-no-effect -> null-bounded · no-evidence-retrieved×APPROVE_DECLINE -> indeterminate/"
+      "honest-decline · REJECTED (REVISE tras revisión) -> not-established/insufficient · REVISE por panel delgado -> "
+      "not-established · retrieval no semántica -> technical degraded con nota; todos class 'derived-at-freeze' + map",
+      _axes(rec_root) == ("effect-claimed", "supported", "completed")
+      and _axes(rec_nb) == ("null-bounded", "supported", "completed")
+      and _axes(rec_ind) == ("indeterminate", "honest-decline", "completed")
+      and _axes(rec_rr) == ("not-established", "insufficient", "completed")
+      and _axes(rec_tp) == ("not-established", "insufficient", "completed")
+      and _axes(rec_deg) == ("effect-claimed", "supported", "degraded") and rec_deg["retrieval_summary"]["mode"] != "semantic"
+      and any("degraded" in n for n in rec_deg["episode_axes"]["notes"])
+      and all(r["episode_axes"]["class"] == "derived-at-freeze"
+              and r["episode_axes"]["map"] == "runs.EPISODE_AXES_MAP (ADR-0079)"
+              for r in (rec_root, rec_nb, rec_ind, rec_rr, rec_tp, rec_deg)),
+      json.dumps({"root": _axes(rec_root), "nb": _axes(rec_nb), "ind": _axes(rec_ind), "rr": _axes(rec_rr),
+                  "tp": _axes(rec_tp), "deg": _axes(rec_deg)}))
+_na = runs_mod.episode_axes("DI_SUFFICIENT", None, None, "failed", None, _ORIGIN["value"], False, False, None)
+_cn = runs_mod.episode_axes("AUDIT_APPROVED", "not-applicable", "APPROVE_MINOR", "cancelled", "semantic", "production",
+                            True, False, {"thread_id": "t", "turn_no": 2, "turn_kind": "refine"})
+_ab = runs_mod.episode_axes("AUDIT_APPROVED", None, "APPROVE", "closed", "semantic", None, False, True, None)
+check("ADR-0079 (G) la función pura cubre lo que un registro congelado no produce: sin veredicto -> not-assessed/not-evaluated "
+      "+ technical failed · cancelled × APPROVE_MINOR -> minor-issues/cancelled con provenance {origin, human_gates, turn} · "
+      "APPROVED sin absence_kind -> indeterminate DECLARADO en notes · human_gates.closed True cuando se pide; y la TABLA "
+      "EPISODE_AXES_MAP dice lo mismo (es la que copia el ADR)",
+      (_na["world"], _na["inference"], _na["technical"]) == ("not-assessed", "not-evaluated", "failed")
+      and (_cn["world"], _cn["inference"], _cn["technical"]) == ("effect-claimed", "minor-issues", "cancelled")
+      and _cn["provenance"] == {"origin": "production",
+                                "human_gates": {"plan_declared": True, "closed": False,
+                                                "closed_note": _cn["provenance"]["human_gates"]["closed_note"]},
+                                "turn": {"thread_id": "t", "turn_no": 2, "turn_kind": "refine"}}
+      and _ab["world"] == "indeterminate" and any("absence_kind" in n for n in _ab["notes"])
+      and _ab["provenance"]["human_gates"]["closed"] is True and _ab["provenance"]["origin"] is None
+      and runs_mod.EPISODE_AXES_MAP["class"] == "derived-at-freeze"
+      and runs_mod.EPISODE_AXES_MAP["world"]["AUDIT_REJECTED"] == "not-established"
+      and runs_mod.EPISODE_AXES_MAP["world"]["AUDIT_APPROVED × evidence-of-no-effect"] == "null-bounded"
+      and runs_mod.EPISODE_AXES_MAP["inference"]["APPROVE_DECLINE"] == "honest-decline"
+      and runs_mod.EPISODE_AXES_MAP["technical"]["failed"] == "failed",
+      json.dumps({"na": (_na["world"], _na["technical"]), "ab_notes": _ab["notes"]}))
+_ax_rej = runs_mod.episode_axes("AUDIT_REJECTED", None, None, "awaiting_closure", "semantic", None, False, False, None)
+_ax_nt = runs_mod.episode_axes("FALLBACK_FETCHED", "not-applicable", "APPROVE", "awaiting_closure", "semantic", None,
+                               False, False, None)
+check("ADR-0079 corrector (G) la TABLA dice lo que la función hace en los dos caminos de precedencia: AUDIT_REJECTED SIN "
+      "veredicto -> world not-assessed (el 'sin veredicto' precede a decision_state); veredicto presente con decision_state "
+      "no terminal de auditoría -> not-assessed con nota; ambas filas figuran en EPISODE_AXES_MAP.world",
+      _ax_rej["world"] == "not-assessed" and _ax_rej["inference"] == "not-evaluated"
+      and _ax_nt["world"] == "not-assessed" and _ax_nt["inference"] == "supported" and any("not-assessed" in n for n in _ax_nt["notes"])
+      and runs_mod.EPISODE_AXES_MAP["world"]["<no audit verdict> (precede a decision_state)"] == "not-assessed"
+      and "<verdict present> × decision_state ∉ {AUDIT_APPROVED, AUDIT_REJECTED}" in runs_mod.EPISODE_AXES_MAP["world"])
+check("ADR-0079 (G) epistemic_summary de cada turno (derivado al congelar, regla frozen-counter) lleva thread_id/turn_no/origin "
+      "y la lista los sirve tal cual (turnos 1..5 de la investigación)",
+      all(app.get_run(rid, authorization=AUTH)["epistemic_summary"]["thread_id"] == T_ROOT
+          and app.get_run(rid, authorization=AUTH)["epistemic_summary"]["turn_no"] == n
+          and app.get_run(rid, authorization=AUTH)["epistemic_summary"]["origin"] == _ORIGIN["value"]
+          for rid, n in ((T_ROOT, 1), (T_CHILD, 2), (T_RERUN, 3), (T_KSW, 4), (T_LEAK, 5))))
 
 # ---- ADR-0076: al final de todo el gate, los números son únicos y consecutivos en la creación ---------
 _lista = db.list_runs(limit=1000)

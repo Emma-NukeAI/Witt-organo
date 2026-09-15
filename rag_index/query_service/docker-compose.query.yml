@@ -48,6 +48,20 @@ services:
       - WITT_REAP_STALE_S=${WITT_REAP_STALE_S:-900}    # running run with no heartbeat for >N s => failed 'worker-lost'
       - WITT_ZFIN_SERVER_FILTER=${WITT_ZFIN_SERVER_FILTER:-0}   # 1 = one filter.termName GET per anatomy root at Alliance
                                                        # (unmeasured live; 'a|b' measured HTTP 400 2026-09-14) — default: client filter
+      # ADR-0079 — la investigación (turnos encadenados sobre una raíz) y el ORIGEN de cada corrida. Placeholders
+      # only: defaults DECLARED in code (runs.py / app.py); the effective value + its provenance travel in the
+      # record (frozen.origin.source, thread_context.human_comments.limits, kill_switch). EMPTY = declared default.
+      - WITT_RUN_ORIGIN=${WITT_RUN_ORIGIN:-}           # enum production|dev-offline|replay|smoke|simulation|fixture. EMPTY =>
+                                                       # derived: 'production' (source default:production) unless
+                                                       # WITT_ALLOW_RUNS_OFFLINE=1 (dev-offline). Only 'production' counts as
+                                                       # precedent/calibration by default; outside the enum => 'invalid-env:<v>'
+                                                       # DECLARED (the run is still created). Rows older than the column stay NULL.
+      - WITT_THREAD_CONTEXT=${WITT_THREAD_CONTEXT:-1}  # 0 = kill-switch: thread columns are filled, the previous-turn snapshot
+                                                       # is NOT built/delivered to the model (skipped_reason declared)
+      - WITT_THREAD_COMMENTS_MAX=${WITT_THREAD_COMMENTS_MAX:-8}       # parent comments carried in the snapshot (truncated declared)
+      - WITT_THREAD_COMMENTS_CHARS=${WITT_THREAD_COMMENTS_CHARS:-8000}   # TOTAL chars of those comments
+      - WITT_THREAD_ANSWER_CHARS=${WITT_THREAD_ANSWER_CHARS:-1200}     # chars of the parent's direct_answer in the snapshot
+      - WITT_PIVOT_TURNS=${WITT_PIVOT_TURNS:-3}         # GET /threads: consecutive flat turns (gap_flags not reduced) => pivot_suggested
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

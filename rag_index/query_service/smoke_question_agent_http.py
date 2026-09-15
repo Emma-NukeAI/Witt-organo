@@ -42,6 +42,7 @@ os.environ["WITT_ALLOW_RUNS_OFFLINE"] = "1"   # el loop sparse-dev: encolar sin 
 
 import db  # noqa: E402
 import question_agent  # noqa: E402
+import runs as runs_mod  # noqa: E402
 import app as app_mod  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -195,8 +196,25 @@ check("from_question_id inexistente -> 404",
                   json={"question": "q", "from_question_id": "no-existe"}).status_code == 404)
 
 # --- el tablero de calibración ----------------------------------------------------------------------
-cal = client.get("/notes/questions/calibration", headers=EMM).json()
+# corrector ADR-0079: la corrida que respalda a q1 nació con el origen que deriva el servidor ('smoke' bajo la
+# máscara, 'dev-offline' sin ella — ∉ production). Por DEFAULT el tablero la EXCLUYE y la CUENTA; para leer el
+# tablero completo el gate pide include_origins=<ese origen> explícito (mismo régimen que precedente/calibración).
+_ORIGEN = runs_mod.run_origin()["value"]
+assert _ORIGEN in db.RUN_ORIGINS and _ORIGEN != "production", _ORIGEN
+cal0 = client.get("/notes/questions/calibration", headers=EMM).json()
+v0 = next(v for v in cal0["por_version"] if v["spec_version"] == question_agent.QUESTION_SPEC_VERSION)
+check("corrector ADR-0079: SIN parámetro el tablero declara origins_included ['production'] y el borrador respaldado por la "
+      f"corrida '{_ORIGEN}' queda FUERA y CONTADO: excluded_by_origin {{{_ORIGEN}: 1}}, n_borradores_excluidos_por_origen 1, "
+      "n_borradores 3, n_usados 0 (antes: origins_included null = sin filtro, la corrida smoke contaba)",
+      cal0["origins_included"] == ["production"] and cal0["excluded_by_origin"] == {_ORIGEN: 1}
+      and cal0["n_borradores_excluidos_por_origen"] == 1 and cal0["origin_unknown_included"] == 0
+      and v0["n_borradores"] == 3 and v0["n_usados"] == 0,
+      f"origins={cal0['origins_included']} excl={cal0['excluded_by_origin']} n={v0['n_borradores']} usados={v0['n_usados']}")
+cal = client.get(f"/notes/questions/calibration?include_origins={_ORIGEN}", headers=EMM).json()
 v1 = next(v for v in cal["por_version"] if v["spec_version"] == question_agent.QUESTION_SPEC_VERSION)
+check("con include_origins=<origen del gate> el tablero declara ese alcance y no excluye nada",
+      cal["origins_included"] == [_ORIGEN] and cal["excluded_by_origin"] == {}
+      and cal["n_borradores_excluidos_por_origen"] == 0)
 check("la calibración agrupa POR VERSIÓN DE SPEC", v1["n_borradores"] == 4, f"n={v1['n_borradores']}")
 check("los borradores fallidos se cuentan aparte", v1["n_errored"] == 2, f"errored={v1['n_errored']}")
 # los 4 pendientes: 3 sin corrida + el ya SELLADO pero todavía sin calificar. Un borrador con
@@ -216,7 +234,7 @@ with db.engine().begin() as cx:
 run = db.get_run(RUN1)
 db.add_rating(run, {"user_id": "emmanuel", "role": "dev"}, 3, "value", 4, "value",
               note="", note_question="se pasó de ambiciosa")
-cal = client.get("/notes/questions/calibration", headers=EMM).json()
+cal = client.get(f"/notes/questions/calibration?include_origins={_ORIGEN}", headers=EMM).json()
 v1 = next(v for v in cal["por_version"] if v["spec_version"] == question_agent.QUESTION_SPEC_VERSION)
 check("la calificación del EJE PREGUNTA entra al tablero como CONTEO por ancla",
       v1["tamano"]["3"] == 1 and v1["n_calificados"] == 1, f"tamano={v1['tamano']}")

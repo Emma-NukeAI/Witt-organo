@@ -445,11 +445,32 @@ class RunBody(BaseModel):
     # 2026-09-04: el borrador del agente que originó esta pregunta. Opcional — preguntar nunca
     # se bloquea por el agente. Sella el lazo de calibración: borrador -> corrida -> eje pregunta.
     from_question_id: str | None = None
+    # ADR-0079: la corrida PADRE de este turno (una investigación T-<run_no raíz>). Opcional: sin
+    # padre la corrida nace raíz (thread_id = run_id, turn_no 1). El cliente sólo REFIERE al padre;
+    # thread_id / turn_no / turn_kind / thread_context los deriva el servidor (ADR-0056).
+    parent_run_id: str | None = None
 
 
 class PlanBody(BaseModel):
     question: str
     entities: list[str] = []
+    # ADR-0079: planear el turno siguiente de una investigación — el planner recibe el thread_context
+    # del padre (snapshot armado en el servidor), jamás un objeto mandado por el cliente.
+    parent_run_id: str | None = None
+
+
+def _traduce_thread_error(fn, *args, **kwargs):
+    """ADR-0079: la validación del padre vive UNA vez, en runs.py (new_run / plan_thread_context, ANTES
+    de insertar): inexistente -> ParentNotFound (404 parent_not_found); no terminal (queued/running) ->
+    ParentNotTerminal (409 parent_not_terminal, con parent_state) — un turno sólo se apila sobre una
+    corrida que ya terminó (db.RATABLE_STATES). failed/cancelled SÍ son padres válidos: el hijo declara
+    que el padre no tiene registro ('parent-without-frozen-record'), no se le niega la investigación.
+    runs.py no importa fastapi: aquí se traduce su ThreadError {status, detail} a HTTPException —
+    mismo patrón de detalle tipado que plan_already_used / question_already_used."""
+    try:
+        return fn(*args, **kwargs)
+    except runs_mod.ThreadError as e:
+        raise HTTPException(status_code=e.status, detail=e.detail)
 
 
 @app.post("/runs/plan")
@@ -457,16 +478,31 @@ def create_plan(body: PlanBody, authorization: str = Header(None)):
     """El plan declarado (tapon 3, ADR-0061): el checkpoint humano del boceto M3, ANTES de encolar.
     Partes estructurales del codigo + juicio del planner (modelo; puede fallar sin bloquear) +
     estimaciones DETERMINISTAS de la historia real. Server-side y referido por plan_id -- el cliente
-    nunca re-manda el objeto (procedencia)."""
+    nunca re-manda el objeto (procedencia).
+
+    ADR-0079: con parent_run_id (validado 404/409 igual que al encolar) el planner recibe el
+    thread_context del padre — el MISMO snapshot que verá el sintetizador, armado por el SERVIDOR
+    (runs.plan_thread_context -> sobre {snapshot, skipped_reason}) desde el registro congelado +
+    comentarios del padre. El sobre entero va a build_plan (que declara en el plan si el planner lo
+    vio: plan.thread_context_declared / thread_context_skipped_reason); la respuesta repite el padre
+    y la razón de omisión (identidad del padre inválida, kill-switch) para que el cliente no infiera."""
     user = _user_of(authorization)
     q = body.question.strip()
     if not q:
         raise HTTPException(status_code=400, detail="question must be non-empty")
-    plan = runs_mod.build_plan(q, [e.strip() for e in body.entities if e.strip()])
+    sobre = None
+    if body.parent_run_id:
+        sobre = _traduce_thread_error(runs_mod.plan_thread_context, body.parent_run_id)
+    plan = runs_mod.build_plan(q, [e.strip() for e in body.entities if e.strip()], thread_context=sobre)
     plan_id = uuid.uuid4().hex
     db.create_plan(plan_id, user["user_id"], q, plan["entities"],
                    json.dumps(plan, ensure_ascii=False, default=str))
-    return {"plan_id": plan_id, "plan": plan}
+    return {"plan_id": plan_id, "plan": plan,
+            # ADR-0079: qué padre se declaró y si su contexto llegó al planner (o por qué no)
+            "parent_run_id": body.parent_run_id,
+            "thread_context_passed": (sobre or {}).get("snapshot") is not None,
+            "thread_context_skipped_reason": ((sobre or {}).get("skipped_reason")
+                                             if body.parent_run_id else "root-turn")}
 
 
 def _run_view(run):
@@ -478,13 +514,20 @@ def _run_view(run):
     ADR-0078: claimed_by/claimed_at (qué worker reclamó la corrida y cuándo) viajan TAL CUAL en la
     vista — la lista de exclusión de abajo no los tapa; null = nadie declaró (llamador sin worker_id),
     distinto de un nombre de hilo. Una corrida segada por el reaper llega state='failed' con
-    error 'worker-lost: …' y su evento run.state {reason:'worker-lost'} en la bitácora."""
+    error 'worker-lost: …' y su evento run.state {reason:'worker-lost'} en la bitácora.
+    ADR-0079: las columnas de investigación (parent_run_id, thread_id, turn_no, turn_kind, origin,
+    root_question_id) viajan TAL CUAL desde la fila — NULL = corrida anterior al contrato ('sin
+    investigación' / origin desconocido), ausencia declarada que jamás se rellena aquí (un setdefault
+    taparía justo la asimetría lista/detalle que rompió en ADR-0055/0076: si list_runs olvida una
+    columna, la lista debe VERSE distinta del detalle, no igualarse a null). thread_context_json es
+    un blob (el INSUMO que vio el modelo) y va a la lista de exclusión: vive en el registro congelado
+    como frozen.thread_context, no en el renglón."""
     now = datetime.datetime.now(datetime.timezone.utc)
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
             for k, v in run.items()
             if k not in ("bundle_json", "frozen_record_json", "usage_json", "epistemic_summary_json",
-                         "plan_json")}
+                         "plan_json", "thread_context_json")}
     view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
@@ -560,8 +603,14 @@ def create_run(body: RunBody, authorization: str = Header(None)):
                 "state": "plan_already_used", "run_id": prow["run_id"],
                 "note": "este plan ya respalda otra corrida; declara un plan nuevo"})
         plan_json = prow["plan_json"]
-    run_id = runs_mod.new_run(user["user_id"], q, [e.strip() for e in body.entities if e.strip()],
-                              plan_json=plan_json)
+    # ADR-0079: el padre lo valida runs.new_run ANTES de insertar (ThreadError -> 404 parent_not_found /
+    # 409 parent_not_terminal, traducidos aquí). Sólo viaja la REFERENCIA: thread_id, turn_no, turn_kind,
+    # origin, root_question_id y el snapshot thread_context los deriva el servidor (ADR-0056 — jamás del
+    # cliente). from_question_id viaja también para que la raíz selle root_question_id = su borrador.
+    run_id = _traduce_thread_error(runs_mod.new_run, user["user_id"], q,
+                                   [e.strip() for e in body.entities if e.strip()],
+                                   plan_json=plan_json, parent_run_id=body.parent_run_id,
+                                   from_question_id=body.from_question_id)
     if body.from_question_id:
         db.mark_question_used(body.from_question_id, run_id)
     if body.plan_id:
@@ -578,13 +627,41 @@ def _con_comentarios(views):
     return views
 
 
+RUNS_LIST_CAP = 50   # el tope histórico de la lista general (M8 suma aparte en /usage); no aplica con thread=
+
+
 @app.get("/runs")
-def list_runs(mine: bool = False, authorization: str = Header(None)):
+def list_runs(mine: bool = False, thread: str = None, limit: int = None, after: int = None,
+              authorization: str = Header(None)):
     """LOTE-01·A1: the LIST goes through the same _run_view as the detail — heartbeat fields included
-    and identical datetime serialization (a stuck run must be distinguishable FROM THE LIST)."""
+    and identical datetime serialization (a stuck run must be distinguishable FROM THE LIST).
+
+    ADR-0079: `thread=<thread_id>` lista los TURNOS de una investigación en orden de turn_no ASC,
+    paginados con `limit` (sin tope: una investigación se lee entera) y `after` (cursor = turn_no
+    exclusivo: devuelve turnos con turn_no > after). Sin `thread` la lista general conserva su tope
+    (RUNS_LIST_CAP, declarado en la respuesta) y `after` no aplica (400). `next_after` es el turn_no
+    del último renglón servido cuando hay más; `has_more` se mide pidiendo limit+1, nunca se estima."""
     user = _user_of(authorization)
-    vistas = [_run_view(r) for r in db.list_runs(user_id=user["user_id"] if mine else None)]
-    return {"runs": _con_comentarios(vistas)}
+    user_id = user["user_id"] if mine else None
+    # corrector ADR-0079: la validación del signo va ANTES de los dos ramales — `limit=-1` llegaba a
+    # `LIMIT -1` en la lista general (SQLite: sin tope, saltándose el 50; Postgres: error → 500)
+    if limit is not None and limit < 1:
+        raise HTTPException(status_code=400, detail="limit debe ser >= 1")
+    if not thread:
+        if after is not None:
+            raise HTTPException(status_code=400, detail="after: cursor de turn_no — sólo aplica con thread=")
+        tope = RUNS_LIST_CAP if limit is None else min(limit, RUNS_LIST_CAP)
+        vistas = [_run_view(r) for r in db.list_runs(user_id=user_id, limit=tope)]
+        return {"runs": _con_comentarios(vistas), "limit": tope, "limit_cap": RUNS_LIST_CAP}
+    filas = db.list_runs(user_id=user_id, limit=(limit + 1) if limit else None,
+                         thread_id=thread, after=after)
+    has_more = bool(limit and len(filas) > limit)
+    filas = filas[:limit] if limit else filas
+    vistas = _con_comentarios([_run_view(r) for r in filas])
+    return {"runs": vistas, "thread_id": thread, "limit": limit, "after": after,
+            "n": len(vistas), "has_more": has_more,
+            "next_after": (vistas[-1].get("turn_no") if has_more and vistas else None),
+            "order": "turn_no ASC (cursor `after` = turn_no exclusivo)"}
 
 
 @app.get("/runs/{run_id}")
@@ -594,6 +671,180 @@ def get_run(run_id: str, authorization: str = Header(None)):
     if run is None:
         raise HTTPException(status_code=404, detail="no such run")
     return _con_comentarios([_run_view(run)])[0]
+
+
+# --- investigaciones (ADR-0079): la cadena de turnos sobre una pregunta, leída como UNA unidad --------
+# Un turno = una corrida con parent_run_id. La investigación se nombra T-<run_no raíz> ante el humano;
+# en código es thread_id (= run_id de la raíz). Todo lo de abajo son CONTEOS y sumas etiquetadas sobre
+# valores YA congelados — ninguna prosa nueva, ninguna re-medición, nada del modelo.
+
+# ADR-0079: turnos planos consecutivos. Corrector: lectura TOLERANTE (runs._env_int_tolerante, ADR-0078) —
+# `int(os.environ.get(...))` al importar tumbaba el servicio con WITT_PIVOT_TURNS='' o 'abc' (el caso exacto
+# de WITT_REAP_STALE_S en Dokploy); env vacía / no numérica / <= 0 -> default 3 con la FUENTE declarada.
+PIVOT_TURNS_DEFAULT = 3
+PIVOT_TURNS, PIVOT_TURNS_SOURCE = runs_mod._env_int_tolerante("WITT_PIVOT_TURNS", PIVOT_TURNS_DEFAULT)
+PIVOT_RULE = "WITT_PIVOT_TURNS turnos consecutivos cuyo conjunto de gap_flags no se redujo"
+ORIGIN_UNKNOWN = "unknown-pre-adr-0079"   # ADR-0079 (A): origin NULL = corrida anterior al contrato
+
+
+def _gap_flags_de(frozen):
+    """Los gap_flags del registro congelado con lectura TOLERANTE (ADR-0074): lista -> tal cual; string
+    JSON de lista -> levantado por runs._lista_serializada; cualquier otra cosa -> [] y `unreadable`
+    True (se declara, no se corrige). Sólo strings no vacíos cuentan."""
+    crudo = ((frozen or {}).get("answer") or {}).get("gap_flags")
+    if isinstance(crudo, list):
+        return [g for g in crudo if isinstance(g, str) and g.strip()], False
+    levantado = runs_mod._lista_serializada(crudo) if isinstance(crudo, str) else None
+    if levantado is not None:
+        return [g for g in levantado if isinstance(g, str) and g.strip()], False
+    return [], crudo is not None
+
+
+def _turno_de(run):
+    """Una fila completa de corrida -> el renglón del turno + sus insumos (conjunto normalizado de
+    gap_flags, costo) para los agregados. Cada llave ausente queda None (tres estados)."""
+    frozen = None
+    if run.get("frozen_record_json"):
+        try:
+            frozen = json.loads(run["frozen_record_json"])
+        except Exception:
+            frozen = None
+    resumen = json.loads(run["epistemic_summary_json"]) if run.get("epistemic_summary_json") else None
+    uso = json.loads(run["usage_json"]) if run.get("usage_json") else None
+    flags, ilegible = _gap_flags_de(frozen)
+    turno = {
+        "run_id": run["run_id"], "run_no": run.get("run_no"),
+        "turn_no": run.get("turn_no"), "turn_kind": run.get("turn_kind"),
+        "parent_run_id": run.get("parent_run_id"),
+        "state": run["state"],
+        "verdict": (resumen or {}).get("verdict"),
+        "decision_state": ((frozen or {}).get("decision_state") or {}).get("state"),
+        "origin": run.get("origin"),
+        "created_at": run["created_at"].isoformat(timespec="seconds") if run.get("created_at") else None,
+        "user_id": run["user_id"], "closed_by": run.get("closed_by"),
+        "has_frozen_record": frozen is not None,
+        "n_gap_flags": len(flags) if frozen is not None else None,
+        "gap_flags_unreadable": ilegible,
+        # [PROYECCIÓN] congelada al freeze (ADR-0051); None = sin usage (turno sin terminar o pre-llave)
+        "estimated_cost_usd": (uso or {}).get("estimated_cost_usd") if uso else None,
+        "cost_projection_complete": (uso or {}).get("cost_projection_complete") if uso else None,
+    }
+    return turno, flags, uso
+
+
+def _union_gap_flags(turnos_flags):
+    """gap_flags_union: igualdad normalizada (lower/strip), conteo POR TURNO (un turno que repite el
+    mismo gap cuenta una vez), `text` = la redacción de la PRIMERA aparición (jamás prosa nueva),
+    `last_turn` = el último turn_no donde apareció. Orden: primera aparición, luego texto."""
+    union = {}
+    for turn_no, flags in turnos_flags:
+        vistos = set()
+        for g in flags:
+            k = g.strip().lower()
+            if k in vistos:
+                continue
+            vistos.add(k)
+            fila = union.setdefault(k, {"text": g.strip(), "count": 0, "first_turn": turn_no,
+                                        "last_turn": turn_no})
+            fila["count"] += 1
+            fila["last_turn"] = turn_no
+    return sorted(union.values(), key=lambda f: ((f["first_turn"] or 0), f["text"]))
+
+
+def _pivot(turnos_flags):
+    """pivot_suggested (ADR-0079): True cuando los ÚLTIMOS PIVOT_TURNS turnos con registro congelado
+    forman una racha plana — entre cada par consecutivo el conjunto normalizado de gap_flags NO se
+    redujo ('se redujo' = subconjunto PROPIO del anterior: todo gap ya estaba y al menos uno cerró),
+    y el último conjunto no está vacío (sin gaps no hay nada de qué pivotear). Con menos turnos que
+    el umbral: False y la razón declarada. Es una sugerencia calculada, no un juicio."""
+    con_registro = [(t, {g.strip().lower() for g in flags}) for t, flags in turnos_flags]
+    ventana = con_registro[-PIVOT_TURNS:] if PIVOT_TURNS > 0 else []
+    base = {"value": False, "rule": PIVOT_RULE, "threshold": PIVOT_TURNS,
+            "threshold_source": PIVOT_TURNS_SOURCE,   # corrector ADR-0079: env|default, como REAP_STALE_S_SOURCE
+            "turns_considered": [t for t, _ in ventana]}
+    if len(ventana) < PIVOT_TURNS or PIVOT_TURNS < 1:
+        return {**base, "reason": f"insufficient-turns: {len(ventana)} con registro < {PIVOT_TURNS}"}
+    if not ventana[-1][1]:
+        return {**base, "reason": "last-turn-without-gap-flags"}
+    plano = all(not (ventana[i][1] < ventana[i - 1][1]) for i in range(1, len(ventana)))
+    return {**base, "value": plano,
+            "reason": None if plano else "gap_flags-reduced-within-window"}
+
+
+@app.get("/threads/{thread_id}")
+def get_thread(thread_id: str, authorization: str = Header(None)):
+    """ADR-0079 (H): la investigación T-<run_no raíz> como UNA unidad — sus turnos en orden con
+    veredicto/decision_state/origin/costo por turno, más agregados DETERMINISTAS: gap_flags_union
+    (conteos con igualdad normalizada), total_cost_usd [PROYECCIÓN] con `complete` (False si algún
+    turno no tiene usage o se congeló incompleto — la suma de proyecciones parciales se declara, no
+    se disimula), pivot_suggested (regla WITT_PIVOT_TURNS), orígenes y autores. 404 si no existe.
+
+    Raíz virtual (ADR-0079 B): un padre anterior al contrato conserva thread_id NULL (nada se
+    backfillea); sus hijos llevan thread_id = su run_id. Aquí ese padre se LEE como raíz virtual
+    (`root_pre_adr_0079: true`, turn_no/turn_kind null = ausencia declarada) — derivación al servir,
+    no escritura."""
+    _user_of(authorization)
+    filas = db.thread_turns(thread_id)
+    completas = [db.get_run(f["run_id"]) for f in filas]
+    completas = [c for c in completas if c is not None]
+    raiz_virtual = None
+    if not any(c["run_id"] == thread_id for c in completas):
+        raiz_virtual = db.get_run(thread_id)
+        if raiz_virtual is not None and raiz_virtual.get("thread_id") not in (None, thread_id):
+            raiz_virtual = None   # una corrida de OTRA investigación no es raíz de ésta
+        if raiz_virtual is not None:
+            completas.insert(0, raiz_virtual)
+    if not completas:
+        raise HTTPException(status_code=404, detail={"state": "thread_not_found", "thread_id": thread_id})
+
+    turnos, turnos_flags = [], []
+    total, n_sin_uso, n_incompleto, n_desconocido = 0.0, 0, 0, 0
+    origenes, autores = {}, set()
+    for run in completas:
+        turno, flags, uso = _turno_de(run)
+        if raiz_virtual is not None and run["run_id"] == raiz_virtual["run_id"]:
+            turno["root_pre_adr_0079"] = True
+        turnos.append(turno)
+        autores.add(run["user_id"])
+        clave = run.get("origin") or ORIGIN_UNKNOWN
+        origenes[clave] = origenes.get(clave, 0) + 1
+        if turno["has_frozen_record"]:
+            turnos_flags.append((turno["turn_no"], flags))
+        if not uso:
+            n_sin_uso += 1
+            continue
+        total += float(uso.get("estimated_cost_usd") or 0.0)
+        if uso.get("cost_projection_complete") is False:
+            n_incompleto += 1
+        elif "cost_projection_complete" not in uso:
+            n_desconocido += 1
+    raiz = turnos[0]
+    fechas = [t["created_at"] for t in turnos if t["created_at"]]
+    return {
+        "thread_id": thread_id,
+        "root_run_id": raiz["run_id"], "root_run_no": raiz["run_no"],
+        "label": f"T-{raiz['run_no']}" if raiz["run_no"] is not None else None,
+        "root_pre_adr_0079": raiz_virtual is not None,
+        "root_question_id": next((c.get("root_question_id") for c in completas
+                                  if c.get("root_question_id")), None),
+        "turns": turnos, "n_turns": len(turnos),
+        "n_closed": sum(1 for t in turnos if t["state"] == "closed"),
+        "n_turns_without_record": sum(1 for t in turnos if not t["has_frozen_record"]),
+        "authors": sorted(autores),
+        "date_range": {"first": min(fechas) if fechas else None, "last": max(fechas) if fechas else None},
+        "gap_flags_union": _union_gap_flags(turnos_flags),
+        "total_cost_usd": {
+            "value": round(total, 4),
+            "complete": n_sin_uso == 0 and n_incompleto == 0 and n_desconocido == 0,
+            "n_turns_without_usage": n_sin_uso, "n_turns_cost_incomplete": n_incompleto,
+            "n_turns_cost_unknown": n_desconocido,
+            "cost_class": f"PROJECTION (suma de estimated_cost_usd CONGELADOS por turno; tokens medidos x "
+                          f"precios por Mtok al {runs_mod.PRICES_AS_OF}; un turno sin usage o incompleto "
+                          f"deja la suma INCOMPLETA y así se declara)"},
+        "pivot_suggested": _pivot(turnos_flags),
+        "origins": origenes,
+        "origin_unknown_label": ORIGIN_UNKNOWN,
+    }
 
 
 # --- comentarios de corrida (ADR-0077) -------------------------------------------------------------
@@ -871,14 +1122,35 @@ def ratings_pending(authorization: str = Header(None)):
             "note": "calificar es esperado, no opcional (M5) — pero JAMÁS bloquea una corrida"}
 
 
+def _origins_param(csv):
+    """ADR-0079 (F): `include_origins` como CSV de query -> lista o None (None = el default del consumidor:
+    sólo 'production', con las corridas pre-ADR de origin NULL incluidas y declaradas). Un origen fuera
+    del enum db.RUN_ORIGINS es 400 con la lista permitida — filtrar por un origen que no existe
+    devolvería un corpus vacío indistinguible de 'no hay corridas'. Los smokes corren con
+    WITT_RUN_ORIGIN=smoke y piden include_origins=smoke explícitamente (documentado en el gate)."""
+    if csv is None or not isinstance(csv, str):   # llamadas directas (no-HTTP) pasan el default
+        return None
+    valores = [v.strip() for v in csv.split(",") if v.strip()]
+    if not valores:
+        return None
+    fuera = [v for v in valores if v not in db.RUN_ORIGINS]
+    if fuera:
+        raise HTTPException(status_code=400, detail={
+            "state": "invalid-origin", "invalid": fuera, "allowed": list(db.RUN_ORIGINS),
+            "note": "include_origins: CSV de orígenes del enum ADR-0079"})
+    return valores
+
+
 @app.get("/calibration")
-def calibration_report(authorization: str = Header(None)):
+def calibration_report(include_origins: str = None, authorization: str = Header(None)):
     """ECE sobre corridas CERRADAS anclado en calificaciones humanas (tapón 4, ADR-0064). Reutiliza
     compute_ece.py (nunca re-implementa el binning); el mapeo de outcomes viaja DECLARADO en la
     respuesta; con n < umbral el reporte lo dice (`power.sufficient: false`) en vez de calcular a
-    ciegas. NO-SPEND por construcción."""
+    ciegas. NO-SPEND por construcción.
+    ADR-0079: `include_origins` (CSV) — default sólo 'production' (+ pre-ADR NULL, declaradas); la
+    respuesta declara origins_included / excluded_by_origin (calibration.py los calcula)."""
     _user_of(authorization)
-    return calibration_mod.report()
+    return calibration_mod.report(include_origins=_origins_param(include_origins))
 
 
 # --- taxonomy (LOTE-01·A6): the Rack's filters come from ONE door — the UI refuses to copy the files
@@ -1065,15 +1337,19 @@ def consulta_sistema_endpoint(q: str = None, authorization: str = Header(None)):
 # --- precedent layer (block 6, ADR-0053): the OTHER index — separate admissibility, equal value ------
 
 @app.get("/precedent/search")
-def precedent_search(q: str, k: int = 5, authorization: str = Header(None)):
+def precedent_search(q: str, k: int = 5, include_origins: str = None,
+                     authorization: str = Header(None)):
     """Relevance search over CLOSED runs (explicit closure = the precedent requirement). Every item is
     structurally marked admissible_as_evidence: false — precedent informs humans and planning; it never
     enters the gated evidence object (the anti-fabrication gate is provenance-blind by design, so this
-    rule lives at the product layer). Citation series stay disjoint: numbers=evidence, letters=precedent."""
+    rule lives at the product layer). Citation series stay disjoint: numbers=evidence, letters=precedent.
+    ADR-0079: `include_origins` (CSV, ver _origins_param) — por default el corpus es SÓLO origin
+    'production' (+ las corridas pre-ADR con origin NULL, incluidas y declaradas); la respuesta trae
+    origins_included / excluded_by_origin (lo calcula precedent.py, no esta puerta)."""
     _user_of(authorization)
     if not q.strip():
         raise HTTPException(status_code=400, detail="q must be non-empty")
-    return precedent_mod.search(q.strip(), k)
+    return precedent_mod.search(q.strip(), k, include_origins=_origins_param(include_origins))
 
 
 # --- APUNTES (2026-09-04, pedido del fundador) -------------------------------------------------------
@@ -1232,12 +1508,19 @@ def question_spec(authorization: str = Header(None)):
 
 
 @app.get("/notes/questions/calibration")
-def question_calibration(authorization: str = Header(None)):
+def question_calibration(include_origins: str = None, authorization: str = Header(None)):
     """El tablero de depuración del agente, POR VERSIÓN DE SPEC: enfrenta lo que el agente
     AFIRMÓ (fits_one_run) con lo que el humano MIDIÓ (rating_input = eje pregunta, TAMAÑO).
-    Todo son conteos — promediar una ordinal de 5 anclas inventaría una medición."""
+    Todo son conteos — promediar una ordinal de 5 anclas inventaría una medición.
+    ADR-0079: `include_origins` (CSV) — las corridas que respaldan un borrador se filtran por origin
+    igual que precedente y calibración (default 'production' + pre-ADR NULL declaradas). Corrector: el
+    default se aplica AQUÍ, en la puerta, vía precedent.normalize_origins (None -> ('production',)) — antes
+    None llegaba a db.question_calibration como SIN FILTRO y un borrador respaldado por una corrida smoke
+    contaba en el tablero con origins_included null. db.question_calibration(None) sigue siendo 'sin filtro'
+    para llamadas de biblioteca, declarado en su docstring."""
     _user_of(authorization)
-    return db.question_calibration()
+    return db.question_calibration(
+        include_origins=list(precedent_mod.normalize_origins(_origins_param(include_origins))))
 
 
 @app.get("/runs/{run_id}/notes")
