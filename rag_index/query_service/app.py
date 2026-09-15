@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import server  # noqa: E402  (side effects: deploy.env + EMBED_MODEL pin + backend import — traps 2/3)
 import calibration as calibration_mod  # noqa: E402
+import config_ledger  # noqa: E402  (ADR-0081 (I)/(E): bitácora de configuración; boot() en el lifespan)
 import consulta_sistema as consulta_mod  # noqa: E402
 import db  # noqa: E402
 import question_agent  # noqa: E402
@@ -52,6 +53,7 @@ import rack_browse as rack_browse_mod  # noqa: E402
 import record_pdf as record_pdf_mod  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
+from lib import models  # noqa: E402  (ADR-0081 (A): la tabla de modelos — resolución EN LA LLAMADA)
 from lib import rag_backend  # noqa: E402
 
 SERVICE_VERSION = "1.0"
@@ -90,6 +92,10 @@ def _preload_main_thread():
 async def lifespan(_app):
     _STATE["started_at"] = _now_iso()
     db.init_db()
+    # ADR-0081 (I): el diff de configuración al ARRANQUE — tras create_all (la tabla config_history existe) y
+    # ANTES de start_workers (ninguna corrida observa sin baseline). config_ledger.boot() JAMÁS lanza: un fallo
+    # del ledger queda en ledger_state, nunca impide servir (§6 no-hang).
+    config_ledger_boot()
     _preload_main_thread()   # lifespan runs on the main thread, before serving — trap 1
     # run workers start AFTER the main-thread preload (the 1800s deadlock cannot recur) — ADR-0050
     runs_mod.start_workers(int(os.environ.get("WITT_RUN_WORKERS", "2")))
@@ -505,6 +511,20 @@ def create_plan(body: PlanBody, authorization: str = Header(None)):
                                              if body.parent_run_id else "root-turn")}
 
 
+def config_ledger_boot():
+    """ADR-0081 (I): `app.config_ledger_boot()` — llamable DIRECTA (los smokes HTTP construyen
+    TestClient(app) SIN lifespan y la llaman ellos); el lifespan sólo la cablea. Pasa los EXTRA_FIELDS que
+    models.py no deriva (contract.render_contract_version, competence.gate, search.harness, revision.cycle)
+    con la MISMA función que usa /config-history.current (config_ledger.default_extra): una sola verdad."""
+    return config_ledger.boot(extra=config_ledger.default_extra())
+
+
+def config_ledger_observe(snapshot=None):
+    """ADR-0081 (E): el diff EN CORRIDA (runs.execute_run lo llama al inicio con el snapshot de
+    stage.models). Nunca lanza. Alias de config_ledger.observe para quien llegue por app."""
+    return config_ledger.observe(snapshot)
+
+
 def _run_view(run):
     """Run row -> API shape, with the heartbeat DERIVED (the UI's 'no event for N min' detector —
     a run stuck 1800s in a deadlock must be distinguishable from one that is working). LOTE-01·A2:
@@ -521,7 +541,11 @@ def _run_view(run):
     taparía justo la asimetría lista/detalle que rompió en ADR-0055/0076: si list_runs olvida una
     columna, la lista debe VERSE distinta del detalle, no igualarse a null). thread_context_json es
     un blob (el INSUMO que vio el modelo) y va a la lista de exclusión: vive en el registro congelado
-    como frozen.thread_context, no en el renglón."""
+    como frozen.thread_context, no en el renglón.
+    ADR-0081 (F): `root_run_no` NACE en la BD (db._list_select / db.get_run: outerjoin a la raíz del hilo,
+    columna root.run_no AS root_run_no) y fluye por este passthrough SIN código aquí — la vista no lo deriva
+    ni lo rellena: raíz → su run_no; hijo de raíz virtual → el run_no del padre pre-ADR; corrida pre-ADR →
+    null declarado. Lista, detalle y POST /runs lo sirven por construcción (misma consulta, misma llave)."""
     now = datetime.datetime.now(datetime.timezone.utc)
     hb = (now - run["last_event_at"]).total_seconds() if run.get("last_event_at") else None
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
@@ -769,6 +793,33 @@ def _pivot(turnos_flags):
     plano = all(not (ventana[i][1] < ventana[i - 1][1]) for i in range(1, len(ventana)))
     return {**base, "value": plano,
             "reason": None if plano else "gap_flags-reduced-within-window"}
+
+
+@app.get("/threads")
+def list_threads(mine: bool = False, limit: int = None, after: int = None,
+                 authorization: str = Header(None)):
+    """ADR-0081 (G): el ÍNDICE de investigaciones — una fila por hilo (thread_id) con conteos MEDIDOS en
+    la BD (db.threads_index: UNA consulta GROUP BY + una segunda ligera para autores/orígenes/estados/último
+    turno; jamás abre blobs). Declarada ANTES de /threads/{thread_id}. La webapp deja de agrupar 50 corridas
+    en el cliente: aquí viaja el denominador (n_threads_total), la paginación (cursor `after` = root_run_no
+    EXCLUSIVO, `has_more` medido con limit+1) y `n_runs_without_thread` (corridas pre-ADR-0079 sin hilo,
+    contadas aparte — no son investigaciones y no se les inventa una).
+    `label`/`root_run_no`/`n_turns` son LOS MISMOS que GET /threads/{id} (dos puertas, una verdad: la raíz
+    virtual pre-ADR se cuenta +1 como allá, `root_counted false` dice CÓMO entró al GROUP BY).
+    El SOBRE lo arma db.threads_index (THREADS_INDEX_ENVELOPE_FIELDS: threads, n, limit, limit_cap, after,
+    has_more, next_after, order, cursor_rule, mine, mine_rule, n_turns_rule, n_threads_total,
+    n_runs_without_thread, n_runs_without_thread_rule, costs) y esta puerta lo sirve TAL CUAL — una sola
+    definición de las reglas y los literales (lección ADR-0055/0076: dos redacciones divergen).
+    Sin costos por hilo (abrirían usage_json por turno): `costs` lo declara y remite al detalle.
+    `limit < 1` → 400; `after` no entero → 422 (tipado de FastAPI); sin token → 401."""
+    user = _user_of(authorization)
+    if limit is not None and limit < 1:
+        raise HTTPException(status_code=400, detail="limit debe ser >= 1")
+    tope = RUNS_LIST_CAP if limit is None else min(limit, RUNS_LIST_CAP)
+    try:
+        return db.threads_index(user_id=user["user_id"] if mine else None, limit=tope, after=after)
+    except ValueError as e:   # el cursor/tope que la BD rechaza es un 400 tipado, no un 500
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/threads/{thread_id}")
@@ -1183,6 +1234,134 @@ def taxonomia(authorization: str = Header(None)):
 
 # --- usage aggregation (LOTE-02·2, M8): the sum lives on the SERVER ----------------------------------
 
+USAGE_BY_STAGE_CLASS = "MEDICION (tokens) · PROYECCION (USD con precios de hoy)"
+USAGE_STAGE_ABSENT = "absent-in-record"        # la etapa no viene en by_stage de ese registro (declarado)
+# corrector ADR-0081 (H): 'not-measured' = etapa sin NINGUNA corrida medida en el periodo (n_runs_measured 0) → USD null,
+# jamás 0.0 'priced' (0 medido ≠ null no medido — §7).
+USAGE_PRICE_STATES = ("priced", "missing", "mixed", "stage-without-model", "not-measured")
+
+
+def _es_entero(v):
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+class _StageAccumulator:
+    """ADR-0081 (H): agrega usage_json.by_stage de N corridas SIN tocar la suma de hoy (totals/by_user/
+    most_expensive siguen byte a byte en el bucle de /usage). Por etapa: in/out (suma SÓLO de enteros),
+    n_runs_measured / n_runs_null (null ≠ 0), states {literal: n}, model_split {model: {in,out}} | null,
+    estimated_cost_usd | null + price_state (∈ USAGE_PRICE_STATES; 'not-measured' cuando n_runs_measured == 0 — corrector:
+    una suma vacía no es un costo de 0.0). model_split sale de by_stage[etapa].model (plan/synth/elicit/
+    revision, 1.9+) y de by_stage.panel.by_model {reviewer: {in,out}} (1.10); un panel 1.9 sin by_model suma en
+    _unattributed.panel {in,out,n_runs} (declarado, jamás repartido)."""
+
+    def __init__(self):
+        self.stages = {s: {"in": 0, "out": 0, "n_runs_measured": 0, "n_runs_null": 0, "states": {},
+                           "model_split": {}, "unattributed_in": 0, "unattributed_out": 0}
+                       for s in runs_mod.TOKEN_STAGES if s != "embed"}
+        self.embed = {"tokens": 0, "n_runs": 0}
+        self.by_model_stage = {}
+        self.unattributed_panel = {"in": 0, "out": 0, "n_runs": 0}
+        self.n_with = self.n_without = self.n_mismatch = 0
+        self.n_panel_by_model = self.n_panel_without = 0
+        self.models_seen = set()
+
+    def _split(self, stage, model, i, o):
+        acc = self.stages[stage]["model_split"].setdefault(model, {"in": 0, "out": 0})
+        acc["in"] += i
+        acc["out"] += o
+        ms = self.by_model_stage.setdefault(model, {}).setdefault(stage, {"in": 0, "out": 0})
+        ms["in"] += i
+        ms["out"] += o
+        self.models_seen.add(model)
+
+    def add(self, u):
+        bs = u.get("by_stage")
+        if not isinstance(bs, dict):
+            self.n_without += 1          # pre-1.9: sin reparto por etapa ≠ gasto cero
+            return
+        self.n_with += 1
+        if u.get("by_stage_sum_matches_by_model") is False:
+            self.n_mismatch += 1
+        for stage in runs_mod.TOKEN_STAGES:
+            cell = bs.get(stage)
+            if stage == "embed":
+                tok = cell.get("tokens") if isinstance(cell, dict) else None
+                if _es_entero(tok):
+                    self.embed["tokens"] += tok
+                    self.embed["n_runs"] += 1
+                continue
+            acc = self.stages[stage]
+            if not isinstance(cell, dict):
+                acc["n_runs_null"] += 1
+                acc["states"][USAGE_STAGE_ABSENT] = acc["states"].get(USAGE_STAGE_ABSENT, 0) + 1
+                continue
+            i, o = cell.get("in"), cell.get("out")
+            measured = _es_entero(i) and _es_entero(o)
+            if measured:
+                acc["in"] += i
+                acc["out"] += o
+                acc["n_runs_measured"] += 1
+            else:
+                acc["n_runs_null"] += 1
+            st = cell.get("state")
+            if isinstance(st, str) and st:
+                acc["states"][st] = acc["states"].get(st, 0) + 1
+            if stage == "panel":
+                bm = cell.get("by_model")
+                if isinstance(bm, dict):
+                    self.n_panel_by_model += 1
+                    for reviewer, mm in bm.items():
+                        if isinstance(mm, dict) and _es_entero(mm.get("in")) and _es_entero(mm.get("out")):
+                            self._split("panel", str(reviewer), mm["in"], mm["out"])
+                elif measured:
+                    self.n_panel_without += 1
+                    self.unattributed_panel["in"] += i
+                    self.unattributed_panel["out"] += o
+                    self.unattributed_panel["n_runs"] += 1
+                    acc["unattributed_in"] += i
+                    acc["unattributed_out"] += o
+                continue
+            model = cell.get("model")
+            if measured and isinstance(model, str) and model:
+                self._split(stage, model, i, o)
+            elif measured and (i or o):
+                acc["unattributed_in"] += i    # tokens medidos SIN modelo en la etapa → 'stage-without-model'
+                acc["unattributed_out"] += o
+
+    def result(self):
+        precios = runs_mod.PRICES_PER_MTOK_USD
+        out = {}
+        for stage, acc in self.stages.items():
+            split = acc["model_split"] or None
+            faltan = sorted(m for m in (split or {}) if m not in precios)
+            if acc["n_runs_measured"] == 0:
+                # corrector ADR-0081 (H): 0 medido != null no medido -- sin ninguna corrida medida la etapa NO "costó 0.0":
+                # no se midió. USD null + price_state 'not-measured' (literal de USAGE_PRICE_STATES, declarado en (H)).
+                price_state, cost = "not-measured", None
+            elif acc["unattributed_in"] or acc["unattributed_out"]:
+                price_state, cost = "stage-without-model", None
+            elif split and faltan and len(faltan) == len(split):
+                price_state, cost = "missing", None
+            elif faltan:
+                price_state, cost = "mixed", None
+            else:
+                price_state = "priced"
+                cost = round(float(sum((m["in"] * precios[k][0] + m["out"] * precios[k][1]) / 1e6
+                                       for k, m in (split or {}).items())), 4)   # 0.0 medido, jamás 0 entero
+            out[stage] = {"in": acc["in"], "out": acc["out"], "n_runs_measured": acc["n_runs_measured"],
+                          "n_runs_null": acc["n_runs_null"], "states": acc["states"],
+                          "model_split": split, "estimated_cost_usd": cost, "price_state": price_state}
+        out["embed"] = dict(self.embed)
+        out["_sum"] = {"in": sum(v["in"] for k, v in out.items() if k != "embed"),
+                       "out": sum(v["out"] for k, v in out.items() if k != "embed")}
+        bms = {m: dict(sorted(st.items())) for m, st in sorted(self.by_model_stage.items())}
+        bms["_unattributed"] = {"panel": dict(self.unattributed_panel)}
+        return {"by_stage": out, "by_model_stage": bms,
+                "coverage": {"n_runs_with_panel_by_model": self.n_panel_by_model,
+                             "n_runs_without": self.n_panel_without},
+                "n_with": self.n_with, "n_without": self.n_without, "n_mismatch": self.n_mismatch}
+
+
 @app.get("/usage")
 def usage(from_: str = Query(None, alias="from"), to: str = None,
           authorization: str = Header(None)):
@@ -1215,11 +1394,13 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     missing_price = set()
     n_incomplete = 0    # corridas que al congelarse declararon cost_projection_complete=False
     n_unknown = 0       # corridas anteriores a la llave: no declararon; no se les inventa un estado
+    stage_acc = _StageAccumulator()   # ADR-0081 (H): por ETAPA y MODELO×ETAPA, acumulación APARTE del bucle de hoy
     for r in rows:
         u = json.loads(r["usage_json"]) if r.get("usage_json") else None
         if not u:
             continue
         n_with += 1
+        stage_acc.add(u)
         cost = float(u.get("estimated_cost_usd") or 0.0)
         if u.get("cost_projection_complete") is False:
             n_incomplete += 1
@@ -1262,9 +1443,31 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
                                "corridas ya contados por corrida; no sumar con totals (doble conteo)"}
     except Exception:
         rack = {"total_tokens_since_boot": None, "calls": None, "attribution": "no disponible"}
+    # ADR-0081 (H): la familia de PROVEEDOR llega SIEMPRE del servidor (regla D18: la webapp jamás la infiere);
+    # `known` = el id está en la tabla (un id que la tabla no conoce se sirve igual, declarado).
+    for model, bm in by_model.items():
+        bm["family"] = models.family_of(model)[0]
+        bm["known"] = model in models.MODELS
+    stage_out = stage_acc.result()
+    catalogo = {m: models.catalog_row(m)
+                for m in sorted(set(models.MODELS) | set(by_model) | set(stage_acc.models_seen))}
     return {"from": from_, "to": to, "n_runs": len(rows), "n_runs_with_usage": n_with,
             "totals": totals, "by_user": by_user, "by_model": by_model, "most_expensive": most,
             "rack_embeddings": rack,
+            # ADR-0081 (H): el MISMO gasto por ETAPA (TOKEN_STAGES) y por MODELO×ETAPA, desde usage_json.by_stage
+            # (1.9+) y by_stage.panel.by_model (1.10). Tokens = MEDICIÓN; USD por etapa = PROYECCIÓN con precios
+            # de HOY y sólo cuando TODOS sus tokens tienen modelo con precio (si no: null + price_state, nunca 0).
+            # Registros sin by_stage (pre-1.9) se CUENTAN aparte (≠ gasto cero); un panel 1.9 sin reviewer va a
+            # by_model_stage._unattributed.panel — declarado, jamás repartido.
+            "by_stage": stage_out["by_stage"],
+            "by_model_stage": stage_out["by_model_stage"],
+            "by_model_stage_coverage": stage_out["coverage"],
+            "n_runs_with_by_stage": stage_out["n_with"],
+            "n_runs_without_by_stage": stage_out["n_without"],
+            "n_runs_by_stage_mismatch": stage_out["n_mismatch"],
+            "by_stage_class": USAGE_BY_STAGE_CLASS,
+            "models_catalog": catalogo,
+            "model_generation_current": models.resolve_generation()[0],
             # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la
             # tabla de HOY y (b) NINGUNA corrida sumada se congeló declarándose incompleta — totals suma el
             # estimated_cost_usd CONGELADO de cada corrida, así que un modelo que hoy sí tiene precio no
@@ -1286,18 +1489,44 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
 
 # --- config history (LOTE-02·5, M6/SISTEMA): the catalog has history ---------------------------------
 
+CONFIG_ENTRIES_CLASS = "atestiguada (archivo human-maintained; fechas de ADRs)"
+
+
 @app.get("/config-history")
 def config_history(authorization: str = Header(None)):
     """The comparability-affecting config changes, verbatim from rag_index/config_history.json
     (append-only, ADR-sourced dates — ADR-0055) with declared provenance. Also DECLARES where the other
-    two histories live today (user account history, store_version history) instead of leaving silence."""
+    two histories live today (user account history, store_version history) instead of leaving silence.
+
+    ADR-0081 (I): TRES clases sin mezclar formas — `entries` (ARCHIVO, clase atestiguada, byte-compatible) +
+    `ledger[]` (tabla config_history en BD, clase MEDICIÓN: filas que config_ledger.boot()/observe()
+    appendearon al arrancar / en corrida, recorded_at DESC, tope ledger_limit) + `current` (el estado
+    EFECTIVO ahora, con fuente por campo y warnings — config_ledger.current(), la MISMA función que
+    consulta_sistema.config.models_effective). `ledger_state` dice si el escritor pudo escribir ('ok' |
+    kill-switch | table-missing | 'error: …' | not-booted); una lectura fallida de la tabla manda el suyo.
+    `provenance.db {table, n_rows, last_recorded_at}` mide la tabla; `_embed_model_changed_at` (/status)
+    sigue leyendo el ARCHIVO. Nada se reescribe ni se borra por esta puerta (GET sin efectos)."""
     _user_of(authorization)
     hist = json.loads(_CONFIG_HISTORY.read_text(encoding="utf-8"))
+    lectura = config_ledger.listing(limit=config_ledger.LEDGER_LIST_LIMIT)
+    escritor = config_ledger.state_view()
+    actual = config_ledger.current(extra=config_ledger.default_extra())
     return {"entries": hist.get("entries", []),
+            "entries_class": CONFIG_ENTRIES_CLASS,
+            "ledger": lectura["rows"],
+            "ledger_limit": config_ledger.LEDGER_LIST_LIMIT,
+            "ledger_state": lectura["state"] or escritor["state"],
+            "ledger_writer": escritor,
+            "ledger_encoding": config_ledger.VALUE_ENCODING,
+            "ledger_scope_rule": config_ledger.SCOPE_RULE,
+            "current": actual,
+            "model_generation": actual["generation"],
             "provenance": {"path": "rag_index/config_history.json",
                            "mtime": datetime.datetime.fromtimestamp(
                                _CONFIG_HISTORY.stat().st_mtime,
-                               datetime.timezone.utc).isoformat(timespec="seconds")},
+                               datetime.timezone.utc).isoformat(timespec="seconds"),
+                           "db": {"table": config_ledger.LEDGER_TABLE, "n_rows": lectura["n_rows"],
+                                  "last_recorded_at": lectura["last_recorded_at"]}},
             "user_history": {"source": "tabla users: created_at + disabled (ESTADO, no bitácora de "
                                        "eventos); altas/resets vía seed_users.py local (ADR-0048)",
                              "note": "un event-log de altas/bajas/resets es bloque futuro"},
@@ -1504,7 +1733,11 @@ def question_spec(authorization: str = Header(None)):
     """La especificación VIGENTE, verbatim. La UI muestra la MISMA regla que el agente obedeció:
     una regla que el operador no puede leer no se puede depurar."""
     _user_of(authorization)
-    return {"spec": question_agent.QUESTION_SPEC, "model": question_agent.QUESTION_MODEL}
+    # ADR-0081 (J): el modelo del agente se RESUELVE en la llamada (tabla/env), con su fuente y generación —
+    # la UI muestra la misma elección que el redactor obedecerá, no una constante copiada en import.
+    rol = models.resolve_role("question_agent")
+    return {"spec": question_agent.QUESTION_SPEC, "model": rol["model"],
+            "model_source": rol["source"], "generation": rol["generation"]}
 
 
 @app.get("/notes/questions/calibration")

@@ -37,7 +37,7 @@ import app  # noqa: E402
 import db  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
-from lib import answer_pipeline, composite_auditor, rag_backend  # noqa: E402
+from lib import answer_pipeline, composite_auditor, models, rag_backend  # noqa: E402
 from lib.rag_backend import Hit, HitList  # noqa: E402
 
 os.environ.pop("NEO4J_URI", None)
@@ -245,10 +245,12 @@ check("citas tipadas con serie numerica (letras reservadas a precedente); ADR-00
       and "support_state" in rec["citations"][0]
       and rec["answer"]["absence_kind"] == "not-applicable")
 tu = rec["token_usage"]
+# ADR-0081: el juez de la lente correctness se LEE del registro (models.panel() en la llamada), no se pinea un literal
+_corr_reviewer = next(r["reviewer"] for r in rec["audit"]["panel"] if r["lens"] == "correctness")
 check("TokenUsage: by_model medido + costo etiquetado PROJECTION + embeddings declarados (ADR-0080: sin plan hay "
-      "pass1 + pass2 -> stub-synth 200/100; total 240/120)",
+      "pass1 + pass2 -> stub-synth 200/100; total 240/120; ADR-0081: el juez correctness es el que el registro dice)",
       tu["by_model"].get("stub-synth") == {"in": 200, "out": 100}
-      and tu["by_model"].get("claude-opus-4-8") == {"in": 10, "out": 5}
+      and tu["by_model"].get(_corr_reviewer) == {"in": 10, "out": 5}
       and tu["input_tokens"] == 240 and tu["output_tokens"] == 120
       and "PROJECTION" in tu["cost_class"] and tu["estimated_cost_usd"] > 0
       and tu["embedding"]["total_tokens"] == 0,
@@ -917,19 +919,23 @@ claimed_p = db.claim_next_queued()
 runs_mod.execute_run(claimed_p, synthesizer=_stub_synth, panel_caller=_stub_caller_factory(ALL_A))
 ev_p = app.get_events(rv_p["run_id"], after=0, authorization=AUTH)["events"]
 tipos_p = [e["type"] for e in ev_p]
-first_stage = next(t for t in tipos_p if t.startswith("stage."))
-check("stage.plan es el PRIMER evento de etapa de la traza (el boceto M3 lo pinta primero)",
-      first_stage == "stage.plan"
+stages_p = [t for t in tipos_p if t.startswith("stage.")]
+check("ADR-0081 (B): stage.models es el PRIMER evento de etapa (qué va a correr ANTES de gastar) y stage.plan el segundo "
+      "(el boceto M3 lo pinta como primera línea del plan)",
+      stages_p[:2] == ["stage.models", "stage.plan"]
       and next(e for e in ev_p if e["type"] == "stage.plan")["payload"]["agents"]
-          == ["causal-pruner", "hypothesis-generator", "composite-auditor"])
+          == ["causal-pruner", "hypothesis-generator", "composite-auditor"], f"stages={stages_p[:3]}")
 rec_p = app.get_frozen_record(rv_p["run_id"], authorization=AUTH)
 check("el planner GASTA y su gasto entra al total (M8 cuadra) + aparte en plan_judgment: "
       "dejarlo fuera haria irreconciliable el consumo (misma disciplina que LOTE-01·A4)",
       rec_p["token_usage"]["plan_judgment"] is not None
       and rec_p["token_usage"]["plan_judgment"]["in"] == 400
-      # el planner y el juez de la lente correctness son el MISMO modelo: agregar por modelo es
-      # lo correcto (410 = 400 del plan + 10 del juez), y plan_judgment lo desglosa aparte
-      and rec_p["token_usage"]["by_model"]["claude-opus-4-8"]["in"] == 410
+      # el planner y el juez de la lente correctness son el MISMO modelo en ambas generaciones de la tabla (ADR-0081:
+      # ambos se LEEN del registro — plan.judgment.planner.model y la fila correctness del panel — no de un literal):
+      # agregar por modelo es lo correcto (410 = 400 del plan + 10 del juez), y plan_judgment lo desglosa aparte
+      and rec_p["plan"]["judgment"]["planner"]["model"]
+          == next(r["reviewer"] for r in rec_p["audit"]["panel"] if r["lens"] == "correctness")
+      and rec_p["token_usage"]["by_model"][rec_p["plan"]["judgment"]["planner"]["model"]]["in"] == 410
       and rec_p["token_usage"]["input_tokens"] >= 400,
       f"plan_judgment={rec_p['token_usage']['plan_judgment']} by_model={rec_p['token_usage']['by_model']}")
 check("una corrida SIN plan no inventa plan_judgment: null declarado",
@@ -1636,8 +1642,9 @@ check("ADR-0078 precios: un modelo SIN precio (stub-synth) NO se cotiza a 0 — 
       "cost_projection_complete=False + cost_class INCOMPLETE; sonnet-5 corregido a (2.0, 10.0)",
       tu_c["missing_price_models"] == ["stub-synth"] and tu_c["cost_projection_complete"] is False
       and "INCOMPLETE" in tu_c["cost_class"] and tu_c["estimated_cost_usd"] > 0
-      and runs_mod.PRICES_PER_MTOK_USD["claude-sonnet-5"] == (2.0, 10.0)
-      and runs_mod.PRICES_AS_OF == "2026-09",
+      # ADR-0081: el id se lee de la tabla (asiento overclaim de g1 = sonnet-5), no de un literal; los precios son alias
+      and runs_mod.PRICES_PER_MTOK_USD[models.GENERATIONS["g1-2026-08"]["defaults"]["judge.overclaim"]] == (2.0, 10.0)
+      and runs_mod.PRICES_PER_MTOK_USD == models.prices() and runs_mod.PRICES_AS_OF == models.PRICES_AS_OF == "2026-09",
       f"missing={tu_c['missing_price_models']} cost={tu_c['estimated_cost_usd']}")
 rv_u = app.create_run(app.RunBody(question="citas en prosa", entities=[]), authorization=AUTH)
 runs_mod.execute_run(db.claim_next_queued(), synthesizer=_mk_synth(
@@ -1808,12 +1815,14 @@ def _cols(view):
     return {k: view.get(k) for k in _THREAD_COLS}
 
 
-check("ADR-0079/0080 contrato: runs.RENDER_CONTRACT_VERSION == '1.9' — 1.8 (ADR-0079) acompañó thread, thread_context, "
-      "thread_parent_matches_run, precedent_citations, origin, episode_axes; 1.9 (ADR-0080) suma competence, search_ledger, "
+check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.10' — 1.8 (ADR-0079) acompañó thread, thread_context, "
+      "thread_parent_matches_run, precedent_citations, origin, episode_axes; 1.9 (ADR-0080) sumó competence, search_ledger, "
       "citations[].support_state, citations_support_summary, deterministic_checks.{pass1_admissible, "
       "positive_claim_requires_citations, competence_gate}, token_usage.by_stage, epistemic_summary.{competent, "
-      "n_search_rounds}; la webapp los tipa `?` — eso ES la paridad front<->back",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.9")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+      "n_search_rounds}; 1.10 (ADR-0081) suma frozen.models, answer.{model_source, model_reported, relation}, audit.{families_valid…, "
+      "quorum}, by_stage.panel.by_model, plan.judgment.planner.model_source, epistemic_summary.{model_generation, "
+      "panel_n_families_valid} + eventos stage.models / run.state{queued}.root_run_no; la webapp los tipa `?` — eso ES la paridad",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.10")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
 check("ADR-0079 (D) synth_system SIN turno anterior es byte-idéntico al de antes (la medición de ab_trapped_scalar no "
       "cambia); CON turno gana THREAD_ANTI_LEAK_CLAUSE; SYNTH_TOOL.description lleva la frase anti-fuga SIEMPRE",
       runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False)
@@ -3317,11 +3326,532 @@ check("ADR-0080 (G, corrector paridad webapp) vocabulario REAL de plan_state: AD
       and not runs_mod.plan_state_in_vocabulary("legacy-path-b (built)") and not runs_mod.plan_state_in_vocabulary(None),
       json.dumps(_ps_seen))
 
+# =====================================================================================================
+# ADR-0081 — política best-tier v2 / generación g2-2026-09: contrato 1.10, frozen.models MEDIDO (requested vs reported),
+# stage.models, cuórum por familias en el veredicto + REVISE estructural, topes/effort por generación, run.state{queued}.
+# {run_no, thread.root_run_no}, by_stage.panel.by_model, kill-switch g1 byte a byte contra un golden 1.9 MEDIDO. Sigue
+# DENTRO del bloque offline (urlopen bloqueado y contado; mcp_cache intacto). Los ids de modelo se LEEN de la tabla
+# (models.resolve_role / GENERATIONS), jamás se pinean literales (gate estático M.4 de smoke_models.py).
+# =====================================================================================================
+_G2, _G1 = "g2-2026-09", "g1-2026-08"
+_ROLE_SYNTH, _ROLE_ELICIT, _ROLE_PLANNER = (models.resolve_role("synthesizer"), models.resolve_role("elicitation"),
+                                            models.resolve_role("planner"))
+_ROLE_QA = models.resolve_role("question_agent")
+_TOPES = {g: models.GENERATIONS[g]["max_tokens"] for g in (_G1, _G2)}
+_API_81 = []                     # lo que el wrapper REAL pidió a la API falsa: {tool, model, max_tokens, effort, return_meta}
+_api_saved_81 = composite_auditor._anthropic_tool_call
+_SYNTH_OUT_81 = {"direct_answer": "wt1a (ENSDARG00000031420) marks the zebrafish pronephros.", "confidence": 0.8,
+                 "absence_kind": "not-applicable", "alternatives_considered": ["wt1b paralogo redundante: descartado"],
+                 "framework_applied": "Logic-LM", "framework_criterion": "for any task whose criteria are formalizable",
+                 "framework_reason": "formalizable", "gap_flags": [],
+                 "evidence_cited": [{"kind": "di-record", "id": "CORPUS-2026-0001"}], "search_query_en": "wt1a pronephros"}
+
+# El keyset de un registro 1.9 — MEDIDO el 2026-09-15 sobre el árbol f57a3d3 + S1 (runs.py SIN tocar) con el mismo camino
+# que la corrida kill-switch de abajo (plan con planner stub, sintetizador REAL con API falsa, panel 4/4 APPROVE,
+# competente). Es el golden de (M.2): el frozen 1.10 menos las llaves aditivas debe tener EXACTAMENTE estas llaves.
+_GOLDEN_19 = {
+    "top": ["agents_invoked", "alternatives_considered", "answer", "answer_initial", "audit", "audit_initial",
+            "bundle_identity", "citations", "citations_schema", "citations_support_summary", "competence", "confidence",
+            "decision_state", "deterministic_checks", "episode_axes", "evidence_cited_raw", "fallback", "measured_at",
+            "niches", "origin", "plan", "plan_declared", "plan_parent_matches_run", "plan_parent_matches_run_state",
+            "plan_question_matches_run", "plan_snapshot_matches_run", "plan_snapshot_matches_run_state",
+            "precedent_citations", "precedent_citations_state", "question", "question_matches_run", "reasoning",
+            "render_contract_version", "retrieval_summary", "revision", "run_id", "search_ledger", "store_at_retrieval",
+            "thread", "thread_context", "thread_context_skipped_reason", "thread_parent_matches_run",
+            "thread_parent_matches_run_rule", "thread_parent_matches_run_state", "token_usage", "usage_raw", "user_id"],
+    "answer": ["absence_kind", "direct_answer", "gap_flags", "model", "stated_confidence"],
+    "audit": ["approved", "judge_retries", "n_valid", "note", "panel", "rejected", "required", "required_because",
+              "source_vocabulary", "tally", "usage", "verdict"],
+    "audit_row": ["attempts", "caught", "confidence", "correction_applied", "family", "lens", "reasons", "retries_judge",
+                  "reviewer", "usage", "verdict"],
+    "by_stage_panel": ["in", "out"], "by_stage_synth": ["in", "model", "out"],
+    "by_stage_elicit": ["in", "model", "out", "state"], "by_stage_plan": ["in", "model", "out"],
+    "revision": ["cap", "enabled", "performed"],
+    "planner": ["class", "model", "note", "thread_context_delivered", "usage"],
+    "plan_audit": ["class", "note", "panel", "required"],
+    "epistemic": ["competent", "confidence_state", "n_search_rounds", "niches", "origin", "panel_n_valid",
+                  "retrieval_mode", "thread_id", "turn_no", "verdict"],
+    "queued_payload": ["origin", "state", "thread"],
+    "queued_thread": ["context", "context_bytes", "context_skipped_reason", "n_comments_included", "parent_run_id",
+                      "thread_id", "turn_kind", "turn_no"],
+    "verdict_payload": ["n_valid", "revision_round", "source_vocabulary", "tally", "verdict"],
+    "judge_payload": ["attempt", "heartbeat", "lens", "max_attempts", "max_attempts_source", "phase", "retries_judge",
+                      "reviewer"],
+    "event_types": ["run.state", "run.state", "stage.plan", "stage.path_a", "stage.check_entities", "stage.assess_sufficiency",
+                    "stage.decision_state", "stage.synthesize.start", "stage.synthesize.pass1", "stage.confidence.elicit",
+                    "stage.deterministic_gate", "stage.competence", "stage.audit.start", "stage.audit.judge",
+                    "stage.audit.judge", "stage.audit.judge", "stage.audit.judge", "stage.audit.verdict", "run.state"],
+}
+# Llaves ADITIVAS 1.10 por bloque. Las de audit/panel las declara composite_auditor (S2): se leen de su constante.
+_ADD_110 = {
+    "top": {"models"}, "answer": {"model_source", "model_reported", "relation"},
+    "audit": set(getattr(composite_auditor, "_BUNDLE_AUDIT_KEYS_1_10", ())),
+    "audit_row": {"family_source", "api", "api_source", "reviewer_source", "max_tokens"},
+    "by_stage_panel": {"by_model"}, "by_stage_synth": {"model_source"}, "by_stage_elicit": {"model_source"},
+    "by_stage_plan": {"model_source"}, "revision": set(), "planner": {"model_source", "model_reported", "relation"},
+    "plan_audit": {"panel_resolved"}, "epistemic": {"model_generation", "panel_n_families_valid"},
+    "queued_payload": {"run_no"}, "queued_thread": {"root_run_no"},
+    "verdict_payload": {"families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "panel_incomplete",
+                        "panel_incomplete_reasons"},
+    "judge_payload": {"family", "api", "api_source", "reviewer_source"},
+}
+
+
+def _mk_api_81(reported_suffix=None, reported_literal=None):
+    """API Anthropic FALSA con la firma NUEVA de composite_auditor._anthropic_tool_call (effort=, return_meta=): graba lo que
+    el wrapper REAL pidió (model, max_tokens, effort) y devuelve la 3-tupla con meta.model_reported = <pedido>+suffix
+    (alias fechado -> 'prefix') | literal ('different') | None (la API no lo dijo -> 'not-reported')."""
+    def fake(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200, effort=None, return_meta=False):
+        name = (tool or {}).get("name")
+        _API_81.append({"tool": name, "model": model, "max_tokens": max_tokens, "effort": effort, "return_meta": return_meta})
+        if name == "emit_confidence":
+            out, usage = {"confidence": 0.8}, {"input_tokens": 30, "output_tokens": 3}
+        elif name == "emit_plan_judgment":
+            out, usage = _fake_planner_ok("q", [])[0], {"input_tokens": 400, "output_tokens": 120}
+        else:
+            out, usage = dict(_SYNTH_OUT_81), {"input_tokens": 100, "output_tokens": 50}
+        if not return_meta:
+            return out, usage
+        reported = (model + reported_suffix) if reported_suffix else reported_literal
+        return out, usage, {"model_reported": reported, "api": "anthropic-messages", "stop_reason": "tool_use"}
+    return fake
+
+
+def _with_env(env, fn):
+    saved = {k: os.environ.get(k) for k in env}
+    for k, v in env.items():
+        os.environ[k] = v
+    try:
+        return fn()
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def _keys_minus(d, add):
+    return sorted(set(d) - set(add))
+
+
+def _corr(rec):
+    return next(r for r in rec["audit"]["panel"] if r["lens"] == "correctness")
+
+
+# --- (A) corrida con sintetizador STUB + plan: stage.models, frozen.models con 'not-reported', planner COPIADO ------------
+_rid_a81, _rec_a81, _ev_a81 = _run80("ADR-0081 A: does wt1a mark the pronephros?", ["wt1a"], plan=True)
+_t_a81 = _ev_types(_ev_a81)
+_sm_a81 = _ev_payloads(_ev_a81, "stage.models")
+check("ADR-0081 (B) stage.models es el PRIMER evento tras run.state{running} y antes de stage.plan, agent 'runs', payload = "
+      "snapshot REDUCIDO {generation, generation_source, table_version, panel_signature, roles (8, forma RoleResolved), "
+      "panel (4, orden LENSES), warnings[], unknown_models[]}; generación g2 por default-unset; todo warning en vocabulario",
+      _t_a81[:4] == ["run.state", "run.state", "stage.models", "stage.plan"] and len(_sm_a81) == 1
+      and next(e for e in _ev_a81 if e["type"] == "stage.models")["agent"] == "runs"
+      and set(_sm_a81[0]) == set(runs_mod.STAGE_MODELS_PAYLOAD_KEYS)
+      and _sm_a81[0]["generation"] == _G2 and _sm_a81[0]["generation_source"].startswith("default-unset:")
+      and _sm_a81[0]["table_version"] == models.MODELS_TABLE_VERSION
+      and set(_sm_a81[0]["roles"]) == set(models.ROLES)
+      and all(tuple(r) == models.ROLE_RESOLVED_FIELDS for r in _sm_a81[0]["roles"].values())
+      and [m["lens"] for m in _sm_a81[0]["panel"]] == list(models.LENSES)
+      and isinstance(_sm_a81[0]["warnings"], list)
+      and all(w.startswith(models.WARNING_PREFIXES) for w in _sm_a81[0]["warnings"])
+      and _sm_a81[0]["unknown_models"] == [],
+      json.dumps({"first": _t_a81[:4], "warnings": _sm_a81[0]["warnings"][:3]}))
+_M_a = _rec_a81["models"]
+check("ADR-0081 (B) frozen.models con sintetizador STUB: forma PROVENANCE_FIELDS; roles.synthesizer/elicitation == los resueltos "
+      "en la llamada; question_agent null (no corrió); roles.planner COPIADO de plan_json.judgment.planner (provenance "
+      "'plan_json'); ran.synthesize_pass1 {requested 'stub-synth', reported null, relation 'not-reported', thinking_state "
+      "'unknown-to-table'}; pass2/revision/elicit_* null (competente; stub sin usage_elicitation); ran.plan not-reported; "
+      "ran.panel 4 filas {lens, reviewer, reported null, relation 'not-reported', api_used == audit.panel[].api, attempts 1}",
+      tuple(_M_a) == models.PROVENANCE_FIELDS and _M_a["generation"] == _G2
+      and _M_a["table_version"] == models.MODELS_TABLE_VERSION and _M_a["table_as_of"] == models.MODEL_TABLE_AS_OF
+      and _M_a["roles"]["synthesizer"] == _ROLE_SYNTH and _M_a["roles"]["elicitation"] == _ROLE_ELICIT
+      and _M_a["roles"]["question_agent"] is None
+      and _M_a["roles"]["planner"] == {"model": _rec_a81["plan"]["judgment"]["planner"]["model"],
+                                       "model_source": _rec_a81["plan"]["judgment"]["planner"]["model_source"],
+                                       "provenance": "plan_json"}
+      and _M_a["ran"]["synthesize_pass1"] == {"requested": "stub-synth", "reported": None, "relation": "not-reported",
+                                              "thinking_state": models.THINKING_STATES[None]}
+      and _M_a["ran"]["synthesize_pass2"] is None and _M_a["ran"]["revision"] is None
+      and _M_a["ran"]["elicit_pass1"] is None and _M_a["ran"]["elicit_pass2"] is None and _M_a["ran"]["question"] is None
+      and _M_a["ran"]["plan"]["requested"] == _ROLE_PLANNER["model"] and _M_a["ran"]["plan"]["relation"] == "not-reported"
+      and [p["lens"] for p in _M_a["ran"]["panel"]] == list(models.LENSES)
+      and all(p["reported"] is None and p["relation"] == "not-reported" and p["attempts"] == 1
+              and p["api_used"] == next(r["api"] for r in _rec_a81["audit"]["panel"] if r["lens"] == p["lens"])
+              for p in _M_a["ran"]["panel"])
+      and _M_a["rule"] == models.PROVENANCE_RULE,
+      json.dumps({"planner": _M_a["roles"]["planner"], "pass1": _M_a["ran"]["synthesize_pass1"]}))
+_pj_a = _rec_a81["plan"]["judgment"]["planner"]
+check("ADR-0081 (B/J) plan.judgment.planner con planner STUB (2-tupla): model = rol planner RESUELTO (lo que el código pediría, "
+      "con model_source 'default:g2…'), model_reported null, relation 'not-reported'; plan.audit.panel == models.panel() en la "
+      "llamada + panel_resolved[] {reviewer, family, lens, reviewer_source}; answer += model_source null (stub), model_reported "
+      "null, relation 'not-reported'",
+      _pj_a["model"] == _ROLE_PLANNER["model"] and _pj_a["model_source"] == _ROLE_PLANNER["source"]
+      and _pj_a["model_reported"] is None and _pj_a["relation"] == "not-reported"
+      and _rec_a81["plan"]["audit"]["panel"] == [f"{m['reviewer']} ({m['lens']})" for m in models.panel()]
+      and [p["reviewer"] for p in _rec_a81["plan"]["audit"]["panel_resolved"]] == [m["reviewer"] for m in models.panel()]
+      and all(set(p) == {"reviewer", "family", "lens", "reviewer_source"} for p in _rec_a81["plan"]["audit"]["panel_resolved"])
+      and _rec_a81["answer"]["model"] == "stub-synth" and _rec_a81["answer"]["model_source"] is None
+      and _rec_a81["answer"]["model_reported"] is None and _rec_a81["answer"]["relation"] == "not-reported",
+      json.dumps(_pj_a))
+_vd_a = _ev_payloads(_ev_a81, "stage.audit.verdict")
+_jd_a = _ev_payloads(_ev_a81, "stage.audit.judge")
+check("ADR-0081 (D) stage.audit.verdict += families_valid ['anthropic','openai'], n_families_valid 2, lenses_valid (4), "
+      "n_lenses_valid 4, panel_incomplete False, panel_incomplete_reasons []; stage.audit.judge += family, api (== audit.panel[].api "
+      "de la misma lente), api_source, reviewer_source 'default:g2…'; stage.synthesize.start payload {model, model_source, "
+      "generation} del rol RESUELTO; epistemic_summary += model_generation g2 + panel_n_families_valid 2; agents_invoked."
+      "composite-auditor.evidence_generated += 'families_valid:2'",
+      len(_vd_a) == 1 and _vd_a[0]["families_valid"] == ["anthropic", "openai"] and _vd_a[0]["n_families_valid"] == 2
+      and _vd_a[0]["lenses_valid"] == list(models.LENSES) and _vd_a[0]["n_lenses_valid"] == 4
+      and _vd_a[0]["panel_incomplete"] is False and _vd_a[0]["panel_incomplete_reasons"] == []
+      and len(_jd_a) == 4
+      and all({"family", "api", "api_source", "reviewer_source"} <= set(j) for j in _jd_a)
+      and all(j["api"] == next(r["api"] for r in _rec_a81["audit"]["panel"] if r["lens"] == j["lens"]) for j in _jd_a)
+      and all(j["reviewer_source"] == f"default:{_G2}" for j in _jd_a)
+      and _ev_payloads(_ev_a81, "stage.synthesize.start") == [{"model": _ROLE_SYNTH["model"],
+                                                               "model_source": _ROLE_SYNTH["source"], "generation": _G2}]
+      and app.get_run(_rid_a81, authorization=AUTH)["epistemic_summary"]["model_generation"] == _G2
+      and app.get_run(_rid_a81, authorization=AUTH)["epistemic_summary"]["panel_n_families_valid"] == 2
+      and "families_valid:2" in next(a for a in _rec_a81["agents_invoked"]
+                                     if a["agent"] == "composite-auditor")["evidence_generated"],
+      json.dumps({"verdict": {k: _vd_a[0][k] for k in ("families_valid", "n_lenses_valid", "panel_incomplete_reasons")},
+                  "judge0": {k: _jd_a[0][k] for k in ("family", "api", "api_source", "reviewer_source")}}))
+_bp_a = _rec_a81["token_usage"]["by_stage"]["panel"]
+check("ADR-0081 (H) by_stage.panel.by_model {reviewer: {in, out}}: llaves == los 4 reviewers del panel, cada uno 10/5, "
+      "Σ == panel.in/out (40/20); by_stage_sum_matches_by_model sigue True; by_model sin 'unknown-model'",
+      set(_bp_a["by_model"]) == {r["reviewer"] for r in _rec_a81["audit"]["panel"]}
+      and all(v == {"in": 10, "out": 5} for v in _bp_a["by_model"].values())
+      and sum(v["in"] for v in _bp_a["by_model"].values()) == _bp_a["in"] == 40
+      and sum(v["out"] for v in _bp_a["by_model"].values()) == _bp_a["out"] == 20
+      and _rec_a81["token_usage"]["by_stage_sum_matches_by_model"] is True
+      and "unknown-model" not in _rec_a81["token_usage"]["by_model"],
+      json.dumps(_bp_a))
+
+# --- (B) CAMINO REAL (_default_synthesizer + API falsa con meta): 'prefix', topes g2, sin effort, no-plan -----------------
+composite_auditor._anthropic_tool_call = _mk_api_81(reported_suffix="-20260915")
+_API_81.clear()
+_rid_b81, _rec_b81, _ev_b81 = _run80("ADR-0081 B: prefix (alias fechado)", ["wt1a"], synth=runs_mod._default_synthesizer, plan=False)
+_M_b = _rec_b81["models"]
+_TS_ADAPT = models.THINKING_STATES[models.MODELS[_ROLE_SYNTH["model"]]["thinking_default"]]
+check("ADR-0081 (B) CAMINO REAL con API falsa que reporta '<pedido>-20260915': ran.synthesize_pass1/pass2 {requested == rol "
+      "synthesizer, reported con sufijo, relation 'prefix' (NEUTRO), thinking_state por tabla}; elicit_pass1/pass2 'prefix' con "
+      "requested == rol elicitation; sin plan -> ran.plan null y roles.planner {model null, provenance 'no-plan'}; answer "
+      "{model == rol, model_source 'default:g2…', model_reported con sufijo, relation 'prefix'}",
+      _M_b["ran"]["synthesize_pass1"] == {"requested": _ROLE_SYNTH["model"], "reported": _ROLE_SYNTH["model"] + "-20260915",
+                                          "relation": "prefix", "thinking_state": _TS_ADAPT}
+      and _M_b["ran"]["synthesize_pass2"]["relation"] == "prefix"
+      and _M_b["ran"]["elicit_pass1"] == {"requested": _ROLE_ELICIT["model"], "reported": _ROLE_ELICIT["model"] + "-20260915",
+                                          "relation": "prefix", "thinking_state": _TS_ADAPT}
+      and _M_b["ran"]["elicit_pass2"]["relation"] == "prefix"
+      and _M_b["ran"]["plan"] is None and _M_b["ran"]["revision"] is None
+      and _M_b["roles"]["planner"] == {"model": None, "model_source": None, "provenance": "no-plan"}
+      and _rec_b81["answer"]["model"] == _ROLE_SYNTH["model"] and _rec_b81["answer"]["model_source"] == _ROLE_SYNTH["source"]
+      and _rec_b81["answer"]["model_reported"] == _ROLE_SYNTH["model"] + "-20260915"
+      and _rec_b81["answer"]["relation"] == "prefix",
+      json.dumps({"pass1": _M_b["ran"]["synthesize_pass1"], "elicit": _M_b["ran"]["elicit_pass1"]}))
+_calls_b = _API_81[:]
+check("ADR-0081 (C.4) topes por GENERACIÓN recibidos por la API falsa (g2): emit_answer max_tokens == 8000 (tope synthesizer), "
+      "emit_confidence == 2000 (tope elicitation); effort None en TODAS (WITT_ANTHROPIC_EFFORT vacío = no se envía); "
+      "return_meta True en todas (el wrapper pide lo que la API dijo); model pedido == el del rol",
+      len(_calls_b) == 4
+      and all(c["max_tokens"] == _TOPES[_G2]["synthesizer"] == 8000 and c["model"] == _ROLE_SYNTH["model"]
+              for c in _calls_b if c["tool"] == "emit_answer")
+      and all(c["max_tokens"] == _TOPES[_G2]["elicitation"] == 2000 and c["model"] == _ROLE_ELICIT["model"]
+              for c in _calls_b if c["tool"] == "emit_confidence")
+      and all(c["effort"] is None and c["return_meta"] is True for c in _calls_b),
+      json.dumps(_calls_b))
+_bs_b = _rec_b81["token_usage"]["by_stage"]
+check("ADR-0081 (H/J) by_stage con el wrapper REAL: synthesize_pass1/pass2.{model == rol, model_source 'default:g2…'}, "
+      "elicit_pass1/pass2 measured con model == rol elicitation + model_source; plan 'no-plan' sin model_source; by_model bajo "
+      "el modelo del rol = 2×(100+30) síntesis+elicitación + 10 del juez correctness (mismo modelo en g2) = 270",
+      _bs_b["synthesize_pass1"]["model"] == _ROLE_SYNTH["model"] and _bs_b["synthesize_pass1"]["model_source"] == _ROLE_SYNTH["source"]
+      and _bs_b["synthesize_pass2"]["model_source"] == _ROLE_SYNTH["source"]
+      and _bs_b["elicit_pass1"]["state"] == "measured" and _bs_b["elicit_pass1"]["model"] == _ROLE_ELICIT["model"]
+      and _bs_b["elicit_pass1"]["model_source"] == _ROLE_ELICIT["source"]
+      and _bs_b["plan"]["state"] == "no-plan" and "model_source" not in _bs_b["plan"]
+      and _corr(_rec_b81)["reviewer"] == _ROLE_SYNTH["model"]
+      and _rec_b81["token_usage"]["by_model"][_ROLE_SYNTH["model"]] == {"in": 270, "out": 111},
+      json.dumps({"synth": _bs_b["synthesize_pass1"], "elicit": _bs_b["elicit_pass1"],
+                  "by_model": _rec_b81["token_usage"]["by_model"]}))
+
+# --- (C) 'different' + effort por env (sólo a modelos adaptativos) -----------------------------------------------------
+composite_auditor._anthropic_tool_call = _mk_api_81(reported_literal="otro-modelo-x")
+_API_81.clear()
+_rid_c81, _rec_c81, _ev_c81 = _run80("ADR-0081 C: different + effort", ["wt1a"], synth=runs_mod._default_synthesizer, plan=True,
+                                     env={"WITT_ANTHROPIC_EFFORT": "low", "WITT_ANTHROPIC_EFFORT_ELICIT": "medium"})
+_calls_c = _API_81[:]
+check("ADR-0081 (B/C.4) la API reporta OTRO modelo -> relation 'different' (objeción) en ran.synthesize_pass1 y answer; con "
+      "WITT_ANTHROPIC_EFFORT=low + _ELICIT=medium el wrapper pasa effort 'low' a emit_answer y 'medium' a emit_confidence (g2: "
+      "el rol es adaptativo); answer.model sigue siendo lo PEDIDO",
+      _rec_c81["models"]["ran"]["synthesize_pass1"]["relation"] == "different"
+      and _rec_c81["models"]["ran"]["synthesize_pass1"]["reported"] == "otro-modelo-x"
+      and _rec_c81["answer"]["relation"] == "different" and _rec_c81["answer"]["model"] == _ROLE_SYNTH["model"]
+      and [c["effort"] for c in _calls_c if c["tool"] == "emit_answer"] == ["low"]
+      and [c["effort"] for c in _calls_c if c["tool"] == "emit_confidence"] == ["medium"],
+      json.dumps([(c["tool"], c["effort"]) for c in _calls_c]))
+
+# --- (M.2) KILL-SWITCH g1 + chat-completions + MIN 0/0 + LEDGER 0: keyset 1.9 EXACTO (golden medido) y valores f57a3d3 -----
+composite_auditor._anthropic_tool_call = _mk_api_81(reported_suffix="-20260915")
+_API_81.clear()
+_KS_ENV = {"WITT_MODEL_GENERATION": _G1, "WITT_OPENAI_API": "chat-completions", "WITT_PANEL_MIN_FAMILIES": "0",
+           "WITT_PANEL_MIN_LENSES": "0", "WITT_CONFIG_LEDGER": "0", "WITT_ANTHROPIC_EFFORT": "low"}
+_rid_k81, _rec_k81, _ev_k81 = _run80("ADR-0081 kill-switch g1: does wt1a mark the pronephros?", ["wt1a"],
+                                     synth=runs_mod._default_synthesizer, plan=True, env=_KS_ENV)
+_calls_k = _API_81[:]
+_g1d = models.GENERATIONS[_G1]["defaults"]
+_view_k = app.get_run(_rid_k81, authorization=AUTH)
+_ev_k_types = _ev_types(_ev_k81)
+_queued_k = next(e for e in _ev_k81 if e["type"] == "run.state" and e["payload"].get("state") == "queued")["payload"]
+_bs_k = _rec_k81["token_usage"]["by_stage"]
+# el golden se midió sobre el blob CRUDO (runs.frozen_record_json); la vista GET /runs/{id}/record lo decora con
+# consensus/ratings/ratings_masked (ADR-0047/0055) — se compara crudo contra crudo
+_raw_k81 = json.loads(db.get_run(_rid_k81)["frozen_record_json"])
+_ks_keysets = {
+    "top": _keys_minus(_raw_k81, _ADD_110["top"]),
+    "answer": _keys_minus(_rec_k81["answer"], _ADD_110["answer"]),
+    "audit": _keys_minus(_rec_k81["audit"], _ADD_110["audit"]),
+    "audit_row": _keys_minus(_corr(_rec_k81), _ADD_110["audit_row"]),
+    "by_stage_panel": _keys_minus(_bs_k["panel"], _ADD_110["by_stage_panel"]),
+    "by_stage_synth": _keys_minus(_bs_k["synthesize_pass1"], _ADD_110["by_stage_synth"]),
+    "by_stage_elicit": _keys_minus(_bs_k["elicit_pass1"], _ADD_110["by_stage_elicit"]),
+    "by_stage_plan": _keys_minus(_bs_k["plan"], _ADD_110["by_stage_plan"]),
+    "revision": _keys_minus(_rec_k81["revision"], _ADD_110["revision"]),
+    "planner": _keys_minus(_rec_k81["plan"]["judgment"]["planner"], _ADD_110["planner"]),
+    "plan_audit": _keys_minus(_rec_k81["plan"]["audit"], _ADD_110["plan_audit"]),
+    "epistemic": _keys_minus(_view_k["epistemic_summary"], _ADD_110["epistemic"]),
+    "queued_payload": _keys_minus(_queued_k, _ADD_110["queued_payload"]),
+    "queued_thread": _keys_minus(_queued_k["thread"], _ADD_110["queued_thread"]),
+    "verdict_payload": _keys_minus(_ev_payloads(_ev_k81, "stage.audit.verdict")[0], _ADD_110["verdict_payload"]),
+    "judge_payload": _keys_minus(_ev_payloads(_ev_k81, "stage.audit.judge")[0], _ADD_110["judge_payload"]),
+    "event_types": [t for t in _ev_k_types if t != "stage.models"],
+}
+_ks_diff = {k: {"extra": sorted(set(_ks_keysets[k]) - set(_GOLDEN_19[k])), "missing": sorted(set(_GOLDEN_19[k]) - set(_ks_keysets[k]))}
+            for k in _GOLDEN_19 if _ks_keysets[k] != _GOLDEN_19[k]}
+check("ADR-0081 (M.2) KILL-SWITCH (WITT_MODEL_GENERATION=g1-2026-08 + WITT_OPENAI_API=chat-completions + MIN_FAMILIES/LENSES 0 + "
+      "LEDGER 0): el registro 1.10 MENOS las llaves aditivas declaradas tiene EXACTAMENTE el keyset del golden 1.9 medido en "
+      "f57a3d3 — top-level (47), answer, audit, fila del panel, by_stage.{panel, synthesize_pass1, elicit_pass1, plan}, revision, "
+      "plan.judgment.planner, plan.audit, epistemic_summary, run.state{queued} (+thread), stage.audit.verdict/judge y la secuencia "
+      "de eventos sin stage.models",
+      _ks_diff == {}, json.dumps(_ks_diff)[:700])
+check("ADR-0081 (M.2) KILL-SWITCH valores f57a3d3: frozen.models.generation g1 (source 'env:WITT_MODEL_GENERATION'); answer.model y "
+      "roles == defaults g1 (opus-4-8 en synth/planner/elicit/correctness); panel == los 4 asientos g1 en orden; topes g1 recibidos "
+      "por la API falsa (2500 / 300 / 1200 plan); effort NO se envía a un modelo 'off' aunque WITT_ANTHROPIC_EFFORT=low (declarado); "
+      "juez reproducibility por 'openai-chat-completions'; quorum.families_gating/lenses_gating False (kill-switch) y APPROVE; "
+      "by_model[synth g1].in == 540 (400 plan + 130 síntesis+elicit + 10 juez correctness) == el golden",
+      _rec_k81["models"]["generation"] == _G1 and _rec_k81["models"]["generation_source"] == "env:WITT_MODEL_GENERATION"
+      and _rec_k81["answer"]["model"] == _g1d["synthesizer"]
+      and _rec_k81["models"]["roles"]["synthesizer"]["model"] == _g1d["synthesizer"]
+      and _rec_k81["models"]["roles"]["elicitation"]["model"] == _g1d["elicitation"]
+      and _rec_k81["plan"]["judgment"]["planner"]["model"] == _g1d["planner"]
+      and [r["reviewer"] for r in _rec_k81["audit"]["panel"]] == [_g1d["judge." + l] for l in models.LENSES]
+      and [c["max_tokens"] for c in _calls_k if c["tool"] == "emit_answer"] == [_TOPES[_G1]["synthesizer"]] == [2500]
+      and [c["max_tokens"] for c in _calls_k if c["tool"] == "emit_confidence"] == [_TOPES[_G1]["elicitation"]] == [300]
+      and all(c["effort"] is None for c in _calls_k)
+      and next(r for r in _rec_k81["audit"]["panel"] if r["lens"] == "reproducibility")["api"] == "openai-chat-completions"
+      and _rec_k81["audit"]["quorum"]["families_gating"] is False and _rec_k81["audit"]["quorum"]["lenses_gating"] is False
+      and _rec_k81["audit"]["verdict"] == "APPROVE"
+      and _rec_k81["token_usage"]["by_model"][_g1d["synthesizer"]]["in"] == 540,
+      json.dumps({"gen": _rec_k81["models"]["generation"], "panel": [r["reviewer"] for r in _rec_k81["audit"]["panel"]],
+                  "calls": [(c["tool"], c["max_tokens"], c["effort"]) for c in _calls_k],
+                  "by_model": _rec_k81["token_usage"]["by_model"]}))
+check("ADR-0081 (C.4/B) el wrapper DECLARA lo que pidió y lo que pudo entregar: pass1 real lleva effort None + effort_source "
+      "'not-sent (thinking_default off; env:WITT_ANTHROPIC_EFFORT=low)' bajo g1, y con la env vacía 'default-unset:…'; "
+      "un caller/fake con la firma VIEJA (sin return_meta/effort) sigue válido: 2-tupla tolerada -> model_reported None, "
+      "relation 'not-reported', effort_delivered False cuando se pidió effort y el caller no lo acepta",
+      (lambda p_old, p_g1: (
+          p_g1["effort"] is None and p_g1["effort_source"] == "not-sent (thinking_default off; env:WITT_ANTHROPIC_EFFORT=low)"
+          and p_old["model_reported"] is None and p_old["relation"] == "not-reported"
+          and p_old["model"] == _ROLE_SYNTH["model"] and p_old["model_source"] == _ROLE_SYNTH["source"]
+          and p_old["effort"] == "low" and p_old["effort_delivered"] is False
+          and p_old["elicitation_model"] == _ROLE_ELICIT["model"] and p_old["elicitation_relation"] == "not-reported"))(
+          _with_env({"WITT_ANTHROPIC_EFFORT": "low"},
+                    lambda: (setattr(composite_auditor, "_anthropic_tool_call",
+                                     _mk_capture_api(_SYNTH_OUT_81, {"confidence": 0.8}, [])),
+                             runs_mod._default_synthesizer("q", {"e": 1}, "pass1"))[1]),
+          _with_env(_KS_ENV, lambda: (setattr(composite_auditor, "_anthropic_tool_call", _mk_api_81(reported_suffix="-x")),
+                                      runs_mod._default_synthesizer("q", {"e": 1}, "pass1"))[1])))
+
+# --- (A, corrector) id de familia DESCONOCIDA en un rol del PIPELINE: fail-loud SIN llamar (la regla del panel) -----------
+_API_81.clear()
+composite_auditor._anthropic_tool_call = _mk_api_81(reported_suffix="-x")
+
+
+def _synth_unknown_family():
+    try:
+        runs_mod._default_synthesizer("q", {"e": 1}, "pass1")
+        return None
+    except Exception as e:   # se espera CallerError('unknown-family') — el fake no debe recibir ninguna llamada
+        return e
+
+
+_e_unk = _with_env({"WITT_MODEL_SYNTH": "llama-9"}, _synth_unknown_family)
+check("ADR-0081 (A, corrector) WITT_MODEL_SYNTH=<id sin prefijo que case> en un rol del pipeline: runs._anthropic_call erra en voz "
+      "alta con CallerError kind 'unknown-family' ANTES de construir la petición (0 llamadas a la API falsa) — la misma regla que "
+      "_default_caller aplica a los asientos del panel, no el `else: anthropic` de f57a3d3",
+      isinstance(_e_unk, composite_auditor.CallerError) and _e_unk.kind == "unknown-family" and _API_81 == []
+      and "llama-9" in str(_e_unk), f"{type(_e_unk).__name__}: {_e_unk} calls={_API_81}")
+
+# --- (D) juez OpenAI caído -> REVISE ESTRUCTURAL por familias, sin revisión, skipped_reason con el código -----------------
+composite_auditor._anthropic_tool_call = _api_saved_81
+_rid_e81, _rec_e81, _ev_e81 = _run80("ADR-0081 D: openai down", ["wt1a"], plan=True,
+                                     panel=_stub_caller_factory({**ALL_A, "reproducibility": RuntimeError("openai down (smoke)")}))
+_t_e81 = _ev_types(_ev_e81)
+_vd_e = _ev_payloads(_ev_e81, "stage.audit.verdict")
+_row_oai = next(r for r in _rec_e81["audit"]["panel"] if r["lens"] == "reproducibility")
+check("ADR-0081 (D) juez OpenAI errored + 3 APPROVE Anthropic -> REVISE ESTRUCTURAL: n_valid 3 pero families_valid ['anthropic'] "
+      "(1 < MIN_FAMILIES 2) -> panel_incomplete True, panel_incomplete_reasons ['families'], AUDIT_REJECTED; revision.performed False "
+      "con skipped_reason 'panel_incomplete (families) — el REVISE es estructural (jueces caídos o sin diversidad), …' y SIN "
+      "stage.revision.start; stage.audit.verdict lo dice; epistemic panel_n_families_valid 1; la fila errored lleva 2 intentos con "
+      "error_kind (S2) y ran.panel[reproducibility] {reported null, not-reported, attempts 2}",
+      _rec_e81["audit"]["verdict"] == "REVISE" and _rec_e81["audit"]["n_valid"] == 3
+      and _rec_e81["audit"]["families_valid"] == ["anthropic"] and _rec_e81["audit"]["panel_incomplete"] is True
+      and _rec_e81["audit"]["panel_incomplete_reasons"] == ["families"]
+      and _rec_e81["decision_state"]["state"] == "AUDIT_REJECTED"
+      and _rec_e81["revision"]["performed"] is False
+      and _rec_e81["revision"]["skipped_reason"] == ("panel_incomplete (families) — el REVISE es estructural (jueces caídos o sin "
+                                                     "diversidad), no un hallazgo sobre la respuesta; la revisión no aplica")
+      and "stage.revision.start" not in _t_e81 and _t_e81.count("stage.audit.verdict") == 1
+      and _vd_e[0]["panel_incomplete"] is True and _vd_e[0]["panel_incomplete_reasons"] == ["families"]
+      and _vd_e[0]["n_families_valid"] == 1
+      and app.get_run(_rid_e81, authorization=AUTH)["epistemic_summary"]["panel_n_families_valid"] == 1
+      and _row_oai["status"] == "errored" and len(_row_oai["attempts"]) == 2
+      and all("error_kind" in a for a in _row_oai["attempts"])
+      and next(p for p in _rec_e81["models"]["ran"]["panel"] if p["lens"] == "reproducibility")
+          == {"lens": "reproducibility", "reviewer": _row_oai["reviewer"], "reported": None, "relation": "not-reported",
+              "api_used": _row_oai["api"], "attempts": 2}
+      and "families_valid:1" in next(a for a in _rec_e81["agents_invoked"]
+                                     if a["agent"] == "composite-auditor")["evidence_generated"],
+      json.dumps({"reasons": _rec_e81["audit"].get("panel_incomplete_reasons"), "skipped": _rec_e81["revision"].get("skipped_reason"),
+                  "kinds": [a.get("error_kind") for a in _row_oai["attempts"]]}))
+
+# --- (D) revisión: audit_initial copia el cuórum; by_model del panel sobre DOS paneles ----------------------------------------
+_rid_f81, _rec_f81, _ev_f81 = _run80("ADR-0081 F: revision cycle", ["wt1a"], synth=_synth_with_revision, plan=True,
+                                     panel=_stub_caller_rounds([ALL_R, ALL_A]))
+_ai_f = _rec_f81["audit_initial"]
+_bp_f = _rec_f81["token_usage"]["by_stage"]["panel"]
+check("ADR-0081 (D) con revisión: audit_initial copia ADEMÁS families_valid, n_families_valid, lenses_valid, n_lenses_valid, quorum "
+      "(verdict inicial REVISE con quorum.ok True: fue hallazgo, no estructural); ambos stage.audit.verdict traen familias; "
+      "by_stage.panel.by_model suma los DOS paneles (8 jueces: cada reviewer 20/10, Σ == 80/40 == panel); ran.panel refleja el "
+      "panel FINAL (audit.panel)",
+      _ai_f["verdict"] == "REVISE" and {"families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "quorum"} <= set(_ai_f)
+      and _ai_f["quorum"]["ok"] is True and _ai_f["n_families_valid"] == 2 and "panel_incomplete" not in _ai_f
+      and _rec_f81["audit"]["verdict"] == "APPROVE"
+      and all(v["n_families_valid"] == 2 for v in _ev_payloads(_ev_f81, "stage.audit.verdict"))
+      and all(v == {"in": 20, "out": 10} for v in _bp_f["by_model"].values()) and len(_bp_f["by_model"]) == 4
+      and sum(v["in"] for v in _bp_f["by_model"].values()) == _bp_f["in"] == 80
+      and _rec_f81["usage_raw"]["panel_total"]["input_tokens"] == 80
+      and len(_rec_f81["models"]["ran"]["panel"]) == 4,
+      json.dumps({"audit_initial_keys": sorted(_ai_f), "by_model": _bp_f["by_model"]}))
+
+# --- (F) run.state{queued} += run_no y thread.root_run_no — raíz / hijo / raíz VIRTUAL (padre pre-ADR-0079) ------------------
+_q_root = next(e for e in _ev_a81 if e["type"] == "run.state" and e["payload"].get("state") == "queued")["payload"]
+_view_root = app.get_run(_rid_a81, authorization=AUTH)
+_rv_ch81 = app.create_run(app.RunBody(question="ADR-0081 F hijo", entities=["wt1a"], parent_run_id=_rid_a81), authorization=AUTH)
+_q_ch = next(e for e in app.get_events(_rv_ch81["run_id"], after=0, authorization=AUTH)["events"]
+             if e["type"] == "run.state" and e["payload"].get("state") == "queued")["payload"]
+db.update_run(_rv_ch81["run_id"], state="cancelled")   # que el FIFO no la reclame
+PRE_0081 = "pre0081" + "d" * 25
+db.create_run(PRE_0081, "natalia", "pre-ADR parent (fila anterior al contrato)", ["wt1a"])
+db.update_run(PRE_0081, state="awaiting_closure")
+_rv_vch = app.create_run(app.RunBody(question="ADR-0081 F hijo de raíz virtual", entities=["wt1a"], parent_run_id=PRE_0081),
+                         authorization=AUTH)
+_q_vch = next(e for e in app.get_events(_rv_vch["run_id"], after=0, authorization=AUTH)["events"]
+              if e["type"] == "run.state" and e["payload"].get("state") == "queued")["payload"]
+db.update_run(_rv_vch["run_id"], state="cancelled")
+_pre_no = db.get_run(PRE_0081)["run_no"]
+check("ADR-0081 (F) run.state{queued} lleva run_no y thread.root_run_no desde la BD: raíz -> root_run_no == su run_no; hijo -> el "
+      "run_no de la raíz; hijo de raíz VIRTUAL (padre pre-ADR-0079, thread_id NULL) -> el run_no del padre; == frozen.thread."
+      "root_run_no y == RunView.root_run_no (S4 JOIN) — la MISMA verdad por tres puertas",
+      _q_root["run_no"] == _view_root["run_no"] and _q_root["thread"]["root_run_no"] == _view_root["run_no"]
+      and _rec_a81["thread"]["root_run_no"] == _view_root["run_no"]
+      and _q_ch["run_no"] == _rv_ch81["run_no"] and _q_ch["thread"]["root_run_no"] == _view_root["run_no"]
+      and _q_ch["thread"]["thread_id"] == _rid_a81
+      and _q_vch["thread"]["root_run_no"] == _pre_no and _q_vch["thread"]["thread_id"] == PRE_0081
+      and _view_root.get("root_run_no") == _view_root["run_no"]
+      and app.get_run(_rv_vch["run_id"], authorization=AUTH).get("root_run_no") == _pre_no,
+      json.dumps({"root": (_q_root["run_no"], _q_root["thread"]["root_run_no"]),
+                  "child": (_q_ch["run_no"], _q_ch["thread"]["root_run_no"]),
+                  "virtual": (_q_vch["run_no"], _q_vch["thread"]["root_run_no"], _pre_no)}))
+
+# --- unidades: planner REAL (3-tupla) y stub (2-tupla) en build_plan; _usage_by_stage/_token_usage sin constante -------------
+composite_auditor._anthropic_tool_call = _mk_api_81(reported_suffix="-20260915")
+_API_81.clear()
+_p_out, _p_usage, _p_meta = runs_mod._default_planner("q", ["wt1a"])
+_plan_real = runs_mod.build_plan("q", ["wt1a"], planner=runs_mod._default_planner, history_rows=HIST_OK)
+_plan_stub = runs_mod.build_plan("q", ["wt1a"], planner=_fake_planner_ok, history_rows=HIST_OK)
+composite_auditor._anthropic_tool_call = _api_saved_81
+check("ADR-0081 (B) _default_planner REAL devuelve (out, usage, meta) con model == rol planner, model_source 'default:g2…', "
+      "model_reported '<pedido>-20260915', relation 'prefix', generation g2, tope 4000 pedido; build_plan con el planner real "
+      "congela ese meta en judgment.planner; con planner stub (2-tupla) -> model = rol resuelto, model_reported null, "
+      "relation 'not-reported' (nada se copia de una constante)",
+      _p_meta["model"] == _ROLE_PLANNER["model"] and _p_meta["model_source"] == _ROLE_PLANNER["source"]
+      and _p_meta["model_reported"] == _ROLE_PLANNER["model"] + "-20260915" and _p_meta["relation"] == "prefix"
+      and _p_meta["generation"] == _G2 and _API_81 and _API_81[0]["tool"] == "emit_plan_judgment"
+      and _API_81[0]["max_tokens"] == _TOPES[_G2]["planner"] == 4000
+      and _plan_real["judgment"]["planner"]["model_reported"] == _ROLE_PLANNER["model"] + "-20260915"
+      and _plan_real["judgment"]["planner"]["relation"] == "prefix"
+      and _plan_stub["judgment"]["planner"]["model"] == _ROLE_PLANNER["model"]
+      and _plan_stub["judgment"]["planner"]["model_reported"] is None
+      and _plan_stub["judgment"]["planner"]["relation"] == "not-reported"
+      and _plan_stub["judgment"]["planner"]["usage"] == {"input_tokens": 400, "output_tokens": 120},
+      json.dumps({k: _p_meta[k] for k in ("model", "model_source", "model_reported", "relation")}))
+_bs_u = runs_mod._usage_by_stage([("pass1", {"usage": {"input_tokens": 10, "output_tokens": 1}})], None,
+                                 {"panel": [{"reviewer": "j1", "usage": {"input_tokens": 3, "output_tokens": 2}},
+                                            {"reviewer": "j1", "usage": {"input_tokens": 4, "output_tokens": 1}},
+                                            {"reviewer": "j2", "status": "errored"}]}, 0)
+_tu_u = runs_mod._token_usage([("pass1", {"usage": {"input_tokens": 10, "output_tokens": 1}})], {"panel": []}, 0)
+check("ADR-0081 (H) _usage_by_stage / _token_usage SIN constante: una pasada sin `model` deja by_stage.synthesize_pass1.model "
+      "null DECLARADO (no una constante copiada) y sin model_source; by_model la atribuye a 'unknown-model' (sin precio -> "
+      "missing_price_models); panel.by_model agrega por reviewer (j1 7/3) y un juez errored sin usage no aparece; Σ == panel",
+      _bs_u["synthesize_pass1"] == {"in": 10, "out": 1, "model": None}
+      and _bs_u["panel"] == {"in": 7, "out": 3, "by_model": {"j1": {"in": 7, "out": 3}}}
+      and _tu_u["by_model"] == {"unknown-model": {"in": 10, "out": 1}} and _tu_u["missing_price_models"] == ["unknown-model"],
+      json.dumps({"bs": _bs_u["synthesize_pass1"], "panel": _bs_u["panel"], "by_model": _tu_u["by_model"]}))
+_extra = runs_mod.snapshot_extra()
+_snap = models.snapshot(extra=_extra)
+check("ADR-0081 (I/E) runs.snapshot_extra() cubre EXACTAMENTE models.EXTRA_FIELDS ({value, source}: contrato 1.10 desde "
+      "runs.RENDER_CONTRACT_VERSION, competence.gate/search.harness/revision.cycle con fuente default-unset/env) -> el snapshot "
+      "no deja ninguno en 'not-provided-by-caller'; _config_ledger_observe devuelve un dict con `state` y JAMÁS lanza (módulo de S5 "
+      "presente o no); SYNTH_MODEL es alias derivado == resolve_role('synthesizer').model y PRICES_PER_MTOK_USD == models.prices()",
+      set(_extra) == set(models.EXTRA_FIELDS)
+      and all(set(v) == {"value", "source"} for v in _extra.values())
+      and _extra["contract.render_contract_version"] == {"value": "1.10", "source": "runs.RENDER_CONTRACT_VERSION"}
+      and all(_snap["fields"][f]["source"] != models.NOT_PROVIDED for f in models.EXTRA_FIELDS)
+      and _snap["fields"]["contract.render_contract_version"]["value"] == runs_mod.RENDER_CONTRACT_VERSION
+      and isinstance(runs_mod._config_ledger_observe(_snap), dict) and "state" in runs_mod._config_ledger_observe(_snap)
+      and runs_mod.SYNTH_MODEL == models.resolve_role("synthesizer")["model"]
+      and runs_mod.PRICES_PER_MTOK_USD == models.prices() and runs_mod.PRICES_AS_OF == models.PRICES_AS_OF,
+      json.dumps({k: v for k, v in _extra.items()}))
+composite_auditor._anthropic_tool_call = _api_saved_81
+
+# --- S7 costuras (N) MEDIDAS: UNA identidad de configuración por corrida · UNA verdad para root_run_no -------------------
+_sig_frozen = _rec_a81["models"]["panel_signature"]
+_sig_stage = _sm_a81[0]["panel_signature"]
+_sig_audit = _rec_a81["audit"]["panel_source"]["panel_signature"]
+check("ADR-0081 (N) frozen.models.panel_signature == stage.models.panel_signature == audit.panel_source.panel_signature (la firma se "
+      "calcula con los MISMOS 8 roles del snapshot — provenance_block(signature_roles=)); asientos iguales por tres puertas "
+      "(frozen.models.ran.panel[].reviewer == audit.panel[].reviewer == stage.models.panel[].reviewer); audit.panel_origin "
+      "'models.panel(directives)' (el panel salió de la tabla, no del llamador)",
+      _sig_frozen == _sig_stage == _sig_audit
+      and [p["reviewer"] for p in _rec_a81["models"]["ran"]["panel"]] == [r["reviewer"] for r in _rec_a81["audit"]["panel"]]
+      == [m["reviewer"] for m in _sm_a81[0]["panel"]]
+      and _rec_a81["audit"]["panel_origin"] == "models.panel(directives)",
+      json.dumps({"frozen": _sig_frozen, "stage": _sig_stage, "audit": _sig_audit}))
+_rows_all = db.list_runs(limit=1000)
+_mism = [(r["run_id"][:8], r.get("root_run_no"), runs_mod._root_run_no(r)) for r in _rows_all
+         if r.get("root_run_no") != runs_mod._root_run_no(r)]
+check(f"ADR-0081 (N) db._list_select.root_run_no (JOIN a la raíz, S4) == runs._root_run_no (la regla de frozen.thread.root_run_no) "
+      f"en TODAS las corridas del gate ({len(_rows_all)}: raíces, hijos, hijos de raíz VIRTUAL y pre-ADR null == null); la llave "
+      f"viaja en cada renglón de la lista",
+      bool(_rows_all) and not _mism and all("root_run_no" in r for r in _rows_all), json.dumps(_mism[:5]))
+
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()
-check("ADR-0080 (H) la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y contado durante "
-      "las 21 corridas de _run80 (0 llamadas), mcp_cache byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate), "
-      "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
+check("ADR-0080 (H) / ADR-0081 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y contado "
+      "durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 (0 llamadas), mcp_cache byte-idéntico antes/después (la "
+      "caché por día de ZFIN neutralizada desde el gate), las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las "
+      "tools reales resuelven",
       _NET_CALLS == [] and _mcp_before == _mcp_after,
       json.dumps({"net_calls": _NET_CALLS[:3], "mcp_changed": [x for x in _mcp_after if x not in _mcp_before][:3]}))
 _urlreq.urlopen = _urlopen_real

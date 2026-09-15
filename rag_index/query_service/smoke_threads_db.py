@@ -9,6 +9,16 @@ enum; (d) get_children / thread_turns / max_turn_no; (e) runs_by_thread paginabl
 created_at; (f) filtro opcional por origin en closed_runs / runs_usage / plan_history / question_calibration
 con el CONTADOR de lo excluido (excluded_by_origin); (g) lista == detalle en las columnas nuevas.
 
+ADR-0081 (S4 · BD): (h) `root_run_no` NACE en la BD por el JOIN a la raíz (`_root_join`): raíz == su run_no,
+hijo y nieto == el de la raíz, corrida pre-ADR = NULL declarado (llave presente), hijo de raíz VIRTUAL
+hereda el run_no del padre pre-ADR; lista == detalle == thread_turns/get_children/runs_by_thread por
+construcción; SQL compilado para postgresql con exactamente UN LEFT OUTER JOIN; (i) `threads_index`: orden
+root_run_no DESC NULLS LAST, n_turns/n_closed/authors/origins IGUALES a app.get_thread (misma verdad por dos
+puertas, raíz virtual +1 declarada con root_counted false), cursor `after` exclusivo, has_more medido con
+limit+1, tope declarado, `mine` (incluida la raíz virtual del usuario), errores tipados, SQL compilado para
+postgresql sin funciones exclusivas de SQLite. LÍMITE DECLARADO: este gate NO mide la dependencia funcional
+del GROUP BY (root.* sin agregar bajo GROUP BY root.run_id) — eso sólo lo mide Postgres (G7 / LG8).
+
 100% offline: SQLite en %LOCALAPPDATA%/Temp/claude/witt-smokes — cero red, cero modelo, cero mutación de
 la DATA INAMOVIBLE. Exit 0 = todo PASS.
 
@@ -309,6 +319,210 @@ check("question_calibration(['production']): 3 borradores (q-smoke fuera), 2 usa
 viejo_2 = db.get_run("old-failed")
 check("la fila pre-ADR 'old-failed' sigue NULL en las 7 tras todo el smoke (nadie backfilleó)",
       all(viejo_2.get(c) is None for c in db.THREAD_COLUMNS))
+
+# ---- 10. ADR-0081 (F): root_run_no NACE en la BD — JOIN a la raíz en _list_select y get_run -----------
+# run_no medidos hasta aquí: old-closed 1 · old-failed 2 · legacy-1 3 · root-1 4 · child-2 5 · child-3 6 ·
+# child-4 7 · root-9 8 (bad-kind y dup-turn no se insertaron).
+from sqlalchemy.dialects import postgresql  # noqa: E402
+
+raiz_f, hijo_f, nieto_f = db.get_run("root-1"), db.get_run("child-2"), db.get_run("child-4")
+check("F · get_run(raíz): root_run_no == run_no (la raíz apunta a sí misma) == 4",
+      raiz_f["root_run_no"] == raiz_f["run_no"] == 4, f"{raiz_f['root_run_no']} vs {raiz_f['run_no']}")
+check("F · get_run(hijo) y get_run(nieto): root_run_no == 4 (el run_no de la raíz), no el propio",
+      hijo_f["root_run_no"] == 4 and hijo_f["run_no"] == 5 and nieto_f["root_run_no"] == 4 and nieto_f["run_no"] == 7)
+check("F · corridas pre-ADR (old-closed, old-failed, legacy-1): llave root_run_no PRESENTE y NULL declarado, jamás rellenada",
+      all("root_run_no" in db.get_run(rid) and db.get_run(rid)["root_run_no"] is None
+          for rid in ("old-closed", "old-failed", "legacy-1")))
+# hijo de raíz VIRTUAL: old-closed es pre-ADR (thread_id NULL); su hijo lleva thread_id = 'old-closed'
+db.create_run("virt-child", "martin", "¿sigue la vieja cerrada?", ["sox9b"], parent_run_id="old-closed",
+              thread_id="old-closed", turn_no=2, turn_kind="refine", origin="smoke")
+vc = db.get_run("virt-child")
+check("F · hijo de raíz VIRTUAL: root_run_no == 1 (run_no de old-closed, hallada por run_id aunque su thread_id sea NULL); "
+      "la propia old-closed sigue NULL",
+      vc["root_run_no"] == 1 and vc["run_no"] == 9 and db.get_run("old-closed")["root_run_no"] is None,
+      f"virt-child root_run_no={vc['root_run_no']} run_no={vc['run_no']}")
+lista_f = {r["run_id"]: r for r in db.list_runs(limit=100)}
+with db.engine().begin() as cx:
+    n_total_runs = cx.execute(select(func.count()).select_from(db.runs)).scalar()
+check("F · list_runs == get_run en root_run_no para las 9 corridas (misma definición _root_join: paridad lista/detalle)",
+      len(lista_f) == n_total_runs == 9
+      and all(lista_f[rid]["root_run_no"] == db.get_run(rid)["root_run_no"] for rid in lista_f),
+      str({rid: (lista_f[rid]["root_run_no"], db.get_run(rid)["root_run_no"]) for rid in lista_f}))
+check("F · OUTER: el JOIN no quita filas (list_runs(limit=100) == COUNT(*) runs == 9)", len(lista_f) == 9)
+check("F · thread_turns / get_children / runs_by_thread sirven root_run_no (todas pasan por _list_select)",
+      all(t["root_run_no"] == 4 for t in db.thread_turns("root-1"))
+      and all(h["root_run_no"] == 4 for h in db.get_children("root-1"))
+      and all(i["root_run_no"] == 4 for i in db.runs_by_thread("root-1", limit=2)["items"])
+      and [t["run_id"] for t in db.thread_turns("root-1")] == ["root-1", "child-2", "child-3", "child-4"])
+check("F · thread_turns(old-closed) = sólo el hijo (la raíz virtual NO está en el hilo: thread_id NULL) con root_run_no 1",
+      [t["run_id"] for t in db.thread_turns("old-closed")] == ["virt-child"]
+      and db.thread_turns("old-closed")[0]["root_run_no"] == 1)
+check("F · root_run_no NO es columna de runs (nace del JOIN, nadie la escribe ni la backfillea)",
+      "root_run_no" not in db.runs.c)
+check("F · las fechas siguen normalizadas a UTC en lista y detalle tras el JOIN",
+      lista_f["root-1"]["created_at"].tzinfo is not None and raiz_f["created_at"].tzinfo is not None)
+_pg = postgresql.dialect()
+sql_l = str(db._list_select().compile(dialect=_pg))
+sql_d = str(db._detail_select().compile(dialect=_pg))
+_JOIN = "FROM runs LEFT OUTER JOIN runs AS root ON root.run_id = runs.thread_id"
+check("F · SQL (postgresql): lista y detalle llevan exactamente UN 'LEFT OUTER JOIN runs AS root' y 'root.run_no AS root_run_no'",
+      sql_l.count(_JOIN) == 1 and sql_d.count(_JOIN) == 1
+      and sql_l.count("root.run_no AS root_run_no") == 1 and sql_d.count("root.run_no AS root_run_no") == 1)
+check("F · SQL: la frontera de blobs sigue — el detalle trae bundle_json/frozen_record_json, la lista no",
+      "runs.bundle_json" in sql_d and "runs.frozen_record_json" in sql_d
+      and "runs.bundle_json" not in sql_l and "runs.frozen_record_json" not in sql_l)
+check("F · closed_runs / runs_usage no pasan por _list_select y NO traen root_run_no (declarado: sus consumidores no lo piden)",
+      all("root_run_no" not in r for r in db.closed_runs()) and all("root_run_no" not in r for r in db.runs_usage()))
+
+# ---- 11. ADR-0081 (G): threads_index — el índice de investigaciones con denominador -------------------
+# Hilos: root-1 (raíz real run_no 4, 4 turnos) · root-9 (raíz real 8, 1 turno) · old-closed (raíz VIRTUAL
+# run_no 1: 1 turno contado + la raíz virtual). Orden esperado root_run_no DESC: root-9, root-1, old-closed.
+ix = db.threads_index()
+check("G · sobre: llaves EXACTAS (THREADS_INDEX_ENVELOPE_FIELDS) y serializable a JSON",
+      tuple(ix.keys()) == db.THREADS_INDEX_ENVELOPE_FIELDS and json.dumps(ix) is not None,
+      str(tuple(ix.keys())))
+check("G · fila: llaves EXACTAS y en orden (THREADS_INDEX_ROW_FIELDS)",
+      all(tuple(f.keys()) == db.THREADS_INDEX_ROW_FIELDS for f in ix["threads"]),
+      str(tuple(ix["threads"][0].keys())) if ix["threads"] else "sin filas")
+check("G · orden root_run_no DESC: [root-9 (8), root-1 (4), old-closed (1)]; n 3; has_more false; next_after null",
+      [f["thread_id"] for f in ix["threads"]] == ["root-9", "root-1", "old-closed"]
+      and [f["root_run_no"] for f in ix["threads"]] == [8, 4, 1] and ix["n"] == 3
+      and ix["has_more"] is False and ix["next_after"] is None,
+      str([(f["thread_id"], f["root_run_no"]) for f in ix["threads"]]))
+check("G · denominadores: n_threads_total 3 · n_runs_without_thread 3 == count_runs_without_thread() (old-closed, old-failed, "
+      "legacy-1: la raíz virtual ES una corrida sin hilo y se declara) · limit 50 · limit_cap 50 · after null · mine false",
+      ix["n_threads_total"] == 3 and ix["n_runs_without_thread"] == db.count_runs_without_thread() == 3
+      and ix["limit"] == 50 and ix["limit_cap"] == 50 and ix["after"] is None and ix["mine"] is False
+      and "raíces VIRTUALES" in ix["n_runs_without_thread_rule"])
+check("G · costs 'not-aggregated (GET /threads/{id})' y order/cursor_rule/mine_rule/n_turns_rule declarados (str)",
+      ix["costs"] == "not-aggregated (GET /threads/{id})" and ix["order"] == "root_run_no DESC NULLS LAST, thread_id ASC"
+      and all(isinstance(ix[k], str) and ix[k] for k in ("cursor_rule", "mine_rule", "n_turns_rule")))
+r1 = ix["threads"][1]
+check("G · root-1: label T-4, root real (root_pre_adr_0079 false, root_counted true), n_turns 4, n_closed 2, n_with_record 2, "
+      "n_turns_without_record 2, last_turn_no 4",
+      r1["label"] == "T-4" and r1["root_run_id"] == "root-1" and r1["root_pre_adr_0079"] is False
+      and r1["root_counted"] is True and r1["n_turns"] == 4 and r1["n_closed"] == 2 and r1["n_with_record"] == 2
+      and r1["n_turns_without_record"] == 2 and r1["last_turn_no"] == 4,
+      json.dumps({k: r1[k] for k in ("label", "root_pre_adr_0079", "root_counted", "n_turns", "n_closed",
+                                      "n_with_record", "n_turns_without_record", "last_turn_no")}))
+check("G · root-1: raíz {question, user_id, state, root_question_id} desde la fila raíz; last_turn = child-4 (run_no 7, turno 4, closed)",
+      r1["root_question"] == "¿sox9b en cartílago?" and r1["root_user_id"] == "emmanuel" and r1["root_state"] == "queued"
+      and r1["root_question_id"] == "q-1"
+      and r1["last_turn"] == {"run_id": "child-4", "run_no": 7, "turn_no": 4, "state": "closed"}, str(r1["last_turn"]))
+check("G · root-1: authors ordenados ['emmanuel','martin'], origins {'smoke':3,'production':1}, states {'queued':2,'closed':2} "
+      "(agregación en Python sobre la consulta ligera, sin group_concat)",
+      r1["authors"] == ["emmanuel", "martin"] and r1["origins"] == {"smoke": 3, "production": 1}
+      and r1["states"] == {"queued": 2, "closed": 2}, json.dumps([r1["authors"], r1["origins"], r1["states"]]))
+check("G · root-1: first/last_created_at son ISO con zona (+00:00) y first <= last",
+      isinstance(r1["first_created_at"], str) and r1["first_created_at"].endswith("+00:00")
+      and r1["first_created_at"] <= r1["last_created_at"], f"{r1['first_created_at']} .. {r1['last_created_at']}")
+rv = ix["threads"][2]
+check("G · old-closed (raíz VIRTUAL): root_pre_adr_0079 true, root_counted false, label T-1, n_turns 2 (1 contado + la raíz virtual), "
+      "n_closed 1 (la raíz cerrada), n_with_record 1, n_turns_without_record 1, last_turn virt-child",
+      rv["root_pre_adr_0079"] is True and rv["root_counted"] is False and rv["label"] == "T-1"
+      and rv["root_run_id"] == "old-closed" and rv["n_turns"] == 2 and rv["n_closed"] == 1
+      and rv["n_with_record"] == 1 and rv["n_turns_without_record"] == 1 and rv["last_turn_no"] == 2
+      and rv["last_turn"]["run_id"] == "virt-child",
+      json.dumps({k: rv[k] for k in ("root_pre_adr_0079", "root_counted", "label", "n_turns", "n_closed",
+                                      "n_with_record", "n_turns_without_record", "last_turn_no")}))
+check("G · old-closed: la raíz virtual entra a authors/origins/states — authors ['emmanuel','martin'], origins "
+      "{'smoke':1,'unknown-pre-adr-0079':1} (origin NULL etiquetado, no rellenado), states {'closed':1,'queued':1}; "
+      "first_created_at = el de la raíz (2026-09-01T10:00)",
+      rv["authors"] == ["emmanuel", "martin"] and rv["origins"] == {"smoke": 1, db.ORIGIN_UNKNOWN_LABEL: 1}
+      and rv["states"] == {"closed": 1, "queued": 1} and rv["first_created_at"].startswith("2026-09-01T10:00:00")
+      and rv["root_state"] == "closed" and rv["root_question"] == "vieja cerrada" and rv["root_question_id"] is None,
+      json.dumps([rv["authors"], rv["origins"], rv["states"], rv["first_created_at"]]))
+r9 = ix["threads"][0]
+check("G · root-9: hilo de un solo turno — n_turns 1, label T-8, authors ['martin'], last_turn = la raíz misma",
+      r9["n_turns"] == 1 and r9["label"] == "T-8" and r9["authors"] == ["martin"] and r9["origins"] == {"smoke": 1}
+      and r9["last_turn"]["run_id"] == "root-9" and r9["root_counted"] is True)
+
+# paridad con la OTRA puerta: app.get_thread (misma verdad por dos puertas) — se importa aquí, con la máscara puesta
+import app as app_mod  # noqa: E402
+_tok = "Bearer " + db.create_session("emmanuel")["token"]
+_PARIDAD = ("root_run_id", "root_run_no", "label", "root_pre_adr_0079", "n_turns", "n_closed", "n_turns_without_record",
+            "authors", "origins", "root_question_id")
+_dif = []
+for f in ix["threads"]:
+    gt = app_mod.get_thread(f["thread_id"], authorization=_tok)
+    for k in _PARIDAD:
+        if f[k] != gt[k]:
+            _dif.append((f["thread_id"], k, f[k], gt[k]))
+check("G · PARIDAD threads_index == app.get_thread en {root_run_id, root_run_no, label, root_pre_adr_0079, n_turns, n_closed, "
+      "n_turns_without_record, authors, origins, root_question_id} para los 3 hilos (incluida la raíz virtual +1)",
+      not _dif, str(_dif))
+
+# cursor exclusivo y has_more medido con limit+1
+p1 = db.threads_index(limit=1)
+p2 = db.threads_index(limit=1, after=p1["next_after"])
+p3 = db.threads_index(limit=1, after=p2["next_after"])
+p4 = db.threads_index(after=1)
+check("G · limit=1: [root-9], has_more true (medido con limit+1), next_after 8; after=8 → [root-1], next_after 4; "
+      "after=4 → [old-closed], has_more false, next_after null; after=1 → vacío declarado (n 0) con n_threads_total 3",
+      [f["thread_id"] for f in p1["threads"]] == ["root-9"] and p1["has_more"] is True and p1["next_after"] == 8
+      and [f["thread_id"] for f in p2["threads"]] == ["root-1"] and p2["has_more"] is True and p2["next_after"] == 4
+      and p2["after"] == 8
+      and [f["thread_id"] for f in p3["threads"]] == ["old-closed"] and p3["has_more"] is False and p3["next_after"] is None
+      and p4["n"] == 0 and p4["threads"] == [] and p4["has_more"] is False and p4["n_threads_total"] == 3,
+      f"p1={[f['thread_id'] for f in p1['threads']]}/{p1['next_after']} p2={[f['thread_id'] for f in p2['threads']]}/{p2['next_after']} "
+      f"p3={[f['thread_id'] for f in p3['threads']]} p4.n={p4['n']}")
+check("G · limit=2 → has_more true y next_after 4; limit=3 → has_more false (limit+1 medido, jamás estimado)",
+      db.threads_index(limit=2)["has_more"] is True and db.threads_index(limit=2)["next_after"] == 4
+      and db.threads_index(limit=3)["has_more"] is False)
+check("G · el tope manda y se declara: limit=500 → limit 50, limit_cap 50; limit=None → 50",
+      db.threads_index(limit=500)["limit"] == 50 and db.threads_index(limit=None)["limit"] == 50)
+
+
+def _raises(fn, exc):
+    try:
+        fn()
+        return False
+    except exc:
+        return True
+
+
+check("G · errores tipados: limit 0 / -1 / '5' → ValueError; after '8' / True / 1.5 → ValueError (la puerta los vuelve 400/422)",
+      _raises(lambda: db.threads_index(limit=0), ValueError) and _raises(lambda: db.threads_index(limit=-1), ValueError)
+      and _raises(lambda: db.threads_index(limit="5"), ValueError)
+      and _raises(lambda: db.threads_index(after="8"), ValueError) and _raises(lambda: db.threads_index(after=True), ValueError)
+      and _raises(lambda: db.threads_index(after=1.5), ValueError))
+# mine: ≥ 1 turno del usuario — la raíz virtual del usuario cuenta
+mm = db.threads_index(user_id="martin")
+me = db.threads_index(user_id="emmanuel")
+mn = db.threads_index(user_id="natalia")
+check("G · mine=martin: [root-9 (raíz suya), root-1 (child-2 suyo), old-closed (virt-child suyo)], n_threads_total 3, mine true; "
+      "natalia (sin turnos): 0 hilos, total 0, mine true",
+      [f["thread_id"] for f in mm["threads"]] == ["root-9", "root-1", "old-closed"] and mm["n_threads_total"] == 3
+      and mm["mine"] is True and mn["n"] == 0 and mn["n_threads_total"] == 0 and mn["mine"] is True,
+      f"martin={[f['thread_id'] for f in mm['threads']]} natalia.n={mn['n']}")
+check("G · mine=emmanuel: [root-1, old-closed] — old-closed entra por la RAÍZ VIRTUAL (root.user_id), no por un turno del grupo",
+      [f["thread_id"] for f in me["threads"]] == ["root-1", "old-closed"] and me["n_threads_total"] == 2,
+      str([f["thread_id"] for f in me["threads"]]))
+# root_question truncada a 120 (una raíz nueva con 200 chars: queda primera en el orden)
+db.create_run("root-long", "natalia", "¿" + "x" * 199, [], thread_id="root-long", turn_no=1, turn_kind="root", origin="smoke")
+rl = db.threads_index(limit=1)["threads"][0]
+check("G · root_question se recorta a ROOT_QUESTION_MAX (120) y la raíz nueva (run_no 10) encabeza el orden",
+      rl["thread_id"] == "root-long" and len(rl["root_question"]) == 120 == db.ROOT_QUESTION_MAX and rl["root_run_no"] == 10
+      and db.threads_index()["n_threads_total"] == 4, f"len={len(rl['root_question'])} run_no={rl['root_run_no']}")
+# SQL compilado para postgresql: dialecto neutral (declarado: NO se mide la dependencia funcional del GROUP BY)
+_q, _root = db._threads_index_query("u", 5)
+sql_g = str(_q.compile(dialect=_pg))
+sql_light = str(db._threads_index_light_query(["a", "b"]).compile(dialect=_pg))
+_SQLITE_ONLY = ("group_concat", "ifnull(", "julianday", "strftime", "datetime(", "||")
+check("G · SQL (postgresql) de threads_index: 'GROUP BY runs.thread_id, root.run_id' (PK del alias: dependencia funcional, que este "
+      "gate NO mide — G7/LG8 en Postgres), LEFT OUTER JOIN, WHERE thread_id IS NOT NULL, cursor 'root.run_no <', "
+      "sin funciones exclusivas de SQLite; la consulta ligera compila sin blobs",
+      "GROUP BY runs.thread_id, root.run_id" in sql_g and _JOIN in sql_g and "runs.thread_id IS NOT NULL" in sql_g
+      and "root.run_no <" in sql_g and "root.user_id =" in sql_g
+      and not any(s in sql_g.lower() for s in _SQLITE_ONLY) and not any(s in sql_light.lower() for s in _SQLITE_ONLY)
+      and "frozen_record_json" not in sql_light and "bundle_json" not in sql_light and "thread_context_json" not in sql_light
+      and "count(runs.frozen_record_json)" in sql_g,
+      sql_g[:200])
+check("G · el NULLS LAST se emula con CASE (una definición SQLite/Postgres) y la consulta de la página compila en ambos dialectos",
+      "ORDER BY CASE WHEN (root.run_no IS NULL) THEN 1 ELSE 0 END, root.run_no DESC" in str(
+          _q.order_by(db.case((_root.c.run_no.is_(None), 1), else_=0), _root.c.run_no.desc())
+          .compile(dialect=_pg, compile_kwargs={"literal_binds": True}))
+      and "NULLS" not in sql_g and str(_q.compile(dialect=db.engine().dialect)))
 
 n_ok = sum(CHECKS)
 print(f"\n== {n_ok}/{len(CHECKS)} PASS ==")

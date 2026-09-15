@@ -10,7 +10,7 @@ source-of-truth, exercising the deployed stack end-to-end:
       INCLUDING a negated query for contradictory evidence (closes gp-2026-06-10).
 
 Spend (authorized 2026-06-13): resolve = free/local; queries + the embedder probe call
-OpenAI text-embedding-3-small (~5 embeds, fractions of a cent). Each query response is
+OpenAI text-embedding-3-small (~5 embeds, fractions of a cent). Each query response is  # models-literal-doc
 cached raw to mcp_cache/ per CLAUDE.md §6 cache discipline.
 
 Run: ./.venv/Scripts/python.exe analysis/scripts/phase1_minimal_set_reground.py

@@ -6,6 +6,18 @@
       "value": "openai text-embedding-3-small (1536-dim)",
       "changed_at": "2026-06-12",
       "source": "ADR-0021 (hosted deployment: Neo4j vector index doc_embeddings, 1536-dim, OpenAI embeddings); hard-pinned since by ADR-0039/0040 (EMBED_MODEL=openai whenever NEO4J_URI is set)"
+    },
+    {
+      "field": "model_generation",
+      "value": "g2-2026-09",
+      "changed_at": "<pendiente: fecha Accepted>",
+      "source": "ADR-0081 (efectivo al redeploy; la fecha MEDIDA vive en la tabla config_history — changed_by 'system:boot-diff'). Entrada ATESTIGUADA escrita por S6 el 2026-09-15 con el ADR en Proposed; changed_at se fija cuando pase a Accepted."
+    },
+    {
+      "field": "budget_approval",
+      "value": "<pendiente E3>",
+      "changed_at": "<pendiente: fecha Accepted>",
+      "source": "Emmanuel en chat <fecha> (brief v3 R6/§190: ADR-0081 registra la aprobación presupuestal explícita). Placeholder DECLARADO hasta la decisión E3 (texto literal de Emmanuel); no es medición ni afirmación."
     }
   ]
 }

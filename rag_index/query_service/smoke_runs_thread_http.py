@@ -23,6 +23,12 @@ gate VE los campos por el mismo camino que la webapp):
     con skipped_reason 'parent-identity-invalid'; padre failed sin registro -> previous_answer /
     previous_audit null-declarados
   · POST /runs/plan con parent_run_id: el planner recibe el snapshot (thread_context_passed)
+  · ADR-0081 (G) GET /threads?mine=&limit=&after= — el ÍNDICE de investigaciones: 401/200/400/422, sobre exacto,
+    `label`/`root_run_no`/`n_turns` IGUALES a GET /threads/{id} (misma verdad por dos puertas), raíz virtual
+    (+1, root_counted false), orden root_run_no DESC, paginación con cursor exclusivo y has_more medido, tope
+    declarado, `mine`, n_threads_total y n_runs_without_thread del SERVIDOR, costs 'not-aggregated'
+  · ADR-0081 (F) `root_run_no` en la VISTA (POST /runs, lista, detalle): raíz == run_no, hijo == run_no de la
+    raíz, hijo de raíz virtual == run_no del padre pre-ADR, corrida pre-ADR null DECLARADO
 
 Lo que NO cubre (vive en smoke_run_pipeline.py, el integrador): frozen.thread / thread_context /
 precedent_citations / episode_axes / origin al CONGELAR, el kill-switch WITT_THREAD_CONTEXT=0 y la
@@ -119,6 +125,10 @@ if not all(CHECKS):
     print("\nPREFLIGHT INCOMPLETO: falta(n) interfaz(ces) de otra rebanada — el resto del gate no puede "
           "correr sobre el stack real y NO se simula (ADR-0079: lo ausente se declara).")
     _fin()
+# ADR-0081 (S4) · S7: las interfaces del índice de investigaciones son dependencia DURA (S4 aterrizó): se MIDEN aquí y
+# la sección 13 las da por hechas — se retiraron las ramas "S4 pendiente" de la obra (nada se simula con un stub).
+check("ADR-0081 · S4: db.threads_index(user_id, limit, after) y db.count_runs_without_thread existen (dependencia dura)",
+      callable(getattr(db, "threads_index", None)) and callable(getattr(db, "count_runs_without_thread", None)))
 
 # ---- datos --------------------------------------------------------------------------------------------
 db.init_db()
@@ -440,5 +450,116 @@ check("POST /runs/plan con padre terminado: 200, thread_context_passed true, el 
 pl0 = client.post("/runs/plan", json={"question": "¿raíz nueva?", "entities": []}, headers=NAT).json()
 check("POST /runs/plan sin padre: thread_context_skipped_reason 'root-turn' y el plan NO lo declara",
       pl0.get("thread_context_skipped_reason") == "root-turn" and pl0["plan"].get("thread_context_declared") is False)
+
+# ---- 13. ADR-0081 (G): GET /threads — el índice de investigaciones; (F): root_run_no en las vistas ---------
+OLD_NO = db.get_run("old-run")["run_no"]
+check("ADR-0081 (G): GET /threads sin token -> 401", client.get("/threads").status_code == 401)
+check("ADR-0081 (G): GET /threads?limit=0 -> 400 · ?after=abc -> 422 (tipado) · ?limit=-3 -> 400",
+      client.get("/threads?limit=0", headers=NAT).status_code == 400
+      and client.get("/threads?after=abc", headers=NAT).status_code == 422
+      and client.get("/threads?limit=-3", headers=NAT).status_code == 400)
+ti = client.get("/threads", headers=NAT)
+check("ADR-0081 (G): GET /threads -> 200", ti.status_code == 200, ti.text[:200])
+TI = ti.json() if ti.status_code == 200 else {}
+SOBRE = {"threads", "n", "limit", "limit_cap", "after", "has_more", "next_after", "order", "cursor_rule", "mine",
+         "mine_rule", "n_turns_rule", "n_threads_total", "n_runs_without_thread", "n_runs_without_thread_rule", "costs"}
+FILA = {"thread_id", "root_run_id", "root_run_no", "label", "root_pre_adr_0079", "root_counted", "root_question",
+        "root_user_id", "root_state", "root_question_id", "n_turns", "n_closed", "n_with_record",
+        "n_turns_without_record", "last_turn_no", "first_created_at", "last_created_at", "last_turn", "authors",
+        "origins", "states"}
+hilos = TI.get("threads") or []
+por_hilo = {h["thread_id"]: h for h in hilos}
+check("ADR-0081 (G): sobre EXACTO (16 llaves) y cada fila con las 21 llaves de (G); limit 50 = limit_cap (sin limit), "
+      "after null, mine false, costs 'not-aggregated (GET /threads/{id})'",
+      set(TI) == SOBRE and hilos and all(set(h) == FILA for h in hilos)
+      and TI.get("limit") == 50 and TI.get("limit_cap") == 50 and TI.get("after") is None and TI.get("mine") is False
+      and TI.get("costs") == "not-aggregated (GET /threads/{id})",
+      f"sobre-extra={sorted(set(TI) ^ SOBRE)} fila-extra={sorted(set(hilos[0]) ^ FILA) if hilos else None}")
+check("ADR-0081 (G): 4 investigaciones (raíz, old-run virtual, identidad rota, fallida) = n == n_threads_total; "
+      "n_runs_without_thread 1 (sólo old-run, pre-ADR) — denominadores del SERVIDOR",
+      TI.get("n") == 4 and TI.get("n_threads_total") == 4 and TI.get("n_runs_without_thread") == 1
+      and set(por_hilo) == {ROOT, "old-run", BAD, DEAD},
+      f"n={TI.get('n')} total={TI.get('n_threads_total')} sin_hilo={TI.get('n_runs_without_thread')} ids={sorted(por_hilo)}")
+iguales, detalle_dif = True, []
+for h in hilos:
+    d = client.get(f"/threads/{h['thread_id']}", headers=NAT).json()
+    for k in ("label", "root_run_no", "n_turns", "n_closed", "root_run_id", "root_pre_adr_0079", "n_turns_without_record"):
+        if h.get(k) != d.get(k):
+            iguales = False
+            detalle_dif.append((h["thread_id"][:8], k, h.get(k), d.get(k)))
+    if sorted(h.get("authors") or []) != d.get("authors") or h.get("origins") != d.get("origins"):
+        iguales = False
+        detalle_dif.append((h["thread_id"][:8], "authors/origins", h.get("authors"), d.get("authors")))
+check("ADR-0081 (G): MISMA VERDAD POR DOS PUERTAS — label, root_run_no, root_run_id, n_turns, n_closed, "
+      "n_turns_without_record, root_pre_adr_0079, authors y origins de CADA fila == GET /threads/{id}",
+      bool(hilos) and iguales, f"{detalle_dif}")
+nos = [h["root_run_no"] for h in hilos]
+check("ADR-0081 (G): orden root_run_no DESC NULLS LAST (aquí ninguno null: la raíz virtual toma el run_no del padre por el JOIN)",
+      bool(nos) and all(n is not None for n in nos) and nos == sorted(nos, reverse=True)
+      and TI.get("order") == "root_run_no DESC NULLS LAST, thread_id ASC", f"{nos}")
+hv = por_hilo.get("old-run") or {}
+check("ADR-0081 (G): la raíz VIRTUAL (old-run): root_pre_adr_0079 true, root_counted false, n_turns 2 (+1 como get_thread), "
+      "label 'T-<run_no del padre>', root_run_id 'old-run', root_state closed, states {closed 1, queued 1}",
+      hv.get("root_pre_adr_0079") is True and hv.get("root_counted") is False and hv.get("n_turns") == 2
+      and hv.get("label") == f"T-{OLD_NO}" and hv.get("root_run_no") == OLD_NO and hv.get("root_run_id") == "old-run"
+      and hv.get("root_state") == "closed" and hv.get("states") == {"closed": 1, "queued": 1},
+      f"{ {k: hv.get(k) for k in ('root_pre_adr_0079', 'root_counted', 'n_turns', 'label', 'root_run_no', 'states')} }")
+hr = por_hilo.get(ROOT) or {}
+check("ADR-0081 (G): la raíz REAL: root_counted true, root_pre_adr_0079 false, n_turns 5, n_closed 5, n_with_record 5, "
+      "n_turns_without_record 0, last_turn_no 5, last_turn {run_id C4, turn_no 5, state closed}, authors [emmanuel, natalia], "
+      "origins {smoke: 5}, root_user_id natalia, root_question <= 120",
+      hr.get("root_counted") is True and hr.get("root_pre_adr_0079") is False and hr.get("n_turns") == 5
+      and hr.get("n_closed") == 5 and hr.get("n_with_record") == 5 and hr.get("n_turns_without_record") == 0
+      and hr.get("last_turn_no") == 5 and (hr.get("last_turn") or {}).get("run_id") == C4
+      and (hr.get("last_turn") or {}).get("turn_no") == 5 and (hr.get("last_turn") or {}).get("state") == "closed"
+      and hr.get("authors") == ["emmanuel", "natalia"] and hr.get("origins") == {"smoke": 5}
+      and hr.get("root_user_id") == "natalia" and len(hr.get("root_question") or "") <= 120
+      and hr.get("first_created_at") <= hr.get("last_created_at"),
+      f"{ {k: hr.get(k) for k in ('root_counted', 'n_turns', 'n_closed', 'n_with_record', 'last_turn_no', 'last_turn', 'authors', 'origins')} }")
+p1 = client.get("/threads?limit=1", headers=NAT).json()
+check("ADR-0081 (G): paginación limit=1 → n 1, has_more true (medido con limit+1), next_after == root_run_no servido",
+      p1.get("n") == 1 and p1.get("has_more") is True and p1.get("next_after") == (p1.get("threads") or [{}])[0].get("root_run_no")
+      and p1.get("limit") == 1, f"n={p1.get('n')} has_more={p1.get('has_more')} next_after={p1.get('next_after')}")
+vistos, cursor, paginas = [], None, 0
+while paginas < 10:
+    pg = client.get("/threads?limit=1" + (f"&after={cursor}" if cursor is not None else ""), headers=NAT).json()
+    vistos.extend(h["thread_id"] for h in pg.get("threads") or [])
+    paginas += 1
+    if not pg.get("has_more"):
+        break
+    cursor = pg.get("next_after")
+check("ADR-0081 (G): recorrer con cursor EXCLUSIVO (after = next_after) da los 4 hilos sin repetir en 4 páginas y termina con "
+      "has_more false / next_after null",
+      paginas == 4 and len(vistos) == 4 and len(set(vistos)) == 4 and set(vistos) == set(por_hilo)
+      and pg.get("has_more") is False and pg.get("next_after") is None,
+      f"paginas={paginas} vistos={[v[:8] for v in vistos]}")
+p2 = client.get(f"/threads?after={nos[0]}", headers=NAT).json() if nos else {}
+check("ADR-0081 (G): after=<root_run_no mayor> excluye ese hilo (cursor exclusivo) y devuelve los otros 3 con after eco",
+      p2.get("n") == 3 and nos[0] not in [h["root_run_no"] for h in p2.get("threads") or []] and p2.get("after") == nos[0]
+      if nos else False, f"n={p2.get('n')} after={p2.get('after')}")
+check("ADR-0081 (G): limit=500 → limit 50 (el tope manda y se declara: limit_cap 50)",
+      client.get("/threads?limit=500", headers=NAT).json().get("limit") == 50)
+me = client.get("/threads?mine=true", headers=EMM).json()
+mn = client.get("/threads?mine=true", headers=NAT).json()
+check("ADR-0081 (G): mine=true (emmanuel: sólo el turno C3 en la raíz) → [ROOT], mine true, n_threads_total 1 (denominador del "
+      "MISMO filtro); mine=true (natalia) → los 4; mine_rule declarada",
+      [h["thread_id"] for h in me.get("threads") or []] == [ROOT] and me.get("mine") is True and me.get("n_threads_total") == 1
+      and mn.get("n") == 4 and mn.get("n_threads_total") == 4 and "mine" in (me.get("mine_rule") or ""),
+      f"emm={[h['thread_id'][:8] for h in me.get('threads') or []]} total={me.get('n_threads_total')} nat_n={mn.get('n')}")
+
+# (F) root_run_no en las VISTAS: POST /runs, lista, detalle — misma consulta, misma llave
+det_c1 = client.get(f"/runs/{C1}", headers=NAT).json()
+lst = {row["run_id"]: row for row in client.get("/runs", headers=NAT).json()["runs"]}
+old_v = client.get("/runs/old-run", headers=NAT).json()
+hijo_old = client.get(f"/runs/{h_old['run_id']}", headers=NAT).json()
+check("ADR-0081 (F): root_run_no en la VISTA — POST /runs raíz == su run_no; hijo C1: detalle == lista == run_no de la raíz; "
+      "hijo de raíz virtual == run_no del padre pre-ADR (el JOIN lo encuentra); la corrida pre-ADR: llave PRESENTE y null declarado",
+      raiz.get("root_run_no") == raiz["run_no"] and det_c1.get("root_run_no") == raiz["run_no"]
+      and lst.get(C1, {}).get("root_run_no") == raiz["run_no"] and h_old.get("root_run_no") == OLD_NO
+      and hijo_old.get("root_run_no") == OLD_NO and "root_run_no" in old_v and old_v.get("root_run_no") is None,
+      f"raiz={raiz.get('root_run_no')}/{raiz['run_no']} c1={det_c1.get('root_run_no')} lista={lst.get(C1, {}).get('root_run_no')} "
+      f"h_old={h_old.get('root_run_no')}/{OLD_NO} old={old_v.get('root_run_no')!r}")
+check("ADR-0081 (F): root_run_no de la vista == root_run_no de GET /threads/{id} para la raíz, el hijo y el hijo de la virtual",
+      det_c1.get("root_run_no") == T.get("root_run_no") == raiz["run_no"] and hijo_old.get("root_run_no") == t_old.json().get("root_run_no"))
 
 _fin()

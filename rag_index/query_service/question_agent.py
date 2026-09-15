@@ -25,16 +25,31 @@ NO-HANG (§6): el agente puede fallar sin tumbar nada. Un borrador errored SIGUE
 borrador — declara que la redacción no se pudo hacer, que es distinto de no haberla intentado
 (mismo principio que judgment.state=errored del planner).
 """
+import inspect
 import json
+import sys
+from pathlib import Path
 
 # composite_auditor se importa PEREZOSAMENTE dentro de _default_drafter: sólo la llamada real al
 # modelo lo necesita, y sólo es importable después de que `server` ajusta el sys.path. Así este
 # módulo se puede importar (y su spec leer) sin arrastrar la pila del modelo — que es lo que
 # permite que los gates lo carguen antes que la app.
+# ADR-0081 (A): la tabla de modelos (lib/models.py, stdlib puro, sin red ni BD) SÍ se importa aquí en
+# duro — es la única verdad de qué modelo pide este rol. Se garantiza la ruta de paquete igual que
+# runs.py (analysis/scripts en sys.path) para que los gates que cargan este módulo antes que la app
+# sigan pudiendo hacerlo.
+_ROOT = Path(__file__).resolve().parents[2]
+if str(_ROOT / "analysis" / "scripts") not in sys.path:
+    sys.path.insert(0, str(_ROOT / "analysis" / "scripts"))
+from lib import models  # noqa: E402
 
 # El modelo: misma política best-tier que la síntesis y el planner (directiva 2026-06-13) —
 # jamás se degrada para ahorrar. El fundador pidió Opus explícitamente para este rol.
-QUESTION_MODEL = "claude-opus-4-8"
+# ADR-0081: el rol `question_agent` se resuelve EN LA LLAMADA (models.resolve_role: tabla + env
+# WITT_MODEL_QUESTION / WITT_MODEL_GENERATION, con fuente). QUESTION_MODEL se CONSERVA como alias
+# DERIVADO en import (app.question_spec lo lee); ningún literal de modelo vive aquí.
+QUESTION_ROLE = "question_agent"
+QUESTION_MODEL = models.resolve_role(QUESTION_ROLE)["model"]
 
 # v1 (2026-09-04): las cinco reglas de abajo. Al cambiarlas SUBE esta versión — los borradores
 # viejos conservan la suya y el tablero de calibración compara versión contra versión.
@@ -171,9 +186,28 @@ QUESTION_TOOL = {
 }
 
 
+def _effort_for(model):
+    """(effort | None, fuente) — WITT_ANTHROPIC_EFFORT como output_config.effort SÓLO a modelos con
+    thinking_default 'adaptive' en la tabla (ADR-0081 C.4); vacío → no se envía (default de la API)."""
+    val, src = models.env_value("WITT_ANTHROPIC_EFFORT")
+    if val is None:
+        return None, src
+    row = models.MODELS.get(model)
+    if row is None:
+        return None, f"not-sent (unknown-to-table; {src}={val})"
+    if row["thinking_default"] != "adaptive":
+        return None, f"not-sent (thinking_default {row['thinking_default']}; {src}={val})"
+    return val, src
+
+
 def _default_drafter(note: dict):
     """UNA llamada al modelo con la spec como system prompt. Inyectable: los gates corren con un
-    redactor falso y CERO gasto (mismo patrón que runs._default_planner)."""
+    redactor falso y CERO gasto (mismo patrón que runs._default_planner).
+
+    ADR-0081 (B): devuelve (tool_input, usage, meta) con meta = {model (pedido, resuelto por tabla/env),
+    model_source, model_reported (lo que la API dijo; None con un caller anterior a C), relation,
+    generation, effort, effort_source}. El tope es el de la generación (g2 4000 / g1 1200) y effort
+    viaja sólo si el caller del árbol acepta `effort=` (inspección de firma — un fake viejo sigue válido)."""
     # perezoso Y con la ruta de PAQUETE: composite_auditor vive en analysis/scripts/lib/, y sólo
     # resuelve como `from lib import ...` después de que runs.py mete analysis/scripts en el
     # sys.path. Un `import composite_auditor` pelón falla SIEMPRE — y el §6 no-hang lo convertiría
@@ -191,8 +225,48 @@ def _default_drafter(note: dict):
         "entities_cited": note.get("entities", []),
         "niches_cited": note.get("niches", []),
     }, ensure_ascii=False)
-    return composite_auditor._anthropic_tool_call(
-        QUESTION_MODEL, system, user_text, tool=QUESTION_TOOL, max_tokens=1200)
+    role = models.resolve_role(QUESTION_ROLE)
+    # corrector ADR-0081 (A): un id de familia DESCONOCIDA (WITT_MODEL_QUESTION sin prefijo que case) NO se manda a la
+    # Messages API "por default" — misma regla que runs._anthropic_call y composite_auditor._default_caller: se erra en voz
+    # alta con kind 'unknown-family' ANTES de construir la petición (cero llamadas; draft_question lo declara errored).
+    if models.family_of(role["model"])[0] == models.FAMILY_UNKNOWN:
+        raise composite_auditor.CallerError(
+            "unknown-family",
+            f"unknown-family: {role['model']!r} en rol question_agent — la tabla no lo conoce y el prefijo no casa; no se "
+            f"llama a Anthropic (ADR-0081 A, corrector)")
+    max_tokens = (role["max_tokens"] if role.get("max_tokens") is not None
+                  else models.GENERATIONS[role["generation"]]["max_tokens"][QUESTION_ROLE])
+    effort, effort_source = _effort_for(role["model"])
+    fn = composite_auditor._anthropic_tool_call
+    try:
+        params = inspect.signature(fn).parameters
+        varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    except (TypeError, ValueError):
+        params, varkw = {}, False
+    kwargs = {"tool": QUESTION_TOOL, "max_tokens": max_tokens}
+    if effort is not None and ("effort" in params or varkw):
+        kwargs["effort"] = effort
+    if "return_meta" in params or varkw:
+        kwargs["return_meta"] = True
+    res = fn(role["model"], system, user_text, **kwargs)
+    if isinstance(res, tuple) and len(res) >= 3 and isinstance(res[2], dict):
+        out, usage, api_meta = res[0], res[1], res[2]
+    else:
+        out, usage = res
+        api_meta = {}
+    reported = api_meta.get("model_reported")
+    return out, usage, {"model": role["model"], "model_source": role["source"], "model_reported": reported,
+                        "relation": models.relation(role["model"], reported), "generation": role["generation"],
+                        "effort": effort, "effort_source": effort_source}
+
+
+def _drafter_result(res):
+    """(out, usage, meta) de lo que devolvió el redactor: 3-tupla del wrapper real, o (out, usage) de un
+    redactor inyectado con la firma vieja (meta {} → model_reported ausente: no se afirma nada)."""
+    if isinstance(res, tuple) and len(res) >= 3 and isinstance(res[2], dict):
+        return res[0], res[1], dict(res[2])
+    out, usage = res
+    return out, usage, {}
 
 
 def draft_question(note: dict, drafter=None) -> tuple[dict, dict | None]:
@@ -201,21 +275,35 @@ def draft_question(note: dict, drafter=None) -> tuple[dict, dict | None]:
     §6 no-hang: si el modelo falla, se devuelve un borrador `errored` con la causa VERBATIM en
     vez de propagar la excepción — declarar que la redacción no se pudo hacer es distinto de no
     haberla intentado, y el apunte no se pierde por eso.
+
+    ADR-0081 (B/J): el borrador lleva `model` (lo PEDIDO: rol resuelto en la llamada), `model_source`
+    y `generation`; y, SÓLO cuando el redactor devolvió meta (wrapper real), `model_reported` (lo que
+    la API dijo) + `relation` — un redactor stub no afirma nada sobre lo reportado (llave ausente).
     """
     drafter = drafter or _default_drafter
+    role = models.resolve_role(QUESTION_ROLE)
     base = {
         "spec_version": QUESTION_SPEC_VERSION,
-        "model": QUESTION_MODEL,
+        "model": role["model"],
+        "model_source": role["source"],
+        "generation": role["generation"],
         "spec": QUESTION_SPEC,          # verbatim: la UI muestra la MISMA regla que el agente obedeció
         "source_note_id": note.get("note_id"),
     }
     try:
-        out, usage = drafter(note)
+        out, usage, meta = _drafter_result(drafter(note))
     except Exception as e:
         return {**base, "state": "errored", "error": f"{type(e).__name__}: {e}",
                 "question": "", "entities": [], "scope": "", "fits_one_run": None,
                 "fits_rationale": "", "sibling_questions": [], "assumptions": [],
                 "unsupported": []}, None
+    if "model_reported" in meta:
+        # el wrapper real midió lo que la API dijo: viaja con su relación (exact | prefix | different | not-reported)
+        base["model_reported"] = meta.get("model_reported")
+        base["relation"] = meta.get("relation") or models.relation(role["model"], meta.get("model_reported"))
+        if meta.get("model") and meta["model"] != role["model"]:
+            # el redactor pidió otro modelo que el rol resuelto aquí (inyección): se DECLARA, no se corrige
+            base["model_requested_by_drafter"] = meta["model"]
 
     pregunta = (out.get("question") or "").strip()
     if not pregunta:

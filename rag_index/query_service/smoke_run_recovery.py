@@ -19,6 +19,7 @@ Corre (con la máscara offline):
 (si WITT_BACKEND_DB_URL no viene, se fija a ese archivo; el archivo previo se borra al arrancar.)
 """
 import datetime
+import json
 import os
 import sys
 import threading
@@ -49,7 +50,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import app  # noqa: E402
 import db  # noqa: E402
 import runs as runs_mod  # noqa: E402
-from lib import answer_pipeline, rag_backend  # noqa: E402
+from lib import answer_pipeline, models, rag_backend  # noqa: E402
 from lib.rag_backend import Hit, HitList  # noqa: E402
 
 CHECKS = []
@@ -193,13 +194,22 @@ check("_reap_once tolera una BD rota (§6 no-hang): devuelve [] sin propagar",
       (db.reap_stale_running))
 
 # ---- 4. precios: sonnet-5 corregido, consejo en tabla, modelos sin precio DECLARADOS ------------------
+# ADR-0081 (A): los ids se LEEN de la tabla (models.GENERATIONS / models.MODELS por status) — ningún literal de modelo
+# fuera de models.py (gate estático M.4 en smoke_models.py); los precios de runs son alias de models.prices().
 P = runs_mod.PRICES_PER_MTOK_USD
-check("precio de claude-sonnet-5 = (2.0, 10.0) (era (3.0, 15.0))", P["claude-sonnet-5"] == (2.0, 10.0))
-check("modelos del consejo en la tabla: opus-5, fable-5-1, gpt-6-astra, gpt-5.6-sol",
-      P.get("claude-opus-5") == (5.0, 25.0) and P.get("claude-fable-5-1") == (10.0, 50.0)
-      and P.get("gpt-6-astra") == (10.0, 50.0) and P.get("gpt-5.6-sol") == (4.0, 20.0))
-check("PRICES_AS_OF = '2026-09'", runs_mod.PRICES_AS_OF == "2026-09")
-pases_ok = [("pass1", {"model": "claude-opus-4-8", "usage": {"input_tokens": 1000, "output_tokens": 100}})]
+_g1d, _g2d = models.GENERATIONS["g1-2026-08"]["defaults"], models.GENERATIONS["g2-2026-09"]["defaults"]
+_by_status = lambda s: sorted(m for m, r in models.MODELS.items() if r["status"] == s)   # noqa: E731
+check("precio del asiento overclaim (sonnet-5) = (2.0, 10.0) (era (3.0, 15.0))", P[_g1d["judge.overclaim"]] == (2.0, 10.0))
+check("modelos del consejo en la tabla (ids por status, sin literales): sintetizador g2 (active) 5/25 · excluded 10/50 · "
+      "candidate 10/50 · not-adopted 4/20; runs.PRICES_PER_MTOK_USD == models.prices() (alias, ADR-0081)",
+      P.get(_g2d["synthesizer"]) == (5.0, 25.0) and [P[m] for m in _by_status("excluded")] == [(10.0, 50.0)]
+      and [P[m] for m in _by_status("candidate")] == [(10.0, 50.0)]
+      and [P[m] for m in _by_status("not-adopted")] == [(4.0, 20.0)] and P == models.prices(),
+      json.dumps({"excluded": _by_status("excluded"), "candidate": _by_status("candidate"),
+                  "not-adopted": _by_status("not-adopted")}))
+check("PRICES_AS_OF = '2026-09' (alias de models.PRICES_AS_OF)",
+      runs_mod.PRICES_AS_OF == "2026-09" == models.PRICES_AS_OF)
+pases_ok = [("pass1", {"model": _g1d["synthesizer"], "usage": {"input_tokens": 1000, "output_tokens": 100}})]
 tu_ok = runs_mod._token_usage(pases_ok, {"panel": []}, 0)
 check("_token_usage con modelo conocido: cost_projection_complete=True, missing_price_models=[] y costo calculado",
       tu_ok["cost_projection_complete"] is True and tu_ok["missing_price_models"] == []
@@ -297,7 +307,8 @@ check("/usage: missing_price_models nombra a stub-synth, cost_projection_complet
       "stub-synth" in us["missing_price_models"] and us["cost_projection_complete"] is False
       and us["by_model"]["stub-synth"]["estimated_cost_usd"] is None
       and us["by_model"]["stub-synth"]["price_state"] == "missing"
-      and us["by_model"]["claude-opus-4-8"]["estimated_cost_usd"] > 0
+      # ADR-0081: el juez correctness de la generación EFECTIVA (models.resolve_role, no un literal) está cotizado
+      and us["by_model"][models.resolve_role("judge.correctness")["model"]]["estimated_cost_usd"] > 0
       and us["n_runs_cost_incomplete"] == 3 and "INCOMPLETE" in us["cost_class"],
       f"missing={us['missing_price_models']} incompletas={us['n_runs_cost_incomplete']}")
 

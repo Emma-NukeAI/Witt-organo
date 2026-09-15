@@ -13,6 +13,11 @@ frozen_record_json) JAMÁS se filtran al renglón.
 creación, viaja idéntico en lista y detalle, y el backfill numera por orden de creación a las
 que nacieron antes de la columna.
 
+2026-09-15 (ADR-0081 (F)): `root_run_no` NACE en la BD (JOIN a la raíz del hilo en db._list_select /
+db.get_run) y fluye por _run_view como passthrough: POST /runs == lista == detalle; la raíz vale su
+run_no, el hijo el run_no de la raíz, y una corrida pre-ADR-0079 (thread_id NULL) trae la llave con
+null DECLARADO — jamás rellenado. Los blobs siguen fuera del renglón.
+
 NO-SPEND: sin red, sin modelo. BD sqlite temporal fuera del repo.
 Uso:  python smoke_runs_list_http.py
 """
@@ -36,6 +41,8 @@ os.environ["NEO4J_URI"] = ""
 os.environ["RAG_BACKEND"] = "sparse"
 os.environ["OPENAI_API_KEY"] = ""
 os.environ["ANTHROPIC_API_KEY"] = ""
+os.environ["WITT_RUN_ORIGIN"] = "smoke"          # ADR-0079 (F): procedencia de las corridas encoladas aquí
+os.environ["WITT_ALLOW_RUNS_OFFLINE"] = "1"      # dev sparse siempre está OFFLINE (LOTE-01·A5 override)
 
 import db  # noqa: E402
 import app as app_mod  # noqa: E402
@@ -134,6 +141,35 @@ with db.engine().begin() as cx:
     numeros2 = dict(cx.execute(text("SELECT run_id, run_no FROM runs")).all())
 check("ADR-0076: _migrate es idempotente (una segunda pasada no renumera)",
       numeros2 == {"r1": 4, "r2": 5, "r3": 3}, f"numeros={numeros2}")
+
+# ---- ADR-0081 (F): root_run_no en la vista — lista == detalle == POST /runs; pre-ADR null declarado -----------
+f1b = client.get("/runs/r1", headers=AUTH).json()
+lst1 = {row["run_id"]: row for row in client.get("/runs", headers=AUTH).json()["runs"]}
+check("ADR-0081 (F): corrida pre-ADR (db.create_run directo, thread_id NULL): la llave root_run_no está PRESENTE con null "
+      "DECLARADO en lista y detalle (jamás rellenada con su run_no)",
+      "root_run_no" in f1b and f1b["root_run_no"] is None and "root_run_no" in lst1.get("r1", {})
+      and lst1["r1"]["root_run_no"] is None, f"det={f1b.get('root_run_no', 'AUSENTE')!r} lista={lst1.get('r1', {}).get('root_run_no', 'AUSENTE')!r}")
+rz = client.post("/runs", json={"question": "¿raíz ADR-0081?", "entities": ["osr1"]}, headers=AUTH)
+check("ADR-0081 (F): POST /runs raíz -> 200 y root_run_no == run_no (la raíz apunta a sí misma por el JOIN)",
+      rz.status_code == 200 and rz.json().get("root_run_no") == rz.json().get("run_no") is not None, rz.text[:160])
+RZ = rz.json()
+db.update_run(RZ["run_id"], state="closed")     # el padre debe ser terminal para apilar un turno (ADR-0079)
+hj = client.post("/runs", json={"question": "¿turno 2 sobre la raíz?", "entities": ["osr1"],
+                                 "parent_run_id": RZ["run_id"]}, headers=AUTH)
+HJ = hj.json()
+det_hj = client.get(f"/runs/{HJ.get('run_id', 'x')}", headers=AUTH).json()
+lst2 = {row["run_id"]: row for row in client.get("/runs", headers=AUTH).json()["runs"]}
+check("ADR-0081 (F): hijo (turn_no 2): root_run_no == run_no de la raíz en POST /runs, en el detalle y en la lista — "
+      "misma-vista (LOTE-01·A1) por construcción (misma consulta)",
+      hj.status_code == 200 and HJ.get("turn_no") == 2 and HJ.get("root_run_no") == RZ["run_no"]
+      and det_hj.get("root_run_no") == RZ["run_no"] and lst2.get(HJ.get("run_id"), {}).get("root_run_no") == RZ["run_no"]
+      and lst2.get(RZ["run_id"], {}).get("root_run_no") == RZ["run_no"],
+      f"post={HJ.get('root_run_no')} det={det_hj.get('root_run_no')} lista={lst2.get(HJ.get('run_id'), {}).get('root_run_no')} raiz={RZ['run_no']}")
+check("ADR-0081 (F): los blobs siguen fuera del renglón tras el JOIN (usage_json / plan_json / frozen_record_json / "
+      "thread_context_json / bundle_json) y no aparece ninguna columna cruda de la raíz salvo root_run_no",
+      all(k not in det_hj for k in ("plan_json", "frozen_record_json", "usage_json", "bundle_json", "thread_context_json"))
+      and not any(k.startswith("root_") and k not in ("root_run_no", "root_question_id") for k in det_hj),
+      f"{sorted(k for k in det_hj if k.startswith('root_'))}")
 
 n_pass = sum(CHECKS)
 print(f"\n{n_pass}/{len(CHECKS)} PASS")

@@ -425,7 +425,9 @@ check("(F) by_stage con stub SIN usage_elicitation: synthesize_pass1 = 100/50 (m
       and tu["by_stage"]["elicit_pass1"]["in"] is None
       and tu["by_stage"]["elicit_pass1"]["state"].startswith("not-separable")
       and tu["by_stage"]["search"]["in"] == 0 and "Layer 0" in tu["by_stage"]["search"]["note"]
-      and tu["by_stage"]["panel"] == {"in": 40, "out": 20}
+      # ADR-0081 (H): panel gana by_model {reviewer: {in, out}} — se compara in/out y que Σ by_model == panel
+      and {k: tu["by_stage"]["panel"][k] for k in ("in", "out")} == {"in": 40, "out": 20}
+      and sum(m["in"] for m in tu["by_stage"]["panel"]["by_model"].values()) == 40
       and tu["by_stage"]["plan"]["state"].startswith("plan-without-usage") and tu["by_stage"]["plan"]["in"] is None
       and tu["by_stage"]["elicit_pass2"]["state"] == "not-run"
       and "tokens" in tu["by_stage"]["embed"]
@@ -697,15 +699,18 @@ row, rec, ev = _run("elicit split", {**PLAN_RUN, "question": "elicit split"},
 tu = rec["token_usage"]
 judge_ev = _payloads(ev, "stage.audit.judge")
 check("(F) by_stage con usage_elicitation: synthesize_pass1 70/45 + elicit_pass1 30/5 (measured) = usage 100/50; "
-      "igual pass2; el evento stage.synthesize.pass1 lleva usage {in 70, out 45, model} y el elicit {in 30, out 5}; "
+      "igual pass2; el evento stage.synthesize.pass1 lleva usage {in 70, out 45, model} y el elicit {in 30, out 5, model null "
+      "DECLARADO: el stub no reporta elicitation_model y el del sintetizador JAMÁS se copia en su lugar — corrector ADR-0081}; "
       "_sum == by_model (200/100 síntesis + 50/25 panel con 5 llamadas) → True",
       tu["by_stage"]["synthesize_pass1"] == {"in": 70, "out": 45, "model": "stub-synth"}
-      and tu["by_stage"]["elicit_pass1"] == {"in": 30, "out": 5, "state": "measured", "model": "stub-synth"}
+      and tu["by_stage"]["elicit_pass1"] == {"in": 30, "out": 5, "state": "measured", "model": None}
       and tu["by_stage"]["synthesize_pass2"]["in"] == 70 and tu["by_stage"]["elicit_pass2"]["in"] == 30
       and _payloads(ev, "stage.synthesize.pass1")[0]["usage"] == {"in": 70, "out": 45, "model": "stub-synth"}
-      and _payloads(ev, "stage.confidence.elicit")[0]["usage"] == {"in": 30, "out": 5, "model": "stub-synth"}
+      and _payloads(ev, "stage.confidence.elicit")[0]["usage"] == {"in": 30, "out": 5, "model": None}
       and _payloads(ev, "stage.confidence.elicit")[0]["elicitation_state"] == "elicited"
-      and tu["by_stage"]["panel"] == {"in": 40, "out": 20}
+      # ADR-0081 (H): panel gana by_model {reviewer: {in, out}} — se compara in/out y que Σ by_model == panel
+      and {k: tu["by_stage"]["panel"][k] for k in ("in", "out")} == {"in": 40, "out": 20}
+      and sum(m["in"] for m in tu["by_stage"]["panel"]["by_model"].values()) == 40
       and tu["by_stage"]["_sum"]["in"] == tu["input_tokens"] == 240
       and tu["by_stage"]["_sum"]["out"] == tu["output_tokens"] == 120
       and tu["by_stage_sum_matches_by_model"] is True,

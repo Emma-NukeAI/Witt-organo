@@ -34,10 +34,11 @@ sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import competence  # noqa: E402  — ADR-0080: la compuerta de competencia (código puro; runs.py sólo la cablea)
+import config_ledger  # noqa: E402  — ADR-0081 (E/I): bitácora de configuración en corrida (S5; import en DURO desde S7)
 import db  # noqa: E402
 import niche_catalog  # noqa: E402
 import precedent  # noqa: E402  — ADR-0079: la serie de letras del precedente la produce precedent.py, no runs.py
-from lib import (agent_matrix, answer_pipeline, composite_auditor, reasoning_catalog,  # noqa: E402
+from lib import (agent_matrix, answer_pipeline, composite_auditor, models, reasoning_catalog,  # noqa: E402
                  resolve_id, verify_output)
 try:
     # ADR-0080 (C), rebanada C2: el harness de búsqueda. Import TOLERANTE — si la rebanada aún no aterrizó,
@@ -46,7 +47,23 @@ try:
 except ImportError:   # pragma: no cover — depende del árbol
     search_harness = None
 
-RENDER_CONTRACT_VERSION = "1.9"   # ADR-0080 (compuerta de competencia + lazo de búsqueda): +competence (bloque
+RENDER_CONTRACT_VERSION = "1.10"  # ADR-0081 (política best-tier v2 / generación g2-2026-09): +models (procedencia
+                                  # MEDIDA del modelo que corrió — roles resueltos con fuente, ran {requested,
+                                  # reported, relation, thinking_state}, panel_signature; models.provenance_block) +
+                                  # answer.{model_source, model_reported, relation} + audit/audit_initial.
+                                  # {families_valid, n_families_valid, lenses_valid, n_lenses_valid, quorum,
+                                  # panel_incomplete_reasons} (composite_auditor D) + revision.skipped_reason literal
+                                  # 'panel_incomplete (<failed>) — …' + token_usage.by_stage.panel.by_model +
+                                  # by_stage.<synth|elicit|plan|revision>.model_source + plan.judgment.planner.
+                                  # {model_source, model_reported, relation} + plan.audit.panel_resolved[] +
+                                  # epistemic_summary.{model_generation, panel_n_families_valid}. Eventos: stage.models
+                                  # (NUEVO, primer evento de etapa tras run.state{running}), run.state{queued}.{run_no,
+                                  # thread.root_run_no}, stage.synthesize.start{model, model_source, generation},
+                                  # stage.audit.judge{family, api, api_source, reviewer_source}, stage.audit.verdict
+                                  # {families_valid, n_families_valid, lenses_valid, n_lenses_valid, panel_incomplete,
+                                  # panel_incomplete_reasons}. TODO aditivo; kill-switch WITT_MODEL_GENERATION=g1-2026-08
+                                  # (+ WITT_OPENAI_API=chat-completions, WITT_PANEL_MIN_*=0) = valores de f57a3d3.
+                                  # 1.9 = ADR-0080 (compuerta de competencia + lazo de búsqueda): +competence (bloque
                                   # de competence.evaluate: competent|null, components, decided_by 'code') +
                                   # search_ledger {plan, rounds[], families_default, n_rounds, cap, state} +
                                   # citations[].support_state (aditivo por cita) + citations_support_summary +
@@ -88,7 +105,89 @@ RENDER_CONTRACT_VERSION = "1.9"   # ADR-0080 (compuerta de competencia + lazo de
                                   # sección y tier resueltos por tabla), structural_frameworks (derivados
                                   # del código)}, +agents_invoked (derivado, §11), +alternatives_considered.
                                   # 1.2 = ADR-0057 (confidence.source + path_b.query_sent). 1.1 = ADR-0051.
-SYNTH_MODEL = "claude-opus-4-8"   # best-tier policy (2026-06-13 directive) — never downgraded to save cost
+# ADR-0081 (A): los literales de modelo viven SOLO en analysis/scripts/lib/models.py. SYNTH_MODEL se CONSERVA como alias
+# DERIVADO en import (evaluation/scripts/ab_trapped_scalar.py lo lee); el pipeline resuelve cada rol EN LA LLAMADA
+# (models.resolve_role: tabla + env WITT_MODEL_SYNTH/_PLANNER/_ELICIT + WITT_MODEL_GENERATION, con fuente declarada).
+# best-tier policy (2026-06-13 directive) — never downgraded to save cost.
+SYNTH_MODEL = models.resolve_role("synthesizer")["model"]
+ANTHROPIC_EFFORT_ENV = "WITT_ANTHROPIC_EFFORT"                 # (C.4) output_config.effort — sólo a modelos adaptativos
+ANTHROPIC_EFFORT_ELICIT_ENV = "WITT_ANTHROPIC_EFFORT_ELICIT"   # override para CONF_TOOL (vacío = hereda)
+# Llaves del payload de stage.models (snapshot REDUCIDO — ADR-0081 B): la Traza dice qué va a correr ANTES de gastar.
+STAGE_MODELS_PAYLOAD_KEYS = ("generation", "generation_source", "table_version", "panel_signature", "roles", "panel",
+                             "warnings", "unknown_models")
+# Llaves que audit_initial COPIA del veredicto inicial: las de ADR-0067 + las del cuórum (ADR-0081 D) cuando audit() las trae.
+AUDIT_INITIAL_KEYS = ("panel", "tally", "verdict", "n_valid", "source_vocabulary")
+AUDIT_INITIAL_QUORUM_KEYS = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "quorum",
+                             "panel_incomplete", "panel_incomplete_reasons")
+
+
+def _max_tokens_for(role, role_name):
+    """El TOPE (no gasto) del rol en la generación efectiva (ADR-0081 C.4): RoleResolved.max_tokens; para un id de
+    familia desconocida (max_tokens null en la tabla) se toma el tope del rol en la generación — jamás un literal."""
+    if role.get("max_tokens") is not None:
+        return role["max_tokens"]
+    key = role_name if role_name in models.PIPELINE_ROLES else "judge-anthropic"
+    return models.GENERATIONS[role["generation"]]["max_tokens"][key]
+
+
+def _effort_for(model, elicit=False):
+    """(effort | None, fuente) — WITT_ANTHROPIC_EFFORT (y WITT_ANTHROPIC_EFFORT_ELICIT como override de CONF_TOOL) se
+    envía como output_config.effort SÓLO a modelos con thinking_default 'adaptive' en la tabla (ADR-0081 C.4): en g1
+    (opus-4-8, 'off') o con un id desconocido para la tabla NO se envía y la fuente lo declara. Vacío → None = no se
+    envía (default de la API, `high`)."""
+    val, src = models.env_value(ANTHROPIC_EFFORT_ENV)
+    if elicit:
+        v2, s2 = models.env_value(ANTHROPIC_EFFORT_ELICIT_ENV)
+        if v2 is not None:
+            val, src = v2, s2
+        elif val is not None:
+            src = f"{src} (heredado: {ANTHROPIC_EFFORT_ELICIT_ENV} vacío)"
+    if val is None:
+        return None, src
+    row = models.MODELS.get(model)
+    if row is None:
+        return None, f"not-sent (unknown-to-table; {src}={val})"
+    if row["thinking_default"] != "adaptive":
+        return None, f"not-sent (thinking_default {row['thinking_default']}; {src}={val})"
+    return val, src
+
+
+def _anthropic_call(model, system, user_text, tool, max_tokens, effort=None):
+    """(tool_input, usage, meta) — UNA sede para las llamadas Anthropic del pipeline (ADR-0081 B): pide a
+    composite_auditor._anthropic_tool_call `return_meta=True` (meta = {model_reported, api, stop_reason, …}) y `effort=`
+    SÓLO si la firma del caller los acepta (inspección determinista, patrón _call_with_optional — un caller/fake anterior
+    a (C) sigue válido) y tolera la 2-tupla (meta {} → model_reported None → relation 'not-reported'). Nada se copia de
+    una constante al lugar de lo que la API dijo.
+    Corrector ADR-0081 (A): un id de familia DESCONOCIDA (sin prefijo que case, p. ej. WITT_MODEL_SYNTH=llama-9) NO se manda
+    a la Messages API "por default": se lanza CallerError('unknown-family') ANTES de construir la petición — la misma regla
+    que composite_auditor._default_caller aplica a los asientos del panel (cero llamadas; la corrida queda failed con error
+    tipado, sin gasto)."""
+    if models.family_of(model)[0] == models.FAMILY_UNKNOWN:
+        raise composite_auditor.CallerError(
+            "unknown-family",
+            f"unknown-family: {model!r} en rol del pipeline — la tabla no lo conoce y el prefijo no casa; no se llama a "
+            f"Anthropic (ADR-0081 A, corrector)")
+    fn = composite_auditor._anthropic_tool_call
+    try:
+        params = inspect.signature(fn).parameters
+        varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    except (TypeError, ValueError):
+        params, varkw = {}, False
+    kwargs = {"tool": tool, "max_tokens": max_tokens}
+    if effort is not None and ("effort" in params or varkw):
+        kwargs["effort"] = effort
+    if "return_meta" in params or varkw:
+        kwargs["return_meta"] = True
+    res = fn(model, system, user_text, **kwargs)
+    if isinstance(res, tuple) and len(res) >= 3:
+        out, usage, meta = res[0], res[1], res[2]
+    else:
+        out, usage = res
+        meta = {}
+    meta = dict(meta) if isinstance(meta, dict) else {}
+    # `effort_delivered`: False cuando se pidió effort pero el caller del árbol no lo acepta (declarado, no silencioso)
+    meta["effort_delivered"] = ("effort" in kwargs) if effort is not None else None
+    return out, usage, meta
 
 # tau (ADR-0051): pass-1 confidence below this triggers the Path B fallback — the model's own "is my
 # store enough?" signal, the decider the eval harness recommends (run_held_out --conf-threshold 0.5)
@@ -218,18 +317,27 @@ ELICIT_SYSTEM = ("You are the confidence-calibration step of the Witt zebrafish 
 
 def _elicit_confidence(question, evidence, direct_answer, gap_flags, pass_label):
     """La medición AUTORITATIVA del escalar (ADR-0065): una mini-llamada forzada cuyo tool no tiene
-    campos de texto largo — estructuralmente no hay string que contaminar. Devuelve (conf, subs, usage);
-    valores fuera de [0,1] o no numéricos se rechazan a None (el caller cae al in-line, §6 no-hang)."""
+    campos de texto largo — estructuralmente no hay string que contaminar. Devuelve (conf, subs, usage, meta);
+    valores fuera de [0,1] o no numéricos se rechazan a None (el caller cae al in-line, §6 no-hang).
+
+    ADR-0081: rol `elicitation` propio (WITT_MODEL_ELICIT; default de la generación), tope de la generación (g2 2000 —
+    opus-5 piensa por default y con 300 la mini-llamada se truncaría; g1 300 = f57a3d3) y WITT_ANTHROPIC_EFFORT_ELICIT
+    como override de effort SÓLO para CONF_TOOL. `meta` trae model (pedido), model_source, model_reported (lo que la
+    API dijo; None con un stub), effort, effort_source."""
     user_text = json.dumps({"question": question, "evidence": evidence,
                             "produced_answer": {"pass": pass_label, "direct_answer": direct_answer,
                                                 "gap_flags": gap_flags}},
                            ensure_ascii=False, default=str)
-    out, usage = composite_auditor._anthropic_tool_call(
-        SYNTH_MODEL, ELICIT_SYSTEM, user_text, tool=CONF_TOOL, max_tokens=300)
+    role = models.resolve_role("elicitation")
+    effort, effort_source = _effort_for(role["model"], elicit=True)
+    out, usage, meta = _anthropic_call(role["model"], ELICIT_SYSTEM, user_text, CONF_TOOL,
+                                       _max_tokens_for(role, "elicitation"), effort)
     conf = out.get("confidence")
     conf = float(conf) if isinstance(conf, (int, float)) and 0 <= conf <= 1 else None
     subs = out.get("confidence_by_subclaim") or None
-    return conf, subs, usage
+    meta = {**meta, "model": role["model"], "model_source": role["source"],
+            "effort": effort, "effort_source": effort_source}
+    return conf, subs, usage, meta
 
 
 # --- el planner (tapón 3, ADR-0061) --------------------------------------------------------------------
@@ -333,8 +441,11 @@ def _data_landscape(question, entities):
 
 
 def _default_planner(question, entities, thread_context=None):
-    """One SMALL model call (SYNTH_MODEL, best-tier policy) that judges work-type/nichos/agentes contra
-    la matriz. Inyectable en los gates. Devuelve (judgment_dict, usage).
+    """One SMALL model call (rol `planner`, best-tier policy) that judges work-type/nichos/agentes contra
+    la matriz. Inyectable en los gates. Devuelve (judgment_dict, usage, meta) — ADR-0081 (B): `meta` =
+    {model (pedido, resuelto por tabla/env), model_source, model_reported (lo que la API dijo), relation,
+    generation, effort, effort_source}; un planner inyectado con la firma vieja puede seguir devolviendo
+    (judgment_dict, usage): build_plan tolera ambas (_planner_result).
 
     ADR-0079: `thread_context` (snapshot del turno anterior, armado por el SERVIDOR) viaja como llave
     APARTE del user_text — el planner ve qué se preguntó antes y qué faltó (gap_flags, comentarios),
@@ -347,8 +458,46 @@ def _default_planner(question, entities, thread_context=None):
     if thread_context is not None:
         payload["thread_context"] = thread_context
     user_text = json.dumps(payload, ensure_ascii=False, default=str)
-    return composite_auditor._anthropic_tool_call(SYNTH_MODEL, system, user_text,
-                                                  tool=PLAN_TOOL, max_tokens=1200)
+    role = models.resolve_role("planner")
+    effort, effort_source = _effort_for(role["model"])
+    out, usage, meta = _anthropic_call(role["model"], system, user_text, PLAN_TOOL,
+                                       _max_tokens_for(role, "planner"), effort)
+    return out, usage, {"model": role["model"], "model_source": role["source"],
+                        "model_reported": meta.get("model_reported"),
+                        "relation": models.relation(role["model"], meta.get("model_reported")),
+                        "generation": role["generation"], "effort": effort, "effort_source": effort_source}
+
+
+def _planner_result(res):
+    """(out, usage, meta) de lo que devolvió el planner. El wrapper real (_default_planner) entrega 3-tupla con la
+    procedencia; un planner inyectado con la firma vieja entrega (out, usage) → `model` = el rol RESUELTO por la tabla
+    en la llamada (lo que el código pediría, con su fuente) y model_reported None → relation 'not-reported'. Nada se
+    copia de una constante al lugar de lo que la API dijo (ADR-0081 B)."""
+    if isinstance(res, tuple) and len(res) >= 3 and isinstance(res[2], dict):
+        out, usage, meta = res[0], res[1], dict(res[2])
+    else:
+        out, usage = res
+        meta = {}
+    if not meta.get("model"):
+        role = models.resolve_role("planner")
+        meta["model"], meta["model_source"] = role["model"], role["source"]
+    meta.setdefault("model_source", None)
+    meta.setdefault("model_reported", None)
+    meta["relation"] = models.relation(meta["model"], meta.get("model_reported"))
+    return out, usage, meta
+
+
+def _plan_structural_audit():
+    """plan.audit (clase structural — 'del código'): el panel que VA a correr, resuelto por models.panel() EN LA
+    LLAMADA (tabla + env WITT_JUDGE_*/OPENAI_JUDGE_MODEL/WITT_MODEL_GENERATION — ADR-0081 A), no el literal de una
+    generación. `panel` conserva su forma de prosa; `panel_resolved[]` añade reviewer/family/lens/reviewer_source
+    (aditivo 1.10)."""
+    seats = models.panel()
+    return {"class": "structural", "required": True,
+            "panel": [f"{m['reviewer']} ({m['lens']})" for m in seats],
+            "panel_resolved": [{k: m.get(k) for k in ("reviewer", "family", "lens", "reviewer_source")}
+                               for m in seats],
+            "note": "obligatorio en el 100% de las corridas (ADR-0049) — la mayor parte del costo"}
 
 
 def plan_estimates(history_rows):
@@ -435,9 +584,7 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
                                     f"confidence (pass1 < tau={FALLBACK_CONF_TAU})"],
                        "sources": list(answer_pipeline.PATH_B_SOURCES)},
         },
-        "audit": {"class": "structural", "required": True,
-                  "panel": [f"{m['reviewer']} ({m['lens']})" for m in composite_auditor.DEFAULT_PANEL],
-                  "note": "obligatorio en el 100% de las corridas (ADR-0049) — la mayor parte del costo"},
+        "audit": _plan_structural_audit(),   # ADR-0081: el panel RESUELTO en la llamada + panel_resolved[]
         "deterministic_gate": {"class": "structural", "component": "lib/verify_output.py",
                                "note": "clase Logic-LM, no es un LLM; corre en cada corrida"},
     }
@@ -447,8 +594,8 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
     try:
         # ADR-0079: el snapshot viaja al planner SOLO si existe; un planner inyectado con la firma vieja
         # (question, entities) sigue funcionando y el plan declara que no lo recibió.
-        (out, usage), ctx_delivered = _call_with_optional(planner, (question, entities),
-                                                          "thread_context", snapshot)
+        res, ctx_delivered = _call_with_optional(planner, (question, entities), "thread_context", snapshot)
+        out, usage, pmeta = _planner_result(res)   # ADR-0081 (B): 3-tupla del wrapper real o 2-tupla de un stub
         niches = [{"code": c, **agent_matrix.NICHES[c]} for c in out.get("niches", [])
                   if c in agent_matrix.NICHES]
         agents = []
@@ -508,7 +655,13 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
             # ADR-0066 (never-stopper): 0-3 preguntas de clarificación pre-gasto; [] = pregunta clara.
             # JAMÁS bloquean — responderlas refina un plan FUTURO, no es un gate.
             "clarifying_questions": out.get("clarifying_questions") or [],
-            "planner": {"model": SYNTH_MODEL, "usage": usage, "class": "self-report",
+            # ADR-0081 (B): `model` = lo PEDIDO (resuelto por tabla/env en la llamada), `model_source` su fuente,
+            # `model_reported` lo que la API dijo (None con un planner stub), `relation` la comparación.
+            # frozen.models.roles.planner COPIA este bloque (el plan pudo correr antes de un redeploy: un plan
+            # opus-4-8 con síntesis opus-5 es la verdad, no un bug — la Hoja lo pinta sin "corregir").
+            "planner": {"model": pmeta["model"], "model_source": pmeta["model_source"],
+                        "model_reported": pmeta.get("model_reported"), "relation": pmeta["relation"],
+                        "usage": usage, "class": "self-report",
                         "note": "juicio de prompt-time (misma advertencia §5 que framework_applied)",
                         # ADR-0079: None = no había snapshot; True/False = lo recibió / firma sin la llave
                         "thread_context_delivered": (ctx_delivered if snapshot is not None else None)},
@@ -560,7 +713,9 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None):
         "status": "invoked",
         "invocation_id": f"panel:{audit_result.get('n_valid')}/{len(audit_result.get('panel', []))}",
         "evidence_generated": [f"verdict:{audit_result.get('verdict')}",
-                               f"tally:{json.dumps(audit_result.get('tally', {}), sort_keys=True)}"],
+                               f"tally:{json.dumps(audit_result.get('tally', {}), sort_keys=True)}",
+                               # ADR-0081 (D): familias que votaron válidas (composite_auditor); None = audit() sin cuórum
+                               f"families_valid:{audit_result.get('n_families_valid')}"],
     }, {
         "agent": "verify_output (gate determinista, clase Logic-LM)",
         "status": "invoked",
@@ -1281,8 +1436,13 @@ def _default_synthesizer(question, evidence, pass_label, thread_context=None):
     if thread_context is not None:
         payload["thread_context"] = thread_context
     user_text = json.dumps(payload, ensure_ascii=False, default=str)
-    out, usage = composite_auditor._anthropic_tool_call(
-        SYNTH_MODEL, system, user_text, tool=SYNTH_TOOL, max_tokens=2500)
+    # ADR-0081 (A/C.4): el rol se resuelve EN LA LLAMADA (tabla + env, con fuente), el tope es el de la generación
+    # (g2 8000: opus-5 piensa por default y max_tokens acota pensamiento + respuesta; g1 2500 = f57a3d3) y el effort
+    # (WITT_ANTHROPIC_EFFORT) viaja como output_config SÓLO a modelos adaptativos. return_meta: lo que la API DIJO.
+    role = models.resolve_role("synthesizer")
+    effort, effort_source = _effort_for(role["model"])
+    out, usage, meta = _anthropic_call(role["model"], system, user_text, SYNTH_TOOL,
+                                       _max_tokens_for(role, "synthesizer"), effort)
     # ADR-0074 (corrida real 9b3140ab): los campos-lista pueden llegar SERIALIZADOS como string.
     # Un string aquí JAMÁS se explota en caracteres (list(str) congeló gap_flags como chars) ni se
     # rellena con []: se parsea con procedencia declarada, o se conserva crudo como UN elemento.
@@ -1307,11 +1467,12 @@ def _default_synthesizer(question, evidence, pass_label, thread_context=None):
     # ADR-0065: la elicitación dedicada es la medición autoritativa del escalar. Su fallo NUNCA
     # bloquea (§6 no-hang): se cae al camino in-line/recovered de ADR-0057, con la procedencia de ese
     # camino, y se declara.
+    e_role = models.resolve_role("elicitation")   # lo PEDIDO se declara aunque la llamada falle (ADR-0081 B)
     try:
-        elicited, e_subs, e_usage = _elicit_confidence(question, evidence, out["direct_answer"],
-                                                       gap_flags, pass_label)
+        elicited, e_subs, e_usage, e_meta = _elicit_confidence(question, evidence, out["direct_answer"],
+                                                               gap_flags, pass_label)
     except Exception as e:
-        elicited, e_subs, e_usage = None, None, None
+        elicited, e_subs, e_usage, e_meta = None, None, None, {}
         gap_flags.append(f"confidence elicitation FAILED in {pass_label} "
                          f"({type(e).__name__}: {str(e)[:80]}) — falling back to the in-line scalar "
                          "(§6 no-hang)")
@@ -1394,7 +1555,18 @@ def _default_synthesizer(question, evidence, pass_label, thread_context=None):
             "framework_applied": out.get("framework_applied"),
             "framework_criterion": out.get("framework_criterion"),
             "framework_reason": out.get("framework_reason"),
-            "model": SYNTH_MODEL, "usage": usage}
+            # ADR-0081 (B): procedencia MEDIDA — `model` es lo PEDIDO (resuelto por tabla/env con su fuente),
+            # `model_reported` lo que la API devolvió (None con un stub o un caller anterior a (C)), `relation` la
+            # comparación (exact | prefix NEUTRO | different | not-reported). La elicitación lleva las suyas.
+            "model": role["model"], "model_source": role["source"],
+            "model_reported": meta.get("model_reported"),
+            "relation": models.relation(role["model"], meta.get("model_reported")),
+            "effort": effort, "effort_source": effort_source, "effort_delivered": meta.get("effort_delivered"),
+            "elicitation_model": e_role["model"], "elicitation_model_source": e_role["source"],
+            "elicitation_model_reported": e_meta.get("model_reported"),
+            "elicitation_relation": models.relation(e_role["model"], e_meta.get("model_reported")),
+            "elicitation_effort": e_meta.get("effort"), "elicitation_effort_source": e_meta.get("effort_source"),
+            "usage": usage}
 
 
 def _resolve_confidence(answer):
@@ -1466,14 +1638,11 @@ def _normalize_citations(items, with_schema=False):
 # ADR-0078: sonnet-5 cobraba (3.0, 15.0) y vale (2.0, 10.0); entran los modelos del consejo. Un modelo
 # que NO está en la tabla NO se cotiza a 0 (eso disfrazaba un hueco de precio como gasto cero): se
 # declara en missing_price_models y cost_projection_complete=False (ver _token_usage).
-PRICES_PER_MTOK_USD = {
-    "claude-opus-4-8": (5.0, 25.0), "claude-sonnet-5": (2.0, 10.0),
-    "claude-opus-5": (5.0, 25.0), "claude-fable-5-1": (10.0, 50.0),
-    "claude-haiku-4-5-20251001": (1.0, 5.0),
-    "gpt-4o": (2.5, 10.0), "gpt-6-astra": (10.0, 50.0), "gpt-5.6-sol": (4.0, 20.0),
-    "text-embedding-3-small": (0.02, 0.0),
-}
-PRICES_AS_OF = "2026-09"   # verified: 2026-09-08 source: platform.claude.com/docs/en/about-claude/pricing · developers.openai.com/api/docs/pricing
+# ADR-0081 (A): la tabla de precios vive en lib/models.py (una fila por modelo, con verified_on/source); aquí se
+# CONSERVAN los nombres (app.usage y los smokes los leen) como alias derivados — prices() == el dict de f57a3d3
+# (golden en smoke_models.py), PRICES_AS_OF el mismo literal.
+PRICES_PER_MTOK_USD = models.prices()
+PRICES_AS_OF = models.PRICES_AS_OF
 
 
 def _usage_in_out(usage):
@@ -1517,7 +1686,13 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
                 stages[synth_stage]["in"] += ti - ei
                 stages[synth_stage]["out"] += to - eo
                 stages[elicit_stage] = {"in": ei, "out": eo, "state": "measured",
-                                        "model": p.get("model") or SYNTH_MODEL}
+                                        # ADR-0081 (corrector): el modelo RESUELTO de la elicitación — SÓLO el que el
+                                        # wrapper escribió en `elicitation_model`; un stub sin él deja null declarado.
+                                        # Antes caía a p['model'] (el sintetizador) y la etapa afirmaba que corrió el
+                                        # modelo de síntesis: una constante copiada al lugar de lo medido (§7).
+                                        "model": p.get("elicitation_model")}
+                if "elicitation_model_source" in p:
+                    stages[elicit_stage]["model_source"] = p.get("elicitation_model_source")
         else:
             stages[synth_stage]["in"] += ti
             stages[synth_stage]["out"] += to
@@ -1526,20 +1701,31 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
                                         "state": ("not-separable (synthesizer did not report usage_elicitation)"
                                                   if "usage_elicitation" not in p else "elicitation-failed")}
         if synth_stage in ("synthesize_pass1", "synthesize_pass2", "revision"):
-            stages[synth_stage]["model"] = p.get("model") or SYNTH_MODEL
+            # ADR-0081: el modelo de la PASADA (resuelto por el wrapper); null declarado si la pasada no lo trae
+            stages[synth_stage]["model"] = p.get("model")
+            if "model_source" in p:
+                stages[synth_stage]["model_source"] = p.get("model_source")
     if planner_meta and planner_meta.get("usage"):
         pi, po = _usage_in_out(planner_meta.get("usage"))
-        stages["plan"] = {"in": pi, "out": po, "model": planner_meta.get("model") or SYNTH_MODEL}
+        stages["plan"] = {"in": pi, "out": po, "model": planner_meta.get("model")}
+        if "model_source" in planner_meta:
+            stages["plan"]["model_source"] = planner_meta.get("model_source")
     elif plan_declared:
         stages["plan"] = {"in": None, "out": None, "state": "plan-without-usage (planner reported no usage)",
                           "model": (planner_meta or {}).get("model")}
     else:
         stages["plan"] = {"in": 0, "out": 0, "state": "no-plan"}
+    # ADR-0081 (H): el panel también por REVIEWER — opus-5 es sintetizador Y juez correctness; sólo la partición
+    # etapa×modelo los separa en /usage. Σ by_model == panel.in/out por construcción (mismas filas, misma suma).
+    stages["panel"]["by_model"] = {}
     for row in audit_result.get("panel", []):
         if isinstance(row.get("usage"), dict) and row["usage"]:
             i, o = _usage_in_out(row["usage"])
             stages["panel"]["in"] += i
             stages["panel"]["out"] += o
+            m = stages["panel"]["by_model"].setdefault(row.get("reviewer") or "unknown-reviewer", {"in": 0, "out": 0})
+            m["in"] += i
+            m["out"] += o
     stages["embed"] = {"tokens": embed_tokens, "unit": "embedding tokens (not chat tokens; excluded from _sum)"}
     stages["_sum"] = {"in": sum(v["in"] for k, v in stages.items() if k != "embed" and isinstance(v.get("in"), int)),
                       "out": sum(v["out"] for k, v in stages.items() if k != "embed" and isinstance(v.get("out"), int)),
@@ -1562,18 +1748,20 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
         m["in"] += i
         m["out"] += o
 
+    # ADR-0081: el gasto se atribuye al modelo RESUELTO de cada pasada (el wrapper lo escribe); una pasada sin `model`
+    # (stub) cae a 'unknown-model' declarado (mismo patrón que 'unknown-reviewer') — jamás a una constante copiada.
     for _label, p in passes:
-        _add(p.get("model") or SYNTH_MODEL, p.get("usage"))
+        _add(p.get("model") or "unknown-model", p.get("usage"))
     planner_meta = ((plan or {}).get("judgment") or {}).get("planner") or {}
     planner_usage = planner_meta.get("usage") or {}
     if planner_usage:
-        _add(planner_meta.get("model") or SYNTH_MODEL, planner_usage)
+        _add(planner_meta.get("model") or "unknown-model", planner_usage)
     for row in audit_result.get("panel", []):
         # corrector ADR-0080: un juez agotado (`errored`) cuyos intentos cobraron trae `usage` medido; entra a
         # by_model bajo su reviewer (composite_auditor ya lo suma en audit.usage — M8 cuadra contra ese número)
         if isinstance(row.get("usage"), dict) and row["usage"]:
             _add(row.get("reviewer") or "unknown-reviewer", row["usage"])
-    embed_model = os.environ.get("OPENAI_EMBED_MODEL", "text-embedding-3-small")
+    embed_model, _embed_src = models.embed_model()   # ADR-0081: OPENAI_EMBED_MODEL o la fila `embed` de la tabla
     # ADR-0078: un modelo sin precio en la tabla NO se cotiza a 0 — se EXCLUYE de la proyección y se
     # declara en missing_price_models; cost_projection_complete dice si el número cubre todo el gasto.
     cost = 0.0
@@ -1818,14 +2006,15 @@ def _synth_usage_payload(answer):
         ti, to = ti - min(ei, ti), to - min(eo, to)
     if not isinstance(answer.get("usage"), dict):
         return None
-    return {"in": ti, "out": to, "model": answer.get("model") or SYNTH_MODEL}
+    return {"in": ti, "out": to, "model": answer.get("model")}   # ADR-0081: null declarado, jamás una constante
 
 
 def _elicit_event_payload(answer, pass_no, conf, source):
     return {"pass": pass_no, "stated_confidence": conf, "confidence_source": source,
             "stated_confidence_inline": answer.get("stated_confidence_inline"),
             "elicitation_state": answer.get("elicitation_state") or "not-reported-by-synthesizer",
-            "usage": _usage_payload(answer.get("usage_elicitation"), answer.get("model") or SYNTH_MODEL)}
+            # ADR-0081 (corrector): el modelo de la elicitación jamás se copia del sintetizador — null declarado si falta
+            "usage": _usage_payload(answer.get("usage_elicitation"), answer.get("elicitation_model"))}
 
 
 def _build_search_plan(question, entities, pass1_query_en, cfg):
@@ -1986,9 +2175,84 @@ def _support_states(citations, bundle, audit_result):
     return citations, summary
 
 
+def snapshot_extra():
+    """ADR-0081 (I): los EXTRA_FIELDS del snapshot que models.py no puede derivar porque viven aquí y en competence —
+    {campo: {value, source}}. UNA sede: execute_run (config_ledger.observe / stage.models) y app.config_ledger_boot
+    (S5) pasan exactamente esto, así el boot y la corrida describen el mismo estado."""
+    cg = competence.env_config()
+    harness, harness_src = _search_harness_enabled()
+    gate_raw = (os.environ.get(competence.GATE_ENV) or "").strip()
+    # misma regla de fuente que config_ledger.default_extra (S5): la env PRESENTE (aunque vacía) es 'env:' — así el
+    # boot y la corrida escriben la misma fuente y el runtime-diff no inventa cambios
+    rev_present = "WITT_REVISION_CYCLE" in os.environ
+    return {
+        "contract.render_contract_version": {"value": RENDER_CONTRACT_VERSION, "source": "runs.RENDER_CONTRACT_VERSION"},
+        "competence.gate": {"value": cg["gate_enabled"],
+                            "source": (f"env:{competence.GATE_ENV}" if gate_raw else f"default-unset:{competence.GATE_ENV}")},
+        "search.harness": {"value": harness, "source": harness_src},
+        "revision.cycle": {"value": _revision_enabled(),
+                           "source": "env:WITT_REVISION_CYCLE" if rev_present else "default-unset:WITT_REVISION_CYCLE"},
+    }
+
+
+def _config_ledger_observe(snap):
+    """ADR-0081 (E/I): bitácora de configuración en tiempo de corrida — config_ledger.observe(snapshot) (S5,
+    rag_index/query_service/config_ledger.py) compara el snapshot con el último visto y appendea filas
+    'system:runtime-diff' (p. ej. el auto-retire de haiku). El módulo se importa en DURO (S7: la tolerancia
+    'module-missing' de la obra se retiró — sin él el servicio no importa y el smoke lo dice a gritos); la LLAMADA sigue
+    siendo tolerante: con cualquier fallo la corrida sigue — JAMÁS frena (§6 no-hang). Devuelve lo que observe() devolvió
+    o un estado de error declarado."""
+    try:
+        return config_ledger.observe(snap)
+    except Exception as e:
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}
+
+
+def _judge_identity(member):
+    """ADR-0081 (B): stage.audit.judge += family, api, api_source, reviewer_source — lo que el asiento DECLARA
+    (models.panel vía composite_auditor.audit). `api`/`api_source` salen de la MISMA función con la que audit() escribe
+    audit.panel[].api/api_source (composite_auditor._member_api — S7, costura N: dos puertas, una definición): un panel
+    legado sin `api` la infiere por familia ('inferred-from-family'); familia desconocida → (None, 'unknown-family').
+    reviewer_source None = el asiento no declaró fuente."""
+    reviewer = member.get("reviewer")
+    family = member.get("family") or models.family_of(reviewer)[0]
+    api, api_source = composite_auditor._member_api(member)
+    return {"family": family, "api": api, "api_source": api_source, "reviewer_source": member.get("reviewer_source")}
+
+
+def _panel_incomplete_reasons(a):
+    """Códigos CERRADOS ('min_valid' | 'families' | 'lenses') de un REVISE estructural (ADR-0081 D). composite_auditor
+    los entrega en panel_incomplete_reasons (= quorum.failed); un audit() anterior a (D) sólo marca panel_incomplete
+    por min_valid, así que ése es el único código que puede declararse sin inventar."""
+    reasons = a.get("panel_incomplete_reasons")
+    if not isinstance(reasons, list) or not reasons:
+        q = a.get("quorum")
+        reasons = q.get("failed") if isinstance(q, dict) else None
+    return list(reasons) if reasons else ["min_valid"]
+
+
+def _verdict_payload(a, revision_round):
+    """stage.audit.verdict (ADR-0081 D): + families_valid, n_families_valid, lenses_valid, n_lenses_valid,
+    panel_incomplete, panel_incomplete_reasons. Las llaves del cuórum las produce composite_auditor.audit; si el
+    audit() del árbol aún no las trae viajan null (no medido), jamás inventadas. panel_incomplete: audit() sólo la
+    escribe True → ausente == False (medido por construcción)."""
+    reasons = a.get("panel_incomplete_reasons")
+    if reasons is None and isinstance(a.get("quorum"), dict):
+        reasons = a["quorum"].get("failed")
+    return {"verdict": a["verdict"], "tally": a["tally"], "n_valid": a["n_valid"], "revision_round": revision_round,
+            "source_vocabulary": a["source_vocabulary"],
+            "families_valid": a.get("families_valid"), "n_families_valid": a.get("n_families_valid"),
+            "lenses_valid": a.get("lenses_valid"), "n_lenses_valid": a.get("n_lenses_valid"),
+            "panel_incomplete": bool(a.get("panel_incomplete")), "panel_incomplete_reasons": reasons}
+
+
 def execute_run(run, synthesizer=None, panel_caller=None):
     """Execute one claimed run end-to-end. Deterministic under injected synthesizer/panel_caller (the
     offline gate); live otherwise. Never raises — every exit is a recorded terminal state + event.
+
+    ADR-0081: los roles se resuelven EN LA LLAMADA (models.snapshot: tabla + env, con fuente), el snapshot va a la
+    bitácora de configuración (config_ledger.observe — nunca frena) y al evento stage.models (PRIMER evento de etapa:
+    qué va a correr ANTES de gastar); frozen.models (models.provenance_block) mide requested vs reported por pasada.
 
     ADR-0080: tras pass1 → stage.confidence.elicit{pass:1} → stage.deterministic_gate{pass:1} (adelantado) →
     stage.competence (competence.evaluate, decidido por código). Competente → pass1 es la candidata, sin ronda
@@ -2036,7 +2300,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                      payload={"reviewer": member.get("reviewer"), "lens": member.get("lens"),
                               "phase": "start", "heartbeat": True,
                               "attempt": attempt, "retries_judge": max(0, attempt - 1),
-                              "max_attempts": judge_max_attempts, "max_attempts_source": judge_retries_src})
+                              "max_attempts": judge_max_attempts, "max_attempts_source": judge_retries_src,
+                              # ADR-0081 (B): la Traza dice "intento N de M · <api> · <family>"
+                              **_judge_identity(member)})
         return inner_caller(member, system, user_text)
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
@@ -2059,8 +2325,20 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         db.add_event(run_id, "run.state", payload={"state": "running"})
         _check_cancel()
 
-        # 0) el plan declarado (tapón 3, ADR-0061) — si la corrida lo trae, es el PRIMER evento de la
-        # traza (el boceto M3 lo pinta como primera línea). No traerlo no bloquea nada: se declara.
+        # 0a) ADR-0081 (A/B/E): qué modelos VAN a correr, ANTES de gastar — el snapshot EFECTIVO (tabla + env, en la
+        # llamada; roles con fuente, panel, avisos retirement-due/past-retirement, ids desconocidos), la bitácora de
+        # configuración en tiempo de corrida (S5; jamás frena) y el evento stage.models — PRIMER evento de etapa, antes
+        # de stage.plan (patrón de la casa: evento propio, no una llave dentro de run.state{running}).
+        models_snapshot = models.snapshot(extra=snapshot_extra())
+        synth_role, elicit_role = models_snapshot["roles"]["synthesizer"], models_snapshot["roles"]["elicitation"]
+        _config_ledger_observe(models_snapshot)
+        db.add_event(run_id, "stage.models", agent="runs",
+                     payload={k: models_snapshot[k] for k in STAGE_MODELS_PAYLOAD_KEYS},
+                     level="warning" if models_snapshot["warnings"] or models_snapshot["unknown_models"] else "info")
+        _check_cancel()
+
+        # 0) el plan declarado (tapón 3, ADR-0061) — si la corrida lo trae, es el primer evento de etapa tras
+        # stage.models (el boceto M3 lo pinta como primera línea). No traerlo no bloquea nada: se declara.
         plan = json.loads(run["plan_json"]) if run.get("plan_json") else None
         plan_holder["plan"] = plan
         if plan:
@@ -2117,7 +2395,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
         # 2) PASS 1 — DI-only synthesis. Its confidence is the real "is my store enough?" signal
         # (ADR-0051), measured even when structural insufficiency already fetched Path B.
-        db.add_event(run_id, "stage.synthesize.start", agent=SYNTH_MODEL)
+        # ADR-0081 (B): el evento declara el modelo RESUELTO con su fuente y la generación (antes sólo agent=constante)
+        db.add_event(run_id, "stage.synthesize.start", agent=synth_role["model"],
+                     payload={"model": synth_role["model"], "model_source": synth_role["source"],
+                              "generation": synth_role["generation"]})
         pass1 = _synth(_compact_evidence(bundle, include_path_b=False), "pass1")
         passes.append(("pass1", pass1))
         conf1, conf1_source = _resolve_confidence(pass1)
@@ -2335,9 +2616,7 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             required_because=bundle["decision_state"]["state"], caller=panel_caller)
         panel_rows_all.extend(audit_result.get("panel", []))
         db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
-                     payload={"verdict": audit_result["verdict"], "tally": audit_result["tally"],
-                              "n_valid": audit_result["n_valid"], "revision_round": 0,
-                              "source_vocabulary": audit_result["source_vocabulary"]},
+                     payload=_verdict_payload(audit_result, 0),   # ADR-0081 (D): + familias/lentes/panel_incomplete
                      level="info" if audit_result["verdict"] != "REVISE" else "warning")
 
         # 6b) ciclo de revisión acotado (ADR-0067): UN intento de corrección con los hallazgos del
@@ -2349,10 +2628,13 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         if audit_result["verdict"] == "REVISE" and not revision["enabled"]:
             revision["skipped_reason"] = "kill-switch WITT_REVISION_CYCLE=0 (comportamiento pre-ADR-0067)"
         elif audit_result["verdict"] == "REVISE" and audit_result.get("panel_incomplete"):
-            # el REVISE viene del panel delgado (<3 jueces válidos), no de la respuesta: re-sintetizar
-            # no arregla jueces caídos — se declara y el terminal honesto se conserva
-            revision["skipped_reason"] = ("panel_incomplete — el REVISE es estructural (jueces caídos), "
-                                          "no un hallazgo sobre la respuesta; la revisión no aplica")
+            # el REVISE viene del panel (delgado: <3 jueces válidos; ADR-0081 D: o sin diversidad de FAMILIAS /
+            # LENTES), no de la respuesta: re-sintetizar no arregla jueces caídos ni una sola familia votando — se
+            # declara con los códigos cerrados del cuórum y el terminal honesto se conserva. El literal viejo
+            # ('panel_incomplete — el REVISE es estructural (jueces caídos), …') sigue válido en registros 1.9.
+            revision["skipped_reason"] = (f"panel_incomplete ({', '.join(_panel_incomplete_reasons(audit_result))}) — "
+                                          "el REVISE es estructural (jueces caídos o sin diversidad), no un hallazgo "
+                                          "sobre la respuesta; la revisión no aplica")
         elif audit_result["verdict"] == "REVISE":
             _check_cancel()
             findings = _panel_findings(audit_result)
@@ -2392,13 +2674,12 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 required_because=bundle["decision_state"]["state"], caller=panel_caller)
             panel_rows_all.extend(audit2.get("panel", []))
             db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
-                         payload={"verdict": audit2["verdict"], "tally": audit2["tally"],
-                                  "n_valid": audit2["n_valid"], "revision_round": 1,
-                                  "source_vocabulary": audit2["source_vocabulary"]},
+                         payload=_verdict_payload(audit2, 1),
                          level="info" if audit2["verdict"] != "REVISE" else "warning")
-            # nada se borra: la versión inicial y su veredicto quedan en el registro
-            audit_initial = {k: audit_result[k] for k in
-                             ("panel", "tally", "verdict", "n_valid", "source_vocabulary")}
+            # nada se borra: la versión inicial y su veredicto quedan en el registro. ADR-0081 (D): también el
+            # cuórum inicial (familias/lentes/quorum/panel_incomplete*) cuando audit() lo trae.
+            audit_initial = {k: audit_result[k] for k in AUDIT_INITIAL_KEYS}
+            audit_initial.update({k: audit_result[k] for k in AUDIT_INITIAL_QUORUM_KEYS if k in audit_result})
             answer_initial = {"direct_answer": answer["direct_answer"],
                               "stated_confidence": answer.get("stated_confidence"),
                               "absence_kind": answer.get("absence_kind"),
@@ -2468,7 +2749,23 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                        "stated_confidence": answer.get("stated_confidence"),
                        "absence_kind": answer.get("absence_kind"),
                        "gap_flags": answer.get("gap_flags", []),
-                       "model": answer.get("model")},
+                       "model": answer.get("model"),
+                       # ADR-0081 (B): lo PEDIDO (model, con su fuente) vs lo que la API DIJO (model_reported);
+                       # relation exact | prefix (NEUTRO) | different (objeción) | not-reported (stub/gris)
+                       "model_source": answer.get("model_source"),
+                       "model_reported": answer.get("model_reported"),
+                       "relation": answer.get("relation") or models.relation(answer.get("model"),
+                                                                             answer.get("model_reported"))},
+            # --- ADR-0081 (B): procedencia MEDIDA del modelo que corrió — generación + fuente, tabla, firma del
+            # panel, roles resueltos EN esta corrida, ran {requested, reported, relation, thinking_state} por pasada
+            # y por juez; roles.planner COPIADO de plan_json.judgment.planner (no re-resuelto). Nada de constantes.
+            # S7 (N): la firma se calcula con los MISMOS 8 roles del snapshot de stage.models → frozen.models.
+            # panel_signature == stage.models.panel_signature == audit.panel_source.panel_signature (UNA identidad de
+            # configuración por corrida; medido en smoke_run_pipeline).
+            "models": models.provenance_block({"synthesizer": synth_role, "elicitation": elicit_role}, passes,
+                                              ((plan or {}).get("judgment") or {}).get("planner"),
+                                              bundle["audit"].get("panel"),
+                                              signature_roles=models_snapshot["roles"]),
             # --- contrato §5, ADR-0060 -------------------------------------------------------------
             # alternatives_considered: null (ausente) NO es [] (se consideraron y no había). Tres
             # estados, como en todo este contrato.
@@ -2646,7 +2943,11 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                              # ADR-0080: competente (True|False|null con razón en frozen.competence) y
                              # cuántas rondas de búsqueda corrieron (null = el harness no midió)
                              "competent": comp["competent"],
-                             "n_search_rounds": bundle["search_ledger"].get("n_rounds")}
+                             "n_search_rounds": bundle["search_ledger"].get("n_rounds"),
+                             # ADR-0081: generación de modelos de la corrida y familias que votaron válidas (null =
+                             # el audit() del árbol no midió cuórum por familias) — ListaCorridas/Banco: "3/4 · 1 familia"
+                             "model_generation": synth_role["generation"],
+                             "panel_n_families_valid": audit_result.get("n_families_valid")}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
@@ -2754,9 +3055,21 @@ def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None
     else:
         raise ultimo_error
     snap = envelope.get("snapshot") or {}
+    # ADR-0081 (F): run_no y root_run_no nacen en la BD — la fila tras el INSERT (db.get_run pasa por db._detail_select,
+    # el JOIN a la raíz de S4: raíz real → su run_no; hijo de raíz VIRTUAL (padre pre-ADR-0079) → el del padre; NULL
+    # declarado si no consta). S7 (N): sin fallback a _root_run_no — es la MISMA verdad (medido en smoke_run_pipeline
+    # sobre todas las corridas del gate) y una fila sin la llave debe fallar en voz alta, no derivarse en silencio.
+    row = db.get_run(run_id)
+    if row is None:
+        # corrector ADR-0081 (F): la fila recién insertada DEBE ser legible; un None aquí es un fallo de BD, no un estado a
+        # tolerar — se falla en voz alta (coherente con S7: sin fallback silencioso) en vez de mezclar una guardia con un
+        # `.get` que la contradecía (AttributeError latente).
+        raise RuntimeError(f"new_run: fila {run_id} no legible tras el INSERT (db.get_run devolvió None)")
+    root_run_no = row["root_run_no"]
     db.add_event(run_id, "run.state", payload={
-        "state": "queued", "origin": origin,
+        "state": "queued", "origin": origin, "run_no": row.get("run_no"),
         "thread": {"thread_id": thread["thread_id"], "turn_no": thread["turn_no"],
+                   "root_run_no": root_run_no,
                    "turn_kind": thread["turn_kind"], "parent_run_id": thread["parent_run_id"],
                    "context": ("built" if envelope.get("snapshot") is not None else "skipped"),
                    "context_skipped_reason": envelope.get("skipped_reason"),

@@ -15,7 +15,7 @@ se evalúa ES el pipeline que corre en producción, no una réplica.
 
 Qué se conserva del v1 (REUSADO por import, jamás re-implementado): la carga del set congelado, la
 extracción de entidades sin fuga (solo símbolos de la pregunta que resuelven en el store), el juez
-multi-proveedor ADVISORY (ADR-0031/0038: Opus+Sonnet+Haiku+gpt-4o, chequeo determinista entregado a
+multi-proveedor ADVISORY (ADR-0031/0038: Opus+Sonnet+Haiku+gpt-4o, chequeo determinista entregado a  # models-literal-doc
 los jueces, outcome con guardas de desacuerdo/abstención) y el esquema de claim-record que
 compute_ece.py consume. Qué cambia: la síntesis/confianza/gate/panel vienen DEL RUN (el registro
 congelado, con procedencia ADR-0065), no de un camino paralelo.

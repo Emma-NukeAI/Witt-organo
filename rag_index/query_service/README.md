@@ -29,8 +29,9 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
 | POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061; **plan v3** por ADR-0066): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla + **0-3 `clarifying_questions` never-stopper**) + **`data_landscape`** estructural (preview DI sparse NO-SPEND + qué fuentes Ruta B aplican) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`). **`parent_run_id`** (ADR-0079): el planner recibe el `thread_context` del padre (armado en el servidor); la respuesta declara `thread_context_passed` / `thread_context_skipped_reason` |
 | POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`). **`parent_run_id`** (ADR-0079): el turno siguiente de una investigación — 404 `parent_not_found` · 409 `parent_not_terminal` (queued/running); `thread_id`/`turn_no`/`turn_kind`/`origin`/`thread_context` los deriva el SERVIDOR, jamás el cliente |
-| GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) + **columnas de investigación** (ADR-0079: `parent_run_id`, `thread_id`, `turn_no`, `turn_kind`, `origin`, `root_question_id` — NULL = anterior al contrato, sin backfill). **`GET /runs?thread=<thread_id>&limit=&after=`** lista los TURNOS de una investigación (orden `turn_no ASC`, sin el tope 50, cursor `after` = turn_no exclusivo, `has_more` medido, `next_after`); la lista general declara `limit`/`limit_cap` |
+| GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) + **columnas de investigación** (ADR-0079: `parent_run_id`, `thread_id`, `turn_no`, `turn_kind`, `origin`, `root_question_id` — NULL = anterior al contrato, sin backfill). **`GET /runs?thread=<thread_id>&limit=&after=`** lista los TURNOS de una investigación (orden `turn_no ASC`, sin el tope 50, cursor `after` = turn_no exclusivo, `has_more` medido, `next_after`); la lista general declara `limit`/`limit_cap`. **`root_run_no`** (ADR-0081 (F)): nace en la BD por JOIN a la raíz (`db._list_select`/`db.get_run`, UNA definición) — lista, detalle, `POST /runs` y `/runs?thread=` la traen; raíz = su `run_no`; `null` = corrida anterior a ADR-0079, declarado, jamás rellenado |
 | GET | `/threads/{thread_id}` | ✓ | **la investigación T-<run_no raíz> como UNA unidad** (ADR-0079): `turns[]` en orden con veredicto/decision_state/origin/costo por turno, `gap_flags_union` (conteos con igualdad normalizada, jamás prosa nueva), `total_cost_usd` PROYECCIÓN con `complete`, `pivot_suggested` (regla `WITT_PIVOT_TURNS` declarada), `origins`, `authors`, `root_pre_adr_0079` (raíz virtual anterior al contrato); 404 `thread_not_found` |
+| GET | `/threads?mine=&limit=&after=` | ✓ | **el índice de investigaciones** (ADR-0081 (G); declarada ANTES de `/threads/{thread_id}`): UNA consulta `GROUP BY thread_id` con la raíz por JOIN — `label 'T-<n>'`, `root_run_no`, `n_turns` (IGUAL al de `/threads/{id}`: la raíz virtual cuenta +1, `root_counted` lo declara), `n_closed`, `n_with_record`, `last_turn`, `authors`, `origins`, `states`, `root_pre_adr_0079`; orden `root_run_no DESC NULLS LAST`, cursor `after` = `root_run_no` EXCLUSIVO, `has_more` MEDIDO (`limit+1`), `limit_cap` 50, `mine` (≥ 1 turno del usuario; `mine_rule`), `n_threads_total`, `n_runs_without_thread` del SERVIDOR; sin costo agregado (`costs 'not-aggregated (GET /threads/{id})'`); `limit < 1` → 400 |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
 | GET | `/runs/{id}/record.pdf` | ✓ | **el PDF de servidor** (M4, ADR-0073): generado DEL JSON congelado con plantilla propia — jamás "imprimir la página"; bandas con palabras completas, procedencia del escalar en palabras, ambas rondas de la revisión, identidad rota = 409; el ÚNICO canal autorizado de exportación |
 | GET · POST | `/runs/{id}/comments` | ✓ | **los COMENTARIOS de la corrida** (ADR-0077): la conversación del equipo sobre la pregunta — anexo append-only y público (toda sesión lee y escribe; sin PATCH ni DELETE), fuera del registro congelado, de M5 y de los apuntes; autor y hora los pone el servidor; `body_max` declarado (4000); `n_comments` viaja en toda vista de corrida |
@@ -38,8 +39,8 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
-| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056) |
-| GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056) |
+| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio |
+| GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056). **ADR-0081 (I)**: `entries` (archivo, clase ATESTIGUADA — incluida `budget_approval`) + `ledger[]` (tabla `config_history`: MEDICIÓN del diff de configuración al arrancar, `changed_by 'system:boot-diff'` / `'system:runtime-diff'`, `actor_state` declarado) + `ledger_state ∈ ok | kill-switch WITT_CONFIG_LEDGER=0 | table-missing | error: <tipo> | not-booted (lifespan no corrió: config_ledger.boot() no se ha llamado)` (el quinto = antes del lifespan; un TestClient sin lifespan lo ve — corrector) + `ledger_writer` / `ledger_encoding` / `ledger_scope_rule` + `current {fields {value, source}, warnings, unknown_models}` + `provenance.db` |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
 | GET | `/precedent/search?q=&k=` | ✓ | **la capa de precedente** (ADR-0053): corridas CERRADAS por relevancia, `admissible_as_evidence: false` estructural, scorer declarado; series de citas disjuntas (números=evidencia, letras=precedente). **`include_origins`** (CSV, ADR-0079): por default SOLO origin `production` (+ pre-ADR NULL, incluidas y declaradas); la respuesta trae `origins_included` / `excluded_by_origin` / `origin_unknown_included`; fuera del enum = 400 |
@@ -482,6 +483,169 @@ Gates (offline, máscara de siempre + `WITT_RUN_ORIGIN=smoke`, 2026-09-15, tras 
 CUENTA `urllib.request.urlopen` — 0 llamadas — y compara `mcp_cache` antes/después) · `smoke_thread_context.py` 37/37
 (kill-switch declarado para los conteos de pasadas + UNA corrida encadenada con la compuerta ENCENDIDA) ·
 `smoke_run_recovery.py` 40/40 · resto del directorio verde (25/25 gates).
+
+### Política best-tier v2 y generación de modelos `g2-2026-09` (ADR-0081, 2026-09-15 — **Proposed**; conteos de gates MEDIDOS por S7 el 2026-09-15: 31 smokes en verde, 1623 checks)
+
+**UNA tabla de modelos, dos generaciones, resolución en la LLAMADA.** Hasta `f57a3d3` había CUATRO verdades de modelo
+desincronizables (`runs.SYNTH_MODEL`, `question_agent.QUESTION_MODEL`, `composite_auditor.DEFAULT_PANEL` con
+`OPENAI_JUDGE_MODEL` evaluada EN IMPORT, `evaluation/run_held_out.JUDGE_PANEL`) más la tabla de precios. Desde ADR-0081 los
+literales de modelo viven SÓLO en `analysis/scripts/lib/models.py` (`MODELS_TABLE_VERSION 'g2-2026-09'`; gate estático en
+`smoke_models.py`), con dos generaciones: **g2** — `claude-opus-5` en síntesis/planner/elicitación/agente de preguntas y juez
+correctness · `claude-sonnet-5` overclaim · `claude-haiku-4-5-20251001` evidence-grounding · `gpt-4o` reproducibility (puente) —
+con TOPES `max_tokens` 8000/4000/2000/4000/4000 (techos, no gasto: Opus 5 PIENSA por default y `max_tokens` acota pensamiento +
+respuesta); **g1** = hoy byte a byte (`claude-opus-4-8`, topes 2500/1200/300/1200/1200). Cada rol se resuelve **en tiempo de
+llamada** (`models.resolve_role(rol, env, today)`), jamás en import, y viaja con su FUENTE: `env:<VAR>` · `default:<gen>` ·
+`default-invalid-env:<VAR> (<motivo>)` · `auto-retire:<a>-><b>`. Un id que la tabla no conoce se USA tal cual (`known false`,
+familia por prefijo, `unknown_models[]` declarado); sólo se rechaza lo que la tabla sabe que ROMPE (`claude-fable-5-1` excluido —
+400 en `tool_choice` forzado, retención 30 días; familia incompatible con la lente).
+
+**Lo que cambia para el operador**
+
+1. **Nada cambia sin fuente.** La Traza abre con el evento `stage.models` (roles + fuente + panel + `warnings[]` +
+   `unknown_models[]`) ANTES de gastar; el registro 1.10 congela `frozen.models` con `roles` (elección + fuente) y `ran`
+   (`requested` vs `reported` = `payload.model` que la API devolvió; `relation ∈ exact | prefix | different | not-reported` —
+   `prefix` es NEUTRO (alias → snapshot fechado), `different` es objeción, `not-reported` es gris). `answer.model` deja de ser
+   una constante copiada.
+2. **Envs por rol** (tabla abajo): `WITT_MODEL_SYNTH/_PLANNER/_ELICIT/_QUESTION`, `WITT_JUDGE_CORRECTNESS/_OVERCLAIM/_GROUNDING`,
+   `OPENAI_JUDGE_MODEL` (conserva su nombre: es la palanca hacia Astra). `WITT_MODEL_GENERATION=g1-2026-08` es el kill-switch de
+   toda la generación.
+3. **Cuórum por FAMILIAS y LENTES** (`WITT_PANEL_MIN_FAMILIES=2`, `WITT_PANEL_MIN_LENSES=3`): tres APPROVE Anthropic con el juez
+   OpenAI caído ya NO aprueban — `verdict 'REVISE'`, `panel_incomplete_reasons ['families']` (códigos cerrados; los números en
+   `audit.quorum`), sin ciclo de revisión (`revision.skipped_reason` lo dice). **Consecuencia literal (R4): OpenAI caído = 100%
+   REVISE estructural** hasta que vuelva o bajes `WITT_PANEL_MIN_FAMILIES` a `0|1` (kill-switch declarado, `gating false`).
+4. **El juez OpenAI habla la Responses API** cuando la tabla lo dice (`gpt-6-astra`, `status 'candidate'`) o cuando
+   `WITT_OPENAI_API=responses` lo fuerza; `gpt-4o` (`status 'bridge'`) sigue por `chat.completions` (`WITT_OPENAI_API=table`,
+   default) hasta que LG3 pase. Todo fallo de juez lleva `attempts[].error_kind` de un vocabulario CERRADO (`no-api-key`,
+   `http-<code>`, `network`, `refusal`, `no-function-call`, `arguments-unparseable`, `verdict-off-vocabulary`,
+   `incomplete:max_output_tokens`, `incomplete:content_filter`, `unknown-family`, `required-missing:…`, `unclassified`); el
+   string `error` de hoy queda byte a byte. `store: false` por default (`WITT_OPENAI_STORE`); `strict: false` FIJO (sin env);
+   `max_retries=0` en el SDK para que `attempts[]` no mienta.
+5. **Opus 5 piensa por default.** Las llamadas Anthropic siguen OMITIENDO `thinking`; en g2 eso es adaptativo por default de la
+   API (los tokens de pensamiento se facturan como salida y quedan DENTRO de `usage.output_tokens`; el caller aplana
+   `usage.thinking_tokens` cuando la API lo manda — informativo, jamás 0 inventado). El freno es `WITT_ANTHROPIC_EFFORT`
+   (`output_config.effort`, sólo a modelos `thinking_default 'adaptive'`) o `WITT_ANTHROPIC_EFFORT_ELICIT` para la mini-llamada
+   de confianza — NUNCA `thinking {type:'disabled'}` (dos modos de falla documentados).
+6. **Retiro de haiku (≥ 2026-10-15).** La tabla declara el sucesor (`claude-sonnet-5`, lente distinta) — DATO; la env lo ejecuta
+   — ACTO: `WITT_JUDGE_GROUNDING=claude-sonnet-5` (default, E2) o `WITT_PANEL_AUTO_RETIRE=1` (sustitución automática declarada
+   con fila `runtime-diff`). El aviso MEDIDO `retirement-due: … (faltan N días; sucesor declarado …)` sale en
+   `stage.models.warnings[]`, `/config-history.current.warnings[]` y `consulta_sistema.config` desde 30 días antes; después,
+   `past-retirement: …`. Tras el retiro dos asientos `claude-sonnet-5` bajan la independencia intra-Anthropic:
+   `panel_duplicate_models[]` lo declara, no lo disimula.
+7. **Bitácora de configuración.** `GET /config-history` = `entries` del archivo `rag_index/config_history.json` (clase
+   ATESTIGUADA, human-maintained; ganó `model_generation` y `budget_approval` — esta última con placeholder `<pendiente E3>`) +
+   `ledger[]` de la tabla `config_history` en BD (clase MEDICIÓN: al arrancar el servicio compara `models.snapshot()` con la
+   última fila por campo y appendea sólo lo que cambió; primer arranque = una fila por campo `first-boot-snapshot`;
+   `actor_state 'not-observable (env set outside the service)'` — no se afirma QUIÉN cambió la env) + `current` (estado
+   efectivo con fuente por campo). `WITT_CONFIG_LEDGER=0` = cero escrituras, `ledger_state` lo dice. Un fallo del ledger JAMÁS
+   impide el arranque. La webapp (M6 SISTEMA) sustituye la placa "no tiene puerta HTTP".
+8. **Investigaciones y consumo:** `GET /threads` (índice paginado en el servidor), `root_run_no` en toda vista de corrida y en
+   `run.state{queued}` (la Traza dice "Investigación T-<n>" desde el primer evento), `/usage.by_stage` (tokens por etapa y
+   modelo×etapa; `by_stage.panel.by_model` separa a opus-5 sintetizador de opus-5 juez).
+9. **Históricos:** NADA se recalcula ni se backfillea. Registros < 1.10 no ganan `models` ni `audit.families_valid`; la webapp y
+   el PDF los leen como "NO INSTRUMENTADO (contrato < 1.10)". `prices()` conserva TODOS los ids históricos para que `/usage`
+   recotice sin `missing_price`. La única novedad de esquema es la tabla `config_history` + un JOIN (SELECT); `_migrate` no gana
+   ALTER.
+10. **Lo que NO se hace (ADR (L)) y no es deuda:** validación en arranque contra `/v1/models` (red en arranque viola §6),
+    `WITT_OPENAI_STRICT` (rompe el tres-estados del schema), `WITT_PANEL_SPEC`, puente `gpt-5.6-sol`, `thinking disabled`,
+    `fallbacks` server-side de Opus 5, migración del PDF (→ ADR-0083 con línea `[pdf]`).
+
+**Kill-switches (ADR (M.2)) — cada uno con default declarado y devuelve el comportamiento de `f57a3d3`:**
+`WITT_MODEL_GENERATION=g1-2026-08` (los 8 defaults y los 5 topes de hoy) · `WITT_OPENAI_API=chat-completions` (el caller de
+hoy) · `WITT_PANEL_MIN_FAMILIES=0` · `WITT_PANEL_MIN_LENSES=0` (la regla de hoy) · `WITT_CONFIG_LEDGER=0` (cero escrituras) ·
+`WITT_PANEL_AUTO_RETIRE=0` (default: nada cambia solo). Con los cinco primeros, el registro menos las llaves aditivas 1.10 tiene
+EXACTAMENTE el keyset y los valores de un frozen 1.9 (lo mide `smoke_run_pipeline.py`).
+
+**Invariante: TODA env implica reinicio.** El `os.environ` del contenedor se fija al arrancar el proceso: cambiar una variable en
+la pestaña Environment de Dokploy NO surte efecto hasta redeploy/restart (el compose lo dice en su bloque ADR-0081). La lectura
+en tiempo de llamada permite probar la env offline sin reimportar, pero NO elimina el reinicio; por eso el diff del ledger al
+arrancar es COMPLETO para envs. Lo que el ledger NO puede registrar: un `min_families=` pasado por un llamador (viaja en
+`audit.quorum.source 'caller'`) y el reloj (el auto-retire lo cubre `runtime-diff`).
+
+| Variable | Default | Lector | Efecto / fuente declarada |
+|---|---|---|---|
+| `WITT_MODEL_GENERATION` | `g2-2026-09` | `models.resolve_role` | generación de defaults y topes; `g1-2026-08` = hoy byte a byte; inválida → `default-invalid-env` |
+| `WITT_MODEL_SYNTH` · `WITT_MODEL_PLANNER` · `WITT_MODEL_ELICIT` · `WITT_MODEL_QUESTION` | `claude-opus-5` (g2) · `claude-opus-4-8` (g1) | `models.resolve_role` | modelo por rol; `frozen.models.roles.*.source` |
+| `WITT_JUDGE_CORRECTNESS` | `claude-opus-5` (g2) · `claude-opus-4-8` (g1) | `models.panel` | asiento correctness (anthropic) |
+| `WITT_JUDGE_OVERCLAIM` | `claude-sonnet-5` | `models.panel` | asiento overclaim |
+| `WITT_JUDGE_GROUNDING` | `claude-haiku-4-5-20251001` | `models.panel` | asiento evidence-grounding; el sucesor declarado (sonnet-5) se fija AQUÍ (E) |
+| `OPENAI_JUDGE_MODEL` | `gpt-4o` (ya existía) | `models.panel` | asiento reproducibility; `gpt-6-astra` SÓLO tras LG3 |
+| `WITT_PANEL_AUTO_RETIRE` | `0` | `models.panel` | `1` = sucesor automático al llegar `retire_not_before` (declarado + fila `runtime-diff`) |
+| `WITT_PANEL_MIN_FAMILIES` | `2` | `audit()` | cuórum de familias; `0|1` = kill-switch (`gating false`) |
+| `WITT_PANEL_MIN_LENSES` | `3` | `audit()` | cuórum de lentes; `0|1` = kill-switch |
+| `WITT_OPENAI_API` | `table` | `models.api_of` | `responses` fuerza Responses para todo juez OpenAI; `chat-completions` = caller de hoy |
+| `WITT_OPENAI_STORE` | `0` | `_responses_kwargs` | `store` de `responses.create` (default de la API: true) |
+| `WITT_OPENAI_MAX_OUTPUT_TOKENS` | `4000` | `_responses_kwargs` | tope (no gasto) del camino Responses; chat conserva 1200 |
+| `WITT_OPENAI_REASONING_EFFORT` | vacío (no se envía) | `_responses_kwargs` | `reasoning.effort` sólo con `reasoning True` en tabla |
+| `WITT_OPENAI_TIMEOUT_S` | `120` | `_openai_client` | timeout por llamada del juez OpenAI; regla `(1+retries)×timeout×2 ≤ 900` |
+| `WITT_ANTHROPIC_EFFORT` | vacío (no se envía) | `_anthropic_tool_call` | `output_config.effort` sólo a modelos `thinking_default 'adaptive'` |
+| `WITT_ANTHROPIC_EFFORT_ELICIT` | vacío (hereda) | `runs._elicit_confidence` | override para `CONF_TOOL` |
+| `WITT_CONFIG_LEDGER` | `1` | `app.config_ledger_boot/observe` | `0` = cero escrituras; `ledger_state` lo dice |
+| `WITT_JUDGE_RETRIES` | `1` (ADR-0080) | `audit()` | sin cambio; entra al snapshot |
+
+**Gates EN VIVO — LG1–LG14, en este orden (los corre Emmanuel; cada uno gasta lo que dice; ningún smoke del CI gasta; el
+resultado se anota en el ADR como MEDICIÓN con fecha).** El instrumento es `analysis/scripts/smoke_live_models.py`: usa los
+callers REALES (`composite_auditor._responses_kwargs` / `_openai_responses_call` / `_anthropic_tool_call(return_meta=True)`),
+imprime fila · `kind` · `usage` · `meta` · latencia por llamada, escribe `analysis/outputs/live_models_<fecha>.json` SIN
+secretos, rehúsa correr sin llave (`no-api-key`), jamás toca la BD; `--dry-run` construye los kwargs y los imprime sin red (el
+único modo que corre el CI). Python: `dev/.venvs/witt-query-service` con la llave en el entorno del proceso (nunca en git).
+
+1. **LG1 · Opus 5 con los schemas REALES forzados, ANTES del redeploy** (≈ 4–5 llamadas, < 0.3 USD):
+   `python analysis/scripts/smoke_live_models.py --roles synthesizer,elicitation,planner,question_agent,judge-anthropic` → cada
+   llamada devuelve `tool_use` con todos los `required` bajo los topes g2, `stop_reason 'tool_use'` (no `max_tokens`),
+   `usage.output_tokens` medido (compararlo contra la mediana 4.8 de `synthesize_pass1` de M8: `--baseline-median-out N`);
+   repetir la elicitación con `--effort low`. Si truncara → `WITT_ANTHROPIC_EFFORT_ELICIT=low` o subir el tope en tabla; si
+   Opus 5 rechazara `tool_choice` forzado (no esperado) → `WITT_MODEL_*=claude-opus-4-8` como freno y nota en el ADR.
+2. **LG2 · Transporte Responses con el modelo barato** (1 llamada, ≈ 0.01 USD): `--model gpt-4o --api responses` → verdict ∈
+   VOCABULARY, `meta.model_reported` empieza con `gpt-4o`, kwargs con `store False`, `strict False`. Si falla, el `error_kind`
+   dice qué (`http-401/403` llave; `http-400` parámetros → reportar verbatim).
+3. **LG3 · Astra** (1–2 llamadas, ≤ 0.05 USD): `--model gpt-6-astra --api responses` → verdict válido,
+   `usage.reasoning_tokens > 0`, `output_tokens ≥ reasoning_tokens`, latencia (< 120 s o subir `WITT_OPENAI_TIMEOUT_S` ≤ 225).
+   `http-404/400` con 'model' = la llave NO tiene acceso → E1. `incomplete:max_output_tokens` → repetir con
+   `--max-output-tokens 8000` y fijar la env. SÓLO con LG3 en verde: `OPENAI_JUDGE_MODEL=gpt-6-astra` en Dokploy + redeploy.
+4. **LG4 · Arranque tras el redeploy:** `GET /config-history` → `ledger_state 'ok'`, una fila por campo `first-boot-snapshot`,
+   `current.fields.model_generation 'g2-2026-09'`, `panel.reproducibility 'gpt-4o'`, `openai.api 'table'` (la ELECCIÓN de env;
+   el transporte efectivo del asiento viaja en `audit.panel[3].api` — corrector), `warnings` con `retirement-due: …` y
+   `api-unverified: claude-opus-5 …` hasta E2/LG1 (NO `[]` — corrector); `/status` byte-igual; un segundo reinicio sin cambios NO
+   añade filas.
+5. **LG5 · Primera corrida real con opus-5:** Traza abre con `stage.models`; `frozen.models.roles.synthesizer ==
+   {claude-opus-5, 'default:g2-2026-09'}`, `ran.synthesize_pass1.relation ∈ exact|prefix`, `ran.elicit_pass1` medido,
+   `roles.planner.provenance` según cuándo se hizo el plan; `token_usage.by_model` sin `claude-opus-4-8` (salvo plan viejo); M8
+   `models_catalog['claude-opus-5'].known true`; Hoja sección Modelos; comparar `synthesize_pass1.in/out` y latencia contra la
+   mediana 4.8.
+6. **LG6 · Primera corrida con Astra (tras LG3):** `audit.panel[3].api 'openai-responses'`, `attempts[-1].model_reported`
+   presente, `ran.panel[3].relation ∈ exact|prefix`, `by_model['gpt-6-astra']` cotizado 10/50, `audit.usage.reasoning_tokens >
+   0`; el ledger ganó `panel.reproducibility gpt-4o → gpt-6-astra` y `openai.api → openai-responses`.
+7. **LG7 · Cuórum en vivo** (1 corrida, ≈ 0.2 USD): `OPENAI_JUDGE_MODEL=gpt-no-existe` + redeploy → `panel[3].status 'errored'`,
+   `attempts[*].error_kind 'http-404'|'http-400'`, `verdict 'REVISE'`, `panel_incomplete_reasons ['families']`,
+   `revision.performed false`, `epistemic_summary.panel_n_families_valid 1`, ListaCorridas "1 familia"; restaurar (el ledger deja
+   DOS filas: el cambio y la vuelta).
+8. **LG8 · `GET /threads` en Postgres:** sin 500 (dependencia funcional del GROUP BY); `n_threads_total == SELECT count(distinct
+   thread_id) …`; cada `label`/`n_turns` == `/threads/{id}`; `n_runs_without_thread` == corridas pre-ADR-0079; `limit=1` →
+   `has_more true`; M6 lista sin agrupar en el cliente.
+9. **LG9 · `root_run_no` en prod:** lista y detalle de un hijo == `/threads/{thread_id}.root_run_no`; la Traza de una corrida
+   encolada hoy muestra "Investigación T-<n>" desde `run.state{queued}`; una pre-ADR muestra `null` declarado.
+10. **LG10 · `/usage` por etapa en prod:** `by_stage._sum` == suma de `totals` restringida a corridas con `by_stage`;
+    `n_runs_without_by_stage` == corridas congeladas antes de 1.9; `by_model_stage_coverage.n_runs_with_panel_by_model` ==
+    corridas 1.10; `by_model['claude-opus-4-8'].family 'anthropic'`.
+11. **LG11 · Precios (atestiguado por Emmanuel):** confirmar en las páginas de precios que opus-5 5/25 · sonnet-5 2/10 ·
+    haiku-4.5 1/5 · fable-5.1 10/50 · gpt-4o 2.5/10 · gpt-6-astra 10/50 · gpt-5.6-sol 4/20 siguen vigentes; si alguno cambió, fila
+    en `models.py` con `verified_on` nuevo y `PRICES_AS_OF`.
+12. **LG12 · Retiro de haiku (antes del 2026-10-15):** `stage.models.warnings` muestra `retirement-due` desde el 2026-09-15; al
+    fijar `WITT_JUDGE_GROUNDING=claude-sonnet-5` (o `AUTO_RETIRE=1`) → fila del ledger, siguiente corrida con `lenses_valid 4`,
+    `families_valid ['anthropic','openai']`, `panel_duplicate_models ['claude-sonnet-5']`, `warnings []`.
+13. **LG13 · Kill-switch byte a byte en prod** (opcional, 1 corrida): g1 + chat-completions + MIN 0/0 + LEDGER=0 →
+    opus-4-8/gpt-4o por chat.completions, `quorum.families_gating false`, `ledger_state 'kill-switch…'`, registro menos llaves
+    1.10 = forma f57a3d3.
+14. **LG14 · Promesas del brief (gastan; decisión E4, default NO se corre):** `evaluation/scripts/ab_trapped_scalar.py` con opus-5
+    (|Δ| del escalar atrapado ≤ 0.15 vs la serie 4.8, ADR-0065) y `run_held_out_v2` sin regresión de veredictos (advisory).
+
+Gates NO-SPEND (máscara de siempre + `WITT_RUN_ORIGIN=smoke`; conteos MEDIDOS por S7 el 2026-09-15 — la tabla completa vive en
+el ADR): NUEVOS `smoke_models.py` 74 (tabla, precios golden, resolución por env, retiro con `today`, snapshot sin secretos, gate
+estático de literales en PASS) · `smoke_openai_responses.py` 74 (kwargs exactos, fakes sin red, vocabulario de fallos) · `smoke_panel_quorum.py` 28
+(cuórum + golden 1.9 con kill-switches) · `smoke_config_ledger_db.py` 37 · `smoke_usage_http.py` 24 · `smoke_config_history_http.py` 28;
+TOCADOS `smoke_run_pipeline.py` 251 → 271 (contrato 1.10, `frozen.models`, `stage.models`, kill-switch g1 → keyset 1.9, costuras (N)), `smoke_run_recovery.py` 40,
+`smoke_question_agent_http.py` 35 → 39, `smoke_threads_db.py` 42 → 77, `smoke_runs_thread_http.py` 54 → 71, `smoke_runs_list_http.py` 17 → 21; los otros 19 sin cambio (31/31 en verde, 1623 checks); estático
+`smoke_live_models.py --dry-run` (6 filas, exit 0). Ningún gate del CI gasta modelo ni toca la red (`urlopen` bloqueado y contado = 0).
 
 ## Pendiente
 

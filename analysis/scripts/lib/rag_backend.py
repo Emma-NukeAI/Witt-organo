@@ -332,7 +332,7 @@ def get_backend():
     if _default is not None and sig == _default_sig:
         return _default
     if os.environ.get("RAG_BACKEND") == "neo4j":
-        # The hosted vector index `doc_embeddings` is 1536-dim (OpenAI text-embedding-3-small). The QUERY
+        # The hosted vector index `doc_embeddings` is 1536-dim (OpenAI text-embedding-3-small). The QUERY  # models-literal-doc
         # MUST be embedded with the SAME model, else get_embedder() falls to its bge default which (a)
         # DOWNLOADS an ONNX model from the HF Hub on first call — an unauthenticated fetch that can stall
         # the long-lived MCP server with no progress (the observed 1800s query_data_inamovible hang), and

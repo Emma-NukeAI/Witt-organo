@@ -7,10 +7,16 @@ zero callers, and the `audit` key was missing from 100% of producible runs. This
 COMPONENT with typed input/output — the founder decision of 2026-08-09 (audit on 100% of runs) is only
 promisable if something actually audits.
 
-Panel (ADR-0047 decision 4): claude-opus-4-8 + claude-sonnet-5 + claude-haiku-4-5-20251001 (Anthropic,
-three DISTINCT adversarial lenses) + gpt-4o (OpenAI — real cross-provider independence, ADR-0038).
-Fable-5 is EXCLUDED (refuses forced tool-calls; founder: "no creo que sea un modelo que podamos meter
-por el momento").
+Panel (ADR-0047 decision 4 — composición; ADR-0081 (A) — generación): los asientos salen de la TABLA
+`lib/models.py` EN TIEMPO DE LLAMADA (`models.panel()`), jamás de un literal aquí — ningún id de modelo se
+escribe en este módulo (gate estático M.4). g2-2026-09 (`models.GENERATIONS['g2-2026-09'].defaults`): tres
+jueces Anthropic con three DISTINCT adversarial lenses (correctness = el modelo del sintetizador; overclaim =
+el sonnet vigente; evidence-grounding = el haiku que se retira ≥ 2026-10-15 con sucesor declarado en la fila
+`retiring` de la tabla) + un juez OpenAI (real cross-provider independence, ADR-0038; el puente
+chat.completions hasta que el candidato Responses pase el gate en vivo LG3). La fila `excluded` de la tabla
+(Fable) is EXCLUDED del panel (ADR-0081 supersede ADR-0031: 400 en tool_choice forzado observado y documentado
+en su guía de migración; retención 30 días — decisión de Emmanuel). Kill-switch declarado:
+WITT_MODEL_GENERATION=g1-2026-08 restaura el panel de f57a3d3 byte a byte.
 
 Discipline inherited from the audited eval harness (ADR-0037/0038):
   - judges are HANDED the deterministic check results (verify_output / resolve_id) and FORBIDDEN to
@@ -25,8 +31,10 @@ S-bank CONFIRMED/REVISE/REFUTED) keep their original vocabulary and are never fo
 Aggregation is worst-of-N across valid reviewers (house rule — cf. retrieval_summary): a panel where
 anyone caught something real must not average away the catch.
 
-LLM calls are stdlib urllib (Anthropic) / openai SDK (OpenAI) — the exact pattern battle-tested in
-evaluation/run_held_out.py. The caller is INJECTABLE so gates run offline and deterministic.
+LLM calls are stdlib urllib (Anthropic) / openai SDK (OpenAI: Responses API por default de la tabla,
+chat.completions como kill-switch byte a byte) — the exact pattern battle-tested in
+evaluation/run_held_out.py. The caller is INJECTABLE so gates run offline and deterministic; el cliente
+OpenAI se construye en `_openai_client()` (factory monkeypatcheable) y se puede inyectar por `client=`.
 
 ADR-0080 (E — gate y panel):
   - VERDICT_TOOL gains the OPTIONAL property `citation_support: [{n, verdict}]` — only the
@@ -38,7 +46,28 @@ ADR-0080 (E — gate y panel):
     default 1; resolve_judge_retries declares the effective value + source). The row carries
     `retries_judge: n` (extra attempts actually made) and `attempts: [{attempt, status, error?}]` —
     a retried judge is visible, an exhausted one is `errored`; nothing is fabricated (ADR-0038).
-  - families_valid / lenses_valid are NOT here (ADR-0081).
+
+ADR-0081 (C, D, K — este módulo):
+  - (C.1) el juez OpenAI habla la Responses API (`_openai_responses_call`, kwargs de `_responses_kwargs`:
+    strict False · store por WITT_OPENAI_STORE (default 0) · parallel_tool_calls False · tool_choice
+    function · max_output_tokens por WITT_OPENAI_MAX_OUTPUT_TOKENS (default 4000) · reasoning.effort SÓLO
+    con env + tabla `reasoning True`); `_openai_chat_call` = el caller de f57a3d3 byte a byte + max_retries=0
+    + meta; `_default_caller` despacha por `member['api']` (C.3) y devuelve 3-tupla (out, usage, meta).
+  - (C.2) vocabulario CERRADO de fallos: `CallerError(kind)` (legacy_type_name 'RuntimeError' → el string
+    `attempts[].error` de hoy queda byte a byte) + `attempts[].error_kind`; FAILURE_KINDS_EXACT /
+    FAILURE_KIND_PREFIXES / failure_kind_in_vocabulary (predicado del gate de paridad). El caller Anthropic
+    gana los MISMOS kinds sin cambiar sus mensajes; `return_meta=True` devuelve (tool_input, usage, meta).
+    Corrector (2026-09-15): en Responses un ítem `message` con content[].type 'refusal' → kind 'refusal' SIN
+    reintento (antes caía en no-function-call y se reintentaba); la TRUNCACIÓN se decide por `status` ANTES de
+    parsear (un function_call parcial ya no cae en arguments-unparseable); `meta` lleva el tope EFECTIVO de la
+    llamada (max_output_tokens en Responses / max_tokens 1200 en chat) y _meta_into lo copia al intento —
+    audit.panel[].max_tokens es null para el asiento OpenAI (su tope es del transporte) y el intento lo declara.
+  - (D) cuórum por FAMILIAS y LENTES: families_valid / lenses_valid VIVEN AQUÍ (la promesa de ADR-0080 L41
+    se cumple); WITT_PANEL_MIN_FAMILIES (default 2) y WITT_PANEL_MIN_LENSES (default 3), 0|1 = kill-switch
+    declarado; ¬ok → REVISE estructural con `panel_incomplete_reasons` (códigos cerrados) — worst-of-N
+    intacto cuando ok. Con ambos kill-switches el veredicto es EXACTAMENTE el de f57a3d3 (golden en
+    smoke_panel_quorum.py).
+  - (K) `directives` (ADR-0082) se acepta, se ignora y se DECLARA en `audit.panel_source`.
 """
 import json
 import os
@@ -46,6 +75,10 @@ import re
 import time
 import urllib.error
 import urllib.request
+
+# ADR-0081 (A): la tabla de modelos se importa EN DURO — sin fallback literal. Si falta, el módulo no
+# importa y el smoke lo dice a gritos (mejor que un panel fantasma con literales desincronizados).
+from lib import models
 
 # ADR-0058 (decisión de Emmanuel, 2026-08-16): APPROVE_DECLINE distingue la DECLINACIÓN CORRECTA del
 # claim rechazado. Las dos únicas corridas reales terminaron AUDIT_REJECTED por decir la verdad sobre
@@ -57,12 +90,10 @@ VOCABULARY = ("APPROVE", "APPROVE_DECLINE", "APPROVE_MINOR", "REVISE")
 SOURCE_VOCABULARY = "APPROVE|APPROVE_DECLINE|APPROVE_MINOR|REVISE"
 _SEVERITY = {"APPROVE": 0, "APPROVE_DECLINE": 1, "APPROVE_MINOR": 2, "REVISE": 3}
 
-DEFAULT_PANEL = [
-    {"reviewer": "claude-opus-4-8", "family": "anthropic", "lens": "correctness"},
-    {"reviewer": "claude-sonnet-5", "family": "anthropic", "lens": "overclaim"},
-    {"reviewer": "claude-haiku-4-5-20251001", "family": "anthropic", "lens": "evidence-grounding"},
-    {"reviewer": os.environ.get("OPENAI_JUDGE_MODEL", "gpt-4o"), "family": "openai", "lens": "reproducibility"},
-]
+# ADR-0081 (A): snapshot DOCUMENTAL del panel g2 (env VACÍA, today = fecha de la tabla): NO es lo que corre.
+# audit() resuelve `models.panel()` EN LA LLAMADA (env real, fecha real). El nombre se conserva para los
+# lectores de f57a3d3 (runs._plan_structural lo listaba); no lee ninguna env en import.
+DEFAULT_PANEL = models.panel(env={}, today=models.MODEL_TABLE_AS_OF)
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
@@ -76,6 +107,12 @@ CITATION_SUPPORT_LENS = "evidence-grounding"
 # Vacío o basura en la env → default DECLARADO (patrón _env_int_tolerante de ADR-0078), nunca tumba el import.
 JUDGE_RETRIES_DEFAULT = 1
 JUDGE_RETRIES_ENV = "WITT_JUDGE_RETRIES"
+
+# ADR-0081 (C.1): el tope del camino chat.completions de f57a3d3 se CONSERVA (el kill-switch es byte a byte);
+# el camino Responses lee WITT_OPENAI_MAX_OUTPUT_TOKENS (default 4000) de la tabla de env.
+OPENAI_CHAT_MAX_TOKENS = 1200
+# Tope por default del juez Anthropic cuando el member NO trae `max_tokens` (panel legado sin tabla): el de f57a3d3.
+ANTHROPIC_JUDGE_MAX_TOKENS_LEGACY = 1200
 
 
 def resolve_judge_retries(env=None):
@@ -91,6 +128,98 @@ def resolve_judge_retries(env=None):
     if n < 0:
         return JUDGE_RETRIES_DEFAULT, f"default-invalid-env:{JUDGE_RETRIES_ENV}"
     return n, f"env:{JUDGE_RETRIES_ENV}"
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ADR-0081 (C.2): vocabulario CERRADO de fallos del caller (viaja congelado en audit.failure_kinds_vocabulary)
+# ---------------------------------------------------------------------------------------------------------------
+class CallerError(RuntimeError):
+    """Fallo TIPADO de un caller (Anthropic / OpenAI): `.kind` ∈ vocabulario (C.2). Hereda de RuntimeError para que
+    ningún llamador de f57a3d3 (`except RuntimeError`) cambie; `legacy_type_name` = el nombre que audit() imprime
+    en `attempts[].error` — 'RuntimeError' por default (el string de hoy queda BYTE A BYTE) o el nombre de la
+    excepción del SDK que se envolvió (`_wrap`), para que un error de chat.completions se lea igual que en 1.9.
+    `.usage` / `.meta` (opcionales): lo MEDIDO de un intento que erró después de que la API respondió (tokens
+    cobrados, model_reported) — audit() lo conserva en el intento; una medición jamás se tira."""
+    legacy_type_name = "RuntimeError"
+
+    def __init__(self, kind, message, legacy_type_name=None, usage=None, meta=None):
+        super().__init__(message)
+        self.kind = kind
+        if legacy_type_name:
+            self.legacy_type_name = legacy_type_name
+        self.usage = usage if isinstance(usage, dict) else None
+        self.meta = meta if isinstance(meta, dict) else None
+
+
+FAILURE_KINDS_EXACT = ("no-api-key", "sdk-unavailable", "network", "refusal", "no-function-call",
+                       "arguments-unparseable", "verdict-off-vocabulary", "unknown-family",
+                       "incomplete:max_output_tokens", "incomplete:content_filter", "unclassified")
+FAILURE_KIND_PREFIXES = ("http-", "response-failed:", "required-missing:")
+FAILURE_KINDS_RULE = ("kind ∈ FAILURE_KINDS_EXACT o empieza por un FAILURE_KIND_PREFIXES ('http-<código>', "
+                      "'response-failed:<código>', 'required-missing:<campos>'). Reintento de TRANSPORTE una vez en "
+                      "http-429/500/502/503/529 y network; de CONTENIDO una vez en incomplete:*, no-function-call, "
+                      "verdict-off-vocabulary, arguments-unparseable, required-missing:*; refusal y http-4xx NO se "
+                      "reintentan (un clasificador determinista no cambia de opinión; 400/401/403/404 son configuración). "
+                      "'unclassified' = excepción ajena al vocabulario (se registra tal cual, nunca se adivina).")
+# (C.2) política de reintento del CALLER (la de audit(), WITT_JUDGE_RETRIES, es otra capa — ADR-0080, sin cambio).
+RETRY_TRANSPORT_KINDS = ("http-429", "http-500", "http-502", "http-503", "http-529", "network")
+RETRY_CONTENT_KINDS = ("incomplete:max_output_tokens", "incomplete:content_filter", "no-function-call",
+                       "verdict-off-vocabulary", "arguments-unparseable")
+
+
+def failure_kind_in_vocabulary(kind):
+    """Predicado del gate de paridad (como plan_state_in_vocabulary): True si `kind` es exacto o lleva un prefijo
+    del vocabulario con algo detrás."""
+    if not isinstance(kind, str) or not kind:
+        return False
+    if kind in FAILURE_KINDS_EXACT:
+        return True
+    return any(kind.startswith(p) and len(kind) > len(p) for p in FAILURE_KIND_PREFIXES)
+
+
+def failure_kinds_vocabulary():
+    """{exact, prefixes, rule} — viaja congelado junto al dato (audit.failure_kinds_vocabulary)."""
+    return {"exact": list(FAILURE_KINDS_EXACT), "prefixes": list(FAILURE_KIND_PREFIXES), "rule": FAILURE_KINDS_RULE}
+
+
+def failure_kind_of(exc):
+    """kind de CUALQUIER excepción por duck-typing (para que el smoke simule al SDK sin importar `openai`):
+    `.kind` si ya es CallerError · `status_code` (int) → 'http-<code>' (HTTPError de urllib: `.code`) · clase
+    APIConnectionError/APITimeoutError del SDK, TimeoutError, OSError, URLError → 'network' · resto → 'unclassified'."""
+    kind = getattr(exc, "kind", None)
+    if isinstance(kind, str) and kind:
+        return kind
+    code = getattr(exc, "status_code", None)
+    if code is None and isinstance(exc, urllib.error.HTTPError):
+        code = exc.code
+    if isinstance(code, int) and not isinstance(code, bool):
+        return f"http-{code}"
+    names = {c.__name__ for c in type(exc).__mro__}
+    if names & {"APIConnectionError", "APITimeoutError", "TimeoutError", "OSError", "URLError"}:
+        return "network"
+    return "unclassified"
+
+
+def _error_string(e):
+    """El string de `attempts[].error`: f"{tipo}: {mensaje[:200]}" — con `legacy_type_name` cuando la excepción lo
+    trae, para que un CallerError se lea 'RuntimeError: …' (byte a byte con f57a3d3)."""
+    return f"{getattr(e, 'legacy_type_name', type(e).__name__)}: {str(e)[:200]}"
+
+
+def _wrap(e, kind=None):
+    """Envuelve una excepción ajena (SDK openai, json) en CallerError conservando su NOMBRE de tipo y su mensaje
+    (el `error` de hoy queda igual) y clasificándola por duck-typing si no se pasa `kind`."""
+    if isinstance(e, CallerError):
+        return e
+    err = CallerError(kind or failure_kind_of(e), str(e), legacy_type_name=type(e).__name__)
+    err.__cause__ = e
+    return err
+
+
+def _backoff(seconds):
+    """Espera entre reintentos (2·(intento+1) s transporte, 1 s contenido — como f57a3d3). Separada para que
+    los smokes la anulen sin tocar `time.sleep` global."""
+    time.sleep(seconds)
 
 
 def parse_citation_support(raw):
@@ -305,16 +434,66 @@ def recover_trapped_params(tool_input):
     return tool_input
 
 
-def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200):
-    """Forced-tool Messages call (urllib; the run_held_out.py pattern). Returns (tool_input, usage).
-    `tool` defaults to VERDICT_TOOL; the run synthesizer reuses this with its own schema (ADR-0050)."""
+def _numeric_usage(raw):
+    """Lo NUMÉRICO que la API devolvió (la webapp tipa usage como Record<string, number>; ADR-0081 (B): ni
+    `model_reported` ni `api` viajan dentro de usage). Aplana `output_tokens_details.thinking_tokens` →
+    `thinking_tokens` (C.4: informativo, YA dentro de output_tokens; ausente si la API no lo manda — jamás 0)."""
+    out = {}
+    if not isinstance(raw, dict):
+        return out
+    for k, v in raw.items():
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            out[k] = v
+    details = raw.get("output_tokens_details")
+    if isinstance(details, dict):
+        tt = details.get("thinking_tokens")
+        if isinstance(tt, (int, float)) and not isinstance(tt, bool):
+            out["thinking_tokens"] = tt
+    return out
+
+
+def _anthropic_effort_for(model, env=None):
+    """(C.4) `output_config.effort` para una llamada Anthropic: WITT_ANTHROPIC_EFFORT ∈ ANTHROPIC_EFFORTS Y el modelo
+    tiene `thinking_default 'adaptive'` en la tabla; si no, None (= no se envía; default de la API). Un id que la
+    tabla no conoce NO recibe effort (no se afirma que piense)."""
+    effort, _ = models.env_value("WITT_ANTHROPIC_EFFORT", env)
+    row = models.MODELS.get(model)
+    return effort if (effort and row and row["thinking_default"] == "adaptive") else None
+
+
+def _anthropic_content_kind(stop_reason, bad_verdict):
+    """kind (C.2) cuando la respuesta NO trae un tool_use válido: stop_reason 'max_tokens' → incomplete:max_output_tokens
+    (mismo literal que Responses: la webapp glosa UNA palabra) · 'refusal' (clasificadores de Opus 5, HTTP 200) →
+    refusal · veredicto fuera del vocabulario → verdict-off-vocabulary · resto → no-function-call."""
+    if stop_reason == "max_tokens":
+        return "incomplete:max_output_tokens"
+    if stop_reason == "refusal":
+        return "refusal"
+    if bad_verdict:
+        return "verdict-off-vocabulary"
+    return "no-function-call"
+
+
+def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200,
+                         effort=None, return_meta=False):
+    """Forced-tool Messages call (urllib; the run_held_out.py pattern). Returns (tool_input, usage) — la 2-tupla de
+    f57a3d3, INTACTA para todos los llamadores y fakes de hoy — o, con `return_meta=True` (ADR-0081 B),
+    (tool_input, usage, meta) con meta = {model_reported: payload['model'], api: 'anthropic-messages', stop_reason,
+    stop_details? (categoría del refusal, cuando la API la manda), response_id?} y usage NUMÉRICO con
+    `thinking_tokens` aplanado (C.4). `tool` defaults to VERDICT_TOOL; the run synthesizer reuses this with its own
+    schema (ADR-0050). `effort` (C.4): `output_config: {effort}` se envía SÓLO si el llamador lo pasa (S3/_default_caller
+    lo deciden por env + tabla); el cuerpo NO cambia entre generaciones salvo `max_tokens` y ese bloque.
+    Fallos → CallerError con kind (C.2) y los MISMOS mensajes de f57a3d3; refusal y http-4xx no se reintentan."""
     tool = tool or VERDICT_TOOL
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
-        raise RuntimeError("ANTHROPIC_API_KEY not set — add to .secrets/deploy.env / service env (never git).")
+        raise CallerError("no-api-key",
+                          "ANTHROPIC_API_KEY not set — add to .secrets/deploy.env / service env (never git).")
     body = {"model": model, "max_tokens": max_tokens, "system": system,
             "messages": [{"role": "user", "content": user_text}],
             "tools": [tool], "tool_choice": {"type": "tool", "name": tool["name"]}}
+    if effort:
+        body["output_config"] = {"effort": effort}
     headers = {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json"}
     last = None
     for attempt in range(retries + 1):
@@ -324,17 +503,24 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 payload = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            last = RuntimeError(f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
+            last = CallerError(f"http-{e.code}", f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
             if e.code in (429, 500, 502, 503, 529) and attempt < retries:
-                time.sleep(2 * (attempt + 1))
+                _backoff(2 * (attempt + 1))
                 continue
             raise last
         except (urllib.error.URLError, TimeoutError, OSError) as e:
-            last = RuntimeError(f"network error: {e}")
+            last = CallerError("network", f"network error: {e}")
             if attempt < retries:
-                time.sleep(2 * (attempt + 1))
+                _backoff(2 * (attempt + 1))
                 continue
             raise last
+        usage = payload.get("usage", {})
+        meta = {"model_reported": payload.get("model"), "api": "anthropic-messages",
+                "stop_reason": payload.get("stop_reason")}
+        if payload.get("stop_details") is not None:
+            meta["stop_details"] = payload["stop_details"]
+        if payload.get("id"):
+            meta["response_id"] = payload["id"]
         tool_input = next((b["input"] for b in payload.get("content", [])
                            if b.get("type") == "tool_use" and b.get("name") == tool["name"]), None)
         if tool_input is not None:
@@ -342,12 +528,17 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
             # `required` once lifted (with provenance), instead of burning a retry that repeats the
             # same malformation (observed: the retry ran and the model derailed identically).
             tool_input = recover_trapped_params(dict(tool_input))
-        bad_verdict = (tool["name"] == VERDICT_TOOL["name"]
-                       and (tool_input or {}).get("verdict") not in VOCABULARY)
+        # (C.2) `bad_verdict` sólo aplica cuando SÍ hubo tool_use: sin tool_use el kind lo decide stop_reason
+        # (max_tokens → incomplete · refusal → refusal · resto → no-function-call), no un verdict inexistente.
+        bad_verdict = (tool_input is not None and tool["name"] == VERDICT_TOOL["name"]
+                       and tool_input.get("verdict") not in VOCABULARY)
         if tool_input is None or bad_verdict:
-            last = RuntimeError(f"no valid forced tool_use (stop_reason={payload.get('stop_reason')})")
-            if attempt < retries:
-                time.sleep(1)
+            kind = _anthropic_content_kind(payload.get("stop_reason"), bad_verdict)
+            last = CallerError(kind, f"no valid forced tool_use (stop_reason={payload.get('stop_reason')})",
+                               usage=_numeric_usage(usage), meta=meta)
+            # (C.2) el refusal es un clasificador determinista: repetir la misma petición no cambia la respuesta
+            if kind != "refusal" and attempt < retries:
+                _backoff(1)
                 continue
             raise last
         # The API does NOT enforce `required` (run_held_out lesson) — the FIRST real production run
@@ -357,67 +548,416 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
         required = tool.get("input_schema", {}).get("required", [])
         missing = [k for k in required if tool_input.get(k) is None]
         if missing and attempt < retries:
-            last = RuntimeError(f"tool_use omitted required fields {missing}")
-            time.sleep(1)
+            last = CallerError(f"required-missing:{','.join(missing)}", f"tool_use omitted required fields {missing}",
+                               usage=_numeric_usage(usage), meta=meta)
+            _backoff(1)
             continue
-        return tool_input, payload.get("usage", {})
+        if not return_meta:
+            return tool_input, usage            # f57a3d3: la 2-tupla y el usage crudo, byte a byte
+        return tool_input, _numeric_usage(usage), meta
     raise last  # pragma: no cover
 
 
-def _openai_tool_call(model, system, user_text, timeout=120):
-    """Cross-provider judge (openai SDK, function-calling forced; same schema). Returns (verdict, usage)."""
-    from openai import OpenAI
-    client = OpenAI()
-    fn = {"type": "function", "function": {"name": VERDICT_TOOL["name"],
-                                           "description": VERDICT_TOOL["description"],
-                                           "parameters": VERDICT_TOOL["input_schema"]}}
-    resp = client.chat.completions.create(
-        model=model, max_tokens=1200, timeout=timeout,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
-        tools=[fn], tool_choice={"type": "function", "function": {"name": VERDICT_TOOL["name"]}})
-    msg = resp.choices[0].message
+# ---------------------------------------------------------------------------------------------------------------
+# ADR-0081 (C.1): el juez OpenAI por la Responses API (el candidato de la tabla la EXIGE; verificado en vivo por Emmanuel)
+# ---------------------------------------------------------------------------------------------------------------
+def _openai_client(timeout=None):
+    """Factory del cliente OpenAI (monkeypatcheable: los smokes devuelven un fake con .responses.create /
+    .chat.completions.create). `OpenAI(timeout=timeout, max_retries=0)`: el SDK reintenta 2× EN SILENCIO por
+    default (openai/_constants.py DEFAULT_MAX_RETRIES = 2) y `attempts[]` mentiría. Sin OPENAI_API_KEY →
+    CallerError('no-api-key') ANTES de importar el SDK o tocar red; SDK no importable → 'sdk-unavailable'.
+    `timeout` None → WITT_OPENAI_TIMEOUT_S (default 120 = f57a3d3)."""
+    if timeout is None:
+        timeout, _ = models.env_value("WITT_OPENAI_TIMEOUT_S")
+    if not os.environ.get("OPENAI_API_KEY"):
+        raise CallerError("no-api-key",
+                          "OPENAI_API_KEY not set — add to .secrets/deploy.env / service env (never git).")
+    try:
+        from openai import OpenAI
+    except ImportError as e:
+        raise CallerError("sdk-unavailable", f"openai SDK not importable: {e}") from e
+    return OpenAI(timeout=timeout, max_retries=0)
+
+
+def _reasoning_effort_for(model, env=None):
+    """(C.1) `reasoning.effort` SÓLO si WITT_OPENAI_REASONING_EFFORT ∈ low|medium|high Y la tabla marca
+    `reasoning True` para el modelo (el puente chat lo rechazaría con 400); si no, None (no se envía)."""
+    effort, _ = models.env_value("WITT_OPENAI_REASONING_EFFORT", env)
+    row = models.MODELS.get(model)
+    return effort if (effort and row and row["reasoning"]) else None
+
+
+def _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort=None):
+    """UNA función PURA que arma los kwargs de `client.responses.create` — la comparten el caller y
+    analysis/scripts/smoke_live_models.py (S6), así no divergen. `strict: False` FIJO: `strict: true` exige todas
+    las propiedades en `required` y rompería el tres-estados de `domain_niches`/`citation_support` (WITT_OPENAI_STRICT
+    NO existe: una env que se sabe rompe el schema no se declara). `parallel_tool_calls: False` (un solo function_call).
+    `store` (WITT_OPENAI_STORE, default 0: el default de la API es retención 30 días del lado OpenAI — se apaga y se
+    declara, sin afirmar ZDR). `reasoning` sólo cuando `reasoning_effort` viene (ver _reasoning_effort_for)."""
+    kwargs = {
+        "model": model,
+        "instructions": system,
+        "input": user_text,
+        "tools": [{"type": "function", "name": tool["name"], "description": tool.get("description", ""),
+                   "parameters": tool["input_schema"], "strict": False}],
+        "tool_choice": {"type": "function", "name": tool["name"]},
+        "parallel_tool_calls": False,
+        "max_output_tokens": int(max_output_tokens),
+        "store": bool(store),
+    }
+    if reasoning_effort:
+        kwargs["reasoning"] = {"effort": reasoning_effort}
+    return kwargs
+
+
+def _attr(obj, name, default=None):
+    """Lectura duck-typed (objeto del SDK o dict de un fake)."""
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(name, default)
+    return getattr(obj, name, default)
+
+
+def _num(v):
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
+
+
+def _responses_usage(usage):
+    """usage NUMÉRICO de una Response: {input_tokens, output_tokens, reasoning_tokens (output_tokens_details; YA
+    incluidos en output_tokens — informativos, nunca se suman aparte), cached_tokens (input_tokens_details),
+    total_tokens} — sólo lo que la API mandó (jamás un 0 inventado)."""
+    out = {}
+    for k in ("input_tokens", "output_tokens", "total_tokens"):
+        v = _num(_attr(usage, k))
+        if v is not None:
+            out[k] = v
+    rt = _num(_attr(_attr(usage, "output_tokens_details"), "reasoning_tokens"))
+    if rt is not None:
+        out["reasoning_tokens"] = rt
+    ct = _num(_attr(_attr(usage, "input_tokens_details"), "cached_tokens"))
+    if ct is not None:
+        out["cached_tokens"] = ct
+    return out
+
+
+def _responses_refusal(items):
+    """(C.2, corrector) Texto del PRIMER `content[].type == 'refusal'` de un ítem `message` de una Response (el clasificador
+    de OpenAI rehusó con HTTP 200 — el SDK lo modela como ResponseOutputRefusal) o None si no hay rechazo."""
+    for it in items:
+        if _attr(it, "type") != "message":
+            continue
+        for part in (_attr(it, "content") or []):
+            if _attr(part, "type") == "refusal":
+                return str(_attr(part, "refusal") or "")
+    return None
+
+
+def _openai_responses_call(model, system, user_text, tool=None, timeout=None, retries=1, max_output_tokens=None,
+                           client=None, store=None, reasoning_effort=None):
+    """Juez OpenAI por la Responses API. Devuelve SIEMPRE (tool_input, usage, meta) con meta = {model_reported:
+    resp.model, api: 'openai-responses', response_id, status, incomplete_reason, max_output_tokens (el tope EFECTIVO
+    enviado — corrector)}. Lee el ÚNICO ítem `output[].type == 'function_call'` con `name == tool['name']` (los ítems
+    `reasoning` previos se ignoran; con parallel_tool_calls False no hay más de uno — si hubiera, se toma el primero),
+    `json.loads(arguments)`, recover_trapped_params (ADR-0057), valida `verdict ∈ VOCABULARY` si la tool es
+    VERDICT_TOOL, reintenta UNA vez los `required` ausentes y en el último intento devuelve lo recibido (misma disciplina
+    que el caller Anthropic). Orden de decisión por respuesta (corrector): status 'failed' → response-failed:<code> ·
+    ítem message con content[].type 'refusal' → 'refusal' SIN reintento (un clasificador determinista no cambia de
+    opinión; un function_call junto a un rechazo NO se acepta) · status 'incomplete' (max_output_tokens|content_filter)
+    → 'incomplete:<reason>' ANTES de parsear (un function_call parcial no es un bug de parseo; uno completo bajo status
+    incomplete tampoco se devuelve: la API declaró la respuesta truncada) · sin function_call → 'no-function-call' ·
+    arguments ilegibles → 'arguments-unparseable'. Reintentos (C.2): transporte en RETRY_TRANSPORT_KINDS, contenido en
+    RETRY_CONTENT_KINDS; refusal, http-4xx y response-failed NO se reintentan.
+    None en timeout/max_output_tokens/store/reasoning_effort → env de la tabla (WITT_OPENAI_*)."""
+    tool = tool or VERDICT_TOOL
+    if max_output_tokens is None:
+        max_output_tokens, _ = models.env_value("WITT_OPENAI_MAX_OUTPUT_TOKENS")
+    if store is None:
+        store, _ = models.env_value("WITT_OPENAI_STORE")
+    if reasoning_effort is None:
+        reasoning_effort = _reasoning_effort_for(model)
+    kwargs = _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort)
+    if client is None:
+        client = _openai_client(timeout)
+    responses = getattr(client, "responses", None)
+    if responses is None or not hasattr(responses, "create"):
+        raise CallerError("sdk-unavailable",
+                          "openai SDK without client.responses — the Responses API needs openai>=1.66 (requirements.txt)")
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            resp = responses.create(**kwargs)
+        except CallerError:
+            raise
+        except Exception as e:
+            last = _wrap(e)
+            if last.kind in RETRY_TRANSPORT_KINDS and attempt < retries:
+                _backoff(2 * (attempt + 1))
+                continue
+            raise last
+        status = _attr(resp, "status")
+        inc = _attr(resp, "incomplete_details")
+        inc_reason = _attr(inc, "reason") if inc is not None else None
+        meta = {"model_reported": _attr(resp, "model"), "api": "openai-responses",
+                "response_id": _attr(resp, "id"), "status": status, "incomplete_reason": inc_reason,
+                # corrector: el tope EFECTIVO bajo el que corrió el juez (audit.panel[].max_tokens es null para OpenAI)
+                "max_output_tokens": kwargs["max_output_tokens"]}
+        usage = _responses_usage(_attr(resp, "usage"))
+        if status == "failed":
+            err = _attr(resp, "error")
+            code = _attr(err, "code") if err is not None else None
+            msg = _attr(err, "message") if err is not None else None
+            raise CallerError(f"response-failed:{code or 'unknown'}",
+                              f"openai responses: status failed ({code}: {str(msg)[:160]})", usage=usage, meta=meta)
+        items = _attr(resp, "output") or []
+        calls = [it for it in items
+                 if _attr(it, "type") == "function_call" and _attr(it, "name") == tool["name"]]
+        # (C.2, corrector) el clasificador de OpenAI rehusó (HTTP 200: ítem `message` con content[].type 'refusal') →
+        # kind 'refusal' SIN reintento — el mismo guard que el caller Anthropic aplica a stop_reason 'refusal'. Un
+        # function_call junto al rechazo no se acepta: de una respuesta que contiene un rechazo no se fabrica veredicto.
+        refusal = _responses_refusal(items)
+        if refusal is not None:
+            raise CallerError("refusal", f"openai responses: refusal ({refusal[:120]})", usage=usage, meta=meta)
+        # (C.2, corrector) la TRUNCACIÓN se decide por `status` ANTES de parsear: con status 'incomplete' un function_call
+        # PARCIAL (arguments cortados) caía en 'arguments-unparseable' y el operador buscaba un bug de parseo donde la
+        # causa era el tope (R1: el kind lo nombra → la webapp glosa 'sube WITT_OPENAI_MAX_OUTPUT_TOKENS'). Un
+        # function_call completo bajo status 'incomplete' tampoco se devuelve: la API declaró la respuesta truncada.
+        if status == "incomplete" and inc_reason in ("max_output_tokens", "content_filter"):
+            fc_state = "presente (se descarta: la API declaró la respuesta truncada)" if calls else "ausente"
+            last = CallerError(f"incomplete:{inc_reason}",
+                               f"openai responses: incomplete ({inc_reason}); function_call {tool['name']!r} {fc_state}; "
+                               f"output_types={[_attr(it, 'type') for it in items]}",
+                               usage=usage, meta=meta)
+            if attempt < retries:
+                _backoff(1)
+                continue
+            raise last
+        if not calls:
+            last = CallerError("no-function-call",
+                               f"openai responses: no function_call {tool['name']!r} (status={status}, "
+                               f"incomplete_reason={inc_reason}, "
+                               f"output_types={[_attr(it, 'type') for it in items]})",
+                               usage=usage, meta=meta)
+            if attempt < retries:
+                _backoff(1)
+                continue
+            raise last
+        args = _attr(calls[0], "arguments")
+        try:
+            out = args if isinstance(args, dict) else json.loads(args or "")
+            if not isinstance(out, dict):
+                raise ValueError("function_call.arguments is not a JSON object")
+        except (ValueError, TypeError) as e:
+            last = CallerError("arguments-unparseable",
+                               f"openai responses: arguments not parseable ({type(e).__name__}: {str(e)[:120]})",
+                               usage=usage, meta=meta)
+            if attempt < retries:
+                _backoff(1)
+                continue
+            raise last
+        out = recover_trapped_params(dict(out))
+        if tool["name"] == VERDICT_TOOL["name"] and out.get("verdict") not in VOCABULARY:
+            last = CallerError("verdict-off-vocabulary", f"openai: invalid verdict {out.get('verdict')!r}",
+                               usage=usage, meta=meta)
+            if attempt < retries:
+                _backoff(1)
+                continue
+            raise last
+        required = tool.get("input_schema", {}).get("required", [])
+        missing = [k for k in required if out.get(k) is None]
+        if missing and attempt < retries:
+            last = CallerError(f"required-missing:{','.join(missing)}", f"tool_use omitted required fields {missing}",
+                               usage=usage, meta=meta)
+            _backoff(1)
+            continue
+        return out, usage, meta
+    raise last  # pragma: no cover
+
+
+def _openai_chat_call(model, system, user_text, timeout=None, tool=None, client=None):
+    """Cross-provider judge por chat.completions = el `_openai_tool_call` de f57a3d3 BYTE A BYTE en la petición
+    (`max_tokens 1200`, tools/tool_choice function, messages system+user) + `max_retries=0` (vía _openai_client) +
+    meta. Kill-switch declarado: WITT_OPENAI_API=chat-completions. Devuelve (verdict, usage, meta) con usage =
+    `resp.usage.model_dump()` (como hoy) y meta = {model_reported: resp.model, api: 'openai-chat-completions',
+    response_id, finish_reason, max_tokens (OPENAI_CHAT_MAX_TOKENS: el tope EFECTIVO — corrector)}. `tool` (ADR-0081 L.n: run_held_out delega aquí con SU tool) — la validación de
+    `verdict` sólo aplica a VERDICT_TOOL. Sin reintentos propios (como hoy): audit() reintenta por WITT_JUDGE_RETRIES."""
+    tool = tool or VERDICT_TOOL
+    if timeout is None:
+        timeout, _ = models.env_value("WITT_OPENAI_TIMEOUT_S")
+    if client is None:
+        client = _openai_client(timeout)
+    fn = {"type": "function", "function": {"name": tool["name"],
+                                           "description": tool["description"],
+                                           "parameters": tool["input_schema"]}}
+    try:
+        resp = client.chat.completions.create(
+            model=model, max_tokens=OPENAI_CHAT_MAX_TOKENS, timeout=timeout,
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
+            tools=[fn], tool_choice={"type": "function", "function": {"name": tool["name"]}})
+    except CallerError:
+        raise
+    except Exception as e:
+        raise _wrap(e) from e
+    choice = resp.choices[0]
+    msg = choice.message
+    finish = getattr(choice, "finish_reason", None)
+    meta = {"model_reported": getattr(resp, "model", None), "api": "openai-chat-completions",
+            "response_id": getattr(resp, "id", None), "finish_reason": finish,
+            "max_tokens": OPENAI_CHAT_MAX_TOKENS}   # corrector: el tope EFECTIVO del camino chat, declarado
+    usage = resp.usage.model_dump() if getattr(resp, "usage", None) else {}
     if not msg.tool_calls:
-        raise RuntimeError(f"openai: no tool_call (finish_reason={resp.choices[0].finish_reason})")
-    out = json.loads(msg.tool_calls[0].function.arguments)
-    if out.get("verdict") not in VOCABULARY:
-        raise RuntimeError(f"openai: invalid verdict {out.get('verdict')!r}")
-    return out, (resp.usage.model_dump() if resp.usage else {})
+        kind = ("incomplete:max_output_tokens" if finish == "length"
+                else "incomplete:content_filter" if finish == "content_filter" else "no-function-call")
+        raise CallerError(kind, f"openai: no tool_call (finish_reason={finish})", usage=usage, meta=meta)
+    try:
+        out = json.loads(msg.tool_calls[0].function.arguments)
+    except ValueError as e:
+        raise CallerError("arguments-unparseable", str(e), legacy_type_name=type(e).__name__,
+                          usage=usage, meta=meta) from e
+    if tool["name"] == VERDICT_TOOL["name"] and out.get("verdict") not in VOCABULARY:
+        raise CallerError("verdict-off-vocabulary", f"openai: invalid verdict {out.get('verdict')!r}",
+                          usage=usage, meta=meta)
+    return out, usage, meta
 
 
-def _default_caller(member, system, user_text):
-    if member["family"] == "openai":
-        return _openai_tool_call(member["reviewer"], system, user_text)
-    return _anthropic_tool_call(member["reviewer"], system, user_text)
+def _openai_tool_call(model, system, user_text, timeout=None, tool=None, client=None):
+    """Nombre de f57a3d3, conservado como ALIAS del despachador OpenAI: el transporte lo decide la tabla
+    (`models.api_of(model)`: el puente → chat.completions · el candidato / ids nuevos → Responses; WITT_OPENAI_API lo
+    fuerza). Devuelve 3-tupla (out, usage, meta)."""
+    api, _ = models.api_of(model)
+    if api == "openai-chat-completions":
+        return _openai_chat_call(model, system, user_text, timeout=timeout, tool=tool, client=client)
+    return _openai_responses_call(model, system, user_text, tool=tool, timeout=timeout, client=client)
+
+
+def _member_api(member):
+    """(api, api_source) de un miembro del panel. Un PanelMember de la tabla trae `api`/`api_source`; un panel LEGADO
+    (reviewer/family/lens de f57a3d3) lo infiere de la familia: anthropic → anthropic-messages · openai → la api de la
+    tabla para ese id (el puente → chat.completions, como hoy; WITT_OPENAI_API la fuerza; id desconocido → Responses)
+    con api_source 'inferred-from-family' · familia desconocida → (None, 'unknown-family')."""
+    api = member.get("api")
+    if api:
+        return api, member.get("api_source") or "caller"
+    fam = member.get("family") or models.family_of(member.get("reviewer"))[0]
+    if fam == "anthropic":
+        return "anthropic-messages", "inferred-from-family"
+    if fam == "openai":
+        api, _ = models.api_of(member.get("reviewer"))
+        return (api or "openai-responses"), "inferred-from-family"
+    return None, "unknown-family"
+
+
+def _default_caller(member, system, user_text, tool=None):
+    """(C.3) Despacho por `member['api']` (inferido de la familia si falta — _member_api): 'openai-responses' →
+    _openai_responses_call · 'openai-chat-completions' → _openai_chat_call · 'anthropic-messages' →
+    _anthropic_tool_call(max_tokens=member['max_tokens'] (tope de la generación; 1200 si el member no lo trae),
+    effort por WITT_ANTHROPIC_EFFORT + tabla, return_meta=True) · familia desconocida → CallerError('unknown-family')
+    SIN llamar a nada (fail-loud, no el `else: anthropic` de f57a3d3). Devuelve SIEMPRE (out, usage, meta).
+    `tool` (ADR-0081 L.n): run_held_out.openai_verdict delega aquí con su propio tool."""
+    api, _api_source = _member_api(member)
+    reviewer = member.get("reviewer")
+    if api == "openai-responses":
+        return _openai_responses_call(reviewer, system, user_text, tool=tool)
+    if api == "openai-chat-completions":
+        return _openai_chat_call(reviewer, system, user_text, tool=tool)
+    if api == "anthropic-messages":
+        mt = member.get("max_tokens")
+        max_tokens = mt if isinstance(mt, int) and not isinstance(mt, bool) and mt > 0 else ANTHROPIC_JUDGE_MAX_TOKENS_LEGACY
+        return _anthropic_tool_call(reviewer, system, user_text, tool=tool, max_tokens=max_tokens,
+                                    effort=_anthropic_effort_for(reviewer), return_meta=True)
+    raise CallerError("unknown-family",
+                      f"unknown-family: reviewer {reviewer!r} (family={member.get('family')!r}, api={api!r}) — "
+                      f"la tabla no lo conoce y el prefijo no casa; se erra en voz alta, no se asume anthropic (ADR-0081 A)")
+
+
+def _unpack_caller_result(res):
+    """(out, usage, meta): acepta la 2-tupla de f57a3d3 (meta = {}) o la 3-tupla de ADR-0081 (B)."""
+    if isinstance(res, tuple) and len(res) == 3:
+        out, usage, meta = res
+        return out, usage, (meta if isinstance(meta, dict) else {})
+    out, usage = res
+    return out, usage, {}
+
+
+def _meta_into(entry, meta):
+    """attempts[] += model_reported? / api? / max_output_tokens? (Responses) / max_tokens? (chat) — SÓLO cuando el caller
+    los reportó (ausente ≠ null declarado). El tope efectivo (corrector) deja legible contra qué tope se truncó un juez
+    OpenAI cuyo `audit.panel[].max_tokens` es null (su tope es del transporte, no de la tabla)."""
+    if not isinstance(meta, dict):
+        return
+    if meta.get("model_reported"):
+        entry["model_reported"] = meta["model_reported"]
+    if meta.get("api"):
+        entry["api"] = meta["api"]
+    for k in ("max_output_tokens", "max_tokens"):
+        v = meta.get(k)
+        if isinstance(v, int) and not isinstance(v, bool):
+            entry[k] = v
+
+
+QUORUM_RULE = ("n_valid >= min_valid AND (NOT families_gating OR n_families_valid >= min_families) AND "
+               "(NOT lenses_gating OR n_lenses_valid >= min_lenses); *_gating = (min >= 2): 0|1 = kill-switch declarado "
+               "(>= 1 es tautológico con n_valid >= 1) — con ambos apagados la regla es EXACTAMENTE la de f57a3d3")
+
+
+def _resolve_min(name, value):
+    """(valor, fuente) de un mínimo del cuórum: del llamador ('caller', >= 0) o de la env de la tabla (tolerante)."""
+    if value is None:
+        return models.env_value(name)
+    return max(0, int(value)), "caller"
 
 
 def audit(claim, evidence, deterministic_checks=None, required_because="", panel=None,
-          caller=None, min_valid=3, judge_retries=None):
+          caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None):
     """Run the Mode 1 split-and-vote panel over (claim, evidence). Returns the audit object the §5
     contract and the frozen record carry VISIBLY:
 
         {required, required_because, panel: [{reviewer, family, lens, verdict, caught,
-         correction_applied, confidence} | {reviewer, family, lens, status: 'errored', error}],
-         tally, verdict, source_vocabulary, panel_incomplete?, usage}
+         correction_applied, confidence, …, family_source, api, api_source, reviewer_source, max_tokens} |
+         {reviewer, family, lens, status: 'errored', error, …}],
+         tally, verdict, source_vocabulary, panel_incomplete?, panel_incomplete_reasons?, usage,
+         domain_niches, judge_retries,
+         families_valid, n_families_valid, lenses_valid, n_lenses_valid, panel_single_family, quorum,
+         panel_duplicate_models, panel_origin, panel_source, failure_kinds_vocabulary}
 
     `deterministic_checks` (dict) is verify_output/resolve_id output — handed to every judge so nobody
-    invents verification (ADR-0038). `caller(member, system, user_text) -> (verdict_dict, usage)` is
-    injectable for offline gates; default = live Anthropic/OpenAI calls.
+    invents verification (ADR-0038). `caller(member, system, user_text) -> (verdict_dict, usage[, meta])` is
+    injectable for offline gates; default = live Anthropic/OpenAI calls (_default_caller, 3-tupla); la 2-tupla de
+    f57a3d3 sigue aceptada (meta = {}).
 
     ADR-0080 (E): `judge_retries` = ADDITIONAL attempts per errored/unparseable judge before it is
     excluded (None → WITT_JUDGE_RETRIES, default 1; declared in out["judge_retries"] {value, source}).
     Every row carries `retries_judge` (extra attempts actually made) and `attempts` [{attempt, status,
-    error?}]; the `member` handed to the caller carries `attempt: k` (1-based) so a heartbeat wrapper
-    (runs.panel_caller → stage.audit.judge) can declare which attempt it announces. A judge that errors
-    on every attempt stays `status: 'errored'` with the LAST error — never fabricated. The
-    evidence-grounding judge's OPTIONAL `citation_support` is parsed (parse_citation_support) onto its
-    row as `citation_support` + `citation_support_dropped`; a judge that did not emit it has no key.
+    error?, error_kind?, usage?, model_reported?, api?, max_output_tokens? | max_tokens? (tope efectivo del juez
+    OpenAI — corrector)}]; the `member` handed to the caller carries `attempt: k`
+    (1-based) so a heartbeat wrapper (runs.panel_caller → stage.audit.judge) can declare which attempt it
+    announces. A judge that errors on every attempt stays `status: 'errored'` with the LAST error — never
+    fabricated. The evidence-grounding judge's OPTIONAL `citation_support` is parsed (parse_citation_support)
+    onto its row as `citation_support` + `citation_support_dropped`; a judge that did not emit it has no key.
+
+    ADR-0081: `panel = panel or models.panel(directives=directives)` EN LA LLAMADA (A/K) — `panel_origin` declara si
+    el panel vino del llamador o de la tabla; (D) cuórum por familias y lentes (WITT_PANEL_MIN_FAMILIES default 2,
+    WITT_PANEL_MIN_LENSES default 3; `min_families=`/`min_lenses=` del llamador → source 'caller'; 0|1 = kill-switch):
+    ¬ok → 'REVISE' + panel_incomplete True + panel_incomplete_reasons = quorum.failed (códigos cerrados: 'min_valid' |
+    'families' | 'lenses', orden fijo); ok → worst-of-N intacto (APPROVE_DECLINE ADR-0058 se preserva). (C.2)
+    attempts[].error conserva el string de f57a3d3 y gana error_kind (vocabulario en failure_kinds_vocabulary).
     """
-    panel = panel or DEFAULT_PANEL
+    # ADR-0081 (A)/(K): el panel se resuelve EN LA LLAMADA (env y fecha reales); `directives` (ADR-0082) se acepta,
+    # se ignora y se declara en panel_source. Con panel del llamador, panel_source describe la tabla de ESTA
+    # llamada y `panel_origin 'caller'` deja claro que los asientos no salieron de ella.
+    if panel:
+        panel_origin, panel_source = "caller", models.panel_source(directives=directives)
+    else:
+        resolved = models.resolve_panel(directives=directives)
+        panel, panel_source, panel_origin = resolved["panel"], resolved["panel_source"], "models.panel(directives)"
     caller = caller or _default_caller
     if judge_retries is None:
         judge_retries, retries_source = resolve_judge_retries()
     else:
         judge_retries, retries_source = max(0, int(judge_retries)), "caller"
+    # ADR-0081 (D): mínimos del cuórum — env de la tabla (tolerante, default declarado) o llamador
+    min_families, min_families_source = _resolve_min("WITT_PANEL_MIN_FAMILIES", min_families)
+    min_lenses, min_lenses_source = _resolve_min("WITT_PANEL_MIN_LENSES", min_lenses)
     user_text = json.dumps({
         "claim": claim,
         "evidence": evidence,
@@ -437,6 +977,14 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                   f"You are handed deterministic verification results in the input — cite them; NEVER claim "
                   f"a verification you did not run. Vote independently; other reviewers cover other lenses."
                   f"\n\n{_niche_table()}")
+        # ADR-0081 (D): la identidad declarada del asiento viaja a la fila. Un PanelMember de la tabla trae todo; un
+        # panel legado (reviewer/family/lens) lo declara como del llamador — jamás se rellena con la tabla.
+        api, api_source = _member_api(member)
+        family = member.get("family") or models.family_of(member.get("reviewer"))[0]
+        family_source = member.get("family_source") or ("caller" if member.get("family") else "prefix")
+        seat = {"family_source": family_source, "api": api, "api_source": api_source,
+                "reviewer_source": member.get("reviewer_source") or "caller",
+                "max_tokens": member.get("max_tokens")}
         # ADR-0080 (E): hasta 1 + judge_retries intentos por juez; cada intento queda en `attempts`.
         # El gasto MEDIDO de cada intento que devolvió usage (incluido un intento ILEGIBLE: la API cobró
         # esos tokens aunque el veredicto se descarte) se conserva por intento y se SUMA en la fila
@@ -451,26 +999,34 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
         for attempt in range(1, judge_retries + 2):
             entry = {"attempt": attempt}
             try:
-                out_v, usage = caller(dict(member, attempt=attempt), system, user_text)
+                out_v, usage, meta = _unpack_caller_result(caller(dict(member, attempt=attempt), system, user_text))
                 if isinstance(usage, dict) and usage:
                     entry["usage"] = usage
                     _acc(judge_usage, usage)
+                _meta_into(entry, meta)     # ADR-0081 (B): lo que la API DIJO, medido — jamás copiado del member
                 got = out_v.get("verdict") if isinstance(out_v, dict) else None
                 if got not in VOCABULARY:
-                    raise RuntimeError(f"unparseable judge output: verdict={got!r}")
+                    raise CallerError("verdict-off-vocabulary", f"unparseable judge output: verdict={got!r}")
                 verdict = out_v
                 entry["status"] = "ok"
                 attempts.append(entry)
                 break
             except Exception as e:
-                last_error = f"{type(e).__name__}: {str(e)[:200]}"
-                entry.update({"status": "errored", "error": last_error})
+                last_error = _error_string(e)
+                # ADR-0081 (C.2): el string `error` de f57a3d3 byte a byte + la palabra-máquina `error_kind`
+                entry.update({"status": "errored", "error": last_error, "error_kind": failure_kind_of(e)})
+                # un CallerError puede traer lo MEDIDO del intento fallido (la API respondió y cobró): se conserva
+                e_usage = getattr(e, "usage", None)
+                if isinstance(e_usage, dict) and e_usage and "usage" not in entry:
+                    entry["usage"] = e_usage
+                    _acc(judge_usage, e_usage)
+                _meta_into(entry, getattr(e, "meta", None))
                 attempts.append(entry)
                 verdict = None
         retries_used = len(attempts) - 1
         usage = judge_usage
         if verdict is not None:
-            row = {"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
+            row = {"reviewer": member["reviewer"], "family": family, "lens": member["lens"],
                    "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
                    "correction_applied": verdict.get("correction_applied", ""),
                    "confidence": verdict.get("confidence"),
@@ -481,7 +1037,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                    **({"domain_niches": verdict["domain_niches"]}
                       if isinstance(verdict.get("domain_niches"), list) else {}),
                    "retries_judge": retries_used, "attempts": attempts,
-                   "usage": usage or {}}   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
+                   "usage": usage or {},   # per-reviewer usage -> TokenUsage.by_model (ADR-0051)
+                   **seat}
             # ADR-0080 (E): soporte por cita — sólo si el juez lo EMITIÓ como lista (no emitir ≠ emitir [])
             if isinstance(verdict.get("citation_support"), list):
                 parsed, dropped = parse_citation_support(verdict["citation_support"])
@@ -492,9 +1049,9 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                 if isinstance(v, (int, float)):
                     usage_total[k] = usage_total.get(k, 0) + v
         else:  # errored judge: EXCLUDED and recorded — never fabricated (ADR-0038)
-            row = {"reviewer": member["reviewer"], "family": member["family"], "lens": member["lens"],
+            row = {"reviewer": member["reviewer"], "family": family, "lens": member["lens"],
                    "status": "errored", "error": last_error,
-                   "retries_judge": retries_used, "attempts": attempts}
+                   "retries_judge": retries_used, "attempts": attempts, **seat}
             if judge_usage:   # un intento ilegible que SÍ cobró tokens: gasto medido, declarado aquí también
                 row["usage"] = judge_usage
                 _acc(usage_total, judge_usage)
@@ -502,19 +1059,65 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
 
     valid = [r for r in rows if "verdict" in r]
     tally = {v: sum(1 for r in valid if r["verdict"] == v) for v in VOCABULARY}
+    # ADR-0081 (D): cuórum por FAMILIAS y LENTES. `families_valid` excluye 'unknown' (y cualquier etiqueta fuera de
+    # models.FAMILIES): un asiento cuya familia no se sabe no aporta independencia — se ve en families_present.
+    families_present, lenses_present = {}, []
+    for r in valid:
+        families_present[r["family"]] = families_present.get(r["family"], 0) + 1
+        lenses_present.append(r["lens"])
+    families_valid = sorted(f for f in families_present if f in models.FAMILIES)
+    lenses_valid = list(dict.fromkeys(lenses_present))       # distintas, en el orden del panel
+    n_valid, n_families_valid, n_lenses_valid = len(valid), len(families_valid), len(lenses_valid)
+    families_gating, lenses_gating = min_families >= 2, min_lenses >= 2
+    n_valid_ok = n_valid >= min_valid
+    families_ok = (n_families_valid >= min_families) if families_gating else None
+    lenses_ok = (n_lenses_valid >= min_lenses) if lenses_gating else None
+    failed = [code for code, ok in (("min_valid", n_valid_ok), ("families", families_ok), ("lenses", lenses_ok))
+              if ok is False]
+    quorum = {"n_valid": n_valid, "min_valid": min_valid,
+              "min_families": {"value": min_families, "source": min_families_source},
+              "min_lenses": {"value": min_lenses, "source": min_lenses_source},
+              "families_present": families_present, "lenses_present": lenses_present,
+              "n_valid_ok": n_valid_ok, "families_ok": families_ok, "lenses_ok": lenses_ok,
+              "families_gating": families_gating, "lenses_gating": lenses_gating,
+              "ok": not failed, "failed": failed, "rule": QUORUM_RULE, "decided_by": "code"}
+    counts = {}
+    for m in panel:
+        counts[m.get("reviewer")] = counts.get(m.get("reviewer"), 0) + 1
     out = {"required": True, "required_because": required_because, "panel": rows, "tally": tally,
-           "source_vocabulary": SOURCE_VOCABULARY, "n_valid": len(valid), "usage": usage_total,
-           "domain_niches": tally_domain_niches(rows, len(valid)),
+           "source_vocabulary": SOURCE_VOCABULARY, "n_valid": n_valid, "usage": usage_total,
+           "domain_niches": tally_domain_niches(rows, n_valid),
            # ADR-0080 (E): el reintento por juez viaja DECLARADO (valor efectivo + procedencia)
            "judge_retries": {"value": judge_retries, "source": retries_source,
-                             "scope": "judge-call (additional attempts before exclusion)"}}
-    if len(valid) < min_valid:
-        # a thin panel can NEVER approve — conservative by construction (Mode 1 minimum >=3)
+                             "scope": "judge-call (additional attempts before exclusion)"},
+           # ADR-0081 (D): cuórum declarado — los números viven aquí; los códigos en panel_incomplete_reasons
+           "families_valid": families_valid, "n_families_valid": n_families_valid,
+           "lenses_valid": lenses_valid, "n_lenses_valid": n_lenses_valid,
+           "panel_single_family": n_families_valid <= 1, "quorum": quorum,
+           # frontera declarada (D): el mismo modelo en dos lentes (p. ej. sonnet-5 tras el retiro de haiku) baja
+           # la independencia DENTRO de la familia — se declara, no se disimula
+           "panel_duplicate_models": sorted(mid for mid, n in counts.items() if n > 1),
+           "panel_origin": panel_origin,
+           # ADR-0081 (K): el hueco del consejo (ADR-0082), declarado sin implementarse
+           "panel_source": panel_source,
+           # ADR-0081 (C.2): el vocabulario de error_kind viaja congelado junto al dato
+           "failure_kinds_vocabulary": failure_kinds_vocabulary()}
+    if failed:
+        # a thin panel — or one without cross-family / cross-lens independence — can NEVER approve:
+        # REVISE ESTRUCTURAL (jueces caídos o sin diversidad, no un hallazgo sobre la respuesta — ADR-0067 la
+        # revisión no aplica); conservative by construction (Mode 1 minimum >=3, ADR-0081 D)
         out["verdict"] = "REVISE"
         out["panel_incomplete"] = True
+        out["panel_incomplete_reasons"] = failed
     else:
         out["verdict"] = max((r["verdict"] for r in valid), key=_SEVERITY.__getitem__)
     return out
+
+
+# Llaves aditivas de ADR-0081 que apply_to_bundle copia al bundle['audit'] cuando el audit_result las trae.
+_BUNDLE_AUDIT_KEYS_1_10 = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid",
+                           "panel_single_family", "quorum", "panel_incomplete_reasons", "panel_duplicate_models",
+                           "panel_origin", "panel_source", "failure_kinds_vocabulary")
 
 
 def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=None):
@@ -543,5 +1146,10 @@ def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=N
         bundle["audit"]["judge_retries"] = audit_result["judge_retries"]
     if audit_result.get("panel_incomplete"):
         bundle["audit"]["panel_incomplete"] = True
+    # ADR-0081 (D)/(K)/(C.2): el cuórum, su regla, el hueco del consejo y el vocabulario de fallos viajan al registro
+    # congelado junto a las filas (presentes sólo si el audit_result los trae: un resultado 1.9 no gana llaves)
+    for k in _BUNDLE_AUDIT_KEYS_1_10:
+        if k in audit_result:
+            bundle["audit"][k] = audit_result[k]
     bundle["bundle_identity"] = answer_pipeline_module._identity(bundle)
     return bundle

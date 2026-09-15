@@ -9,6 +9,13 @@ panel + revisión ADR-0067 + registro congelado 1.6). Este archivo se CONSERVA p
 instrumento que produjo month_0/4/8 (procedencia de esos récords) y (b) el v2 REUSA por import su
 juez multi-proveedor, la carga del set y la extracción de entidades. No correr `run` nuevo aquí.
 
+**ADR-0081 (A)/(L.n):** el panel de jueces y el sintetizador salen de la TABLA (`analysis/scripts/lib/
+models.py`: `models.panel()` / `models.resolve_role('synthesizer')`) — desaparece la cuarta copia de los
+literales de modelo. El juez OpenAI DELEGA en `composite_auditor._default_caller(…, tool=)` (transporte por tabla:
+Responses API para el candidato `status 'candidate'`, chat.completions para el puente; S2 aterrizó y S7 retiró el camino
+legado de chat.completions: una firma sin `tool=` erra en voz alta). Un proveedor desconocido erra en voz alta ('unknown-family'), no cae
+a Anthropic en silencio. Este script GASTA y no se corre en la obra (E4).
+
 Runs the frozen held-out set (evaluation/held_out_set_v1.json, 30 Q) through a 3-STAGE pipeline per
 question and writes claim-record-conforming outputs so compute_ece.py + noise_probe.py can measure the
 baseline. This is the step that moves Test 3 from SCAFFOLD -> measured and produces the first REAL EPS.
@@ -16,8 +23,9 @@ baseline. This is the step that moves Test 3 from SCAFFOLD -> measured and produ
     Stage 1 RETRIEVE  (deterministic, reuses answer_pipeline): DATA INAMOVIBLE Path A (rag_backend) +
                        resolve key entities (resolve_id). Optional Path B (Europe PMC) with --pathb.
     Stage 2 SYNTHESIZE (Anthropic Messages API via urllib — NO SDK dependency, repo stdlib idiom):
-                       claude-opus-4-8 consumes the evidence bundle and emits the CLAUDE.md §5 output
-                       contract as a forced tool call (direct_answer + confidence + evidence + ...).
+                       the table's synthesizer (models.resolve_role('synthesizer')) consumes the evidence
+                       bundle and emits the CLAUDE.md §5 output contract as a forced tool call
+                       (direct_answer + confidence + evidence + ...).
     Stage 3 SCORE against INDEPENDENT ground truth (anti-circularity — plan Track A golden rule):
                        (a) DETERMINISTIC for identifier-bearing Q: verify_output.admissible() over the
                            answer's ENSDARG/bindings against the verified store -> positive/negative.
@@ -73,12 +81,20 @@ ID_TYPES = {"marker_identification", "ortholog_mapping", "specificity_ratio"}
 # Multi-PROVIDER judge panel (ADR-0031 + ADR-0038): the closing audit (ADR-0037/C2) showed that within-Anthropic
 # divergence (Opus/Sonnet/Haiku) is mostly capability-tier grading noise, NOT epistemic independence. Adding an
 # OpenAI (GPT) judge makes cross-PROVIDER disagreement measurable — the only kind that meaningfully tests
-# reviewer independence. Fable-5 stays excluded (refuses forced tool-calls). Each judge is tagged with its
-# provider so judge_answer() dispatches to the right API and the disagreement split (within-Anthropic vs
-# Anthropic-vs-OpenAI) can be computed.
-JUDGE_PANEL = [("anthropic", "claude-opus-4-8"), ("anthropic", "claude-sonnet-5"),
-               ("anthropic", "claude-haiku-4-5-20251001"), ("openai", os.environ.get("OPENAI_JUDGE_MODEL", "gpt-4o"))]
-SYNTH_MODEL = "claude-opus-4-8"
+# reviewer independence. Fable stays excluded (400 on forced tool_choice; table row `excluded`). Each judge is
+# tagged with its provider so judge_answer() dispatches to the right API and the disagreement split
+# (within-Anthropic vs Anthropic-vs-OpenAI) can be computed.
+#
+# ADR-0081 (A): panel y sintetizador salen de la TABLA — ya no son literales aquí. Este archivo es un CLI: su
+# import ES su tiempo de llamada (la env WITT_MODEL_*/WITT_JUDGE_*/OPENAI_JUDGE_MODEL/WITT_MODEL_GENERATION se
+# lee al correr). La forma [(family, model)] se CONSERVA (run_held_out_v2 reusa judge_answer).
+from lib import models as _models  # noqa: E402
+
+_SYNTH_ROLE = _models.resolve_role("synthesizer")
+SYNTH_MODEL = _SYNTH_ROLE["model"]
+_PANEL = _models.panel()
+JUDGE_PANEL = [(m["family"], m["reviewer"]) for m in _PANEL]
+_PANEL_BY_MODEL = {m["reviewer"]: m for m in _PANEL}
 
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
@@ -171,23 +187,59 @@ def anthropic_tool_call(model, system, user_text, tool, max_tokens=2000, timeout
     raise last  # pragma: no cover
 
 
+def _default_caller_accepts_tool():
+    """ADR-0081 (L.n): ¿composite_auditor._default_caller ya acepta `tool=` (obra de S2)? Import perezoso: este
+    módulo no debe arrastrar el panel al importarse. Devuelve (caller|None, accepts: bool)."""
+    import inspect
+    from lib import composite_auditor as ca
+    caller = getattr(ca, "_default_caller", None)
+    if caller is None:
+        return None, False
+    try:
+        return caller, "tool" in inspect.signature(caller).parameters
+    except (TypeError, ValueError):
+        return caller, False
+
+
 def openai_verdict(model, system, user_text, tool, max_tokens=1200, timeout=120):
-    """Cross-PROVIDER judge via the OpenAI SDK (function-calling forced). Reuses the SAME tool schema as the
-    Anthropic judges (tool['input_schema'] -> function.parameters) so verdicts are directly comparable. Reads
-    OPENAI_API_KEY from env (already present for embeddings). Raises on failure so the caller records the
-    judge as errored (excluded), never fabricated."""
-    from openai import OpenAI
-    client = OpenAI()  # OPENAI_API_KEY from env
-    fn = {"type": "function", "function": {"name": tool["name"], "description": tool.get("description", ""),
-                                           "parameters": tool["input_schema"]}}
-    resp = client.chat.completions.create(
-        model=model, max_tokens=max_tokens, timeout=timeout,
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
-        tools=[fn], tool_choice={"type": "function", "function": {"name": tool["name"]}})
-    msg = resp.choices[0].message
-    if not msg.tool_calls:
-        raise RuntimeError(f"openai: no tool_call (finish_reason={resp.choices[0].finish_reason})")
-    return json.loads(msg.tool_calls[0].function.arguments), (resp.usage.model_dump() if resp.usage else {})
+    """Cross-PROVIDER judge. Reuses the SAME tool schema as the Anthropic judges (tool['input_schema'] ->
+    function.parameters) so verdicts are directly comparable. Raises on failure so the caller records the judge
+    as errored (excluded), never fabricated.
+
+    ADR-0081 (L.n): DELEGA en `composite_auditor._default_caller(member, system, user_text, tool=tool)` — el
+    despacho por `member['api']` de la tabla (Responses API para el candidato; chat.completions para el puente;
+    `WITT_OPENAI_API` fuerza). S7: S2 aterrizó (la firma acepta `tool=`, medido en smoke_models) y el camino legado de
+    chat.completions que esta función llevaba durante la obra se RETIRÓ — una firma sin `tool=` (árbol viejo) erra en
+    voz alta en vez de caer a un transporte que con Astra falla; el error se registra como juez errado, jamás se
+    fabrica un veredicto. `timeout` lo gobierna WITT_OPENAI_TIMEOUT_S (composite_auditor._openai_client); el parámetro
+    se conserva por compatibilidad de firma y se declara sin efecto."""
+    caller, accepts_tool = _default_caller_accepts_tool()
+    if not accepts_tool:
+        raise RuntimeError("composite_auditor._default_caller sin `tool=` — árbol anterior a ADR-0081 S2; no se cae a "
+                           "chat.completions en silencio (S7 retiró el camino legado)")
+    member = _models.member_for(model, "reproducibility")
+    member["max_tokens"] = max_tokens if member["family"] == "anthropic" else None
+    out = caller(member, system, user_text, tool=tool)
+    verdict, usage = out[0], out[1]          # 2- o 3-tupla (S2 devuelve (tool_input, usage, meta))
+    if len(out) > 2 and isinstance(out[2], dict) and isinstance(verdict, dict):
+        verdict = dict(verdict)
+        verdict["_model_reported"] = out[2].get("model_reported")
+        verdict["_api"] = out[2].get("api")
+    return verdict, usage
+
+
+def _judge_call(provider, model, system, user_text):
+    """Despacho por FAMILIA de la tabla (ADR-0081): openai → openai_verdict · anthropic → anthropic_tool_call
+    con el TOPE del asiento (models.panel()[i]['max_tokens']; 1200 si el modelo no es asiento del panel) ·
+    cualquier otra → RuntimeError('unknown-family …') — fail-loud, no el `else: anthropic` de f57a3d3."""
+    if provider == "openai":
+        return openai_verdict(model, system, user_text, VERDICT_TOOL)
+    if provider == "anthropic":
+        seat = _PANEL_BY_MODEL.get(model) or {}
+        return anthropic_tool_call(model, system, user_text, VERDICT_TOOL,
+                                   max_tokens=seat.get("max_tokens") or 1200)
+    raise RuntimeError(f"unknown-family: provider {provider!r} for judge {model!r} — la tabla no lo conoce y el "
+                       f"prefijo no casa; no se llama a ninguna API")
 
 
 # --------------------------------------------------------------------------- tool schemas (§5 contract, verdict)
@@ -421,10 +473,14 @@ def stage_synthesize(q, bundle):
     prompt = bundle_to_prompt(q, bundle)
     # retries=2 (3 attempts): `confidence` omission is intermittent across questions; extra attempts
     # maximize the fraction of records that carry a stated_confidence (required by compute_ece).
-    contract, usage = anthropic_tool_call(SYNTH_MODEL, SYNTH_SYSTEM, prompt, CONTRACT_TOOL, retries=2)
+    # ADR-0081 (C.4): el TOPE es el de la generación para el rol (g2 8000: opus-5 piensa por default y
+    # max_tokens acota pensamiento + respuesta; g1 2500) — antes 2000 fijo.
+    contract, usage = anthropic_tool_call(SYNTH_MODEL, SYNTH_SYSTEM, prompt, CONTRACT_TOOL,
+                                          max_tokens=_SYNTH_ROLE["max_tokens"] or 2000, retries=2)
     contract = _recover_leaked_confidence(contract)   # salvage confidence leaked as text into direct_answer
     contract["_usage"] = usage
-    contract["_model"] = SYNTH_MODEL
+    contract["_model"] = SYNTH_MODEL                   # lo PEDIDO (resuelto por tabla/env)
+    contract["_model_source"] = _SYNTH_ROLE["source"]
     return contract
 
 
@@ -479,10 +535,7 @@ def judge_answer(q, contract, reingest_cache=None):
     verdicts = []
     for provider, model in JUDGE_PANEL:
         try:
-            if provider == "openai":
-                v, usage = openai_verdict(model, system, user, VERDICT_TOOL)
-            else:
-                v, usage = anthropic_tool_call(model, system, user, VERDICT_TOOL, max_tokens=1200)
+            v, usage = _judge_call(provider, model, system, user)   # ADR-0081: despacho por familia de la tabla
             verdicts.append({"provider": provider, "model": model, **v, "usage": usage})
         except Exception as e:
             verdicts.append({"provider": provider, "model": model, "verdict": "error", "error": str(e)})
@@ -591,8 +644,8 @@ def run(args):
     _load_secrets()
     os.environ["RAG_BACKEND"] = args.backend  # sparse = NO-SPEND offline; neo4j = live hosted store
     if args.backend == "neo4j":
-        # The hosted vector index is 1536-dim (OpenAI text-embedding-3-small). The QUERY must be embedded
-        # with the SAME model or the dim mismatch makes Neo4jGraphRetriever throw — which HybridRetriever
+        # The hosted vector index is 1536-dim (OpenAI; the table's `embed` row — models.embed_model()). The QUERY
+        # must be embedded with the SAME model or the dim mismatch makes Neo4jGraphRetriever throw — which HybridRetriever
         # silently swallows into sparse-only (the Track B silent-degradation trap). Force OpenAI here.
         os.environ["EMBED_MODEL"] = "openai"
     month_dir = RUNS / args.month

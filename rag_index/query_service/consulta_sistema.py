@@ -34,7 +34,7 @@ _KEYWORDS = {
     "corpus": ("corpus", "documento", "paper", "dataset", "manifest"),
     "taxonomia": ("taxonomia", "taxonomía", "nicho", "niche"),
     "corridas": ("corrida", "run", "precedente", "pregunta", "cerrad"),
-    "config": ("config", "historial", "cambio", "comparab"),
+    "config": ("config", "historial", "cambio", "comparab", "modelo", "generaci", "ledger", "bitácora", "bitacora"),
     "curacion": ("curacion", "curación", "cuarentena", "barrido", "sweep", "zfin", "propuesta"),
 }
 
@@ -49,6 +49,28 @@ def _mtime_iso(path):
                                                datetime.timezone.utc).isoformat(timespec="seconds")
     except OSError:
         return None
+
+
+def _config_efectiva():
+    """ADR-0081 (I): la configuración EFECTIVA de modelos y el estado del ledger — la MISMA función que sirve
+    GET /config-history.current (config_ledger.current) y la MISMA lectura de la tabla (config_ledger.listing),
+    para que la consulta del sistema y M6 digan lo mismo. Import perezoso (config_ledger vive en este directorio
+    y carga lib.models + db); si no se puede leer, ausencia declarada con la causa — jamás un default copiado."""
+    try:
+        import config_ledger
+        lectura = config_ledger.listing()
+        escritor = config_ledger.state_view()
+        return {
+            "models_effective": config_ledger.current(extra=config_ledger.default_extra()),
+            "ledger": {"n_rows": lectura["n_rows"], "last_recorded_at": lectura["last_recorded_at"],
+                       "state": lectura["state"] or escritor["state"]},
+            "fuente_models": ("lib.models.snapshot() vía config_ledger.current — la MISMA función que "
+                              "GET /config-history.current; ledger = tabla config_history (config_ledger.listing)"),
+        }
+    except Exception as e:
+        return {"models_effective": None,
+                "ledger": {"n_rows": None, "last_recorded_at": None, "state": f"error: {type(e).__name__}"},
+                "fuente_models": f"unavailable: {type(e).__name__}: {str(e)[:120]}"}
 
 
 def build_snapshot(status, run_tally):
@@ -131,6 +153,9 @@ def build_snapshot(status, run_tally):
     except Exception as e:
         snap["secciones"]["config"] = {"state": "unavailable",
                                        "error": f"{type(e).__name__}: {str(e)[:120]}"}
+    # ADR-0081 (I): el archivo es la clase ATESTIGUADA; la configuración EFECTIVA (models_effective) y la
+    # bitácora en BD (ledger) son MEDICIÓN — las tres viajan en la misma sección sin mezclar formas.
+    snap["secciones"]["config"].update(_config_efectiva())
     sweeps = sorted(QUARANTINE.glob("*/dataset.json")) if QUARANTINE.exists() else []
     cur = {"n_propuestas_en_cuarentena": len(sweeps), "ultima": None,
            "fuente": "rag_index/curation/quarantine/ (propuestas gateadas, ADR-0068 — NO son la DI)"}
@@ -154,8 +179,8 @@ def resumen(snap):
     """El lenguaje natural lo compone CÓDIGO: cada cifra sale del snapshot (lecturas en vivo,
     autofechadas por read_at) — jamás un número sin fuente."""
     s = snap["secciones"]
-    st, ix, co, tx, ru, cu = (s.get(k, {}) for k in
-                              ("store", "indice", "corpus", "taxonomia", "corridas", "curacion"))
+    st, ix, co, tx, ru, cu, cf = (s.get(k, {}) for k in
+                                  ("store", "indice", "corpus", "taxonomia", "corridas", "curacion", "config"))
     partes = [
         f"La DATA INAMOVIBLE tiene {_fmt(st.get('record_count'))} identificadores verificados "
         f"(store_version {_fmt(st.get('store_version'))}).",
@@ -174,6 +199,17 @@ def resumen(snap):
          f"esperando el gate humano." if cu.get("n_propuestas_en_cuarentena") else
          "Curación en cuarentena: ninguna propuesta pendiente."),
     ]
+    # ADR-0081: la generación de modelos EFECTIVA y sus avisos medidos (retiro, env inválida) — cifras del
+    # mismo snapshot (models_effective), nunca una constante; sin snapshot, se declara que no consta.
+    me = cf.get("models_effective") if isinstance(cf, dict) else None
+    if isinstance(me, dict):
+        n_av = len(me.get("warnings") or [])
+        partes.append(f"Modelos: generación {_fmt(me.get('generation'))} (firma del panel "
+                      f"{_fmt(me.get('panel_signature'))}); "
+                      + (f"{n_av} aviso(s) de configuración." if n_av else "sin avisos de configuración.")
+                      + f" Bitácora de configuración: {_fmt((cf.get('ledger') or {}).get('state'))}.")
+    else:
+        partes.append("Modelos: la configuración efectiva no consta (config_ledger no disponible).")
     return " ".join(partes)
 
 

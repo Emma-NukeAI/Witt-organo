@@ -97,6 +97,34 @@ services:
       # WITT_GEO_ORGANISM is deliberately NOT declared here: geo_gds treats a PRESENT-but-empty value as "disable the
       # [Organism] block" (declared organism_sent null); unset => 'Danio rerio'. Set it in Dokploy only when you mean it.
       - WITT_OPENALEX_PER_PAGE=${WITT_OPENALEX_PER_PAGE:-5}      # OpenAlex works per call (clamp 1..200)
+      # ADR-0081 — política best-tier v2 y generación de modelos g2-2026-09. SÓLO placeholders: los defaults viven
+      # DECLARADOS en analysis/scripts/lib/models.py (ENV_TABLE) y el valor efectivo + su fuente ('env:…' |
+      # 'default-unset:…' | 'default-invalid-env:…') viajan en frozen.models, stage.models, audit.quorum y
+      # /config-history.current. VACÍA = default declarado, jamás un crash. TODA ENV IMPLICA REINICIO: el os.environ
+      # del contenedor se fija al arrancar el proceso — cambiar un valor en Dokploy NO surte efecto hasta
+      # redeploy/restart (ADR-0081 Context 10); el ledger config_history registra el diff al arrancar
+      # (changed_by 'system:boot-diff'). WITT_JUDGE_RETRIES (arriba, ADR-0080) entra al snapshot sin cambio.
+      - WITT_MODEL_GENERATION=${WITT_MODEL_GENERATION:-g2-2026-09}   # generación de defaults y TOPES por rol; g1-2026-08 = f57a3d3 byte a byte (kill-switch)
+      - WITT_MODEL_SYNTH=${WITT_MODEL_SYNTH:-}                       # sintetizador; vacía => default de la generación (claude-opus-5 en g2)
+      - WITT_MODEL_PLANNER=${WITT_MODEL_PLANNER:-}                   # planner (POST /runs/plan); vacía => idem
+      - WITT_MODEL_ELICIT=${WITT_MODEL_ELICIT:-}                     # elicitación de confianza (CONF_TOOL, ADR-0065); vacía => idem
+      - WITT_MODEL_QUESTION=${WITT_MODEL_QUESTION:-}                 # agente de preguntas (question_agent); vacía => idem
+      - WITT_JUDGE_CORRECTNESS=${WITT_JUDGE_CORRECTNESS:-}           # asiento correctness (anthropic); vacía => claude-opus-5 (g2) / claude-opus-4-8 (g1)
+      - WITT_JUDGE_OVERCLAIM=${WITT_JUDGE_OVERCLAIM:-}               # asiento overclaim (anthropic); vacía => claude-sonnet-5
+      - WITT_JUDGE_GROUNDING=${WITT_JUDGE_GROUNDING:-}               # asiento evidence-grounding (anthropic); vacía => claude-haiku-4-5-20251001, que se
+                                                                     # retira >= 2026-10-15: el sucesor declarado claude-sonnet-5 se fija AQUÍ (ADR-0081 (E))
+      - OPENAI_JUDGE_MODEL=${OPENAI_JUDGE_MODEL:-}                   # asiento reproducibility (openai; ya existía); vacía => gpt-4o; gpt-6-astra SÓLO tras LG3 (E1)
+      - WITT_PANEL_AUTO_RETIRE=${WITT_PANEL_AUTO_RETIRE:-0}          # 1 = sucesor automático al llegar retire_not_before (declarado + fila runtime-diff); 0 = manual (E2)
+      - WITT_PANEL_MIN_FAMILIES=${WITT_PANEL_MIN_FAMILIES:-2}        # cuórum de FAMILIAS con veredicto válido; 0|1 = kill-switch (gating false = regla de hoy)
+      - WITT_PANEL_MIN_LENSES=${WITT_PANEL_MIN_LENSES:-3}            # cuórum de LENTES con veredicto válido; 0|1 = kill-switch
+      - WITT_OPENAI_API=${WITT_OPENAI_API:-table}                    # table (la api de la tabla por modelo) | responses (fuerza Responses) | chat-completions (caller de hoy)
+      - WITT_OPENAI_STORE=${WITT_OPENAI_STORE:-0}                    # `store` de responses.create (el default de la API es true = retención 30 días del lado OpenAI)
+      - WITT_OPENAI_MAX_OUTPUT_TOKENS=${WITT_OPENAI_MAX_OUTPUT_TOKENS:-4000}   # TOPE (no gasto) del camino Responses; el camino chat conserva 1200
+      - WITT_OPENAI_REASONING_EFFORT=${WITT_OPENAI_REASONING_EFFORT:-}        # low|medium|high; vacía = no se envía; sólo a modelos con reasoning True en la tabla
+      - WITT_OPENAI_TIMEOUT_S=${WITT_OPENAI_TIMEOUT_S:-120}          # timeout por llamada del juez OpenAI; regla (1+WITT_JUDGE_RETRIES)×timeout×2 <= WITT_REAP_STALE_S
+      - WITT_ANTHROPIC_EFFORT=${WITT_ANTHROPIC_EFFORT:-}             # output_config.effort (low|medium|high|xhigh|max) SÓLO a modelos thinking_default 'adaptive'; vacía = default de la API
+      - WITT_ANTHROPIC_EFFORT_ELICIT=${WITT_ANTHROPIC_EFFORT_ELICIT:-}   # override sólo para CONF_TOOL (la mini-llamada de confianza); vacía = hereda WITT_ANTHROPIC_EFFORT
+      - WITT_CONFIG_LEDGER=${WITT_CONFIG_LEDGER:-1}                  # 0 = cero escrituras en la tabla config_history (ledger_state lo dice); el archivo atestiguado no cambia
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

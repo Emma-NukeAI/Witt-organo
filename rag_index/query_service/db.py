@@ -21,8 +21,8 @@ import os
 import secrets
 from pathlib import Path
 
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Integer, MetaData, String, Table, Text,
-                        create_engine, delete, func, select)
+from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer, MetaData, String, Table,
+                        Text, case, create_engine, delete, func, inspect as sa_inspect, or_, select)
 
 _SERVICE_DIR = Path(__file__).resolve().parent
 DB_URL = os.environ.get("WITT_BACKEND_DB_URL", f"sqlite:///{_SERVICE_DIR / 'backend.db'}")
@@ -236,6 +236,31 @@ note_questions = Table(
     Column("error", Text),                                # el agente puede fallar sin tumbar nada
     Column("run_id", String(64)),                         # sellado al consumirse (una corrida)
     Column("created_at", DateTime(timezone=True), nullable=False),
+)
+
+# BITÁCORA DE CONFIGURACIÓN (ADR-0081 (I)): la clase MEDICIÓN de /config-history. Cada fila es UN campo
+# del snapshot efectivo (models.snapshot(), lista cerrada SNAPSHOT_FIELDS) que CAMBIÓ respecto a la última
+# fila de ese campo — la escribe app.config_ledger_boot() al arrancar (changed_by 'system:boot-diff') y
+# config_ledger_observe() al inicio de cada execute_run (changed_by 'system:runtime-diff', p. ej. el
+# auto-retiro de un asiento). Append-only: aquí NO existe update ni delete (nada reescribe la historia).
+# `value`/`previous_value` van como JSON (json.dumps): 'null' = valor None DECLARADO; SQL NULL en
+# previous_value = "primera observación de este campo" — tres estados, jamás confundibles. Ningún valor
+# que parezca llave entra (CONFIG_LEDGER_SECRET_MARKERS): se rechaza y se DECLARA en rejected[].
+# create_all la crea; sin ALTER (_migrate no la toca): tabla nueva, esquema completo desde el día uno.
+config_history = Table(
+    "config_history", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("recorded_at", DateTime(timezone=True), nullable=False),   # medido al escribir (UTC)
+    Column("field", String(64), nullable=False),                      # ∈ models.SNAPSHOT_FIELDS
+    Column("value", Text, nullable=False),                            # JSON del valor efectivo
+    Column("previous_value", Text),                                   # JSON del anterior; NULL = 1a vez
+    Column("source", Text, nullable=False),                           # 'env:<VAR>' | 'default:<gen>' | …
+    Column("changed_by", String(64), nullable=False),                 # 'system:boot-diff' | 'system:runtime-diff'
+    Column("scope", String(24), nullable=False),                      # ámbito declarado por el llamador
+    Column("generation", String(32), nullable=False),                 # models.GENERATION efectiva
+    Column("boot_id", String(32), nullable=False),                    # identidad del arranque (proceso)
+    Column("note", Text),                                             # 'first-boot-snapshot' | NULL
+    Index("ix_config_history_field_recorded", "field", "recorded_at"),
 )
 
 _engine = None
@@ -690,9 +715,29 @@ def reap_stale_running(stale_s, now=None, reason="worker-lost", stale_s_source=N
     return segadas
 
 
+def _root_join(*cols):
+    """ADR-0081 (F): `SELECT <cols>, root.run_no AS root_run_no FROM runs LEFT OUTER JOIN runs AS root ON
+    root.run_id = runs.thread_id`. La RAÍZ de la investigación es la fila cuyo run_id es el thread_id de
+    la corrida: la raíz real apunta a sí misma (root == la propia fila ⇒ root_run_no == run_no); el hijo
+    de una raíz VIRTUAL (padre pre-ADR-0079 con thread_id NULL) la encuentra por run_id y hereda su
+    run_no; una corrida pre-ADR (thread_id NULL) no casa con nadie ⇒ root_run_no NULL DECLARADO, jamás
+    rellenado. OUTER: el JOIN nunca quita filas. La llave `root_run_no` nace aquí, en la BD — no en la
+    vista (app._run_view es passthrough) ni por corrida (runs._root_run_no hacía db.get_run por renglón);
+    lista y detalle la sirven por construcción porque ambos SELECT pasan por esta función (lección
+    ADR-0055/0076: una columna que una consulta sirve y la otra no es la asimetría lista/detalle)."""
+    root = runs.alias("root")
+    return (select(*cols, root.c.run_no.label("root_run_no"))
+            .select_from(runs.outerjoin(root, root.c.run_id == runs.c.thread_id)))
+
+
+def _detail_select():
+    """El SELECT del DETALLE (get_run): TODAS las columnas de runs + root_run_no (ADR-0081 (F))."""
+    return _root_join(runs)
+
+
 def get_run(run_id: str):
     with engine().begin() as cx:
-        row = cx.execute(select(runs).where(runs.c.run_id == run_id)).first()
+        row = cx.execute(_detail_select().where(runs.c.run_id == run_id)).first()
     if row is None:
         return None
     d = dict(row._mapping)
@@ -753,17 +798,19 @@ _RUN_DT_KEYS = ("created_at", "started_at", "finished_at", "frozen_at", "last_ev
 def _list_select():
     """El SELECT de la LISTA — una sola definición para list_runs y las consultas de la investigación
     (ADR-0079: get_children / thread_turns / runs_by_thread), así ninguna se queda sin una columna que
-    la otra sí sirve. Todo lo que no es bundle/registro congelado; get_run (select(runs)) es el detalle."""
-    return select(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
-                  runs.c.state,
-                  runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
-                  runs.c.last_event_at, runs.c.claimed_by, runs.c.claimed_at,
-                  runs.c.cancelled_by, runs.c.cancel_reason,
-                  runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json,
-                  runs.c.closed_by,
-                  # ADR-0079
-                  runs.c.parent_run_id, runs.c.thread_id, runs.c.turn_no, runs.c.turn_kind,
-                  runs.c.thread_context_json, runs.c.origin, runs.c.root_question_id)
+    la otra sí sirve. Todo lo que no es bundle/registro congelado; get_run (_detail_select) es el detalle.
+    ADR-0081 (F): `root_run_no` ENTRA por el JOIN a la raíz (_root_join) — misma definición que el detalle;
+    los `.where()/.order_by()/.limit()` que los llamadores encadenan siguen refiriéndose a `runs.c.*`."""
+    return _root_join(runs.c.run_id, runs.c.run_no, runs.c.user_id, runs.c.question, runs.c.entities_csv,
+                      runs.c.state,
+                      runs.c.created_at, runs.c.started_at, runs.c.finished_at, runs.c.frozen_at,
+                      runs.c.last_event_at, runs.c.claimed_by, runs.c.claimed_at,
+                      runs.c.cancelled_by, runs.c.cancel_reason,
+                      runs.c.usage_json, runs.c.epistemic_summary_json, runs.c.error, runs.c.plan_json,
+                      runs.c.closed_by,
+                      # ADR-0079
+                      runs.c.parent_run_id, runs.c.thread_id, runs.c.turn_no, runs.c.turn_kind,
+                      runs.c.thread_context_json, runs.c.origin, runs.c.root_question_id)
 
 
 def _list_row(r) -> dict:
@@ -839,6 +886,209 @@ def runs_by_thread(thread_id: str, limit=None, after_run_no=None):
     items = rows[:limit] if limit is not None else rows
     return {"items": items, "n": len(items), "limit": limit, "has_more": has_more,
             "next_after": (items[-1]["run_no"] if has_more and items else None)}
+
+
+# --- índice de investigaciones (ADR-0081 (G)): la lista de hilos con denominador, servida por la BD ---
+# Antes no existía GET /threads: la webapp agrupaba las 50 corridas de /runs en el cliente (sin
+# denominador, sin paginación, "etiqueta desconocida" cuando la raíz no cargó). Aquí UNA consulta
+# agregada por hilo + UNA consulta ligera (sin blobs) sobre los hilos de la página; la agregación fina
+# (autores, orígenes, estados, último turno) se hace en Python sobre <= limit_cap hilos — sin
+# string_agg/group_concat: dialecto neutral (SQLite en dev/smokes, Postgres en prod).
+
+THREADS_INDEX_CAP = 50   # = app.RUNS_LIST_CAP (ADR-0081 (G): "limit_cap = RUNS_LIST_CAP, reutilizado")
+ORIGIN_UNKNOWN_LABEL = "unknown-pre-adr-0079"   # = app.ORIGIN_UNKNOWN (ADR-0079 (A)): origin NULL = pre-contrato
+THREADS_INDEX_ORDER = "root_run_no DESC NULLS LAST, thread_id ASC"
+THREADS_INDEX_CURSOR_RULE = ("after = root_run_no EXCLUSIVO (se sirven hilos con root_run_no < after); un hilo "
+                             "con root_run_no null (raíz sin fila o sin número) va al final y no es alcanzable "
+                             "por cursor — se declara, no se inventa número")
+THREADS_INDEX_MINE_RULE = ("mine = investigaciones con >= 1 turno cuyo user_id es el de la sesión (la raíz "
+                           "virtual pre-ADR-0079 cuenta como turno); n_threads_total es el denominador del "
+                           "MISMO filtro")
+THREADS_INDEX_N_TURNS_RULE = ("n_turns == GET /threads/{id}: COUNT(*) de las filas con este thread_id "
+                              "(root_counted true cuando la raíz real es una de ellas) + 1 si la raíz es "
+                              "VIRTUAL (root_pre_adr_0079 true: padre con thread_id NULL, root_counted false); "
+                              "n_closed / n_with_record / authors / origins / states incluyen igualmente esa raíz "
+                              "virtual. n_with_record = frozen_record_json IS NOT NULL (no valida el JSON; "
+                              "GET /threads/{id} sí lo parsea)")
+THREADS_INDEX_COSTS = "not-aggregated (GET /threads/{id})"
+THREADS_INDEX_ROW_FIELDS = (
+    "thread_id", "root_run_id", "root_run_no", "label", "root_pre_adr_0079", "root_counted",
+    "root_question", "root_user_id", "root_state", "root_question_id",
+    "n_turns", "n_closed", "n_with_record", "n_turns_without_record", "last_turn_no",
+    "first_created_at", "last_created_at", "last_turn", "authors", "origins", "states")
+THREADS_INDEX_ENVELOPE_FIELDS = (
+    "threads", "n", "limit", "limit_cap", "after", "has_more", "next_after", "order", "cursor_rule",
+    "mine", "mine_rule", "n_turns_rule", "n_threads_total", "n_runs_without_thread",
+    "n_runs_without_thread_rule", "costs")
+ROOT_QUESTION_MAX = 120
+
+
+def _threads_index_query(user_id=None, after=None):
+    """La consulta AGREGADA de threads_index, sin ORDER/LIMIT (la comparte el conteo total) — expuesta
+    para que el smoke la compile con el dialecto postgresql. GROUP BY runs.thread_id, root.run_id: agrupar
+    por la PK del alias es lo que hace que Postgres acepte las columnas `root.*` sin agregar (dependencia
+    funcional, PG >= 9.1); SQLite las tolera por columnas desnudas. Declarado: el smoke offline NO mide la
+    dependencia funcional (G7 / LG8 la miden en Postgres). Devuelve (query, root)."""
+    root = runs.alias("root")
+    q = (select(runs.c.thread_id,
+                root.c.run_id.label("root_run_id"),
+                root.c.run_no.label("root_run_no"),
+                root.c.question.label("root_question"),
+                root.c.user_id.label("root_user_id"),
+                root.c.state.label("root_state"),
+                root.c.created_at.label("root_created_at"),
+                root.c.thread_id.label("root_thread_id"),          # NULL ⇒ raíz VIRTUAL pre-ADR-0079
+                root.c.root_question_id.label("root_question_id"),
+                root.c.origin.label("root_origin"),
+                case((root.c.frozen_record_json.isnot(None), 1), else_=0).label("root_has_record"),
+                func.count().label("n_turns_counted"),
+                func.sum(case((runs.c.state == "closed", 1), else_=0)).label("n_closed_counted"),
+                func.count(runs.c.frozen_record_json).label("n_with_record_counted"),
+                func.max(runs.c.turn_no).label("last_turn_no"),
+                func.min(runs.c.created_at).label("first_created_at"),
+                func.max(runs.c.created_at).label("last_created_at"))
+         .select_from(runs.outerjoin(root, root.c.run_id == runs.c.thread_id))
+         .where(runs.c.thread_id.isnot(None))
+         .group_by(runs.c.thread_id, root.c.run_id))
+    if user_id is not None:
+        # >= 1 turno del usuario (subconsulta IN, neutral) O la raíz virtual es suya (no está en el grupo)
+        mios = select(runs.c.thread_id).where(runs.c.user_id == user_id, runs.c.thread_id.isnot(None))
+        q = q.where(or_(runs.c.thread_id.in_(mios), root.c.user_id == user_id))
+    if after is not None:
+        q = q.where(root.c.run_no < after)
+    return q, root
+
+
+def _threads_index_light_query(thread_ids):
+    """La segunda consulta LIGERA (sin blobs) de threads_index: los turnos de los hilos de la página —
+    expuesta para el smoke (compilación postgresql)."""
+    return (select(runs.c.thread_id, runs.c.run_id, runs.c.run_no, runs.c.turn_no, runs.c.state,
+                   runs.c.user_id, runs.c.origin)
+            .where(runs.c.thread_id.in_(list(thread_ids))))
+
+
+def _iso(v):
+    v = _dt_utc(v)
+    return v.isoformat(timespec="seconds") if v is not None else None
+
+
+def threads_index(user_id=None, limit=50, after=None):
+    """ADR-0081 (G): el ÍNDICE de investigaciones (la puerta GET /threads?mine=&limit=&after= lo sirve tal
+    cual). Orden `root_run_no DESC NULLS LAST, thread_id` (la identidad de una investigación es su T-N);
+    el NULLS LAST se emula con CASE (una definición para SQLite y Postgres). Cursor `after` = root_run_no
+    EXCLUSIVO; `has_more` MEDIDO con limit+1; limit None o > THREADS_INDEX_CAP ⇒ el tope (declarado en
+    limit/limit_cap); limit < 1 ⇒ ValueError; `after` que no sea int ⇒ ValueError (la puerta los vuelve
+    400/422). `user_id` ⇒ `mine` (THREADS_INDEX_MINE_RULE). Sin costos ni gap_flags_union: abren los blobs
+    por turno y viven en GET /threads/{id} (costs 'not-aggregated').
+
+    Fila (THREADS_INDEX_ROW_FIELDS): thread_id · root_run_id · root_run_no · label 'T-<n>'|None ·
+    root_pre_adr_0079 (True = raíz virtual; False = raíz real; None = la fila raíz NO existe) · root_counted
+    (¿la raíz entró al COUNT?) · root_question (<= ROOT_QUESTION_MAX) · root_user_id · root_state ·
+    root_question_id · n_turns (== GET /threads/{id}, THREADS_INDEX_N_TURNS_RULE) · n_closed · n_with_record ·
+    n_turns_without_record · last_turn_no · first_created_at/last_created_at (ISO, segundos) · last_turn
+    {run_id, run_no, turn_no, state}|None · authors (ordenados) · origins {origin|ORIGIN_UNKNOWN_LABEL: n} ·
+    states {state: n}. Sobre (THREADS_INDEX_ENVELOPE_FIELDS)."""
+    if limit is None:
+        limit = THREADS_INDEX_CAP
+    if isinstance(limit, bool) or not isinstance(limit, int):
+        raise ValueError("limit must be an int")
+    if limit < 1:
+        raise ValueError("limit must be >= 1")
+    limit = min(limit, THREADS_INDEX_CAP)
+    if after is not None and (isinstance(after, bool) or not isinstance(after, int)):
+        raise ValueError("after must be a root_run_no (int)")
+    q, root = _threads_index_query(user_id, after)
+    q_total, _ = _threads_index_query(user_id, None)
+    q_page = (q.order_by(case((root.c.run_no.is_(None), 1), else_=0),   # NULLS LAST, dialecto neutral
+                         root.c.run_no.desc(), runs.c.thread_id.asc())
+              .limit(limit + 1))
+    with engine().begin() as cx:
+        crudas = [dict(r._mapping) for r in cx.execute(q_page).all()]
+        n_total = cx.execute(select(func.count()).select_from(q_total.subquery())).scalar() or 0
+        n_sin_hilo = cx.execute(select(func.count()).select_from(runs)
+                                .where(runs.c.thread_id.is_(None))).scalar() or 0
+        has_more = len(crudas) > limit
+        crudas = crudas[:limit]
+        ids = [c["thread_id"] for c in crudas]
+        turnos = ([dict(r._mapping) for r in cx.execute(_threads_index_light_query(ids)).all()]
+                  if ids else [])
+    por_hilo = {}
+    for t in turnos:
+        por_hilo.setdefault(t["thread_id"], []).append(t)
+    filas = []
+    for c in crudas:
+        tid = c["thread_id"]
+        raiz_existe = c["root_run_id"] is not None
+        raiz_virtual = raiz_existe and c["root_thread_id"] is None
+        raiz_contada = raiz_existe and c["root_thread_id"] == tid
+        extra = 1 if raiz_virtual else 0     # la raíz virtual no está en el grupo: entra +1, como get_thread
+        autores, origenes, estados = set(), {}, {}
+        ultimo = None
+        for t in por_hilo.get(tid, []):
+            autores.add(t["user_id"])
+            ko = t["origin"] or ORIGIN_UNKNOWN_LABEL
+            origenes[ko] = origenes.get(ko, 0) + 1
+            estados[t["state"]] = estados.get(t["state"], 0) + 1
+            llave = (t["turn_no"] if t["turn_no"] is not None else -1, t["run_no"] if t["run_no"] is not None else -1)
+            if ultimo is None or llave > ultimo[0]:
+                ultimo = (llave, t)
+        if raiz_virtual:
+            autores.add(c["root_user_id"])
+            ko = c["root_origin"] or ORIGIN_UNKNOWN_LABEL
+            origenes[ko] = origenes.get(ko, 0) + 1
+            estados[c["root_state"]] = estados.get(c["root_state"], 0) + 1
+        n_turns = int(c["n_turns_counted"]) + extra
+        n_closed = int(c["n_closed_counted"] or 0) + (1 if raiz_virtual and c["root_state"] == "closed" else 0)
+        n_rec = int(c["n_with_record_counted"] or 0) + (1 if raiz_virtual and c["root_has_record"] else 0)
+        pregunta = c["root_question"]
+        if isinstance(pregunta, str) and len(pregunta) > ROOT_QUESTION_MAX:
+            pregunta = pregunta[:ROOT_QUESTION_MAX]
+        filas.append({
+            "thread_id": tid,
+            "root_run_id": c["root_run_id"],
+            "root_run_no": c["root_run_no"],
+            "label": f"T-{c['root_run_no']}" if c["root_run_no"] is not None else None,
+            "root_pre_adr_0079": (raiz_virtual if raiz_existe else None),
+            "root_counted": raiz_contada,
+            "root_question": pregunta,
+            "root_user_id": c["root_user_id"],
+            "root_state": c["root_state"],
+            "root_question_id": c["root_question_id"],
+            "n_turns": n_turns,
+            "n_closed": n_closed,
+            "n_with_record": n_rec,
+            "n_turns_without_record": n_turns - n_rec,
+            "last_turn_no": (int(c["last_turn_no"]) if c["last_turn_no"] is not None else None),
+            "first_created_at": _iso(min([c["first_created_at"]] + ([c["root_created_at"]] if raiz_virtual else []))),
+            "last_created_at": _iso(c["last_created_at"]),
+            "last_turn": ({"run_id": ultimo[1]["run_id"], "run_no": ultimo[1]["run_no"],
+                           "turn_no": ultimo[1]["turn_no"], "state": ultimo[1]["state"]} if ultimo else None),
+            "authors": sorted(a for a in autores if a is not None),
+            "origins": origenes,
+            "states": estados,
+        })
+    ultimo_no = filas[-1]["root_run_no"] if filas else None
+    return {
+        "threads": filas, "n": len(filas), "limit": limit, "limit_cap": THREADS_INDEX_CAP,
+        "after": after, "has_more": has_more,
+        "next_after": (ultimo_no if has_more else None),
+        "order": THREADS_INDEX_ORDER, "cursor_rule": THREADS_INDEX_CURSOR_RULE,
+        "mine": user_id is not None, "mine_rule": THREADS_INDEX_MINE_RULE,
+        "n_turns_rule": THREADS_INDEX_N_TURNS_RULE,
+        "n_threads_total": int(n_total),
+        "n_runs_without_thread": int(n_sin_hilo),
+        "n_runs_without_thread_rule": ("COUNT(*) de runs con thread_id NULL = corridas anteriores a ADR-0079 "
+                                       "(incluye a las raíces VIRTUALES: son filas pre-contrato)"),
+        "costs": THREADS_INDEX_COSTS,
+    }
+
+
+def count_runs_without_thread():
+    """ADR-0081 (G): corridas sin investigación (thread_id NULL) = anteriores a ADR-0079, incluidas las que
+    hoy sirven de raíz VIRTUAL. Un COUNT, sin blobs."""
+    with engine().begin() as cx:
+        v = cx.execute(select(func.count()).select_from(runs).where(runs.c.thread_id.is_(None))).scalar()
+    return int(v or 0)
 
 
 def update_run(run_id: str, **values):
@@ -1409,3 +1659,176 @@ def question_calibration(include_origins=None):
         "n_borradores_excluidos_por_origen": n_excluidos_por_origen,
         "origin_unknown_included": origen_tally["origin_unknown_included"],
     }
+
+
+# --- bitácora de configuración (ADR-0081 (I)): la tabla config_history --------------------------------
+# Append-only por construcción: este módulo NO define update ni delete sobre config_history (el smoke lo
+# mide). Quién escribe y cuándo lo decide app.config_ledger_boot()/config_ledger_observe() (S5); aquí
+# viven la codificación (JSON, tres estados), el cinturón contra secretos y las lecturas.
+
+CONFIG_LEDGER_TABLE = "config_history"
+CONFIG_LEDGER_LIST_LIMIT = 500
+# Cinturón (ADR-0081 (I)): un VALOR que contenga cualquiera de estas marcas (sin distinguir mayúsculas)
+# NO entra a la tabla — se rechaza y se declara en rejected[] sin copiar el valor. Es un cinturón, no una
+# prueba: el snapshot (models.SNAPSHOT_FIELDS) es una lista cerrada que jamás incluye una llave.
+CONFIG_LEDGER_SECRET_MARKERS = ("sk-", "key", "token")
+CONFIG_LEDGER_REQUIRED = ("field", "value", "source", "changed_by", "scope", "generation", "boot_id")
+CONFIG_LEDGER_OPTIONAL = ("previous_value", "note", "recorded_at")
+CONFIG_LEDGER_ROW_FIELDS = ("id", "recorded_at", "field", "value", "previous_value", "previous_recorded",
+                            "source", "changed_by", "scope", "generation", "boot_id", "note")
+_CONFIG_LEDGER_MAXLEN = {"field": 64, "changed_by": 64, "scope": 24, "generation": 32, "boot_id": 32}
+# La columna es TEXTO y así se lee (tal cual, sin decodificar): el valor TIPADO vive en el snapshot vivo
+# (/config-history.current.fields), la bitácora es su huella textual. Codificación COMPARTIDA con el
+# escritor (config_ledger._encode, S5) para que el diff compare texto contra texto sin dos verdades.
+CONFIG_LEDGER_ENCODING = ("value/previous_value: str tal cual · None → 'null' (valor declarado ausente) · "
+                          "bool → 'true'|'false' · otros → JSON (sort_keys); previous_value SQL NULL "
+                          "(previous_recorded false) = primera observación del campo, distinto de 'null'")
+
+
+def config_ledger_encode(value) -> str:
+    """El texto de la columna (CONFIG_LEDGER_ENCODING). Un str entra TAL CUAL (el escritor ya codificó);
+    None → 'null'; bool → 'true'|'false'; lo demás → JSON canónico."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return value
+    return json.dumps(value, ensure_ascii=False, sort_keys=True)
+
+
+def config_ledger_secret_like(value_text):
+    """La marca de CONFIG_LEDGER_SECRET_MARKERS que aparece en el texto (minúsculas), o None."""
+    bajo = (value_text or "").lower()
+    for marca in CONFIG_LEDGER_SECRET_MARKERS:
+        if marca in bajo:
+            return marca
+    return None
+
+
+def config_ledger_table_exists() -> bool:
+    """¿Existe la tabla en la BD conectada? Insumo de ledger_state 'table-missing' (ADR-0081 (I))."""
+    try:
+        return bool(sa_inspect(engine()).has_table(CONFIG_LEDGER_TABLE))
+    except Exception:
+        return False
+
+
+def _config_ledger_row(r) -> dict:
+    d = dict(r._mapping)
+    return {
+        "id": d["id"],
+        "recorded_at": _iso(d["recorded_at"]),
+        "field": d["field"],
+        "value": d["value"],                                     # texto tal cual (CONFIG_LEDGER_ENCODING)
+        "previous_value": d["previous_value"],                   # texto | None (SQL NULL)
+        "previous_recorded": d["previous_value"] is not None,   # SQL NULL = primera observación
+        "source": d["source"], "changed_by": d["changed_by"], "scope": d["scope"],
+        "generation": d["generation"], "boot_id": d["boot_id"], "note": d["note"],
+    }
+
+
+def _config_ledger_stamp(v):
+    """recorded_at que trae la fila (datetime con o sin zona, o ISO str) → datetime UTC. None → ahora."""
+    if v is None:
+        return _now()
+    if isinstance(v, str):
+        v = datetime.datetime.fromisoformat(v)
+    if not isinstance(v, datetime.datetime):
+        raise ValueError("recorded_at debe ser datetime o ISO str")
+    return _dt_utc(v)
+
+
+def config_ledger_append(rows):
+    """APPENDEA filas a config_history. Cada fila: {field, value, source, changed_by, scope, generation,
+    boot_id[, previous_value][, note][, recorded_at]}. `value`: texto (un str entra tal cual; None/bool/otros
+    se codifican con config_ledger_encode — la MISMA regla que el escritor). `previous_value`: None o llave
+    AUSENTE = primera observación del campo → SQL NULL (previous_recorded false); un texto = el anterior
+    ('null' = anterior declarado ausente, distinto de SQL NULL). `recorded_at`: opcional (datetime o ISO) —
+    el escritor puede sellar un lote con UNA marca (el arranque); ausente → se mide al escribir.
+
+    Validación ESTRUCTURAL (llave requerida ausente, llave desconocida, texto más largo que su columna —
+    Postgres lo rechazaría y SQLite no: se rechaza aquí para que el smoke lo vea) -> ValueError y NO se
+    escribe ninguna fila del lote. Cinturón: una fila cuyo `value` (o previous_value) codificado parezca
+    llave (CONFIG_LEDGER_SECRET_MARKERS) se OMITE y se declara en rejected[] {field, reason
+    'secret-like-value', marker, value_len[, where]} — jamás copia el valor; las demás filas del lote sí
+    entran. Devuelve {n_written, rejected[], recorded_at (la marca de la última fila escrita | None)}."""
+    rows = list(rows or [])
+    preparadas, rechazadas = [], []
+    for i, fila in enumerate(rows):
+        if not isinstance(fila, dict):
+            raise ValueError(f"config_ledger_append: fila {i} no es dict")
+        faltan = [k for k in CONFIG_LEDGER_REQUIRED if k not in fila]
+        if faltan:
+            raise ValueError(f"config_ledger_append: fila {i} sin llaves requeridas {faltan}")
+        extra = sorted(set(fila) - set(CONFIG_LEDGER_REQUIRED) - set(CONFIG_LEDGER_OPTIONAL))
+        if extra:
+            raise ValueError(f"config_ledger_append: fila {i} con llaves desconocidas {extra}")
+        for k, tope in _CONFIG_LEDGER_MAXLEN.items():
+            v = fila[k]
+            if not isinstance(v, str) or not v:
+                raise ValueError(f"config_ledger_append: fila {i} {k!r} debe ser str no vacío")
+            if len(v) > tope:
+                raise ValueError(f"config_ledger_append: fila {i} {k!r} excede {tope} caracteres")
+        if not isinstance(fila["source"], str) or not fila["source"]:
+            raise ValueError(f"config_ledger_append: fila {i} 'source' debe ser str no vacío")
+        if "note" in fila and fila["note"] is not None and not isinstance(fila["note"], str):
+            raise ValueError(f"config_ledger_append: fila {i} 'note' debe ser str o None")
+        sello = _config_ledger_stamp(fila.get("recorded_at"))
+        valor = config_ledger_encode(fila["value"])
+        marca = config_ledger_secret_like(valor)
+        if marca is not None:
+            rechazadas.append({"field": fila["field"], "reason": "secret-like-value", "marker": marca,
+                               "value_len": len(valor)})
+            continue
+        previo = fila.get("previous_value")
+        previo = config_ledger_encode(previo) if previo is not None else None   # None/ausente → SQL NULL
+        if previo is not None and config_ledger_secret_like(previo) is not None:
+            rechazadas.append({"field": fila["field"], "reason": "secret-like-value",
+                               "marker": config_ledger_secret_like(previo), "value_len": len(previo),
+                               "where": "previous_value"})
+            continue
+        preparadas.append({"recorded_at": sello, "field": fila["field"], "value": valor,
+                           "previous_value": previo, "source": fila["source"],
+                           "changed_by": fila["changed_by"], "scope": fila["scope"],
+                           "generation": fila["generation"], "boot_id": fila["boot_id"],
+                           "note": fila.get("note")})
+    if preparadas:
+        with engine().begin() as cx:
+            for p in preparadas:
+                cx.execute(config_history.insert().values(**p))
+    return {"n_written": len(preparadas), "rejected": rechazadas,
+            "recorded_at": (_iso(preparadas[-1]["recorded_at"]) if preparadas else None)}
+
+
+def config_ledger_last_by_field():
+    """La ÚLTIMA fila por campo (MAX(id) por field: id es autoincrement y la tabla es append-only, así que
+    el mayor id ES el más reciente — sin depender de empates de recorded_at). {field: fila decodificada
+    (CONFIG_LEDGER_ROW_FIELDS)}. {} con tabla vacía."""
+    ultimos = (select(func.max(config_history.c.id)).group_by(config_history.c.field)).scalar_subquery()
+    with engine().begin() as cx:
+        rows = cx.execute(select(config_history).where(config_history.c.id.in_(ultimos))).all()
+    return {r._mapping["field"]: _config_ledger_row(r) for r in rows}
+
+
+def config_ledger_list(limit=CONFIG_LEDGER_LIST_LIMIT):
+    """Las filas más recientes primero (recorded_at DESC, id DESC), decodificadas. limit < 1 -> ValueError."""
+    limit = int(limit)
+    if limit < 1:
+        raise ValueError("limit must be >= 1")
+    with engine().begin() as cx:
+        rows = cx.execute(select(config_history)
+                          .order_by(config_history.c.recorded_at.desc(), config_history.c.id.desc())
+                          .limit(limit)).all()
+    return [_config_ledger_row(r) for r in rows]
+
+
+def config_ledger_stats():
+    """{table, n_rows, last_recorded_at (ISO|None)} — el bloque provenance.db de /config-history."""
+    with engine().begin() as cx:
+        n = cx.execute(select(func.count()).select_from(config_history)).scalar() or 0
+        ult = cx.execute(select(func.max(config_history.c.recorded_at))).scalar()
+    return {"table": CONFIG_LEDGER_TABLE, "n_rows": int(n), "last_recorded_at": _iso(ult)}
+# La COMPARACIÓN (qué campo cambió respecto a la última fila) NO vive aquí: es del escritor
+# (config_ledger.diff_rows, S5 — ADR-0081 (I): "compara con la ÚLTIMA fila por campo y appendea"). db sólo
+# codifica, cuida el cinturón, escribe y lee: una sola verdad para el diff.

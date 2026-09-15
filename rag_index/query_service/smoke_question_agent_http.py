@@ -90,6 +90,7 @@ except Exception as e:                          # noqa: BLE001
 check("la dependencia del redactor REAL resuelve en el contexto de la app (agente vivo, no "
       "'errored' silencioso)", _dep_ok, _dep_err)
 
+_REAL_DEFAULT_DRAFTER = question_agent._default_drafter   # corrector ADR-0081: el redactor REAL, para medir unknown-family
 question_agent._default_drafter = drafter_falso
 
 db.init_db()
@@ -155,6 +156,68 @@ check("el GASTO se guarda con el borrador (una acción que gasta lo declara)",
       (q1.get("usage") or {}).get("estimated_cost_usd") == 0.012, f"usage={q1.get('usage')}")
 check("la spec viaja DENTRO del borrador: se puede leer la regla que obedeció, años después",
       q1["draft"]["spec"]["version"] == question_agent.QUESTION_SPEC_VERSION)
+
+# --- ADR-0081 (B/J): el borrador declara el modelo PEDIDO con su fuente y generación; lo REPORTADO sólo si se midió --
+from lib import models  # noqa: E402  (importable: question_agent metió analysis/scripts en sys.path)
+_rol_q = models.resolve_role("question_agent")
+check("ADR-0081: el borrador lleva model (rol question_agent RESUELTO en la llamada, == alias QUESTION_MODEL), model_source "
+      "'default:<gen>' y generation; con redactor stub (2-tupla) NO afirma model_reported (llave ausente: tres estados)",
+      q1["draft"]["model"] == _rol_q["model"] == question_agent.QUESTION_MODEL
+      and q1["draft"]["model_source"] == _rol_q["source"] and q1["draft"]["model_source"].startswith("default:")
+      and q1["draft"]["generation"] == _rol_q["generation"] and "model_reported" not in q1["draft"],
+      json.dumps({k: q1["draft"].get(k) for k in ("model", "model_source", "generation")}))
+# un id de la tabla DISTINTO al default del rol (el asiento overclaim de g2), leído de la tabla — sin literal
+_alt_q = models.GENERATIONS["g2-2026-09"]["defaults"]["judge.overclaim"]
+os.environ["WITT_MODEL_QUESTION"] = _alt_q
+try:
+    b_env, _u_env = question_agent.draft_question({"note_id": "n-env", "title": "t", "body": "b"}, drafter=drafter_falso)
+finally:
+    os.environ.pop("WITT_MODEL_QUESTION", None)
+check("ADR-0081: WITT_MODEL_QUESTION=<id de la tabla> -> model ese id y model_source 'env:WITT_MODEL_QUESTION' — resuelto en "
+      "la LLAMADA (QUESTION_MODEL sigue siendo el alias derivado en import, sin cambio)",
+      b_env["model"] == _alt_q and b_env["model_source"] == "env:WITT_MODEL_QUESTION" and b_env["state"] == "drafted"
+      and question_agent.QUESTION_MODEL == _rol_q["model"],
+      json.dumps({"model": b_env["model"], "source": b_env["model_source"]}))
+
+# corrector ADR-0081 (A): id de familia DESCONOCIDA en el rol question_agent → el redactor REAL erra en voz alta SIN llamar
+from lib import composite_auditor as _ca  # noqa: E402
+
+_calls_unk = []
+_ant_saved = _ca._anthropic_tool_call
+_ca._anthropic_tool_call = lambda *a, **k: (_calls_unk.append(a), ({"question": "x"}, {}))[1]
+os.environ["WITT_MODEL_QUESTION"] = "llama-9"
+try:
+    b_unk, _u_unk = question_agent.draft_question({"note_id": "n-unk", "title": "t", "body": "b"}, drafter=_REAL_DEFAULT_DRAFTER)
+finally:
+    os.environ.pop("WITT_MODEL_QUESTION", None)
+    _ca._anthropic_tool_call = _ant_saved
+check("ADR-0081 (A, corrector) WITT_MODEL_QUESTION=<id sin prefijo que case>: _default_drafter erra 'unknown-family' ANTES de llamar "
+      "(0 llamadas al caller Anthropic); draft_question lo declara borrador errored con el error tipado; model 'llama-9' con "
+      "source 'env:WITT_MODEL_QUESTION (unknown-to-table)' (lo PEDIDO se declara aunque la llamada no ocurra)",
+      b_unk["state"] == "errored" and "unknown-family" in (b_unk.get("error") or "") and _calls_unk == []
+      and b_unk["model"] == "llama-9" and b_unk["model_source"] == "env:WITT_MODEL_QUESTION (unknown-to-table)",
+      json.dumps({k: b_unk.get(k) for k in ("state", "error", "model", "model_source")}))
+
+
+def drafter_meta(note):
+    """redactor que devuelve la 3-tupla del wrapper real: meta con lo que la API DIJO (alias fechado -> 'prefix')."""
+    out, usage = drafter_falso(note)
+    return out, usage, {"model": _rol_q["model"], "model_source": _rol_q["source"],
+                        "model_reported": _rol_q["model"] + "-20260915", "relation": "prefix"}
+
+
+b_meta, _u_meta = question_agent.draft_question({"note_id": "n-meta", "title": "t", "body": "b"}, drafter=drafter_meta)
+check("ADR-0081: redactor con meta (3-tupla, wrapper real) -> el borrador lleva model_reported (lo que la API dijo) y relation "
+      "'prefix' (alias -> snapshot fechado, NEUTRO); el pedido sigue siendo el rol resuelto",
+      b_meta["state"] == "drafted" and b_meta["model_reported"] == _rol_q["model"] + "-20260915"
+      and b_meta["relation"] == "prefix" and b_meta["model"] == _rol_q["model"]
+      and "model_requested_by_drafter" not in b_meta)
+r_spec = client.get("/notes/questions/spec", headers=EMM).json()
+check("ADR-0081 (J): GET /notes/questions/spec += model_source y generation, iguales al rol resuelto (la UI muestra la MISMA "
+      "elección que el redactor obedecerá)",
+      r_spec.get("model") == _rol_q["model"] and r_spec.get("model_source") == _rol_q["source"]
+      and r_spec.get("generation") == _rol_q["generation"],
+      json.dumps({k: r_spec.get(k) for k in ("model", "model_source", "generation")}))
 
 # --- §6 no-hang: el agente falla sin tumbar nada ----------------------------------------------------
 MODO["como"] = "explota"

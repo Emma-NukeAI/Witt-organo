@@ -6,7 +6,7 @@ sqlalchemy>=2.0
 psycopg[binary]>=3.1        # Postgres driver (ADR-0047 decision 1); SQLite needs nothing extra
 # --- reused DATA INAMOVIBLE libs (same as rag_index/graphrag/requirements.txt) ---
 neo4j>=5.20
-openai>=1.40
+openai>=1.66,<3             # ADR-0081 (C.1): el juez OpenAI habla la Responses API (client.responses, >= 1.66); <3 acota el mayor (medido 2.53.0 en el venv de los gates)
 minio>=7.2
 scikit-learn
 numpy
