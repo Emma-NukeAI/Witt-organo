@@ -1,9 +1,9 @@
-"""smoke_record_pdf.py — gate de COBERTURA del PDF de servidor (ADR-0083 K, rebanada F6, contrato 1.12).
+"""smoke_record_pdf.py — gate de COBERTURA del PDF de servidor (ADR-0083 K, rebanada F6; ADR-0084 J/W8, contrato 1.13).
 
 Lo que MIDE (fila `smoke_record_pdf.py` de la tabla de gates NO-SPEND del ADR):
   (1) cobertura: las llaves top-level del literal `frozen = {` + `frozen["k"] =` de runs.py (la MISMA técnica que
       witt-webapp/tools/parity_check.frozen_keys, copiada literal) → `record_pdf.pdf_sections_cover` da missing [] y
-      extra [] (52 llaves: 50 de 1.10 + council + figures); con el frozen REAL de una corrida offline (execute_run con
+      extra [] (53 llaves: 50 de 1.10 + council + figures + web_locator); con el frozen REAL de una corrida offline (execute_run con
       stubs, patrón smoke_run_pipeline) CERRADA (frozen_at/closed_by nacen al cerrar) igualdad EXACTA; el frozen abierto
       declara exactamente esas dos como extra; un registro 1.12 con figuras (frozen real + `figures` de figures.attach sobre
       el zip fixture) también EXACTA;
@@ -23,7 +23,14 @@ Lo que MIDE (fila `smoke_record_pdf.py` de la tabla de gates NO-SPEND del ADR):
       mismatch' y esa figura sin imagen; caché vacía → 'bytes no en caché'; thumbs=0 → 0 imágenes; tope 8 MB forzado a
       0.05 MB → 'miniatura omitida por tope'; 'vista por 2 lentes' + 'JUICIO';
   (7) ADR-0073 a–f siguen verdes; (8) determinismo: dos build_pdf con fecha fija → bytes iguales; PDF ≤ 8 MB;
-  (9) `urlopen` bloqueado y contado == 0; mcp_cache del repo byte-idéntico antes/después; sin literales fijos viejos en el módulo.
+  (9) `urlopen` bloqueado y contado == 0; mcp_cache del repo byte-idéntico antes/después; sin literales fijos viejos en el módulo;
+  (10) ADR-0084 (J/W8) LOCALIZADOR WEB: seccion 53 `web_locator`/`localizador`, born '1.13'; contra un registro 1.13 SINTETICO
+      declarado (frozen real + `web_locator` con la forma (G.2), located 2 / unresolved 1, `deterministic_checks.web_locator`,
+      `token_usage.web_locator`, `citations[].located_via`) el PDF imprime 'LOCALIZADOR WEB', ids, regla, razon, la URL COMPLETA
+      SOLO en el ledger de no resueltos (NO ADMISIBLE), NINGUNA URL de located[], 'PROYECCION' junto al USD y 'MEDICION' junto a
+      las consultas; 1.12 -> 'NO INSTRUMENTADO (contrato < 1.13)' calculado; kill-switch -> literal + 3 excepciones; gate con 4
+      predicados; glosas del PDF == vocabularios cerrados de lib/web_locator.py (W2); determinismo. Los checks etiquetados (W7)
+      miden runs.py (frozen 53 / contrato 1.13) y quedan ROJOS — declarados — hasta que la rebanada W7 aterrice.
 
 100% OFFLINE y PORTABLE: SQLite tmp (máscara), caché de figuras en TMP (WITT_MCP_CACHE_DIR), fixtures del repo, cero gasto
 de modelo, cero mutación de la DATA INAMOVIBLE. Exit 0 = todo PASS.
@@ -106,10 +113,12 @@ from lib import figures as F  # noqa: E402
 from lib.rag_backend import Hit, HitList  # noqa: E402
 
 CHECKS = []
+NAMES = []
 
 
 def check(name, cond, detail=""):
     CHECKS.append(bool(cond))
+    NAMES.append(name)
     print(("PASS " if cond else "FAIL ") + name + (("  -> " + detail) if detail else ""))
 
 
@@ -196,9 +205,9 @@ PDF_ACCESS_RE = re.compile(r"""record(?:\.get\(\s*["']([A-Za-z_]\w*)["']|\[\s*["
 FK = frozen_keys()
 READ = {a or b for a, b in PDF_ACCESS_RE.findall(PDF_SRC)}
 cov = R.pdf_sections_cover(FK)
-check("(K.1) frozen_keys de runs.py (literal + asignaciones, tecnica de la webapp) = 52 llaves (50 de 1.10 + council + figures) y "
-      "pdf_sections_cover da missing [] y extra [] — igualdad EXACTA",
-      len(FK) == 52 and "figures" in FK and cov == {"missing": [], "extra": []},
+check("(W7) (K.1) frozen_keys de runs.py (literal + asignaciones, tecnica de la webapp) = 53 llaves (50 de 1.10 + council + figures + "
+      "web_locator, ADR-0084) y pdf_sections_cover da missing [] y extra [] — igualdad EXACTA (ROJO hasta que W7 congele web_locator)",
+      len(FK) == 53 and "figures" in FK and "web_locator" in FK and cov == {"missing": [], "extra": []},
       f"n_frozen={len(FK)} missing={cov['missing']} extra={cov['extra']}")
 check("(K.2) PDF_ACCESS_RE (copiada de la webapp): record_pdf.py LEE todas las llaves del frozen salvo la zona de servicio — 0 huecos",
       [k for k in FK if k not in READ and k not in R.SERVICE_KEYS] == [],
@@ -207,17 +216,17 @@ _m_anch = re.search(r"^SECCIONES\s*=\s*\($", PDF_SRC, re.M)
 _lit = PDF_SRC[_m_anch.end():PDF_SRC.index("\n)\n", _m_anch.end())] if _m_anch else ""
 _keys_anch = re.findall(r'^\s*\("([a-z_]+)",\s*"[a-z_]+"\),?\s*$', _lit, re.M)
 _unanch = [PDF_SRC.count("\n", 0, m.start()) + 1 for m in re.finditer(r"SECCIONES\s*=\s*\(", PDF_SRC)]
-check("(K, corrector) la SEGUNDA fuente de la webapp debe usar la regex ANCLADA `^SECCIONES\\s*=\\s*\\($` (re.M): sobre el modulo devuelve las 52 llaves == "
+check("(K, corrector) la SEGUNDA fuente de la webapp debe usar la regex ANCLADA `^SECCIONES\\s*=\\s*\\($` (re.M): sobre el modulo devuelve las 53 llaves == "
       "record_pdf.SECTION_KEYS; la regex SIN anclar casa >= 2 sitios (ORDEN_SECCIONES y el literal) — trampa MEDIDA y declarada en el comentario del "
       "modulo (que ya no contiene el texto del literal)",
-      _m_anch is not None and _keys_anch == list(R.SECTION_KEYS) and len(_keys_anch) == 52 and len(_unanch) >= 2
+      _m_anch is not None and _keys_anch == list(R.SECTION_KEYS) and len(_keys_anch) == 53 and len(_unanch) >= 2
       and "regex ANCLADA" in PDF_SRC and "SECTION_KEYS" in PDF_SRC,
       f"anclada={len(_keys_anch)} sitios_sin_anclar(lineas)={_unanch}")
 check("(R10) cada llave de SECCIONES tiene su record.get(\"k\") LITERAL en el modulo (la segunda fuente de la webapp lo exige); "
       "SECCIONES == KEY_BORN; el literal `SECCIONES = (` existe; SERVICE_KEYS = las que app._ratings_view fusiona",
       [k for k in R.SECTION_KEYS if k not in READ] == [] and set(R.SECTION_KEYS) == set(R.KEY_BORN)
       and "SECCIONES = (" in PDF_SRC and set(R.SERVICE_KEYS) >= {"consensus", "ratings", "ratings_masked"}
-      and len(R.SECTION_KEYS) == 52,
+      and len(R.SECTION_KEYS) == 53,
       f"n_secciones={len(R.SECTION_KEYS)} sin_literal={[k for k in R.SECTION_KEYS if k not in READ]}")
 _sec_lit = re.search(r"SECCIONES = \((.*?)\n\)", PDF_SRC, re.S).group(1)
 _sec_keys_lit = re.findall(r'\(\s*"([A-Za-z_]\w*)"\s*,', _sec_lit)
@@ -230,12 +239,14 @@ check("(J.1) sin literales fijos viejos en record_pdf.py: ni _NOT_INSTRUMENTED*,
       not any(lit in PDF_SRC for lit in OLD_LITERALS) and _fixed_born == [],
       f"viejos={[lit for lit in OLD_LITERALS if lit in PDF_SRC]} fijos={_fixed_born}")
 check("KEY_BORN fijado por el historial de runs.py: reasoning/agents_invoked/alternatives_considered 1.3 (ADR-0060), fallback/confidence/"
-      "citations 1.1 (ADR-0051), plan 1.4, revision 1.6, citations_schema 1.7, thread 1.8, competence 1.9, models 1.10, council 1.11, figures 1.12",
+      "citations 1.1 (ADR-0051), plan 1.4, revision 1.6, citations_schema 1.7, thread 1.8, competence 1.9, models 1.10, council 1.11, figures 1.12, "
+      "web_locator 1.13 (ADR-0084)",
       R.KEY_BORN["reasoning"] == "1.3" and R.KEY_BORN["agents_invoked"] == "1.3" and R.KEY_BORN["alternatives_considered"] == "1.3"
       and R.KEY_BORN["fallback"] == "1.1" and R.KEY_BORN["confidence"] == "1.1" and R.KEY_BORN["citations"] == "1.1"
       and R.KEY_BORN["plan"] == "1.4" and R.KEY_BORN["revision"] == "1.6" and R.KEY_BORN["citations_schema"] == "1.7"
       and R.KEY_BORN["thread"] == "1.8" and R.KEY_BORN["competence"] == "1.9" and R.KEY_BORN["models"] == "1.10"
-      and R.KEY_BORN["council"] == "1.11" and R.KEY_BORN["figures"] == "1.12"
+      and R.KEY_BORN["council"] == "1.11" and R.KEY_BORN["figures"] == "1.12" and R.KEY_BORN["web_locator"] == "1.13"
+      and R.contract_of("web_locator") == "1.13"
       and R.contract_of("models") == "1.10" and R.contract_of({"render_contract_version": "1.11"}) == "1.11"
       and R.born_of("no-existe") == R.BORN_UNKNOWN)
 check("_tres_estados: ausente -> ('no-instrumentado', 'NO INSTRUMENTADO (contrato < 1.10) ...'); None + _state -> ('null', state); valor -> ('valor', v)",
@@ -292,18 +303,20 @@ _closed = runs_mod.close_run(RID, "natalia")   # frozen_at/closed_by NACEN al ce
 _row = db.get_run(RID)
 FROZEN = json.loads(_row["frozen_record_json"] or "{}")
 REC = app.get_frozen_record(RID, authorization=AUTH)   # + zona de servicio (ratings/consensus), como get_record_pdf
-check("la corrida offline congelo un registro con el contrato de runs.py; al cerrarla gana frozen_at/closed_by (52 llaves); la vista GET lo devuelve "
-      "con la zona de servicio fusionada (SERVICE_KEYS)",
+check("(W7) la corrida offline congelo un registro con el contrato de runs.py; al cerrarla gana frozen_at/closed_by (53 llaves con web_locator, "
+      "contrato 1.13); la vista GET lo devuelve con la zona de servicio fusionada (SERVICE_KEYS)",
       _state_run == "awaiting_closure" and _closed.get("closed") is True and _row["state"] == "closed"
       and FROZEN.get("render_contract_version") == runs_mod.RENDER_CONTRACT_VERSION
-      and set(FROZEN) - set(FROZEN_OPEN) == {"frozen_at", "closed_by"} and len(FROZEN) == 52
+      and set(FROZEN) - set(FROZEN_OPEN) == {"frozen_at", "closed_by"} and len(FROZEN) == 53
       and set(REC) >= set(FROZEN) and (set(REC) - set(FROZEN)) <= set(R.SERVICE_KEYS),
       f"state={_row['state']} contrato={FROZEN.get('render_contract_version')} n={len(FROZEN)} servicio={sorted(set(REC) - set(FROZEN))}")
 cov_real = R.pdf_sections_cover(FROZEN.keys())
-check("(K.1) cobertura EXACTA contra el frozen REAL cerrado (1.12 con `figures`): missing [] y extra [] — una llave nueva sin seccion ROMPE aqui",
+check("(W7) (K.1) cobertura EXACTA contra el frozen REAL cerrado (1.13 con `web_locator`): missing [] y extra [] — una llave nueva sin seccion "
+      "ROMPE aqui; y una seccion cuya llave runs.py aun no congela sale como extra (W7 pendiente)",
       cov_real == {"missing": [], "extra": []}, f"{cov_real}")
 cov_open = R.pdf_sections_cover(FROZEN_OPEN.keys())
-check("(K.1) frozen ABIERTO (awaiting_closure): extra == ['frozen_at', 'closed_by'] exactamente — las dos llaves que solo nacen al cerrar",
+check("(W7) (K.1) frozen ABIERTO (awaiting_closure): extra == ['frozen_at', 'closed_by'] exactamente — las dos llaves que solo nacen al cerrar "
+      "(ROJO hasta W7: hoy tambien sale web_locator como extra porque runs.py aun no lo congela)",
       cov_open["missing"] == [] and sorted(cov_open["extra"]) == ["closed_by", "frozen_at"], f"{cov_open}")
 check("(K.1) frozen_keys estatico == llaves del frozen real (la tecnica de la webapp mide lo que runs.py congela de verdad)",
       set(FK) == set(FROZEN), f"solo_estatico={sorted(set(FK) - set(FROZEN))} solo_real={sorted(set(FROZEN) - set(FK))}")
@@ -311,7 +324,8 @@ check("(K.1) frozen_keys estatico == llaves del frozen real (la tecnica de la we
 pdf_real, txt_real = pdf_text(REC)
 REC11 = {**_sin_keys(REC, "figures"), "render_contract_version": "1.11"}
 _, txt_11 = pdf_text(REC11)
-check("PDF del registro real (1.12, sin Ruta B): %PDF, las 23 secciones rotuladas, FIGURAS con su estado declarado (glosado, NO 'NO INSTRUMENTADO'), "
+check("(W7) PDF del registro real (contrato de runs.py, sin Ruta B): %PDF, las 24 secciones rotuladas (LOCALIZADOR WEB incluida), NINGUNA seccion "
+      "'NO INSTRUMENTADO (contrato < 1.1x)' (exige frozen 1.13 con web_locator), FIGURAS con su estado declarado (glosado, NO 'NO INSTRUMENTADO'), "
       "CONSEJO con estado declarado, MODELOS con generacion, COMPETENCIA con componentes, CUORUM; el mismo registro SIN `figures` y contrato 1.11 -> "
       "FIGURAS 'NO INSTRUMENTADO (contrato < 1.12)' calculado",
       pdf_real[:5] == b"%PDF-"
@@ -389,9 +403,10 @@ PRE11 = {"run_id": "r" + "0" * 31, "question": "pre-1.1 question", "decision_sta
          "deterministic_checks": {"pass": 1, "admissible": True, "reasons": []}, "bundle_identity": {"sha256": "ab" * 32},
          "question_matches_run": True}
 pdf_pre, txt_pre = pdf_text(PRE11)
-_borns_pre = {b: (f"(contrato < {b})" in txt_pre) for b in ("1.1", "1.3", "1.4", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12")}
+_borns_pre = {b: (f"(contrato < {b})" in txt_pre) for b in ("1.1", "1.3", "1.4", "1.6", "1.7", "1.8", "1.9", "1.10", "1.11", "1.12", "1.13")}
 check("registro PRE-1.1 (sin render_contract_version): cada seccion dice NO INSTRUMENTADO con SU contrato (1.1 confidence/citations/fallback, "
-      "1.3 reasoning, 1.4 plan, 1.6 revision, 1.7 citations_schema, 1.8 thread/origin/ejes, 1.9 competence, 1.10 models, 1.11 council, 1.12 figures); "
+      "1.3 reasoning, 1.4 plan, 1.6 revision, 1.7 citations_schema, 1.8 thread/origin/ejes, 1.9 competence, 1.10 models, 1.11 council, 1.12 figures, "
+      "1.13 web_locator); "
       "token_usage/usage_raw ausentes -> 'contrato base 1.0'; render_contract_version ausente -> 'no consta'",
       all(_borns_pre.values()) and "contrato base 1.0" in txt_pre and "contrato de render: no consta" in txt_pre
       and pdf_pre[:5] == b"%PDF-", json.dumps(_borns_pre))
@@ -567,7 +582,8 @@ def _rec12(fig, cited=(0,)):
 
 
 REC12 = _rec12(FIG_BY)
-check("(K.1) cobertura EXACTA con un registro 1.12 (frozen real + figures): pdf_sections_cover == {missing: [], extra: []}",
+check("(W7) (K.1) cobertura EXACTA con el registro figuras (frozen real + figures; 1.13 cuando W7 congele web_locator): pdf_sections_cover == "
+      "{missing: [], extra: []} (ROJO hasta W7: extra == [web_locator])",
       R.pdf_sections_cover(REC12.keys()) == {"missing": [], "extra": []}, f"{R.pdf_sections_cover(REC12.keys())}")
 _sha1 = FIG_BY["items"][0]["sha256"]
 pdf12, txt12 = pdf_text(REC12, cache_dir=CACHE_ROOT)
@@ -674,6 +690,315 @@ check("figures.state 'no-papers-with-xml' con items [] -> glosa 'ningun paper se
       "ningun paper seleccionado trajo XML" in txt_nofig and "figuras 0 - con caption" in txt_nofig)
 
 # =====================================================================================================================
+# 4b. (ADR-0084 J/W8) LOCALIZADOR WEB — registro 1.13 SINTETICO declarado (frozen real + web_locator con la forma (G.2))
+# =====================================================================================================================
+print("\n== 4b. localizador web (ADR-0084): registro 1.13 SINTETICO declarado ==")
+try:
+    from lib import web_locator as WL   # W2 (interfaz congelada): vocabularios cerrados + frozen_header()
+except Exception as _e:   # pragma: no cover — W2 ausente en el arbol: se declara, no se finge
+    WL = None
+    print(f"  [declarado] lib.web_locator no importable ({type(_e).__name__}): vocabularios y header por literal del ADR")
+
+# URLs PUBLICAS reales de registros conocidos (las mismas del fixture SINTETICO de W1); el titulo del buscador es SINTETICO declarado
+WL_URL_PMID = "https://pubmed.ncbi.nlm.nih.gov/19666820/"
+WL_URL_DOI = "https://doi.org/10.1016/j.ydbio.2007.06.022"
+WL_URL_UNRES = "https://www.researchgate.net/publication/synthetic-placeholder-wt1a-pronephros-podocyte"
+WL_TITLE_WEB = "SYNTHETIC long title 0123456789 - researchgate placeholder (title_web, no es evidencia)"
+WL_QUERY = "wt1a zebrafish pronephros podocyte"
+WL_QUERY2 = "wt1a podocyte slit diaphragm zebrafish"
+WL_ORDER_RULE = "web first — the locator feeds the round (ADR-0084)"
+WL_TOTAL_CLASS = ("PROJECTION (tokens × price) + PROJECTION (web locator requests × unit price) — two projections, same class; "
+                  "measurement counts travel apart")
+
+
+def _wl_header():
+    """Constantes de identidad del bloque (G.2): de web_locator.frozen_header() si W2 esta; si no, literal del ADR declarado."""
+    if WL is not None:
+        try:
+            h = json.loads(json.dumps(WL.frozen_header(), default=str))
+            return h, "web_locator.frozen_header() (W2)"
+        except Exception as e:   # pragma: no cover
+            print(f"  [declarado] frozen_header() fallo ({type(e).__name__}): header por literal del ADR")
+    return {"module_version": "wl-1", "resolver_version": "wlr-1", "tool_version": "bws-1",
+            "state_vocabulary": {"exact": ["located", "no-results", "not-requested (no web directive)", "not-requested (no search round)",
+                                           "kill-switch WITT_WEB_LOCATOR=off"],
+                                 "prefixes": ["tool-unavailable (ADR-0084", "skipped-cap (", "skipped-budget (", "error: "],
+                                 "rule": "state in exact or startswith one of prefixes"},
+            "resolver_rules": [{"rule_id": r, "host_pattern": "?", "id_pattern": "?", "kind": "?", "confidence": "host-table"} for r in
+                               ("doi-org-path", "pubmed-path", "ncbi-pubmed-legacy", "pmc-path", "ncbi-pmc-legacy", "europepmc-path", "biorxiv-doi",
+                                "zfin-curie", "ensembl-ensdarg", "uniprot-acc", "geo-gse", "doi-in-url-any-host")],
+            "allowed_hosts": {"value": "all (resolver table + doi-in-url on any host)", "source": "default"},
+            "generic_doi_rule": {"enabled": True, "source": "default"},
+            "text_policy": ("no web text enters the bundle, the prompt, the events or the answer: results carry url/title/age only; "
+                            "description and extra_snippets are dropped at the tool output; title_web lives only in unresolved[] of this ledger"),
+            "rule": "the web LOCATES identifiers and is never a source (ADR-0084)", "gate": "directive-only"}, "literal del ADR (W2 ausente)"
+
+
+WL_HEADER, WL_HEADER_SRC = _wl_header()
+WL_COST = {"provider": "brave", "n_queries_billable": 1, "price_usd_per_1k": 5.0, "price_as_of": "2026-09-16",
+           "price_source_url": "https://brave.com/search/api/", "usd_projected": 0.005, "class": "proyección"}
+WL_QUOTA_RULE = ("local counter of queries SENT by this deployment (UTC calendar month); CLI probes do not count; the provider dashboard "
+                 "is the truth of the balance; provider cycle attested in LG0")
+
+
+def _web_locator_syn():
+    """frozen.web_locator SINTETICO con la forma (G.2): 2 consultas (success 3 URLs / no-match cache-hit), located 2 (PMID materializado
+    y seleccionado; DOI ya presente = duplicado de un id nativo), unresolved 1 (researchgate, sin patron), cuota 13/900, costo 0.005."""
+    return {**WL_HEADER, "state": "located", "provider": "brave", "provider_source": "env:WITT_WEB_LOCATOR", "gate": "directive-only",
+            "entered_by": "directive", "directive_requirement_ids": ["req-fff", "req-ggg"], "families_order_rule": WL_ORDER_RULE,
+            "n_queries": 2, "n_queries_dropped_by_cap": 0, "n_results": 3, "n_located": 2, "n_materialized": 1, "n_not_found_in_europepmc": 0,
+            "n_fed_ctx": 1, "n_located_not_fed": 0, "n_already_present": 1, "n_unresolved": 1, "n_located_selected": 1,
+            "n_located_not_selected": 1, "n_papers_web_located": 1,
+            "queries": [
+                {"round": 1, "query_en": WL_QUERY, "query_source": "council-directive:req-fff", "requirement_ids": ["req-fff"], "provider": "brave",
+                 "provider_status": "success", "http_status": 200, "elapsed_s": 0.42, "throttle_wait_s": 0.0, "cache_hit": False,
+                 "query_truncated": False, "query_altered_by_provider": False, "n_results": 3, "n_located": 2, "n_materialized": 1,
+                 "n_unresolved": 1, "cost_usd_projected": 0.005, "billable": True, "quota": {"state": "under-cap", "n_after": 13, "cap": 900},
+                 "country_sent": None, "search_lang_sent": "en"},
+                {"round": 1, "query_en": WL_QUERY2, "query_source": "council-directive:req-ggg", "requirement_ids": ["req-ggg"], "provider": "brave",
+                 "provider_status": "no-match", "http_status": None, "elapsed_s": 0.01, "throttle_wait_s": 0.0, "cache_hit": True,
+                 "query_truncated": False, "query_altered_by_provider": False, "n_results": 0, "n_located": 0, "n_materialized": 0,
+                 "n_unresolved": 0, "cost_usd_projected": 0.0, "billable": False, "quota": {"state": "not-consumed (cache-hit)", "n_after": 13, "cap": 900}}],
+            "located": [
+                {"url": WL_URL_PMID, "host": "pubmed.ncbi.nlm.nih.gov", "id": "PMID:19666820", "kind": "pmid", "resolver_rule": "pubmed-path",
+                 "confidence": "host-table", "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/19666820/",
+                 "fed_to": "pool:literature-candidate (materialized by europepmc)", "feed_state": "materialized-same-round",
+                 "evidence_id": "PMID:19666820", "admitted": True, "duplicate_of": None, "selected": True, "selection_rank": 1,
+                 "fetched_found": True, "store_state": None, "round": 1, "requirement_ids": ["req-fff"]},
+                {"url": WL_URL_DOI, "host": "doi.org", "id": "10.1016/j.ydbio.2007.06.022", "kind": "doi", "resolver_rule": "doi-org-path",
+                 "confidence": "host-table", "canonical_url": WL_URL_DOI, "fed_to": "ctx:dois", "feed_state": "already-present (dup of PMID:17651719)",
+                 "evidence_id": "PMID:17651719", "admitted": False, "duplicate_of": "PMID:17651719", "selected": False, "selection_rank": None,
+                 "fetched_found": None, "store_state": None, "round": 1, "requirement_ids": ["req-fff"]}],
+            "unresolved": [{"url": WL_URL_UNRES, "host": "www.researchgate.net", "title_web": WL_TITLE_WEB, "reason": "no-identifier-pattern",
+                            "round": 1, "requirement_ids": ["req-fff"]}],
+            "gap_flags_typed": [{"kind": "web-located-unresolved", "url": WL_URL_UNRES, "host": "www.researchgate.net", "reason": "no-identifier-pattern"}],
+            "cost": dict(WL_COST),
+            "quota": {"month": "2026-09", "provider": "brave", "n_before": 12, "n_after": 13, "cap": 900, "cap_source": "default", "state": "under-cap",
+                      "rule": WL_QUOTA_RULE}}
+
+
+WL_DC = {"state": "checked", "decided_by": "code", "module_version": "wlpred-1",
+         "web_text_not_cited": {"ok": True, "gating": True, "n_checked": 2, "offenders": [], "rule": "no citation id may be a web URL"},
+         "web_located_cited_requires_fetch": {"ok": True, "gating": True, "n_checked": 1, "offenders": [], "rule": "a cited web-located paper must have fetched.found true"},
+         "web_items_native_only": {"ok": True, "gating": True, "n_checked": 1, "offenders": [], "rule": "0 papers with source web"},
+         "web_urls_not_in_answer": {"ok": True, "gating": False, "n_checked": 3, "offenders": [], "rule": "no ledger URL verbatim in direct_answer"},
+         "rules": {"web_text_not_cited": "id is URL not resolving to a bundle item, or matches a ledger URL, or kind web/url -> inadmissible"}}
+
+
+def _rec13(wl=None, dc=None, with_usage=True):
+    """Registro 1.13 SINTETICO declarado: frozen real (REC) + web_locator (G.2) + lo que W7 anade (dc.web_locator, token_usage.web_locator,
+    total proyectado con clase, cita located_via, n_located_via_web, fila web_locator en agents_invoked, plan.families_order_rule y fila web
+    del ledger con las llaves (C.7), gap_flag de CONTEO)."""
+    rec = json.loads(json.dumps(REC))
+    rec["render_contract_version"] = "1.13"
+    rec["web_locator"] = wl if wl is not None else _web_locator_syn()
+    rec["deterministic_checks"] = {**rec["deterministic_checks"], "web_locator": dc if dc is not None else json.loads(json.dumps(WL_DC))}
+    for k in ("web_locator", "estimated_cost_usd_total_projected", "total_class"):   # bajo off/tool-unavailable NO viajan (G.7 / L)
+        rec["token_usage"].pop(k, None)
+    if with_usage:
+        tu = rec["token_usage"]
+        tu["web_locator"] = {**WL_COST, "n_queries": 2, "n_results": 3, "n_located": 2, "quota_state": "under-cap"}
+        base = tu.get("estimated_cost_usd") or 0.0
+        tu["estimated_cost_usd_total_projected"] = round(float(base) + 0.005, 6)
+        tu["total_class"] = WL_TOTAL_CLASS
+        bs = tu.setdefault("by_stage", {})
+        srch = bs.get("search") if isinstance(bs.get("search"), dict) else {"in": None, "out": None}
+        bs["search"] = {**srch, "web_locator_usd_projected": 0.005,
+                        "note": "Layer 0 tools — no model call (ADR-0080); web locator cost travels apart (ADR-0084)"}
+        rec["citations"] = list(rec.get("citations") or []) + [{"n": 2, "kind": "paper", "id": "PMID:19666820", "support_state": "supported", "located_via": "web"}]
+        rec["citations_support_summary"] = {**(rec.get("citations_support_summary") or {}), "n_located_via_web": 1}
+        rec["agents_invoked"] = list(rec.get("agents_invoked") or []) + [
+            {"agent": "web_locator (lib/web_locator.py — Brave|Anthropic locator + deterministic URL→id resolver; web text never enters the bundle)",
+             "status": "invoked", "provider": "brave"}]
+        sl = rec.get("search_ledger") if isinstance(rec.get("search_ledger"), dict) else {}
+        plan = sl.get("plan") if isinstance(sl.get("plan"), dict) else {}
+        sl["plan"] = {**plan, "families": [{"family": "web", "gate": "directive-only"}, {"family": "europepmc"}], "families_order_rule": WL_ORDER_RULE}
+        sl["rounds"] = [{"round": 1, "trigger": "council-directive", "budget_s": 120.0, "n_admitted": 1, "elapsed_s": 2.1, "stop_reason": "found-new",
+                         "sources": [{"family": "web", "status": "success", "n_found": 3, "n_new": 1, "elapsed_s": 0.9, "cache_hit": False, "label": None,
+                                      "query_sent": WL_QUERY, "provider": "brave", "n_queries": 2, "n_located": 2, "n_materialized": 1, "n_unresolved": 1,
+                                      "n_already_present": 1, "cost_usd_projected": 0.005, "quota_state": "under-cap"}]}]
+        rec["search_ledger"] = sl
+        ans = rec.get("answer") or {}
+        ans["gap_flags"] = list(ans.get("gap_flags") or []) + [
+            "web-located-unresolved: 1 URL(s) located on the web could not be resolved to an identifier by code — declared in "
+            "frozen.web_locator.unresolved, never cited"]
+        rec["answer"] = ans
+    return rec
+
+
+def _slice(txt, start, end):
+    i = txt.find(start)
+    j = txt.find(end, i + 1) if i >= 0 else -1
+    return txt[i:j] if i >= 0 and j > i else ""
+
+
+REC13 = _rec13()
+check("(W8.1) cobertura EXACTA con un registro 1.13 SINTETICO declarado (frozen real + web_locator): pdf_sections_cover == {missing [], extra []}; "
+      "born_of('web_locator') == '1.13'; la seccion 53 va justo despues de search_ledger; keys_of_section('localizador') == ('web_locator',); "
+      f"header del bloque: {WL_HEADER_SRC}",
+      R.pdf_sections_cover(REC13.keys()) == {"missing": [], "extra": []} and R.born_of("web_locator") == "1.13"
+      and R.SECTION_KEYS.index("web_locator") == R.SECTION_KEYS.index("search_ledger") + 1
+      and R.keys_of_section("localizador") == ("web_locator",) and "localizador" in R.RENDERERS,
+      f"{R.pdf_sections_cover(REC13.keys())}")
+pdf13, txt13 = pdf_text(REC13)
+_, txt13_sin = pdf_text(_sin(REC13, "web_locator"))
+_, txt13_null = pdf_text({**REC13, "web_locator": None})
+check("(W8.2) tres estados del localizador: sin `web_locator` -> UNA linea 'NO INSTRUMENTADO (contrato < 1.13)' calculada de KEY_BORN (el rotulo "
+      "LOCALIZADOR WEB se pinta igual); presente -> ninguna; None -> 'web_locator: null declarado'",
+      txt13_sin.count("NO INSTRUMENTADO (contrato < 1.13)") == 1 and "LOCALIZADOR WEB" in txt13_sin
+      and "NO INSTRUMENTADO (contrato < 1.13)" not in txt13 and "web_locator: null declarado" in txt13_null
+      and "(contrato < 1.13)" in R._tres_estados({}, "web_locator")[1],
+      f"n_sin={txt13_sin.count('NO INSTRUMENTADO (contrato < 1.13)')}")
+_sec13 = _slice(txt13, "LOCALIZADOR WEB (ADR-0084)", "FALLBACK - quien disparo")
+_n_rules = len(WL_HEADER.get("resolver_rules") or [])
+check("(W8.3) PDF 1.13 (located 2 / unresolved 1): 'LOCALIZADOR WEB' + cintillo 'LA WEB LOCALIZA, NO ES FUENTE' + estado located glosado + proveedor "
+      "brave glosado + consulta VERBATIM con fuente/req + ids con kind + regla (confianza) + feed_state glosado + 'materializado por Europe PMC: SI' + "
+      "'seleccionado (rango 1)' + duplicado de id nativo + contadores con MEDICION + 'USD 0.005 [PROYECCION]' + costo con clase + cuota 13/900 con regla "
+      "+ segunda consulta no-match cache-hit + text_policy/regla verbatim + tabla del resolutor",
+      "LA WEB LOCALIZA, NO ES FUENTE (ADR-0084)" in _sec13 and "estado: located - la web LOCALIZO >= 1 identificador" in _sec13
+      and "proveedor: brave - Brave Search API REST (plan Search) SIN modelo" in _sec13 and "fuente env:WITT_WEB_LOCATOR" in _sec13
+      and "entro por: directive" in _sec13 and "requisitos del consejo ['req-fff', 'req-ggg']" in _sec13
+      and f'consulta r1 [success]: "{WL_QUERY}"   |   fuente council-directive:req-fff   |   req [\'req-fff\']' in _sec13
+      and "PMID:19666820 (pmid)   |   regla pubmed-path (host-table)   |   host pubmed.ncbi.nlm.nih.gov   |   entro como: pool de literatura" in _sec13
+      and "materialized-same-round - materializado en la MISMA ronda por Europe PMC" in _sec13 and "materializado por Europe PMC: SI" in _sec13
+      and "seleccionado (rango 1)" in _sec13 and "fetched (registro y texto de Europe PMC)" in _sec13
+      and "10.1016/j.ydbio.2007.06.022 (doi)   |   regla doi-org-path (host-table)" in _sec13
+      and "already-present (dup of PMID:17651719) - ya presente - duplicado de un id nativo" in _sec13 and "duplicado de PMID:17651719" in _sec13
+      and "consultas 2 (descartadas por tope 0) - resultados (URLs) 3 - localizados 2 - materializados por Europe PMC 1" in _sec13
+      and "papers web-localizados en el bundle 1 [MEDICION: 0 medido != null]" in _sec13
+      and "resultados 3 - localizados 2 - materializados 1 - sin resolver 1 [MEDICION]" in _sec13 and "USD 0.005 [PROYECCION]" in _sec13
+      and "cuota under-cap 13/900" in _sec13
+      and "costo del localizador [PROYECCION, clase proyección]: USD 0.005 - 1 consultas facturables x USD 5.0/1k (brave, precios al 2026-09-16)" in _sec13
+      and "cuota mensual (2026-09, brave): 13/900 consultas (antes de esta corrida 12) - cap default - estado under-cap - bajo el tope" in _sec13
+      and "regla de la cuota: local counter of queries SENT" in _sec13
+      and f'consulta r1 [no-match]: "{WL_QUERY2}"' in _sec13 and "cache_hit True" in _sec13 and "cuota not-consumed (cache-hit) 13/900" in _sec13
+      and "politica de texto (verbatim): no web text enters the bundle" in _sec13 and "regla (verbatim): the web LOCATES identifiers" in _sec13
+      and f"tabla del resolutor: {_n_rules} reglas (" in _sec13 and "regla DOI generica (doi-in-url-any-host): ENCENDIDA" in _sec13
+      and "brechas tipadas (gap_flags_typed): 1 - por clase {\"web-located-unresolved\": 1}" in _sec13,
+      f"len_sec={len(_sec13)} n_rules={_n_rules}")
+_unres_line = next((l for l in txt13.split("\n") if l.startswith("  NO ADMISIBLE: ")), "")
+_title_lines = [l for l in txt13.split("\n") if WL_TITLE_WEB in l]
+check("(W8.4) NINGUNA URL de located[] en el PDF (ni la hallada ni la canonica; el id basta) — la seccion trae UNA sola 'http' (la del ledger de no "
+      "resueltos); el NO resuelto SI imprime la URL completa rotulada NO ADMISIBLE con host y razon glosada; el titulo del buscador aparece UNA vez y "
+      "rotulado 'NO es evidencia'; la URL no resuelta aparece UNA vez en todo el PDF (gap_flags_typed se imprime como conteo; answer.gap_flags "
+      "lleva el string de conteo sin URL)",
+      WL_URL_PMID not in txt13 and WL_URL_DOI not in txt13 and "https://pubmed.ncbi.nlm.nih.gov/19666820/" not in txt13
+      and _sec13.count("http") == 1 and txt13.count(WL_URL_UNRES) == 1
+      and _unres_line.startswith(f"  NO ADMISIBLE: {WL_URL_UNRES}   |   host www.researchgate.net   |   razon no-identifier-pattern - ningun patron")
+      and len(_title_lines) == 1 and "titulo del buscador (NO es evidencia, no entro al bundle): " in _title_lines[0]
+      and "! web-located-unresolved: 1 URL(s) located on the web could not be resolved" in txt13 and "HUECOS DECLARADOS" in txt13,
+      f"n_http_sec={_sec13.count('http')} n_url_unres={txt13.count(WL_URL_UNRES)} n_title={len(_title_lines)}")
+check("(W8.5) GATE: bloque web_locator con 4 predicados — 3 'OK - GATEA' + web_urls_not_in_answer 'OK - informativo (gating false)', decidido por code, "
+      "modulo wlpred-1, reglas verbatim; 'web_locator' es llave CONOCIDA del gate (no cae en la linea 'otras llaves del gate', que el registro "
+      "real ya trae por positive_claim_requires_citations_evaluation — llave previa a este ADR)",
+      "web_locator (ADR-0084): estado checked - decidido por code - modulo wlpred-1 - la web localiza, no es fuente: 3 predicados GATEAN + 1 informativo" in txt13
+      and "web_text_not_cited: OK - GATEA" in txt13 and "web_located_cited_requires_fetch: OK - GATEA" in txt13
+      and "web_items_native_only: OK - GATEA" in txt13 and "web_urls_not_in_answer: OK - informativo (gating false)" in txt13
+      and "regla web_text_not_cited: id is URL not resolving" in txt13
+      and "web_locator" not in next((l for l in txt13.split("\n") if l.startswith("otras llaves del gate")), ""))
+_dc_off = json.loads(json.dumps(WL_DC))
+_dc_off["web_text_not_cited"] = {"ok": False, "gating": True, "n_checked": 1, "offenders": [{"n": 3, "id": "https://example.org/x", "why": "id-is-url"}],
+                                 "rule": "no citation id may be a web URL"}
+_, txt13_off = pdf_text(_rec13(dc=_dc_off))
+check("(W8.5b) GATE con ofensor: web_text_not_cited 'FALLA - GATEA' y el ofensor con su `why` (id-is-url) impreso como cita INADMISIBLE del gate",
+      "web_text_not_cited: FALLA - GATEA" in txt13_off and '"why": "id-is-url"' in txt13_off)
+_ks_wl = {**{k: WL_HEADER[k] for k in ("module_version", "resolver_version", "state_vocabulary", "rule", "gate") if k in WL_HEADER},
+          "state": "kill-switch WITT_WEB_LOCATOR=off", "provider": "off", "provider_source": "env:WITT_WEB_LOCATOR",
+          "kill_switch": {"WITT_WEB_LOCATOR": "off", "enabled": False, "source": "env:WITT_WEB_LOCATOR",
+                          "declared_exceptions": ["render_contract_version", "web_locator", "deterministic_checks.web_locator"]}}
+REC13_KS = _rec13(wl=_ks_wl, dc={"state": "kill-switch WITT_WEB_LOCATOR=off"}, with_usage=False)
+_, txt_wks = pdf_text(REC13_KS)
+_sec_ks = _slice(txt_wks, "LOCALIZADOR WEB (ADR-0084)", "FALLBACK - quien disparo")
+check("(W8.6) KILL-SWITCH (L): web_locator.state 'kill-switch WITT_WEB_LOCATOR=off' -> el literal + glosa APAGADO + las 3 excepciones declaradas "
+      "+ 'proveedor: off - apagado'; SIN contadores, SIN tablas, SIN costo (las llaves no viajan bajo off); gate web_locator EXACTAMENTE {state} "
+      "(sin predicados); consumo sin localizador",
+      "estado: kill-switch WITT_WEB_LOCATOR=off - APAGADO por kill-switch explicito" in _sec_ks
+      and "kill_switch WITT_WEB_LOCATOR=off (env:WITT_WEB_LOCATOR) - excepciones declaradas al 1.12 byte a byte: "
+          "['render_contract_version', 'web_locator', 'deterministic_checks.web_locator']" in _sec_ks
+      and "proveedor: off - apagado - ninguna consulta a la web" in _sec_ks and "la familia web NO entro a la ronda" in _sec_ks
+      and "consultas " not in _sec_ks and "LOCALIZADOS -> IDENTIFICADOR" not in _sec_ks and "costo del localizador" not in _sec_ks
+      and "cuota mensual" not in _sec_ks
+      and "web_locator (ADR-0084): estado kill-switch WITT_WEB_LOCATOR=off" in txt_wks and "web_text_not_cited" not in txt_wks
+      and "localizador web (ADR-0084)" not in txt_wks and "TOTAL PROYECTADO" not in txt_wks,
+      f"len_sec={len(_sec_ks)}")
+_variants = {
+    "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)": ("localizador NO DISPONIBLE", "CERO red"),
+    "not-requested (no web directive)": ("NO emitio directiva web", "directive-only"),
+    "not-requested (no search round)": ("el localizador no aplica", "competente"),
+    "no-results": ("no localizaron nada", "0 medido != null"),
+    "skipped-cap (monthly cap WITT_WEB_MONTHLY_CAP=900 reached (n_queries=900, month 2026-09))": ("SALTADO por tope", "cero red"),
+    "skipped-budget (round budget exhausted)": ("SALTADO por presupuesto", "cero red"),
+    "error: HTTP 503 from api.search.brave.com": ("el proveedor FALLO", "la ronda siguio"),
+    "estado-inventado-zzz": ("estado fuera de vocabulario: estado-inventado-zzz", ""),
+}
+_var_ok = {}
+for _st, (_a, _b) in _variants.items():
+    _wl_v = {**_ks_wl, "state": _st, "provider": "off" if _st.startswith("tool-unavailable") else "brave",
+             "provider_source": "default-derived:BRAVE_API_KEY absent" if _st.startswith("tool-unavailable") else "env:WITT_WEB_LOCATOR"}
+    _wl_v.pop("kill_switch", None)
+    _, _tv = pdf_text(_rec13(wl=_wl_v, dc={"state": "no-web-items"}, with_usage=False))
+    _sv = _slice(_tv, "LOCALIZADOR WEB (ADR-0084)", "FALLBACK - quien disparo")
+    _var_ok[_st] = (f"estado: {_st} - " in _sv and _a in _sv and _b in _sv)
+check("(W8.7) el estado del localizador se imprime LITERAL + glosa de tabla cerrada para los 5 exactos y los 4 prefijos (tool-unavailable derivado sin "
+      "llave 'NO DISPONIBLE / CERO red', not-requested x2, no-results, skipped-cap, skipped-budget, error) y un literal fuera de tabla se marca "
+      "'estado fuera de vocabulario'; 'tool-unavailable' con provider derivado off declara la fuente",
+      all(_var_ok.values()), json.dumps({k[:40]: v for k, v in _var_ok.items()}))
+if WL is not None:
+    _vocab_ok = (set(R._WEB_STATE_GLOSS) == set(WL.WEB_STATES_EXACT)
+                 and tuple(p for p, _g in R._WEB_STATE_PREFIX_GLOSS) == tuple(WL.WEB_STATE_PREFIXES)
+                 and set(R._WEB_FEED_GLOSS) == set(WL.FEED_STATES_EXACT)
+                 and tuple(p for p, _g in R._WEB_FEED_PREFIX_GLOSS) == tuple(WL.FEED_STATE_PREFIXES)
+                 and set(R._WEB_UNRESOLVED_GLOSS) == set(WL.UNRESOLVED_REASONS)
+                 and set(R._WEB_QUOTA_GLOSS) == set(WL.QUOTA_STATES_EXACT)
+                 and set(R._WEB_PROVIDER_GLOSS) == set(WL.PROVIDERS)
+                 and set(R._WEB_FED_TO_WORDS) == set(WL.FED_TO)
+                 and all(not R._web_state_gloss(s).startswith("estado fuera") for s in WL.WEB_STATES_EXACT)
+                 and all(not R._web_state_gloss(p + "x)").startswith("estado fuera") for p in WL.WEB_STATE_PREFIXES)
+                 and all(not R._web_feed_gloss(s).startswith("feed_state fuera") for s in WL.FEED_STATES_EXACT)
+                 and all(not R._web_feed_gloss(p + "x)").startswith("feed_state fuera") for p in WL.FEED_STATE_PREFIXES)
+                 and R.WEB_GATE_PREDICATES == ("web_text_not_cited", "web_located_cited_requires_fetch", "web_items_native_only", "web_urls_not_in_answer"))
+    check("(W8.8) PARIDAD de vocabularios PDF <-> lib/web_locator.py (W2): las tablas de glosa del PDF son EXACTAMENTE WEB_STATES_EXACT/_PREFIXES, "
+          "FEED_STATES_EXACT/_PREFIXES, UNRESOLVED_REASONS, QUOTA_STATES_EXACT, PROVIDERS y FED_TO (ni un literal mas ni uno menos); los 4 predicados "
+          "del gate son los de (E)",
+          _vocab_ok,
+          f"states={sorted(set(R._WEB_STATE_GLOSS) ^ set(WL.WEB_STATES_EXACT))} feed={sorted(set(R._WEB_FEED_GLOSS) ^ set(WL.FEED_STATES_EXACT))} "
+          f"quota={sorted(set(R._WEB_QUOTA_GLOSS) ^ set(WL.QUOTA_STATES_EXACT))}")
+else:
+    check("(W8.8) PARIDAD de vocabularios PDF <-> lib/web_locator.py: NO MEDIDA (W2 ausente en el arbol) — declarado", False, "lib.web_locator no importable")
+_tot = REC13["token_usage"]["estimated_cost_usd_total_projected"]
+_base_usd = REC13["token_usage"]["estimated_cost_usd"]
+_cit_line = next((l for l in txt13.split("\n") if "paper: PMID:19666820" in l), "")
+_ag_line = next((l for l in txt13.split("\n") if "web_locator (lib/web_locator.py" in l and "proveedor brave" in l), "")
+_src_line = next((l for l in txt13.split("\n") if l.startswith("    1 | web | success | n_found 3")), "")
+check("(W8.9) las llaves aditivas 1.13 fuera de la seccion: CONSUMO 'localizador web ... APARTE de los tokens [PROYECCION, clase proyección]: USD 0.005 - 1 "
+      "facturables de 2 consultas' + 'TOTAL PROYECTADO' con su clase + estimated_cost_usd INTACTO + etapa search con 'localizador web USD' y la nota; "
+      "EVIDENCIA: cita [2] con 'localizado en la web (registro y texto de Europe PMC)'; SOPORTE: n_located_via_web 1 [MEDICION]; AGENTES: fila web_locator "
+      "invoked + proveedor brave; BUSQUEDA: 'orden: web first' y la fila web con proveedor/localizados/materializados/cuota",
+      "localizador web (ADR-0084) - APARTE de los tokens [PROYECCION, clase proyección]: USD 0.005 - 1 facturables de 2 consultas (brave, USD 5.0/1k al 2026-09-16)"
+      " - resultados 3 - localizados 2 [MEDICION] - cuota under-cap" in txt13
+      and f"TOTAL PROYECTADO (tokens x precio + localizador x tarifa): USD {_tot} - clase: PROJECTION (tokens" in txt13
+      and f"USD {_base_usd} [PROYECCION: los tokens son medicion, los dolares no]" in txt13
+      and "etapa search:" in txt13 and "localizador web USD 0.005 [PROYECCION]" in txt13 and "web locator cost travels apart (ADR-0084)" in txt13
+      and "localizado en la web (registro y texto de Europe PMC; ADR-0084)" in _cit_line
+      and "citas a papers localizados por la web (ADR-0084): 1 [MEDICION]" in txt13
+      and "invoked" in _ag_line and "proveedor brave" in _ag_line
+      and "orden: web first" in txt13
+      and "proveedor brave - consultas 2 - localizados 2 - materializados 1 - sin resolver 1 - ya presentes 1 - USD 0.005 [PROYECCION] - cuota under-cap "
+          "(la web localiza, no es fuente)" in _src_line,
+      f"tot={_tot} base={_base_usd} cit={bool(_cit_line)} ag={bool(_ag_line)} src={bool(_src_line)}")
+pdf13b, _ = pdf_text(REC13)
+check("(W8.10) determinismo y forma: dos build_pdf del registro 1.13 con fecha fija -> bytes IGUALES; %PDF-; el registro 1.13 NO dice 'NO INSTRUMENTADO' "
+      "para web_locator; el PDF 1.13 pesa < 8 MB",
+      pdf13 == pdf13b and pdf13[:5] == b"%PDF-" and "(contrato < 1.13)" not in txt13 and len(pdf13) < R.PDF_MAX_MB * 1024 * 1024,
+      f"len={len(pdf13)}")
+check("(W8.11) R10 + regex de la webapp: record_pdf.py lee `record.get(\"web_locator\")` LITERAL (>= 1 vez) y PDF_ACCESS_RE lo ve; el literal SECCIONES trae "
+      "(\"web_locator\", \"localizador\"); `_section_localizador` existe y esta en RENDERERS; el modulo NO teclea el born (sale de KEY_BORN)",
+      PDF_SRC.count('record.get("web_locator")') >= 1 and "web_locator" in READ and '("web_locator", "localizador")' in PDF_SRC
+      and "def _section_localizador(" in PDF_SRC and R.RENDERERS["localizador"] is R._section_localizador
+      and "NO INSTRUMENTADO (contrato < 1.13)" not in PDF_SRC,
+      f"n_get={PDF_SRC.count(chr(114)+'ecord.get(' + chr(34) + 'web_locator' + chr(34) + ')')}")
+
+# =====================================================================================================================
 # 5. cero red + mcp_cache intacto
 # =====================================================================================================================
 print("\n== 5. offline ==")
@@ -687,5 +1012,15 @@ _urlreq.urlopen = _urlopen_real
 import shutil as _shutil_f8  # noqa: E402
 _shutil_f8.rmtree(FRESH_CACHE, ignore_errors=True)   # la caché del gate es efímera: nada queda en WITT_MCP_CACHE_DIR
 npass = sum(CHECKS)
+_fail_w7 = [n for n, ok in zip(NAMES, CHECKS) if not ok and n.startswith("(W7)")]
+_fail_otros = [n for n, ok in zip(NAMES, CHECKS) if not ok and not n.startswith("(W7)")]
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))
+if _fail_w7:
+    print("== ROJO ESPERADO hasta que W7 congele web_locator en runs.py (contrato 1.13): %d check(s) etiquetados (W7) ==" % len(_fail_w7))
+    for n in _fail_w7:
+        print("   - " + n[:150])
+if _fail_otros:
+    print("== ROJO NO ESPERADO: %d ==" % len(_fail_otros))
+    for n in _fail_otros:
+        print("   - " + n[:150])
 sys.exit(0 if npass == len(CHECKS) else 1)

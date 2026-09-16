@@ -18,6 +18,9 @@ el worker de la ronda 1 hecho A MANO (sin lib.council ni red: escribe lo que el 
   · WITT_COUNCIL=0 → 'disabled (kill-switch WITT_COUNCIL=0)' y POST /runs sin 409
   · GET /council/membership == agent_matrix.membership_view(os.environ) + catalog_sha de catalog_cards + vocabulary (C2)
   · GET /council/search: 400 sin q · 503 con WITT_COUNCIL_INDEX=0 · 503/200 según council_index (C7); GET /council/demand
+    (ADR-0084 W6 — F.3: += web_locator_provider_state {provider, provider_source, available, unavailable_reason} — bajo la
+    máscara `off` derivado con el literal byte-idéntico de 7d9ce15 —, unsatisfiable_families derivadas en la llamada +
+    unsatisfiable_families_source, n_requirements_unsatisfiable_by_family con las 3 familias ESTÁTICAS; sin ruta nueva)
   · GET /usage.plans_council: sólo planes NO consumidos suman; by_state; totals de siempre intacto
   · /plans/* no captura /runs/{run_id} ni /runs/plan · urlopen bloqueado y contado == 0
 
@@ -85,7 +88,7 @@ _urlreq.urlopen = _urlopen_blocked
 import db  # noqa: E402
 import app as app_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
-from lib import agent_matrix, catalog_cards, models  # noqa: E402
+from lib import agent_matrix, catalog_cards, models, search_harness  # noqa: E402
 # el id del modelo del consejo se LEE de la tabla (rol `council`, D.2): cero literales de modelo fuera de models.py (M.4)
 COUNCIL_MODEL = models.resolve_role("council")["model"]
 from fastapi.testclient import TestClient  # noqa: E402
@@ -288,8 +291,10 @@ REQS = [
     {"requirement_id": "req-9999aaaabbbb", "gap": "preprints on osr1 sufficiency", "evidence_kind": "web", "source_family": "web",
      "query_en": "osr1 sufficiency pronephros preprint", "entities": [], "priority": "must", "requested_by": ["hypothesis-generator"],
      "n_requested_by": 1, "n_members": 17, "hard_rule_gate": False, "exploratory": False, "from_operative": False,
-     "harness_state": "unsatisfiable-by-harness (web: tool_module None)"},
+     # ADR-0084 (F.1): el literal que council.harness_state_for produce bajo off — importado, no copiado (UNA verdad)
+     "harness_state": search_harness.WEB_UNSATISFIABLE_LITERAL},
 ]
+assert REQS[2]["harness_state"] == "unsatisfiable-by-harness (tool-unavailable (ADR-0084))"
 
 
 def _worker_a_mano(pid, reqs, n_valid=17, usage=None, state="applicable"):
@@ -567,6 +572,26 @@ if app_mod.council_index_mod is not None:
     check("GET /council/demand (C7) -> 200 {n_runs_scanned, n_plans_scanned, n_requirements_unsatisfiable_by_family, threshold, fired, class}",
           rdm.status_code == 200 and {"n_runs_scanned", "n_plans_scanned", "n_requirements_unsatisfiable_by_family", "threshold", "fired",
                                        "class"} <= set(DM), rdm.text[:300])
+    check("GET /council/demand (ADR-0084 F.3) += web_locator_provider_state {provider, provider_source, available, unavailable_reason}: bajo "
+          "la máscara (BRAVE_API_KEY vacía, WITT_WEB_LOCATOR unset) provider 'off' derivado por ausencia de llave, available False y el "
+          "literal byte-idéntico de 7d9ce15 'tool-unavailable (ADR-0084)' (== SEARCH_DISPATCH['web'].unavailable_reason); sin ruta nueva",
+          rdm.status_code == 200 and os.environ.get("BRAVE_API_KEY", "") == "" and not os.environ.get("WITT_WEB_LOCATOR")
+          and DM.get("web_locator_provider_state") == {"provider": "off", "provider_source": "default-derived:BRAVE_API_KEY absent",
+                                                        "available": False, "unavailable_reason": "tool-unavailable (ADR-0084)"}
+          and DM["web_locator_provider_state"]["unavailable_reason"] == search_harness.SEARCH_DISPATCH["web"]["unavailable_reason"],
+          json.dumps(DM.get("web_locator_provider_state")))
+    check("GET /council/demand (ADR-0084 F.3) — conteo ESTÁTICO y disponibilidad DINÁMICA lado a lado: n_requirements_unsatisfiable_by_family "
+          "con EXACTAMENTE {figure, tooluniverse, web} (la web se cuenta aunque llegue la llave), unsatisfiable_families == ['tooluniverse', "
+          "'web'] bajo off con unsatisfiable_families_source 'derived: SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available', "
+          "demand_families estáticas + demand_families_rule; provider_source es el literal declarado (sólo el NOMBRE de la variable viaja, "
+          "jamás un valor: la máscara no tiene llave)",
+          rdm.status_code == 200 and set(DM.get("n_requirements_unsatisfiable_by_family", {})) == {"figure", "tooluniverse", "web"}
+          and DM.get("unsatisfiable_families") == ["tooluniverse", "web"]
+          and DM.get("unsatisfiable_families_source") == "derived: SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available"
+          and DM.get("demand_families") == ["figure", "tooluniverse", "web"] and isinstance(DM.get("demand_families_rule"), str)
+          and "ADR-0084" in DM.get("rule", "")
+          and DM.get("web_locator_provider_state", {}).get("provider_source") == "default-derived:BRAVE_API_KEY absent",
+          json.dumps({k: DM.get(k) for k in ("unsatisfiable_families", "unsatisfiable_families_source", "demand_families")}))
 else:
     check("GET /council/search sin council_index -> 503 council-index-unavailable declarado (rojo declarado hasta C7: entonces 200 con el sobre)",
           False, f"{rsq.status_code} {rsq.json().get('detail', {}).get('state')}")

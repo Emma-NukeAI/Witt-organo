@@ -21,6 +21,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List
+from urllib.parse import urlsplit
 
 from . import resolve_id
 
@@ -31,6 +32,14 @@ try:
     from . import figures as _figures
 except Exception:  # pragma: no cover — sólo en un árbol parcial
     _figures = None
+
+# ADR-0084 (E): los predicados web leen los vocabularios y la disponibilidad de lib/web_locator (W2). Import TOLERANTE y
+# barato (el módulo no lee env ni lib.* al cargar): un árbol sin web_locator.py declara 'tool-unavailable (…)' en
+# deterministic_checks.web_locator — jamás se re-implementa aquí (§6 no-hang; mismo patrón que _figures).
+try:
+    from . import web_locator as _wl
+except Exception:  # pragma: no cover — sólo en un árbol parcial
+    _wl = None
 
 # N2 (ADR-0027 close): the extractor is TOLERANT — case-insensitive, optional separator, optional version
 # suffix — so a reformatted id ('Ensdarg00000054611', 'ENSDARG_00000054611', 'ENSDARG00000054611.1') is
@@ -1054,6 +1063,338 @@ def figure_predicates(citations, bundle, cache_dir, answer_text, absence_kind=_U
 def figure_check_state_in_vocabulary(s):
     """True si `s` es un estado válido de deterministic_checks.figures.state (patrón plan_state_in_vocabulary)."""
     return s in FIGURE_CHECK_STATES_EXACT or (isinstance(s, str) and s.startswith(FIGURE_CHECK_STATES_PREFIXES))
+
+
+# --- ADR-0084 (E): CUATRO predicados DETERMINISTAS sobre la web como LOCALIZADOR (clase Logic-LM, ciegos al texto web) -----
+# Doctrina (CLAUDE.md §6 / ADR-0084): la web LOCALIZA identificadores y jamás es fuente — ningún título, snippet ni URL de la
+# web entra al bundle, al prompt, al panel, al consejo ni a answer.gap_flags; lo localizado se MATERIALIZA en la misma ronda
+# por Europe PMC (source 'europepmc', source_family 'web', identifier_provenance 'web-located:<rule>') y las URLs viven SÓLO
+# en frozen.web_locator. Estos predicados leen las CITAS, el bundle (papers[] con source/source_family/identifier_provenance/
+# url/fetched) y el LEDGER web (URLs localizadas y sin resolver) — nunca un texto de la web. Como deterministic_checks viaja
+# al PANEL (composite_auditor.audit lo entrega a cada juez), el fragmento NO contiene ninguna URL del ledger: un id de cita
+# que casa con el ledger se redacta a su host y web_urls_not_in_answer nombra host + índice del ledger. Tres son DUROS (entran
+# a la conjunción H(c) de admissible()); uno es INFORMATIVO (gating False: se congela, jamás tumba; LG8 decide si sube).
+WEB_PREDICATES_VERSION = "wlpred-1"
+PREDICATE_WEB_TEXT_NOT_CITED = "web_text_not_cited"
+PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH = "web_located_cited_requires_fetch"
+PREDICATE_WEB_ITEMS_NATIVE_ONLY = "web_items_native_only"
+PREDICATE_WEB_URLS_NOT_IN_ANSWER = "web_urls_not_in_answer"
+WEB_PREDICATES = (PREDICATE_WEB_TEXT_NOT_CITED, PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH,
+                  PREDICATE_WEB_ITEMS_NATIVE_ONLY, PREDICATE_WEB_URLS_NOT_IN_ANSWER)
+# gating por predicado (E): DURO = entra a la conjunción cuando el estado es 'checked'; INFORMATIVO = se mide y no gatea
+WEB_GATING = {PREDICATE_WEB_TEXT_NOT_CITED: True, PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH: True,
+              PREDICATE_WEB_ITEMS_NATIVE_ONLY: True, PREDICATE_WEB_URLS_NOT_IN_ANSWER: False}
+WEB_CHECK_STATE_KILL_SWITCH = "kill-switch WITT_WEB_LOCATOR=off"          # == web_locator.WEB_KILL_SWITCH_STATE (assert abajo)
+WEB_CHECK_STATES_EXACT = ("checked", "no-web-items", WEB_CHECK_STATE_KILL_SWITCH)
+WEB_CHECK_STATES_PREFIXES = ("tool-unavailable (", "error: ")
+WEB_CHECK_STATE_TOOL_UNAVAILABLE = "tool-unavailable (lib/web_locator.py not importable — ADR-0084 W5)"
+WEB_IDENTIFIER_PROVENANCE_PREFIX = "web-located:"                        # == web_locator.IDENTIFIER_PROVENANCE_PREFIX
+WEB_CANONICAL_HOSTS = ("doi.org", "pubmed.ncbi.nlm.nih.gov", "europepmc.org")   # los únicos hosts de `url` de un paper web-localizado
+WEB_URL_REDACTED = "<redacted: citation id equals a web-ledger URL — see frozen.web_locator>"
+WEB_FRAGMENT_URL_POLICY = ("no web-ledger URL travels in this fragment (deterministic_checks reaches the panel): a citation id "
+                           "that equals a ledger URL is redacted to its host; web_urls_not_in_answer names url_kind + host + "
+                           "ledger_index; the URLs themselves live only in frozen.web_locator (ADR-0084)")
+# Vocabulario cerrado de `why` por predicado (la webapp y el gate de paridad lo leen de aquí).
+WEB_WHYS = {
+    PREDICATE_WEB_TEXT_NOT_CITED: ("id-is-url", "id-matches-located-url", "id-matches-unresolved-url", "kind-web"),
+    PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH: ("web-located-not-fetched",),
+    PREDICATE_WEB_ITEMS_NATIVE_ONLY: ("source-web", "kind-web", "no-resolvable-identifier", "provenance-not-web-located",
+                                      "source-not-europepmc", "non-canonical-url", "text-without-fetch"),
+    PREDICATE_WEB_URLS_NOT_IN_ANSWER: ("url-in-answer",),
+}
+# Los CUATRO literales congelados en deterministic_checks.web_locator.rules (E): qué mide cada uno y qué NO.
+WEB_RULES = {
+    PREDICATE_WEB_TEXT_NOT_CITED: (
+        "HARD. No citation may point at the web: a citation id shaped ^https?:// that does NOT resolve to a bundle item through "
+        "_citation_keys (carve-out: https://doi.org/<doi> resolves to the paper by its DOI — the form the gate already accepts, "
+        "Context 8), an id equal to a URL of the web ledger (located[] | unresolved[] of frozen.web_locator), or a citation of "
+        "kind 'web' | 'url' is inadmissible ('hard predicate failed: web_text_not_cited'); why in id-is-url | "
+        "id-matches-located-url | id-matches-unresolved-url | kind-web. An offending id that equals a ledger URL is redacted to "
+        "its host in this fragment (deterministic_checks reaches the panel). Measured on every valid citation; it enters the "
+        "conjunction only when the run has web items or a web ledger (state 'checked'). ADR-0084 E.1"),
+    PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH: (
+        "HARD. A citation that resolves (_bundle_evidence_index) to a paper located by the web (source_family 'web' | "
+        "identifier_provenance 'web-located:<rule>' | located_via 'web') whose fetched.found is not True is inadmissible (why "
+        "'web-located-not-fetched'): closing a citation on an id that only the web produced and Europe PMC did not deliver is "
+        "citing the web (Context 8a). A web-located paper WITH fetched.found True is citable evidence — its record and text come "
+        "from Europe PMC, never from the search result. ADR-0084 E.2"),
+    PREDICATE_WEB_ITEMS_NATIVE_ONLY: (
+        "HARD, structural over the WHOLE bundle (not only cited items): 0 papers with source 'web' or kind 'web'; every web-located "
+        "paper carries a resolvable identifier (search_rec.pmid | pmcid | doi), identifier_provenance 'web-located:<rule>', source "
+        "'europepmc', a canonical url (host doi.org | pubmed.ncbi.nlm.nih.gov | europepmc.org — never the URL the search returned) "
+        "and abstract/text_excerpt ONLY when fetched.found is True; why in source-web | kind-web | no-resolvable-identifier | "
+        "provenance-not-web-located | source-not-europepmc | non-canonical-url | text-without-fetch. Offenders carry evidence_id "
+        "and the url host, never the url. ADR-0084 E.3"),
+    PREDICATE_WEB_URLS_NOT_IN_ANSWER: (
+        "INFORMATIVE (gating false; LG8 measures before any promotion). No URL of the web ledger (located[] | unresolved[]) appears "
+        "verbatim in direct_answer (with or without a trailing '/'); a URL in the prose that is not a citation is measured, not "
+        "gated today. Offenders name url_kind, host and ledger_index — the URL itself lives only in frozen.web_locator. "
+        "ADR-0084 E.4"),
+}
+if _wl is not None:   # UNA verdad para los literales que W2 congeló (patrón import-time assert de search_harness)
+    assert _wl.WEB_KILL_SWITCH_STATE == WEB_CHECK_STATE_KILL_SWITCH, "web_locator.WEB_KILL_SWITCH_STATE drifted (ADR-0084)"
+    assert _wl.IDENTIFIER_PROVENANCE_PREFIX == WEB_IDENTIFIER_PROVENANCE_PREFIX, "web_locator.IDENTIFIER_PROVENANCE_PREFIX drifted"
+_URL_SCHEME_RE = re.compile(r"^https?://", re.I)
+
+
+def _norm_url(u):
+    """Forma de COMPARACIÓN de una URL (strip, sin '/' final, minúsculas) — sólo para casar, jamás se copia al fragmento."""
+    return str(u or "").strip().rstrip("/").lower()
+
+
+def _url_host(u):
+    try:
+        return (urlsplit(str(u or "").strip()).hostname or "").lower()
+    except Exception:
+        return ""
+
+
+def _web_ledger_of(bundle, web_ledger):
+    """(ledger, ledger_source): el que pasó el llamador (W7: block['web_locator'] / frozen.web_locator) o, si no, el que el bundle
+    trae en path_b.web_locator (W4 D.4) o en web_locator; {} + 'absent' cuando no hay ninguno (declarado, no inferido)."""
+    if isinstance(web_ledger, dict):
+        return web_ledger, "caller"
+    b = bundle if isinstance(bundle, dict) else {}
+    pb = b.get("path_b") if isinstance(b.get("path_b"), dict) else {}
+    if isinstance(pb.get("web_locator"), dict):
+        return pb["web_locator"], "bundle.path_b.web_locator"
+    if isinstance(b.get("web_locator"), dict):
+        return b["web_locator"], "bundle.web_locator"
+    return {}, "absent"
+
+
+def _web_ledger_urls(ledger):
+    """[{norm, raw, url_kind, host, ledger_index}] sin duplicados por URL normalizada: located[] y unresolved[] del ledger (y
+    los de queries[] cuando el llamador entregó filas-query). `raw` se usa SÓLO para comparar contra el texto; ninguna de estas
+    filas se copia al fragmento (WEB_FRAGMENT_URL_POLICY)."""
+    out, seen = [], set()
+
+    def _take(rows, kind):
+        for i, r in enumerate(rows or []):
+            u = r.get("url") if isinstance(r, dict) else r
+            n = _norm_url(u)
+            if not n or n in seen:
+                continue
+            seen.add(n)
+            host = ((r.get("host") if isinstance(r, dict) else None) or _url_host(u) or None)
+            out.append({"norm": n, "raw": str(u).strip(), "url_kind": kind, "host": host, "ledger_index": i})
+
+    lg = ledger if isinstance(ledger, dict) else {}
+    _take(lg.get("located"), "located")
+    _take(lg.get("unresolved"), "unresolved")
+    for q in (lg.get("queries") or []):
+        if isinstance(q, dict):
+            _take(q.get("located"), "located")
+            _take(q.get("unresolved"), "unresolved")
+    return out
+
+
+def _is_web_located_paper(p):
+    """Superset conservador (E): un paper llegó por la web si CUALQUIER marcador lo dice — source_family 'web',
+    identifier_provenance 'web-located:<rule>' o located_via 'web' (la etiqueta que el pipeline eligió jamás rescata)."""
+    if not isinstance(p, dict):
+        return False
+    return (p.get("source_family") == "web"
+            or str(p.get("identifier_provenance") or "").startswith(WEB_IDENTIFIER_PROVENANCE_PREFIX)
+            or p.get("located_via") == "web")
+
+
+def _fetched_found(p):
+    f = p.get("fetched")
+    return f.get("found") if isinstance(f, dict) else None
+
+
+def _wblock(name, ok, reason, **fields):
+    """Bloque por predicado (E): {ok, gating, reason, rule: <name>, …medidas}. `ok` es el valor medido (bool)."""
+    d = {"ok": ok, "gating": WEB_GATING[name], "reason": reason, "rule": name}
+    d.update(fields)
+    return d
+
+
+def web_predicates(citations, bundle, answer_text, web_ledger=None, provider_state=None, *, env=None):
+    """(fragmento deterministic_checks.web_locator, extra_predicates[]) — ADR-0084 (E), clase Logic-LM, ciego al texto web.
+
+    citations: citas NORMALIZADAS ({n, kind, id, note}, runs._normalize_citations) o ids crudos. bundle: el bundle con
+    `path_b.papers[]` (cada paper con source/source_family/identifier_provenance/url/search_rec/fetched/abstract/text_excerpt).
+    answer_text: el DICT del sintetizador (se lee `direct_answer`) o sólo el `direct_answer` (str). web_ledger: el ledger web
+    ({located[], unresolved[], queries[]?, state?} — W4 block['web_locator'] o W7 frozen.web_locator); None → se toma de
+    bundle.path_b.web_locator | bundle.web_locator | ausente (declarado en `ledger_source`). provider_state: el dict de
+    web_locator.provider_state que el llamador ya midió (W7); None → se lee EN LA LLAMADA de `env` (os.environ si None — M.4).
+
+    Estados del fragmento (WEB_CHECK_STATES_*): 'checked' (hay ítems web-localizados o URLs en el ledger: los 3 DUROS entran a la
+    conjunción, el informativo se congela) | 'no-web-items' (ni ítems web ni URLs en el ledger: los 4 bloques se MIDEN y NINGÚN
+    predicado entra — admisibilidad de hoy byte a byte) | 'kill-switch WITT_WEB_LOCATOR=off' (off EXPLÍCITO o ledger.state
+    kill-switch: fragmento EXACTAMENTE {state}, M.1: una de las 3 excepciones declaradas del frozen 1.13) | 'tool-unavailable (…)'
+    (lib/web_locator.py no importable, o el localizador no disponible — off derivado sin llave, env inválida, brave/anthropic
+    sin llave — y SIN datos web que gatear: fragmento {state} con la CAUSA de web_locator.state_when_not_run) | 'error: …'.
+    Datos web presentes ganan a la disponibilidad: si el bundle trae ítems web o el ledger trae URLs, se miden ('checked') aunque
+    el proveedor ya no esté disponible. Jamás relanza: un error interno se declara en `state`. El fragmento no contiene ninguna
+    URL del ledger (WEB_FRAGMENT_URL_POLICY): deterministic_checks viaja al panel."""
+    if isinstance(answer_text, dict):
+        text = str(answer_text.get("direct_answer") or "")
+    else:
+        text = str(answer_text or "")
+    if _wl is None:
+        return {"state": WEB_CHECK_STATE_TOOL_UNAVAILABLE}, []
+    try:
+        ps = provider_state if isinstance(provider_state, dict) else _wl.provider_state(env)
+    except Exception as e:   # el lector es tolerante; esto sólo ocurre en un árbol roto — se declara
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}, []
+    ledger, ledger_source = _web_ledger_of(bundle, web_ledger)
+    ledger_state = ledger.get("state") if isinstance(ledger, dict) else None
+    if ps.get("explicit_off") or ledger_state == WEB_CHECK_STATE_KILL_SWITCH:
+        return {"state": WEB_CHECK_STATE_KILL_SWITCH}, []
+    try:
+        return _web_predicates_measure(citations, bundle, text, ledger, ledger_source, ledger_state, ps)
+    except Exception as e:   # jamás tumba la corrida: el estado declara la causa (§6 no-hang)
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}, []
+
+
+def _web_predicates_measure(citations, bundle, text, ledger, ledger_source, ledger_state, ps):
+    b = bundle if isinstance(bundle, dict) else {}
+    papers = [p for p in (((b.get("path_b") or {}).get("papers")) or []) if isinstance(p, dict)]
+    web_papers = [p for p in papers if _is_web_located_paper(p) or p.get("source") == "web" or p.get("kind") == "web"]
+    urls = _web_ledger_urls(ledger)
+    has_web_data = bool(web_papers) or bool(urls)
+    if not has_web_data:
+        # sin datos web que gatear: la disponibilidad decide si el fragmento es {state} (tool-unavailable) o 'no-web-items'
+        if isinstance(ledger_state, str) and ledger_state.startswith("tool-unavailable ("):
+            return {"state": ledger_state}, []
+        if not ps.get("available"):
+            st = _wl.state_when_not_run(ps) or ps.get("unavailable_reason") or _wl.UNAVAILABLE_OFF
+            return {"state": st}, []
+
+    ev_idx = _bundle_evidence_index(bundle)
+    papers_by_id = {}
+    for p in papers:
+        papers_by_id.setdefault(str(p.get("evidence_id")), p)
+    norm_urls = {u["norm"]: u for u in urls}
+    cits = [c if isinstance(c, dict) else {"id": c} for c in (citations or []) if c is not None]
+    valid = [c for c in cits if str(c.get("id") or "").strip()]
+
+    def _ev_hit(c):
+        return next((ev_idx[k] for k in _citation_keys(c) if k in ev_idx), None)
+
+    # --- E.1 web_text_not_cited (DURO) --------------------------------------------------------------------------------------
+    off1, n_url_ids, n_carve = [], 0, 0
+    for c in valid:
+        ident, kind = str(c.get("id")).strip(), c.get("kind")
+        hit = _ev_hit(c)
+        is_url = bool(_URL_SCHEME_RE.match(ident))
+        n_url_ids += 1 if is_url else 0
+        match = norm_urls.get(_norm_url(ident))
+        why = None
+        if kind in ("web", "url"):
+            why = "kind-web"
+        elif is_url and hit is not None:
+            n_carve += 1                        # carve-out: https://doi.org/<doi> que _citation_keys ya resuelve al paper
+        elif match is not None:
+            why = f"id-matches-{match['url_kind']}-url"
+        elif is_url:
+            why = "id-is-url"
+        if why is None:
+            continue
+        row = {"n": c.get("n"), "kind": kind, "why": why, "resolved": hit is not None, "resolved_to": hit[0] if hit else None}
+        if match is not None:                   # el id ES una URL del ledger: al panel no viaja — host + índice
+            row.update(id=WEB_URL_REDACTED, id_host=match["host"], url_kind=match["url_kind"], ledger_index=match["ledger_index"])
+        else:
+            row["id"] = ident
+        off1.append(row)
+    b1 = _wblock(PREDICATE_WEB_TEXT_NOT_CITED, not off1,
+                 (f"{len(valid)} citation(s): {n_url_ids} URL id(s), {n_carve} resolved via https://doi.org/<doi> (carve-out); "
+                  f"no citation points at the web" if not off1
+                  else f"{len(off1)} of {len(valid)} citation(s) point at the web ({sorted({o['why'] for o in off1})}): a URL, a "
+                       f"web-ledger URL or kind web is never evidence"),
+                 n_checked=len(valid), n_offenders=len(off1), offenders=off1, n_url_ids=n_url_ids,
+                 n_carve_out_doi_org=n_carve, n_ledger_urls=len(urls))
+
+    # --- E.2 web_located_cited_requires_fetch (DURO) ------------------------------------------------------------------------
+    off2, n2 = [], 0
+    for c in valid:
+        hit = _ev_hit(c)
+        if hit is None:
+            continue
+        p = papers_by_id.get(str(hit[0]))
+        if p is None or not _is_web_located_paper(p):
+            continue
+        n2 += 1
+        found = _fetched_found(p)
+        if found is not True:
+            off2.append({"n": c.get("n"), "id": str(c.get("id")).strip(), "resolved_to": hit[0], "fetched_found": found,
+                         "passage_delivered": bool(hit[1]), "why": "web-located-not-fetched"})
+    b2 = _wblock(PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH, not off2,
+                 (f"{n2} citation(s) resolve to web-located papers, all with fetched.found True (Europe PMC delivered)" if not off2
+                  else f"{len(off2)} of {n2} citation(s) resolve to web-located papers that Europe PMC did not deliver "
+                       f"(fetched.found is not True): citing them is citing the web"),
+                 n_checked=n2, n_offenders=len(off2), offenders=off2)
+
+    # --- E.3 web_items_native_only (DURO, estructural sobre TODO el bundle) --------------------------------------------------
+    off3, n_web_located = [], 0
+    for p in papers:
+        base = {"evidence_id": p.get("evidence_id"), "source": p.get("source"), "source_family": p.get("source_family")}
+        if p.get("source") == "web":
+            off3.append(dict(base, why="source-web"))
+        if p.get("kind") == "web":
+            off3.append(dict(base, why="kind-web"))
+        if not _is_web_located_paper(p):
+            continue
+        n_web_located += 1
+        rec = p.get("search_rec") if isinstance(p.get("search_rec"), dict) else {}
+        if not any(rec.get(k) for k in ("pmid", "pmcid", "doi")):
+            off3.append(dict(base, why="no-resolvable-identifier"))
+        if not str(p.get("identifier_provenance") or "").startswith(WEB_IDENTIFIER_PROVENANCE_PREFIX):
+            off3.append(dict(base, why="provenance-not-web-located", identifier_provenance=p.get("identifier_provenance")))
+        if p.get("source") not in ("europepmc", "web"):      # 'web' ya cayó como source-web arriba
+            off3.append(dict(base, why="source-not-europepmc"))
+        host = _url_host(p.get("url"))
+        if host not in WEB_CANONICAL_HOSTS:                    # la URL misma no se copia: podría ser la hallada en la web
+            off3.append(dict(base, why="non-canonical-url", url_host=host or None, url_present=bool(p.get("url"))))
+        has_text = any(str(p.get(k) or "").strip() for k in ("abstract", "text_excerpt"))
+        found = _fetched_found(p)
+        if has_text and found is not True:
+            off3.append(dict(base, why="text-without-fetch", fetched_found=found))
+    b3 = _wblock(PREDICATE_WEB_ITEMS_NATIVE_ONLY, not off3,
+                 (f"{len(papers)} paper(s), {n_web_located} web-located: 0 with source/kind 'web'; every web-located paper is a "
+                  f"Europe PMC record (identifier, provenance, canonical url, text only if fetched)" if not off3
+                  else f"{len(off3)} structural violation(s) across {len(papers)} paper(s) "
+                       f"({sorted({o['why'] for o in off3})}): web text or a web item entered the bundle"),
+                 n_checked=len(papers), n_web_located=n_web_located, n_offenders=len(off3), offenders=off3,
+                 canonical_hosts=list(WEB_CANONICAL_HOSTS))
+
+    # --- E.4 web_urls_not_in_answer (INFORMATIVO): se mide, jamás gatea -----------------------------------------------------
+    off4 = []
+    for u in urls:
+        raw = u["raw"]
+        variants = {raw, raw.rstrip("/")}
+        if any(v and v in text for v in variants):
+            off4.append({"ledger_index": u["ledger_index"], "url_kind": u["url_kind"], "host": u["host"], "why": "url-in-answer"})
+    b4 = _wblock(PREDICATE_WEB_URLS_NOT_IN_ANSWER, not off4,
+                 (f"{len(urls)} web-ledger URL(s), none appears verbatim in direct_answer" if not off4
+                  else f"{len(off4)} of {len(urls)} web-ledger URL(s) appear verbatim in direct_answer (measured, not gated)"),
+                 n_checked=len(urls), n_offenders=len(off4), offenders=off4)
+
+    state = "checked" if has_web_data else "no-web-items"
+    conjunction = [n for n in WEB_PREDICATES if WEB_GATING[n]] if state == "checked" else []
+    frag = {"state": state, "n_citations_valid": len(valid), "n_web_items": len(web_papers), "n_papers": len(papers),
+            "n_ledger_urls": len(urls), "n_ledger_located": sum(1 for u in urls if u["url_kind"] == "located"),
+            "n_ledger_unresolved": sum(1 for u in urls if u["url_kind"] == "unresolved"), "ledger_source": ledger_source,
+            "provider": ps.get("provider"), "provider_available": bool(ps.get("available")),
+            PREDICATE_WEB_TEXT_NOT_CITED: b1, PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH: b2,
+            PREDICATE_WEB_ITEMS_NATIVE_ONLY: b3, PREDICATE_WEB_URLS_NOT_IN_ANSWER: b4,
+            "conjunction": conjunction, "gating": dict(WEB_GATING), "rules": dict(WEB_RULES),
+            "url_policy": WEB_FRAGMENT_URL_POLICY, "predicates_version": WEB_PREDICATES_VERSION,
+            "module_version": _wl.MODULE_VERSION, "decided_by": "code"}
+    if state != "checked":   # sin datos web NINGÚN predicado entra a la conjunción: admisibilidad de hoy (E)
+        return frag, []
+    preds = [_mk_pred(PREDICATE_WEB_TEXT_NOT_CITED, b1["ok"], b1),
+             _mk_pred(PREDICATE_WEB_LOCATED_CITED_REQUIRES_FETCH, b2["ok"], b2),
+             _mk_pred(PREDICATE_WEB_ITEMS_NATIVE_ONLY, b3["ok"], b3)]
+    return frag, preds
+
+
+def web_check_state_in_vocabulary(s):
+    """True si `s` es un estado válido de deterministic_checks.web_locator.state (patrón figure_check_state_in_vocabulary)."""
+    return s in WEB_CHECK_STATES_EXACT or (isinstance(s, str) and s.startswith(WEB_CHECK_STATES_PREFIXES))
 
 
 def info_priority_order(candidates, store=None):

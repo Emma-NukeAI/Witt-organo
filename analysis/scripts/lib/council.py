@@ -29,6 +29,12 @@ Costuras (ADR-0082 plan C1–C9): C4 (`council_jobs.py`) llama `run_round(member
 
 Kill-switch: `enabled(env)` (WITT_COUNCIL, default 1). Con `0` NADIE llama a `run_round`; este módulo no impone
 nada al importar (sin I/O, sin red, sin BD).
+
+ADR-0084 (F.1/F.2/F.4 — la web LOCALIZA, jamás es fuente): `harness_state_for` delega en `search_harness.family_available`
+(disponibilidad leída EN LA LLAMADA: web → web_locator.provider_state; bajo off el literal de 7d9ce15 byte a byte);
+`directives_from` RECOMPUTA el harness_state de las familias con disponibilidad dinámica al compilar (la llave que llegó
+compila la directiva web sin re-planear); `coverage_after_search(…, web_locator=)` mide por requisito web
+{n_queries, n_results, n_located, n_materialized, n_unresolved} — conteos, jamás URLs ni títulos de la web.
 """
 import concurrent.futures
 import hashlib
@@ -1430,18 +1436,26 @@ def requirement_id(source_family, evidence_kind, query_en, entities):
     return "req-" + _sha256(f"{source_family}|{evidence_kind}|{' '.join(toks)}")[:12]
 
 
-def harness_state_for(source_family, evidence_kind):
-    """'satisfiable' | 'unsatisfiable-by-harness (<razón>)': `figure` (ADR-0083) y las familias SIN mecanismo en
-    SEARCH_DISPATCH (ni `fn` ni `tool_module`: web, tooluniverse — su `unavailable_reason`). Nota: europepmc tiene
-    tool_module None pero `fn` (answer_pipeline) → SÍ es satisfiable (deviación declarada vs el texto del ADR)."""
+HARNESS_STATE_RULE = ("search_harness.family_available(family) read at CALL time (ADR-0084 F.1): rows with fn None and "
+                      "adapter None → unsatisfiable (their unavailable_reason: tooluniverse, ADR-0085); rows with dynamic "
+                      "availability (web → web_locator.provider_state: WITT_WEB_LOCATOR / BRAVE_API_KEY) → satisfiable when "
+                      "the locator can dispatch NOW, else 'unsatisfiable-by-harness (tool-unavailable (ADR-0084…))'; "
+                      "evidence_kind figure → unsatisfiable (ADR-0083)")
+
+
+def harness_state_for(source_family, evidence_kind, env=None):
+    """'satisfiable' | 'unsatisfiable-by-harness (<razón>)': `figure` (ADR-0083) y las familias que el harness NO puede
+    despachar AHORA según `search_harness.family_available` (ADR-0084 F.1 — UNA verdad de disponibilidad, leída en la
+    llamada): tooluniverse (sin mecanismo, ADR-0085) y `web` cuando el localizador está apagado o sin llave (bajo off o
+    derivado el literal EXACTO de 7d9ce15 — UNA verdad: `search_harness.WEB_UNSATISFIABLE_LITERAL`, que los smokes importan;
+    con causa cuando el operador fijó brave/anthropic sin llave). Con llave la directiva web se COMPILA ('satisfiable'). Nota: europepmc tiene
+    tool_module None pero `fn` (answer_pipeline) → SÍ es satisfiable. `env` (dict) sustituye a os.environ en los smokes."""
     if evidence_kind == "figure":
         return "unsatisfiable-by-harness (evidence_kind figure — ADR-0083)"
-    spec = search_harness.SEARCH_DISPATCH.get(source_family)
-    if spec is None:
-        return "unsatisfiable-by-harness (unknown-family)"
-    if spec.get("fn") is None and spec.get("tool_module") is None:
-        return f"unsatisfiable-by-harness ({spec.get('unavailable_reason') or 'no tool module'})"
-    return "satisfiable"
+    ok, why = search_harness.family_available(source_family, env)
+    if ok:
+        return "satisfiable"
+    return f"{search_harness.UNSATISFIABLE_PREFIX}{why or 'no tool module'})"
 
 
 def _default_resolver(entity):
@@ -1585,8 +1599,7 @@ def aggregate_r1(round_result, members=None, cfg=None, resolver=None):
         "requirements": kept, "flags": flags, "notes_for_human": notes, "not_applicable_members": not_applicable,
         "entities_resolution_state": res_state,
         "rules": {"requirement_id": REQUIREMENT_ID_RULE, "dedup": DEDUP_RULE, "priority": PRIORITY_RULE,
-                  "order": ORDER_RULE, "harness_state": "SEARCH_DISPATCH: fn and tool_module both None → unsatisfiable; "
-                                                        "evidence_kind figure → unsatisfiable (ADR-0083)"},
+                  "order": ORDER_RULE, "harness_state": HARNESS_STATE_RULE},
         "catalog_sha": catalog_cards.CATALOG_SHA, "rules_sha": RULES_SHA, "tools_sha": TOOLS_SHA,
         "decided_by": "code (council.aggregate_r1)",
     }
@@ -1830,20 +1843,43 @@ aggregate_coverage = judge_coverage
 
 
 # ── (C.6) directivas: las compila CÓDIGO desde el requisito; el voto sólo REFINA ─────────────────────────────────
+# corrector ADR-0084 (L): el literal de 1.12 BYTE A BYTE — viaja a frozen.council.directives_rule en TODA corrida con consejo; la
+# ampliación de F.2 vive en DIRECTIVES_AVAILABILITY_RULE y se emite como `availability_rule` SÓLO cuando hubo un recomputo (así el
+# kill-switch no cambia un literal compartido del registro)
 DIRECTIVES_RULE = ("one directive per KEPT requirement with coverage_final ∈ {uncovered, partial, not-judged} and "
                    "harness_state satisfiable; family/query/entities come from the REQUIREMENT (never from optional prose); "
                    "a valid vote's search_directive only refines query_en/entities (refined_by_members); "
                    "dedup by (family, requirement_id); order must > should, requirement_id asc")
+DIRECTIVES_AVAILABILITY_RULE = ("for families with dynamic availability (SEARCH_DISPATCH row 'availability': web) harness_state is "
+                                "RECOMPUTED at compile time (harness_state_at_plan / harness_state_at_compile / "
+                                "harness_state_recomputed when they differ — ADR-0084 F.2)")
+HARNESS_STATE_RECOMPUTE_RULE = ("the harness_state stored in the round-1 ledger is what the PLAN saw; for families whose "
+                                "availability is dynamic (web: WITT_WEB_LOCATOR / BRAVE_API_KEY read at call time) the "
+                                "compiler asks search_harness.family_available again — a key that arrived compiles the web "
+                                "directive without re-planning, a key that left excludes it; static families keep the stored "
+                                "value byte for byte (ADR-0084 F.2)")
 
 
-def directives_from(coverage, ledger, members_order=None):
+def _availability_is_dynamic(family):
+    """True para las filas de SEARCH_DISPATCH con `availability` (web → web_locator.provider_state; ADR-0084 C.2)."""
+    spec = search_harness.SEARCH_DISPATCH.get(family) or {}
+    return bool(spec.get("availability"))
+
+
+def directives_from(coverage, ledger, members_order=None, env=None):
     """ADR-0082 (C.6) `compile_directives` → {directives[] {requirement_id, family, query_en, query_en_original?,
     entities[], symbols[] (entities_resolved), evidence_kind, priority, requested_by[], refined_by_members[], state
-    'compiled'}, excluded[] {requirement_id, family, state ∈ excluded-unknown-family | excluded-unsatisfiable, reason},
-    n, n_excluded, families[], state ∈ DIRECTIVES_STATES, rule}. Sin dependencia de `search_directive`."""
+    'compiled', harness_state_at_plan? / harness_state_at_compile? / harness_state_recomputed? (ADR-0084 F.2, sólo cuando
+    el estado guardado en r1 y el recomputado difieren)}, excluded[] {requirement_id, family, state ∈ excluded-unknown-family |
+    excluded-unsatisfiable, reason, + las mismas tres llaves cuando difieren}, n, n_excluded, families[], state ∈
+    DIRECTIVES_STATES, rule, harness_state_recompute_rule}. Sin dependencia de `search_directive`. ADR-0084 (F.2): para las
+    familias con disponibilidad DINÁMICA (web) el `harness_state` se RECOMPUTA aquí con `harness_state_for(…, env)` — el
+    guardado en el ledger de la ronda 1 es lo que vio el PLAN; si la llave llegó (o se fue) entre el plan y la corrida, la
+    directiva web se compila (o se excluye) sin re-planear. Las familias estáticas conservan el guardado byte a byte."""
     reqs = {r["requirement_id"]: r for r in ledger_requirements(ledger)}
     order = {a: i for i, a in enumerate(members_order or agent_matrix.council_members(full=True))}
     out, excluded, seen = [], [], set()
+    any_recomputed = False   # corrector ADR-0084 (L): availability_rule sólo cuando un recomputo ocurrió
     for br in (coverage or {}).get("by_requirement") or []:
         rid = br["requirement_id"]
         req = reqs.get(rid)
@@ -1860,14 +1896,27 @@ def directives_from(coverage, ledger, members_order=None):
             excluded.append({"requirement_id": rid, "family": fam, "state": "excluded-unknown-family",
                              "reason": f"family {fam!r} not in SEARCH_DISPATCH"})
             continue
-        hs = req.get("harness_state") or harness_state_for(fam, req.get("evidence_kind"))
+        hs_stored = req.get("harness_state")
+        recomputed = {}
+        if hs_stored and _availability_is_dynamic(fam):
+            # ADR-0084 (F.2): disponibilidad leída AHORA (plan bajo off → llave presente al correr compila la directiva web)
+            hs_now = harness_state_for(fam, req.get("evidence_kind"), env)
+            if hs_now != hs_stored:
+                recomputed = {"harness_state_at_plan": hs_stored, "harness_state_at_compile": hs_now,
+                              "harness_state_recomputed": True}
+                any_recomputed = True
+            hs = hs_now
+        else:
+            hs = hs_stored or harness_state_for(fam, req.get("evidence_kind"), env)
         if hs != "satisfiable":
-            excluded.append({"requirement_id": rid, "family": fam, "state": "excluded-unsatisfiable", "reason": hs})
+            excluded.append({"requirement_id": rid, "family": fam, "state": "excluded-unsatisfiable", "reason": hs,
+                             **recomputed})
             continue
         d = {"requirement_id": rid, "family": fam, "query_en": req.get("query_en"),
              "entities": list(req.get("entities") or []), "symbols": list(req.get("entities_resolved") or []),
              "evidence_kind": req.get("evidence_kind"), "priority": req.get("priority"),
-             "requested_by": list(req.get("requested_by") or []), "refined_by_members": [], "state": "compiled"}
+             "requested_by": list(req.get("requested_by") or []), "refined_by_members": [], "state": "compiled",
+             **recomputed}
         refiners = sorted([v for v in br.get("votes") or [] if not v.get("annulled") and v.get("search_directive")],
                           key=lambda v: order.get(v["agent"], 10_000))
         if refiners:
@@ -1886,19 +1935,91 @@ def directives_from(coverage, ledger, members_order=None):
     for d in out:
         if d["family"] not in fams:
             fams.append(d["family"])
-    return {"directives": out, "excluded": excluded, "n": len(out), "n_excluded": len(excluded), "families": fams,
-            "state": "provided" if out else "none (all must covered)", "rule": DIRECTIVES_RULE,
-            "decided_by": "code (council.directives_from)"}
+    res = {"directives": out, "excluded": excluded, "n": len(out), "n_excluded": len(excluded), "families": fams,
+           "state": "provided" if out else "none (all must covered)", "rule": DIRECTIVES_RULE,
+           "harness_state_recompute_rule": HARNESS_STATE_RECOMPUTE_RULE,
+           "decided_by": "code (council.directives_from)"}
+    if any_recomputed:
+        res["availability_rule"] = DIRECTIVES_AVAILABILITY_RULE   # corrector ADR-0084 (L): sólo cuando un recomputo ocurrió
+    return res
 
 
 compile_directives = directives_from
 
 
 # ── (C.7) re-cobertura ESTRUCTURAL tras la búsqueda (código; corre SIEMPRE) ──────────────────────────────────────
+# corrector ADR-0084 (L): el literal de 1.12 BYTE A BYTE — viaja a frozen.council.coverage.after_search.rule en toda corrida con
+# cobertura; la ampliación web (F.4) vive en WEB_LOCATOR_COVERAGE_RULE y se emite como `web_locator_rule` SÓLO con ledger web
 AFTER_SEARCH_RULE = ("retrieved-for = at least one item ADMITTED by the harness carries this requirement_id in "
                      "directive_requirement_ids (structural MEASUREMENT, not a judgment); still-uncovered = a directive "
                      "was compiled but nothing admitted for it; not-searched = no directive (unsatisfiable, discarded or "
                      "no search); covered-pre = coverage_final ∈ {covered, covered-by-attestation} before the search")
+WEB_LOCATOR_COVERAGE_KEYS = ("n_queries", "n_results", "n_located", "n_materialized", "n_unresolved")
+WEB_LOCATOR_COVERAGE_RULE = ("web requirements (family web) additionally carry web_locator {n_queries, n_results, n_located, "
+                             "n_materialized, n_unresolved} measured from the web locator ledger — web-located candidates only exist "
+                             "materialized by Europe PMC, so retrieved-for via the web = exists in Europe PMC (ADR-0084 F.4); "
+                             "per web requirement_id over the web locator ledger (queries[].requirement_ids, "
+                             "located[].requirement_ids, unresolved[].requirement_ids): n_queries = queries naming it; "
+                             "n_results = sum of their integer n_results (None = not measured, not counted); n_located = "
+                             "located naming it; n_materialized = those with feed_state 'materialized-same-round'; "
+                             "n_unresolved = unresolved naming it; URLs never leave the ledger (ADR-0084 F.4)")
+_WEB_MATERIALIZED_FEED_STATE = "materialized-same-round"   # == web_locator.FEED_STATES_EXACT[0] (atado en smoke_council)
+
+
+def _web_locator_ledger(search_ledger, web_locator):
+    """(ledger web {queries[], located[], unresolved[]} | None, fuente): el bloque agregado que pasa el llamador
+    (`web_locator=` — runs pasa block['web_locator'] de answer_pipeline D.4), si no `search_ledger.web_locator`, si no la
+    unión de las filas de familia web en `search_ledger.rounds[].sources[].web_locator` (ledger íntegro del harness).
+    Sin ninguna → (None, None). Sólo lectura: jamás muta el ledger."""
+    # corrector ADR-0084 (L): un bloque D.4 con las TRES listas VACÍAS (runs lo pasa SIEMPRE que hubo harness, también sin directiva web)
+    # NO es un ledger web — sin datos web la forma de coverage_after_search es la de 1.12 byte a byte (ni web_locator_source ni _rule)
+    if isinstance(web_locator, dict) and any(isinstance(web_locator.get(k), list) and web_locator.get(k)
+                                             for k in ("queries", "located", "unresolved")):
+        return web_locator, "caller (web_locator=)"
+    if isinstance(search_ledger, dict):
+        wl = search_ledger.get("web_locator")
+        if isinstance(wl, dict) and any(isinstance(wl.get(k), list) and wl.get(k) for k in ("queries", "located", "unresolved")):
+            return wl, "search_ledger.web_locator"
+        merged = {"queries": [], "located": [], "unresolved": []}
+        found = False
+        for rnd in search_ledger.get("rounds") or []:
+            if not isinstance(rnd, dict):
+                continue
+            for row in rnd.get("sources") or []:
+                if not isinstance(row, dict) or row.get("family") != "web" or not isinstance(row.get("web_locator"), dict):
+                    continue
+                found = True
+                for k in merged:
+                    merged[k] += [x for x in (row["web_locator"].get(k) or []) if isinstance(x, dict)]
+        if found:
+            return merged, "search_ledger.rounds[].sources[web].web_locator"
+    return None, None
+
+
+def _web_locator_by_requirement(wl):
+    """{requirement_id: {n_queries, n_results, n_located, n_materialized, n_unresolved}} — conteos ENTEROS por requisito
+    (MEDICIÓN estructural sobre el ledger del localizador; ADR-0084 F.4). Ninguna URL ni título viaja."""
+    per = {}
+
+    def slot(rid):
+        return per.setdefault(rid, {k: 0 for k in WEB_LOCATOR_COVERAGE_KEYS})
+
+    for q in wl.get("queries") or []:
+        for rid in q.get("requirement_ids") or []:
+            s = slot(rid)
+            s["n_queries"] += 1
+            if isinstance(q.get("n_results"), int) and not isinstance(q.get("n_results"), bool):
+                s["n_results"] += q["n_results"]
+    for loc in wl.get("located") or []:
+        for rid in loc.get("requirement_ids") or []:
+            s = slot(rid)
+            s["n_located"] += 1
+            if loc.get("feed_state") == _WEB_MATERIALIZED_FEED_STATE:
+                s["n_materialized"] += 1
+    for u in wl.get("unresolved") or []:
+        for rid in u.get("requirement_ids") or []:
+            slot(rid)["n_unresolved"] += 1
+    return per
 
 
 def _ledger_items(search_ledger):
@@ -1914,15 +2035,24 @@ def _ledger_items(search_ledger):
     return items
 
 
-def coverage_after_search(coverage_pre, search_ledger, directives=None):
+def coverage_after_search(coverage_pre, search_ledger, directives=None, web_locator=None):
     """ADR-0082 (C.7): {state ∈ 'measured' | 'not-run (no search ledger)', by_requirement[] {requirement_id, state ∈
-    AFTER_SEARCH_STATES, n_items_retrieved, families[]}, n_retrieved_for, n_still_uncovered, n_not_searched,
-    n_covered_pre, n_items_for_directives {rid: n}, rule}."""
+    AFTER_SEARCH_STATES, n_items_retrieved, families[], web_locator? {n_queries, n_results, n_located, n_materialized,
+    n_unresolved}}, n_retrieved_for, n_still_uncovered, n_not_searched, n_covered_pre, n_items_for_directives {rid: n},
+    rule, web_locator_source? , web_locator_rule?}. ADR-0084 (F.4): `web_locator` viaja SÓLO en los requisitos de familia web
+    (directiva web compilada o consulta del localizador que los nombra) — ausente en los demás; las llaves de nivel superior
+    `web_locator_source`/`web_locator_rule` sólo cuando hubo ledger web (sin web la salida es byte-idéntica a 1.12).
+    `web_locator=` es el bloque agregado de answer_pipeline (block['web_locator']: queries[], located[], unresolved[]) —
+    runs lo pasa porque el ledger que entrega aquí es {plan, items} sin rondas; si falta se lee del propio ledger."""
     items = _ledger_items(search_ledger)
     plan_dirs = directives
     if plan_dirs is None and isinstance(search_ledger, dict):
         plan_dirs = ((search_ledger.get("plan") or {}).get("directives")) or []
     directed = {d.get("requirement_id") for d in (plan_dirs or []) if isinstance(d, dict)}
+    web_rids = {d.get("requirement_id") for d in (plan_dirs or []) if isinstance(d, dict) and d.get("family") == "web"}
+    wl, wl_source = _web_locator_ledger(search_ledger, web_locator)
+    web_per = _web_locator_by_requirement(wl) if wl is not None else {}
+    web_rids |= set(web_per)
     per_req = {}
     for it in items:
         for rid in it.get("directive_requirement_ids") or []:
@@ -1942,17 +2072,25 @@ def coverage_after_search(coverage_pre, search_ledger, directives=None):
             st = "still-uncovered"
         else:
             st = "not-searched"
-        by_req.append({"requirement_id": rid, "priority": br.get("priority"), "state": st,
-                       "n_items_retrieved": per_req.get(rid, {}).get("n", 0),
-                       "families": per_req.get(rid, {}).get("families", [])})
-    return {"state": "measured" if isinstance(search_ledger, dict) else "not-run (no search ledger)",
-            "by_requirement": by_req,
-            "n_retrieved_for": sum(1 for b in by_req if b["state"] == "retrieved-for"),
-            "n_still_uncovered": sum(1 for b in by_req if b["state"] == "still-uncovered"),
-            "n_not_searched": sum(1 for b in by_req if b["state"] == "not-searched"),
-            "n_covered_pre": sum(1 for b in by_req if b["state"] == "covered-pre"),
-            "n_items_for_directives": {rid: per_req[rid]["n"] for rid in sorted(per_req)},
-            "rule": AFTER_SEARCH_RULE, "decided_by": "code (council.coverage_after_search)"}
+        row = {"requirement_id": rid, "priority": br.get("priority"), "state": st,
+               "n_items_retrieved": per_req.get(rid, {}).get("n", 0),
+               "families": per_req.get(rid, {}).get("families", [])}
+        if rid in web_rids and wl is not None:
+            # ADR-0084 (F.4): qué requisitos web quedaron materializados — conteos, jamás URLs; sólo en requisitos web
+            row["web_locator"] = dict(web_per.get(rid) or {k: 0 for k in WEB_LOCATOR_COVERAGE_KEYS})
+        by_req.append(row)
+    out = {"state": "measured" if isinstance(search_ledger, dict) else "not-run (no search ledger)",
+           "by_requirement": by_req,
+           "n_retrieved_for": sum(1 for b in by_req if b["state"] == "retrieved-for"),
+           "n_still_uncovered": sum(1 for b in by_req if b["state"] == "still-uncovered"),
+           "n_not_searched": sum(1 for b in by_req if b["state"] == "not-searched"),
+           "n_covered_pre": sum(1 for b in by_req if b["state"] == "covered-pre"),
+           "n_items_for_directives": {rid: per_req[rid]["n"] for rid in sorted(per_req)},
+           "rule": AFTER_SEARCH_RULE, "decided_by": "code (council.coverage_after_search)"}
+    if wl is not None:
+        out["web_locator_source"] = wl_source
+        out["web_locator_rule"] = WEB_LOCATOR_COVERAGE_RULE
+    return out
 
 
 def recoverage_members(coverage_pre, ledger):
@@ -2021,4 +2159,5 @@ __all__ = [
     "requirement_tokens", "requirement_id", "harness_state_for", "aggregate_r1", "aggregate_requirements",
     "apply_ledger_decisions", "evidence_ids_of", "judge_coverage", "aggregate_coverage", "directives_from",
     "compile_directives", "coverage_after_search", "recoverage_members", "summary_for_thread",
+    "HARNESS_STATE_RULE", "HARNESS_STATE_RECOMPUTE_RULE", "WEB_LOCATOR_COVERAGE_KEYS", "WEB_LOCATOR_COVERAGE_RULE",
 ]

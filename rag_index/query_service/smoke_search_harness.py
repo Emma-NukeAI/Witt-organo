@@ -23,6 +23,17 @@ Cubre lib/search_harness.py y el cableado search_plan= de lib/answer_pipeline.py
     ítems con directive_requirement_ids (atribución por insumo, no por contagio); stage.search.source lo lleva;
     path_b_bundle conserva los campos de directiva en search_ledger.plan; SIN directivas el plan es byte-idéntico
     al de 9d90c01 (GOLDEN sha256 del plan sin cache_dir, capturado antes de la rebanada).
+  * ADR-0084 (C)/(D) familia web como LOCALIZADOR (rebanada W3): fila REAL de SEARCH_DISPATCH (brave_web_search.py /
+    locate / adapter 'web' / availability dinámica); bajo kill-switch u off derivado (sin BRAVE_API_KEY) el plan con la
+    directiva web es BYTE-IDÉNTICO al golden grabado en 7d9ce15 (fixtures/golden_plan_web_directive_7d9ce15.json) con el
+    literal EXACTO 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' (UNA verdad: sh.WEB_UNSATISFIABLE_LITERAL);
+    con llave fake web entra PRIMERA en families con families_order_rule, query de la directiva (o WITT_WEB_TEST_QUERY /
+    pass1_query_en por env — jamás la pregunta cruda); ronda con proveedor FALSO + fetch_paper._resolve_one FALSO →
+    0 ítems con source 'web' (los candidatos son source 'europepmc' / source_family 'web' / 'web-located:<rule>' / url
+    canónica / título de EPMC, sin title_web ni description), DOI → ctx.dois y curie → ctx.curies en la MISMA ronda
+    (unpaywall/monarch spies), dedup (already-present / duplicate-in-response), not-found-in-europepmc, topes
+    WITT_WEB_MAX_QUERIES / WITT_WEB_MAX_MATERIALIZE, cortacircuito auth, cuota que niega, fake que lanza, presupuesto,
+    ctx append-only (id() intacto), hook on_web_locate sin URLs, source_event_payload aditivo, cero red.
 
 100% offline: cero red (fetch_paper/pubmed/zfin parcheados; tools Layer 0 inyectadas), cero modelo, cero DB.
 Exit 0 = todo PASS.
@@ -32,6 +43,7 @@ Corre:  python rag_index/query_service/smoke_search_harness.py
 import hashlib
 import json
 import os
+import re
 import sys
 import time
 from pathlib import Path
@@ -185,11 +197,21 @@ def main():
                 "monarch", "reactome", "string", "geo", "unpaywall_crossref", "openalex", "web", "tooluniverse"}
     check("SEARCH_DISPATCH: 15 familias con llaves fijas; gate/label/inputs en sus dominios",
           ok and set(sh.SEARCH_DISPATCH) == expected, repr(sorted(set(sh.SEARCH_DISPATCH) ^ expected)))
-    check("SEARCH_DISPATCH: reactome 'inferred-by-orthology', string 'predictive', web/tooluniverse sin tool con razón ADR",
+    web_spec = sh.SEARCH_DISPATCH["web"]
+    check("SEARCH_DISPATCH: reactome 'inferred-by-orthology', string 'predictive'; tooluniverse sin tool con razón ADR-0085; web "
+          "(ADR-0084 C.1) YA NO es estática: tool REAL brave_web_search.py / fn 'locate' / adapter 'web' / availability "
+          "'web_locator.provider_state' / host y key_env declarados / budget_env WITT_WEB_BUDGET_S, y unavailable_reason "
+          "byte-idéntico a 7d9ce15",
           sh.SEARCH_DISPATCH["reactome"]["label_provenance"] == "inferred-by-orthology"
           and sh.SEARCH_DISPATCH["string"]["label_provenance"] == "predictive"
-          and sh.SEARCH_DISPATCH["web"]["unavailable_reason"] == "tool-unavailable (ADR-0084)"
-          and sh.SEARCH_DISPATCH["tooluniverse"]["unavailable_reason"] == "tool-unavailable (ADR-0085)")
+          and web_spec["unavailable_reason"] == "tool-unavailable (ADR-0084)"
+          and web_spec["tool_module"] == "brave_web_search.py" and web_spec["fn"] == "locate" and web_spec["adapter"] == "web"
+          and web_spec["availability"] == "web_locator.provider_state" and web_spec["host"] == "api.search.brave.com"
+          and web_spec["key_env"] == "BRAVE_API_KEY" and web_spec["budget_env"] == "WITT_WEB_BUDGET_S" and web_spec["budget_s"] == 30.0
+          and web_spec["evidence_kind"] == "web" and web_spec["gate"] == "directive-only"
+          and sh.SEARCH_DISPATCH["tooluniverse"]["fn"] is None and sh.SEARCH_DISPATCH["tooluniverse"]["adapter"] is None
+          and sh.SEARCH_DISPATCH["tooluniverse"]["unavailable_reason"] == "tool-unavailable (ADR-0085)",
+          repr(web_spec))
 
     # ============ 2. build_search_plan ============
     old = _env(WITT_SEARCH_DEFAULT_FAMILIES=None, WITT_SEARCH_ROUNDS_CAP=None, WITT_SEARCH_ROUND_BUDGET_S=None)
@@ -245,13 +267,17 @@ def main():
           and pdc["families_source"] == "directives+default" and pdc["families_source"] in sh.FAMILIES_SOURCES
           and pdc["families_from_directives"] == ["openalex", "monarch", "string"] and pdc["directives_state"] == "provided"
           and pdc["directives"] == DIRECTIVES_C6, repr(pdc["families"]))
-    check("exclusiones con razón y requirement_ids: 'nope' → 'unknown-family'; 'web' (sin tool ni adaptador) → "
-          "'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' — NO se despacha una llamada que nacería tool-unavailable; "
-          "n_directives_excluded 2; ni web ni nope en families",
-          pdc["families_excluded"] == [
-              {"family": "web", "reason": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))", "requirement_ids": ["req-fff"]},
+    check("exclusiones con razón y requirement_ids: 'nope' → 'unknown-family'; 'web' bajo la máscara (BRAVE_API_KEY vacía, "
+          "WITT_WEB_LOCATOR sin fijar ⇒ provider derivado off, ADR-0084 C.2 family_available False) → el literal EXACTO de 7d9ce15 "
+          "'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' (importado: sh.WEB_UNSATISFIABLE_LITERAL) — NO se despacha "
+          "una llamada que nacería tool-unavailable; n_directives_excluded 2; ni web ni nope en families",
+          sh.family_available("web")[0] is False
+          and pdc["families_excluded"] == [
+              {"family": "web", "reason": sh.WEB_UNSATISFIABLE_LITERAL, "requirement_ids": ["req-fff"]},
               {"family": "nope", "reason": "unknown-family", "requirement_ids": ["req-ggg"]}]
-          and pdc["n_directives_excluded"] == 2 and "web" not in pdc["families"] and "nope" not in pdc["families"],
+          and sh.WEB_UNSATISFIABLE_LITERAL == "unsatisfiable-by-harness (tool-unavailable (ADR-0084))"
+          and pdc["n_directives_excluded"] == 2 and "web" not in pdc["families"] and "nope" not in pdc["families"]
+          and "families_order_rule" not in pdc,
           repr(pdc["families_excluded"]))
     check("free-query (openalex): la query_en de la PRIMERA directiva sustituye a pass1_query_en — query_source "
           "'council-directive:req-aaa', la sustituida declarada en query_replaced; la segunda directiva de la misma familia es "
@@ -397,9 +423,15 @@ def main():
           and by["uniprot"]["status"] == "no-match" and by["uniprot"]["n_found"] == 0 and by["uniprot"]["n_new"] == 0
           and by["reactome"]["status"] == "error" and by["reactome"]["n_found"] is None and by["reactome"]["n_new"] is None
           and "URLError" in by["reactome"]["error"], repr({k: (v["status"], v["n_found"], v["n_new"]) for k, v in by.items()}))
-    check("ronda: módulo ausente -> 'tool-unavailable' con el detalle de qué faltó; web -> 'tool-unavailable (ADR-0084)'",
+    check("ronda: módulo ausente -> 'tool-unavailable' con el detalle de qué faltó; web (families= del llamador, provider derivado off "
+          "sin llave) -> la fila MÍNIMA de 7d9ce15 (corrector ADR-0084 L): 'tool-unavailable' con detail 'tool-unavailable (ADR-0084)' "
+          "byte-idéntico a hoy y el MISMO keyset que la fila de monarch (fn None) — SIN provider/n_queries/web_locator (la CAUSA "
+          "'BRAVE_API_KEY unset' viaja en frozen.web_locator.state, no en la fila); contadores null, cero red",
           by["monarch"]["status"] == "tool-unavailable" and "not found" in by["monarch"]["detail"]
-          and by["web"]["status"] == "tool-unavailable" and by["web"]["detail"] == "tool-unavailable (ADR-0084)")
+          and by["web"]["status"] == "tool-unavailable" and by["web"]["detail"] == "tool-unavailable (ADR-0084)"
+          and set(by["web"]) == set(by["monarch"]) and "web_locator_state" not in by["web"] and "provider" not in by["web"]
+          and by["web"]["n_found"] is None and by["web"]["n_new"] is None,
+          repr({k: by["web"].get(k) for k in ("status", "detail")} | {"keys": sorted(by["web"])}))
     check("ronda: totales n_new_total/n_found_total suman SOLO las fuentes que corrieron; sources en orden del plan; round=k",
           rd["n_new_total"] == 3 and rd["n_found_total"] == 3 and [s["family"] for s in rd["sources"]] == fams
           and all(s["round"] == 1 for s in rd["sources"]) and rd["round"] == 1)
@@ -852,6 +884,634 @@ def main():
         ap._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
         for fam in ("alliance_orthologs", "uniprot", "monarch", "openalex"):
             sh._TOOL_CACHE.pop(fam, None)
+
+    # ============ 5. ADR-0084 (C)/(D): la familia web como LOCALIZADOR, jamás fuente (rebanada W3) ============
+    from lib import web_locator as wl  # noqa: E402 — interfaz congelada por W2 (import barato)
+    GOLDEN = json.loads((ROOT / "rag_index" / "query_service" / "fixtures" / "golden_plan_web_directive_7d9ce15.json")
+                        .read_text(encoding="utf-8"))
+    g_inputs = GOLDEN["_golden"]["recipe"]["plan_inputs"]
+    gq, g_ents, g_pass1 = g_inputs["question"], list(g_inputs["entities"]), g_inputs["pass1_query_en"]
+    FAKE_KEY = "fake-brave-key-smoke-0084-never-in-output"
+    WEB_ENV_KEYS = dict(WITT_SEARCH_DEFAULT_FAMILIES=None, WITT_SEARCH_ROUNDS_CAP=None, WITT_SEARCH_ROUND_BUDGET_S=None,
+                        WITT_WEB_LOCATOR=None, BRAVE_API_KEY="", WITT_WEB_TEST_QUERY=None, WITT_WEB_MAX_QUERIES=None,
+                        WITT_WEB_MAX_MATERIALIZE=None, WITT_WEB_BUDGET_S=None, WITT_WEB_MONTHLY_CAP=None)
+
+    def _canon_sha(obj):
+        return hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+    old = _env(**WEB_ENV_KEYS)
+    # ---- 5a. off DERIVADO (la máscara): disponibilidad dinámica y UNA verdad del literal ----
+    src_text = (ROOT / "analysis" / "scripts" / "lib" / "search_harness.py").read_text(encoding="utf-8")
+    n_literal_lines = sum(1 for ln in src_text.splitlines() if "unsatisfiable-by-harness (tool-unavailable (ADR-0084))" in ln)
+    check("ADR-0084 (C.2) off DERIVADO (BRAVE_API_KEY vacía, WITT_WEB_LOCATOR sin fijar): family_available('web') == (False, "
+          "'tool-unavailable (ADR-0084)') — el literal de 7d9ce15 —, unsatisfiable_families() == ('tooluniverse', 'web'); tooluniverse "
+          "sigue estática (ADR-0085), europepmc (tool_module None pero adapter) disponible, desconocida declarada; el literal de exclusión "
+          "aparece UNA sola vez en search_harness.py (grep -c == 1) y == golden._golden.exclusion_literal_at_7d9ce15 == "
+          "f'unsatisfiable-by-harness ({SEARCH_DISPATCH.web.unavailable_reason})'",
+          sh.family_available("web") == (False, "tool-unavailable (ADR-0084)")
+          and sh.unsatisfiable_families() == ("tooluniverse", "web")
+          and sh.family_available("tooluniverse") == (False, "tool-unavailable (ADR-0085)")
+          and sh.family_available("europepmc") == (True, None) and sh.family_available("nope") == (False, "unknown-family")
+          and n_literal_lines == 1
+          and sh.WEB_UNSATISFIABLE_LITERAL == GOLDEN["_golden"]["exclusion_literal_at_7d9ce15"]
+          == f"{sh.UNSATISFIABLE_PREFIX}{sh.SEARCH_DISPATCH['web']['unavailable_reason']})",
+          repr((sh.family_available("web"), sh.unsatisfiable_families(), n_literal_lines)))
+    check("ADR-0084 (C.1): _load_tool('web') carga la tool REAL por ruta (fn resuelta 'locate', sin nota, callable) — el cableado "
+          "estático que smoke_run_pipeline mide como '13 módulos reales'; cero red al importar",
+          sh._load_tool("web")[1] == "locate" and sh._load_tool("web")[2] is None and callable(sh._load_tool("web")[0]),
+          repr(sh._load_tool("web")[1:]))
+    # ---- 5b. GOLDEN W0: bajo off (derivado y EXPLÍCITO con llave) el plan con la directiva web es BYTE-IDÉNTICO a 7d9ce15 ----
+    p_off = sh.build_search_plan(gq, g_ents, g_pass1, directives=DIRECTIVES_C6)
+    body_off = {k: v for k, v in p_off.items() if k != "cache_dir"}
+    _e2 = _env(WITT_WEB_LOCATOR="off", BRAVE_API_KEY=FAKE_KEY)
+    p_off2 = sh.build_search_plan(gq, g_ents, g_pass1, directives=DIRECTIVES_C6)
+    body_off2 = {k: v for k, v in p_off2.items() if k != "cache_dir"}
+    fa_off2, uns_off2 = sh.family_available("web"), sh.unsatisfiable_families()
+    _restore(_e2)
+    diff_keys = sorted(k for k in set(body_off) | set(GOLDEN["plan"]) if body_off.get(k) != GOLDEN["plan"].get(k))
+    check("GOLDEN W0 @ 7d9ce15 (ADR-0084 L): bajo off DERIVADO el plan con la directiva web (insumos EXACTOS de _golden.recipe) es "
+          "byte-idéntico al golden — dict == dict sin cache_dir Y sha256 canon == _golden.sha256.plan (== _plan_sha); bajo kill-switch "
+          "EXPLÍCITO WITT_WEB_LOCATOR=off CON llave presente, ídem (la llave no manda sobre el kill-switch) y family_available False "
+          "con el MISMO literal; sin web NO hay families_order_rule (un plan sin web no gana llaves) ni en plan_event_payload",
+          body_off == GOLDEN["plan"] and _canon_sha(body_off) == GOLDEN["_golden"]["sha256"]["plan"] == _plan_sha(p_off)
+          and body_off2 == GOLDEN["plan"] and _canon_sha(body_off2) == GOLDEN["_golden"]["sha256"]["plan"]
+          and fa_off2 == (False, "tool-unavailable (ADR-0084)") and uns_off2 == ("tooluniverse", "web")
+          and "families_order_rule" not in p_off and "families_order_rule" not in sh.plan_event_payload(p_off),
+          repr((diff_keys, _canon_sha(body_off), fa_off2)))
+    check("GOLDEN W0 forma (2): el literal que council.harness_state_for('web','web') debe producir bajo off — "
+          "f'unsatisfiable-by-harness ({razón de family_available})' — es byte-idéntico a golden.harness_state_web y su sha256 canon == "
+          "_golden.sha256.harness_state_web (W6 delega en family_available; aquí se mide la vara que recibirá)",
+          f"{sh.UNSATISFIABLE_PREFIX}{sh.family_available('web')[1]})" == GOLDEN["harness_state_web"] == sh.WEB_UNSATISFIABLE_LITERAL
+          and _canon_sha(sh.WEB_UNSATISFIABLE_LITERAL) == GOLDEN["_golden"]["sha256"]["harness_state_web"],
+          repr(GOLDEN["harness_state_web"]))
+    # ---- 5c. brave EXPLÍCITO sin llave: la CAUSA viaja con el mismo prefijo ----
+    _e3 = _env(WITT_WEB_LOCATOR="brave")
+    p_nokey = sh.build_search_plan(gq, g_ents, g_pass1, directives=DIRECTIVES_C6)
+    fa_nokey = sh.family_available("web")
+    _restore(_e3)
+    web_ex = next((e for e in p_nokey["families_excluded"] if e["family"] == "web"), {})
+    check("ADR-0084 (B.3/C.2) WITT_WEB_LOCATOR=brave SIN llave: family_available == (False, 'tool-unavailable (ADR-0084: BRAVE_API_KEY "
+          "unset)') y el plan excluye web con 'unsatisfiable-by-harness (tool-unavailable (ADR-0084: BRAVE_API_KEY unset))' — mismo "
+          "prefijo que la webapp ya glosa, la causa declarada, requirement_ids [req-fff]; web fuera de families",
+          fa_nokey == (False, wl.UNAVAILABLE_BRAVE_NO_KEY)
+          and web_ex.get("reason") == f"{sh.UNSATISFIABLE_PREFIX}{wl.UNAVAILABLE_BRAVE_NO_KEY})"
+          and web_ex.get("reason", "").startswith("unsatisfiable-by-harness (tool-unavailable (ADR-0084")
+          and web_ex.get("requirement_ids") == ["req-fff"] and "web" not in p_nokey["families"],
+          repr(web_ex))
+    # ---- 5d. con llave (FAKE) y provider brave: web ENTRA por directiva y va PRIMERA ----
+    _restore(old)
+    old = _env(**dict(WEB_ENV_KEYS, WITT_WEB_LOCATOR="brave", BRAVE_API_KEY=FAKE_KEY))
+    p_on = sh.build_search_plan(gq, g_ents, g_pass1, directives=DIRECTIVES_C6)
+    qw = p_on["queries"]["web"]
+
+    def _strip_web(p):
+        d = {k: v for k, v in p.items() if k not in ("cache_dir", "families", "families_excluded", "families_from_directives",
+                                                      "directives_applied", "n_directives_excluded", "families_order_rule")}
+        d["queries"] = {k: v for k, v in (d.get("queries") or {}).items() if k != "web"}
+        return d
+    da_on = {r["requirement_id"]: (r["state"], r["applied_as"]) for r in p_on["directives_applied"]}
+    da_g = {r["requirement_id"]: (r["state"], r["applied_as"]) for r in GOLDEN["plan"]["directives_applied"]}
+    check("ADR-0084 (C.2/C.4) llave fake + WITT_WEB_LOCATOR=brave: family_available('web') == (True, None), unsatisfiable_families() == "
+          "('tooluniverse',); el plan con DIRECTIVES_C6 pone web PRIMERA (families[0] == 'web', el resto == golden en su orden), declara "
+          "families_order_rule 'web first — the locator feeds the round (ADR-0084)', excluye SÓLO 'nope' (n_directives_excluded 1), "
+          "req-fff pasa de 'excluded-unsatisfiable' a ('applied', ['family-entry', 'free-query']) y las demás directivas quedan "
+          "EXACTAMENTE como en el golden; plan_event_payload lo refleja",
+          sh.family_available("web") == (True, None) and sh.unsatisfiable_families() == ("tooluniverse",)
+          and p_on["families"][0] == "web" and p_on["families"][1:] == GOLDEN["plan"]["families"]
+          and p_on["families_order_rule"] == sh.FAMILIES_ORDER_RULE_WEB_FIRST == "web first — the locator feeds the round (ADR-0084)"
+          and p_on["families_excluded"] == [{"family": "nope", "reason": "unknown-family", "requirement_ids": ["req-ggg"]}]
+          and p_on["n_directives_excluded"] == 1 and "web" in p_on["families_from_directives"]
+          and da_on["req-fff"] == ("applied", ["family-entry", "free-query"])
+          and {k: v for k, v in da_on.items() if k != "req-fff"} == {k: v for k, v in da_g.items() if k != "req-fff"}
+          and sh.plan_event_payload(p_on)["families"][0] == "web",
+          repr((p_on["families"], p_on.get("families_order_rule"), da_on.get("req-fff"))))
+    check("ADR-0084 (C.3) gate directive-only ESTRICTO: queries.web.query == query_en de la directiva ('wt1a review'), query_source "
+          "'council-directive:req-fff', entered_by 'directive', la sustituida (pass1_query_en) declarada en query_replaced, "
+          "_inputs_for(web) == ['wt1a review'] (la pregunta cruda AUSENTE por substring); TODO lo demás del plan (queries de las otras "
+          "familias, símbolos, cap, budget, directives verbatim) es byte-idéntico al golden — la entrada de web es SÓLO aditiva",
+          qw["query"] == "wt1a review" and qw["query_source"] == "council-directive:req-fff" and qw["entered_by"] == "directive"
+          and qw["directive_requirement_ids"] == ["req-fff"]
+          and qw["query_replaced"] == {"query": g_pass1, "query_source": "pass1_query_en"}
+          and sh._inputs_for("web", sh.SEARCH_DISPATCH["web"], p_on, {})[0] == ["wt1a review"]
+          and gq not in json.dumps(qw) and "required" not in json.dumps(qw)
+          and _strip_web(p_on) == _strip_web(GOLDEN["plan"]),
+          repr(qw))
+    # ---- 5e. web nombrada en WITT_SEARCH_DEFAULT_FAMILIES (la directiva del operador) ----
+    _e5 = _env(WITT_SEARCH_DEFAULT_FAMILIES="europepmc,web")
+    p_env = sh.build_search_plan(gq, g_ents, g_pass1)
+    p_env_np = sh.build_search_plan(gq, g_ents, None)
+    _e6 = _env(WITT_WEB_TEST_QUERY="wt1a zebrafish pronephros podocyte")
+    p_tq = sh.build_search_plan(gq, g_ents, g_pass1)
+    p_tq_d = sh.build_search_plan(gq, g_ents, g_pass1, directives=[d for d in DIRECTIVES_C6 if d["family"] == "web"])
+    _restore(_e6)
+    _restore(_e5)
+    check("ADR-0084 (C.3) WITT_SEARCH_DEFAULT_FAMILIES='europepmc,web' SIN directiva: web PRIMERA (['web', 'europepmc']) con "
+          "families_order_rule, query == pass1_query_en (query_source 'pass1_query_en'), entered_by 'env:WITT_SEARCH_DEFAULT_FAMILIES' "
+          "∈ ENTERED_BY; sin pass1 la query es símbolos+anatomía+'zebrafish' (search_harness:v1:symbols+anatomy) — en ningún caso la "
+          "pregunta cruda (substring ausente)",
+          p_env["families"] == ["web", "europepmc"] and p_env["families_order_rule"] == sh.FAMILIES_ORDER_RULE_WEB_FIRST
+          and p_env["queries"]["web"]["query"] == g_pass1 and p_env["queries"]["web"]["query_source"] == "pass1_query_en"
+          and p_env["queries"]["web"]["entered_by"] == "env:WITT_SEARCH_DEFAULT_FAMILIES" and "env:WITT_SEARCH_DEFAULT_FAMILIES" in sh.ENTERED_BY
+          and p_env_np["queries"]["web"]["query_source"] == "search_harness:v1:symbols+anatomy"
+          and gq not in (p_env["queries"]["web"]["query"] + p_env_np["queries"]["web"]["query"])
+          and "required" not in (p_env["queries"]["web"]["query"] + p_env_np["queries"]["web"]["query"]),
+          repr((p_env["families"], p_env["queries"]["web"], p_env_np["queries"]["web"]["query"])))
+    check("ADR-0084 (C.3) WITT_WEB_TEST_QUERY fijada: la consulta EXPLÍCITA del operador manda cuando web entra por la env (query_source "
+          "'operator-env:WITT_WEB_TEST_QUERY'); con directiva web presente la query_en del consejo sigue mandando (la de prueba no pisa "
+          "al consejo)",
+          p_tq["queries"]["web"]["query"] == "wt1a zebrafish pronephros podocyte"
+          and p_tq["queries"]["web"]["query_source"] == sh.WEB_TEST_QUERY_SOURCE == "operator-env:WITT_WEB_TEST_QUERY"
+          and p_tq_d["queries"]["web"]["query"] == "wt1a review" and p_tq_d["queries"]["web"]["query_source"] == "council-directive:req-fff",
+          repr((p_tq["queries"]["web"], p_tq_d["queries"]["web"]["query"])))
+    p_call = sh.build_search_plan(gq, g_ents, g_pass1, families=["string", "web"])
+    check("ADR-0084 (C.4) families= del llamador MANDA: el orden NO se altera (['string', 'web']) y se declara families_order_rule "
+          "'caller order (families= mandates; web not moved) (ADR-0084)'; sin entered_by en queries.web (null en el frozen)",
+          p_call["families"] == ["string", "web"] and p_call["families_order_rule"] == sh.FAMILIES_ORDER_RULE_CALLER
+          and "entered_by" not in p_call["queries"]["web"] and p_call["queries"]["web"]["query"] == g_pass1,
+          repr((p_call["families"], p_call.get("families_order_rule"))))
+
+    # ---- proveedor web FALSO (forma (A) de brave_web_search.locate), Europe PMC FALSO (fetch_paper._resolve_one), cuota FALSA ----
+    WEB_URLS = [
+        {"url": "https://pubmed.ncbi.nlm.nih.gov/12345678/?dopt=Abstract", "title": "WEB TITLE pubmed (never evidence)",
+         "host": "pubmed.ncbi.nlm.nih.gov", "age": None, "page_age": None},
+        {"url": "https://doi.org/10.1000/xyz123", "title": "WEB TITLE doi", "host": "doi.org", "age": "2 years ago", "page_age": None},
+        {"url": "https://pubmed.ncbi.nlm.nih.gov/23456789/", "title": "WEB TITLE already present", "host": "pubmed.ncbi.nlm.nih.gov",
+         "age": None, "page_age": None},
+        {"url": "https://zfin.org/ZDB-GENE-980526-558", "title": "WEB TITLE zfin", "host": "zfin.org", "age": None, "page_age": None},
+        {"url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420", "title": "WEB TITLE ensembl", "host": "ensembl.org",
+         "age": None, "page_age": None},
+        {"url": "https://www.researchgate.net/publication/7742441_x", "title": "R" * 205, "host": "www.researchgate.net",
+         "age": None, "page_age": None},
+        {"url": "https://en.wikipedia.org/wiki/Wt1", "title": "WEB TITLE wiki", "host": "en.wikipedia.org", "age": None, "page_age": None},
+    ]
+
+    class WebSpy:
+        """provider_fn con la firma de brave_web_search.locate (query, count, country, search_lang, freshness, timeout, cache_dir)."""
+
+        def __init__(self, results=None, plan=None):
+            self.calls, self.results, self.plan = [], (WEB_URLS if results is None else results), list(plan or [])
+
+        def __call__(self, query, count=None, country=None, search_lang=None, freshness=None, timeout=None, cache_dir=None):
+            self.calls.append({"query": query, "count": count, "timeout": timeout, "search_lang": search_lang})
+            step = self.plan.pop(0) if self.plan else None
+            if isinstance(step, Exception):
+                raise step
+            if isinstance(step, dict):
+                return step
+            return {"status": "success", "query_sent": query, "query_truncated": False, "elapsed_s": 0.01, "n_http_gets": 1,
+                    "cache_hit": False, "http_status": 200, "api_key_present": True,
+                    "throttle": {"host": "api.search.brave.com", "min_interval_s": 1.0, "waited_s": 0.0}, "retries_429": 0,
+                    "data": {"query_original": query, "query_altered": None, "query_altered_by_provider": False,
+                             "n_results": len(self.results), "results": [dict(r) for r in self.results]}}
+
+    AUTH_ROW = {"status": "error", "error": "auth (HTTP 401)", "error_kind": "auth", "http_status": 401, "auth_failed": True,
+                "elapsed_s": 0.01, "n_http_gets": 1}
+    BUDGET_ROW = {"status": "skipped-budget", "error": "BudgetExhausted: timeout=0.0 <= 0 before the call (no request sent)",
+                  "elapsed_s": 0.0, "n_http_gets": 0}
+    EPMC_RECS = {"PMID:12345678": {"epmc_id": "12345678", "source": "MED", "pmid": "12345678", "pmcid": "PMC7654321",
+                                    "doi": "10.1000/abc999", "title": "EPMC record for the web-located PMID", "year": "2021",
+                                    "journal": "Dev Biol", "is_oa": True, "abstract": "wt1a pronephros podocyte abstract (Europe PMC)",
+                                    "cited_by": 4}}
+
+    class EpmcSpy:
+        """corrector ADR-0084: la ronda materializa por fetch_paper.search_europepmc_ledger(<consulta por ident>, n=1, timeout=<presupuesto
+        restante>) — el spy sirve por ident (search_harness.epmc_ident_of_query) y registra `calls` (idents), `queries` (crudas) y `timeouts`."""
+
+        def __init__(self, recs=None):
+            self.calls, self.queries, self.timeouts, self.recs = [], [], [], (EPMC_RECS if recs is None else recs)
+
+        def __call__(self, query, n=5, sort=None, synonym=True, timeout=None):
+            ident = sh.epmc_ident_of_query(query)
+            assert ident is not None, f"smoke: la familia web debe consultar a EPMC por ident, no {query!r}"
+            self.calls.append(ident)
+            self.queries.append(query)
+            self.timeouts.append(timeout)
+            rec = self.recs.get(ident)
+            return ([dict(rec)] if rec else []), {"source": "europepmc", "status": "success" if rec else "no-match", "query_sent": query,
+                                                  "n_found": 1 if rec else 0, "n_returned": 1 if rec else 0, "elapsed_s": 0.01,
+                                                  "timeout_s": timeout}
+
+    class QuotaSpy:
+        def __init__(self, grant=True):
+            self.calls, self.grant, self.n = [], grant, 0
+
+        def __call__(self, provider, month, cap, record=None):
+            self.calls.append({"provider": provider, "month": month, "cap": cap, "record": record})
+            if record is not None:
+                return {"granted": None, "n_before": self.n, "n_after": self.n, "cap": cap}
+            if not self.grant:
+                return {"granted": False, "n_before": self.n, "n_after": self.n, "cap": cap}
+            self.n += 1
+            return {"granted": True, "n_before": self.n - 1, "n_after": self.n, "cap": cap}
+
+    up_calls, mon_calls = [], []
+
+    def fake_unpaywall(doi, timeout=None):
+        up_calls.append(doi)
+        return {"status": "success", "query_sent": f"doi={doi}", "elapsed_s": 0.01,
+                "data": {"doi": doi, "crossref": {"status": "success", "evidence_kind": "oa-location",
+                                                  "identifier_provenance": "crossref-api-live",
+                                                  "data": {"doi": doi, "title": f"crossref record {doi}", "year": "2020"}},
+                         "unpaywall": {"status": "tool-unavailable"}}}
+
+    def fake_monarch(curie, timeout=None):
+        mon_calls.append(curie)
+        return {"status": "no-match", "query_sent": f"curie={curie}", "elapsed_s": 0.01, "data": {"associations": []}}
+
+    _resolve_real = fetch_paper.search_europepmc_ledger
+    try:
+        # ---- 5f. la RONDA: web PRIMERA alimenta unpaywall y monarch en la MISMA ronda; 0 ítems web; ledger completo ----
+        wspy, espy, qspy, events = WebSpy(), EpmcSpy(), QuotaSpy(), []
+        fetch_paper.search_europepmc_ledger = espy
+        plan_w = dict(p_on)
+        plan_w["families"] = ["web", "unpaywall_crossref", "monarch"]
+        ctx_w = {"dois": [], "curies": [], "existing_ids": {"PMID:23456789", "CORPUS-2026-0003#c000"},
+                 "web_store": lambda key: None, "web_quota": qspy, "on_web_locate": events.append}
+        id_dois, id_curies = id(ctx_w["dois"]), id(ctx_w["curies"])
+        rd_w = sh.run_round(plan_w, 1, 30.0, tools={"web": wspy, "unpaywall_crossref": fake_unpaywall, "monarch": fake_monarch},
+                            ctx=ctx_w, existing_ids=ctx_w["existing_ids"])
+        bw = {s["family"]: s for s in rd_w["sources"]}
+        web = bw["web"]
+        wl_led = web["web_locator"]
+        loc = {l["id"]: l for l in wl_led["located"]}
+        web_items = [i for i in rd_w["items"] if i.get("source_family") == "web"]
+        check("ADR-0084 (C.5) fila web (7 URLs: PMID nuevo · DOI no hallado en EPMC · PMID ya presente · ZDB-GENE · ENSDARG · 2 sin patrón): "
+              "status 'success', n_found 7 == n_results, n_located 5, n_materialized 1, n_epmc_gets 2, n_not_found_in_europepmc 1, "
+              "n_already_present 1, n_unresolved 2, n_fed_ctx 2 (DOI + curie), n_located_not_fed 1 (ENSDARG), n_new 1, n_queries 1 sin "
+              "recortes, provider 'brave' env:WITT_WEB_LOCATOR, quota_state 'under-cap', cost_usd_projected 0.005 (1 GET × US$5/1k), "
+              "web_locator_state 'located', round 1, directive_requirement_ids [req-fff], budget_s = min(30, 30/3)",
+              web["status"] == "success" and web["n_found"] == 7 == web["n_results"] and web["n_located"] == 5
+              and web["n_materialized"] == 1 and web["n_epmc_gets"] == 2 and web["n_not_found_in_europepmc"] == 1
+              and web["n_already_present"] == 1 and web["n_unresolved"] == 2 and web["n_fed_ctx"] == 2 and web["n_located_not_fed"] == 1
+              and web["n_new"] == 1 and web["n_queries"] == 1 and web["n_queries_dropped_by_cap"] == 0
+              and web["provider"] == "brave" and web["provider_source"] == "env:WITT_WEB_LOCATOR" and web["provider_available"] is True
+              and web["quota_state"] == "under-cap" and abs(web["cost_usd_projected"] - 0.005) < 1e-9
+              and web["web_locator_state"] == "located" and web["round"] == 1 and web["directive_requirement_ids"] == ["req-fff"]
+              and web["budget_s"] == 10.0 and "provider_fn injected" in web["fn_resolved"]
+              and wspy.calls == [{"query": "wt1a review", "count": 10, "timeout": wspy.calls[0]["timeout"], "search_lang": "en"}]
+              and wspy.calls[0]["timeout"] > 0,
+              repr({k: web.get(k) for k in ("status", "n_found", "n_located", "n_materialized", "n_epmc_gets", "n_not_found_in_europepmc",
+                                              "n_already_present", "n_unresolved", "n_fed_ctx", "n_located_not_fed", "n_new", "quota_state",
+                                              "cost_usd_projected", "web_locator_state", "budget_s")}))
+        check("ADR-0084 (C.5 i) MATERIALIZACIÓN por Europe PMC en la MISMA ronda: fetch_paper._resolve_one recibió EXACTAMENTE "
+              "['PMID:12345678', 'DOI:10.1000/xyz123'] (forma EPMC_IDENT_RE verificada ANTES; el PMID ya presente NO se busca) — el PMID "
+              "→ 'materialized-same-round' fed_to pool con evidence_id; el DOI → rec None → 'not-found-in-europepmc' (contado, NO es "
+              "candidato) y aun así fed_to 'ctx:dois' para unpaywall; PMID:23456789 → 'already-present (dup of PMID:23456789)' fed_to "
+              "None; ZDB-GENE → 'ctx:curies' 'fed-same-round'; ENSDARG → 'no-sink-in-1.13 (ensdarg)' con store_state 'not-in-store' "
+              "(store falso, 0 red); todo feed_state/fed_to en los vocabularios de web_locator",
+              espy.calls == ["PMID:12345678", "DOI:10.1000/xyz123"] and all(wl.EPMC_IDENT_RE.match(c) for c in espy.calls)
+              and espy.queries == ["EXT_ID:12345678 AND SRC:MED", "DOI:10.1000/xyz123"]
+              and all(t is not None and sh.MIN_CALL_TIMEOUT_S <= t <= 10.0 for t in espy.timeouts)   # corrector: presupuesto de la familia (10 s)
+              and loc["PMID:12345678"]["epmc_timeout_s"] == espy.timeouts[0] and loc["PMID:12345678"]["epmc_query_quoted"] is False
+              and loc["PMID:12345678"]["fed_to"] == sh.WEB_FED_TO_POOL == "pool:literature-candidate (materialized by europepmc)"
+              and loc["PMID:12345678"]["feed_state"] == "materialized-same-round" and loc["PMID:12345678"]["evidence_id"] == "PMID:12345678"
+              and loc["PMID:12345678"]["epmc_ident_sent"] == "PMID:12345678"
+              and loc["10.1000/xyz123"]["feed_state"] == "not-found-in-europepmc" and loc["10.1000/xyz123"]["fed_to"] == "ctx:dois"
+              and loc["PMID:23456789"]["feed_state"] == "already-present (dup of PMID:23456789)" and loc["PMID:23456789"]["fed_to"] is None
+              and loc["PMID:23456789"]["dedup"] == "already-present (existing_ids)"
+              and loc["ZFIN:ZDB-GENE-980526-558"]["fed_to"] == "ctx:curies" and loc["ZFIN:ZDB-GENE-980526-558"]["feed_state"] == "fed-same-round"
+              and loc["ENSDARG00000031420"]["feed_state"] == "no-sink-in-1.13 (ensdarg)" and loc["ENSDARG00000031420"]["fed_to"] is None
+              and loc["ENSDARG00000031420"]["store_state"] == "not-in-store"
+              and all(wl.feed_state_in_vocabulary(l["feed_state"]) and l["fed_to"] in wl.FED_TO and l["round"] == 1
+                      and l["requirement_ids"] == ["req-fff"] for l in wl_led["located"])
+              and wl.web_state_in_vocabulary(web["web_locator_state"]),
+              repr((espy.calls, [(l["id"], l["fed_to"], l["feed_state"]) for l in wl_led["located"]])))
+        wi = web_items[0] if web_items else {}
+        items_json = json.dumps(rd_w["items"], ensure_ascii=False)
+        check("ADR-0084 (C.5) 0 ÍTEMS WEB — el gate del brief: la familia emitió EXACTAMENTE 1 candidato y es de Europe PMC: evidence_id "
+              "'PMID:12345678', source 'europepmc', source_family 'web', kind 'literature-candidate', identifier_provenance "
+              "'web-located:pubmed-path', url CANÓNICA (≠ la hallada con ?dopt), title/search_rec/abstract de EPMC (no el título web), "
+              "located_via 'web', located_from {host, rule_id, confidence, kind, round, requirement_ids} SIN url, search_rec_source "
+              "declarado, dedup_layer 'pool', [req-fff]; ningún ítem de la ronda es source/kind 'web' ni trae title_web/description; "
+              "ni 'WEB TITLE' ni la URL hallada aparecen en items[]",
+              len(web_items) == 1 and wi.get("evidence_id") == "PMID:12345678" and wi.get("source") == "europepmc"
+              and wi.get("source_family") == "web" and wi.get("kind") == "literature-candidate"
+              and wi.get("identifier_provenance") == "web-located:pubmed-path" and wi.get("url") == "https://pubmed.ncbi.nlm.nih.gov/12345678/"
+              and wi.get("title") == "EPMC record for the web-located PMID" and wi.get("search_rec", {}).get("pmcid") == "PMC7654321"
+              and wi.get("search_rec", {}).get("doi") == "10.1000/abc999" and wi.get("abstract") == "wt1a pronephros podocyte abstract (Europe PMC)"
+              and wi.get("located_via") == "web"
+              and wi.get("located_from") == {"host": "pubmed.ncbi.nlm.nih.gov", "rule_id": "pubmed-path", "confidence": "host-table",
+                                             "kind": "pmid", "round": 1, "requirement_ids": ["req-fff"]}
+              and wi.get("search_rec_source") == sh.WEB_SEARCH_REC_SOURCE and wi.get("dedup_layer") == "pool"
+              and wi.get("directive_requirement_ids") == ["req-fff"] and wi.get("round") == 1 and wi.get("label") is None
+              and "title_web" not in wi and "description" not in wi
+              and not any(i.get("source") == "web" or i.get("kind") == "web" or "title_web" in i or "description" in i for i in rd_w["items"])
+              and "WEB TITLE" not in items_json and "?dopt" not in items_json,
+              repr(wi))
+        check("ADR-0084 (C.4/C.5 ii-iii) ENCADENADO EN LA MISMA RONDA: unpaywall_crossref RECIBIÓ el DOI localizado por la web "
+              "('10.1000/xyz123', el primero) y el DOI del registro EPMC cosechado por run_round; monarch RECIBIÓ la curie "
+              "'ZFIN:ZDB-GENE-980526-558'; ctx.dois / ctx.curies son las MISMAS listas del llamador (id() intacto: append-only, jamás "
+              "reasignadas — M.3); ambas filas corrieron ('success' / 'no-match'); el candidato web va DESPUÉS de los nativos en items[] "
+              "(D.1: no gana identidad en la ronda) y round.duplicates == []",
+              up_calls == ["10.1000/xyz123", "10.1000/abc999"] and mon_calls == ["ZFIN:ZDB-GENE-980526-558"]
+              and id(ctx_w["dois"]) == id_dois and id(ctx_w["curies"]) == id_curies
+              and ctx_w["dois"] == ["10.1000/xyz123", "10.1000/abc999"] and ctx_w["curies"] == ["ZFIN:ZDB-GENE-980526-558"]
+              and bw["unpaywall_crossref"]["status"] == "success" and bw["monarch"]["status"] == "no-match"
+              and rd_w["items"][-1]["source_family"] == "web" and rd_w["items"][0]["source_family"] == "unpaywall_crossref"
+              and rd_w["duplicates"] == [] and [s["family"] for s in rd_w["sources"]] == ["web", "unpaywall_crossref", "monarch"],
+              repr((up_calls, mon_calls, [i["source_family"] for i in rd_w["items"]])))
+        row_wo_led = json.dumps({k: v for k, v in web.items() if k != "web_locator"}, ensure_ascii=False)
+        unres = wl_led["unresolved"]
+        check("ADR-0084 texto web y URLs: unresolved[] ×2 con host / reason 'no-identifier-pattern' / title_web recortado a 120 (205 → 120) "
+              "y SÓLO ahí viven títulos y URLs — fuera de row.web_locator la fila no contiene 'WEB TITLE' ni 'https://'; la llave fake "
+              "JAMÁS aparece en la ronda (M.5); queries[] ×1 con la forma de web_locator.locate (provider_status 'success', state 'located', "
+              "n_billable 1, cost.class 'proyección')",
+              len(unres) == 2 and [u["reason"] for u in unres] == ["no-identifier-pattern"] * 2
+              and [u["host"] for u in unres] == ["www.researchgate.net", "en.wikipedia.org"]
+              and len(unres[0]["title_web"]) == 120 and unres[0]["round"] == 1 and unres[0]["requirement_ids"] == ["req-fff"]
+              and "WEB TITLE" not in row_wo_led and "https://" not in row_wo_led
+              and FAKE_KEY not in json.dumps(rd_w, ensure_ascii=False)
+              and len(wl_led["queries"]) == 1 and wl_led["queries"][0]["provider_status"] == "success"
+              and wl_led["queries"][0]["state"] == "located" and wl_led["queries"][0]["n_billable"] == 1
+              and wl_led["queries"][0]["cost"]["class"] == "proyección" and wl_led["queries"][0]["round"] == 1
+              and wl_led["queries"][0]["requirement_ids"] == ["req-fff"] and wl_led["queries"][0]["query_source"] == "council-directive:req-fff",
+              repr([(u["host"], u["reason"], len(u["title_web"])) for u in unres]))
+        ev_json = json.dumps(events, ensure_ascii=False)
+        check("ADR-0084 (C.6/G.6) hook ctx.on_web_locate: UN payload por consulta ENVIADA con {round, provider, query_en, query_source, "
+              "requirement_ids, provider_status, http_status, elapsed_s, throttle_wait_s, cache_hit, query_altered_by_provider, n_results, "
+              "n_located, n_materialized, n_unresolved, located_ids[] (ids, NO URLs), hosts_unresolved[], cost_usd_projected, quota "
+              "{state, n_after, cap}} — sin 'http' en todo el payload",
+              len(events) == 1 and events[0]["round"] == 1 and events[0]["provider"] == "brave" and events[0]["query_en"] == "wt1a review"
+              and events[0]["provider_status"] == "success" and events[0]["n_results"] == 7 and events[0]["n_located"] == 5
+              and events[0]["n_materialized"] == 1 and events[0]["n_unresolved"] == 2
+              and events[0]["located_ids"] == ["PMID:12345678", "10.1000/xyz123", "PMID:23456789", "ZFIN:ZDB-GENE-980526-558", "ENSDARG00000031420"]
+              and events[0]["hosts_unresolved"] == ["www.researchgate.net", "en.wikipedia.org"]
+              and events[0]["quota"] == {"state": "under-cap", "n_after": 1, "cap": 900} and events[0]["requirement_ids"] == ["req-fff"]
+              and {"http_status", "elapsed_s", "throttle_wait_s", "cache_hit", "query_altered_by_provider", "cost_usd_projected",
+                   "query_source"} <= set(events[0])
+              and "http" not in ev_json.lower().replace("http_status", ""),
+              repr(events[0]))
+        check("ADR-0084 (B.5/G.10) cuota vía ctx.web_quota (firma db.web_locator_reserve): reservar ANTES de la red (provider 'brave', mes "
+              "UTC, cap 900, sin record) y registrar DESPUÉS (record {n_results 7, cost 0.005}) — 2 llamadas exactas",
+              len(qspy.calls) == 2 and qspy.calls[0]["provider"] == "brave" and qspy.calls[0]["cap"] == 900 and qspy.calls[0]["record"] is None
+              and qspy.calls[0]["month"] == wl.month_utc()
+              and qspy.calls[1]["record"] == {"n_results": 7, "cost": 0.005, "n_requests_extra": 0} and web["quota_hook"] == "ctx.web_quota",
+              repr(qspy.calls))
+        sp_web, sp_mon = sh.source_event_payload(web), sh.source_event_payload(bw["monarch"])
+        rp_json = json.dumps(sh.round_event_payload(rd_w), ensure_ascii=False)
+        check("ADR-0084 (C.7) source_event_payload ADITIVO: la fila web suma provider / n_queries / n_results / n_located / n_materialized / "
+              "n_unresolved / n_already_present / cost_usd_projected / quota_state; la de monarch NO los gana; ni web_locator ni calls viajan; "
+              "CERO URLs (regex https?://) en todo round_event_payload",
+              {"provider": "brave", "n_queries": 1, "n_results": 7, "n_located": 5, "n_materialized": 1, "n_unresolved": 2,
+               "n_already_present": 1, "quota_state": "under-cap"}.items() <= sp_web.items()
+              and abs(sp_web["cost_usd_projected"] - 0.005) < 1e-9
+              and not any(k in sp_mon for k in ("provider", "n_queries", "n_located", "n_materialized", "quota_state"))
+              and "web_locator" not in sp_web and "calls" not in sp_web
+              and len(re.findall(r"https?://", rp_json)) == 0,
+              repr(sp_web))
+
+        # ---- 5g. Europe PMC no halla NADA: located sí, candidatos no ----
+        wspy2, espy2 = WebSpy(), EpmcSpy(recs={})
+        fetch_paper.search_europepmc_ledger = espy2
+        row_nf, items_nf = sh.run_source("web", plan_w, {"dois": [], "curies": [], "existing_ids": set(), "web_store": lambda k: None},
+                                         30.0, tools={"web": wspy2})
+        check("ADR-0084 (C.5) _resolve_one devuelve None para todo (y existing_ids VACÍO: PMID:23456789 ya no está presente → también va a "
+              "EPMC): 0 ítems, fila 'no-match' con detail 'n_results=7 n_located=5 n_materialized=0', n_epmc_gets 3 == "
+              "n_not_found_in_europepmc 3 (los TRES idents de literatura), feed_state 'not-found-in-europepmc', web_locator_state sigue "
+              "'located' (URLs resueltas ≠ candidatos), quota 'not-enforced (no quota callable)' declarada (sin hook)",
+              items_nf == [] and row_nf["status"] == "no-match" and row_nf["detail"] == "n_results=7 n_located=5 n_materialized=0"
+              and row_nf["n_materialized"] == 0 and row_nf["n_not_found_in_europepmc"] == 3 and row_nf["n_epmc_gets"] == 3
+              and espy2.calls == ["PMID:12345678", "DOI:10.1000/xyz123", "PMID:23456789"]
+              and {l["id"]: l["feed_state"] for l in row_nf["web_locator"]["located"]}["PMID:12345678"] == "not-found-in-europepmc"
+              and row_nf["web_locator_state"] == "located" and row_nf["n_found"] == 7
+              and row_nf["quota_state"] == "not-enforced (no quota callable)" and row_nf["quota_hook"].startswith("absent"),
+              repr((row_nf["status"], row_nf.get("detail"), row_nf["n_not_found_in_europepmc"])))
+
+        # ---- 5h. WITT_WEB_MAX_QUERIES=1 con 3 directivas web ----
+        dirs3 = [d for d in DIRECTIVES_C6 if d["family"] == "web"] + [
+            {"requirement_id": "req-w2", "family": "web", "query_en": "wt1a podocyte review", "entities": [], "symbols": [],
+             "evidence_kind": "web", "priority": "should", "requested_by": ["domain-knowledge-curator"], "refined_by_members": []},
+            {"requirement_id": "req-w3", "family": "web", "query_en": "wt1a glomerulus review", "entities": [], "symbols": [],
+             "evidence_kind": "web", "priority": "should", "requested_by": ["domain-knowledge-curator"], "refined_by_members": []}]
+        plan3 = sh.build_search_plan(gq, g_ents, g_pass1, directives=dirs3)
+        plan3["families"] = ["web"]
+        _e8 = _env(WITT_WEB_MAX_QUERIES="1")
+        wspy3, espy3 = WebSpy(), EpmcSpy()
+        fetch_paper.search_europepmc_ledger = espy3
+        row3, items3 = sh.run_source("web", plan3, {"dois": [], "curies": [], "web_store": lambda k: None}, 30.0, tools={"web": wspy3})
+        _restore(_e8)
+        check("ADR-0084 (C.3) WITT_WEB_MAX_QUERIES=1 con 3 directivas web (_inputs_for → 3 insumos): el proveedor se llamó UNA vez; calls[] "
+              "= [success, skipped-cap, skipped-cap] con detail 'WITT_WEB_MAX_QUERIES=1 reached' y su requirement_id; "
+              "n_queries_dropped_by_cap 2, n_queries 1 (queries[] sólo las enviadas), inputs_used conserva la firma COMPLETA (3), "
+              "max_queries_source 'env:WITT_WEB_MAX_QUERIES'; la fila sigue 'success' con lo medido",
+              len(wspy3.calls) == 1 and [c["status"] for c in row3["calls"]] == ["success", "skipped-cap", "skipped-cap"]
+              and row3["calls"][1]["detail"] == "WITT_WEB_MAX_QUERIES=1 reached" and row3["calls"][1]["directive_requirement_ids"] == ["req-w2"]
+              and row3["n_queries_dropped_by_cap"] == 2 and row3["n_queries"] == 1 and len(row3["web_locator"]["queries"]) == 1
+              and row3["inputs_used"] == ["wt1a review", "wt1a podocyte review", "wt1a glomerulus review"]
+              and row3["max_queries_source"] == "env:WITT_WEB_MAX_QUERIES" and row3["status"] == "success" and len(items3) == 1,
+              repr(([c["status"] for c in row3["calls"]], row3["n_queries_dropped_by_cap"], row3["inputs_used"])))
+
+        # ---- 5i. WITT_WEB_MAX_MATERIALIZE=1 y =0 con 3 PMIDs ----
+        URLS3 = [{"url": f"https://pubmed.ncbi.nlm.nih.gov/{n}/", "title": f"WEB TITLE {n}", "host": "pubmed.ncbi.nlm.nih.gov",
+                  "age": None, "page_age": None} for n in ("11111111", "22222222", "33333333")]
+        RECS3 = {f"PMID:{n}": {"epmc_id": n, "source": "MED", "pmid": n, "pmcid": None, "doi": None, "title": f"EPMC {n}", "year": "2020",
+                               "journal": "J", "is_oa": False, "abstract": None, "cited_by": 0} for n in ("11111111", "22222222", "33333333")}
+        _e9 = _env(WITT_WEB_MAX_MATERIALIZE="1")
+        wspy4, espy4 = WebSpy(results=URLS3), EpmcSpy(recs=RECS3)
+        fetch_paper.search_europepmc_ledger = espy4
+        row4, items4 = sh.run_source("web", plan_w, {"dois": [], "curies": [], "web_store": lambda k: None}, 30.0, tools={"web": wspy4})
+        _restore(_e9)
+        _e10 = _env(WITT_WEB_MAX_MATERIALIZE="0")
+        wspy5, espy5 = WebSpy(results=URLS3), EpmcSpy(recs=RECS3)
+        fetch_paper.search_europepmc_ledger = espy5
+        row5, items5 = sh.run_source("web", plan_w, {"dois": [], "curies": [], "web_store": lambda k: None}, 30.0, tools={"web": wspy5})
+        _restore(_e10)
+        check("ADR-0084 (C.5) WITT_WEB_MAX_MATERIALIZE=1 con 3 PMIDs: UNA GET a EPMC (espy 1), 1 materializado + 2 'not-materialized (feed cap)', "
+              "1 ítem, n_epmc_gets 1, max_materialize_source env; con =0 ('sólo localizar'): 0 GETs, los 3 'not-materialized (feed cap)', "
+              "0 ítems, fila 'no-match' (midió y no materializó), n_located 3",
+              espy4.calls == ["PMID:11111111"] and len(items4) == 1 and row4["n_materialized"] == 1 and row4["n_epmc_gets"] == 1
+              and [l["feed_state"] for l in row4["web_locator"]["located"]] == ["materialized-same-round", "not-materialized (feed cap)",
+                                                                                 "not-materialized (feed cap)"]
+              and row4["max_materialize_source"] == "env:WITT_WEB_MAX_MATERIALIZE" and row4["status"] == "success"
+              and espy5.calls == [] and items5 == [] and row5["status"] == "no-match" and row5["n_located"] == 3 and row5["n_epmc_gets"] == 0
+              and [l["feed_state"] for l in row5["web_locator"]["located"]] == ["not-materialized (feed cap)"] * 3,
+              repr((espy4.calls, [l["feed_state"] for l in row4["web_locator"]["located"]], row5["status"])))
+
+        # ---- 5j. cortacircuito de autenticación por ronda ----
+        wspy6, espy6 = WebSpy(plan=[AUTH_ROW]), EpmcSpy()
+        fetch_paper.search_europepmc_ledger = espy6
+        row6, items6 = sh.run_source("web", plan3, {"dois": [], "curies": [], "web_store": lambda k: None}, 30.0, tools={"web": wspy6})
+        q6 = row6["web_locator"]["queries"]
+        check("ADR-0084 (C.5) CORTACIRCUITO auth: la 1ª consulta devuelve 'auth (HTTP 401)' → el proveedor NO se vuelve a llamar (spy 1), "
+              "las 2 restantes quedan provider_status 'skipped-cap' con state 'skipped-cap (auth failed in this round (no retry))', cero "
+              "GETs a EPMC, fila 'error' con error 'auth (HTTP 401)', web_locator_state 'error: auth (HTTP 401)', 0 ítems; "
+              "web_locator.is_auth_error True en la primera",
+              len(wspy6.calls) == 1 and [q["provider_status"] for q in q6] == ["error", "skipped-cap", "skipped-cap"]
+              and q6[1]["state"] == q6[2]["state"] == "skipped-cap (auth failed in this round (no retry))"
+              and q6[1]["detail"] == sh.WEB_AUTH_CIRCUIT_DETAIL == "auth failed in this round (no retry)"
+              and wl.is_auth_error(q6[0]) and espy6.calls == [] and row6["status"] == "error" and row6["error"] == "auth (HTTP 401)"
+              and row6["web_locator_state"] == "error: auth (HTTP 401)" and items6 == [] and row6["n_found"] is None
+              and [c["status"] for c in row6["calls"]] == ["error", "skipped-cap", "skipped-cap"],
+              repr(([q["provider_status"] for q in q6], row6.get("error"))))
+
+        # ---- 5k. la cuota mensual niega: skipped-cap con detail, CERO red ----
+        wspy7, qspy7, ev7 = WebSpy(), QuotaSpy(grant=False), []
+        fetch_paper.search_europepmc_ledger = EpmcSpy()
+        row7, items7 = sh.run_source("web", plan_w, {"dois": [], "curies": [], "web_quota": qspy7, "on_web_locate": ev7.append,
+                                                     "web_store": lambda k: None}, 30.0, tools={"web": wspy7})
+        check("ADR-0084 (B.5/C.5) quota_fn niega: fila 'skipped-cap' con detail 'monthly cap WITT_WEB_MONTHLY_CAP=900 reached (…)', el "
+              "proveedor NO se llama (spy 0), quota_state 'cap-reached', web_locator_state 'skipped-cap (monthly cap …)', contadores null, "
+              "0 ítems; el latido SÍ se emite (una consulta declarada) con provider_status 'skipped-cap'; _family_status hereda 'skipped-cap' "
+              "cuando todas las consultas lo son",
+              row7["status"] == "skipped-cap" and row7["detail"].startswith("monthly cap WITT_WEB_MONTHLY_CAP=900 reached")
+              and wspy7.calls == [] and row7["quota_state"] == "cap-reached"
+              and row7["web_locator_state"].startswith("skipped-cap (monthly cap") and row7["n_found"] is None and row7["n_results"] is None
+              and items7 == [] and len(ev7) == 1 and ev7[0]["provider_status"] == "skipped-cap"
+              and sh._family_status([], ["skipped-cap"] * 2) == "skipped-cap" and sh._family_status([], ["error", "skipped-cap"]) == "error",
+              repr((row7["status"], row7.get("detail"), row7["web_locator_state"])))
+
+        # ---- 5l. proveedor que lanza / que declara skipped-budget / ronda sin presupuesto ----
+        wspy8 = WebSpy(plan=[RuntimeError("boom")])
+        plan8 = dict(p_on)
+        plan8["families"] = ["web", "alliance_orthologs"]
+        rd8 = sh.run_round(plan8, 1, 30.0, tools={"web": wspy8, "alliance_orthologs": fake_ok}, ctx={"dois": [], "curies": [], "web_store": lambda k: None})
+        b8 = {s["family"]: s for s in rd8["sources"]}
+        wspy9 = WebSpy(plan=[BUDGET_ROW])
+        row9, _ = sh.run_source("web", plan_w, {"dois": [], "curies": [], "web_store": lambda k: None}, 30.0, tools={"web": wspy9})
+        wspy10 = WebSpy()
+        rd10 = sh.run_round(plan_w, 1, 0.1, tools={"web": wspy10, "unpaywall_crossref": fake_unpaywall, "monarch": fake_monarch},
+                            ctx={"dois": [], "curies": [], "web_store": lambda k: None})
+        check("ADR-0084 (M.1 §6 no-hang) proveedor que LANZA: fila web 'error' con 'RuntimeError: boom' (web_locator.locate lo envuelve) y la "
+              "siguiente familia corre ('success'); proveedor que declara 'skipped-budget' → la familia lo hereda y web_locator_state "
+              "'skipped-budget (…)'; ronda sin presupuesto (0.1 s < MIN_SOURCE_BUDGET_S) → web 'skipped-budget' 'round budget' SIN llamar "
+              "al proveedor (spy 0)",
+              b8["web"]["status"] == "error" and "RuntimeError: boom" in b8["web"]["error"] and b8["alliance_orthologs"]["status"] == "success"
+              and b8["web"]["web_locator_state"].startswith("error: RuntimeError: boom")
+              and row9["status"] == "skipped-budget" and row9["web_locator_state"].startswith("skipped-budget (")
+              and {s["family"]: s["status"] for s in rd10["sources"]}["web"] == "skipped-budget"
+              and "round budget" in {s["family"]: s for s in rd10["sources"]}["web"]["detail"] and wspy10.calls == [],
+              repr((b8["web"].get("error"), row9["web_locator_state"], wspy10.calls)))
+
+        # ---- 5m. kill-switch EXPLÍCITO con llave presente: cero red, cero cuota, cero latidos ----
+        _e11 = _env(WITT_WEB_LOCATOR="off")
+        wspy11, qspy11, ev11 = WebSpy(), QuotaSpy(), []
+        row11, items11 = sh.run_source("web", p_call, {"dois": [], "curies": [], "web_quota": qspy11, "on_web_locate": ev11.append,
+                                                        "web_store": lambda k: None}, 30.0, tools={"web": wspy11})
+        fa11 = sh.family_available("web")
+        _restore(_e11)
+        row_tu, _ = sh.run_source("tooluniverse", p_call, {"dois": [], "curies": []}, 30.0)   # la fila MÍNIMA de una familia con fn None
+        check("ADR-0084 (L, corrector) kill-switch WITT_WEB_LOCATOR=off CON llave (plan del llamador con web): la fila es la MÍNIMA de 7d9ce15 — "
+              "'tool-unavailable' con detail 'tool-unavailable (ADR-0084)' y EXACTAMENTE el keyset de una familia con fn None (tooluniverse); "
+              "SIN provider/n_queries/web_locator/quota_hook; proveedor 0 llamadas, cuota 0 llamadas, 0 latidos, 0 ítems, contadores null; "
+              "family_available False con el literal de 7d9ce15",
+              row11["status"] == "tool-unavailable" and row11["detail"] == "tool-unavailable (ADR-0084)"
+              and set(row11) == set(row_tu) and not any(k in row11 for k in ("provider", "n_queries", "web_locator", "quota_hook", "web_locator_state"))
+              and wspy11.calls == [] and qspy11.calls == [] and ev11 == [] and items11 == [] and row11["n_found"] is None
+              and fa11 == (False, "tool-unavailable (ADR-0084)"),
+              repr((row11["status"], row11.get("detail"), sorted(row11), len(ev11))))
+        # ---- 5m-bis (corrector). OFF + web nombrada en WITT_SEARCH_DEFAULT_FAMILIES: el plan y la fila son los de 7d9ce15 ----
+        _e11b = _env(WITT_WEB_LOCATOR="off", WITT_SEARCH_DEFAULT_FAMILIES="alliance_orthologs,string,web", WITT_WEB_TEST_QUERY="probe query")
+        p_offenv = sh.build_search_plan(gq, g_ents, g_pass1)
+        wspy11b, qspy11b, ev11b = WebSpy(), QuotaSpy(), []
+        rd11b = sh.run_round(p_offenv, 1, 30.0, tools={"web": wspy11b, "alliance_orthologs": fake_ok, "string": fake_no_ids},
+                             ctx={"dois": [], "curies": [], "web_quota": qspy11b, "on_web_locate": ev11b.append})
+        _restore(_e11b)
+        _e11c = _env(WITT_WEB_LOCATOR=None, BRAVE_API_KEY="", WITT_SEARCH_DEFAULT_FAMILIES="alliance_orthologs,string,web")
+        p_offenv2 = sh.build_search_plan(gq, g_ents, g_pass1)
+        row11c, _ = sh.run_source("web", p_offenv2, {"dois": [], "curies": []}, 30.0, tools={"web": WebSpy()})
+        _restore(_e11c)
+        row11b = {s["family"]: s for s in rd11b["sources"]}["web"]
+        check("ADR-0084 (L, corrector) OFF + web nombrada en WITT_SEARCH_DEFAULT_FAMILIES (con y sin WITT_WEB_TEST_QUERY): el plan es el de 7d9ce15 — "
+              "families en el ORDEN de la env (web NO se mueve al frente), SIN families_order_rule (ni en plan_event_payload), queries.web SIN "
+              "entered_by y con la query de pass1 (la consulta de prueba NO manda sin localizador); la ronda deja la fila MÍNIMA 'tool-unavailable "
+              "(ADR-0084)' en la posición de la env, cero llamadas, cero cuota, cero latidos; off DERIVADO (sin llave) → la MISMA fila mínima con "
+              "el MISMO literal de 7d9ce15 (la CAUSA 'BRAVE_API_KEY unset' viaja en frozen.web_locator.state, no en la fila)",
+              p_offenv["families"] == ["alliance_orthologs", "string", "web"] and "families_order_rule" not in p_offenv
+              and "families_order_rule" not in sh.plan_event_payload(p_offenv)
+              and p_offenv["queries"]["web"] == {"inputs": "free-query", "query": g_pass1, "query_source": "pass1_query_en"}
+              and [s["family"] for s in rd11b["sources"]] == ["alliance_orthologs", "string", "web"]
+              and row11b["status"] == "tool-unavailable" and row11b["detail"] == "tool-unavailable (ADR-0084)"
+              and set(row11b) == set(row_tu) | {"round", "over_budget"} and wspy11b.calls == [] and qspy11b.calls == [] and ev11b == []
+              and p_offenv2["families"] == ["alliance_orthologs", "string", "web"] and "families_order_rule" not in p_offenv2
+              and row11c["status"] == "tool-unavailable" and row11c["detail"] == wl.UNAVAILABLE_OFF == "tool-unavailable (ADR-0084)"
+              and set(row11c) == set(row_tu),
+              repr((p_offenv["families"], p_offenv["queries"]["web"], row11b.get("detail"), row11c.get("detail"))))
+
+        # ---- 5n. presupuesto de la familia por env y sin insumos ----
+        _e12 = _env(WITT_WEB_BUDGET_S="5")
+        fb_env = sh.family_budget_s(sh.SEARCH_DISPATCH["web"])
+        plan12 = dict(p_on)
+        plan12["families"] = ["web"]
+        wspy12 = WebSpy()
+        fetch_paper.search_europepmc_ledger = EpmcSpy()
+        rd12 = sh.run_round(plan12, 1, 30.0, tools={"web": wspy12}, ctx={"dois": [], "curies": [], "web_store": lambda k: None})
+        _restore(_e12)
+        _e13 = _env(WITT_WEB_BUDGET_S="999")
+        fb_clamp = sh.family_budget_s(sh.SEARCH_DISPATCH["web"])
+        _restore(_e13)
+        _e14 = _env(WITT_WEB_BUDGET_S="abc")
+        fb_bad = sh.family_budget_s(sh.SEARCH_DISPATCH["web"])
+        _restore(_e14)
+        # sin entidades, sin EN y sin término anatómico en la pregunta: _free_query no produce nada (la pregunta cruda JAMÁS se usa)
+        plan_ni = sh.build_search_plan("What is known about this?", [], None, families=["web"])
+        wspy13 = WebSpy()
+        row13, items13 = sh.run_source("web", plan_ni, {"dois": [], "curies": []}, 30.0, tools={"web": wspy13})
+        check("ADR-0084 family_budget_s: default (30.0, 'default-unset:WITT_WEB_BUDGET_S'); WITT_WEB_BUDGET_S=5 → (5.0, 'env:…') y run_round "
+              "acota la familia a 5.0 s (budget_s de la fila); 999 → clamp 120.0; 'abc' → 30.0 'default-invalid-env'; las filas sin "
+              "budget_env → ('table'); sin insumo (sin entidades, sin EN, sin anatomía en la pregunta) → queries.web.query None → "
+              "'not-requested' 'no English query (nothing to search)' sin llamar",
+              sh.family_budget_s(sh.SEARCH_DISPATCH["web"]) == (30.0, "default-unset:WITT_WEB_BUDGET_S")
+              and fb_env == (5.0, "env:WITT_WEB_BUDGET_S") and rd12["sources"][0]["budget_s"] == 5.0 and len(wspy12.calls) == 1
+              and fb_clamp == (120.0, "env:WITT_WEB_BUDGET_S") and fb_bad == (30.0, "default-invalid-env:WITT_WEB_BUDGET_S")
+              and sh.family_budget_s(sh.SEARCH_DISPATCH["monarch"]) == (30.0, "table")
+              and row13["status"] == "not-requested" and row13["detail"] == sh.WEB_NO_QUERY_DETAIL and wspy13.calls == [] and items13 == [],
+              repr((fb_env, rd12["sources"][0]["budget_s"], fb_clamp, fb_bad, row13["status"])))
+        # ---- 5o (corrector). dedup por PAPER dentro de la familia · trampa del top hit · DOI con sintaxis EPMC · DOI del registro UNA vez ----
+        URLS_SAME = [{"url": "https://pubmed.ncbi.nlm.nih.gov/15982647/", "title": "WEB TITLE pubmed", "host": "pubmed.ncbi.nlm.nih.gov",
+                      "age": None, "page_age": None},
+                     {"url": "https://www.ncbi.nlm.nih.gov/pmc/articles/pmc2688018/", "title": "WEB TITLE pmc (lowercase)", "host": "www.ncbi.nlm.nih.gov",
+                      "age": None, "page_age": None},
+                     {"url": "https://doi.org/10.1242/dev.02071/", "title": "WEB TITLE doi (trailing slash)", "host": "doi.org", "age": None,
+                      "page_age": None},
+                     {"url": "https://doi.org/10.1002/(SICI)1097-0177(199906)215:2%3C143::AID-DVDY5%3E3.0.CO;2-K", "title": "WEB TITLE sici",
+                      "host": "doi.org", "age": None, "page_age": None},
+                     {"url": "https://pubmed.ncbi.nlm.nih.gov/77777777/", "title": "WEB TITLE 777", "host": "pubmed.ncbi.nlm.nih.gov",
+                      "age": None, "page_age": None}]
+        REC_SAME = {"epmc_id": "15982647", "source": "MED", "pmid": "15982647", "pmcid": "PMC2688018", "doi": "10.1242/DEV.02071",
+                    "title": "EPMC one paper", "year": "2005", "journal": "Development", "is_oa": True, "abstract": "abstract", "cited_by": 9}
+        REC_OTHER = dict(REC_SAME, epmc_id="99999999", pmid="99999999", pmcid=None, doi=None, title="EPMC another paper")
+        wspy15, espy15 = WebSpy(results=URLS_SAME), EpmcSpy(recs={"PMID:15982647": REC_SAME, "PMID:77777777": REC_OTHER})
+        fetch_paper.search_europepmc_ledger = espy15
+        ctx15 = {"dois": [], "curies": [], "web_store": lambda k: None}
+        rd15 = sh.run_round(plan_w, 1, 30.0, tools={"web": wspy15, "unpaywall_crossref": fake_unpaywall, "monarch": fake_monarch}, ctx=ctx15)
+        row15 = {s["family"]: s for s in rd15["sources"]}["web"]
+        loc15 = {l["id"]: l for l in row15["web_locator"]["located"]}
+        check("ADR-0084 (corrector) dedup por PAPER en la familia: pubmed 15982647 + PMC (minúsculas) + doi.org (con '/' final) del MISMO registro → "
+              "UNA GET a EPMC (PMID:15982647), 1 candidato, PMC2688018 y 10.1242/dev.02071 'already-present (dup of PMID:15982647)' con "
+              "same_paper {layer 'family', matched_key PMCID:PMC2688018 / DOI:10.1242/dev.02071}; n_same_paper_dups 2; el SICI viajó a EPMC ENTRE "
+              "COMILLAS (epmc_query_quoted True, DOI:\"…\") y cayó not-found; PMID:77777777 devolvió OTRO registro → 'error: europepmc record "
+              "mismatch (PMID:99999999 != PMID:77777777)', n_epmc_record_mismatch 1, NO candidato; n_epmc_gets 3; ctx.dois lleva el DOI UNA sola "
+              "vez y en la forma del REGISTRO ('10.1242/DEV.02071', la misma que cosecha run_round) + el SICI normalizado; 1 ítem",
+              espy15.calls == ["PMID:15982647", "DOI:10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k", "PMID:77777777"]
+              and espy15.queries[1] == 'DOI:"10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k"'
+              and row15["n_materialized"] == 1 and row15["n_same_paper_dups"] == 2 and row15["n_epmc_gets"] == 3
+              and row15["n_epmc_record_mismatch"] == 1 and row15["n_not_found_in_europepmc"] == 1
+              and loc15["PMID:15982647"]["feed_state"] == "materialized-same-round"
+              and loc15["PMC2688018"]["feed_state"] == "already-present (dup of PMID:15982647)"
+              and loc15["PMC2688018"]["same_paper"] == {"of": "PMID:15982647", "matched_key": "PMCID:PMC2688018", "layer": "family",
+                                                        "rule": sh.WEB_SAME_PAPER_RULE}
+              and loc15["10.1242/dev.02071"]["feed_state"] == "already-present (dup of PMID:15982647)"
+              and loc15["10.1242/dev.02071"]["same_paper"]["matched_key"] == "DOI:10.1242/dev.02071"
+              and loc15["10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k"]["epmc_query_quoted"] is True
+              and loc15["10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k"]["feed_state"] == "not-found-in-europepmc"
+              and loc15["PMID:77777777"]["feed_state"] == "error: europepmc record mismatch (PMID:99999999 != PMID:77777777)"
+              and wl.feed_state_in_vocabulary(loc15["PMID:77777777"]["feed_state"])
+              and ctx15["dois"] == ["10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k", "10.1242/DEV.02071"]
+              and len([i for i in rd15["items"] if i.get("source_family") == "web"]) == 1,
+              repr((espy15.calls, espy15.queries, [(l["id"], l["feed_state"]) for l in row15["web_locator"]["located"]], ctx15["dois"])))
+        # presupuesto de la familia → timeout de EPMC acotado (MIN_CALL_TIMEOUT_S <= t <= restante)
+        wspy16, espy16 = WebSpy(results=URLS3), EpmcSpy(recs=RECS3)
+        fetch_paper.search_europepmc_ledger = espy16
+        row16, _ = sh.run_source("web", plan_w, {"dois": [], "curies": [], "web_store": lambda k: None}, 1.0, tools={"web": wspy16})
+        check("ADR-0084 (M.1, corrector) la GET a Europe PMC usa el presupuesto RESTANTE de la familia: con budget_s 1.0 los 3 idents viajaron con "
+              "timeout 0.5 <= t <= 1.0 (antes: HTTP_TIMEOUT_S 30 s por ident, 6 idents podían retener la ronda 180 s); epmc_timeout_s declarado en "
+              "cada located",
+              len(espy16.timeouts) == 3 and all(sh.MIN_CALL_TIMEOUT_S <= t <= 1.0 for t in espy16.timeouts)
+              and all(l.get("epmc_timeout_s") == t for l, t in zip(row16["web_locator"]["located"], espy16.timeouts)),
+              repr(espy16.timeouts))
+    finally:
+        fetch_paper.search_europepmc_ledger = _resolve_real
+        _restore(old)
 
     check("el smoke corrió 100% OFFLINE — MEDIDO: urllib.request.urlopen bloqueado y contado == 0 (fakes/parches para toda familia)",
           _NET_CALLS == [], f"calls={_NET_CALLS[:5]}")

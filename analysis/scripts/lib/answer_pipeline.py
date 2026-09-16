@@ -93,6 +93,29 @@ ADR-0080 (compuerta de competencia + harness, 2026-09-15) — lo que cambió en 
     `source_family`, `label` ('predictive' | 'inferred-by-orthology' | null) e `identifier_provenance`; los
     candidatos de literatura entran al MISMO pool/dedup/selección de ADR-0078.
 
+ADR-0084 (la web LOCALIZA, jamás es fuente, 2026-09-16) — lo que cambió en este módulo (rebanada W4, Decision D):
+  * La familia `web` del harness NO emite ítems web: emite candidatos de literatura YA materializados por Europe PMC
+    (`source 'europepmc'`, `source_family 'web'`, `identifier_provenance 'web-located:<regla>'`, `url` canónica). Aquí
+    entran al MISMO pool de ADR-0078 con admisión NATIVE-FIRST dentro de la ronda (D.1): primero los candidatos de las
+    familias nativas, después los web-localizados — un PMID que EPMC/PubMed trajeron Y la web señaló queda en
+    `selection.duplicates[]` con `source_family 'web'` y en `web_locator.located[].feed_state 'already-present (dup of
+    <id>)'` (MEDICIÓN de "la web halló lo que ya teníamos"). Sin candidatos web el orden de admisión es el de hoy.
+  * `_select_top_n` gana un TERCER componente de orden entre rank(source) e índice de llegada: native-before-web-located
+    (D.2). Para un pool sin web la clave es la de hoy — byte-idéntico. `selection.pool_admission_rule` y
+    `selection.tie_break_web_located` viajan SÓLO cuando hubo candidatos web.
+  * `block['web_locator']` (D.4): la unión de las filas web de todas las rondas — queries[], located[] (cerrados tras la
+    selección y _paper_item: admitted, duplicate_of, selected, selection_rank, fetched_found), unresolved[], contadores,
+    cost (PROYECCIÓN), quota, provider/provider_state, gap_flags_typed y el encabezado de web_locator.frozen_header. Las
+    URLs y los títulos del buscador viven SÓLO ahí (y en la fila del harness); jamás en papers[] ni en eventos. runs (W7)
+    lo funde en frozen.web_locator. `n_results_by_source.web == 0` SIEMPRE cuando la familia midió (0 papers con source
+    'web' por construcción); los web-localizados cuentan en `europepmc` y se declaran en `web_locator.n_papers_web_located`.
+  * Hooks (D.5): `_path_b_harness` pre-crea ctx['on_web_locate'] (→ evento 'web.locate' vía on_stage), ctx['web_quota']
+    (parámetro NUEVO opcional `web_quota=` de path_b_bundle / path_b / _path_b_harness; None → cuota 'not-enforced') y
+    ctx['existing_ids'] (= `present`). `path_b_event_payload` copia located_via / located_from / search_rec_source por
+    paper SÓLO cuando el ítem los trae y añade n_web_located / n_web_unresolved (sin URLs).
+  * La materialización en la ronda la hace el harness con fetch_paper._resolve_one (UNA GET, SIN escribir caché); el
+    read-cache de fetch_external NO se envenena: fetch_external corre aquí, en _paper_item, sólo para el paper SELECCIONADO.
+
 Decision pathway (explicit state machine — the route to an answer is STRUCTURAL, not contract-dependent).
 REFORMED by ADR-0049 (founder decision 2026-08-09: the audit runs on 100% of runs, DI-sufficient included;
 cost is measured, never capped). DI_SUFFICIENT and FALLBACK_FETCHED are now INTERMEDIATE states; the
@@ -134,6 +157,7 @@ if not os.environ.get("NEO4J_URI") and _env.exists():
 os.environ.setdefault("RAG_BACKEND", "neo4j")
 
 from lib import rag_backend, resolve_id, fetch_paper, search_queries, search_harness  # noqa: E402
+from lib import web_locator as _wl  # noqa: E402  (ADR-0084: vocabularios cerrados + frozen_header del localizador; import barato)
 
 CACHE = ROOT / "mcp_cache"
 
@@ -147,6 +171,23 @@ PATH_B_LEDGER_VERSION = "2"          # ADR-0078: el bloque path_b gana llaves; l
 PATH_B_SELECTION_RULE = "oa-with-pmcid-first, then source order"
 QUERY_SOURCE_PREFIX = "query-builder"  # query_source = 'query-builder-v<N>:<mode>' (lib/search_queries)
 ZFIN_OK_STATES = ("success", "success-no-references")   # ADR-0078: el tool declara ambos como éxito
+
+# --- ADR-0084 (D): la web LOCALIZA, jamás es fuente — reglas DECLARADAS de admisión, desempate y bloque -----------
+WEB_POOL_ADMISSION_RULE = "native-first within a round (ADR-0084)"          # selection.pool_admission_rule (D.1)
+WEB_TIE_BREAK_RULE = "native-before-web-located (ADR-0084)"                  # selection.tie_break_web_located (D.2)
+WEB_LOCATOR_BLOCK_VERSION = "wlb-1"                                          # block['web_locator'].block_version (D.4)
+WEB_STATE_NOT_REQUESTED = "not-requested (no web directive)"                 # web_locator.WEB_STATES_EXACT[2]
+WEB_LOCATED_CLOSE_KEYS = ("admitted", "duplicate_of", "selected", "selection_rank", "fetched_found")   # D.4 cierre
+WEB_GAP_KINDS = ("web-located-unresolved", "web-located-unmaterialized")     # gap_flags_typed[].kind (G.2/G.4)
+WEB_PAPER_COPY_KEYS = ("located_via", "located_from", "search_rec_source")   # D.3: del candidato al paper, si los trae
+# corrector ADR-0084 (D.3 ↔ E.3): un paper web-localizado SELECCIONADO cuyo fetch_external NO lo entregó (found False — p. ej. un
+# read-timeout transitorio de Europe PMC) queda SIN PASAJE: el abstract del registro de búsqueda de EPMC se retiene (no es texto web,
+# pero E.3 web_items_native_only sólo admite texto con fetched.found True) — así el predicado DURO no vuelve inadmisible TODA la
+# respuesta por un fallo de red que nadie citó, y E.2 sigue gateando la CITA a ese paper. Declarado, jamás silencioso.
+WEB_TEXT_WITHHELD_REASON = "web-located-not-fetched (ADR-0084 D.3)"
+WEB_TEXT_WITHHELD_RULE = ("withheld: web-located paper not delivered by fetch_external (fetched.found is not True) — the Europe PMC "
+                          "search-record abstract is not shown; the paper keeps search_rec/fetched and is citable only once fetched "
+                          "(ADR-0084 D.3, corrector)")
 
 
 def _env_int_src(name, default):
@@ -757,8 +798,12 @@ def _pool_add(pool, seen, cand, duplicates):
     keys = _candidate_keys(cand["search_rec"]) or [cand.get("evidence_id") or f"anon:{len(pool)}"]
     hit = next((k for k in keys if k in seen), None)
     if hit is not None:
-        duplicates.append({"duplicate": cand.get("evidence_id"), "source": cand["source"],
-                           "of": seen[hit], "matched_key": hit})
+        dup = {"duplicate": cand.get("evidence_id"), "source": cand["source"], "of": seen[hit], "matched_key": hit}
+        if cand.get("source_family") == "web":
+            # ADR-0084 (D.1): un web-localizado que el pool ya tenía por una familia nativa se DECLARA con su familia
+            # (MEDICIÓN de "la web halló lo que ya teníamos"); los duplicados nativos conservan la forma de ADR-0078
+            dup["source_family"] = "web"
+        duplicates.append(dup)
         return 0
     for k in keys:
         seen[k] = cand.get("evidence_id")
@@ -770,14 +815,18 @@ def _pool_add(pool, seen, cand, duplicates):
 def _select_top_n(pool, n, sources):
     """PATH_B_SELECTION_RULE: primero los Open Access con PMCID (texto completo alcanzable), luego el
     orden de fuentes de `sources`, luego el orden de llegada. Estable y declarado. Devuelve
-    (seleccionados con selection_rank 1..n, evidence_ids NO seleccionados)."""
+    (seleccionados con selection_rank 1..n, evidence_ids NO seleccionados).
+
+    ADR-0084 (D.2): TERCER componente entre rank(source) e índice — 0 nativo, 1 web-localizado (`source_family 'web'`):
+    a igual OA y fuente el candidato que una familia nativa trajo va antes que el que la web señaló (WEB_TIE_BREAK_RULE).
+    Sin candidatos web el componente vale 0 para todos → la clave es la de ADR-0078, byte a byte."""
     rank = {s: i for i, s in enumerate(sources)}
 
     def _key(i):
         c = pool[i]
         sr = c["search_rec"]
         oa_pmc = bool(sr.get("is_oa")) and bool(sr.get("pmcid"))
-        return (0 if oa_pmc else 1, rank.get(c["source"], len(rank)), i)
+        return (0 if oa_pmc else 1, rank.get(c["source"], len(rank)), 1 if c.get("source_family") == "web" else 0, i)
 
     order = sorted(range(len(pool)), key=_key)
     chosen = order[:max(0, int(n))]
@@ -897,6 +946,11 @@ def _paper_item(cand, full_text, terms, excerpt_chars):
     ident = cand.get("evidence_id")
     got = _fetch_or_declare(ident, full_text) if ident else {"found": False}
     content = _paper_content(cand.get("abstract"), got, terms, excerpt_chars)
+    if cand.get("source_family") == "web" and (got or {}).get("found") is not True:
+        # corrector ADR-0084 (D.3): paper web-localizado SIN pasaje cuando Europe PMC no lo entregó (ver WEB_TEXT_WITHHELD_RULE)
+        content.update({"abstract": None, "text_excerpt": None, "text_provenance": "none", "text_excerpt_rule": WEB_TEXT_WITHHELD_RULE,
+                        "text_excerpt_chars": 0, "text_excerpt_omitted": False, "text_source_chars": 0,
+                        "text_withheld_reason": WEB_TEXT_WITHHELD_REASON})
     item = {"source": cand["source"], "evidence_id": ident or "paper",
             "search_rec": cand["search_rec"], "fetched": _fetched_view(got),
             "selection_rank": cand.get("selection_rank"), "dedup_keys": cand.get("dedup_keys", [])}
@@ -906,7 +960,7 @@ def _paper_item(cand, full_text, terms, excerpt_chars):
 
 def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None, entities=None,
            ledger_out=None, query_source=None, queries=None, retmax=None, search_plan=None, on_stage=None,
-           existing_ids=None):
+           existing_ids=None, web_quota=None):
     """External fallback — MULTI-SOURCE, never a stopper. Each item records its `source`:
       europepmc   — literature (built-in, dependency-free)
       pubmed      — literatura vía NCBI E-utilities (tapón 1·B, ADR-0062): MISMA pregunta, sintaxis y
@@ -929,6 +983,10 @@ def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None,
     (_path_b_harness): rondas con presupuesto, familias del plan, eventos stage.search.* vía `on_stage`,
     dedup contra `existing_ids`. Sin plan, este cuerpo es el de ADR-0078 sin cambios.
 
+    ADR-0084 (D.5): `web_quota` (callable (provider, month, cap, record=None) -> {granted, n_before, n_after, cap};
+    runs inyecta db.web_locator_reserve) viaja al harness como ctx['web_quota']; None → la familia web declara la
+    cuota 'not-enforced (no quota callable)'. Sólo tiene efecto con `search_plan`.
+
     This function is the ONE seam the offline gates stub: everything that touches the network lives
     here, so a stubbed path_b is a genuinely offline run."""
     n = _env_int("WITT_PATH_B_N_PAPERS", PATH_B_N_PAPERS_DEFAULT) if n is None else int(n)
@@ -937,7 +995,7 @@ def path_b(question, n=None, full_text=True, sources=PATH_B_SOURCES, query=None,
     if search_plan is not None:
         return _path_b_harness(question, search_plan, n=n, full_text=full_text, retmax=retmax,
                                excerpt_chars=excerpt_chars, ledger_out=ledger_out, on_stage=on_stage,
-                               existing_ids=existing_ids, qb=queries)
+                               existing_ids=existing_ids, qb=queries, web_quota=web_quota)
     qb = queries or build_source_queries(question, entities, query=query, query_source=query_source)
     ledger = ledger_out if ledger_out is not None else {}
     terms = _query_terms(qb)
@@ -1012,10 +1070,243 @@ def _plan_with_queries(plan, qb):
     return out
 
 
+# --- ADR-0084 (D): el bloque del LOCALIZADOR web — la web localiza identificadores, jamás es fuente ----------------
+def _web_rows(rounds):
+    """Las filas de la familia web de todas las rondas, en orden (una por ronda en que web estuvo en el plan)."""
+    return [s for rd in rounds for s in (rd.get("sources") or []) if s.get("family") == "web"]
+
+
+def _web_row_state(row):
+    """El estado WEB_STATES (web_locator.WEB_STATES_EXACT | _PREFIXES) de UNA fila web. search_harness._run_web_family lo
+    deja en `web_locator_state`; una fila GENÉRICA de run_round (skipped-budget por presupuesto de ronda, skipped-cap
+    'same inputs', error del adaptador) no lo trae y se deriva de status/detail/error con los prefijos del vocabulario."""
+    st = row.get("web_locator_state")
+    if st:
+        return st
+    status, detail, err = row.get("status"), row.get("detail"), row.get("error")
+    if status == "error":
+        return f"error: {err or detail or 'unknown'}"
+    if status == "tool-unavailable":
+        return detail if str(detail or "").startswith(_wl.UNAVAILABLE_PREFIX) else _wl.UNAVAILABLE_OFF
+    if status in ("skipped-budget", "skipped-cap"):
+        return f"{status} ({detail or ''})"
+    if status == "not-requested":
+        return WEB_STATE_NOT_REQUESTED
+    if status == "success":
+        return "located" if (row.get("n_located") or 0) > 0 else "no-results"
+    if status == "no-match":
+        return "no-results"
+    return f"error: unknown web row status {status!r}"
+
+
+def _web_mark_pool_duplicate(rd, cand, dup, web_pool_dups):
+    """ADR-0084 (D.1): el candidato web `cand` fue RECHAZADO por _pool_add (el pool ya tenía su llave PMID/PMCID/DOI por
+    una familia nativa o por un web-localizado anterior). Se cierra su fila located[] en la fila web de ESTA ronda —
+    feed_state 'already-present (dup of <id>)' (vocabulario FEED_STATE_PREFIXES de web_locator) + pool_dedup {of,
+    matched_key, layer 'pool', rule} — y se recuerda `evidence_id -> id nativo` para el cierre (duplicate_of)."""
+    eid = cand.get("evidence_id")
+    of = (dup or {}).get("of")
+    web_pool_dups[eid] = of
+    ref = cand.get("located_ref") if isinstance(cand.get("located_ref"), dict) else None
+    for row in (rd.get("sources") or []):
+        if row.get("family") != "web" or not isinstance(row.get("web_locator"), dict):
+            continue
+        for loc in row["web_locator"].get("located") or []:
+            if loc.get("evidence_id") != eid or loc.get("feed_state") != "materialized-same-round":
+                continue
+            if ref is not None and (loc.get("query_index"), loc.get("id")) != (ref.get("query_index"), ref.get("id")):
+                continue   # corrector ADR-0084: sólo la fila de ORIGEN del candidato rechazado, jamás otra con el mismo evidence_id
+            loc["feed_state"] = f"already-present (dup of {of})"
+            loc["pool_dedup"] = {"of": of, "matched_key": (dup or {}).get("matched_key"), "layer": "pool",
+                                 "rule": WEB_POOL_ADMISSION_RULE}
+
+
+def _close_web_located(located, web_admitted, web_pool_dups, papers):
+    """ADR-0084 (D.4): cierra cada fila located[] tras la selección y _paper_item — admitted (entró al pool como candidato
+    web), duplicate_of (id nativo del que el pool lo declaró duplicado | null), selected, selection_rank, fetched_found
+    (fetched.found del paper web-localizado seleccionado; null = no se seleccionó, luego no se bajó). Muta en sitio: la
+    MISMA fila vive en search_ledger.rounds[].sources[web].web_locator y en block.web_locator (una verdad)."""
+    by_eid = {p.get("evidence_id"): p for p in papers if p.get("source_family") == "web"}
+    for loc in located:
+        eid = loc.get("evidence_id")
+        sp = loc.get("same_paper") if isinstance(loc.get("same_paper"), dict) else None
+        if sp is not None:
+            # corrector ADR-0084: otra FORMA del mismo paper (pubmed + PMC + doi.org) no es candidato — no se admite, no se selecciona,
+            # no se baja; duplicate_of apunta al evidence_id que sí se materializó (search_harness.WEB_SAME_PAPER_RULE)
+            loc.update(admitted=False, duplicate_of=sp.get("of"), selected=False, selection_rank=None, fetched_found=None)
+            continue
+        p = by_eid.get(eid) if eid is not None else None
+        loc["admitted"] = bool(eid is not None and eid in web_admitted)
+        loc["duplicate_of"] = web_pool_dups.get(eid) if eid is not None else None
+        loc["selected"] = p is not None
+        loc["selection_rank"] = p.get("selection_rank") if p else None
+        loc["fetched_found"] = ((p.get("fetched") or {}).get("found") if p else None)
+
+
+def _web_locator_block(plan, rounds, papers, web_admitted, web_pool_dups, had_web_candidates):
+    """ADR-0084 (D.4): `block['web_locator']` — la UNIÓN de las filas web de todas las rondas (el ledger que W3 deja en
+    cada fila: web_locator {queries[], located[], unresolved[]} + contadores) más lo que sólo el pipeline sabe (admisión,
+    duplicados del pool, selección, fetch) y el encabezado de identidad de web_locator.frozen_header. runs (W7) lo funde
+    en frozen.web_locator (G.2). SIEMPRE presente con plan: cuando web NO entró al plan el `state` lo declara —
+    'not-requested (no web directive)' | 'kill-switch WITT_WEB_LOCATOR=off' | 'tool-unavailable (ADR-0084: …)' (la CAUSA
+    de la exclusión viaja aquí, no en el plan; web_locator.state_when_not_run). Contadores: ENTEROS cuando la familia
+    MIDIÓ (status success | no-match en ≥ 1 ronda), null si no (ADR-0043: no midió ≠ 0); n_queries cuenta las filas-consulta
+    declaradas (también las no enviadas). Las URLs y title_web viven SÓLO en queries[]/located[]/unresolved[]/
+    gap_flags_typed[] de este bloque (y en la fila del harness), jamás en papers[] ni en eventos."""
+    rows = _web_rows(rounds)
+    families = list(plan.get("families") or [])
+    in_plan = "web" in families
+    excl = next((e for e in (plan.get("families_excluded") or []) if e.get("family") == "web"), None)
+    q_web = (plan.get("queries") or {}).get("web") or {}
+    cfg = _wl.env_config()          # M.4: env EN LA LLAMADA (cap, lista blanca, regla DOI genérica)
+    ps = _wl.provider_state()       # M.4: disponibilidad al cerrar el bloque (la del despacho viaja en las filas)
+    ran = [r for r in rows if r.get("status") in search_harness.RAN_STATES]
+    measured = bool(ran)
+    queries, located, unresolved = [], [], []
+    for r in rows:
+        led = r.get("web_locator") if isinstance(r.get("web_locator"), dict) else {}
+        queries.extend(led.get("queries") or [])
+        located.extend(led.get("located") or [])
+        unresolved.extend(led.get("unresolved") or [])
+    _close_web_located(located, web_admitted, web_pool_dups, papers)
+    # --- estado agregado (WEB_STATES): located > no-results > el de la primera fila; sin web en el plan, la causa ---
+    if not in_plan:
+        if excl is not None:
+            state = _wl.state_when_not_run(ps) or WEB_STATE_NOT_REQUESTED
+            state_detail = excl.get("reason")
+        else:
+            state, state_detail = WEB_STATE_NOT_REQUESTED, None
+    elif not rows:
+        state, state_detail = WEB_STATE_NOT_REQUESTED, "web in plan.families but no round produced a web row"
+    elif any(_web_row_state(r) == "located" for r in ran):
+        state, state_detail = "located", None
+    elif ran:
+        state, state_detail = "no-results", None
+    else:
+        state, state_detail = _web_row_state(rows[0]), rows[0].get("detail")
+        if not ps.get("available") and str(state).startswith(_wl.UNAVAILABLE_PREFIX):
+            # corrector ADR-0084 (L): web nombrada por la env SIN localizador → la ronda dejó la fila MÍNIMA 'tool-unavailable' de
+            # 7d9ce15 (search_harness.run_source); la CAUSA (llave ausente / env inválida / proveedor sin llave) la declara
+            # web_locator.state_when_not_run, como cuando la directiva se excluyó al compilar
+            cause = _wl.state_when_not_run(ps)
+            if cause:
+                state_detail = f"{state}; {state_detail}" if state_detail else state
+                state = cause
+
+    def _sum(key):
+        return sum(int(r.get(key) or 0) for r in ran)
+
+    counters = {}
+    for key in ("n_queries_planned", "n_queries_dropped_by_cap", "n_results", "n_located", "n_materialized",
+                "n_epmc_gets", "n_not_found_in_europepmc", "n_fed_ctx", "n_located_not_fed",
+                "n_duplicates_in_response", "n_unresolved", "n_same_paper_dups", "n_epmc_record_mismatch"):
+        counters[key] = _sum(key) if measured else None
+    # 'already-present' en DOS capas (Context 7): el resolutor (existing_ids: lo ya presente en la corrida antes de la
+    # familia) y el pool (D.1: una familia nativa de la MISMA ronda trajo el mismo id) — se declaran por separado y sumadas
+    counters["n_already_present_resolver"] = _sum("n_already_present") if measured else None
+    # corrector ADR-0084: duplicados del POOL = filas located[] que el pool marcó (una por candidato rechazado), no un dict por eid
+    counters["n_already_present_pool"] = sum(1 for l in located if isinstance(l.get("pool_dedup"), dict)) if measured else None
+    counters["n_already_present"] = ((counters["n_already_present_resolver"] + counters["n_already_present_pool"])
+                                     if measured else None)
+    counters["n_admitted"] = len(web_admitted) if measured else None
+    counters["n_located_selected"] = sum(1 for l in located if l.get("selected")) if measured else None
+    counters["n_located_not_selected"] = (sum(1 for l in located if l.get("admitted") and not l.get("selected"))
+                                          if measured else None)
+    counters["n_papers_web_located"] = sum(1 for p in papers if p.get("source_family") == "web") if measured else None
+    # --- cuota: la última consulta manda el estado; n_before de la primera, n_after de la última ---
+    q_quota = [q.get("quota") or {} for q in queries]
+    quota = {"state": next((q["state"] for q in reversed(q_quota) if q.get("state")), None),
+             "n_before": next((q["n_before"] for q in q_quota if q.get("n_before") is not None), None),
+             "n_after": next((q["n_after"] for q in reversed(q_quota) if q.get("n_after") is not None), None),
+             "cap": next((q["cap"] for q in q_quota if q.get("cap") is not None), int(cfg.get("monthly_cap") or 0)),
+             "cap_source": cfg["sources"]["monthly_cap"],
+             "month": next((q["month"] for q in q_quota if q.get("month")), None),
+             "hook": next((r.get("quota_hook") for r in rows if r.get("quota_hook")), None),
+             "n_record_errors": sum(1 for q in q_quota if q.get("record_error")),
+             "rule": _wl.QUOTA_RULE}
+    # --- costo (B.6): consultas facturables × precio unitario = PROYECCIÓN; tokens (anthropic) = MEDICIÓN ---
+    provider = next((r.get("provider") for r in rows if r.get("provider")), ps["provider"])
+    n_billable = sum(int(q.get("n_billable") or 0) for q in queries)
+    toks = [q["tokens"] for q in queries if isinstance(q.get("tokens"), dict)]
+    tokens = ({"in": sum(int(t.get("in") or 0) for t in toks), "out": sum(int(t.get("out") or 0) for t in toks)}
+              if toks else None)
+    models = sorted({q.get("model") for q in queries if q.get("model")})
+    # corrector ADR-0084: cost.provider_detail (anthropic: tool_type del vocabulario cerrado + «el modelo LEE texto web») — de la
+    # primera fila-query que lo trae, o del cfg cuando el proveedor es anthropic y ninguna consulta se envió
+    provider_detail = next((q["cost"]["provider_detail"] for q in queries
+                            if isinstance(q.get("cost"), dict) and isinstance(q["cost"].get("provider_detail"), dict)), None)
+    if provider_detail is None and provider == "anthropic" and hasattr(_wl, "anthropic_provider_detail"):
+        provider_detail = _wl.anthropic_provider_detail(cfg)
+    cost = _wl.cost_of(provider, n_billable, tokens=tokens, model=(models[0] if len(models) == 1 else None),
+                       provider_detail=provider_detail)
+    if len(models) > 1:
+        cost["models"] = models
+    cost_sum = round(sum(float(r.get("cost_usd_projected") or 0.0) for r in rows), 6)
+    # --- gap_flags_typed (G.2; patrón ADR-0082): la URL vive AQUÍ (humano, PDF, Hoja); answer.gap_flags recibe sólo el
+    # CONTEO por clase (G.4, runs) porque viaja al modelo del turno siguiente (Context 3) ---
+    gaps = []
+    for u in unresolved:
+        gaps.append({"kind": "web-located-unresolved", "url": u.get("url"), "host": u.get("host"),
+                     "reason": u.get("reason"), "round": u.get("round"),
+                     "requirement_ids": list(u.get("requirement_ids") or [])})
+    for l in located:
+        if l.get("feed_state") == "not-found-in-europepmc":
+            gaps.append({"kind": "web-located-unmaterialized", "id": l.get("id"), "url": l.get("url"),
+                         "host": l.get("host"), "reason": "not-found-in-europepmc", "round": l.get("round"),
+                         "requirement_ids": list(l.get("requirement_ids") or [])})
+    by_round = []
+    for r in rows:
+        by_round.append({"round": r.get("round"), "status": r.get("status"), "state": _web_row_state(r),
+                         "n_queries": r.get("n_queries"), "n_results": r.get("n_results"),
+                         "n_located": r.get("n_located"), "n_materialized": r.get("n_materialized"),
+                         "n_unresolved": r.get("n_unresolved"), "cost_usd_projected": r.get("cost_usd_projected"),
+                         "quota_state": r.get("quota_state"), "detail": r.get("detail"), "error": r.get("error")})
+    block = dict(_wl.frozen_header(cfg))   # module_version, resolver_version, tool_version, state_vocabulary,
+    #                                        resolver_rules[], allowed_hosts, generic_doi_rule, text_policy, rule, gate
+    block.update({
+        "block_version": WEB_LOCATOR_BLOCK_VERSION,
+        "state": state, "state_detail": state_detail, "measured": measured,
+        "in_plan": in_plan, "plan_exclusion_reason": excl.get("reason") if excl else None,
+        "provider": provider,
+        "provider_source": next((r.get("provider_source") for r in rows if r.get("provider_source")), ps["provider_source"]),
+        "provider_available": (bool(next(r.get("provider_available") for r in rows if "provider_available" in r))
+                               if any("provider_available" in r for r in rows) else bool(ps["available"])),
+        "provider_state": {**ps, "read_at": "answer_pipeline._web_locator_block (path_b_bundle, build time; M.4)"},
+        "entered_by": q_web.get("entered_by"),
+        "directive_requirement_ids": list(q_web.get("directive_requirement_ids") or []),
+        "query_source": q_web.get("query_source"),
+        "families_order_rule": plan.get("families_order_rule"),
+        "n_rounds_with_web": len(rows), "by_round": by_round,
+        "n_queries": len(queries),
+        **counters,
+        "queries": [dict(q) for q in queries],
+        "located": [dict(l) for l in located],
+        "unresolved": [dict(u) for u in unresolved],
+        "gap_flags_typed": gaps,
+        "n_gap_flags": {k: sum(1 for g in gaps if g["kind"] == k) for k in WEB_GAP_KINDS},
+        "cost": cost, "cost_usd_projected": cost_sum,
+        "quota": quota, "quota_state": quota["state"],
+        "had_web_candidates": bool(had_web_candidates),
+        "pool_admission_rule": WEB_POOL_ADMISSION_RULE, "tie_break_rule": WEB_TIE_BREAK_RULE,
+        "dedup_layer_rule": getattr(search_harness, "WEB_DEDUP_LAYER_RULE", None),
+        "materialize_rule": getattr(search_harness, "WEB_MATERIALIZE_RULE", None),
+        "located_close_keys": list(WEB_LOCATED_CLOSE_KEYS),
+    })
+    return block
+
+
 def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_out=None, on_stage=None,
-                    existing_ids=None, qb=None):
+                    existing_ids=None, qb=None, web_quota=None):
     """Ruta B vía lib/search_harness (ADR-0080 C). Devuelve `papers` y llena `ledger_out` con los ledgers de hoy
-    (europepmc_searched / pubmed_searched / zfin_searched / selection) + `search_ledger`.
+    (europepmc_searched / pubmed_searched / zfin_searched / selection) + `search_ledger` (+ `web_locator`, ADR-0084 D.4).
+
+    ADR-0084 (D): los candidatos web-localizados (`source_family 'web'`, ya materializados por Europe PMC en el
+    harness) se admiten al pool DESPUÉS de los nativos de la misma ronda (D.1, WEB_POOL_ADMISSION_RULE); el que el pool
+    ya tenía se declara en selection.duplicates[] (source_family 'web') y en web_locator.located[].feed_state
+    'already-present (dup of <id>)'. La selección desempata native-before-web-located (D.2). Los hooks del localizador
+    viajan en ctx (D.5): on_web_locate → evento 'web.locate' (uno por consulta enviada), web_quota (cuota mensual;
+    None → 'not-enforced'), existing_ids (= `present`, crece con cada ronda). Al cerrar, `ledger['web_locator']` es la
+    unión de las filas web (ver _web_locator_block).
 
     Lazo de rondas (código, no modelo): k = 1..cap; tras cada ronda, otra SOLO si
     search_harness.should_run_next_round(k, n_admitted, cap, inputs_changed) — n_admitted = lo que ENTRÓ al pool
@@ -1051,9 +1342,17 @@ def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_
     # 'curies' se pre-crea (corrector ADR-0080): run_round copia el ctx superficialmente y una llave ausente se
     # creaba sólo en la copia — las curies ZFIN resueltas se perdían entre rondas (monarch jamás las veía)
     ctx = {"retmax": retmax, "n_papers": n, "literature_requested": n > 0, "pubmed_seen": {}, "dois": [], "curies": []}
+    # ADR-0084 (D.5): hooks del localizador web — su ausencia la DECLARA el harness, jamás rompe. `existing_ids` es el
+    # MISMO set `present` (crece con lo admitido: la web no re-localiza lo que la corrida ya tiene); `on_web_locate`
+    # emite 'web.locate' (runs → stage.web.locate) UNA vez por consulta enviada, con ids y hosts, jamás URLs.
+    ctx["existing_ids"] = present
+    ctx["web_quota"] = web_quota if callable(web_quota) else None
+    ctx["on_web_locate"] = lambda payload: _stage("web.locate", payload)
     stop_reason = "no-families" if not families else None
     dup_seen = set()
     prev_inputs = {}   # {familia: insumos consumidos en rondas anteriores} — lo que NO se re-ejecuta
+    web_admitted, web_pool_dups = set(), {}   # ADR-0084 (D.1/D.4): evidence_ids web admitidos / {eid: id nativo del que es dup}
+    had_web_candidates = False
     k = 0
     while families:
         k += 1
@@ -1071,16 +1370,29 @@ def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_
                         dup_seen.add(d)
                         duplicates.append({"duplicate": d, "source": "pubmed", "of": d, "matched_key": d})
         n_admitted = 0
+        lits = [it for it in rd["items"] if it.get("kind") == "literature-candidate"]
+        web_lits = [it for it in lits if it.get("source_family") == "web"]
+        if web_lits:
+            # ADR-0084 (D.1) admisión NATIVE-FIRST dentro de la ronda: los candidatos que EPMC/PubMed trajeron ganan la
+            # identidad del pool; los web-localizados van después (partición ESTABLE: sin web la lista es la de hoy)
+            had_web_candidates = True
+            lits = [it for it in lits if it.get("source_family") != "web"] + web_lits
         for it in rd["items"]:
-            if it.get("kind") == "literature-candidate":
-                if _pool_add(pool, seen, it, duplicates):
-                    n_admitted += 1
-                # entró o fue rechazado por llave PMID/PMCID/DOI: en ambos casos ya está PRESENTE en la corrida
-                present.add(it.get("evidence_id"))
-            else:
+            if it.get("kind") != "literature-candidate":
                 other_items.append(it)
                 present.add(it.get("evidence_id"))
                 n_admitted += 1
+        for it in lits:
+            entered = _pool_add(pool, seen, it, duplicates)
+            if entered:
+                n_admitted += 1
+            # entró o fue rechazado por llave PMID/PMCID/DOI: en ambos casos ya está PRESENTE en la corrida
+            present.add(it.get("evidence_id"))
+            if it.get("source_family") == "web":
+                if entered:
+                    web_admitted.add(it.get("evidence_id"))
+                else:
+                    _web_mark_pool_duplicate(rd, it, duplicates[-1], web_pool_dups)
         rd["n_admitted"] = n_admitted
         # ¿qué familias tendrían insumos NUEVOS en la ronda k+1? (las que aún no corrieron por presupuesto también)
         prev_inputs.update(search_harness.inputs_used_by_round(rd))
@@ -1107,18 +1419,27 @@ def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_
                            "n_duplicates": len(duplicates), "duplicates": duplicates,
                            "not_selected": not_selected,
                            "dedup_keys": "PMID · PMCID · DOI (lower, sin prefijo https://doi.org/)"}
+    if had_web_candidates:
+        # ADR-0084 (D.1/D.2): las dos reglas viajan SÓLO cuando hubo candidatos web (sin web, selection es la de hoy)
+        ledger["selection"]["pool_admission_rule"] = WEB_POOL_ADMISSION_RULE
+        ledger["selection"]["tie_break_web_located"] = WEB_TIE_BREAK_RULE
     papers = []
     for c in selected:
         item = _paper_item(c, full_text, terms, excerpt_chars)
         # ADR-0082 (C.7, C9): `directive_requirement_ids` viaja del candidato al paper — así
         # council.coverage_after_search atribuye un paper de literatura a la directiva que lo pidió
         # (antes se perdía aquí y runs lo declaraba 'not-attributable'); [] = nadie lo pidió.
+        # ADR-0084 (D.3): + located_via / located_from / search_rec_source, sólo cuando el candidato los trae (web).
         for key in ("kind", "source_family", "label", "identifier_provenance", "url", "round",
-                    "directive_requirement_ids"):
+                    "directive_requirement_ids") + WEB_PAPER_COPY_KEYS:
             if key in c:
                 item[key] = c[key]
         papers.append(item)
     papers += other_items
+    # ADR-0084 (D.4): el bloque del localizador — unión de las filas web de todas las rondas, con located[] CERRADOS
+    # (admitted / duplicate_of / selected / selection_rank / fetched_found). Siempre presente con plan: su `state`
+    # declara también cuando web NO entró (not-requested / kill-switch / tool-unavailable).
+    ledger["web_locator"] = _web_locator_block(plan, rounds, papers, web_admitted, web_pool_dups, had_web_candidates)
     ledger["search_ledger"] = {
         "harness_version": search_harness.HARNESS_VERSION,
         "plan": {k2: v for k2, v in plan.items() if k2 != "query_builder"},
@@ -1133,7 +1454,8 @@ def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_
 
 
 def path_b_bundle(question, entities=None, n=None, query=None, query_source=None, triggered_by=None,
-                  sources=PATH_B_SOURCES, retmax=None, search_plan=None, on_stage=None, existing_ids=None):
+                  sources=PATH_B_SOURCES, retmax=None, search_plan=None, on_stage=None, existing_ids=None,
+                  web_quota=None):
     """The `path_b` block of the bundle, built in ONE place. Both trigger sites (structural, inside
     retrieve(); confidence-gated, inside runs.execute_run) call this — a re-assembled block is how the
     per-source counters drift apart, and drifting counters are how a broken search looks like an empty
@@ -1149,7 +1471,12 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
     ADR-0080: con `search_plan` las fuentes son las FAMILIAS del plan (sources_requested = plan.families),
     la búsqueda corre por el harness (ver _path_b_harness) y el bloque gana `search_ledger` +
     `search_plan_version`; `on_stage` recibe los eventos search.*; `existing_ids` = evidence_ids ya
-    presentes en la corrida (dedup declarado)."""
+    presentes en la corrida (dedup declarado).
+
+    ADR-0084 (D.4/D.5): con plan el bloque gana `web_locator` (ver _web_locator_block) y `web_quota` (callable de
+    cuota, runs → db.web_locator_reserve; G.10: runs lo pasa por inspección de firma) viaja al harness. La familia
+    web que MIDIÓ entra a ran_sources → `n_results_by_source.web == 0` SIEMPRE (0 papers con source 'web' por
+    construcción); los web-localizados cuentan en `europepmc` y se declaran en web_locator.n_papers_web_located."""
     if n is None:
         n, n_src = _env_int_src("WITT_PATH_B_N_PAPERS", PATH_B_N_PAPERS_DEFAULT)
     else:
@@ -1167,9 +1494,11 @@ def path_b_bundle(question, entities=None, n=None, query=None, query_source=None
     ledger = {}
     papers = path_b(question, n=n, query=query, entities=entities, sources=sources, ledger_out=ledger,
                     query_source=query_source, queries=qb, retmax=retmax, search_plan=search_plan,
-                    on_stage=on_stage, existing_ids=existing_ids)
+                    on_stage=on_stage, existing_ids=existing_ids, web_quota=web_quota)
     # ADR-0080 corrector: con plan, las familias que MIDIERON (success | no-match en alguna ronda) reciben su 0
-    # explícito en n_results_by_source; las que no corrieron quedan ausentes ('0 explícito' != 'no se pidió')
+    # explícito en n_results_by_source; las que no corrieron quedan ausentes ('0 explícito' != 'no se pidió').
+    # ADR-0084 (D.4): la familia web que midió entra aquí → n_results_by_source.web == 0 SIEMPRE (el gate del brief:
+    # ningún paper lleva source 'web'); sus candidatos materializados cuentan en 'europepmc'.
     ran_sources = None
     if search_plan is not None:
         ran_sources = []
@@ -1235,8 +1564,12 @@ def path_b_event_payload(block, trigger=None):
                 if k in f:
                     r["fetched"][k] = f[k]
             # corrector ADR-0080 (paridad webapp 2026-09-15): las llaves del ítem normalizado del harness
-            # (search_harness.normalize_item / _path_b_harness) viajan al resumen SOLO si el ítem las trae
-            for k in ("kind", "source_family", "label", "identifier_provenance", "url", "gap_flags", "zfin_curie", "round"):
+            # (search_harness.normalize_item / _path_b_harness) viajan al resumen SOLO si el ítem las trae.
+            # ADR-0084 (D.5/G.6): + located_via / located_from {host, rule_id, confidence, kind, round, requirement_ids}
+            # / search_rec_source — sólo en el paper web-localizado; located_from NO lleva URL (la hallada vive en
+            # web_locator); `url` aquí es la canónica del identificador, como en las familias nativas.
+            for k in ("kind", "source_family", "label", "identifier_provenance", "url", "gap_flags", "zfin_curie",
+                      "round") + WEB_PAPER_COPY_KEYS:
                 if k in it:
                     r[k] = it[k]
             if it.get("zfin"):
@@ -1266,6 +1599,9 @@ def path_b_event_payload(block, trigger=None):
         sel = block["selection"]
         p["selection"] = {k: sel.get(k) for k in ("rule", "n_requested", "n_candidates", "n_selected",
                                                   "n_duplicates", "not_selected")}
+        for k in ("pool_admission_rule", "tie_break_web_located"):
+            if k in sel:   # corrector ADR-0084 (D.1/D.2): la Hoja lee el evento path_b; ausentes sin web (forma de hoy byte a byte)
+                p["selection"][k] = sel[k]
     if "search_ledger" in block:
         # ADR-0080: resumen del harness para la Traza — sin ítems ni ledgers anidados (viven en el bundle)
         sl = block["search_ledger"]
@@ -1273,6 +1609,12 @@ def path_b_event_payload(block, trigger=None):
                                                      "stop_reason", "n_new_total", "n_items", "families_default")}
         p["search_ledger"]["families"] = list((sl.get("plan") or {}).get("families") or [])
         p["search_ledger"]["rounds"] = [search_harness.round_event_payload(rd) for rd in sl.get("rounds") or []]
+    if isinstance(block.get("web_locator"), dict):
+        # ADR-0084 (G.6): stage.path_b += n_web_located / n_web_unresolved — ENTEROS si la familia midió, null si no
+        # (ADR-0043: no midió ≠ 0). Jamás queries/located/unresolved (URLs): viven en el bundle y en frozen.web_locator.
+        wlb = block["web_locator"]
+        p["n_web_located"] = wlb.get("n_located")
+        p["n_web_unresolved"] = wlb.get("n_unresolved")
     return p
 
 

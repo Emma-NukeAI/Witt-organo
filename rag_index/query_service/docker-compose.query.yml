@@ -211,6 +211,40 @@ services:
       - WITT_FIGURES_REFETCH_ON_GET=${WITT_FIGURES_REFETCH_ON_GET:-0}    # 1 = ante bytes-not-in-cache UNA GET (20 s) y servir SOLO si sha == congelado (409 si no); default 0 (E4)
       - WITT_FIGURES_PDF_THUMBS=${WITT_FIGURES_PDF_THUMBS:-1}        # 0 = el PDF imprime palabras + enlace aunque la licencia permita la miniatura (M.3)
       - WITT_FIGURES_COUNT_TOKENS=${WITT_FIGURES_COUNT_TOKENS:-0}    # 1 = vision.tokens_measured por count_tokens SIN imágenes (una llamada gratuita por lente Anthropic)
+      # ADR-0084 — la WEB como LOCALIZADOR de identificadores, jamás fuente (Brave Search REST sin modelo como primario; Anthropic
+      # web_search como alterno EXPLÍCITO; resolutor DETERMINISTA URL→id; materialización SÓLO por Europe PMC; frozen.web_locator con
+      # las URLs declaradas, contadas y jamás citadas — contrato 1.13). SÓLO placeholders: las 17 env viven DECLARADAS en
+      # analysis/scripts/lib/web_locator.py (ENV_SPECS / env_config(), lector tolerante EN LA LLAMADA: vacía/basura = default declarado
+      # con fuente 'default' | 'default-invalid-env:…', fuera de rango = recorte DECLARADO en cfg.clamped) y en models.ENV_TABLE
+      # (ENV_ADR_0084, mismos defaults — paridad medida en smoke_models); el valor efectivo y su fuente viajan en
+      # frozen.web_locator.{provider_source, allowed_hosts, generic_doi_rule, quota.cap_source} y en /config-history.current
+      # (web.locator, web.provider). TODA ENV IMPLICA REINICIO (ADR-0081 Context 10 / ADR-0084 M.4). Kill-switch:
+      # WITT_WEB_LOCATOR=off (o sin BRAVE_API_KEY: off DERIVADO) = frozen 1.12 byte a byte salvo EXACTAMENTE 3 excepciones declaradas
+      # (render_contract_version, web_locator{state, provider, provider_source, kill_switch, state_vocabulary, rule},
+      # deterministic_checks.web_locator{state}) — ADR-0084 (L).
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}                            # SECRETO: sólo en la pestaña Environment de Dokploy — never git, never vault, never
+                                                                     # memoria; viaja SOLO en la cabecera X-Subscription-Token; en salida/ledger/caché/
+                                                                     # fixture sólo su PRESENCIA (api_key_present); vacía => proveedor derivado 'off',
+                                                                     # familia web 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))', CERO red
+      - WITT_WEB_LOCATOR=${WITT_WEB_LOCATOR:-}                      # brave | anthropic | off; vacía => derivado (brave si hay BRAVE_API_KEY, off si no);
+                                                                     # off = kill-switch (L); anthropic es EXPLÍCITO (sin auto-failover: el despachador LEE texto web)
+      - WITT_WEB_MAX_RESULTS=${WITT_WEB_MAX_RESULTS:-10}            # count por consulta a Brave (clamp 1..20, tope documentado); anthropic no aplica
+      - WITT_WEB_MAX_QUERIES=${WITT_WEB_MAX_QUERIES:-3}             # consultas por ronda (una por directiva; clamp 1..10); sobrantes skipped-cap en calls[]
+      - WITT_WEB_MAX_MATERIALIZE=${WITT_WEB_MAX_MATERIALIZE:-6}     # ids de literatura verificados en Europe PMC por ronda (clamp 0..20; 0 = sólo localizar)
+      - WITT_WEB_MAX_QUERY_CHARS=${WITT_WEB_MAX_QUERY_CHARS:-400}   # tope NUESTRO de q (Brave no documenta longitud); query_truncated declarado
+      - WITT_WEB_BUDGET_S=${WITT_WEB_BUDGET_S:-30}                  # presupuesto de la familia web dentro de la ronda (clamp 1..120): consultas + materialización
+      - WITT_WEB_MIN_INTERVAL_S=${WITT_WEB_MIN_INTERVAL_S:-1.0}     # pacing PROPIO hacia api.search.brave.com (Brave publica 50 qps); throttle.waited_s medido
+      - WITT_WEB_COUNTRY=${WITT_WEB_COUNTRY:-}                      # country de 2 letras; vacía => no se envía (country_sent null)
+      - WITT_WEB_LANG=${WITT_WEB_LANG:-en}                          # search_lang ISO 639-1 (las query_en son inglés); presente y VACÍA => no se envía
+      - WITT_WEB_FRESHNESS=${WITT_WEB_FRESHNESS:-}                  # pd | pw | pm | py | YYYY-MM-DDtoYYYY-MM-DD; fuera de forma => no se envía + freshness_ignored
+      - WITT_WEB_ALLOWED_HOSTS=${WITT_WEB_ALLOWED_HOSTS:-}          # CSV que RESTRINGE los resolubles (host fuera => host-not-allowed); anthropic: allowed_domains (<= 20)
+      - WITT_WEB_GENERIC_DOI_RULE=${WITT_WEB_GENERIC_DOI_RULE:-1}   # regla doi-in-url-any-host (confidence pattern-only; la existencia la verifica EPMC); 0 = sólo hosts de la tabla
+      - WITT_WEB_MONTHLY_CAP=${WITT_WEB_MONTHLY_CAP:-900}           # tope mensual UTC de consultas facturables por proveedor (tabla web_locator_usage, UPDATE condicional
+                                                                     # atómico); alcanzado => skipped-cap con detail, CERO red; 0 = sin tope declarado (OE2)
+      - WITT_WEB_TEST_QUERY=${WITT_WEB_TEST_QUERY:-}                # consulta EXPLÍCITA del operador cuando web entra por WITT_SEARCH_DEFAULT_FAMILIES; nunca en producción
+      - WITT_ANTHROPIC_WEB_SEARCH_MAX_USES=${WITT_ANTHROPIC_WEB_SEARCH_MAX_USES:-1}   # max_uses del server-tool web_search (una directiva = una búsqueda; clamp 1..5)
+      - WITT_WEB_ANTHROPIC_TOOL_TYPE=${WITT_WEB_ANTHROPIC_TOOL_TYPE:-web_search_20250305}   # literal del type: VOCABULARIO CERRADO (sólo web_search_20250305, sin dynamic filtering); otro literal = default + default-invalid-env (corrector)
+      - WITT_WEB_LOCATOR_MODEL=${WITT_WEB_LOCATOR_MODEL:-}          # modelo del despachador del alterno (validado contra models.MODELS); vacía => rol elicitation; FUERA de PIPELINE_ROLES
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

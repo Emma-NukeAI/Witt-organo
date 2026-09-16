@@ -21,8 +21,12 @@ Mide, no supone (corpus SINTÉTICO en la SQLite de la máscara; cero red, cero m
     lado, `fired` false con 3 unidades; al cruzar el umbral (5 corridas, ≥3 tooluniverse) `fired` true SÓLO
     para tooluniverse; `n_runs_with_tooluniverse_uncovered` 4.
   · reconstrucción del índice al cambiar la llave (n_builds +1 exactamente) y NO al repetir la búsqueda.
-  · `_panel_findings` espejo == runs._panel_findings; membership() con card_sha == catalog_cards; familias
-    insatisfacibles derivadas de SEARCH_DISPATCH (fn None) == ('tooluniverse', 'web').
+  · `_panel_findings` espejo == runs._panel_findings; membership() con card_sha == catalog_cards.
+  · ADR-0084 (W6 — F.3): `DEMAND_FAMILIES` ESTÁTICA ('figure', 'tooluniverse', 'web') — la web se sigue CONTANDO como
+    demanda aunque haya llave (la serie medida no se rompe); `unsatisfiable_families(env)` derivada EN LA LLAMADA
+    (('tooluniverse', 'web') bajo off · ('tooluniverse',) con llave fake); `demand()` += `web_locator_provider_state
+    {provider, provider_source, available, unavailable_reason}` + `unsatisfiable_families_source` + `demand_families_rule`;
+    bajo off el literal es byte-idéntico a 7d9ce15 ('tool-unavailable (ADR-0084)').
   · urlopen bloqueado y contado = 0.
 
 Uso (máscara offline de siempre; UNA .db por smoke):
@@ -464,21 +468,38 @@ check("5d. index_view bajo INDEX=0 → state disabled; env basura → enabled po
       and "unparseable" in ci.env_config({"WITT_COUNCIL_INDEX": "maybe"})["enabled_source"])
 
 # ── 6. demand(): el criterio MEDIDO de los sidecars ───────────────────────────────────────────────────────
-check("6a. UNSATISFIABLE_FAMILIES derivadas de SEARCH_DISPATCH (fn None) == ('tooluniverse', 'web'); europepmc NO "
-      "(tool_module None pero fn real)",
-      ci.UNSATISFIABLE_FAMILIES == ("tooluniverse", "web") and "europepmc" not in ci.UNSATISFIABLE_FAMILIES
-      and search_harness.SEARCH_DISPATCH["europepmc"]["tool_module"] is None
-      and ci.UNSATISFIABLE_FAMILIES_SOURCE.startswith("derived"))
+FAKE_BRAVE_KEY = "smoke-fake-brave-key-never-sent-0084"       # sólo PRESENCIA (provider_state); jamás viaja ni se envía
+KEY_ENV = {**dict(os.environ), "BRAVE_API_KEY": FAKE_BRAVE_KEY}
+assert os.environ.get("BRAVE_API_KEY", "") == "" and not os.environ.get("WITT_WEB_LOCATOR"), "la máscara debe dejar el localizador off"
+PS_OFF = {"provider": "off", "provider_source": "default-derived:BRAVE_API_KEY absent", "available": False,
+          "unavailable_reason": "tool-unavailable (ADR-0084)"}
+check("6a. ADR-0084 F.3 — DEMAND_FAMILIES ESTÁTICA == ('figure', 'tooluniverse', 'web') (== sorted(DEMAND_SOURCE_FAMILIES ∪ figure)); "
+      "unsatisfiable_families(env) derivada EN LA LLAMADA vía search_harness: bajo off ('tooluniverse', 'web') y con llave fake "
+      "('tooluniverse',) (== search_harness.unsatisfiable_families(env)); europepmc NUNCA (tool_module None pero fn real); la fuente es el "
+      "literal del ADR; UNSATISFIABLE_FAMILIES estática de import YA NO existe (Context 1: `fn is None` mentiría con la fila web real)",
+      ci.DEMAND_FAMILIES == ("figure", "tooluniverse", "web") and ci.DEMAND_SOURCE_FAMILIES == ("tooluniverse", "web")
+      and ci.unsatisfiable_families(env=OFF) == ("tooluniverse", "web") == search_harness.unsatisfiable_families(OFF)
+      and ci.unsatisfiable_families(env=KEY_ENV) == ("tooluniverse",) == search_harness.unsatisfiable_families(KEY_ENV)
+      and ci.unsatisfiable_families() == ("tooluniverse", "web")
+      and "europepmc" not in ci.unsatisfiable_families(env=OFF) and search_harness.SEARCH_DISPATCH["europepmc"]["tool_module"] is None
+      and ci.UNSATISFIABLE_FAMILIES_SOURCE == "derived: SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available"
+      and not hasattr(ci, "UNSATISFIABLE_FAMILIES"),
+      repr((ci.unsatisfiable_families(env=OFF), ci.unsatisfiable_families(env=KEY_ENV))))
 d1 = ci.demand()
 check("6b. conteos exactos: 1 corrida con ledger + 2 planes (3 unidades), 8 requisitos; web 1 · tooluniverse 2 · figure 1; "
-      "harness_state de C2 al lado = 4; tooluniverse abierto en 0 corridas (aporto → covered-by-attestation)",
+      "harness_state de C2 al lado = 4; tooluniverse abierto en 0 corridas (aporto → covered-by-attestation); ADR-0084: bajo off "
+      "unsatisfiable_families ['tooluniverse', 'web'] con su fuente y web_locator_provider_state {off, derivado por ausencia de llave, "
+      "available False, 'tool-unavailable (ADR-0084)' byte-idéntico}; demand_families estáticas + demand_families_rule",
       d1["n_runs_scanned"] == 1 and d1["n_plans_scanned"] == 2 and d1["n_units_scanned"] == 3
       and d1["n_requirements_scanned"] == 8
       and d1["n_requirements_unsatisfiable_by_family"] == {"figure": 1, "tooluniverse": 2, "web": 1}
       and d1["n_requirements_unsatisfiable_total"] == 4 and d1["n_requirements_harness_state_unsatisfiable"] == 4
-      and d1["n_runs_with_tooluniverse_uncovered"] == 0 and d1["by_family_units"]["tooluniverse"] == {"n_runs": 1, "n_plans": 1},
+      and d1["n_runs_with_tooluniverse_uncovered"] == 0 and d1["by_family_units"]["tooluniverse"] == {"n_runs": 1, "n_plans": 1}
+      and d1["unsatisfiable_families"] == ["tooluniverse", "web"] and d1["unsatisfiable_families_source"] == ci.UNSATISFIABLE_FAMILIES_SOURCE
+      and d1["web_locator_provider_state"] == PS_OFF and d1["demand_families"] == ["figure", "tooluniverse", "web"]
+      and d1["demand_families_rule"] == ci.DEMAND_FAMILIES_RULE and "ADR-0084" in d1["rule"] and "static" in d1["rule"],
       json.dumps({k: d1[k] for k in ("n_runs_scanned", "n_plans_scanned", "n_requirements_unsatisfiable_by_family",
-                                     "n_requirements_harness_state_unsatisfiable")}))
+                                     "n_requirements_harness_state_unsatisfiable", "unsatisfiable_families", "web_locator_provider_state")}))
 check("6c. umbral {min_runs 5, min_requirements 3, source 'brief §6.3'}; fired false con 3 unidades; clase literal del ADR; "
       "los declarados (council absent 1, consumido 1, smoke excluido) viajan",
       d1["threshold"] == {"min_runs": 5, "min_requirements": 3, "source": "brief §6.3"} and d1["fired"] is False
@@ -508,6 +529,57 @@ check("6d. al cruzar el umbral: 5 corridas con ledger + 2 planes; tooluniverse 6
       and d2["n_runs_with_tooluniverse_uncovered"] == 4, json.dumps(d2["fired_by_family"]))
 check("6e. demand no construye el índice TF-IDF (n_builds intacto): es un conteo",
       ci._IDX["n_builds"] == n_builds_before)
+d_key = ci.demand(env=KEY_ENV)
+check("6f. ADR-0084 F.3 — CON llave fake la demanda web SIGUE contándose (conteo ESTÁTICO: web 1 en el histórico, mismos conteos que 6d) "
+      "mientras unsatisfiable_families pasa a ['tooluniverse'] y web_locator_provider_state {brave, 'default-derived:BRAVE_API_KEY present', "
+      "available True, unavailable_reason None}; fired_by_family conserva la llave web; la llave fake JAMÁS viaja en la respuesta",
+      d_key["n_requirements_unsatisfiable_by_family"] == d2["n_requirements_unsatisfiable_by_family"] == {"figure": 1, "tooluniverse": 6, "web": 1}
+      and d_key["unsatisfiable_families"] == ["tooluniverse"] and d_key["unsatisfiable_families_source"] == ci.UNSATISFIABLE_FAMILIES_SOURCE
+      and d_key["web_locator_provider_state"] == {"provider": "brave", "provider_source": "default-derived:BRAVE_API_KEY present",
+                                                  "available": True, "unavailable_reason": None}
+      and set(d_key["fired_by_family"]) == {"figure", "tooluniverse", "web"} and d_key["fired_by_family"]["web"] is False
+      and d_key["n_requirements_harness_state_unsatisfiable"] == d2["n_requirements_harness_state_unsatisfiable"]
+      and FAKE_BRAVE_KEY not in json.dumps(d_key),
+      json.dumps({k: d_key[k] for k in ("unsatisfiable_families", "web_locator_provider_state")}))
+d_brave_nokey = ci.demand(env={**dict(os.environ), "WITT_WEB_LOCATOR": "brave"})
+d_off_key = ci.demand(env={**KEY_ENV, "WITT_WEB_LOCATOR": "off"})
+check("6g. ADR-0084 B.3/F.3 — WITT_WEB_LOCATOR=brave sin llave → provider brave, source 'env:WITT_WEB_LOCATOR', available False, "
+      "'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)' y unsatisfiable_families ['tooluniverse', 'web']; off EXPLÍCITO con llave → "
+      "provider off, available False, literal EXACTO 'tool-unavailable (ADR-0084)' (kill-switch); el conteo web no cambia en ninguno",
+      d_brave_nokey["web_locator_provider_state"] == {"provider": "brave", "provider_source": "env:WITT_WEB_LOCATOR", "available": False,
+                                                      "unavailable_reason": "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)"}
+      and d_brave_nokey["unsatisfiable_families"] == ["tooluniverse", "web"]
+      and d_off_key["web_locator_provider_state"] == {"provider": "off", "provider_source": "env:WITT_WEB_LOCATOR", "available": False,
+                                                      "unavailable_reason": "tool-unavailable (ADR-0084)"}
+      and d_off_key["unsatisfiable_families"] == ["tooluniverse", "web"]
+      and d_brave_nokey["n_requirements_unsatisfiable_by_family"]["web"] == d_off_key["n_requirements_unsatisfiable_by_family"]["web"] == 1,
+      json.dumps({"brave_nokey": d_brave_nokey["web_locator_provider_state"], "off_key": d_off_key["web_locator_provider_state"]}))
+GOLDEN_W0 = json.loads((Path(__file__).resolve().parent / "fixtures" / "golden_plan_web_directive_7d9ce15.json").read_text(encoding="utf-8"))
+G_DEMAND = GOLDEN_W0["demand"]
+SAME_AS_GOLDEN = ("index_version", "unsatisfiable_families", "unsatisfiable_evidence_kinds", "threshold", "class")
+# llaves cuyo VALOR depende de la BD escaneada (el golden se grabó sobre una BD VACÍA; ésta tiene corridas y planes)
+DATA_DEPENDENT = {"by_family_units", "excluded_by_origin", "plans_excluded_by_origin", "plans_state", "plans_origin_unknown_included",
+                  "origin_unknown_included", "fired", "fired_by_family"}
+check("6i. ADR-0084 L/W0 — la FORMA de demand() bajo off es ADITIVA sobre el golden grabado en 7d9ce15: todas las llaves del golden siguen "
+      "presentes; index_version, unsatisfiable_families (['tooluniverse', 'web']), unsatisfiable_evidence_kinds, threshold y class son "
+      "byte-idénticos; n_requirements_unsatisfiable_by_family y fired_by_family conservan EXACTAMENTE las 3 familias del golden (la serie "
+      "medida no cambia de llaves); las únicas llaves del golden con valor distinto son los literales que F.3 cambia a propósito "
+      "(unsatisfiable_families_source, rule) más los conteos (esta BD no está vacía)",
+      set(G_DEMAND) <= set(d1) and all(d1[k] == G_DEMAND[k] for k in SAME_AS_GOLDEN)
+      and set(d1["n_requirements_unsatisfiable_by_family"]) == set(G_DEMAND["n_requirements_unsatisfiable_by_family"]) == {"figure", "tooluniverse", "web"}
+      and set(d1["fired_by_family"]) == set(G_DEMAND["fired_by_family"])
+      and G_DEMAND["unsatisfiable_families_source"] == "derived: search_harness.SEARCH_DISPATCH rows with fn None"
+      and d1["unsatisfiable_families_source"] != G_DEMAND["unsatisfiable_families_source"]
+      and {k for k in G_DEMAND if d1[k] != G_DEMAND[k] and not k.startswith("n_") and k not in DATA_DEPENDENT}
+      == {"unsatisfiable_families_source", "rule"},
+      json.dumps(sorted(k for k in G_DEMAND if d1[k] != G_DEMAND[k])))
+check("6h. ADR-0084 — web_locator_provider_state(env) es la proyección de 4 llaves de web_locator.provider_state (misma verdad que el "
+      "harness); _is_unsatisfiable cuenta por pertenencia ESTÁTICA (web con llave sigue siendo demanda; zfin nunca)",
+      set(ci.web_locator_provider_state(OFF)) == {"provider", "provider_source", "available", "unavailable_reason"}
+      and ci.web_locator_provider_state(KEY_ENV)["available"] is True
+      and ci._is_unsatisfiable({"source_family": "web", "evidence_kind": "web"}) == "web"
+      and ci._is_unsatisfiable({"source_family": "zfin", "evidence_kind": "figure"}) == "figure"
+      and ci._is_unsatisfiable({"source_family": "zfin", "evidence_kind": "phenotype"}) is None)
 
 # ── 7. reconstrucción del índice al cambiar la llave — y NO al repetir ────────────────────────────────────
 r7 = ci.search("lhx1a ToolUniverse lookup", k=10)
@@ -546,10 +618,12 @@ check("8e. decided_by_kind: 'human:<id>' → 'human' (el id no viaja); default-k
       and ci._decided_by_kind("gate-human-pending") == "gate-human-pending" and ci._decided_by_kind(None) is None
       and ci._decided_by_kind("robot") == "other")
 voc = ci.vocabulary()
-check("8f. vocabulary(): kinds 7, prior_states 4, scorers 3, decision_kinds 3, text_caps por kind, demand_families 3",
+check("8f. vocabulary(): kinds 7, prior_states 4, scorers 3, decision_kinds 3, text_caps por kind, demand_families 3 (estáticas, ADR-0084 F.3) "
+      "+ demand_source_families ['tooluniverse', 'web'] + demand_families_rule",
       voc["kinds"] == list(ci.KINDS) and len(voc["prior_states"]) == 4 and len(voc["scorers"]) == 3
       and voc["decision_kinds"] == ["keep", "discard", "aporto"] and set(voc["text_caps"]) == set(ci.KINDS)
-      and voc["demand_families"] == ["figure", "tooluniverse", "web"])
+      and voc["demand_families"] == ["figure", "tooluniverse", "web"] and voc["demand_source_families"] == ["tooluniverse", "web"]
+      and voc["demand_families_rule"] == ci.DEMAND_FAMILIES_RULE)
 check("8g. env_config: origins default ('production',) con fuente; 'all' → None declarado; CSV normalizado",
       ci.env_config({})["origins"] == ("production",) and ci.env_config({"WITT_COUNCIL_INDEX_ORIGINS": "all"})["origins"] is None
       and ci.env_config({"WITT_COUNCIL_INDEX_ORIGINS": "smoke, production"})["origins"] == ("production", "smoke"))

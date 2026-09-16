@@ -47,8 +47,32 @@ try:
     from lib import search_harness  # noqa: E402
 except ImportError:   # pragma: no cover — depende del árbol
     search_harness = None
+try:
+    # ADR-0084 (G): el localizador web — disponibilidad EN LA LLAMADA (provider_state), vocabularios cerrados y encabezado del
+    # frozen (lib/web_locator.py, rebanada W2). Import TOLERANTE: sin la rebanada en el árbol, frozen.web_locator y
+    # deterministic_checks.web_locator lo DECLARAN ('tool-unavailable (ADR-0084: …)') y nada más cambia.
+    from lib import web_locator  # noqa: E402
+except ImportError:   # pragma: no cover — depende del árbol
+    web_locator = None
 
-RENDER_CONTRACT_VERSION = "1.12"  # ADR-0083 (figuras como evidencia OBSERVADA): +figures {state, module_version 'fig-1', parser_version
+RENDER_CONTRACT_VERSION = "1.13"  # ADR-0084 (la web LOCALIZA identificadores, jamás es fuente): +web_locator {state ∈ web_locator.WEB_STATES_*,
+                                  # state_vocabulary, module_version 'wl-1', resolver_version 'wlr-1', tool_version 'bws-1'|null, provider, provider_source,
+                                  # gate 'directive-only', entered_by, directive_requirement_ids, families_order_rule, n_* (int; AUSENTES bajo
+                                  # kill-switch/tool-unavailable), queries[], located[] (URL hallada SÓLO aquí), unresolved[] (title_web SÓLO aquí),
+                                  # gap_flags_typed[], allowed_hosts, generic_doi_rule, resolver_rules[], cost (PROYECCIÓN), quota, text_policy,
+                                  # kill_switch? (sólo bajo off), rule} SIEMPRE presente en >= 1.13 + deterministic_checks.web_locator (4 predicados de
+                                  # verify_output.web_predicates, 3 gating; {state} bajo kill-switch) + citations[].located_via ('web'|null) +
+                                  # citations_support_summary.n_located_via_web + token_usage.web_locator / estimated_cost_usd_total_projected /
+                                  # total_class / by_stage.search.web_locator_usd_projected (estimated_cost_usd INTACTO) + epistemic_summary.
+                                  # {web_locator_state, web_n_located, web_n_unresolved} + agents_invoked fila 'web_locator (…)' + answer.gap_flags
+                                  # con <= 2 strings de CONTEO por clase (jamás URLs: viajan al modelo del turno siguiente) + search_ledger.plan.
+                                  # families_order_rule + selection.pool_admission_rule/tie_break_web_located. Evento NUEVO stage.web.locate (agent
+                                  # 'web_locator', UNO por consulta ENVIADA, ids y hosts sin URLs); stage.search.source(web) += provider/n_*;
+                                  # stage.path_b += n_web_located/n_web_unresolved; stage.deterministic_gate += web_locator_state. 0 ítems con
+                                  # source 'web': los identificadores se MATERIALIZAN por Europe PMC en la misma ronda (source 'europepmc',
+                                  # source_family 'web', identifier_provenance 'web-located:<regla>'). TODO aditivo; kill-switch WITT_WEB_LOCATOR=off
+                                  # (explícito o derivado sin BRAVE_API_KEY) = frozen 1.12 byte a byte salvo EXACTAMENTE WEB_DECLARED_EXCEPTIONS (3).
+                                  # Historial 1.12 — ADR-0083 (figuras como evidencia OBSERVADA): +figures {state, module_version 'fig-1', parser_version
                                   # 'jats-fig-1', license_table_version 'lt-1', license_table, license_table_rule, license_table_env_ignored,
                                   # mechanism 'supplementaryFiles-zip', cache {dir_source, dir_state, ttl_days, cache_max_mb, evicted_n},
                                   # budget {total_s, used_s, over_budget}, caps {…{value, source}}, n_papers_eligible/selected/with_xml,
@@ -889,7 +913,40 @@ def _figures_agent_row(figures_block, lenses):
     return row
 
 
-def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None, figures=None, figure_lenses=None):
+def _web_agent_row(web_frozen, ps):
+    """ADR-0084 (G.9/L): la fila `agents_invoked` del localizador web, DERIVADA por código de frozen.web_locator (jamás self-report).
+    None bajo `off` EXPLÍCITO o DERIVADO (M.1: la enumeración de excepciones del kill-switch es verdad — patrón 0083 «no emitir las
+    otras dos») y cuando el bloque no existe. status: 'invoked' (la familia corrió: hubo ronda con web) · 'not-applicable (<estado>)'
+    (competente sin ronda / ronda sin directiva web) · 'tool-unavailable' (proveedor fijado sin llave o deshabilitado)."""
+    if not isinstance(web_frozen, dict) or not isinstance(ps, dict) or ps.get("provider") in (None, "off"):
+        return None
+    state = str(web_frozen.get("state") or "")
+    if state.startswith("tool-unavailable ("):
+        status = "tool-unavailable"
+    elif state.startswith("not-requested"):
+        status = f"not-applicable ({state})"
+    elif web_frozen.get("measured") is False and state.startswith(("skipped-cap (", "skipped-budget (", "error: ")):
+        # corrector ADR-0084 (G.9): la familia corrió pero NO envió nada (cuota, presupuesto o error) — no es 'invoked'
+        status = f"not-applicable ({state})"
+    else:
+        status = "invoked"
+
+    def _n(k):   # corrector: null = no midió → '-' (jamás el literal Python 'None' incrustado)
+        v = web_frozen.get(k)
+        return "-" if v is None else str(v)
+
+    row = {"agent": WEB_LOCATOR_AGENT_ROW, "status": status, "provider": web_frozen.get("provider"),
+           "invocation_id": f"web_locator:{_n('n_located')}/{_n('n_results')}",
+           "evidence_generated": [f"state:{state}", f"queries:{_n('n_queries')}", f"located:{_n('n_located')}",
+                                  f"materialized:{_n('n_materialized')}", f"unresolved:{_n('n_unresolved')}",
+                                  "bundle:0 items with source 'web' (identifiers materialized by europepmc)"]}
+    if status != "invoked":
+        row["reason"] = web_frozen.get("state_detail") or state
+    return row
+
+
+def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None, figures=None, figure_lenses=None,
+                    web=None, web_ps=None):
     """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
     agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
 
@@ -925,6 +982,11 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None,
     fig_row = _figures_agent_row(figures, figure_lenses)
     if fig_row is not None:
         out.append(fig_row)
+    # ADR-0084 (G.9): la fila del localizador web — código (lib/web_locator.py + search_harness._run_web_family): localizó por
+    # tabla de patrones y materializó por Europe PMC. Ausente bajo off explícito/derivado (M.1).
+    web_row = _web_agent_row(web, web_ps)
+    if web_row is not None:
+        out.append(web_row)
     seated = set()
     council_rows = []
     if isinstance(council, dict):
@@ -2135,7 +2197,8 @@ def _vision_by_reviewer(rows, items, openai_detail=None):
     return out
 
 
-def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None, figures=None):
+def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None, figures=None,
+                    web=None):
     """ADR-0080 (F): reparto del gasto MEDIDO por etapa. Insumos: cada pasada trae `usage` (síntesis +
     elicitación fusionadas — M8) y, desde ADR-0080, `usage_elicitation` aparte: la etapa synthesize_* es la
     resta y elicit_* la parte. Un sintetizador que no separa (stub, firma vieja) deja elicit_* con in/out null
@@ -2149,6 +2212,17 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     (medidas) con cache_creation/cache_read; sin holder las tres quedan 'not-run (no council block)' con in/out null."""
     stages = {s: {"in": 0, "out": 0} for s in TOKEN_STAGES if s != "embed" and s not in COUNCIL_STAGES}
     stages["search"]["note"] = "Layer 0 tools — no model call (ADR-0080)"
+    if isinstance(web, dict):
+        # ADR-0084 (G.7): el costo del localizador viaja APARTE (consultas × tarifa = PROYECCIÓN, jamás tokens); con el alterno
+        # Anthropic los tokens del despachador SÍ son tokens MEDIDOS de un modelo → entran a la etapa `search` (y a by_model)
+        stages["search"]["note"] = WEB_SEARCH_STAGE_NOTE
+        stages["search"]["web_locator_usd_projected"] = web.get("usd_projected")
+        toks = web.get("tokens") if isinstance(web.get("tokens"), dict) else None
+        if toks and toks.get("model"):
+            stages["search"]["in"] += int(toks.get("in") or 0)
+            stages["search"]["out"] += int(toks.get("out") or 0)
+            stages["search"]["model"] = toks.get("model")
+            stages["search"]["state"] = WEB_ANTHROPIC_SEARCH_STATE
     stages["elicit_pass1"] = {"in": None, "out": None, "state": "not-run"}
     stages["elicit_pass2"] = {"in": None, "out": None, "state": "not-run"}
     stages.update(_council_stages(council))
@@ -2223,7 +2297,7 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     return stages
 
 
-def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, figures=None):
+def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, figures=None, web=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
     `passes` = [(label, answer_dict)] for the synthesis passes that ran.
 
@@ -2263,8 +2337,12 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, fi
         # by_model bajo su reviewer (composite_auditor ya lo suma en audit.usage — M8 cuadra contra ese número)
         if isinstance(row.get("usage"), dict) and row["usage"]:
             _add(row.get("reviewer") or "unknown-reviewer", row["usage"])
+    # ADR-0084 (G.7): tokens del despachador del alterno Anthropic (MEDIDOS) → by_model bajo su modelo; Brave no gasta tokens
+    web_toks = web.get("tokens") if isinstance(web, dict) and isinstance(web.get("tokens"), dict) else None
+    if web_toks and web_toks.get("model"):
+        _add(web_toks["model"], {"input_tokens": int(web_toks.get("in") or 0), "output_tokens": int(web_toks.get("out") or 0)})
     by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
-                               plan_declared=plan is not None, council=council, figures=figures)
+                               plan_declared=plan is not None, council=council, figures=figures, web=web)
     # ADR-0082 (H): las etapas del consejo MEDIDAS (r2/r3) o COPIADAS (r1) entran a by_model bajo el modelo del consejo con
     # su caché; una etapa 'not-run'/'kill-switch' no aporta (in/out null, no 0)
     council_rows = []
@@ -2398,6 +2476,13 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, fi
                           "class": ("MEASUREMENT (counts, bytes) — mirror of frozen.figures for GET /usage (ADR-0083 H); "
                                     "bytes_downloaded = verified rows fetched from the source in THIS run (cache_hit false); "
                                     "bytes_verified = all verified rows (cache hits included)")}
+    # ADR-0084 (G.7): el gasto del LOCALIZADOR web — sólo cuando la familia CORRIÓ (ausente bajo kill-switch / tool-unavailable /
+    # sin directiva web). `estimated_cost_usd` NO cambia (su cost_class afirma «tokens × per-Mtok prices»); el total que cuadra
+    # en M8 viaja aparte con su propia clase: dos proyecciones sumadas, los conteos (MEDICIÓN) al lado.
+    if isinstance(web, dict):
+        out["web_locator"] = dict(web)
+        out["estimated_cost_usd_total_projected"] = round(cost + float(web.get("usd_projected") or 0.0), 4)
+        out["total_class"] = WEB_TOTAL_CLASS
     return out
 
 
@@ -2591,7 +2676,34 @@ def _figure_checks(answer, bundle, cfg=None, cache_root=None):
     return {"figures": frag}, preds
 
 
-def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figures_cfg=None, figures_cache_root=None):
+def _web_checks(answer, bundle, web_ledger=None, provider_state=None):
+    """ADR-0084 (E/G.3): los CUATRO predicados deterministas del localizador web viven en verify_output.web_predicates(citations,
+    bundle, answer, web_ledger, provider_state) -> (fragmento deterministic_checks.web_locator, extra_predicados[]) (rebanada W5):
+    web_text_not_cited / web_located_cited_requires_fetch / web_items_native_only (DUROS) + web_urls_not_in_answer (informativo).
+    Aquí se CABLEA tolerante (patrón _figure_checks): sin el helper en el árbol → 'tool-unavailable (…)' declarado, jamás
+    re-implementado en runs.py; un fallo del predicado no tumba la corrida (§6). Bajo kill-switch el helper devuelve EXACTAMENTE
+    {state} (una de las 3 excepciones declaradas, M.1). Devuelve ({'web_locator': fragmento}, predicados | None)."""
+    fn = getattr(verify_output, "web_predicates", None)
+    if fn is None:
+        return {"web_locator": {"state": WEB_TOOL_UNAVAILABLE_GATE}}, None
+    citations = _citations_of(answer)[0]
+    try:
+        res = fn(citations, bundle, answer if isinstance(answer, dict) else (answer or ""), web_ledger, provider_state)
+    except Exception as e:
+        return {"web_locator": {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}}, None
+    if isinstance(res, tuple) and len(res) >= 2:
+        frag, preds = res[0], res[1]
+    else:
+        frag, preds = res, None
+    if not isinstance(frag, dict):
+        frag = {"state": f"error: web_predicates returned {type(frag).__name__}, not dict"}
+        preds = None
+    preds = [p for p in (preds or []) if callable(p)] or None
+    return {"web_locator": frag}, preds
+
+
+def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figures_cfg=None, figures_cache_root=None,
+          web_ledger=None, web_ps=None):
     """El gate determinista (verify_output.admissible, clase Logic-LM) sobre UNA pasada: predicados duros
     de identificadores + parent_identifier_leak (ADR-0079) + attestation_identifier_leak (ADR-0082 F.5) +
     positive_claim_requires_citations (ADR-0080 E, si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre
@@ -2610,13 +2722,18 @@ def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figu
     # (informativos, gating False) — cableados desde verify_output (F2) con estado declarado; sin figuras en el bundle el
     # fragmento dice 'no-figure-citations' y NINGÚN predicado entra a la conjunción (la admisibilidad de hoy).
     fig_frag, fig_preds = _figure_checks(answer, bundle, cfg=figures_cfg, cache_root=figures_cache_root)
-    preds = list(leak_preds or []) + list(att_preds or []) + list(pc_preds or []) + list(fig_preds or [])
+    # ADR-0084 (E): web_text_not_cited / web_located_cited_requires_fetch / web_items_native_only (DUROS) + web_urls_not_in_answer
+    # (informativo) — cableados desde verify_output (W5); sin datos web el fragmento dice 'no-web-items' y NINGÚN predicado entra
+    # a la conjunción (la admisibilidad de hoy byte a byte); bajo kill-switch EXACTAMENTE {state}.
+    web_frag, web_preds = _web_checks(answer, bundle, web_ledger=web_ledger, provider_state=web_ps)
+    preds = (list(leak_preds or []) + list(att_preds or []) + list(pc_preds or []) + list(fig_preds or [])
+             + list(web_preds or []))
     adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
                                              "evidence_cited": answer.get("evidence_cited") or [],
                                              "absence_kind": answer.get("absence_kind")},
                                             extra_predicates=preds or None)
     return {"pass": pass_no, "admissible": adm, "reasons": reasons, "identifier_report": report,
-            **leak_frag, **att_frag, **pc_frag, **fig_frag,
+            **leak_frag, **att_frag, **pc_frag, **fig_frag, **web_frag,
             # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
             "thread": _thread_checks_summary(run, thread_snapshot)}
 
@@ -2681,13 +2798,14 @@ def _path_b_bundle_accepts():
     try:
         params = inspect.signature(answer_pipeline.path_b_bundle).parameters
         has_varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
-        return {n for n in ("search_plan", "on_stage", "existing_ids") if n in params or has_varkw}
+        # ADR-0084 (G.10): `web_quota` (db.web_locator_reserve) viaja al harness por inspección de firma — el harness NO importa db
+        return {n for n in ("search_plan", "on_stage", "existing_ids", "web_quota") if n in params or has_varkw}
     except (TypeError, ValueError):
         return set()
 
 
 def _path_b_via_harness(question, entities, q_sent, q_source, triggered_by, search_plan, on_stage,
-                        existing_ids=None):
+                        existing_ids=None, web_quota=None):
     """La Ruta B por el harness: answer_pipeline.path_b_bundle(..., search_plan=, on_stage=, existing_ids=)
     cuando la firma lo acepta (rebanada C2); si no, el path_b_bundle de hoy y `harness_used False` declarado.
     Devuelve (block, harness_used: bool, on_stage_delivered: bool)."""
@@ -2699,6 +2817,8 @@ def _path_b_via_harness(question, entities, q_sent, q_source, triggered_by, sear
             kwargs["on_stage"] = on_stage
         if "existing_ids" in accepts and existing_ids is not None:
             kwargs["existing_ids"] = list(existing_ids)
+        if "web_quota" in accepts and web_quota is not None:
+            kwargs["web_quota"] = web_quota   # ADR-0084 (G.10): la cuota mensual, inyectada; None → 'not-enforced' declarado
         block = answer_pipeline.path_b_bundle(question, **kwargs)
         return block, True, "on_stage" in accepts
     block = answer_pipeline.path_b_bundle(question, **kwargs)
@@ -2715,7 +2835,15 @@ def _search_ledger_of(block, search_plan, plan_state, harness_used, cfg):
     if harness_used and isinstance(led, dict):
         out = dict(led)
         out.setdefault("plan", {k: v for k, v in (search_plan or {}).items() if k != "query_builder"})
-        out["rounds"] = list(out.get("rounds") or [])
+        # ADR-0084 (G.2, lectura estricta): las URLs halladas viven SÓLO en frozen.web_locator — la fila web de cada ronda se congela
+        # SIN su ledger anidado `web_locator` (queries/located/unresolved con URLs y title_web): se poda sobre una COPIA (el bundle_json
+        # conserva la fila íntegra) y se declara dónde vive; los contadores C.7 de la fila (provider, n_*, cost, quota_state) siguen aquí
+        out["rounds"] = json.loads(json.dumps(out.get("rounds") or [], default=str))
+        for rnd in out["rounds"]:
+            for src in (rnd.get("sources") or []) if isinstance(rnd, dict) else []:
+                if isinstance(src, dict) and src.get("family") == "web" and "web_locator" in src:
+                    src.pop("web_locator", None)
+                    src["web_locator_frozen_at"] = "frozen.web_locator"
         out["n_rounds"] = len(out["rounds"]) if out.get("n_rounds") is None else out["n_rounds"]
         out["state"] = "harness"
     else:
@@ -3028,6 +3156,237 @@ VISION_SENT_RULE = ("measured in runs.panel_caller from member['figures'] handed
                     "attempt re-sends and is billed); bytes_b64_sent_total = sum(len(b64)); visual_tokens_projected_total = "
                     "sum(models.vision_tokens) — PROJECTION; input_tokens measured per judge already include the images")
 N_SENT_BY_LENS_RULE = "distinct sha256 delivered to that lens across ALL panels (audit.panel[].saw_figures.sha256s, F3)"
+
+# --- ADR-0084: la WEB como LOCALIZADOR, jamás fuente (A tool Brave · B resolutor de tabla · C familia web en el harness · D admisión
+# native-first · E 4 predicados · F consejo/demanda · G runs · H cuota en db · I /usage · J PDF · L kill-switch M.1). Aquí SÓLO se
+# cablea y se congela: el bloque lo arma answer_pipeline._web_locator_block (D.4) sobre las filas de search_harness._run_web_family
+# (C.5); los vocabularios son los de lib/web_locator.py (W2, UNA verdad: se aliasan, no se copian). Ninguna URL hallada sale de
+# frozen.web_locator (ni a eventos, ni a answer.gap_flags, ni al prompt: _PROMPT_PATH_B_TOP / _PROMPT_PAPER_KEYS son ciegas). ------
+WEB_LOCATOR_AGENT = "web_locator"                             # `agent` del evento stage.web.locate
+WEB_LOCATOR_AGENT_ROW = ("web_locator (lib/web_locator.py — Brave|Anthropic locator + deterministic URL→id resolver; web text never "
+                         "enters the bundle)")
+WEB_KILL_SWITCH_STATE = getattr(web_locator, "WEB_KILL_SWITCH_STATE", "kill-switch WITT_WEB_LOCATOR=off")   # alias (G.11): una verdad
+WEB_DECLARED_EXCEPTIONS = ("render_contract_version", "web_locator", "deterministic_checks.web_locator")   # M.1: EXACTAMENTE 3
+# corrector ADR-0084 (L): las 3 excepciones son la verdad para el MISMO fixture SIN datos web (smoke_run_pipeline M.1 ON vs OFF);
+# estas llaves ADITIVAS existen SÓLO cuando hubo datos web o la disponibilidad cambió entre plan y corrida — nunca bajo off en un
+# fixture sin web (los literales compartidos del consejo DIRECTIVES_RULE / AFTER_SEARCH_RULE volvieron a los de 1.12; la
+# ampliación web viaja en llaves propias: council.availability_rule / web_locator_rule). epistemic_summary es OTRA columna
+# (epistemic_summary_json), no parte del registro congelado — ahí web_locator_state viaja siempre (patrón figures_state, ADR-0083).
+WEB_ADDITIVE_KEYS_WITH_WEB_DATA = ("citations[].located_via", "citations_support_summary.n_located_via_web",
+                                   "agents_invoked[web_locator]", "token_usage.web_locator",
+                                   "token_usage.estimated_cost_usd_total_projected", "token_usage.total_class",
+                                   "token_usage.by_stage.search.web_locator_usd_projected", "search_ledger.plan.families_order_rule",
+                                   "path_b.selection.pool_admission_rule", "path_b.selection.tie_break_web_located",
+                                   "council.directives[].harness_state_at_plan/at_compile/recomputed (only when they differ)",
+                                   "council.directives_excluded[].harness_state_at_plan/at_compile/recomputed (only when they differ)",
+                                   "council.coverage.after_search.web_locator_source/web_locator_rule (only with a web ledger)",
+                                   "council.coverage.after_search.by_requirement[web].web_locator (only with a web ledger)",
+                                   "council.availability_rule (only when a recompute happened)")
+WEB_STATE_NOT_REQUESTED_NO_ROUND = "not-requested (no search round)"          # web_locator.WEB_STATES_EXACT[3]
+WEB_STATE_NOT_REQUESTED_NO_DIRECTIVE = "not-requested (no web directive)"     # web_locator.WEB_STATES_EXACT[2]
+WEB_TOOL_UNAVAILABLE_MODULE = "tool-unavailable (ADR-0084: lib/web_locator.py not in tree)"          # bajo el prefijo glosado
+WEB_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.web_predicates not in tree — ADR-0084)"
+WEB_SEARCH_STAGE_NOTE = "Layer 0 tools — no model call (ADR-0080); web locator cost travels apart (ADR-0084)"
+WEB_TOTAL_CLASS = ("PROJECTION (tokens × price) + PROJECTION (web locator requests × unit price) — two projections, same class; "
+                   "measurement counts travel apart")
+WEB_ANTHROPIC_SEARCH_STATE = "measured (anthropic web_search dispatcher)"
+# G.4: answer.gap_flags recibe A LO SUMO estos dos strings de CONTEO (viaja a previous_answer.gap_flags → planner y sintetizador del
+# turno siguiente, Context 3): la URL vive SÓLO en frozen.web_locator.unresolved[] / gap_flags_typed[] (humano, Hoja, PDF)
+WEB_GAP_FLAG_UNRESOLVED = ("web-located-unresolved: {n} URL(s) located on the web could not be resolved to an identifier by code — "
+                           "declared in frozen.web_locator.unresolved, never cited")
+WEB_GAP_FLAG_UNMATERIALIZED = ("web-located-unmaterialized: {k} identifier(s) located on the web were not found in Europe PMC — "
+                               "declared in frozen.web_locator.located, never cited")
+WEB_GAP_FLAG_PREFIXES = ("web-located-unresolved:", "web-located-unmaterialized:")
+# G.2: bajo off EXPLÍCITO frozen.web_locator se reduce a EXACTAMENTE estas 6 llaves (M.1)
+WEB_FROZEN_KILL_SWITCH_KEYS = ("state", "provider", "provider_source", "kill_switch", "state_vocabulary", "rule")
+# G.2: contadores del bloque que se OMITEN cuando la familia no MIDIÓ (null en el bloque de D.4 = no midió ≠ 0; en el frozen: ausentes)
+WEB_FROZEN_COUNTER_KEYS = ("n_queries_planned", "n_queries_dropped_by_cap", "n_results", "n_located", "n_materialized", "n_epmc_gets",
+                           "n_not_found_in_europepmc", "n_fed_ctx", "n_located_not_fed", "n_duplicates_in_response", "n_unresolved",
+                           "n_already_present_resolver", "n_already_present_pool", "n_already_present", "n_admitted",
+                           "n_located_selected", "n_located_not_selected", "n_papers_web_located",
+                           "n_same_paper_dups", "n_epmc_record_mismatch")   # corrector: dedup por paper + trampa del top hit
+WEB_FROZEN_SOURCE = ("answer_pipeline.path_b_bundle.web_locator (D.4: union of the web rows of search_harness._run_web_family over "
+                     "all rounds + pool admission/selection/fetch closure) frozen by runs (G.2); URLs live only here")
+
+
+def _web_provider_state():
+    """ADR-0084 (M.4): la disponibilidad del localizador leída EN LA CORRIDA (web_locator.provider_state: env WITT_WEB_LOCATOR +
+    presencia de BRAVE_API_KEY/ANTHROPIC_API_KEY, jamás sus valores). Sin la rebanada en el árbol → declarado, cero red."""
+    env_raw = os.environ.get("WITT_WEB_LOCATOR")
+    keys = {"brave": bool((os.environ.get("BRAVE_API_KEY") or "").strip()),
+            "anthropic": bool((os.environ.get("ANTHROPIC_API_KEY") or "").strip())}
+    if web_locator is None:
+        return {"provider": None, "provider_source": None, "available": False, "unavailable_reason": WEB_TOOL_UNAVAILABLE_MODULE,
+                "key_present": keys, "env_raw": env_raw, "explicit_off": False}
+    try:
+        return web_locator.provider_state()
+    except Exception as e:   # el lector es tolerante; esto sólo ocurre en un árbol roto — se declara, la corrida sigue
+        return {"provider": None, "provider_source": None, "available": False,
+                "unavailable_reason": f"error: {type(e).__name__}: {str(e)[:120]}", "key_present": keys, "env_raw": env_raw,
+                "explicit_off": False}
+
+
+def _web_quota_fn():
+    """ADR-0084 (G.10/H): el callable de cuota que viaja al harness — db.web_locator_reserve(provider, month, cap, record=None) →
+    {granted, n_before, n_after, cap} (UPDATE condicional atómico). None cuando db no lo expone (el harness declara 'not-enforced')."""
+    fn = getattr(db, "web_locator_reserve", None)
+    return fn if callable(fn) else None
+
+
+def _web_locator_frozen(block, plan_state, harness_used, ps):
+    """ADR-0084 (G.2): frozen.web_locator — SIEMPRE presente en >= 1.13. Tres formas:
+      · off EXPLÍCITO (WITT_WEB_LOCATOR=off) → EXACTAMENTE {state 'kill-switch WITT_WEB_LOCATOR=off', provider 'off', provider_source,
+        kill_switch {WITT_WEB_LOCATOR, enabled false, source, declared_exceptions [3]}, state_vocabulary, rule} (M.1);
+      · Ruta B por el harness → el bloque de answer_pipeline._web_locator_block (D.4) copiado: estado, encabezado (versiones, tabla
+        de reglas, lista blanca, política), consultas verbatim, located[] (URL hallada SÓLO aquí) cerrados tras selección/fetch,
+        unresolved[] (title_web rotulado), gap_flags_typed[], cost (PROYECCIÓN), quota; los contadores viajan como ENTEROS sólo si la
+        familia MIDIÓ — bajo tool-unavailable / not-requested se OMITEN (ADR-0043: no midió ≠ 0);
+      · sin Ruta B por el harness → encabezado de web_locator.frozen_header + state por disponibilidad y ruta:
+        'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)' (off DERIVADO: la CAUSA viaja aquí, no en el plan) | env inválida |
+        proveedor sin llave | 'not-requested (no search round)' (competente o Ruta B legada). Nada se recalcula: lo que la corrida
+        no midió queda ausente o null con estado."""
+    if web_locator is None:
+        return {"state": WEB_TOOL_UNAVAILABLE_MODULE, "provider": ps.get("provider"), "provider_source": ps.get("provider_source"),
+                "provider_available": False, "gate": "directive-only", "module_version": None, "resolver_version": None,
+                "tool_version": None, "rule": None, "source": "runs (lib/web_locator.py not importable — declared)"}
+    header = web_locator.frozen_header()
+    if ps.get("explicit_off"):
+        return {"state": WEB_KILL_SWITCH_STATE, "provider": "off", "provider_source": ps.get("provider_source"),
+                "kill_switch": {"WITT_WEB_LOCATOR": str(ps.get("env_raw") or ""), "enabled": False,
+                                "source": ps.get("provider_source"), "declared_exceptions": list(WEB_DECLARED_EXCEPTIONS)},
+                "state_vocabulary": header["state_vocabulary"], "rule": header["rule"]}
+    wl_block = block.get("web_locator") if isinstance(block, dict) else None
+    if harness_used and isinstance(wl_block, dict):
+        out = json.loads(json.dumps(wl_block, default=str))   # copia: el bundle conserva el bloque íntegro (bundle_json)
+        if not out.get("measured"):
+            for k in WEB_FROZEN_COUNTER_KEYS:
+                if out.get(k) is None:
+                    out.pop(k, None)
+            # G.2: la DISPONIBILIDAD manda sobre la ruta — con el proveedor no disponible (brave/anthropic fijado sin llave, env inválida,
+            # off derivado) la directiva web se excluyó al COMPILAR (council, F.2) y el bloque de D.4 sólo ve «web no entró al plan»:
+            # el frozen declara la CAUSA ('tool-unavailable (ADR-0084: BRAVE_API_KEY unset)' …) y conserva la ruta en state_detail
+            if not ps.get("available") and str(out.get("state") or "").startswith("not-requested"):
+                cause = web_locator.state_when_not_run(ps)
+                if cause:
+                    out["state_detail"] = f"{ps.get('unavailable_reason')}; {out.get('state')}"
+                    out["state"] = cause
+        out["source"] = WEB_FROZEN_SOURCE
+        return out
+    if not ps.get("available"):
+        state, detail = web_locator.state_when_not_run(ps), ps.get("unavailable_reason")
+    elif plan_state == "not-requested":
+        state, detail = WEB_STATE_NOT_REQUESTED_NO_ROUND, "competent or structural route: no harness round (ADR-0080)"
+    else:
+        state, detail = WEB_STATE_NOT_REQUESTED_NO_ROUND, f"no harness round in this run (plan_state {plan_state!r})"
+    cfg = None
+    try:
+        cfg = web_locator.env_config()
+    except Exception:
+        cfg = None
+    out = dict(header)
+    out.update({
+        "block_version": getattr(answer_pipeline, "WEB_LOCATOR_BLOCK_VERSION", None),
+        "state": state, "state_detail": detail, "measured": False, "in_plan": False, "plan_exclusion_reason": None,
+        "provider": ps.get("provider"), "provider_source": ps.get("provider_source"), "provider_available": bool(ps.get("available")),
+        "provider_state": {**ps, "read_at": "runs.execute_run (freeze time; M.4)"},
+        "entered_by": None, "directive_requirement_ids": [], "query_source": None, "families_order_rule": None,
+        "n_rounds_with_web": 0, "by_round": [], "n_queries": 0,
+        "queries": [], "located": [], "unresolved": [], "gap_flags_typed": [],
+        "n_gap_flags": {k: 0 for k in getattr(answer_pipeline, "WEB_GAP_KINDS", ("web-located-unresolved", "web-located-unmaterialized"))},
+        "quota": {"state": None, "n_before": None, "n_after": None,
+                  "cap": int((cfg or {}).get("monthly_cap") or 0) if cfg else None,
+                  "cap_source": ((cfg or {}).get("sources") or {}).get("monthly_cap") if cfg else None,
+                  "month": None, "hook": None, "n_record_errors": 0, "rule": web_locator.QUOTA_RULE},
+        "quota_state": None, "had_web_candidates": False,
+        "pool_admission_rule": getattr(answer_pipeline, "WEB_POOL_ADMISSION_RULE", None),
+        "tie_break_rule": getattr(answer_pipeline, "WEB_TIE_BREAK_RULE", None),
+        # corrector ADR-0084 (G.2): UNA sola forma «no medido» — la de D.4 sin contadores: cost con 0 facturables (nada se envió: 0 es
+        # medición de facturables, los conteos de la familia siguen AUSENTES), cost_usd_projected 0.0, reglas y cierre declarados
+        "cost": web_locator.cost_of(ps.get("provider") if ps.get("provider") in web_locator.PROVIDERS else "off", 0),
+        "cost_usd_projected": 0.0,
+        "dedup_layer_rule": getattr(search_harness, "WEB_DEDUP_LAYER_RULE", None),
+        "materialize_rule": getattr(search_harness, "WEB_MATERIALIZE_RULE", None),
+        "located_close_keys": list(getattr(answer_pipeline, "WEB_LOCATED_CLOSE_KEYS", ())),
+        "source": "runs.execute_run (no harness round: state by availability and route; G.2)",
+    })
+    return out
+
+
+def _web_gap_flags(block):
+    """ADR-0084 (G.4): los <= 2 strings de CONTEO por clase que runs apila en answer.gap_flags tras cada síntesis — desde
+    block.web_locator.n_gap_flags (D.4); sólo con n/k > 0; JAMÁS una URL (Context 3: answer.gap_flags viaja al modelo del hijo)."""
+    wl_block = block.get("web_locator") if isinstance(block, dict) else None
+    if not isinstance(wl_block, dict):
+        return []
+    ng = wl_block.get("n_gap_flags") or {}
+    out = []
+    n = int(ng.get("web-located-unresolved") or 0)
+    k = int(ng.get("web-located-unmaterialized") or 0)
+    if n > 0:
+        out.append(WEB_GAP_FLAG_UNRESOLVED.format(n=n))
+    if k > 0:
+        out.append(WEB_GAP_FLAG_UNMATERIALIZED.format(k=k))
+    return out
+
+
+def _stack_web_gap_flags(answer, bundle):
+    """Apila por CÓDIGO (patrón de _default_synthesizer :gap_flags) los conteos del localizador en la pasada que vio la Ruta B —
+    sin duplicar si la pasada ya los trae (una revisión recibe previous_answer.gap_flags como insumo y puede repetirlos)."""
+    if not isinstance(answer, dict):
+        return answer
+    new = _web_gap_flags((bundle or {}).get("path_b"))
+    if not new:
+        return answer
+    cur = answer.get("gap_flags")
+    cur = list(cur) if isinstance(cur, list) else (_gap_flags_tolerante(cur) or [])
+    for s in new:
+        if s not in cur:
+            cur.append(s)
+    answer["gap_flags"] = cur
+    return answer
+
+
+def _web_citations_fill(citations, summary, bundle):
+    """ADR-0084 (G.5): citations[] += located_via ('web' | null: la cita resuelve a un paper web-localizado — source_family 'web',
+    materializado por Europe PMC — o no) y citations_support_summary += n_located_via_web (int, 0 medido). Sólo con el localizador
+    DISPONIBLE en la corrida (ausentes bajo off explícito/derivado — M.1). La cita se casa por `resolved_to` (escalera de
+    verify_output) o por su id contra evidence_id de los papers; nada se re-resuelve."""
+    papers = ((bundle or {}).get("path_b") or {}).get("papers") or []
+    by_id = {}
+    for p in papers:
+        if isinstance(p, dict) and p.get("evidence_id"):
+            by_id[str(p["evidence_id"])] = p
+            by_id[str(p["evidence_id"]).lower()] = p
+    n = 0
+    for c in citations:
+        if not isinstance(c, dict):
+            continue
+        target = c.get("resolved_to") or c.get("id")
+        p = by_id.get(str(target)) or by_id.get(str(target).lower()) if target is not None else None
+        if p is None and isinstance(target, str) and target.isdigit():
+            p = by_id.get(f"PMID:{target}")
+        via = "web" if isinstance(p, dict) and p.get("source_family") == "web" else None
+        c["located_via"] = via
+        n += 1 if via == "web" else 0
+    if isinstance(summary, dict):
+        summary["n_located_via_web"] = n
+    return citations, summary
+
+
+def _web_usage_ctx(web_frozen):
+    """El insumo de _token_usage(web=): cost (B.6) + conteos + quota_state — SÓLO cuando la familia web CORRIÓ en la corrida
+    (>= 1 ronda con fila web: n_rounds_with_web > 0); None bajo kill-switch / tool-unavailable / sin directiva (G.7: ausente)."""
+    if not isinstance(web_frozen, dict) or int(web_frozen.get("n_rounds_with_web") or 0) <= 0:
+        return None
+    cost = web_frozen.get("cost") if isinstance(web_frozen.get("cost"), dict) else {}
+    out = dict(cost)
+    out.update({"state": web_frozen.get("state"), "n_queries": web_frozen.get("n_queries"),
+                "n_results": web_frozen.get("n_results"), "n_located": web_frozen.get("n_located"),
+                "n_materialized": web_frozen.get("n_materialized"), "n_unresolved": web_frozen.get("n_unresolved"),
+                "quota_state": web_frozen.get("quota_state")})
+    out.setdefault("usd_projected", web_frozen.get("cost_usd_projected") or 0.0)
+    out.setdefault("class", "proyección")
+    return out
 VISION_CLASS = "model-judgment (figure_readings) — bytes never in the record; tokens PROJECTED; counts/bytes MEASURED"
 
 
@@ -3319,8 +3678,10 @@ def _figures_usage_ctx(enabled, summary, cfg):
 
 
 def _gate_event_payload(checks):
-    """stage.deterministic_gate += figures_state (L) — el evento, no el frozen (el fragmento íntegro va en checks['figures'])."""
-    return dict(checks, figures_state=(checks.get("figures") or {}).get("state"))
+    """stage.deterministic_gate += figures_state (ADR-0083 L) + web_locator_state (ADR-0084 G.6) — el evento, no el frozen (los
+    fragmentos íntegros van en checks['figures'] / checks['web_locator'])."""
+    return dict(checks, figures_state=(checks.get("figures") or {}).get("state"),
+                web_locator_state=(checks.get("web_locator") or {}).get("state"))
 
 
 # --- ADR-0082: el CONSEJO DE CRITERIO en la corrida (F.4 copia congelada · F.5 atestiguado ≠ evidencia · G orden de
@@ -3742,6 +4103,13 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             raise RunCancelled()
 
     def _on_stage(name, payload):
+        if name == "web.locate":
+            # ADR-0084 (C.6/G.6): UN latido por consulta ENVIADA del localizador (search_harness._run_web_family → ctx['on_web_locate']
+            # → answer_pipeline._stage('web.locate')): ids y hosts, jamás URLs ni títulos; 0 eventos bajo off. El tipo va como
+            # LITERAL y con su agent propio — el gate de paridad de la webapp (superficie (C) ETAPAS) lee esta forma.
+            db.add_event(run_id, "stage.web.locate", payload=payload, agent=WEB_LOCATOR_AGENT)
+            _check_cancel()
+            return
         degraded = None
         if name == "path_a":
             mode = payload.get("retrieval", {}).get("mode")
@@ -3772,6 +4140,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
     fig_cache_root = figures.cache_dir()[0]
     fig_lenses, fig_lenses_src = _figures_vision_lenses(fig_cfg)
     figures_holder = {"summary": None}
+    # ADR-0084 (M.4): la disponibilidad del localizador web se lee EN LA CORRIDA (una vez aquí; el plan/compilación/despacho la
+    # releen en su llamada); el holder del bloque congelado viaja a _usage_now (failed/cancelled: lo gastado sobrevive)
+    web_ps = _web_provider_state()
+    web_holder = {"frozen": None}
     # (H) reenvío MEDIDO: cada intento de cada lente con visión reenvía las imágenes — se cuenta desde lo ENTREGADO al caller
     vision_sent = {"n_panels": 0, "n_attempts_with_images": 0, "bytes_b64_sent_total": 0,
                    "visual_tokens_projected_total": 0, "tokens_state": "projected", "rule": VISION_SENT_RULE}
@@ -3828,7 +4200,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         return _token_usage(passes, {"panel": panel_rows_all},
                             max(0, _embed_usage_snapshot() - embed_t0),
                             plan=plan_holder.get("plan"), council=council_holder,
-                            figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg))
+                            figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg),
+                            web=_web_usage_ctx(web_holder["frozen"]))
 
     def _council_event(etype, payload):
         """TODOS los eventos stage.council.* salen del HILO ORQUESTADOR (council.run_round los emite al recoger
@@ -4007,7 +4380,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # 2b) ADR-0080 (B): el gate determinista ADELANTADO sobre pass1 — su admisibilidad es un componente
         # de la compuerta (una pasada inadmisible no puede ser candidata por competente que se declare).
         checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1", attestations=c_attest,
-                        figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
+                        figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
+                        web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                      payload=_gate_event_payload(checks1), level="info" if checks1["admissible"] else "warning")
         _check_cancel()
@@ -4213,7 +4587,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             block, harness_used, on_stage_delivered = _path_b_via_harness(
                 run["question"], entities, q_sent, q_source, triggered_by,
                 search_plan if search_plan_state == "built" else None, _on_stage,
-                existing_ids=[h["doc_id"] for h in bundle["path_a"]["hits"]])
+                existing_ids=[h["doc_id"] for h in bundle["path_a"]["hits"]],
+                web_quota=_web_quota_fn())   # ADR-0084 (G.10): la cuota mensual (db.web_locator_reserve) por firma
             bundle["path_b"] = block
             if harness_used and not on_stage_delivered:
                 # el harness no pudo emitir en vivo: la traza gana los rounds desde el ledger (replay == traza)
@@ -4239,6 +4614,9 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             _check_cancel()
         bundle["search_ledger"] = _search_ledger_of(bundle["path_b"], search_plan, search_plan_state,
                                                     harness_used, search_cfg)
+        # ADR-0084 (G.2): frozen.web_locator se arma AQUÍ (tras la Ruta B: el bloque D.4 ya cerró located[] con admisión/selección/
+        # fetch) y viaja al holder para _usage_now; el gate de pass2/revisión lee el MISMO ledger (bundle.path_b.web_locator)
+        web_holder["frozen"] = _web_locator_frozen(bundle["path_b"], search_plan_state, harness_used, web_ps)
 
         # 3a') ADR-0083 (C): la etapa PROPIA `stage.figures` — tras la Ruta B (estructural dentro de retrieve o por la
         # compuerta), ANTES de la ronda 3 del consejo (O.3: el consejo ve la MISMA proyección sin bytes) y de pass2. Los papers
@@ -4256,9 +4634,17 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         n_admitted_total = bundle["search_ledger"].get("n_admitted_total") if harness_used else None
         if cov_pre is not None:
             items_as = _items_for_after_search(bundle, search_plan if harness_used else None)
+            # ADR-0084 (F.4): el ledger web (bloque D.4) viaja a coverage_after_search para by_requirement[].web_locator — SÓLO en
+            # requisitos de familia web; sin él la llave queda AUSENTE (no se inventan ceros). Por inspección de firma (W6 lo añadió).
+            _cas_kw = {}
+            try:
+                if "web_locator" in inspect.signature(council.coverage_after_search).parameters and harness_used:
+                    _cas_kw["web_locator"] = (bundle["path_b"] or {}).get("web_locator")
+            except (TypeError, ValueError):
+                pass
             after_search = council.coverage_after_search(
                 cov_pre, ({"plan": search_plan or {}, "items": items_as} if trigger else None),
-                directives=(c_directives or {}).get("directives"))
+                directives=(c_directives or {}).get("directives"), **_cas_kw)
             after_search["items_rule"] = AFTER_SEARCH_ITEMS_RULE
             after_search["n_admitted_total"] = n_admitted_total
             after_search["n_items_considered"] = len(items_as) if trigger else 0
@@ -4361,6 +4747,9 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # (the 0.14 -> 0.71 Level-2 measurement).
         if trigger:
             pass2 = _synth(_compact_evidence(bundle, include_path_b=True), "pass2")
+            # ADR-0084 (G.4): runs APILA por código los <= 2 strings de CONTEO del localizador (jamás URLs) en la pasada que vio la
+            # Ruta B — la clase 'web-located-*' queda declarada donde el humano la lee; la URL vive en frozen.web_locator
+            _stack_web_gap_flags(pass2, bundle)
             passes.append(("pass2", pass2))
             conf2, conf2_source = _resolve_confidence(pass2)
             delta = (round(conf2 - conf1, 4) if isinstance(conf1, (int, float))
@@ -4389,7 +4778,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # checks son los del gate adelantado (no se re-mide lo mismo dos veces); con pass2 → gate{pass:2}.
         if trigger:
             checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2", attestations=c_attest,
-                           figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
+                           figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
+                           web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                          payload=_gate_event_payload(checks), level="info" if checks["admissible"] else "warning")
         else:
@@ -4454,6 +4844,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                                 "explicitly (honest-decline doctrine, ADR-0058)"
                                 + ("; " + VISION_LENS_FINDINGS_CLAUSE if fig_enabled else ""))}}
             answer_rev = _synth(rev_evidence, "revision")
+            _stack_web_gap_flags(answer_rev, bundle)   # ADR-0084 (G.4): idem en la revisión (sin duplicar los ya apilados)
             passes.append(("revision", answer_rev))
             conf_rev, conf_rev_source = _resolve_confidence(answer_rev)
             db.add_event(run_id, "stage.synthesize.revision", agent=answer_rev.get("model"),
@@ -4463,7 +4854,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             # ADR-0080: el MISMO gate (_gate) que corrió sobre pass1/pass2 — predicados de identificadores +
             # fuga del padre + positive_claim_requires_citations; conserva pass1_admissible y competence_gate.
             checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision", attestations=c_attest,
-                            figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
+                            figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
+                            web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
             checks2["pass1_admissible"] = checks1["admissible"]
             checks2["competence_gate"] = competence.compact(comp)
             checks2["council"] = checks["council"]   # ADR-0082 (G.6): los mismos conteos (r3 no se repite en revisión)
@@ -4512,8 +4904,14 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # El usage cuenta TODOS los paneles (con revisión hay dos — ADR-0067).
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
         council_holder["state"] = c_state
+        # ADR-0084 (G.2): si la corrida no pasó por la Ruta B del harness (competente, estructural, legado) el bloque se arma aquí —
+        # SIEMPRE presente en >= 1.13 (estado por disponibilidad y ruta; sin contadores: nada se midió)
+        if web_holder["frozen"] is None:
+            web_holder["frozen"] = _web_locator_frozen(bundle.get("path_b"), search_plan_state, harness_used, web_ps)
+        web_frozen = web_holder["frozen"]
         token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan, council=council_holder,
-                                   figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg))
+                                   figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg),
+                                   web=_web_usage_ctx(web_frozen))
         # ADR-0078 corrector: UNA sola sede de re-parseo. Si evidence_cited LLEGÓ como string (el wrapper
         # real lo guarda en evidence_cited_raw; un sintetizador stub puede dejarlo en evidence_cited),
         # _normalize_citations recibe ESE string y declara 'string-reparsed' | 'string-unparseable'; si
@@ -4536,6 +4934,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                                                                council_source=c_pert_src,
                                                                # ADR-0083 (E): figure_verification + figure_citations (no bajo kill-switch)
                                                                figures_block=figures_holder["summary"] if fig_enabled else None)
+        # ADR-0084 (G.5): located_via por cita + n_located_via_web — SÓLO con el localizador disponible en la corrida (M.1: ausentes
+        # bajo off explícito/derivado); la cita a un paper web-localizado se casa por la escalera (resolved_to) o por su id
+        if web_ps.get("available"):
+            citations, citations_support_summary = _web_citations_fill(citations, citations_support_summary, bundle)
         # --- ADR-0082 (J): frozen.council — el consejo congelado: estado, membresía y N congeladas, ledger atestiguado
         # (texto ≤600), rondas (r1 COPIADA del plan + r2/r3 medidas con miembros/usage/estados), cobertura pre/after/post,
         # directivas, índice, caché medida, vocabularios. decided_by 'code (council.aggregate_*)'.
@@ -4576,6 +4978,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             "directives_excluded": list((c_directives or {}).get("excluded") or []),
             "directives_state": c_directives_state,
             "directives_rule": (c_directives or {}).get("rule"),
+            # corrector ADR-0084 (L): la regla de disponibilidad dinámica (F.2) viaja SÓLO cuando hubo recomputo (council la emite
+            # sólo entonces) — directives_rule conserva el literal de 1.12 byte a byte en toda corrida
+            **({"directives_availability_rule": c_directives["availability_rule"]}
+               if isinstance(c_directives, dict) and c_directives.get("availability_rule") else {}),
             "r3": ({"state": "judged", "members": cov_post["r3"]["members"], "n_invoked": cov_post["r3"]["n_invoked"],
                     "n_valid": cov_post["r3"]["n_valid"], "round_state": cov_post["r3"]["state"]} if cov_post
                    else {"state": post_state or "not-run (no round 2 coverage)", "members": []}),
@@ -4669,13 +5075,19 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                 "structural_frameworks": reasoning_catalog.structural_frameworks(),
             },
             "agents_invoked": _agents_invoked(audit_result, checks, plan, council=frozen_council,
-                                              figures=figures_holder["summary"], figure_lenses=fig_lenses),
+                                              figures=figures_holder["summary"], figure_lenses=fig_lenses,
+                                              web=web_frozen, web_ps=web_ps),
             # --- ADR-0082 (J): el consejo de criterio congelado (ver arriba) ------------------------------------
             "council": frozen_council,
             # --- ADR-0083 (L): las figuras OBSERVADAS congeladas — SIEMPRE presente en >= 1.12: state ∈ FIGURES_STATES, ítems
             # sin bytes (sha256 + source-pointer + licencia por código), vision (juicio, medido lo enviado, proyectado el
             # costo), vocabularios; bajo kill-switch {state, kill_switch} y la forma base (excepción declarada M.1) -----------
             "figures": figures_holder["summary"],
+            # --- ADR-0084 (G.2): el LOCALIZADOR WEB congelado — SIEMPRE presente en >= 1.13: state ∈ web_locator.WEB_STATES_*, versiones,
+            # tabla del resolutor, consultas verbatim, located[] (la URL hallada vive SÓLO aquí), unresolved[] (title_web rotulado),
+            # gap_flags_typed[], cost (PROYECCIÓN), quota; bajo kill-switch EXACTAMENTE {state, provider, provider_source, kill_switch,
+            # state_vocabulary, rule} (excepción declarada M.1); sin Ruta B por el harness, estado por disponibilidad y ruta ---------
+            "web_locator": web_frozen,
             # --- tapón 3 (ADR-0061): el plan declarado viaja congelado; su ausencia se DECLARA -----
             "plan": plan,
             "plan_declared": plan is not None,
@@ -4855,7 +5267,12 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                              # nada se contó) — la Lista/Banco pinta 'N figuras verificadas · K citadas' sin re-derivar
                              "figures_state": (figures_holder["summary"] or {}).get("state"),
                              "figures_n_verified": ((figures_holder["summary"] or {}).get("n_verified") if fig_enabled else None),
-                             "figures_n_cited": ((figures_holder["summary"] or {}).get("n_cited") if fig_enabled else None)}
+                             "figures_n_cited": ((figures_holder["summary"] or {}).get("n_cited") if fig_enabled else None),
+                             # ADR-0084 (G.8): estado del localizador web y conteos MEDIDOS (0 = medido; null = no midió: kill-switch,
+                             # tool-unavailable, sin directiva) — la Lista/Banco pinta 'web: N localizados · K sin resolver' sin re-derivar
+                             "web_locator_state": (web_frozen or {}).get("state"),
+                             "web_n_located": (web_frozen or {}).get("n_located"),
+                             "web_n_unresolved": (web_frozen or {}).get("n_unresolved")}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),

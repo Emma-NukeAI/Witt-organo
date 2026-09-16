@@ -6,7 +6,9 @@ por `requirement_id` estable, y lo que la corrida dejó como huecos (`gap_flags`
 panel y comentarios humanos (ADR-0077). Sirve a tres lectores: `GET /council/search` (humanos, M6 Bitácora),
 `prior_observations[]` (la ronda 1 del plan y el `thread_context`, letras `P-A…`) y `GET /council/demand` (el
 criterio MEDIDO de disparo de los sidecars ADR-0084/0085: cuántos requisitos pidieron `web`/`tooluniverse`/
-`figure` que el harness no puede satisfacer).
+`figure` — conteo por pertenencia ESTÁTICA (DEMAND_FAMILIES) que no se rompe al llegar la llave de Brave; lo que el
+harness puede despachar HOY viaja al lado en `unsatisfiable_families` (derivada en la llamada) y en
+`web_locator_provider_state` — ADR-0084 F.3).
 
 Doctrina (CLAUDE.md §7 · ADR-0053 · ADR-0043 · ADR-0074):
   · Todo ítem sale `admissible_as_evidence: false` ESTRUCTURAL con `why_not_admissible`: una observación del
@@ -75,20 +77,56 @@ SEARCH_K_MAX = 50                                         # = precedent.search
 PRIOR_K_DEFAULT, PRIOR_K_MIN, PRIOR_K_MAX = 5, 0, 12
 PRIOR_LETTER_PREFIX = "P-"
 
-# Familias que el harness NO puede satisfacer: las filas de SEARCH_DISPATCH sin función (`fn` None: web,
-# tooluniverse). NO `tool_module is None`: europepmc tampoco tiene módulo bajo .tooluniverse pero SÍ corre
-# (`fn answer_pipeline._search_europepmc`) — el criterio del ADR (C.4) dice "tool_module is None (web,
-# tooluniverse)" y la tabla real obliga a leerlo como "sin tool ejecutable". Derivado de la tabla, no copiado.
-try:
-    from lib import search_harness as _sh
-    UNSATISFIABLE_FAMILIES = tuple(sorted(f for f, s in _sh.SEARCH_DISPATCH.items() if s.get("fn") is None))
-    UNSATISFIABLE_FAMILIES_SOURCE = "derived: search_harness.SEARCH_DISPATCH rows with fn None"
-except Exception as _e:   # pragma: no cover — depende del árbol
-    UNSATISFIABLE_FAMILIES = ("tooluniverse", "web")
-    UNSATISFIABLE_FAMILIES_SOURCE = f"declared fallback (search_harness unavailable: {type(_e).__name__})"
+# ADR-0084 (F.3): la DEMANDA se cuenta por PERTENENCIA ESTÁTICA y la DISPONIBILIDAD se lee en la llamada — dos verdades
+# que viajan lado a lado, nunca fundidas. DEMAND_SOURCE_FAMILIES son las familias-sidecar cuya demanda MIDE este módulo
+# (web → ADR-0084, tooluniverse → ADR-0085): `web` sigue contándose aunque el localizador tenga llave, para que la serie
+# MEDIDA `n_requirements_unsatisfiable_by_family.web` no se rompa al llegar BRAVE_API_KEY (veredicto del juez 2). La lista
+# de lo que el harness NO puede despachar AHORA la deriva `unsatisfiable_families(env)` EN LA LLAMADA vía
+# `search_harness.unsatisfiable_families` (fn None ∪ web_locator.provider_state no disponible) — ya no en el import:
+# con `fn` real en la fila web, el criterio `fn is None` la volvería «satisfiable» aunque no haya llave (Context 1).
+# NO `tool_module is None`: europepmc tampoco tiene módulo bajo .tooluniverse pero SÍ corre (`fn answer_pipeline`).
+DEMAND_SOURCE_FAMILIES = ("tooluniverse", "web")          # estática (ADR-0084 F.3 / ADR-0085)
 UNSATISFIABLE_EVIDENCE_KINDS = ("figure",)               # ADR-0083
-DEMAND_FAMILIES = tuple(sorted(set(UNSATISFIABLE_FAMILIES) | set(UNSATISFIABLE_EVIDENCE_KINDS)))
+DEMAND_FAMILIES = ("figure", "tooluniverse", "web")       # estática: la serie medida no cambia con la llave
+assert DEMAND_FAMILIES == tuple(sorted(set(DEMAND_SOURCE_FAMILIES) | set(UNSATISFIABLE_EVIDENCE_KINDS)))
+DEMAND_FAMILIES_RULE = ("DEMAND_FAMILIES is STATIC (ADR-0084 F.3): a requirement whose source_family is web or tooluniverse, "
+                        "or whose evidence_kind is figure, is COUNTED as demand for its sidecar whether or not the harness "
+                        "can dispatch it today — the measured trigger series must not break when BRAVE_API_KEY arrives; "
+                        "what the harness can dispatch NOW travels apart in unsatisfiable_families (derived at call time) "
+                        "and web_locator_provider_state")
+UNSATISFIABLE_FAMILIES_SOURCE = "derived: SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available"
 DEMAND_THRESHOLD = {"min_runs": 5, "min_requirements": 3, "source": "brief §6.3"}
+
+
+def _unsatisfiable_now(env=None):
+    """(tuple ordenada, fuente) — lo que el harness NO puede despachar AHORA (ADR-0084 C.2/F.3), leído en la llamada:
+    bajo off/sin llave ('tooluniverse', 'web'); con llave de Brave ('tooluniverse',). Fallback DECLARADO si el árbol no
+    trae search_harness (jamás fingido como derivado)."""
+    try:
+        from lib import search_harness as _sh
+        return tuple(_sh.unsatisfiable_families(env)), UNSATISFIABLE_FAMILIES_SOURCE
+    except Exception as e:   # pragma: no cover — depende del árbol
+        return tuple(DEMAND_SOURCE_FAMILIES), f"declared fallback (search_harness unavailable: {type(e).__name__})"
+
+
+def unsatisfiable_families(env=None):
+    """Tupla ORDENADA de las familias que el harness NO puede satisfacer AHORA (search_harness.family_available False),
+    derivada EN LA LLAMADA — ADR-0084 (F.3). `env` (dict) sustituye a os.environ en los smokes."""
+    return _unsatisfiable_now(env)[0]
+
+
+def web_locator_provider_state(env=None):
+    """{provider, provider_source, available, unavailable_reason} — la disponibilidad del localizador web leída en la
+    llamada (web_locator.provider_state; ADR-0084 B.3/F.3), proyectada a las 4 llaves que viajan en `demand()` y en
+    GET /council/demand. Sin el módulo → declarado (provider None, available False), jamás fingido."""
+    try:
+        from lib import web_locator as _wl
+        ps = _wl.provider_state(env)
+        return {"provider": ps.get("provider"), "provider_source": ps.get("provider_source"),
+                "available": bool(ps.get("available")), "unavailable_reason": ps.get("unavailable_reason")}
+    except Exception as e:   # pragma: no cover — depende del árbol
+        return {"provider": None, "provider_source": None, "available": False,
+                "unavailable_reason": f"web_locator not importable ({type(e).__name__})"}
 
 WHY_NOT_ADMISSIBLE = ("council observations (requirements, coverage judgments, human ledger decisions, gap flags, "
                       "alternatives, panel findings, comments) are PRIOR ART for humans, the planner and the "
@@ -862,10 +900,11 @@ def membership(env=None, full=None):
 
 
 def _is_unsatisfiable(req):
-    """(familia_o_kind_contado | None): `web`/`tooluniverse` por familia (sin tool ejecutable), `figure` por
-    evidence_kind (ADR-0083). Estructural — no depende de que C2 haya escrito `harness_state`."""
+    """(familia_o_kind_contado | None): `web`/`tooluniverse` por familia (DEMAND_SOURCE_FAMILIES, estática — la web se
+    cuenta como demanda aunque haya llave, ADR-0084 F.3), `figure` por evidence_kind (ADR-0083). Estructural — no depende
+    de que C2 haya escrito `harness_state` ni de la disponibilidad de hoy."""
     fam = req.get("source_family")
-    if fam in UNSATISFIABLE_FAMILIES:
+    if fam in DEMAND_SOURCE_FAMILIES:
         return fam
     if req.get("evidence_kind") in UNSATISFIABLE_EVIDENCE_KINDS:
         return req.get("evidence_kind")
@@ -895,10 +934,14 @@ def demand(include_origins=None, env=None):
     {index_version, n_runs_scanned, n_runs_council_absent, n_runs_council_without_ledger, n_plans_scanned,
      n_requirements_scanned, n_requirements_unsatisfiable_by_family {web, tooluniverse, figure},
      n_requirements_harness_state_unsatisfiable, n_runs_with_tooluniverse_uncovered, by_family_units,
-     threshold {min_runs, min_requirements, source}, fired_by_family, fired, class, rule, …origen}."""
+     unsatisfiable_families[] (derivadas EN LA LLAMADA: lo que el harness no despacha HOY), unsatisfiable_families_source,
+     demand_families[] (estáticas), demand_families_rule, web_locator_provider_state {provider, provider_source, available,
+     unavailable_reason} (ADR-0084 F.3), threshold {min_runs, min_requirements, source}, fired_by_family, fired, class,
+     rule, …origen}."""
     cfg = env_config(env)
     scan = _scan(include_origins, env)
     meta = scan["meta"]
+    unsat_now, unsat_source = _unsatisfiable_now(env)          # ADR-0084 (F.3): disponibilidad de HOY, al lado del conteo
     by_family = Counter({f: 0 for f in DEMAND_FAMILIES})
     units_by_family = {f: {"n_runs": 0, "n_plans": 0} for f in DEMAND_FAMILIES}
     n_reqs, n_hs_unsat, n_runs_tu_uncovered = 0, 0, 0
@@ -958,24 +1001,29 @@ def demand(include_origins=None, env=None):
         "n_requirements_harness_state_unsatisfiable": n_hs_unsat,
         "n_runs_with_tooluniverse_uncovered": n_runs_tu_uncovered,
         "by_family_units": units_by_family,
-        "unsatisfiable_families": list(UNSATISFIABLE_FAMILIES),
-        "unsatisfiable_families_source": UNSATISFIABLE_FAMILIES_SOURCE,
+        "unsatisfiable_families": list(unsat_now),
+        "unsatisfiable_families_source": unsat_source,
         "unsatisfiable_evidence_kinds": list(UNSATISFIABLE_EVIDENCE_KINDS),
+        "demand_families": list(DEMAND_FAMILIES),
+        "demand_families_rule": DEMAND_FAMILIES_RULE,
+        "web_locator_provider_state": web_locator_provider_state(env),
         "threshold": dict(DEMAND_THRESHOLD),
         "fired_by_family": fired_by_family,
         "fired": any(fired_by_family.values()),
         "class": ("medicion (frozen.council + plans.council_json, origin "
                   + (",".join(oi) if oi is not None else "all") + ")"),
-        "rule": ("a requirement is unsatisfiable-by-harness when its source_family has no executable tool "
-                 "(SEARCH_DISPATCH fn None: " + ", ".join(UNSATISFIABLE_FAMILIES) + ") or its evidence_kind is "
-                 "'figure' (ADR-0083); counted over closed runs whose frozen.council.ledger.requirements exist "
-                 "(n_runs_scanned) + plans with council_json not consumed by an indexed run (n_plans_scanned), "
-                 "inside the origin scope; fired_by_family[f] = n_units_scanned >= min_runs AND "
-                 "n_requirements_unsatisfiable_by_family[f] >= min_requirements; fired = any. "
+        "rule": ("a requirement is counted as sidecar DEMAND when its source_family is one of DEMAND_SOURCE_FAMILIES "
+                 "(" + ", ".join(DEMAND_SOURCE_FAMILIES) + " — static, ADR-0084 F.3: web counts even when the locator "
+                 "has a key) or its evidence_kind is 'figure' (ADR-0083); counted over closed runs whose "
+                 "frozen.council.ledger.requirements exist (n_runs_scanned) + plans with council_json not consumed by an "
+                 "indexed run (n_plans_scanned), inside the origin scope; fired_by_family[f] = n_units_scanned >= min_runs "
+                 "AND n_requirements_unsatisfiable_by_family[f] >= min_requirements; fired = any. "
                  "n_runs_with_tooluniverse_uncovered = runs with >= 1 tooluniverse requirement not discarded whose "
                  "latest coverage_final is not covered/covered-by-attestation (absence of a judgment counts as "
                  "open). n_requirements_harness_state_unsatisfiable is the council's own harness_state (C2), side "
-                 "by side, never merged"),
+                 "by side, never merged. unsatisfiable_families = what the harness cannot dispatch NOW "
+                 "(search_harness.unsatisfiable_families, read at call time) and web_locator_provider_state = the web "
+                 "locator's availability now — both travel apart from the static count"),
         **_origin_declaration(meta),
     }
 
@@ -1002,4 +1050,5 @@ def vocabulary():
             "prior_states": list(PRIOR_STATES), "scorers": list(SCORERS), "decision_kinds": list(DECISION_KINDS),
             "decided_by_kinds": list(DECIDED_BY_KINDS), "filter_keys": list(FILTER_KEYS),
             "text_caps": dict(TEXT_CAPS), "demand_families": list(DEMAND_FAMILIES),
+            "demand_source_families": list(DEMAND_SOURCE_FAMILIES), "demand_families_rule": DEMAND_FAMILIES_RULE,
             "letter_prefix_prior": PRIOR_LETTER_PREFIX}

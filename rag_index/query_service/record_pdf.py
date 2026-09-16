@@ -43,6 +43,15 @@ ADR-0077) ∧ ≤ WITT_FIGURES_MAX_IMAGE_MB ∧ ≤ 12 miniaturas por PDF ∧ el
 embebidos). Si no: palabras + `source_url` ('no embebible: <licencia>' | 'bytes no en caché' | 'bytes: mismatch').
 El PDF jamás toca la red; nada binario sale del registro (los bytes viven en mcp_cache, ADR-0074).
 
+  7. **ADR-0084 (J) — LOCALIZADOR WEB (sección `localizador`, llave `web_locator`, nace en 1.13).** La web LOCALIZA
+     identificadores y jamás es fuente: el PDF imprime estado (vocabulario cerrado de lib/web_locator.py + glosa), proveedor
+     y fuente, consultas verbatim, la tabla localizado → identificador (id · kind · regla · confianza · entró como · estado ·
+     materializado · seleccionado · fetched — SIN la URL hallada: vive sólo en `frozen.web_locator.located[]`), el ledger de NO
+     resueltos con URL y razón rotulado NO ADMISIBLE COMO EVIDENCIA (la brecha declarada que el humano revisa; el título del
+     buscador rotulado 'no es evidencia'), contadores [MEDICION], cuota n/cap con su regla y costo con clase [PROYECCION].
+     `deterministic_checks.web_locator` (4 predicados) va en GATE; `token_usage.web_locator` y el total proyectado en CONSUMO;
+     `citations[].located_via` en EVIDENCIA. Bajo kill-switch se imprime el literal y las 3 excepciones declaradas.
+
 Tipografía: fuentes core (latin-1) con saneo DECLARADO de caracteres fuera de latin-1 (em-dash→'-',
 etc.) — la fidelidad exigida es EPISTÉMICA (el estado viaja), no tipográfica; embeber un TTF queda
 como pulido futuro. Dependencia medida (ADR-0062-style): fpdf2 2.8.8 = 4 paquetes puros
@@ -112,7 +121,7 @@ def _si(v):
 # ============================================================================================================
 # Fijado leyendo el historial de RENDER_CONTRACT_VERSION en runs.py:50-100 y los ADR que lo suben (0050 → 1.0;
 # 0051 → 1.1; 0060 → 1.3; 0061 → 1.4; 0065 → 1.5; 0067 → 1.6; 0078 → 1.7; 0079 (+corrector) → 1.8; 0080 → 1.9;
-# 0081 → 1.10; 0082 → 1.11; 0083 → 1.12). Donde el borrador del ADR-0083 (J.1) difería del historial, MANDA el
+# 0081 → 1.10; 0082 → 1.11; 0083 → 1.12; 0084 → 1.13). Donde el borrador del ADR-0083 (J.1) difería del historial, MANDA el
 # historial (regla del propio ADR): reasoning / agents_invoked / alternatives_considered nacen en 1.3 (ADR-0060),
 # fallback y confidence en 1.1 (ADR-0051 'block 4'). `niches`: 1.7 según el ADR-0083; el historial de runs.py no lo
 # registra (LOTE-02·3, 2026-09-05) — se toma el valor del ADR y se declara en el smoke.
@@ -135,6 +144,7 @@ KEY_BORN = {
     "models": "1.10",
     "council": "1.11",
     "figures": "1.12",
+    "web_locator": "1.13",
 }
 BORN_UNKNOWN = "contrato desconocido, declarado"
 
@@ -164,6 +174,7 @@ SECCIONES = (
     ("episode_axes", "ejes"),
     ("competence", "competencia"),
     ("search_ledger", "busqueda"),
+    ("web_locator", "localizador"),
     ("fallback", "fallback"),
     ("models", "modelos"),
     ("audit", "auditoria"),
@@ -210,6 +221,9 @@ ORDEN_SECCIONES = (
     ("ejes", "EJES DEL EPISODIO (ADR-0079) - derivados al congelar, cuatro ejes, jamas un enum unico"),
     ("competencia", "COMPETENCIA (ADR-0080) - la compuerta que decide si la pasada 1 basta; conjuncion decidida por CODIGO"),
     ("busqueda", "BUSQUEDA (ADR-0080/0082) - plan, rondas y UNA FILA POR FUENTE del harness"),
+    ("localizador", "LOCALIZADOR WEB (ADR-0084) - la web LOCALIZA identificadores, jamas es fuente: ningun texto ni URL de la web "
+                    "entra a la evidencia; lo localizado se materializo por Europe PMC con raw cacheado, lo no resuelto se declara "
+                    "y se cuenta"),
     ("fallback", "FALLBACK - quien disparo la Ruta B (trigger, fb_meta integro)"),
     ("modelos", "MODELOS (ADR-0081) - procedencia MEDIDA del modelo que corrio (roles, ran, firma del panel)"),
     ("auditoria", "REVISION ADVERSARIAL - obligatoria en el 100% de las corridas"),
@@ -476,6 +490,91 @@ _SAW_DETAIL_GLOSS = {
     "kill-switch WITT_FIGURES_VISION=0": "vision apagada por kill-switch", "no-eligible-figures": "sin figuras elegibles",
     "model-vision-unknown": "modelo sin vision en la tabla", "api-form-not-verified": "forma de API no verificada",
 }
+
+# ADR-0084: LOCALIZADOR WEB — glosas CERRADAS. Espejan los vocabularios de lib/web_locator.py (W2: WEB_STATES_EXACT/_PREFIXES,
+# FEED_STATES_*, UNRESOLVED_REASONS, QUOTA_STATES_EXACT, PROVIDERS, FED_TO) SIN importar el modulo: el registro congelado es la
+# unica fuente del PDF (regla 1) y smoke_record_pdf mide que cada literal del vocabulario tiene glosa. Un literal fuera de tabla
+# se imprime tal cual y se marca.
+WEB_LOCATOR_CINTILLO = ("LA WEB LOCALIZA, NO ES FUENTE (ADR-0084): ningun titulo, snippet ni URL de la web entra al bundle, al "
+                        "sintetizador, al panel ni al consejo; solo identificadores resueltos por CODIGO (tabla de patrones por host) y "
+                        "materializados por Europe PMC en la misma ronda entran como candidatos (source europepmc, source_family web, "
+                        "identifier_provenance web-located:<regla>). Las URLs halladas viven SOLO en frozen.web_locator; este PDF imprime "
+                        "una URL UNICAMENTE en el ledger de NO resueltos (brecha declarada, NO ADMISIBLE COMO EVIDENCIA).")
+WEB_GATE_PREDICATES = ("web_text_not_cited", "web_located_cited_requires_fetch", "web_items_native_only", "web_urls_not_in_answer")
+_WEB_STATE_GLOSS = {
+    "located": "la web LOCALIZO >= 1 identificador; lo materializado entro por Europe PMC, lo demas se declara y se cuenta",
+    "no-results": "las consultas MIDIERON y no localizaron nada (0 URLs o 0 identificadores) - contadores abajo; 0 medido != null",
+    "not-requested (no web directive)": ("hubo ronda de busqueda pero el consejo NO emitio directiva web (gate directive-only) - "
+                                         "no se consulto la web"),
+    "not-requested (no search round)": "corrida competente sin Ruta B por harness - el localizador no aplica",
+    "kill-switch WITT_WEB_LOCATOR=off": ("APAGADO por kill-switch explicito - camino 1.12 byte a byte; las excepciones declaradas "
+                                         "viajan en kill_switch"),
+}
+_WEB_STATE_PREFIX_GLOSS = (
+    ("tool-unavailable (ADR-0084", "localizador NO DISPONIBLE (sin llave o proveedor no configurado) - CERO red; la causa viaja en el literal"),
+    ("skipped-cap (", "SALTADO por tope (cuota mensual o consultas por ronda) - cero red; el detalle viaja en el literal"),
+    ("skipped-budget (", "SALTADO por presupuesto de la ronda - cero red"),
+    ("error: ", "el proveedor FALLO - fila declarada, la ronda siguio sin la web"),
+)
+_WEB_PROVIDER_GLOSS = {
+    "brave": ("Brave Search API REST (plan Search) SIN modelo: devuelve URLs; description/extra_snippets se descartan en la salida "
+              "de la tool"),
+    "anthropic": ("Anthropic web_search (server-tool) via despachador - ALTERNO EXPLICITO sin failover: el modelo despachador LEE "
+                  "texto web en este camino (propiedad declarada), solo se conservan URLs"),
+    "off": "apagado - ninguna consulta a la web",
+}
+_WEB_FEED_GLOSS = {
+    "materialized-same-round": "materializado en la MISMA ronda por Europe PMC (candidato source europepmc, source_family web)",
+    "fed-same-round": "alimentado a ctx en la misma ronda (DOI -> unpaywall_crossref; curie -> monarch)",
+    "already-present": "ya presente - lo nativo ya lo traia",
+    "duplicate-in-response": "duplicado dentro de la misma respuesta del buscador",
+    "not-found-in-europepmc": "el patron caso pero Europe PMC NO lo tiene - NO es candidato",
+    "not-materialized (feed cap)": "no materializado: tope WITT_WEB_MAX_MATERIALIZE",
+    "not-materialized (budget)": "no materializado: presupuesto de la familia agotado",
+    "no-sink-in-1.13": "sin consumidor en 1.13 - localizado y contado, no alimenta nada",
+}
+_WEB_FEED_PREFIX_GLOSS = (
+    ("already-present (dup of ", "ya presente - duplicado de un id nativo (selection.duplicates)"),
+    ("no-sink-in-1.13 (", "sin consumidor en 1.13 - localizado y contado, no alimenta nada"),
+    ("error: ", "error al materializar - declarado, la ronda siguio"),
+)
+_WEB_UNRESOLVED_GLOSS = {
+    "no-identifier-pattern": "ningun patron de la tabla del resolutor caso",
+    "host-not-allowed": "host fuera de WITT_WEB_ALLOWED_HOSTS",
+    "unsupported-scheme": "esquema no http(s)",
+    "malformed-url": "URL malformada",
+}
+_WEB_QUOTA_GLOSS = {
+    "under-cap": "bajo el tope",
+    "cap-reached": "TOPE ALCANZADO - cero red hasta el mes siguiente",
+    "not-enforced (no quota callable)": "sin cuota inyectada - no se aplico tope (declarado)",
+    "disabled (WITT_WEB_MONTHLY_CAP=0)": "sin tope declarado por env",
+    "not-consumed (cache-hit)": "no consumida - respondio la cache por dia",
+}
+_WEB_FED_TO_WORDS = {
+    "pool:literature-candidate (materialized by europepmc)": "pool de literatura (materializado por Europe PMC)",
+    "ctx:dois": "ctx:dois -> unpaywall_crossref (misma ronda)",
+    "ctx:curies": "ctx:curies -> monarch (misma ronda)",
+    None: "sin consumidor (solo localizado y contado)",
+}
+
+
+def _gloss_by_table(value, exact, prefixes, fuera):
+    if value in exact:
+        return exact[value]
+    if isinstance(value, str):
+        for pre, g in prefixes:
+            if value.startswith(pre):
+                return g
+    return f"{fuera}: {value}"
+
+
+def _web_state_gloss(state):
+    return _gloss_by_table(state, _WEB_STATE_GLOSS, _WEB_STATE_PREFIX_GLOSS, "estado fuera de vocabulario")
+
+
+def _web_feed_gloss(fs):
+    return _gloss_by_table(fs, _WEB_FEED_GLOSS, _WEB_FEED_PREFIX_GLOSS, "feed_state fuera de vocabulario")
 
 
 def _council_state_gloss(state):
@@ -754,7 +853,8 @@ def _section_busqueda(pdf, record, ctx):
             fam_words = _j(fams)
         _p(pdf, f"plan: familias {fam_words or 'ninguna'}   |   fuente {plan.get('families_source')}   |   directivas "
                 f"{len(plan.get('directives') or [])} ({plan.get('directives_state')})"
-                + (f"   |   excluidas {plan.get('families_excluded')}" if plan.get("families_excluded") else ""), size=7)
+                + (f"   |   excluidas {plan.get('families_excluded')}" if plan.get("families_excluded") else "")
+                + (f"   |   orden: {plan.get('families_order_rule')}" if plan.get("families_order_rule") else ""), size=7)
     elif "plan" in sl:
         _p(pdf, "plan: null declarado (sin plan de busqueda)", size=7)
     cs = sl.get("config_source")
@@ -775,9 +875,188 @@ def _section_busqueda(pdf, record, ctx):
                     f"{nf if nf is not None else 'null (no midio)'} | n_new {s.get('n_new') if s.get('n_new') is not None else 'null'}"
                     f" | {s.get('elapsed_s')} s | cache_hit {s.get('cache_hit')} | label {s.get('label')}"
                     + (f" | query {str(s.get('query_sent'))[:120]}" if s.get("query_sent") else "")
-                    + (f" | {s.get('detail') or s.get('error')}" if (s.get("detail") or s.get("error")) else ""), size=7)
+                    + (f" | {s.get('detail') or s.get('error')}" if (s.get("detail") or s.get("error")) else "")
+                    # ADR-0084 (C.7): la fila web trae proveedor y contadores del localizador; las otras 14 familias no
+                    + (f" | proveedor {s.get('provider')} - consultas {s.get('n_queries')} - localizados {s.get('n_located')} - "
+                       f"materializados {s.get('n_materialized')} - sin resolver {s.get('n_unresolved')} - ya presentes "
+                       f"{s.get('n_already_present')} - USD {s.get('cost_usd_projected')} [PROYECCION] - cuota {s.get('quota_state')} "
+                       f"(la web localiza, no es fuente)" if "provider" in s else ""), size=7)
     if "n_items_for_directives" in sl:
         _p(pdf, f"items para directivas del consejo (ADR-0082): {sl.get('n_items_for_directives')}", size=7)
+    _rule(pdf)
+
+
+def _section_localizador(pdf, record, ctx):
+    """ADR-0084 (J): la seccion 'LOCALIZADOR WEB' nace con frozen.web_locator (1.13). Tres estados: llave ausente (registro
+    < 1.13) -> NO INSTRUMENTADO calculado de KEY_BORN; null declarado; valor (estado del vocabulario cerrado + glosa, proveedor
+    y fuente, consultas verbatim, localizados -> identificador, no resueltos como brechas, contadores MEDICION, cuota y costo
+    con clase). La URL HALLADA de un localizado NO se imprime (vive solo en frozen.web_locator.located[]; este PDF circula fuera
+    de la app); la URL de un NO resuelto SI, rotulada NO ADMISIBLE COMO EVIDENCIA (es la brecha declarada que el humano revisa)."""
+    if _grupo_ausente(pdf, record, grupo_de("web_locator")):
+        _rule(pdf)
+        return
+    wl = record.get("web_locator")
+    if not isinstance(wl, dict):
+        _p(pdf, "web_locator: null declarado - el localizador no dejo bloque", style="I", size=8)
+        _rule(pdf)
+        return
+    _p(pdf, WEB_LOCATOR_CINTILLO, style="I", size=7)
+    state = wl.get("state")
+    _p(pdf, f"estado: {state} - {_web_state_gloss(state)}", style="B", size=9)
+    ks = wl.get("kill_switch")
+    if isinstance(ks, dict):
+        _p(pdf, f"kill_switch WITT_WEB_LOCATOR={ks.get('WITT_WEB_LOCATOR')} ({ks.get('source') or 'fuente no consta'}) - excepciones "
+                f"declaradas al 1.12 byte a byte: {ks.get('declared_exceptions')}", size=7)
+    prov = wl.get("provider")
+    prov_w = _WEB_PROVIDER_GLOSS.get(prov, f"proveedor fuera de vocabulario: {prov}")
+    _p(pdf, f"proveedor: {prov} - {prov_w}   |   fuente {wl.get('provider_source') or 'no consta'}   |   gate {wl.get('gate') or 'no consta'}"
+            + (f"   |   entro por: {wl.get('entered_by')}" if wl.get("entered_by") else "   |   la familia web NO entro a la ronda")
+            + (f"   |   requisitos del consejo {wl.get('directive_requirement_ids')}" if wl.get("directive_requirement_ids") else ""), size=8)
+    tool_v = wl.get("tool_version")
+    _p(pdf, f"modulo {wl.get('module_version')} - resolutor {wl.get('resolver_version')} - tool "
+            f"{tool_v if tool_v is not None else 'null (tool no cargado)'}"
+            + (f"   |   orden de ronda: {wl.get('families_order_rule')}" if wl.get("families_order_rule") else ""), size=7)
+    if "n_queries" in wl:
+        # contadores: 0 = medido; AUSENTES bajo kill-switch / tool-unavailable (G.2) — por eso la llave se prueba, no el valor
+        _p(pdf, f"consultas {wl.get('n_queries')} (descartadas por tope {wl.get('n_queries_dropped_by_cap')}) - resultados (URLs) "
+                f"{wl.get('n_results')} - localizados {wl.get('n_located')} - materializados por Europe PMC {wl.get('n_materialized')} - "
+                f"no encontrados en Europe PMC {wl.get('n_not_found_in_europepmc')} - alimentados a ctx {wl.get('n_fed_ctx')} - "
+                f"localizados sin consumidor {wl.get('n_located_not_fed')} - ya presentes {wl.get('n_already_present')} - sin resolver "
+                f"{wl.get('n_unresolved')} - seleccionados {wl.get('n_located_selected')} / no seleccionados {wl.get('n_located_not_selected')} - "
+                f"papers web-localizados en el bundle {wl.get('n_papers_web_located')} [MEDICION: 0 medido != null]", size=8)
+    queries = wl.get("queries") if isinstance(wl.get("queries"), list) else []
+    for q in queries:
+        if not isinstance(q, dict):
+            continue
+        qst = q.get("provider_status") if "provider_status" in q else q.get("status")
+        qtxt = q.get("query_en") if "query_en" in q else q.get("q_sent")
+        quota = q.get("quota") if isinstance(q.get("quota"), dict) else {}
+        q_used = quota.get("n_after") if quota.get("n_after") is not None else quota.get("used")
+        q_cap = quota.get("cap")
+        _p(pdf, f"  consulta r{q.get('round')} [{qst}]: \"{qtxt}\"   |   fuente {q.get('query_source') or 'no consta'}"
+                + (f"   |   req {q.get('requirement_ids')}" if q.get("requirement_ids") else "")
+                + (f"   |   proveedor {q.get('provider')}" if q.get("provider") else "")
+                + (f"   |   pais/idioma {q.get('country_sent') or '-'}/{q.get('search_lang_sent') or '-'}"
+                   if ("country_sent" in q or "search_lang_sent" in q) else "")
+                + (f"   |   freshness {q.get('freshness_sent')}" if q.get("freshness_sent") else ""),
+           style="B" if qst not in ("success", "no-match") else "", size=7)
+        _p(pdf, f"      resultados {q.get('n_results')} - localizados {q.get('n_located')}"
+                + (f" - materializados {q.get('n_materialized')}" if "n_materialized" in q else "")
+                + f" - sin resolver {q.get('n_unresolved')} [MEDICION]   |   cache_hit {q.get('cache_hit')}"
+                + (f"   |   HTTP {q.get('http_status')}" if q.get("http_status") is not None else "")
+                + (f"   |   {q.get('elapsed_s')} s" if q.get("elapsed_s") is not None else "")
+                + (f" (throttle {q.get('throttle_wait_s')} s)" if q.get("throttle_wait_s") is not None else "")
+                + (f"   |   USD {q.get('cost_usd_projected')} [PROYECCION]" if "cost_usd_projected" in q else "")
+                + (f"   |   facturable {_si(q.get('billable'))}" if "billable" in q else "")
+                + (f"   |   cuota {quota.get('state')} {q_used if q_used is not None else '?'}/{q_cap if q_cap is not None else 'sin tope'}" if quota else "")
+                + ("   |   consulta RECORTADA al tope WITT_WEB_MAX_QUERY_CHARS" if q.get("query_truncated") else "")
+                + ("   |   el proveedor ALTERO la consulta (query_altered_by_provider)" if q.get("query_altered_by_provider") else "")
+                + (f"   |   error: {q.get('error')}" if q.get("error") else "")
+                + (f"   |   {q.get('detail')}" if q.get("detail") else ""), size=7)
+    located = wl.get("located") if isinstance(wl.get("located"), list) else []
+    unresolved = wl.get("unresolved") if isinstance(wl.get("unresolved"), list) else []
+    if located:
+        _p(pdf, f"LOCALIZADOS -> IDENTIFICADOR ({len(located)}): id - kind - regla (confianza) - host - entro como - estado - materializado - "
+                "seleccionado - fetched. La URL hallada NO se imprime: vive solo en frozen.web_locator.located[] (ADR-0084)", style="B", size=7)
+        for l in located:
+            if not isinstance(l, dict):
+                continue
+            rule_id = l.get("resolver_rule") if "resolver_rule" in l else l.get("rule_id")
+            fs = l.get("feed_state")
+            mat = l.get("materialized") if "materialized" in l else (fs == "materialized-same-round" if fs is not None else None)
+            sel = l.get("selected")
+            sel_w = (f"seleccionado (rango {l.get('selection_rank')})" if sel is True else "no seleccionado" if sel is False
+                     else "seleccion: no consta")
+            ff = l.get("fetched_found")
+            ff_w = ("fetched (registro y texto de Europe PMC)" if ff is True
+                    else "NO fetched - una cita a este id es INADMISIBLE (web_located_cited_requires_fetch)" if ff is False
+                    else "fetched: no consta")
+            adm = l.get("admitted")
+            adm_w = ("admitido al pool" if adm is True else f"duplicado de {l.get('duplicate_of')}" if adm is False and l.get("duplicate_of")
+                     else "no admitido" if adm is False else None)
+            fed_to = l.get("fed_to")
+            fed_w = _WEB_FED_TO_WORDS.get(fed_to, f"{fed_to} (fuera de tabla)")
+            _p(pdf, f"  {l.get('id')} ({l.get('kind')})   |   regla {rule_id} ({l.get('confidence') or 'confianza no consta'})   |   host "
+                    f"{l.get('host')}   |   entro como: {fed_w}", style="B", size=7)
+            _p(pdf, f"      {fs} - {_web_feed_gloss(fs)}   |   materializado por Europe PMC: {_si(mat)}   |   {sel_w}   |   {ff_w}"
+                    + (f"   |   {adm_w}" if adm_w else "")
+                    + (f"   |   evidence_id {l.get('evidence_id')}" if l.get("evidence_id") else "")
+                    + (f"   |   store: {l.get('store_state')}" if l.get("store_state") else "")
+                    + (f"   |   ronda {l.get('round')}" if l.get("round") is not None else "")
+                    + (f"   |   req {l.get('requirement_ids')}" if l.get("requirement_ids") else ""), size=7)
+    elif "n_located" in wl:
+        _p(pdf, "localizados: ninguno (lista vacia medida)", size=7)
+    if unresolved:
+        _p(pdf, f"SIN RESOLVER ({len(unresolved)}) - brechas DECLARADAS, NO ADMISIBLE COMO EVIDENCIA: URL - host - razon - titulo del "
+                "buscador (rotulado: no es evidencia, no entro al bundle)", style="B", size=7)
+        for u in unresolved:
+            if not isinstance(u, dict):
+                continue
+            reason = u.get("reason")
+            reason_w = _WEB_UNRESOLVED_GLOSS.get(reason, f"razon fuera de vocabulario: {reason}")
+            tw = u.get("title_web")
+            _p(pdf, f"  NO ADMISIBLE: {u.get('url')}   |   host {u.get('host')}   |   razon {reason} - {reason_w}"
+                    + (f"   |   ronda {u.get('round')}" if u.get("round") is not None else "")
+                    + (f"   |   req {u.get('requirement_ids')}" if u.get("requirement_ids") else ""), size=7)
+            _p(pdf, f"      titulo del buscador (NO es evidencia, no entro al bundle): {tw if tw else 'no consta'}", style="I", size=7)
+    elif "n_unresolved" in wl:
+        _p(pdf, "sin resolver: ninguno (lista vacia medida)", size=7)
+    gft = wl.get("gap_flags_typed")
+    if isinstance(gft, list):
+        kinds = {}
+        for g in gft:
+            k = g.get("kind") if isinstance(g, dict) else str(g)
+            kinds[k] = kinds.get(k, 0) + 1
+        _p(pdf, f"brechas tipadas (gap_flags_typed): {len(gft)} - por clase {_j(kinds, 200)} - answer.gap_flags lleva CONTEO por clase, "
+                "jamas URLs (ese canal viaja al modelo del turno siguiente)", size=7)
+    quota = wl.get("quota") if isinstance(wl.get("quota"), dict) else None
+    if quota:
+        used = quota.get("n_after") if quota.get("n_after") is not None else quota.get("used")
+        cap = quota.get("cap")
+        qstate = quota.get("state")
+        q_w = _WEB_QUOTA_GLOSS.get(qstate, f"estado de cuota fuera de vocabulario: {qstate}")
+        _p(pdf, f"cuota mensual ({quota.get('month') or 'mes no consta'}, {quota.get('provider') or prov}): "
+                f"{used if used is not None else '?'}/{cap if cap is not None else 'sin tope'} consultas"
+                + (f" (antes de esta corrida {quota.get('n_before')})" if quota.get("n_before") is not None else "")
+                + (f" (reservadas {quota.get('reserved')})" if quota.get("reserved") is not None else "")
+                + (f" - cap {quota.get('cap_source')}" if quota.get("cap_source") else "")
+                + f" - estado {qstate} - {q_w}", size=7)
+        if quota.get("rule"):
+            _p(pdf, f"  regla de la cuota: {quota.get('rule')}", style="I", size=7)
+    cost = wl.get("cost") if isinstance(wl.get("cost"), dict) else None
+    if cost:
+        _p(pdf, f"costo del localizador [PROYECCION, clase {cost.get('class')}]: USD {cost.get('usd_projected')}"
+                + (f" - {cost.get('n_queries_billable')} consultas facturables" if "n_queries_billable" in cost else "")
+                + (f" x USD {cost.get('price_usd_per_1k')}/1k" if cost.get("price_usd_per_1k") is not None else "")
+                + (f" ({cost.get('provider')}, precios al {cost.get('price_as_of')})" if cost.get("price_as_of") else "")
+                + " - APARTE de estimated_cost_usd (tokens); el total que cuadra viaja en token_usage.estimated_cost_usd_total_projected", size=7)
+        toks = cost.get("tokens") if isinstance(cost.get("tokens"), dict) else None
+        if toks:
+            _p(pdf, f"  tokens del despachador (anthropic): in {toks.get('in')} / out {toks.get('out')} [{str(toks.get('class') or 'medicion').upper()}]"
+                    + (f" - USD {cost.get('tokens_usd_projected')} [PROYECCION]" if "tokens_usd_projected" in cost else ""), size=7)
+        pdet = cost.get("provider_detail") if isinstance(cost.get("provider_detail"), dict) else None
+        if pdet:
+            # corrector ADR-0084 (I): el alterno DECLARA en el registro el tipo de server-tool y que el modelo despachador LEE texto web
+            _p(pdf, f"  alterno Anthropic: server-tool {pdet.get('tool_type')} ({pdet.get('tool_type_source')}; admitidos "
+                    f"{pdet.get('tool_types_allowed')}) - EL MODELO DESPACHADOR LEE TEXTO WEB EN ESTE CAMINO "
+                    f"(reads_web_text {_si(pdet.get('reads_web_text'))}): los resultados cuentan como tokens de entrada aunque "
+                    f"el caller descarte todo texto; por eso es alterno EXPLICITO sin failover", style="B", size=7)
+    ah = wl.get("allowed_hosts")
+    gd = wl.get("generic_doi_rule")
+    rules = wl.get("resolver_rules")
+    parts = []
+    if isinstance(ah, dict):
+        parts.append(f"hosts permitidos: {ah.get('value')} ({ah.get('source')})")
+    if isinstance(gd, dict):
+        parts.append(f"regla DOI generica (doi-in-url-any-host): {'ENCENDIDA' if gd.get('enabled') else 'apagada'} ({gd.get('source')})")
+    if isinstance(rules, list):
+        parts.append(f"tabla del resolutor: {len(rules)} reglas ({', '.join(str(r.get('rule_id')) for r in rules if isinstance(r, dict))})")
+    if parts:
+        _p(pdf, "   |   ".join(parts), size=7)
+    if wl.get("text_policy"):
+        _p(pdf, f"politica de texto (verbatim): {wl.get('text_policy')}", style="I", size=7)
+    if wl.get("rule"):
+        _p(pdf, f"regla (verbatim): {wl.get('rule')}", style="I", size=7)
     _rule(pdf)
 
 
@@ -1055,7 +1334,9 @@ def _section_evidencia(pdf, record, ctx):
             _p(pdf, f"  [{c.get('n')}] {c.get('kind')}: {c.get('id')}"
                     + (f" - {c.get('note')}" if c.get("note") else "") + support
                     + (f"  -  pertinente: {pw}" if pw else "")
-                    + (f"  -  resuelta a {c.get('resolved_to')}" if c.get("resolved_to") else ""), size=8)
+                    + (f"  -  resuelta a {c.get('resolved_to')}" if c.get("resolved_to") else "")
+                    # ADR-0084 (G.5): la cita a un paper web-localizado se marca sin fundirse con las nativas
+                    + ("  -  localizado en la web (registro y texto de Europe PMC; ADR-0084)" if c.get("located_via") == "web" else ""), size=8)
             fv = c.get("figure_verification")
             if c.get("kind") == "figure" or isinstance(fv, dict):
                 if isinstance(fv, dict):
@@ -1128,6 +1409,9 @@ def _section_soporte(pdf, record, ctx):
                 f"{fc.get('n_not_fetched')} - error {fc.get('n_error') if 'n_error' in fc else 'no consta (< corrector)'} - mismatch "
                 f"{fc.get('n_mismatch')} - sin resolver {fc.get('n_unresolved')}"
                 + (f" - id de figura con otro kind {fc.get('n_figure_shaped_other_kind')}" if fc.get("n_figure_shaped_other_kind") else ""), size=7)
+    if "n_located_via_web" in s:
+        _p(pdf, f"citas a papers localizados por la web (ADR-0084): {s.get('n_located_via_web')} [MEDICION] - registro y texto de Europe PMC; "
+                "la web solo localizo el identificador", size=7)
     if s.get("grounding_rows") is not None:
         _p(pdf, f"filas de grounding del panel: {s.get('grounding_rows')}", size=7)
     if s.get("ladder_rule"):
@@ -1374,6 +1658,7 @@ def _section_agentes(pdf, record, ctx):
             _p(pdf, f"  - {a.get('agent')}   |   {st}{' - CORRIO AD-HOC dentro de la sintesis (sin componente propio)' if st == 'skipped-ad-hoc' else ''}"
                     + (f"   |   invocation_id {a.get('invocation_id')}" if a.get("invocation_id") else "")
                     + (f"   |   razon: {a.get('reason')}" if a.get("reason") else "")
+                    + (f"   |   proveedor {a.get('provider')}" if a.get("provider") else "")   # fila web_locator (ADR-0084 G.9)
                     + (f"   |   evidencia: {_j(a.get('evidence_generated'), 300)}" if a.get("evidence_generated") else ""), size=7)
     _rule(pdf)
 
@@ -1492,10 +1777,30 @@ def _section_gate(pdf, record, ctx):
         if isinstance(fgc.get("rules"), dict):
             for rn, rt in fgc["rules"].items():
                 _p(pdf, f"  regla {rn}: {rt}", style="I", size=7)
+    # ADR-0084 (E/G.3): 4 predicados web — 3 GATEAN (texto web no citado, cita web-localizada exige fetch, items solo nativos),
+    # 1 informativo (URLs del ledger en la respuesta); bajo kill-switch EXACTAMENTE {state}; 'no-web-items' = medido con ceros
+    wlc = dc.get("web_locator")
+    if isinstance(wlc, dict):
+        _p(pdf, f"web_locator (ADR-0084): estado {wlc.get('state')}"
+                + (f" - decidido por {wlc.get('decided_by')}" if wlc.get("decided_by") else "")
+                + (f" - modulo {wlc.get('module_version')}" if wlc.get("module_version") else "")
+                + (" - la web localiza, no es fuente: 3 predicados GATEAN + 1 informativo" if any(k in wlc for k in WEB_GATE_PREDICATES) else ""),
+           style="B", size=7)
+        for name in WEB_GATE_PREDICATES:
+            pred = wlc.get(name)
+            if not isinstance(pred, dict):
+                if name in wlc:
+                    _p(pdf, f"  {name}: {_j(pred)}", size=7)
+                continue
+            extras = {k: v for k, v in pred.items() if k not in ("ok", "gating")}
+            _p(pdf, f"  {name}: {_ok_words(pred.get('ok'))} - {_gating_words(pred)}" + (f" - {_j(extras, 300)}" if extras else ""), size=7)
+        if isinstance(wlc.get("rules"), dict):
+            for rn, rt in wlc["rules"].items():
+                _p(pdf, f"  regla {rn}: {rt}", style="I", size=7)
     conocidas = {"pass", "admissible", "reasons", "identifier_report", "pass1_admissible", "positive_claim_requires_citations",
                  "positive_claim_requires_citations_state", "competence_gate", "thread", "parent_identifier_leak",
                  "parent_identifier_leak_state", "disjoint_series", "disjoint_series_state", "attestation_identifier_leak",
-                 "attestation_identifier_leak_state", "attestation_identifier_leak_rule", "council", "figures"}
+                 "attestation_identifier_leak_state", "attestation_identifier_leak_rule", "council", "figures", "web_locator"}
     resto = {k: v for k, v in dc.items() if k not in conocidas}
     if resto:
         _p(pdf, f"otras llaves del gate (sin glosa, verbatim): {_j(resto, 500)}", size=7)
@@ -1762,6 +2067,22 @@ def _section_consumo(pdf, record, ctx):
                     + (f"   |   SIN PRECIO (excluidos): {tu.get('missing_price_models')}" if tu.get("missing_price_models") else ""), size=8)
             if tu.get("cost_class"):
                 _p(pdf, f"clase: {tu.get('cost_class')}", style="I", size=7)
+            # ADR-0084 (G.7): el costo del localizador viaja APARTE (requests x tarifa) y el total que cuadra lleva su clase
+            wlu = tu.get("web_locator")
+            if isinstance(wlu, dict):
+                _p(pdf, f"  localizador web (ADR-0084) - APARTE de los tokens [PROYECCION, clase {wlu.get('class')}]: USD {wlu.get('usd_projected')} - "
+                        f"{wlu.get('n_queries_billable')} facturables de {wlu.get('n_queries')} consultas ({wlu.get('provider')}, USD "
+                        f"{wlu.get('price_usd_per_1k')}/1k al {wlu.get('price_as_of')}) - resultados {wlu.get('n_results')} - localizados "
+                        f"{wlu.get('n_located')} [MEDICION] - cuota {wlu.get('quota_state')}", size=7)
+                wtk = wlu.get("tokens") if isinstance(wlu.get("tokens"), dict) else None
+                if wtk:
+                    _p(pdf, f"      tokens del despachador: in {wtk.get('in')} / out {wtk.get('out')} [MEDICION] - entran a by_model y a "
+                            f"estimated_cost_usd bajo la etapa search", size=7)
+            elif "web_locator" in tu:
+                _p(pdf, "  localizador web (ADR-0084): null declarado", size=7)
+            if "estimated_cost_usd_total_projected" in tu:
+                _p(pdf, f"  TOTAL PROYECTADO (tokens x precio + localizador x tarifa): USD {tu.get('estimated_cost_usd_total_projected')} - "
+                        f"clase: {tu.get('total_class') or 'no consta'}", size=7)
             bm = tu.get("by_model") if isinstance(tu.get("by_model"), dict) else {}
             for model, mv in bm.items():
                 if isinstance(mv, dict):
@@ -1797,6 +2118,7 @@ def _section_consumo(pdf, record, ctx):
                         + (f" ({sv.get('model_source')})" if sv.get("model_source") else "")
                         + (f" - estado {sv.get('state')}" if sv.get("state") else "")
                         + (f" - cache creation {sv.get('cache_creation')} / read {sv.get('cache_read')}" if ("cache_creation" in sv or "cache_read" in sv) else "")
+                        + (f" - localizador web USD {sv.get('web_locator_usd_projected')} [PROYECCION]" if "web_locator_usd_projected" in sv else "")
                         + (f" - {sv.get('note')}" if sv.get("note") else ""), size=7)
             cache = tu.get("cache")
             if isinstance(cache, dict):
@@ -1824,7 +2146,7 @@ def _section_consumo(pdf, record, ctx):
 
 RENDERERS = {
     "identidad": _section_identidad, "estado": _section_estado, "ejes": _section_ejes, "competencia": _section_competencia,
-    "busqueda": _section_busqueda, "fallback": _section_fallback, "modelos": _section_modelos, "auditoria": _section_auditoria,
+    "busqueda": _section_busqueda, "localizador": _section_localizador, "fallback": _section_fallback, "modelos": _section_modelos, "auditoria": _section_auditoria,
     "respuesta": _section_respuesta, "confianza": _section_confianza, "evidencia": _section_evidencia, "esquema": _section_esquema,
     "soporte": _section_soporte, "figuras": _section_figuras, "alternativas": _section_alternativas,
     "razonamiento": _section_razonamiento, "agentes": _section_agentes, "plan": _section_plan, "gate": _section_gate,

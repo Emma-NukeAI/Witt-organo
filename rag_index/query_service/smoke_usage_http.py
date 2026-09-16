@@ -452,6 +452,90 @@ check("la visión va APARTE y jamás dentro del gasto medido: totals / by_user /
       and bs2.get("_sum") == {"in": 3640, "out": 614},
       f"totals={U2.get('totals')} model_split={bs2.get('panel', {}).get('model_split')}")
 
+# ---- 8c. ADR-0084 (I), rebanada W7: /usage.web_locator — consultas MEDIDAS · USD PROYECTADO · month_to_date desde la tabla -------
+# Hasta aquí NINGUNA corrida trae usage_json.web_locator (pre-1.13) → se CUENTAN en n_runs_locator_off (ausencia ≠ 0 consultas) y el
+# bloque dice 'not-measured' con conteos null. Luego se siembra UNA corrida 1.13 (espejo de frozen.web_locator.cost + conteos, G.7) y la
+# fila del mes en web_locator_usage (H) vía db.web_locator_reserve — el MISMO camino que la corrida real.
+from lib import web_locator as _wl  # noqa: E402
+WL0 = U2.get("web_locator") or {}
+check("/usage.web_locator sin corridas 1.13: state 'not-measured', n_runs_locator_off == n_runs_with_usage (4), n_runs_with_queries 0, conteos null "
+      "(n_queries/n_results/n_located/cost_usd_projected), by_provider {}, month_to_date {state 'under-cap', n_queries 0 (nada enviado, "
+      "row_present False), cap 900 'default', credit_usd_assumed 5.0}, class/source/rule declarados, price_as_of de web_locator",
+      WL0.get("state") == "not-measured" and WL0.get("n_runs_locator_off") == 4 and WL0.get("n_runs_with_queries") == 0
+      and WL0.get("n_queries") is None and WL0.get("n_results") is None and WL0.get("n_located") is None
+      and WL0.get("cost_usd_projected") is None and WL0.get("by_provider") == {}
+      and WL0.get("month_to_date", {}).get("state") == "under-cap" and WL0["month_to_date"].get("n_queries") == 0
+      and WL0["month_to_date"].get("row_present") is False and WL0["month_to_date"].get("cap") == 900
+      and WL0["month_to_date"].get("cap_source") == "default" and WL0["month_to_date"].get("credit_usd_assumed") == 5.0
+      and WL0.get("class") == app_mod.USAGE_WEB_LOCATOR_CLASS and WL0.get("state") in app_mod.USAGE_WEB_LOCATOR_STATES
+      and WL0.get("price_as_of") == _wl.PRICE_AS_OF,
+      f"{ {k: WL0.get(k) for k in ('state', 'n_runs_locator_off', 'n_queries', 'by_provider')} } mtd={WL0.get('month_to_date')}")
+# la corrida 1.13: cost (B.6) + conteos (G.7) como los escribe runs._web_usage_ctx; el resto del usage_json mínimo (tokens de OPUS5)
+_WL_COST = _wl.cost_of("brave", 2)
+U_E = {
+    "input_tokens": 300, "output_tokens": 40,
+    "by_model": {OPUS5: {"in": 300, "out": 40}},
+    "by_stage": {"plan": _cero(state="no-plan"), "synthesize_pass1": {"in": 200, "out": 30, "model": OPUS5},
+                 "elicit_pass1": {"in": None, "out": None, "state": "not-run"},
+                 "search": _cero(note=runs_mod.WEB_SEARCH_STAGE_NOTE, web_locator_usd_projected=_WL_COST["usd_projected"]),
+                 "synthesize_pass2": {"in": 100, "out": 10, "model": OPUS5}, "elicit_pass2": {"in": None, "out": None, "state": "not-run"},
+                 "panel": _cero(), "revision": _cero(), "_sum": {"in": 300, "out": 40}},
+    "by_stage_sum_matches_by_model": True, "embedding": {"model": EMBED, "total_tokens": 0},
+    "estimated_cost_usd": 0.0045, "missing_price_models": [], "cost_projection_complete": True,
+    "web_locator": {**_WL_COST, "state": "located", "n_queries": 2, "n_results": 12, "n_located": 7, "n_materialized": 4, "n_unresolved": 3,
+                    "quota_state": "under-cap"},
+    "estimated_cost_usd_total_projected": round(0.0045 + _WL_COST["usd_projected"], 4), "total_class": runs_mod.WEB_TOTAL_CLASS,
+}
+db.create_run("u-e", "natalia", "¿pregunta u-e (web locator 1.13)?")
+db.update_run("u-e", state="closed", usage_json=json.dumps(U_E, ensure_ascii=False))
+_month = _wl.month_utc()
+db.web_locator_reserve("brave", _month, 900)
+db.web_locator_reserve("brave", _month, 900, record={"n_results": 6, "cost": 0.005})
+db.web_locator_reserve("brave", _month, 900)
+db.web_locator_reserve("brave", _month, 900, record={"n_results": 6, "cost": 0.005})
+U3 = client.get("/usage", headers=AUTH).json()
+WL = U3.get("web_locator") or {}
+check("/usage.web_locator con UNA corrida 1.13: forma cerrada {state, n_runs_with_queries, n_runs_web_locator_declared, n_runs_locator_off, by_state, "
+      "by_quota_state, n_queries, n_queries_billable, n_results, n_located, n_materialized, n_unresolved, rate_located_over_results, cost_usd_projected, "
+      "estimated_cost_usd_total_projected, by_provider, month_to_date, class, source, rule, price_as_of}",
+      set(WL) == {"state", "n_runs_with_queries", "n_runs_web_locator_declared", "n_runs_locator_off", "by_state", "by_quota_state", "n_queries",
+                  "n_queries_billable", "n_results", "n_located", "n_materialized", "n_unresolved", "rate_located_over_results",
+                  "cost_usd_projected", "estimated_cost_usd_total_projected", "by_provider", "month_to_date", "class", "source", "rule",
+                  "price_as_of"},
+      f"keys={sorted(WL)}")
+check("/usage.web_locator suma la corrida: state 'measured', n_runs_with_queries 1, n_runs_web_locator_declared 1, n_runs_locator_off 4 (las pre-1.13 "
+      "se cuentan, no se les inventa 0), by_state {located 1}, by_quota_state {under-cap 1}, n_queries 2, n_queries_billable 2, n_results 12, n_located 7, "
+      "n_materialized 4, n_unresolved 3, rate_located_over_results 0.5833, cost_usd_projected 0.01 (2 × 0.005 PROYECCIÓN), by_provider.brave {n_runs 1, "
+      "n_queries 2, cost_usd_projected 0.01, price_usd_per_1k 5.0}",
+      WL.get("state") == "measured" and WL.get("n_runs_with_queries") == 1 and WL.get("n_runs_web_locator_declared") == 1
+      and WL.get("n_runs_locator_off") == 4 and WL.get("by_state") == {"located": 1} and WL.get("by_quota_state") == {"under-cap": 1}
+      and WL.get("n_queries") == 2 and WL.get("n_queries_billable") == 2 and WL.get("n_results") == 12 and WL.get("n_located") == 7
+      and WL.get("n_materialized") == 4 and WL.get("n_unresolved") == 3 and WL.get("rate_located_over_results") == round(7 / 12, 4)
+      and WL.get("cost_usd_projected") == 0.01
+      and WL.get("by_provider", {}).get("brave", {}).get("n_runs") == 1 and WL["by_provider"]["brave"]["n_queries"] == 2
+      and WL["by_provider"]["brave"]["cost_usd_projected"] == 0.01 and WL["by_provider"]["brave"]["price_usd_per_1k"] == 5.0,
+      f"{ {k: WL.get(k) for k in ('state', 'n_queries', 'n_located', 'cost_usd_projected', 'rate_located_over_results')} } bp={WL.get('by_provider')}")
+MTD = WL.get("month_to_date") or {}
+check("/usage.web_locator.month_to_date se LEE de la tabla web_locator_usage (H): month == mes UTC en curso, row_provider 'brave', n_queries 2, "
+      "n_results 12, cost_usd_projected 0.01, cap 900 'default', remaining 898, state 'under-cap', row_present True, rows[] con la fila del mes, "
+      "credit_usd_assumed 5.0 + credit_source_url, rule == web_locator.QUOTA_RULE; el proveedor EFECTIVO del proceso es 'off' (sin llave en el gate: "
+      "la fila se lee para brave, lo que SÍ pudo enviar)",
+      MTD.get("month") == _month and MTD.get("row_provider") == "brave" and MTD.get("provider") == "off" and MTD.get("n_queries") == 2
+      and MTD.get("n_results") == 12 and abs((MTD.get("cost_usd_projected") or 0) - 0.01) < 1e-9 and MTD.get("cap") == 900
+      and MTD.get("cap_source") == "default" and MTD.get("remaining") == 898 and MTD.get("state") == "under-cap"
+      and MTD.get("row_present") is True and any(r["month"] == _month and r["provider"] == "brave" and r["n_queries"] == 2 for r in MTD.get("rows", []))
+      and MTD.get("credit_usd_assumed") == 5.0 and MTD.get("credit_source_url") and MTD.get("rule") == _wl.QUOTA_RULE
+      and MTD.get("state") in app_mod.USAGE_WEB_MONTH_STATES,
+      f"{ {k: MTD.get(k) for k in ('month', 'provider', 'row_provider', 'n_queries', 'cap', 'remaining', 'state', 'row_present')} }")
+check("el USD del localizador va APARTE y jamás dentro de totals: totals.estimated_cost_usd == golden + 0.0045 (la corrida 1.13 suma SÓLO sus tokens × "
+      "precio, no los 0.01 del localizador); web_locator.estimated_cost_usd_total_projected == 0.0145 (la suma con clase, agregada aparte); "
+      "n_runs_with_usage 5; by_stage.search sigue midiendo in/out (0) y model_split sin la llave web_locator_usd_projected",
+      U3["totals"]["estimated_cost_usd"] == round(G_TOTALS["estimated_cost_usd"] + 0.0045, 4)
+      and WL.get("estimated_cost_usd_total_projected") == round(0.0045 + 0.01, 4)
+      and U3["n_runs_with_usage"] == 5 and U3["totals"]["input_tokens"] == G_TOTALS["input_tokens"] + 300
+      and "web_locator_usd_projected" not in json.dumps(U3["by_stage"].get("search", {}).get("model_split", {})),
+      f"totals={U3['totals']} total_projected={WL.get('estimated_cost_usd_total_projected')}")
+
 # ---- 9. cero red ------------------------------------------------------------------------------------
 check("cero red: urllib.request.urlopen bloqueado y contado == 0", len(_URLOPEN_CALLS) == 0, f"{_URLOPEN_CALLS}")
 

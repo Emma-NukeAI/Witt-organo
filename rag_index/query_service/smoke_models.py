@@ -225,18 +225,25 @@ ENV_ADR_0083 = ("WITT_FIGURES", "WITT_FIGURES_VISION", "WITT_FIGURES_VISION_LENS
                 "WITT_FIGURES_CAPTION_CHARS", "WITT_FIGURES_EMBED_LICENSES", "WITT_FIGURES_PANEL_LICENSES",
                 "WITT_FIGURES_PROSE_LICENSE", "WITT_FIGURES_OPENAI_DETAIL", "WITT_FIGURES_REFETCH_ON_GET", "WITT_FIGURES_PDF_THUMBS",
                 "WITT_FIGURES_COUNT_TOKENS")
+# ADR-0084 tabla de env: las 17 nuevas del localizador web, en el orden del ADR (BRAVE_API_KEY es SECRETO: NO entra a models.ENV_TABLE)
+ENV_ADR_0084 = ("WITT_WEB_LOCATOR", "WITT_WEB_MAX_RESULTS", "WITT_WEB_MAX_QUERIES", "WITT_WEB_MAX_MATERIALIZE", "WITT_WEB_MAX_QUERY_CHARS",
+                "WITT_WEB_BUDGET_S", "WITT_WEB_MIN_INTERVAL_S", "WITT_WEB_COUNTRY", "WITT_WEB_LANG", "WITT_WEB_FRESHNESS",
+                "WITT_WEB_ALLOWED_HOSTS", "WITT_WEB_GENERIC_DOI_RULE", "WITT_WEB_MONTHLY_CAP", "WITT_WEB_TEST_QUERY",
+                "WITT_ANTHROPIC_WEB_SEARCH_MAX_USES", "WITT_WEB_ANTHROPIC_TOOL_TYPE", "WITT_WEB_LOCATOR_MODEL")
 check("ROLE_ENVS exacto (9 roles: 8 de ADR-0081 + council→WITT_MODEL_COUNCIL; OPENAI_JUDGE_MODEL conserva su nombre) y ENV_TABLE "
-      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 + 20 de ADR-0083 (models.ENV_ADR_0082/ENV_ADR_0083 == las listas exactas de las "
-      "tablas de los ADR, en su orden), cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS",
+      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 + 20 de ADR-0083 + 17 de ADR-0084 (models.ENV_ADR_0082/0083/0084 == las listas exactas "
+      "de las tablas de los ADR, en su orden), cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS; BRAVE_API_KEY NO está en la tabla",
       m.ROLE_ENVS == {"synthesizer": "WITT_MODEL_SYNTH", "planner": "WITT_MODEL_PLANNER", "elicitation": "WITT_MODEL_ELICIT",
                       "question_agent": "WITT_MODEL_QUESTION", "judge.correctness": "WITT_JUDGE_CORRECTNESS",
                       "judge.overclaim": "WITT_JUDGE_OVERCLAIM", "judge.evidence-grounding": "WITT_JUDGE_GROUNDING",
                       "judge.reproducibility": "OPENAI_JUDGE_MODEL", "council": "WITT_MODEL_COUNCIL"}
-      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) | set(ENV_ADR_0083) and len(m.ENV_TABLE) == 68
+      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) | set(ENV_ADR_0083) | set(ENV_ADR_0084) and len(m.ENV_TABLE) == 85
       and m.ENV_ADR_0082 == ENV_ADR_0082 and len(m.ENV_ADR_0082) == 27
       and m.ENV_ADR_0083 == ENV_ADR_0083 and len(m.ENV_ADR_0083) == 20
+      and m.ENV_ADR_0084 == ENV_ADR_0084 and len(m.ENV_ADR_0084) == 17 and "BRAVE_API_KEY" not in m.ENV_TABLE
       and all(m.ENV_TABLE[k].get("adr") == "0082" for k in ENV_ADR_0082) and not any(m.ENV_TABLE[k].get("adr") for k in ENV_ADR_0081)
       and all(m.ENV_TABLE[k].get("adr") == "0083" for k in ENV_ADR_0083)
+      and all(m.ENV_TABLE[k].get("adr") == "0084" for k in ENV_ADR_0084)
       and all("default" in v and "kind" in v and "reader" in v and "effect" in v and v["kind"] in m.ENV_KINDS for v in m.ENV_TABLE.values()),
       f"envs={sorted(m.ENV_TABLE)}")
 
@@ -460,11 +467,12 @@ check("thinking_state por tabla (C.4): opus-5 'adaptive-by-api-default (tokens d
 # 9. snapshot (I)
 # =====================================================================================================
 S = m.snapshot(env={}, today=T)
-check("snapshot: fields == SNAPSHOT_FIELDS (35 = 28 de ADR-0081 + 5 de ADR-0082 + 2 de ADR-0083 al final, cerrada, en orden) y cada "
+check("snapshot: fields == SNAPSHOT_FIELDS (37 = 28 de ADR-0081 + 5 de ADR-0082 + 2 de ADR-0083 + 2 de ADR-0084 al final, cerrada, en orden) y cada "
       "campo es exactamente {value, source}",
-      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 35
+      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 37
       and m.SNAPSHOT_FIELDS[28:33] == m.COUNCIL_SNAPSHOT_FIELDS == ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
-      and m.SNAPSHOT_FIELDS[33:] == m.FIGURES_SNAPSHOT_FIELDS == ("figures.enabled", "figures.vision")
+      and m.SNAPSHOT_FIELDS[33:35] == m.FIGURES_SNAPSHOT_FIELDS == ("figures.enabled", "figures.vision")
+      and m.SNAPSHOT_FIELDS[35:] == m.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider")
       and all(set(c) == {"value", "source"} for c in S["fields"].values()))
 F = S["fields"]
 check("snapshot env vacía: defaults TIPADOS con fuente 'default-unset:' — min_families 2 · min_lenses 3 · auto_retire False · openai.api "
@@ -1004,6 +1012,81 @@ except Exception as e:  # pragma: no cover — F1 es dueño de figures.py; si no
     check(f"ADR-0083: lib.figures importable para la paridad de env ({type(e).__name__}: {str(e)[:100]})", False)
     check("ADR-0083: paridad env (no medida)", False)
 
+# =====================================================================================================
+# 14b. ADR-0084 — las 17 env del localizador web: paridad con web_locator.ENV_SPECS, snapshot web.*, firma intacta
+# =====================================================================================================
+try:
+    from lib import web_locator as _wl  # noqa: E402
+    _wspecs = {s[1]: s for s in _wl.ENV_SPECS}
+    _WKIND = {"provider": "choice", "choice": "choice", "int": "int", "float": "float", "bool": "bool", "csv": "str", "str": "str",
+              "country": "str", "lang": "str", "freshness": "str", "model": "str"}   # corrector: anthropic_tool_type es 'choice' cerrado
+    _wbad_default = [v for v in ENV_ADR_0084 if m.ENV_TABLE[v]["default"] != _wl.ENV_DEFAULTS[v]]
+    _wbad_kind = [v for v in ENV_ADR_0084 if m.ENV_TABLE[v]["kind"] != _WKIND[_wspecs[v][3]]]
+    _wbad_clamp = [v for v in ENV_ADR_0084 if _wspecs[v][3] in ("int", "float") and _wspecs[v][4]
+                   and (m.ENV_TABLE[v].get("minimum") != _wspecs[v][4][0] or m.ENV_TABLE[v].get("maximum") != _wspecs[v][4][1])]
+    _wcfg0 = _wl.env_config({})
+    _wtyped_bad = [v for v in ("WITT_WEB_MAX_RESULTS", "WITT_WEB_MAX_QUERIES", "WITT_WEB_MAX_MATERIALIZE", "WITT_WEB_MAX_QUERY_CHARS",
+                               "WITT_WEB_BUDGET_S", "WITT_WEB_MIN_INTERVAL_S", "WITT_WEB_MONTHLY_CAP", "WITT_ANTHROPIC_WEB_SEARCH_MAX_USES")
+                   if m.env_value(v, {})[0] != _wcfg0[_wspecs[v][0]]]
+    check("ADR-0084 (tabla de env) PARIDAD de literales: set(ENV_ADR_0084) == web_locator.ENV_VARS (17); default de cada fila de models.ENV_TABLE == "
+          "el de web_locator.ENV_SPECS (string); kind mapeado (provider→choice, int/float/bool, csv/country/lang/freshness/model→str); clamps "
+          "int/float == minimum/maximum; defaults TIPADOS de env_value == web_locator.env_config({}) (8 numéricas); WITT_WEB_LOCATOR choices "
+          "('', brave, anthropic, off) casefold",
+          set(ENV_ADR_0084) == set(_wl.ENV_VARS) and not _wbad_default and not _wbad_kind and not _wbad_clamp and not _wtyped_bad
+          and m.ENV_TABLE["WITT_WEB_LOCATOR"]["choices"] == ("", "brave", "anthropic", "off") and m.ENV_TABLE["WITT_WEB_LOCATOR"].get("casefold") is True
+          # corrector ADR-0084: el tipo del server-tool es un vocabulario CERRADO en AMBAS tablas (models.ENV_TABLE y web_locator.ENV_SPECS)
+          and m.ENV_TABLE["WITT_WEB_ANTHROPIC_TOOL_TYPE"]["kind"] == "choice"
+          and tuple(m.ENV_TABLE["WITT_WEB_ANTHROPIC_TOOL_TYPE"]["choices"]) == _wl.ANTHROPIC_TOOL_TYPES == ("web_search_20250305",)
+          and m.env_value("WITT_WEB_ANTHROPIC_TOOL_TYPE", {"WITT_WEB_ANTHROPIC_TOOL_TYPE": "web_search_20260318"})
+          == ("web_search_20250305", "default-invalid-env:WITT_WEB_ANTHROPIC_TOOL_TYPE"),
+          f"default={_wbad_default} kind={_wbad_kind} clamp={_wbad_clamp} typed={_wtyped_bad}")
+    check("ADR-0084 env_value: WITT_WEB_LOCATOR 'BRAVE' → 'brave' env; 'zzz' → '' default-invalid-env; WITT_WEB_MAX_RESULTS '50' → default 10 invalid "
+          "(models cae al default) mientras web_locator.env_config RECORTA a 20 y lo declara en clamped (dos lectores, una tabla de defaults); "
+          "WITT_WEB_MONTHLY_CAP '0' → 0 env (mínimo 0 inclusivo); WITT_WEB_LOCATOR_MODEL con id fuera de tabla → web_locator lo rechaza "
+          "'default-invalid-env' (validado contra models.MODELS)",
+          m.env_value("WITT_WEB_LOCATOR", {"WITT_WEB_LOCATOR": "BRAVE"}) == ("brave", "env:WITT_WEB_LOCATOR")
+          and m.env_value("WITT_WEB_LOCATOR", {"WITT_WEB_LOCATOR": "zzz"}) == ("", "default-invalid-env:WITT_WEB_LOCATOR")
+          and m.env_value("WITT_WEB_MAX_RESULTS", {"WITT_WEB_MAX_RESULTS": "50"}) == (10, "default-invalid-env:WITT_WEB_MAX_RESULTS")
+          and _wl.env_config({"WITT_WEB_MAX_RESULTS": "50"})["max_results"] == 20
+          and _wl.env_config({"WITT_WEB_MAX_RESULTS": "50"})["clamped"]["max_results"]["raw"] == 50
+          and m.env_value("WITT_WEB_MONTHLY_CAP", {"WITT_WEB_MONTHLY_CAP": "0"}) == (0, "env:WITT_WEB_MONTHLY_CAP")
+          and _wl.env_config({"WITT_WEB_LOCATOR_MODEL": "llama-9"})["sources"]["locator_model"] == "default-invalid-env:WITT_WEB_LOCATOR_MODEL"
+          and _wl.env_config({"WITT_WEB_LOCATOR_MODEL": "llama-9"})["locator_model"] is None)
+    _combos = [{}, {"BRAVE_API_KEY": "k"}, {"WITT_WEB_LOCATOR": "brave"}, {"WITT_WEB_LOCATOR": "brave", "BRAVE_API_KEY": "k"},
+               {"WITT_WEB_LOCATOR": "anthropic"}, {"WITT_WEB_LOCATOR": "off", "BRAVE_API_KEY": "k"}, {"WITT_WEB_LOCATOR": "zzz"},
+               {"WITT_WEB_LOCATOR": " OFF "}]
+    _parity = [(c, m._web_provider_field(c), {"value": _wl.provider_state(c)["provider"], "source": _wl.provider_state(c)["provider_source"]})
+               for c in _combos]
+    check("ADR-0084 models.py sigue SÓLO stdlib: web.provider se deriva de la env con la MISMA regla que web_locator.provider_state (B.3) — "
+          "paridad byte a byte de {value, source} en 8 combinaciones (sin env/con llave, brave con y sin llave, anthropic, off, basura, ' OFF ') "
+          "y models.WEB_PROVIDERS == web_locator.PROVIDERS",
+          all(a == b for _c, a, b in _parity) and m.WEB_PROVIDERS == _wl.PROVIDERS,
+          json.dumps([(c, a, b) for c, a, b in _parity if a != b])[:400])
+    _SW = m.snapshot(env={}, today=T)["fields"]
+    _SWb = m.snapshot(env={"WITT_WEB_LOCATOR": "brave", "BRAVE_API_KEY": "fake-key-smoke-models-never-in-output"}, today=T)
+    _SWo = m.snapshot(env={"WITT_WEB_LOCATOR": "off", "BRAVE_API_KEY": "fake-key-smoke-models-never-in-output"}, today=T)
+    _SWd = m.snapshot(env={"BRAVE_API_KEY": "fake-key-smoke-models-never-in-output"}, today=T)["fields"]
+    _SWz = m.snapshot(env={"WITT_WEB_LOCATOR": "zzz"}, today=T)["fields"]
+    check("ADR-0084 snapshot.fields: web.locator {'' , default-unset:WITT_WEB_LOCATOR} y web.provider {'off', 'default-derived:BRAVE_API_KEY absent'} "
+          "sin llave; con llave y sin env → provider 'brave' 'default-derived:BRAVE_API_KEY present'; WITT_WEB_LOCATOR=brave → {'brave', env}; "
+          "off → provider 'off' env; 'zzz' → locator '' default-invalid-env y provider 'off' 'default-invalid-env:WITT_WEB_LOCATOR'; la llave JAMÁS "
+          "aparece en el snapshot; panel_signature INTACTA (== golden 9d90c01) con el localizador en brave/off — FUERA de la firma",
+          _SW["web.locator"] == {"value": "", "source": "default-unset:WITT_WEB_LOCATOR"}
+          and _SW["web.provider"] == {"value": "off", "source": "default-derived:BRAVE_API_KEY absent"}
+          and _SWd["web.provider"] == {"value": "brave", "source": "default-derived:BRAVE_API_KEY present"}
+          and _SWb["fields"]["web.locator"] == {"value": "brave", "source": "env:WITT_WEB_LOCATOR"}
+          and _SWb["fields"]["web.provider"] == {"value": "brave", "source": "env:WITT_WEB_LOCATOR"}
+          and _SWo["fields"]["web.provider"] == {"value": "off", "source": "env:WITT_WEB_LOCATOR"}
+          and _SWz["web.locator"] == {"value": "", "source": "default-invalid-env:WITT_WEB_LOCATOR"}
+          and _SWz["web.provider"] == {"value": "off", "source": "default-invalid-env:WITT_WEB_LOCATOR"}
+          and "fake-key-smoke-models" not in json.dumps(_SWb) and "fake-key-smoke-models" not in json.dumps(_SWo)
+          and _SWb["panel_signature"] == _SWo["panel_signature"] == PANEL_SIGNATURE_GOLDEN_9D90C01 == sig0,
+          f"loc={_SW['web.locator']} prov={_SW['web.provider']} sig={_SWb['panel_signature']}")
+except Exception as e:  # pragma: no cover — W2 es dueño de web_locator.py; si no importa, se declara
+    check(f"ADR-0084: lib.web_locator importable para la paridad de env ({type(e).__name__}: {str(e)[:100]})", False)
+    check("ADR-0084: env_value web (no medida)", False)
+    check("ADR-0084: snapshot web.* (no medido)", False)
+
 # --- compose ∩ README ⊇ ENV_TABLE (C8 entregó las 27 de 0082; F7 es dueño de las 20 de 0083: ese check FALLA hasta que entregue) ---
 _compose = (HERE / "docker-compose.query.yml").read_text(encoding="utf-8")
 _readme = (HERE / "README.md").read_text(encoding="utf-8")
@@ -1011,6 +1094,7 @@ _compose_vars = set(re.findall(r"^\s*-\s*([A-Z][A-Z0-9_]+)=", _compose, re.M))
 _missing_81 = sorted(v for v in ENV_ADR_0081 if v not in _compose_vars or f"`{v}`" not in _readme)
 _missing_82 = sorted(v for v in ENV_ADR_0082 if v not in _compose_vars or f"`{v}`" not in _readme)
 _missing_83 = sorted(v for v in ENV_ADR_0083 if v not in _compose_vars or f"`{v}`" not in _readme)
+_missing_84 = sorted(v for v in ENV_ADR_0084 if v not in _compose_vars or f"`{v}`" not in _readme)
 check("ENV_TABLE ⊆ compose ∩ README — las 21 env de ADR-0081 declaradas en docker-compose.query.yml (- VAR=${VAR:-…}) y en README.md (`VAR`)",
       not _missing_81, f"faltan={_missing_81}")
 check("ENV_TABLE ⊆ compose ∩ README — las 27 env de ADR-0082 (ENV_ADR_0082) declaradas en compose (bloque ADR-0082 tras WITT_CONFIG_LEDGER, "
@@ -1021,6 +1105,15 @@ check("ENV_TABLE ⊆ compose ∩ README — las 20 env de ADR-0083 (ENV_ADR_0083
       "20 placeholders ${VAR:-default}) y en README (tabla de env). Dueño: F7. Hasta que aterrice este check FALLA y ES lo esperado "
       "(patrón del gate M.4 de ADR-0081 / C8 de ADR-0082); la lista de faltantes se imprime",
       not _missing_83, f"{len(_missing_83)} faltan: {_missing_83}")
+check("ENV_TABLE ⊆ compose ∩ README — las 17 env de ADR-0084 (ENV_ADR_0084) declaradas en compose (bloque ADR-0084 tras el bloque 0083, "
+      "17 placeholders ${VAR:-default}) y en README (tabla de env). Dueño: W7",
+      not _missing_84, f"{len(_missing_84)} faltan: {_missing_84}")
+_brave_compose = re.search(r"^\s*-\s*BRAVE_API_KEY=\$\{BRAVE_API_KEY:-\}.*$", _compose, re.M)
+check("ADR-0084 (secreto) BRAVE_API_KEY NO está en models.ENV_TABLE (la tabla no registra secretos; sólo su PRESENCIA viaja) pero SÍ en compose "
+      "como placeholder `${BRAVE_API_KEY:-}` con «never git» en su comentario y en README (`BRAVE_API_KEY` con «never git»)",
+      "BRAVE_API_KEY" not in m.ENV_TABLE and _brave_compose is not None and "never git" in _brave_compose.group(0)
+      and "`BRAVE_API_KEY`" in _readme and "never git" in _readme,
+      f"compose={_brave_compose.group(0)[:120] if _brave_compose else None}")
 
 # =====================================================================================================
 # 15. Cero red · sys.modules sin openai

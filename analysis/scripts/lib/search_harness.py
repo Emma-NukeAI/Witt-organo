@@ -18,6 +18,19 @@ UNA llamada EXTRA en literatura (`directive_queries[]`); `symbols[]` se AÑADEN 
 familia que entró sólo por directiva → todos; un insumo base → []). Sin directivas el plan es byte-idéntico al de
 ADR-0080 (golden en smoke_search_harness) — el kill-switch WITT_COUNCIL=0 pasa directives=None.
 
+ADR-0084 (C): la familia `web` deja de ser placeholder y es un LOCALIZADOR, jamás una fuente. Su fila de SEARCH_DISPATCH
+apunta al tool real (.tooluniverse/tools/brave_web_search.py, `locate`) con `adapter 'web'` y `availability
+'web_locator.provider_state'`: la disponibilidad es DINÁMICA (family_available / unsatisfiable_families, leídas EN LA
+LLAMADA): sin BRAVE_API_KEY o con WITT_WEB_LOCATOR=off la familia queda excluida del plan con el literal EXACTO de
+7d9ce15 (WEB_UNSATISFIABLE_LITERAL) y el plan es byte-idéntico al golden grabado en 7d9ce15; disponible, entra SÓLO por
+directiva del consejo o nombrada en WITT_SEARCH_DEFAULT_FAMILIES y va PRIMERA en la ronda (`families_order_rule`) porque
+es el único encadenado determinista hacia ctx:dois → unpaywall_crossref y ctx:curies → monarch en la MISMA ronda. Su
+adaptador (_run_web_family) NO pasa por normalize_item: el localizador devuelve URLs, lib/web_locator las resuelve a
+identificadores por una TABLA determinista y los de literatura se MATERIALIZAN en la ronda por Europe PMC
+(fetch_paper._resolve_one, una GET sin escribir caché) → candidatos `source 'europepmc'` / `source_family 'web'` /
+`identifier_provenance 'web-located:<rule>'`; CERO ítems con source 'web'; ningún título, snippet ni URL de la web llega
+a los ítems ni a los eventos (viven SÓLO en la fila, `web_locator`, que runs congela en frozen.web_locator).
+
 Doctrina heredada que este módulo aplica (constitución · CLAUDE.md §6/§7 · ADR-0043 · ADR-0078 · ADR-0079):
   * TRES estados, jamás un null ambiguo: cada fuente deja UNA fila con `status` ∈ SOURCE_STATES
     (success | no-match | error | skipped-budget | skipped-cap | tool-unavailable | not-requested). Los
@@ -75,6 +88,7 @@ import inspect
 import json
 import os
 import pathlib
+import re
 import time
 
 ROOT = pathlib.Path(__file__).resolve().parents[2].parent
@@ -165,9 +179,17 @@ SEARCH_DISPATCH = {
                  "inputs": "free-query", "budget_s": 30.0, "host": "api.openalex.org", "key_env": "OPENALEX_API_KEY",
                  "evidence_kind": "paper", "gate": "directive-only", "label_provenance": None,
                  "list_keys": ("records",)},   # ADR-0080 C7 (costura C2<->C5): openalex_search.query_openalex -> data.records
-    "web": {"tool_module": None, "fn": None, "adapter": None, "inputs": "free-query", "budget_s": 0.0,
-            "host": None, "key_env": None, "evidence_kind": "web", "gate": "directive-only",
-            "label_provenance": None, "unavailable_reason": "tool-unavailable (ADR-0084)"},
+    # ADR-0084 (C.1): fila REAL de la familia web — tool Brave por ruta + adaptador PROPIO (`adapter 'web'`: run_source
+    # NO la normaliza, Context 2). `evidence_kind 'web'` es la CLASE DE DEMANDA del consejo (COUNCIL_EVIDENCE_KINDS se
+    # deriva de aquí): ningún ítem emitido es kind 'web'. `availability` delega la disponibilidad a
+    # web_locator.provider_state (llave / kill-switch, leído EN LA LLAMADA); `unavailable_reason` es el literal de
+    # 7d9ce15 que viaja en families_excluded / harness_state / demand bajo `off`. `budget_env`: WITT_WEB_BUDGET_S manda
+    # sobre budget_s (family_budget_s, clamp declarado).
+    "web": {"tool_module": "brave_web_search.py", "fn": "locate", "adapter": "web", "inputs": "free-query",
+            "budget_s": 30.0, "budget_env": "WITT_WEB_BUDGET_S", "budget_clamp": (1.0, 120.0),
+            "host": "api.search.brave.com", "key_env": "BRAVE_API_KEY", "evidence_kind": "web",
+            "gate": "directive-only", "label_provenance": None, "unavailable_reason": "tool-unavailable (ADR-0084)",
+            "availability": "web_locator.provider_state"},
     "tooluniverse": {"tool_module": None, "fn": None, "adapter": None, "inputs": "free-query", "budget_s": 0.0,
                      "host": None, "key_env": None, "evidence_kind": "paper", "gate": "directive-only",
                      "label_provenance": None, "unavailable_reason": "tool-unavailable (ADR-0085)"},
@@ -276,6 +298,59 @@ def _load_tool(family, spec=None):
     return result
 
 
+# --- ADR-0084 (C.2): disponibilidad DINÁMICA — UNA verdad, leída en la llamada (plan, compilación, despacho) --------
+UNSATISFIABLE_PREFIX = "unsatisfiable-by-harness ("
+# El literal de exclusión de la familia web bajo `off` — el MISMO de 7d9ce15 (ADR-0082 C.4). Aparece UNA vez en este
+# módulo (los smokes lo importan; W0 lo grabó en golden_plan_web_directive_7d9ce15.json); el assert de abajo lo ata a la
+# tabla para que jamás diverja de SEARCH_DISPATCH['web'].unavailable_reason.
+WEB_UNSATISFIABLE_LITERAL = "unsatisfiable-by-harness (tool-unavailable (ADR-0084))"
+assert WEB_UNSATISFIABLE_LITERAL == f"{UNSATISFIABLE_PREFIX}{SEARCH_DISPATCH['web']['unavailable_reason']})"
+
+
+def family_available(family, env=None):
+    """(bool, reason) — ¿puede el harness DESPACHAR esta familia ahora? Estática para las filas sin mecanismo (`fn`
+    None y `adapter` None: tooluniverse → su unavailable_reason, ADR-0085); DINÁMICA para las filas con `availability`
+    (web → web_locator.provider_state(env): sin llave o WITT_WEB_LOCATOR=off → (False, 'tool-unavailable (ADR-0084)'
+    EXACTO — el literal de 7d9ce15; `brave`/`anthropic` fijados sin llave → (False, '<literal con causa>');
+    disponible → (True, None)). build_search_plan excluye con esto; council.harness_state_for y
+    council_index.unsatisfiable_families delegan aquí (ADR-0084 F). Desconocida → (False, 'unknown-family')."""
+    spec = SEARCH_DISPATCH.get(family)
+    if spec is None:
+        return False, "unknown-family"
+    if spec.get("availability") == "web_locator.provider_state":
+        try:
+            from lib import web_locator as wl   # import perezoso: este módulo sigue liviano al cargar
+        except Exception as e:   # pragma: no cover — árbol sin la rebanada W2: declarado, no fingido
+            return False, f"{spec.get('unavailable_reason') or 'tool-unavailable (ADR-0084)'}: web_locator not importable ({type(e).__name__})"
+        ps = wl.provider_state(env)
+        if ps.get("available"):
+            return True, None
+        return False, ps.get("unavailable_reason") or spec.get("unavailable_reason")
+    if spec.get("fn") is None and spec.get("adapter") is None:
+        return False, spec.get("unavailable_reason") or "no tool module declared"
+    return True, None
+
+
+def unsatisfiable_families(env=None):
+    """Tupla ORDENADA de las familias que el harness NO puede satisfacer AHORA (family_available False) — bajo `off`
+    ('tooluniverse', 'web'); con llave de Brave ('tooluniverse',). council_index.demand la deriva EN LA LLAMADA
+    (ADR-0084 F.3: DEMAND_FAMILIES sigue estática para que la serie MEDIDA no se rompa al llegar la llave)."""
+    return tuple(sorted(f for f in SEARCH_DISPATCH if not family_available(f, env)[0]))
+
+
+def family_budget_s(spec):
+    """(budget_s efectivo, fuente) de una familia dentro de la ronda: el de la tabla ('table') salvo que la fila declare
+    `budget_env` (ADR-0084: WITT_WEB_BUDGET_S para web) — entonces la env manda con clamp declarado (`budget_clamp`);
+    vacía / inválida → el de la tabla con fuente 'default-unset:…' | 'default-invalid-env:…'."""
+    base = float(spec.get("budget_s") or 0.0)
+    var = spec.get("budget_env")
+    if not var:
+        return base, "table"
+    v, src = _env_float_src(var, base)
+    lo, hi = spec.get("budget_clamp") or (MIN_SOURCE_BUDGET_S, 120.0)
+    return float(min(max(v, lo), hi)), src
+
+
 # --- plan ----------------------------------------------------------------------------------------------
 def _free_query(symbols, qb, pass1_query_en):
     """(query, source) — texto libre EN para las familias 'free-query' (openalex, geo): la formulación EN de
@@ -295,8 +370,13 @@ def _free_query(symbols, qb, pass1_query_en):
 FAMILIES_SOURCES = ("default-families", "directives+default", "caller")
 DIRECTIVE_PLAN_STATES = ("applied", "excluded-unknown-family", "excluded-unsatisfiable",
                          "not-requested (caller families)", "ignored (no family)")
-ENTERED_BY = ("directive", "default+directive", "caller+directive")
+ENTERED_BY_ENV = "env:WITT_SEARCH_DEFAULT_FAMILIES"      # ADR-0084 (C.3): web nombrada por la env, sin directiva
+ENTERED_BY = ("directive", "default+directive", "caller+directive", ENTERED_BY_ENV)
 QUERY_SOURCE_DIRECTIVE_PREFIX = "council-directive:"
+# ADR-0084 (C.3 / C.4): literales del plan cuando la familia web ENTRA (ausentes en un plan sin web: byte-identidad)
+WEB_TEST_QUERY_SOURCE = "operator-env:WITT_WEB_TEST_QUERY"
+FAMILIES_ORDER_RULE_WEB_FIRST = "web first — the locator feeds the round (ADR-0084)"
+FAMILIES_ORDER_RULE_CALLER = "caller order (families= mandates; web not moved) (ADR-0084)"
 
 
 def _directives_by_family(directives):
@@ -411,17 +491,37 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
                 and default_src.startswith("default-unset")):
             excluded.append({"family": fam, "reason": "directive-only (no directive, not in WITT_SEARCH_DEFAULT_FAMILIES)"})
             continue
-        if (via_directive and not from_defaults and source != "caller"
-                and spec.get("tool_module") is None and spec.get("adapter") is None):
-            # ADR-0082 (G.3 / C.4): la familia entró SÓLO por la directiva y el harness no la puede satisfacer
-            # (web → ADR-0084, tooluniverse → ADR-0085): se declara y se cuenta (GET /council/demand la lee); NO
-            # se despacha una llamada que nacería 'tool-unavailable'. Nombrada por la env sigue el camino de hoy.
-            excluded.append({"family": fam,
-                             "reason": f"unsatisfiable-by-harness ({spec.get('unavailable_reason') or 'no tool module declared'})",
-                             "requirement_ids": list(by_fam[fam]["rids"])})
-            continue
+        if via_directive and not from_defaults and source != "caller":
+            # ADR-0082 (G.3 / C.4): la familia entró SÓLO por la directiva y el harness no la puede satisfacer: se
+            # declara y se cuenta (GET /council/demand la lee); NO se despacha una llamada que nacería
+            # 'tool-unavailable'. Nombrada por la env sigue el camino de hoy. ADR-0084 (C.2): la disponibilidad es
+            # DINÁMICA (family_available): tooluniverse sigue estática (ADR-0085); web depende de la llave y del
+            # kill-switch WITT_WEB_LOCATOR — bajo `off` la razón es el literal EXACTO de 7d9ce15
+            # (WEB_UNSATISFIABLE_LITERAL); con `brave` fijado sin llave viaja la causa (mismo prefijo).
+            available, why = family_available(fam)
+            if not available:
+                excluded.append({"family": fam, "reason": f"{UNSATISFIABLE_PREFIX}{why})",
+                                 "requirement_ids": list(by_fam[fam]["rids"])})
+                continue
         if fam not in chosen:
             chosen.append(fam)
+
+    families_order_rule = None
+    web_available = family_available("web")[0] if "web" in chosen else False
+    if "web" in chosen and web_available:
+        # ADR-0084 (C.4): web PRIMERA en la RONDA cuando entra — el ÚNICO encadenado determinista hacia ctx:dois →
+        # unpaywall_crossref y ctx:curies → monarch en la MISMA ronda (Context 5: should_run_next_round exige
+        # n_new == 0, no hay "siguiente ronda" para alimentar). Sólo el ORDEN de ronda: la admisión al pool es
+        # native-first y la selección desempata native-before-web-located (answer_pipeline, D). Con families= del
+        # llamador el orden del llamador MANDA (declarado). Un plan sin web no gana la llave: byte-idéntico a 7d9ce15.
+        # corrector ADR-0084 (L): SÓLO con el localizador DISPONIBLE — bajo kill-switch o sin llave, web nombrada por
+        # WITT_SEARCH_DEFAULT_FAMILIES (o por families=) conserva su posición y el plan NO gana families_order_rule: es el
+        # plan de 7d9ce15 byte a byte (la ronda deja la fila MÍNIMA 'tool-unavailable' de entonces — run_source).
+        if source != "caller":
+            chosen = ["web"] + [f for f in chosen if f != "web"]
+            families_order_rule = FAMILIES_ORDER_RULE_WEB_FIRST
+        else:
+            families_order_rule = FAMILIES_ORDER_RULE_CALLER
 
     free_q, free_src = _free_query(symbols, qb, q_en)
     queries = {}
@@ -441,6 +541,18 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
                             "query_builder": "search_harness:v1:zfin-curies"}
         elif mode == "free-query":
             queries[fam] = {"inputs": mode, "query": free_q, "query_source": free_src}
+            if fam == "web":
+                # ADR-0084 (C.3): web entra por directiva (su query_en sustituye esta query en el bloque de abajo) o
+                # nombrada en WITT_SEARCH_DEFAULT_FAMILIES — la directiva del operador (ADR-0080): entonces la consulta
+                # es WITT_WEB_TEST_QUERY si está ('operator-env:WITT_WEB_TEST_QUERY') o la formulación EN de pass1
+                # (_free_query) — JAMÁS la pregunta cruda. `entered_by 'env:WITT_SEARCH_DEFAULT_FAMILIES'` sólo cuando
+                # entró por la env sin directiva (con directiva lo fija el bloque de abajo; por families= queda ausente).
+                # corrector ADR-0084 (L): ambas llaves SÓLO con el localizador disponible — sin él, queries.web es la de 7d9ce15
+                test_q = os.environ.get("WITT_WEB_TEST_QUERY", "").strip()
+                if web_available and test_q and not (by_fam.get(fam) or {}).get("queries"):
+                    queries[fam] = {"inputs": mode, "query": test_q, "query_source": WEB_TEST_QUERY_SOURCE}
+                if web_available and fam not in by_fam and source != "caller" and fam in default_fams:
+                    queries[fam]["entered_by"] = ENTERED_BY_ENV
         elif mode == "dois":
             queries[fam] = {"inputs": mode, "dois": "from-items-at-round-time", "query_builder": "search_harness:v1:dois"}
         else:
@@ -545,6 +657,8 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
         plan["directives_applied"] = d_rows
         plan["families_from_directives"] = families_from_directives
         plan["n_directives_excluded"] = sum(1 for r in d_rows if str(r["state"]).startswith("excluded"))
+    if families_order_rule is not None:
+        plan["families_order_rule"] = families_order_rule   # ADR-0084 (C.4): sólo cuando web está en el plan
     return plan
 
 
@@ -555,6 +669,9 @@ def plan_event_payload(plan):
                                     "families_default", "families_excluded", "directives_state",
                                     "queries", "question_en_source", "symbols", "symbols_dropped")}
     out["n_directives"] = len(plan.get("directives") or [])
+    if plan.get("families_order_rule") is not None:
+        # corrector ADR-0084 (C.4/G.6): la Traza pinta «web primera» desde el evento; ausente sin web → forma de hoy byte a byte
+        out["families_order_rule"] = plan["families_order_rule"]
     # corrector ADR-0080: la forma del evento es UNA — `state` viaja SIEMPRE ('built' cuando el harness corre en
     # vivo; runs emite 'harness-unavailable' | 'error: …' | 'kill-switch …' cuando no); la Traza no infiere
     # nada de la AUSENCIA de una llave
@@ -825,6 +942,10 @@ def _family_status(items, statuses):
         return "tool-unavailable"
     if all(s == "skipped-budget" for s in statuses):
         return "skipped-budget"
+    if all(s == "skipped-cap" for s in statuses):
+        # ADR-0084 (C.5): la familia web hereda 'skipped-cap' cuando TODAS sus consultas quedaron sin enviar por un tope
+        # (cuota mensual, WITT_WEB_MAX_QUERIES, cortacircuito auth) — literal ya en SOURCE_STATES, no se degrada a error
+        return "skipped-cap"
     if all(s == "not-requested" for s in statuses):
         # corrector ADR-0080: un "no se pidió" declarado por el tool en TODAS sus llamadas se hereda, no se
         # degrada a fallo
@@ -1145,6 +1266,452 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
     return _row(family, spec, "error", error=f"no adapter for legacy family {family!r}"), []
 
 
+# ---------------------------------------------------------------------------------------------------------
+# ADR-0084 (C.5) — la familia `web`: adaptador PROPIO que NO pasa por normalize_item (Context 2) y emite CERO ítems
+# con source 'web'. lib/web_locator.locate devuelve por consulta URLs resueltas a identificadores por una TABLA
+# determinista (fila-query); los de literatura se MATERIALIZAN aquí, en la MISMA ronda, por Europe PMC
+# (la MISMA consulta de fetch_paper._resolve_one vía search_europepmc_ledger(timeout=<presupuesto restante>) — corrector: UNA GET paceada
+# y ACOTADA, SIN escribir caché, con el registro verificado contra el ident — Context 4: fetch_external envenenaría el read-cache
+# abstract-only del paper seleccionado) y entran como candidatos `source 'europepmc'` / `source_family 'web'` /
+# `identifier_provenance 'web-located:<rule>'`; los DOI van a ctx['dois'] (unpaywall_crossref) y las curies ZDB-GENE a
+# ctx['curies'] (monarch) — append sobre las listas pre-creadas, jamás reasignar (M.3). Ningún título, snippet ni URL
+# de la web llega a los ítems ni a los eventos: viven SÓLO en la fila (`web_locator {queries, located, unresolved}`),
+# que runs congela en frozen.web_locator (el ledger humano, con URL completa).
+# ---------------------------------------------------------------------------------------------------------
+WEB_FED_TO_POOL = "pool:literature-candidate (materialized by europepmc)"
+WEB_SEARCH_REC_SOURCE = "europepmc-record (web-located candidate; fetch_paper._resolve_one)"
+WEB_AUTH_CIRCUIT_DETAIL = "auth failed in this round (no retry)"
+WEB_NO_QUERY_DETAIL = "no English query (nothing to search)"
+WEB_LOCATOR_FN_RESOLVED = "web_locator.locate"
+WEB_DEDUP_LAYER = "pool"
+WEB_DEDUP_LAYER_RULE = ("web-located candidates bypass the round's evidence_id dedup and are appended AFTER the native "
+                        "families' items (run_round): a native family that brings the same id keeps the identity and the "
+                        "pool (answer_pipeline._pool_add, native-first admission) declares the web one as duplicate "
+                        "(ADR-0084 D.1); against ids already present in the run (existing_ids) they are dropped here")
+WEB_MATERIALIZE_RULE = ("literature ids (pmid | pmcid | doi) located on the web are verified in Europe PMC in the same "
+                        "round — fetch_paper.search_europepmc_ledger(<ident query>, n=1, timeout=<family budget left>) (the "
+                        "query of fetch_paper._ident_query; DOIs with EPMC syntax chars travel quoted), ident in EPMC form only, "
+                        "one GET each, no cache write (fetch_external runs later, only for the SELECTED paper); the record "
+                        "returned must carry the located identifier (PMID/PMCID/DOI) or it is declared 'error: europepmc record "
+                        "mismatch' and is NOT a candidate; a pattern that matched but does not exist in Europe PMC is NOT a "
+                        "candidate ('not-found-in-europepmc'); WITT_WEB_MAX_MATERIALIZE caps the GETs per round (ADR-0084 C.5; "
+                        "corrector: budget-bounded timeout + identity check)")
+# corrector ADR-0084: el MISMO paper devuelto por la web en varias formas (pubmed + PMC + doi.org) se materializa UNA vez — las
+# llaves PMID:/PMCID:/DOI: del registro (answer_pipeline._candidate_keys) se recuerdan en la familia y las formas siguientes quedan
+# 'already-present (dup of <evidence_id>)' sin segunda GET ni segundo candidato (antes: 3 GETs, 3 candidatos, ledger contradictorio)
+WEB_SAME_PAPER_RULE = ("same paper by PMID/PMCID/DOI (answer_pipeline._candidate_keys of the Europe PMC record) as one already "
+                       "materialized in this family this round: no second Europe PMC GET, no second candidate; declared "
+                       "'already-present (dup of <evidence_id>)' with same_paper {of, matched_key, layer 'family'} (corrector ADR-0084)")
+_EPMC_DOI_QUOTE_RE = re.compile(r'[()<>;:"\s]')
+
+
+def epmc_paper_key(kind, ident):
+    """La llave de PAPER (forma de answer_pipeline._candidate_keys) de un hallazgo de literatura: 'PMID:<n>' | 'PMCID:PMC<n>' |
+    'DOI:<doi minúsculas>'; None para otros kinds (corrector ADR-0084: dedup por paper dentro de la familia web)."""
+    if kind == "pmid":
+        return str(ident)
+    if kind == "pmcid":
+        return f"PMCID:{str(ident).upper()}"
+    if kind == "doi":
+        d = str(ident or "").strip().lower()
+        for pre in ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "http://dx.doi.org/", "doi:"):
+            if d.startswith(pre):
+                d = d[len(pre):]
+        return f"DOI:{d}" if d else None
+    return None
+
+
+def epmc_query_for(epmc_id):
+    """(query, quoted) — la consulta a Europe PMC para un ident en forma EPMC (la de fetch_paper._ident_query); un DOI con
+    caracteres de la sintaxis de EPMC (paréntesis, dos puntos, <>, ;, comillas, espacios — p. ej. un SICI) viaja entre comillas
+    para que el parser no lo reinterprete (corrector ADR-0084; fetch_paper no se toca)."""
+    from lib import fetch_paper
+    q, _ = fetch_paper._ident_query(epmc_id)
+    if str(epmc_id).upper().startswith("DOI:"):
+        v = str(epmc_id).split(":", 1)[1].strip()
+        if _EPMC_DOI_QUOTE_RE.search(v):
+            return f'DOI:"{v}"', True
+    return q, False
+
+
+def epmc_ident_of_query(query):
+    """Inverso de epmc_query_for — para instrumentos y smokes que fakean fetch_paper.search_europepmc_ledger y sirven por ident:
+    'EXT_ID:<n> AND SRC:MED' → 'PMID:<n>' · 'PMCID:PMC<n>' → 'PMC<n>' · 'DOI:<v>' | 'DOI:"<v>"' → 'DOI:<v>'; None si la
+    consulta no es una de esas tres formas (búsqueda libre de la familia europepmc)."""
+    q = str(query or "").strip()
+    m = re.fullmatch(r"EXT_ID:(\d+) AND SRC:MED", q)
+    if m:
+        return f"PMID:{m.group(1)}"
+    m = re.fullmatch(r"PMCID:(PMC\d+)", q, re.I)
+    if m:
+        return m.group(1).upper()
+    m = re.fullmatch(r'DOI:"(.+)"', q) or re.fullmatch(r"DOI:(\S+)", q)
+    if m:
+        return f"DOI:{m.group(1)}"
+    return None
+
+
+def _web_query_row_skipped(wl, query, cfg, ps, rids, round_no, query_source, status, detail):
+    """Fila-query con la MISMA forma que web_locator.locate para una consulta que este adaptador NO envió (cortacircuito
+    auth C.5 · presupuesto de la familia · fallo del propio módulo): provider_status ∈ SOURCE_STATES y `state` del
+    vocabulario de web_locator ('skipped-cap (<detail>)' | 'skipped-budget (<detail>)' | 'error: <detail>'); cero red,
+    cero cuota, contadores null (no midió)."""
+    q = str(query or "").strip()
+    cap = int(cfg.get("max_query_chars") or 400)
+    row = {"round": round_no, "query_en": str(query or ""), "query_sent": q[:cap], "query_source": query_source,
+           "requirement_ids": list(rids or []), "provider": ps.get("provider"), "provider_source": ps.get("provider_source"),
+           "provider_status": status, "state": None, "http_status": None, "elapsed_s": 0.0, "throttle_wait_s": 0.0,
+           "retries_429": 0, "cache_hit": False, "query_truncated": len(q) > cap, "query_altered_by_provider": False,
+           "n_results": None, "n_located": None, "n_unresolved": None, "n_duplicates_in_response": None,
+           "n_already_present": None, "located": [], "unresolved": [], "cost_usd_projected": 0.0, "billable": False,
+           "n_billable": 0, "quota": {"state": None, "n_after": None, "cap": int(cfg.get("monthly_cap") or 0), "month": None},
+           "resolver_version": wl.RESOLVER_VERSION, "module_version": wl.MODULE_VERSION,
+           "not_sent_by": "search_harness._run_web_family"}
+    if status == "error":
+        row["error"], row["state"] = detail, f"error: {detail}"
+    else:
+        row["detail"], row["state"] = detail, f"{status} ({detail})"
+    return row
+
+
+def _run_web_family(family, spec, plan, ctx, budget_s, tools=None):
+    """La familia web dentro de la ronda (ADR-0084 C.5) — (fila, ítems).
+
+    Por insumo de _inputs_for (las query_en de las directivas del consejo; o la consulta del operador cuando web entró
+    por WITT_SEARCH_DEFAULT_FAMILIES), dentro del tope WITT_WEB_MAX_QUERIES y del presupuesto de la familia (timeout =
+    max(MIN_CALL_TIMEOUT_S, restante / consultas_restantes), patrón _run_workspace_family):
+      web_locator.locate(query, cfg, provider_fn=tools['web'] (fake de smoke | None → tool real por ruta),
+                         quota_fn=ctx['web_quota'] (runs: db.web_locator_reserve; ausente → 'not-enforced', declarado),
+                         existing_ids=ctx['existing_ids'] ∪ ids ya localizados en esta familia, store=ctx['web_store'],
+                         timeout, requirement_ids, round_no=ctx['round'], query_source)
+    → fila-query; con `located[]` (dedup None): kind ∈ pmid|pmcid|doi → MATERIALIZACIÓN por Europe PMC
+    (fetch_paper._resolve_one(epmc_ident) — forma verificada ANTES de llamar; tope WITT_WEB_MAX_MATERIALIZE por ronda y
+    presupuesto de la familia) → candidato answer_pipeline._epmc_candidate(rec) + {kind 'literature-candidate', source
+    'europepmc', source_family 'web', identifier_provenance 'web-located:<rule>', url canónica (JAMÁS la hallada),
+    located_from {host, rule_id, confidence, kind, round, requirement_ids}, search_rec_source, located_via 'web',
+    dedup_layer 'pool'}; `rec None` → feed_state 'not-found-in-europepmc' (contado, no candidato); kind 'doi' además →
+    ctx['dois'] (append); 'zfin-curie' ZDB-GENE → ctx['curies'] ('fed-same-round'); otros ZDB / ensdarg / uniprot / gse
+    → fed_to None, 'no-sink-in-1.13 (<kind>)'; dedup 'already-present (existing_ids)' → 'already-present (dup of <id>)';
+    'duplicate-in-response' → ídem. Cortacircuito auth: un `error: auth…` deja las consultas restantes 'skipped-cap'
+    con detail WEB_AUTH_CIRCUIT_DETAIL, cero red. Hook ctx['on_web_locate'](payload) UNA vez por consulta DECLARADA —
+    enviada o skipped-cap / skipped-budget / error (corrector ADR-0084: el latido de una consulta que la cuota frenó también
+    se emite, con detail); jamás bajo tool-unavailable — (ids y hosts, sin URLs) → evento stage.web.locate (runs). La fila agrega con _family_status (success = ≥ 1
+    candidato materializado; no-match = midió y 0 materializados, con detail; tool-unavailable / skipped-cap /
+    skipped-budget / error heredados) y lleva el ledger COMPLETO en `web_locator` (las URLs viven SÓLO ahí)."""
+    from lib import web_locator as wl
+    from lib import fetch_paper
+    from lib import answer_pipeline as ap
+
+    inputs, mode = _inputs_for(family, spec, plan, ctx)
+    q_fam = (plan.get("queries") or {}).get(family) or {}
+    if not inputs:
+        return _row(family, spec, "not-requested", detail=WEB_NO_QUERY_DETAIL, inputs_mode=mode, inputs_used=[]), []
+    cfg = wl.env_config()          # M.4: las 17 env se leen EN LA LLAMADA
+    ps = wl.provider_state()       # M.4: disponibilidad en el despacho (plan y compilación ya la leyeron)
+    round_no = ctx.get("round")
+    provider_fn = tools.get(family) if isinstance(tools, dict) and callable(tools.get(family)) else None
+    quota_fn = ctx.get("web_quota") if callable(ctx.get("web_quota")) else None
+    store = ctx.get("web_store") if callable(ctx.get("web_store")) else None
+    on_locate = ctx.get("on_web_locate") if callable(ctx.get("on_web_locate")) else None
+    max_q, max_mat = int(cfg["max_queries"]), int(cfg["max_materialize"])
+    existing = set(str(x) for x in (ctx.get("existing_ids") or ()) if x is not None)
+    seen_ids = set()                                     # ids nativos ya localizados/materializados en ESTA familia
+    seen_keys = {}                                       # corrector: llave de PAPER (PMID:/PMCID:/DOI:) -> evidence_id materializado
+    dois, curies = ctx.setdefault("dois", []), ctx.setdefault("curies", [])   # M.3: append-only, jamás reasignar
+    t0 = _monotonic()
+    calls, queries, located_all, unresolved_all, items, statuses = [], [], [], [], [], []
+    tally = {"epmc_gets": 0, "materialized": 0, "not_found": 0, "same_paper": 0, "mismatch": 0}
+    n_dropped = n_calls_skipped = 0
+    auth_failed = False
+    n_planned = min(len(inputs), max_q)
+
+    def _qsrc(inp, rids):
+        if rids:
+            return QUERY_SOURCE_DIRECTIVE_PREFIX + ",".join(rids)
+        if inp == q_fam.get("query"):
+            return q_fam.get("query_source")
+        return "plan:directive_queries"
+
+    def _feed_doi(form):
+        """(ii) → ctx['dois'] para unpaywall_crossref en la MISMA ronda: append-only (M.3) y sin duplicar por mayúsculas —
+        corrector ADR-0084: la cosecha de run_round escribe la forma del registro EPMC; aquí se escribe la MISMA cadena cuando el
+        registro existe, y la normalizada cuando no, comparando en minúsculas (un DOI no se manda dos veces a Crossref)."""
+        if form and str(form).lower() not in {str(x).lower() for x in dois}:
+            dois.append(form)
+
+    def _feed(loc, rids):
+        """Un hallazgo del resolutor → fed_to / feed_state (vocabularios de web_locator) y, para literatura, el candidato
+        materializado (o None)."""
+        kind, ident = loc.get("kind"), loc.get("id")
+        loc["fed_to"], loc["feed_state"] = None, None
+        dedup = loc.get("dedup")
+        if dedup == "already-present (existing_ids)":
+            loc["feed_state"] = f"already-present (dup of {ident})"
+            return None
+        if dedup == "duplicate-in-response":
+            loc["feed_state"] = "duplicate-in-response"
+            return None
+        seen_ids.add(str(ident))
+        if kind in wl.LITERATURE_KINDS:
+            d = wl.normalize_doi(ident) if kind == "doi" else None
+            key = epmc_paper_key(kind, ident)
+            prev = seen_keys.get(key) if key else None
+            if prev is not None:
+                # corrector ADR-0084: el MISMO paper en otra forma (pubmed + PMC + doi.org): sin 2ª GET ni 2º candidato
+                tally["same_paper"] += 1
+                loc.update(evidence_id=prev, feed_state=f"already-present (dup of {prev})",
+                           same_paper={"of": prev, "matched_key": key, "layer": "family", "rule": WEB_SAME_PAPER_RULE})
+                return None
+            if kind == "doi":
+                loc["fed_to"], loc["fed_ctx"] = "ctx:dois", ["ctx:dois"]
+            epmc_id = wl.epmc_ident(loc)
+            if not epmc_id or not wl.EPMC_IDENT_RE.match(epmc_id):
+                # Context 4: un texto libre ataría el TOP HIT equivocado — sólo PMID:<n> | PMC<n> | DOI:<doi> viajan
+                _feed_doi(d)
+                loc["feed_state"] = "error: identifier not in Europe PMC form (not sent to _resolve_one)"
+                return None
+            if tally["epmc_gets"] >= max_mat:
+                _feed_doi(d)
+                loc["feed_state"] = "not-materialized (feed cap)"
+                return None
+            left_s = budget_s - (_monotonic() - t0)
+            if left_s < MIN_CALL_TIMEOUT_S:
+                _feed_doi(d)
+                loc["feed_state"] = "not-materialized (budget)"
+                return None
+            tally["epmc_gets"] += 1
+            loc["epmc_ident_sent"] = epmc_id
+            # corrector ADR-0084 (M.1): la GET a Europe PMC usa el presupuesto RESTANTE de la familia (antes: HTTP_TIMEOUT_S 30 s por
+            # ident — 6 idents lentos podían retener la ronda 180 s); misma consulta que fetch_paper._resolve_one, sin escribir caché
+            epmc_timeout = round(max(MIN_CALL_TIMEOUT_S, min(float(fetch_paper.HTTP_TIMEOUT_S), left_s)), 3)
+            q_epmc, quoted = epmc_query_for(epmc_id)
+            loc["epmc_timeout_s"], loc["epmc_query_quoted"] = epmc_timeout, quoted
+            try:
+                hits, led = fetch_paper.search_europepmc_ledger(q_epmc, n=1, timeout=epmc_timeout)   # UNA GET paceada, SIN caché
+            except Exception as e:   # cinturón §6: EPMC caído deja el hallazgo declarado, la ronda sigue
+                _feed_doi(d)
+                loc["feed_state"] = f"error: {type(e).__name__}: {str(e)[:160]}"
+                return None
+            led = led if isinstance(led, dict) else {}
+            rec = hits[0] if hits else None
+            loc["epmc_search_status"] = led.get("status")
+            if not rec:
+                tally["not_found"] += 1
+                _feed_doi(d)
+                loc["feed_state"] = "not-found-in-europepmc"
+                return None
+            rec_keys = ap._candidate_keys(rec)
+            if key not in rec_keys:
+                # corrector ADR-0084 (Context 4): el registro devuelto NO es el identificador localizado (trampa del top hit) — se
+                # declara bajo el prefijo 'error: ' y NO es candidato (atar un paper equivocado con web-located sería peor que nada)
+                tally["mismatch"] += 1
+                _feed_doi(d)
+                loc["feed_state"] = f"error: europepmc record mismatch ({', '.join(rec_keys) or 'no ids'} != {key})"
+                return None
+            cand = ap._epmc_candidate(rec)   # forma NATIVA del evidence_id (Context 7): mismo dedup en dos capas
+            if not cand.get("evidence_id"):
+                _feed_doi(d)
+                loc["feed_state"] = "error: europepmc record without identifier"
+                return None
+            # la forma del registro EPMC (la que cosecha run_round) manda sobre la normalizada: UNA cadena en ctx:dois
+            if kind == "doi":
+                _feed_doi((cand.get("search_rec") or {}).get("doi") or d)
+            cand.update({"kind": "literature-candidate", "source": "europepmc", "source_family": "web", "label": None,
+                         "statement": None, "title": (cand.get("search_rec") or {}).get("title"),
+                         "url": loc.get("canonical_url"),
+                         "identifier_provenance": wl.identifier_provenance(loc),
+                         "located_via": "web",
+                         "located_from": {"host": loc.get("host"), "rule_id": loc.get("resolver_rule"),
+                                          "confidence": loc.get("confidence"), "kind": kind, "round": round_no,
+                                          "requirement_ids": list(rids)},
+                         "search_rec_source": WEB_SEARCH_REC_SOURCE, "raw_ref": None, "text": None,
+                         "directive_requirement_ids": list(rids), "dedup_layer": WEB_DEDUP_LAYER,
+                         # corrector: la referencia al hallazgo de ORIGEN (query_index + id) — answer_pipeline cierra SÓLO esa fila
+                         # located[] cuando el pool lo declara duplicado (jamás todas las del mismo evidence_id)
+                         "located_ref": {"query_index": loc.get("query_index"), "id": loc.get("id")}})
+            tally["materialized"] += 1
+            seen_ids.add(str(cand["evidence_id"]))
+            for k in rec_keys:
+                # corrector: las TRES formas del paper quedan vistas en la familia (misma ronda) y viajan como existing_ids a la
+                # siguiente consulta (web_locator.existing_id_key entiende PMID:<n> | PMC<n> | <doi>)
+                seen_keys.setdefault(k, cand["evidence_id"])
+                seen_ids.add(k.split(":", 1)[1] if k.startswith(("PMCID:", "DOI:")) else k)
+            loc.update(fed_to=WEB_FED_TO_POOL, feed_state="materialized-same-round", evidence_id=cand["evidence_id"])
+            return cand
+        if kind == "zfin-curie":
+            if "ZDB-GENE-" in str(ident):
+                if ident not in curies:
+                    curies.append(ident)      # (iii) → monarch en la MISMA ronda
+                loc["fed_to"], loc["feed_state"] = "ctx:curies", "fed-same-round"
+            else:
+                zdb = str(ident).split(":", 1)[-1]
+                zdb_type = "-".join(zdb.split("-")[:2]) if zdb.startswith("ZDB-") else zdb
+                loc["feed_state"] = f"no-sink-in-1.13 (zfin-curie {zdb_type})"
+            return None
+        loc["feed_state"] = f"no-sink-in-1.13 ({kind})"   # ensdarg / uniprot: store_state ya medido; gse: no auto-feed
+        return None
+
+    for idx, inp in enumerate(inputs):
+        rids = _rids_for(q_fam, inp)
+        qsrc = _qsrc(inp, rids)
+        if idx >= max_q:
+            n_dropped += 1
+            calls.append({"input": inp, "status": "skipped-cap", "detail": f"WITT_WEB_MAX_QUERIES={max_q} reached",
+                          "directive_requirement_ids": rids})
+            continue
+        remaining = budget_s - (_monotonic() - t0)
+        if auth_failed or (idx > 0 and remaining < MIN_CALL_TIMEOUT_S):
+            if auth_failed:
+                st, detail = "skipped-cap", WEB_AUTH_CIRCUIT_DETAIL
+            else:
+                st, detail = "skipped-budget", f"family budget {round(budget_s, 3)}s exhausted"
+                n_calls_skipped += 1
+            qrow = _web_query_row_skipped(wl, inp, cfg, ps, rids, round_no, qsrc, st, detail)
+            queries.append(qrow)
+            statuses.append(st)
+            calls.append({"input": inp, "status": st, "detail": detail, "directive_requirement_ids": rids})
+            continue
+        left = n_planned - idx
+        timeout_s = round(max(MIN_CALL_TIMEOUT_S, remaining / left), 3)
+        c0 = _monotonic()
+        try:
+            qrow = wl.locate(inp, cfg, provider_fn=provider_fn, quota_fn=quota_fn, existing_ids=existing | seen_ids,
+                             store=store, timeout=timeout_s, requirement_ids=rids, round_no=round_no, query_source=qsrc)
+        except Exception as e:   # locate ya envuelve al proveedor; esto cubre un fallo del propio módulo (§6)
+            qrow = _web_query_row_skipped(wl, inp, cfg, ps, rids, round_no, qsrc, "error",
+                                          f"{type(e).__name__}: {str(e)[:160]}")
+        qrow = qrow if isinstance(qrow, dict) else {}
+        st = qrow.get("provider_status")
+        if st not in SOURCE_STATES:
+            qrow["provider_status_raw"], st = st, "error"
+            qrow["provider_status"] = st
+            qrow.setdefault("error", f"shape-mismatch (provider_status {qrow.get('provider_status_raw')!r} not in SOURCE_STATES)")
+        cands = []
+        for loc in qrow.get("located") or []:
+            loc["round"], loc["requirement_ids"], loc["query_index"] = round_no, list(rids), idx
+            cand = _feed(loc, rids)
+            if cand is not None:
+                cands.append(cand)
+        for u in qrow.get("unresolved") or []:
+            u["round"], u["requirement_ids"], u["query_index"] = round_no, list(rids), idx
+        items.extend(cands)
+        located_all.extend(qrow.get("located") or [])
+        unresolved_all.extend(qrow.get("unresolved") or [])
+        call = {"input": inp, "status": st, "http_status": qrow.get("http_status"),
+                "elapsed_s": round(_monotonic() - c0, 3), "provider_elapsed_s": qrow.get("elapsed_s"),
+                "timeout_s": timeout_s, "timeout_s_scope": "per-call (web_locator.locate -> provider timeout=)",
+                "cache_hit": qrow.get("cache_hit"), "query_sent": qrow.get("query_sent"),
+                "n_results": qrow.get("n_results"), "n_located": qrow.get("n_located"), "n_materialized": len(cands),
+                "n_unresolved": qrow.get("n_unresolved"), "throttle_wait_s": qrow.get("throttle_wait_s"),
+                "retries_429": qrow.get("retries_429"), "directive_requirement_ids": rids}
+        if qrow.get("error") is not None:
+            call["error"] = str(qrow["error"])[:200]
+        if qrow.get("detail") is not None:
+            call["detail"] = qrow["detail"]
+        queries.append(qrow)
+        statuses.append(st)
+        calls.append(call)
+        if wl.is_auth_error(qrow):
+            auth_failed = True   # C.5: las consultas restantes de la ronda quedan skipped-cap, cero red
+        if on_locate is not None and st != "tool-unavailable":
+            # C.6 / G.6: UN latido por consulta ENVIADA — ids y hosts, jamás URLs ni títulos (0 eventos bajo off)
+            payload = {"round": round_no, "provider": qrow.get("provider"), "query_en": qrow.get("query_en"),
+                       "query_source": qrow.get("query_source"), "requirement_ids": list(rids),
+                       "provider_status": st, "http_status": qrow.get("http_status"), "elapsed_s": qrow.get("elapsed_s"),
+                       "throttle_wait_s": qrow.get("throttle_wait_s"), "cache_hit": qrow.get("cache_hit"),
+                       "query_altered_by_provider": qrow.get("query_altered_by_provider"),
+                       "n_results": qrow.get("n_results"), "n_located": qrow.get("n_located"),
+                       "n_materialized": len(cands), "n_unresolved": qrow.get("n_unresolved"),
+                       "located_ids": [l.get("id") for l in (qrow.get("located") or [])],
+                       "hosts_unresolved": [u.get("host") for u in (qrow.get("unresolved") or [])],
+                       "cost_usd_projected": qrow.get("cost_usd_projected"),
+                       "quota": {k: (qrow.get("quota") or {}).get(k) for k in ("state", "n_after", "cap")}}
+            if qrow.get("error") is not None:
+                payload["error"] = str(qrow["error"])[:200]
+            if qrow.get("detail") is not None:
+                payload["detail"] = qrow["detail"]
+            try:
+                on_locate(payload)
+            except Exception as e:   # el latido jamás tumba la familia; el fallo del hook se declara en la fila
+                qrow["hook_error"] = f"{type(e).__name__}: {str(e)[:120]}"
+
+    elapsed_total = round(_monotonic() - t0, 3)
+    status = _family_status(items, statuses)
+    ran = [qr for qr in queries if qr.get("provider_status") in RAN_STATES]
+    measured = status in RAN_STATES
+
+    def _sum(key):
+        return sum(int(qr.get(key) or 0) for qr in ran)
+
+    n_results = _sum("n_results") if measured else None
+    n_located = _sum("n_located") if measured else None
+    fresh = [l for l in located_all if l.get("dedup") is None]
+    n_err = sum(1 for s in statuses if s == "error")
+    cost = round(sum(float(qr.get("cost_usd_projected") or 0.0) for qr in queries), 6)
+    quota_state = next((qr["quota"]["state"] for qr in reversed(queries) if (qr.get("quota") or {}).get("state")), None)
+    if any((qr.get("n_located") or 0) > 0 for qr in ran):
+        web_state = "located"
+    elif ran:
+        web_state = "no-results"
+    elif queries:
+        q0 = queries[0]
+        web_state = q0.get("state") or f"error: {q0.get('error') or 'unknown'}"
+        if web_state.endswith(" ()") and q0.get("error"):
+            # tolerancia declarada: una fila-query de web_locator sin `detail` (el tool dejó la causa en `error`, p. ej.
+            # 'BudgetExhausted: …' bajo skipped-budget) no deja un estado con paréntesis vacíos en el frozen
+            web_state = web_state[:-2] + f"({q0['error']})"
+    else:
+        web_state = "error: no query rows"
+    row = _row(family, spec, status, n_found=n_results, elapsed_s=elapsed_total, budget_s=round(budget_s, 3),
+               inputs_mode=mode, inputs_used=list(inputs), n_calls=len(calls), n_calls_error=n_err,
+               n_calls_skipped_budget=n_calls_skipped,
+               cache_hit=(any(bool(qr.get("cache_hit")) for qr in ran) if ran else None),
+               query_sent=next((qr.get("query_sent") for qr in queries if qr.get("query_sent")), None),
+               fn_resolved=WEB_LOCATOR_FN_RESOLVED + (" (provider_fn injected)" if provider_fn else f" -> {ps['provider']}"),
+               calls=calls,
+               # ADR-0084 (C.5): el ledger de la familia — contadores ENTEROS sólo si midió (RAN_STATES), null si no
+               provider=ps["provider"], provider_source=ps["provider_source"], provider_available=bool(ps["available"]),
+               n_queries=len(queries), n_queries_planned=n_planned, n_queries_dropped_by_cap=n_dropped,
+               max_queries=max_q, max_queries_source=cfg["sources"]["max_queries"],
+               max_materialize=max_mat, max_materialize_source=cfg["sources"]["max_materialize"],
+               n_results=n_results, n_located=n_located,
+               n_materialized=tally["materialized"] if measured else None,
+               n_epmc_gets=tally["epmc_gets"] if measured else None,
+               n_not_found_in_europepmc=tally["not_found"] if measured else None,
+               n_same_paper_dups=tally["same_paper"] if measured else None,      # corrector: mismo paper en varias URLs
+               n_epmc_record_mismatch=tally["mismatch"] if measured else None,   # corrector: top hit ≠ ident (Context 4)
+               n_fed_ctx=(sum(1 for l in fresh if l.get("fed_to") in ("ctx:dois", "ctx:curies") or l.get("fed_ctx"))
+                          if measured else None),
+               n_located_not_fed=sum(1 for l in fresh if l.get("fed_to") is None) if measured else None,
+               n_already_present=_sum("n_already_present") if measured else None,
+               n_duplicates_in_response=_sum("n_duplicates_in_response") if measured else None,
+               n_unresolved=_sum("n_unresolved") if measured else None,
+               cost_usd_projected=cost, quota_state=quota_state,
+               quota_hook=("ctx.web_quota" if quota_fn is not None
+                           else "absent (quota not enforced by the harness; runs injects db.web_locator_reserve)"),
+               web_locator_state=web_state, dedup_layer=WEB_DEDUP_LAYER, dedup_layer_rule=WEB_DEDUP_LAYER_RULE,
+               materialize_rule=WEB_MATERIALIZE_RULE, text_policy=wl.TEXT_POLICY,
+               web_locator={"queries": queries, "located": located_all, "unresolved": unresolved_all,
+                            "module_version": wl.MODULE_VERSION, "resolver_version": wl.RESOLVER_VERSION})
+    if n_err and measured:
+        row["partial_errors"] = n_err
+    if status == "error":
+        row["error"] = (next((qr.get("error") for qr in queries if qr.get("error")), None)
+                        or "mixed call statuses: " + json.dumps(sorted(set(statuses))))
+    elif status == "no-match":
+        row["detail"] = f"n_results={n_results} n_located={n_located} n_materialized=0"
+    else:
+        detail = next((qr.get("detail") for qr in queries if qr.get("detail")), None)
+        if detail is not None:
+            row["detail"] = detail   # tool-unavailable → la razón de provider_state; skipped-* → el tope que aplicó
+    for it in items:
+        # estructural (el gate del brief): la familia web JAMÁS emite un ítem web — sólo candidatos de Europe PMC
+        if not (it.get("source") == "europepmc" and it.get("source_family") == "web"
+                and it.get("kind") == "literature-candidate" and "title_web" not in it and "description" not in it):
+            raise AssertionError("ADR-0084 (C.5): the web family emitted a non-europepmc item")
+    return row, items
+
+
 def run_source(family, plan, ctx, budget_s, tools=None):
     """(fila, ítems) de UNA familia dentro de su presupuesto. `tools` (dict family -> callable) inyecta fakes
     para las familias Layer 0 genéricas (los smokes); las tres legadas se parchean en answer_pipeline."""
@@ -1153,6 +1720,22 @@ def run_source(family, plan, ctx, budget_s, tools=None):
     rids_fam = list(((plan.get("queries") or {}).get(family) or {}).get("directive_requirement_ids") or [])
     if spec is None:
         return _row(family, {}, "error", error=f"unknown family {family!r}", directive_requirement_ids=rids_fam), []
+    if spec.get("adapter") == "web":
+        # ADR-0084 (C.5): adaptador PROPIO de la familia web — jamás normalize_item (Context 2); `tools['web']` inyecta
+        # el proveedor falso (provider_fn) en los smokes; la cuota y los hooks viajan en ctx (web_quota, on_web_locate,
+        # existing_ids, web_store) y su ausencia se declara, no se finge
+        available, why = family_available(family)
+        if not available:
+            # corrector ADR-0084 (L): sin localizador (kill-switch o sin llave) la fila es la MÍNIMA de 7d9ce15 — la misma forma que
+            # una familia con fn None —, cero red, cero cuota, cero latidos; la CAUSA viaja en detail y frozen.web_locator la declara
+            return _row(family, spec, "tool-unavailable", detail=why or spec.get("unavailable_reason"),
+                        directive_requirement_ids=rids_fam), []
+        try:
+            row, items = _run_web_family(family, spec, plan, ctx, budget_s, tools=tools)
+        except Exception as e:   # cinturón §6 (M.1): un localizador que lanza degrada SU familia, no la ronda
+            row, items = _row(family, spec, "error", error=f"{type(e).__name__}: {str(e)[:200]}"), []
+        row.setdefault("directive_requirement_ids", rids_fam)
+        return row, items
     if spec.get("adapter"):
         try:
             row, items = _run_legacy_family(family, spec, plan, ctx, budget_s)
@@ -1201,6 +1784,11 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
     ctx = dict(ctx or {})
     previous_inputs = previous_inputs or {}
     n_not_reexecuted = 0
+    # ADR-0084 (C.5): los adaptadores que llevan ledger por consulta (web) conocen la ronda y lo ya presente en la
+    # corrida — en la COPIA local: el ctx del llamador no gana llaves por esto (existing_ids sólo si el llamador no la
+    # pre-creó; _path_b_harness la pre-crea con su `present`)
+    ctx["round"] = k
+    ctx.setdefault("existing_ids", existing_ids if existing_ids is not None else set())
 
     def _ctx_list(key):
         lst = ctx.setdefault(key, [])
@@ -1212,6 +1800,7 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
     families = list(plan.get("families") or [])
     t0 = _monotonic()
     sources, items, duplicates = [], [], []
+    deferred = []   # ADR-0084 (D.1): candidatos web-localizados — entran a items[] DESPUÉS de las familias nativas
     for idx, fam in enumerate(families):
         remaining = budget_s - (_monotonic() - t0)
         left = len(families) - idx
@@ -1242,7 +1831,13 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
                 if on_source:
                     on_source(row)
                 continue
-        fam_budget = min(float(spec.get("budget_s") or remaining), remaining / left)
+        if spec.get("adapter") == "web":
+            # ADR-0084 (M.3): las listas que el localizador alimenta (ctx:dois → unpaywall_crossref, ctx:curies →
+            # monarch) existen ANTES de correr y son las MISMAS que ve el llamador (append-only; jamás se reasignan)
+            _ctx_list("dois")
+            _ctx_list("curies")
+        # ADR-0084: budget_s de la tabla salvo `budget_env` (WITT_WEB_BUDGET_S para web); las demás filas, como hoy
+        fam_budget = min(family_budget_s(spec)[0] or remaining, remaining / left)
         row, found = run_source(fam, plan, ctx, fam_budget, tools=tools)
         row["round"] = k
         row["directive_requirement_ids"] = rids_fam
@@ -1265,6 +1860,17 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
                 curies = _ctx_list("curies")
                 if curie not in curies:
                     curies.append(curie)
+            if it.get("dedup_layer") == WEB_DEDUP_LAYER:
+                # ADR-0084 (D.1): un candidato web-localizado NO gana identidad en la ronda (WEB_DEDUP_LAYER_RULE): se
+                # difiere al final de items[] sin entrar a `seen`, y el pool (native-first) lo declara duplicado si una
+                # familia nativa trajo el mismo id; contra lo YA PRESENTE en la corrida sí se descarta aquí
+                if eid in (existing_ids or ()):
+                    duplicates.append({"evidence_id": eid, "source_family": fam, "of": "existing"})
+                    continue
+                it["round"] = k
+                deferred.append(it)
+                new_here += 1
+                continue
             if eid in seen:
                 duplicates.append({"evidence_id": eid, "source_family": fam,
                                    "of": "existing" if eid in (existing_ids or ()) else "this-round"})
@@ -1283,6 +1889,7 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
         sources.append(row)
         if on_source:
             on_source(row)
+    items.extend(deferred)   # ADR-0084 (D.1): los web-localizados van DESPUÉS de los nativos de la ronda
     ran = [s for s in sources if s.get("status") in RAN_STATES]
     elapsed_total = round(_monotonic() - t0, 3)
     return {"round": k, "trigger": trigger, "budget_s": float(budget_s),
@@ -1317,5 +1924,11 @@ def source_event_payload(row):
     out["directive_requirement_ids"] = list(row.get("directive_requirement_ids") or [])
     for k in ("error", "detail", "over_budget", "n_calls", "n_calls_error", "n_calls_skipped_budget", "fn_resolved"):
         if k in row and row[k] not in (None, False, 0):
+            out[k] = row[k]
+    # ADR-0084 (C.7): la fila de la familia web suma sus contadores al evento SÓLO cuando existen en la fila (aditivo;
+    # las otras 14 familias no los ganan); 0 es una MEDICIÓN y viaja; jamás `web_locator` (URLs) ni `calls`
+    for k in ("provider", "n_queries", "n_results", "n_located", "n_materialized", "n_unresolved", "n_already_present",
+              "cost_usd_projected", "quota_state"):
+        if k in row:
             out[k] = row[k]
     return out

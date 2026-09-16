@@ -1841,7 +1841,9 @@ check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.10' — 1
       "n_search_rounds}; 1.10 (ADR-0081) suma frozen.models, answer.{model_source, model_reported, relation}, audit.{families_valid…, "
       "quorum}, by_stage.panel.by_model, plan.judgment.planner.model_source, epistemic_summary.{model_generation, "
       "panel_n_families_valid} + eventos stage.models / run.state{queued}.root_run_no; la webapp los tipa `?` — eso ES la paridad",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.12")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+      runs_mod.RENDER_CONTRACT_VERSION == "1.13")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+                                                    # 1.13 = ADR-0084 (la web LOCALIZA, jamás es fuente): +web_locator, deterministic_checks.web_locator,
+                                                    # citations[].located_via, token_usage.web_locator/total, epistemic web_*, stage.web.locate
                                                     # 1.11 = ADR-0082 (consejo de criterio): +council, deterministic_checks.council/
                                                     # attestation_identifier_leak, token_usage.cache/council_r*, citations[].pertinent con razón
                                                     # 1.12 = ADR-0083 (figuras como evidencia observada): +figures, citations[].kind 'figure' +
@@ -2445,13 +2447,17 @@ for _fam in _L0_FAMILIES + ("pubmed", "zfin"):
     _fn, _resolved, _detail = _sh._load_tool(_fam)
     _wiring[_fam] = {"file_exists": (_sh._TU_WORKSPACE / _spec["tool_module"]).exists(),
                      "fn_declared": _spec["fn"], "fn_resolved": _resolved, "detail": _detail, "callable": callable(_fn)}
+_web_load = _sh._load_tool("web")
 check("ADR-0080 (C/D) SEARCH_DISPATCH apunta a los archivos REALES de C3–C5 (+pubmed/zfin de hoy): los 12 módulos existen "
       "bajo .tooluniverse/tools y _load_tool resuelve EXACTAMENTE la función declarada (fn_resolved == fn, sin nota); "
-      "'web' y 'tooluniverse' quedan tool-unavailable DECLARADOS (ADR-0084/0085); las 15 familias tienen gate/evidence_kind/"
-      "label en vocabulario",
+      "ADR-0084 (C.1): 'web' resuelve el tool REAL brave_web_search.locate (13.º módulo, cargado por ruta; la disponibilidad la decide "
+      "web_locator.provider_state EN LA LLAMADA, no la tabla); 'tooluniverse' queda tool-unavailable DECLARADO (ADR-0085); las 15 "
+      "familias tienen gate/evidence_kind/label en vocabulario",
       all(w["file_exists"] and w["callable"] and w["fn_resolved"] == w["fn_declared"] and w["detail"] is None
           for w in _wiring.values())
-      and _sh._load_tool("web") == (None, None, "tool-unavailable (ADR-0084)")
+      and callable(_web_load[0]) and _web_load[1:] == ("locate", None)
+      and _sh.SEARCH_DISPATCH["web"]["tool_module"] == "brave_web_search.py" and _sh.SEARCH_DISPATCH["web"]["adapter"] == "web"
+      and _sh.SEARCH_DISPATCH["web"]["unavailable_reason"] == "tool-unavailable (ADR-0084)"
       and _sh._load_tool("tooluniverse") == (None, None, "tool-unavailable (ADR-0085)")
       and len(_sh.SEARCH_DISPATCH) == 15
       and all(s["gate"] in _sh.GATES and s["label_provenance"] in _sh.LABELS and s.get("evidence_kind")
@@ -3444,6 +3450,9 @@ _ADD_110["queued_payload"] |= {"council"}
 _ADD_110["top"] |= {"figures"}
 _ADD_110["epistemic"] |= {"figures_state", "figures_n_verified", "figures_n_cited"}
 _ADD_110["judge_payload"] |= {"figures_sent", "figures_sha256"}
+# ADR-0084 (1.13, G.2/G.8): frozen.web_locator (top, SIEMPRE presente en >= 1.13) y epistemic_summary.web_* (null = no midió)
+_ADD_110["top"] |= {"web_locator"}
+_ADD_110["epistemic"] |= {"web_locator_state", "web_n_located", "web_n_unresolved"}
 # ADR-0083 (G.6, F3): con WITT_FIGURES=1 CADA fila del panel gana saw_figures (MEDIDO: n 0 + detail cuando no hubo figuras) y
 # audit gana vision — llaves aditivas declaradas; bajo WITT_FIGURES=0 no se emiten (M.1, medido en la sección ADR-0083)
 _ADD_110["audit"] |= {"vision"}
@@ -4213,7 +4222,7 @@ check("ADR-0082 (J) frozen.council íntegro: module 'council-1', membership cm-1
       and _cn_a["vocabulary"]["usage_stage_states"]["exact"] == list(runs_mod.COUNCIL_USAGE_STAGE_STATES_EXACT)
       and _cn_a["decided_by"] == "code (council.aggregate_*)"
       and _cn_a["kill_switch"]["enabled"] is True and "state" in _cn_a["index"]
-      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.12",   # ADR-0083: 1.12 apila sobre 1.11
+      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.13",   # ADR-0084: 1.13 apila sobre 1.12
       json.dumps({"cache": _cn_a["cache"], "model": _cn_a["model"]}, default=str)[:400])
 _tu_a = _rec_ca["token_usage"]
 _cm_a = _cn_a["model"]["requested"]
@@ -4465,7 +4474,7 @@ check("ADR-0082 (L.2) kill-switch WITT_COUNCIL=0 con la misma copia F.4: CERO ll
       "not-applicable 'kill-switch WITT_COUNCIL=0' (sin filas por miembro); citations[].pertinent 'not-available (council disabled (…))'; "
       "panel_signature byte-igual a la corrida (a) con consejo; el sintetizador NO recibió human_attestations (ledger apagado)",
       _C_CALLS == [] and not any(t.startswith("stage.council.") for t in _ev_types(_ev_ce))
-      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council", "figures"}   # ADR-0083: frozen.figures SIEMPRE presente en >= 1.12
+      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}   # ADR-0083/0084: figures y web_locator SIEMPRE presentes
       and set(_rec_ce["token_usage"]) == _TU_1_10_KEYS | {"cache", "input_tokens_total", "council_judgment", "cache_sum_matches_by_model",
                                                             "figures"}   # F8 ADR-0083 (H): usage_json.figures espejo (WITT_FIGURES=1 default)
       and _rec_ce["token_usage"]["cache"]["creation_input_tokens"] == _r1_usage["cache_creation"]
@@ -4504,9 +4513,10 @@ _DC_1_10_BASE = {"pass", "admissible", "reasons", "identifier_report", "parent_i
 check("ADR-0082 (L.2 i) corrector: bajo kill-switch deterministic_checks = keyset 1.10 congelado @ 9d90c01 (runs._gate + pass1_admissible/competence_gate/disjoint_series*) + EXACTAMENTE las 4 llaves "
       "aditivas DECLARADAS {council {state}, attestation_identifier_leak [], _state 'no-attestations', _rule} — el fragmento viaja al panel "
       "con estado declarado (tres estados: el predicado corrió y no había atestiguaciones) y la excepción queda escrita en el ADR",
-      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111 - {"figures"}) - {"positive_claim_requires_citations_inputs",
+      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111 - {"figures", "web_locator"}) - {"positive_claim_requires_citations_inputs",
                                                                           "positive_claim_requires_citations_evaluation"} == _DC_1_10_BASE
       # ADR-0083 (F/L): deterministic_checks.figures NACE en 1.12 (SIEMPRE presente; su keyset se mide en la sección ADR-0083)
+      # ADR-0084 (E/G.3): deterministic_checks.web_locator NACE en 1.13 (SIEMPRE presente; su keyset se mide en la sección ADR-0084)
       and _DC_ADD_111 <= set(_rec_ce["deterministic_checks"])
       and _rec_ce["deterministic_checks"]["attestation_identifier_leak"] == []
       and _rec_ce["deterministic_checks"]["attestation_identifier_leak_state"] == "no-attestations"
@@ -5031,8 +5041,8 @@ _CS_A83 = [{"n": 1, "verdict": "supported"}, {"n": 2, "verdict": "supported"}]
 _Q_A83 = "ADR-0083 a: does wt1a mark the pronephros (figures CC BY)?"
 
 # --- estático: contrato, tool del sintetizador, gate de llaves de prompt, snapshot ------------------------------------------------
-check("ADR-0083 (L) RENDER_CONTRACT_VERSION == '1.12' apilado sobre 1.11; FIGURES_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1)",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.12"
+check("ADR-0083 (L) RENDER_CONTRACT_VERSION apilado sobre 1.12 (hoy '1.13', ADR-0084); FIGURES_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1)",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.13"
       and runs_mod.FIGURES_DECLARED_EXCEPTIONS == ("render_contract_version", "figures", "deterministic_checks.figures"))
 check("ADR-0083 (D.2) SYNTH_TOOL: evidence_cited.items.kind.enum gana 'figure' y la description exige marcadores [n] y prohíbe afirmar "
       "lo que sólo existe en la imagen (literal); synth_system NO cambia (la serie ab_trapped_scalar sigue comparable)",
@@ -5065,12 +5075,12 @@ _paper_ev_a = _ev_payloads(_ev_fa, "stage.figures.paper")
 _figure_ev_a = _ev_payloads(_ev_fa, "stage.figures.figure")
 _sum_ev_a = _ev_payloads(_ev_fa, "stage.figures.summary")
 _items_a = _fg_a["items"]
-check("ADR-0083 (L) contrato '1.12' en el registro; keyset top-level == 1.11 (47 + council) + {figures}; deterministic_checks gana "
-      "`figures`; la corrida cerró awaiting_closure con Ruta B por la compuerta (no competente sin plan)",
-      _rec_fa["render_contract_version"] == "1.12" and set(_rec_fa) == _FROZEN_1_10_KEYS | {"council", "figures"}
+check("ADR-0083 (L) contrato en el registro (hoy '1.13'); keyset top-level == 1.11 (47 + council) + {figures} + {web_locator} (ADR-0084); "
+      "deterministic_checks gana `figures`; la corrida cerró awaiting_closure con Ruta B por la compuerta (no competente sin plan)",
+      _rec_fa["render_contract_version"] == "1.13" and set(_rec_fa) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}
       and "figures" in _rec_fa["deterministic_checks"] and _row_fa["state"] == "awaiting_closure"
       and _rec_fa["fallback"]["trigger"] == "competence",
-      json.dumps({"extra": sorted(set(_rec_fa) - _FROZEN_1_10_KEYS - {"council", "figures"}), "state": _row_fa["state"]}))
+      json.dumps({"extra": sorted(set(_rec_fa) - _FROZEN_1_10_KEYS - {"council", "figures", "web_locator"}), "state": _row_fa["state"]}))
 check("ADR-0083 (C) ORDEN de la Traza: stage.path_b < stage.figures.plan < paper{start} < paper{done} < figure×9 < stage.figures.summary "
       "< stage.synthesize.pass2; todos los stage.figures.* con agent 'figures'; 1 plan · 2 paper · 9 figure · 1 summary",
       _t_fa.index("stage.path_b") < _t_fa.index("stage.figures.plan") < _t_fa.index("stage.figures.paper")
@@ -5535,13 +5545,13 @@ check("ADR-0083 (M.1) KILL-SWITCH WITT_FIGURES=0: frozen keyset == 1.11 (47 + co
       "kill_switch {WITT_FIGURES '0', declared_exceptions [render_contract_version, figures, deterministic_checks.figures]}, items [], n_figures 0, "
       "SIN vision}; deterministic_checks.figures == {state 'kill-switch WITT_FIGURES=0'} y su keyset == el de la corrida (a); render_contract_version "
       "'1.12' — las TRES excepciones declaradas y ninguna más",
-      set(_rec_fj) == _FROZEN_1_10_KEYS | {"council", "figures"}
+      set(_rec_fj) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}   # ADR-0084: web_locator SIEMPRE presente en >= 1.13
       and _fg_j["state"] == "kill-switch WITT_FIGURES=0"
       and _fg_j["kill_switch"] == {"WITT_FIGURES": "0", "declared_exceptions": ["render_contract_version", "figures", "deterministic_checks.figures"]}
       and _fg_j["items"] == [] and _fg_j["n_figures"] == 0 and "vision" not in _fg_j
       and _rec_fj["deterministic_checks"]["figures"] == {"state": "kill-switch WITT_FIGURES=0"}
       and set(_rec_fj["deterministic_checks"]) == set(_rec_fa["deterministic_checks"])
-      and _rec_fj["render_contract_version"] == "1.12",
+      and _rec_fj["render_contract_version"] == "1.13",   # ADR-0084 apila sobre 1.12
       json.dumps({"figures": {k: _fg_j[k] for k in ("state", "kill_switch")}, "dc": _rec_fj["deterministic_checks"]["figures"]}))
 check("ADR-0083 (M.1) KILL-SWITCH: los papers NO ganan `figures` ni el bundle `figures_ledger`; el user_text del sintetizador (pass1 Y pass2) no "
       "trae la llave 'figures' (byte a byte el de 1.11); el panel no recibe imágenes ni la llave; ninguna llave aditiva 1.12 en el frozen "
@@ -5803,10 +5813,730 @@ else:
     os.environ["WITT_MCP_CACHE_DIR"] = _MCP_ENV_SAVED83
 _sources_found()
 
+# =====================================================================================================================
+# ADR-0084 (W7, integrador) — la WEB como LOCALIZADOR, jamás fuente: contrato 1.13. Corridas por la puerta con el consejo FAKE
+# (copia F.4 con un `must` de familia web), el tool Brave REAL cargado por ruta con su ÚNICA costura de red `_get` parcheada
+# (llave fake SÓLO en la cabecera), el resolutor REAL (W2), el harness REAL (W3), la admisión native-first REAL (W4), los
+# predicados REALES (W5), el consejo dinámico REAL (W6) y la cuota REAL en la BD (H). Europe PMC y fetch_external FALSOS.
+# Doctrina medida: 0 ítems con source 'web'; ninguna URL hallada fuera de frozen.web_locator (ni en eventos, ni en el prompt,
+# ni en answer.gap_flags, ni en el snapshot del hijo); kill-switch M.1 byte a byte salvo EXACTAMENTE 3 excepciones.
+# =====================================================================================================================
+from lib import web_locator as _wl84  # noqa: E402
+from lib import fetch_paper as _fp84  # noqa: E402
+
+FAKE_KEY84 = "fake-brave-key-adr84-never-in-output-0084"
+WEB_TEXT84 = "DESCRIPTION-WEB-TEXT-NEVER-EVIDENCE-84"
+_URLS84 = {
+    "pm333": "https://pubmed.ncbi.nlm.nih.gov/33333333/?dopt=Abstract",   # PMID nuevo → materializado (EPMC lo tiene)
+    "doi666": "https://doi.org/10.1000/web666",                            # DOI nuevo → materializado (EPMC lo tiene)
+    "pm111": "https://pubmed.ncbi.nlm.nih.gov/11111111/",                  # PMID que EPMC nativo YA trae → dup del pool (native-first)
+    "doi_nf": "https://doi.org/10.1000/notfound84",                        # DOI que EPMC NO tiene → not-found-in-europepmc (gap k)
+    "rg": "https://www.researchgate.net/publication/777_wt1a_pronephros",   # sin patrón → unresolved (gap n)
+    "zfin": "https://zfin.org/ZDB-GENE-980526-558",                        # curie → ctx:curies (fed-same-round)
+}
+_ANTH_FX84 = json.loads((Path(__file__).resolve().parent / "fixtures" / "anthropic_web_search_SYNTHETIC_wt1a_20260916.json")
+                        .read_text(encoding="utf-8"))
+_ANTH_URLS84 = [x.get("url") for c in _ANTH_FX84["response"]["content"] if c.get("type") == "web_search_tool_result"
+                for x in (c.get("content") or []) if isinstance(x, dict) and x.get("url")]
+_ALL_WEB_URLS84 = list(_URLS84.values()) + _ANTH_URLS84
+# URLs HALLADAS que JAMÁS son la canónica de un identificador (la canónica de un DOI es https://doi.org/<doi> — idéntica a la hallada — y
+# ES identificador, viaja legítimamente en papers[].url): pubmed con '?dopt', el DOI no materializado y la de researchgate sin patrón
+_LEAK_URLS84 = [_URLS84["pm333"], _URLS84["doi_nf"], _URLS84["rg"]]
+
+
+def _res84(url, title):
+    return {"title": title, "url": url, "description": WEB_TEXT84 + " " + title, "extra_snippets": [WEB_TEXT84], "age": None,
+            "page_age": None, "language": "en", "family_friendly": True, "meta_url": {"hostname": urllib.parse.urlparse(url).hostname}}
+
+
+_WEB84 = [_res84(_URLS84["pm333"], "WEB TITLE pubmed 333 (never evidence)"), _res84(_URLS84["doi666"], "WEB TITLE doi 666"),
+          _res84(_URLS84["pm111"], "WEB TITLE pubmed 111 already native"), _res84(_URLS84["doi_nf"], "WEB TITLE doi not in EPMC"),
+          _res84(_URLS84["rg"], "WEB TITLE researchgate " + "R" * 180), _res84(_URLS84["zfin"], "WEB TITLE zfin wt1a")]
+
+
+def _rec84(pmid, pmcid=None, doi=None, is_oa=False, title=None):
+    return {"epmc_id": pmid, "source": "MED", "pmid": pmid, "pmcid": pmcid, "doi": doi, "title": title or f"EPMC record {pmid}",
+            "year": "2021", "journal": "Dev Biol", "is_oa": is_oa, "abstract": f"wt1a pronephros podocyte abstract (Europe PMC) {pmid}",
+            "cited_by": 3}
+
+
+_REC333 = _rec84("33333333", title="EPMC record for web-located 333")
+_REC888 = _rec84("88888888", pmcid="PMC888", doi="10.1000/web666", is_oa=True, title="EPMC record for web-located DOI 666")
+_EPMC84 = {"PMID:33333333": _REC333, "DOI:10.1000/web666": _REC888, "PMID:11111111": _EPMC_RECS[0]}
+
+
+class _FakeBraveNet84:
+    """La ÚNICA costura de red del tool Brave (W1 `_get`): misma firma, respuesta con la forma documentada; cuenta GETs y si la
+    llave viajó SÓLO en la cabecera (jamás en la URL)."""
+
+    def __init__(self, results):
+        self.calls, self.results = [], results
+
+    def __call__(self, url, timeout=None, with_headers=True, api_key=None):
+        qs = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+        q = (qs.get("q") or [""])[0]
+        self.calls.append({"q": q, "key_in_header": api_key == FAKE_KEY84, "key_in_url": FAKE_KEY84 in url, "url": url})
+        js = {"type": "search", "query": {"original": q, "altered": None, "more_results_available": False},
+              "web": {"type": "search", "results": [dict(r) for r in self.results]}}
+        return (js, {"X-RateLimit-Limit": "1, 2000", "X-RateLimit-Remaining": "0, 1999"}) if with_headers else js
+
+
+class _EpmcSpy84:
+    """corrector ADR-0084: la ronda materializa por fetch_paper.search_europepmc_ledger(<consulta por ident>, n=1, timeout=<presupuesto>)
+    — el spy sirve por ident (search_harness.epmc_ident_of_query), registra `calls` (idents) y `timeouts`, y delega las búsquedas LIBRES
+    (la familia europepmc nativa) al fake que estaba activo (`native`)."""
+
+    def __init__(self, recs, native=None):
+        self.calls, self.timeouts, self.recs, self.native = [], [], dict(recs), native
+
+    def __call__(self, query, n=5, sort=None, synonym=True, timeout=None):
+        ident = _sh.epmc_ident_of_query(query)
+        if ident is None:
+            return self.native(query, n=n, sort=sort, synonym=synonym)
+        self.calls.append(ident)
+        self.timeouts.append(timeout)
+        rec = self.recs.get(ident)
+        return ([dict(rec)] if rec else []), {"source": "europepmc", "status": "success" if rec else "no-match", "query_sent": query,
+                                              "n_found": 1 if rec else 0, "n_returned": 1 if rec else 0, "elapsed_s": 0.01}
+
+
+def _fake_fetch84(ident, want_full_text=True):
+    """fetch_external FALSO: los web-localizados 333/666 se bajan (found True: el candidato ES citable); los nativos como en ADR-0080."""
+    if ident in ("PMID:33333333", "PMID:88888888"):
+        return {"found": True, "full_text": False, "n_chunks": 1, "raw_cached": [], "raw_ref": None,
+                "record": {"abstract": _EPMC84["PMID:33333333" if ident == "PMID:33333333" else "DOI:10.1000/web666"]["abstract"]},
+                "cache_hit": False, "cached_at": None, "fetched_at": "2026-09-16T00:00:00Z"}
+    return _fake_fetch_content(ident, want_full_text=want_full_text)
+
+
+_SYNTH84, _PANEL84, _COUNCIL84 = [], [], []
+
+
+def _mk_synth84(answer_text, cited, conf=None):
+    conf = conf or {"pass1": 0.8, "pass2": 0.85, "revision": 0.85}
+
+    def _s(question, evidence, pass_label, thread_context=None, human_attestations=None):
+        _SYNTH84.append({"pass": pass_label, "json": json.dumps(evidence, ensure_ascii=False, default=str)})
+        out = _mk_synth(conf)(question, evidence, pass_label)
+        out["direct_answer"] = answer_text
+        out["evidence_cited"] = json.loads(json.dumps(_C_CITED_OK if pass_label == "pass1" else cited))
+        return out
+    return _s
+
+
+def _panel84():
+    def _caller(member, system, user_text):
+        _PANEL84.append({"lens": member["lens"], "user_text": user_text})
+        return ({"verdict": "APPROVE", "caught": "", "correction_applied": "", "confidence": 0.9, "reasons": []},
+                {"input_tokens": 10, "output_tokens": 5})
+    return _caller
+
+
+def _council84(uncovered=("web",)):
+    inner = _mk_council_caller(uncovered_fams=uncovered)
+
+    def _caller(request):
+        _COUNCIL84.append({"round": request["round"], "agent": request["agent"], "user_text": request["user_text"]})
+        return inner(request)
+    return _caller
+
+
+# r1 AGREGADA con la llave presente: el requisito web nace 'satisfiable' (gateable) — así la ronda 2 puede dejarlo uncovered y el
+# consejo COMPILA la directiva web (F.1/F.2); bajo off la compilación lo recomputa y lo EXCLUYE con el literal de 7d9ce15
+_C_AGG84 = _with_env({"BRAVE_API_KEY": FAKE_KEY84, "WITT_WEB_LOCATOR": "brave"},
+                     lambda: _council.aggregate_r1(_C_R1, members=_C_MEMBERS, cfg=_C_CFG))
+_c_by_fam84 = {}
+for _r in _C_AGG84["requirements"]:
+    _c_by_fam84.setdefault(_r["source_family"], _r)
+_c_rid84 = {f: _c_by_fam84[f]["requirement_id"] for f in _c_by_fam84}
+_C_LEDGER84 = _council.apply_ledger_decisions(
+    _C_AGG84, decisions=[{"requirement_id": _c_rid84["zfin"], "decision": "keep"},
+                         {"requirement_id": _c_rid84["geo"], "decision": "discard", "reason": "fuera del alcance"},
+                         {"requirement_id": _c_rid84["pubmed"], "decision": "aporto",
+                          "attested_text": "Our lab confirmed podocyte wt1a expression in situ (notebook 2026-08)."}],
+    approve=True, decided_by="natalia", decided_at=_C_AT, knowledge_now="We already know wt1a marks the pronephros.")
+
+
+def _c_json84(ledger, plan_id):
+    r1 = {**_C_AGG84, "rounds": [_C_R1], "members": list(_C_MEMBERS), "full_council": False, "catalog_sha": _cc.CATALOG_SHA,
+          "n_members": 17, "membership_version": _am.MEMBERSHIP_VERSION, "model": _C_R1["model"]}
+    return {"plan_id": plan_id, "r1_state": "applicable", "r1": r1, "ledger": ledger,
+            "membership_version": _am.MEMBERSHIP_VERSION, "n_members": 17, "members": list(_C_MEMBERS), "full_council": False,
+            "catalog_sha": _cc.CATALOG_SHA, "membership_source": "plan.council (frozen at r1)", "composed_at": _C_AT,
+            "source": "plans.council_json + plans.council_ledger_json (copied at enqueue)"}
+
+
+_ANS84 = "wt1a marks the zebrafish pronephros podocyte [1][2]."
+_CIT84 = [{"kind": "paper", "id": "PMID:33333333"}, {"kind": "di-record", "id": "CORPUS-2026-0001"}]
+_BRAVE_MOD84 = _wl84._load_brave_tool()[0]
+_REAL_GET84 = _BRAVE_MOD84._get
+_REAL_RESOLVE84 = _fp84.search_europepmc_ledger
+_REAL_POST84 = _wl84._post_json
+_RUNS84 = []   # (run_id, kind) para el assert GLOBAL sobre la BD
+
+
+def _run84(question, plan_id, env=None, uncovered=("web",), synth=None, web_results=None, epmc=None, cj=None, anthropic_fx=None):
+    """Una corrida por la puerta (plan + copia F.4 del consejo) con los fakes de red del localizador; `env` sólo durante la corrida.
+    Devuelve (run_id, frozen|None, events, row, net, espy)."""
+    tmp_cache = TMP / f"mcp84-{plan_id}"
+    tmp_cache.mkdir(parents=True, exist_ok=True)
+    env = {"WITT_WEB_LOCATOR": "brave", "BRAVE_API_KEY": FAKE_KEY84, "WITT_WEB_MIN_INTERVAL_S": "0",
+           "WITT_MCP_CACHE_DIR": str(tmp_cache), "WITT_PATH_B_N_PAPERS": "10", **(env or {})}   # top-n 10: los web-localizados caben
+    saved = {k: os.environ.get(k) for k in env}
+    for k, v in env.items():
+        os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+    _SYNTH84.clear(); _PANEL84.clear(); _COUNCIL84.clear()
+    net = _FakeBraveNet84(web_results if web_results is not None else _WEB84)
+    espy = _EpmcSpy84(epmc if epmc is not None else _EPMC84, native=_fp84.search_europepmc_ledger)
+    _sources_found()
+    _BRAVE_MOD84._get = net
+    _fp84.search_europepmc_ledger = espy
+    answer_pipeline.fetch_paper.fetch_external = _fake_fetch84
+    if anthropic_fx is not None:
+        _wl84._post_json = lambda url, body, headers, timeout, inflight=None, urlopen=None: (200, anthropic_fx, json.dumps(anthropic_fx))
+    try:
+        plan_obj = runs_mod.build_plan(question, ["wt1a"], planner=_fake_planner_ok, history_rows=HIST_OK)
+        rid = runs_mod.new_run("natalia", question, ["wt1a"], plan_json=json.dumps(plan_obj, default=str),
+                               council_json=json.dumps(cj if cj is not None else _c_json84(_C_LEDGER84, plan_id),
+                                                       ensure_ascii=False, default=str))
+        claimed = db.claim_next_queued(worker_id="run-worker-adr0084")
+        assert claimed and claimed["run_id"] == rid, "FIFO: la corrida reclamada debe ser la esperada"
+        runs_mod.execute_run(claimed, synthesizer=synth or _mk_synth84(_ANS84, _CIT84), panel_caller=_panel84(),
+                             council_caller=_council84(uncovered))
+    finally:
+        for k, v in saved.items():
+            os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        _BRAVE_MOD84._get = _REAL_GET84
+        _fp84.search_europepmc_ledger = _REAL_RESOLVE84
+        _wl84._post_json = _REAL_POST84
+        answer_pipeline.fetch_paper.fetch_external = _fake_fetch_content
+    row = db.get_run(rid)
+    frozen = json.loads(row["frozen_record_json"]) if row.get("frozen_record_json") else None
+    _RUNS84.append(rid)
+    return rid, frozen, app.get_events(rid, after=0, authorization=AUTH)["events"], row, net, espy
+
+
+def _urls_in84(text):
+    return [u for u in _LEAK_URLS84 if u in text]
+
+
+def _no_web_text84(text):
+    return not _urls_in84(text) and "WEB TITLE" not in text and WEB_TEXT84 not in text and FAKE_KEY84 not in text
+
+
+# --- estático: contrato 1.13, 3 excepciones, cableado del tool, constantes aliasadas (una verdad) --------------------------------
+check("ADR-0084 (G.1/G.11) RENDER_CONTRACT_VERSION == '1.13' apilado sobre 1.12; WEB_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1); "
+      "WEB_KILL_SWITCH_STATE aliasa web_locator.WEB_KILL_SWITCH_STATE (una verdad); FIGURES_DECLARED_EXCEPTIONS intactas",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.13"
+      and runs_mod.WEB_DECLARED_EXCEPTIONS == ("render_contract_version", "web_locator", "deterministic_checks.web_locator")
+      and runs_mod.WEB_KILL_SWITCH_STATE == _wl84.WEB_KILL_SWITCH_STATE == "kill-switch WITT_WEB_LOCATOR=off"
+      and runs_mod.FIGURES_DECLARED_EXCEPTIONS == ("render_contract_version", "figures", "deterministic_checks.figures"))
+_sh._TOOL_CACHE.pop("web", None)
+_web_fn, _web_resolved, _web_detail = _sh._load_tool("web")
+check("ADR-0084 (C.1) cableado ESTÁTICO: SEARCH_DISPATCH['web'] apunta al archivo REAL .tooluniverse/tools/brave_web_search.py y "
+      "_load_tool('web') resuelve EXACTAMENTE 'locate' (sin nota); 13 módulos reales (12 + brave) bajo .tooluniverse/tools; "
+      "len(SEARCH_DISPATCH) == 15; _path_b_bundle_accepts() ⊇ {search_plan, on_stage, existing_ids, web_quota}; _web_quota_fn() es "
+      "db.web_locator_reserve",
+      callable(_web_fn) and _web_resolved == "locate" and _web_detail is None
+      and (_sh._TU_WORKSPACE / "brave_web_search.py").exists()
+      and len([p for p in _sh._TU_WORKSPACE.glob("*.py")]) >= 13 and len(_sh.SEARCH_DISPATCH) == 15
+      and {"search_plan", "on_stage", "existing_ids", "web_quota"} <= runs_mod._path_b_bundle_accepts()
+      and runs_mod._web_quota_fn() is db.web_locator_reserve,
+      json.dumps({"resolved": _web_resolved, "detail": _web_detail, "accepts": sorted(runs_mod._path_b_bundle_accepts())}))
+_sh._TOOL_CACHE.pop("web", None)
+check("ADR-0084 (D.1) gate ESTÁTICO del prompt: _PROMPT_PATH_B_TOP y _PROMPT_PAPER_KEYS NO incluyen web_locator/url/located_from/"
+      "title_web/description (el sintetizador es CIEGO al ledger por lista blanca)",
+      not ({"web_locator", "url", "located_from", "title_web", "description", "search_ledger"} & set(runs_mod._PROMPT_PATH_B_TOP))
+      and not ({"web_locator", "url", "located_from", "title_web", "description"} & set(runs_mod._PROMPT_PAPER_KEYS)))
+_snap84 = models.snapshot(extra=runs_mod.snapshot_extra())
+check("ADR-0084 (tabla de env) el snapshot de configuración trae web.locator {'' , default-unset:WITT_WEB_LOCATOR} y web.provider "
+      "{'off', 'default-derived:BRAVE_API_KEY absent'} DERIVADOS por models (SNAPSHOT_FIELDS += 2, FUERA de panel_signature); "
+      "snapshot_extra() sigue cubriendo EXACTAMENTE models.EXTRA_FIELDS",
+      _snap84["fields"]["web.locator"] == {"value": "", "source": "default-unset:WITT_WEB_LOCATOR"}
+      and _snap84["fields"]["web.provider"] == {"value": "off", "source": "default-derived:BRAVE_API_KEY absent"}
+      and set(runs_mod.snapshot_extra()) == set(models.EXTRA_FIELDS) and _snap84.get("extra_ignored") == []
+      and models.SNAPSHOT_FIELDS[-2:] == models.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider"),
+      json.dumps({k: _snap84["fields"].get(k) for k in ("web.locator", "web.provider")}))
+
+# --- (q) CUOTA primero (tabla limpia): WITT_WEB_MONTHLY_CAP=1 → 1ª corrida granted, 2ª skipped-cap con detail, CERO GETs -----------
+with db.engine().begin() as _cx84:
+    _cx84.execute(_sa_f8.text("DELETE FROM web_locator_usage"))
+_rid_q1, _rec_q1, _ev_q1, _row_q1, _net_q1, _esp_q1 = _run84("ADR-0084 q1: web quota granted", "plan-84-q1", env={"WITT_WEB_MONTHLY_CAP": "1"})
+_rid_q2, _rec_q2, _ev_q2, _row_q2, _net_q2, _esp_q2 = _run84("ADR-0084 q2: web quota reached", "plan-84-q2", env={"WITT_WEB_MONTHLY_CAP": "1"})
+_wl_q1, _wl_q2 = _rec_q1["web_locator"], _rec_q2["web_locator"]
+_month84 = _wl84.month_utc()
+_mtd84 = db.web_locator_month_to_date("brave", _month84)
+check("ADR-0084 (H/G.10) CUOTA inyectada por firma (db.web_locator_reserve): WITT_WEB_MONTHLY_CAP=1 → corrida q1 'located' con quota "
+      "{state 'under-cap', n_before 0, n_after 1, cap 1, hook 'ctx.web_quota'} y 1 GET; corrida q2 (mismo mes UTC) → frozen.web_locator.state "
+      "'skipped-cap (monthly cap WITT_WEB_MONTHLY_CAP=1 reached (n_queries=1, month <m>))', quota.state 'cap-reached', CERO GETs al proveedor, "
+      "0 stage.web.locate… NO: UN latido declarado (consulta skipped-cap) sin URLs; la fila del mes queda en n_queries 1 con n_results 6",
+      _wl_q1["state"] == "located" and _wl_q1["quota"]["state"] == "under-cap" and _wl_q1["quota"]["n_before"] == 0
+      and _wl_q1["quota"]["n_after"] == 1 and _wl_q1["quota"]["cap"] == 1 and _wl_q1["quota"]["hook"] == "ctx.web_quota"
+      and len(_net_q1.calls) == 1
+      and _wl_q2["state"] == f"skipped-cap (monthly cap WITT_WEB_MONTHLY_CAP=1 reached (n_queries=1, month {_month84}))"
+      and _wl_q2["quota"]["state"] == "cap-reached" and len(_net_q2.calls) == 0
+      and _mtd84["n_queries"] == 1 and _mtd84["n_results"] == 6 and abs(_mtd84["cost_usd_projected"] - 0.005) < 1e-9
+      and len(_ev_payloads(_ev_q2, "stage.web.locate")) == 1
+      and _ev_payloads(_ev_q2, "stage.web.locate")[0]["provider_status"] == "skipped-cap",
+      json.dumps({"q1": _wl_q1["quota"], "q2": {"state": _wl_q2["state"], "quota": _wl_q2["quota"]}, "mtd": _mtd84}, default=str)[:600])
+_ai_q2 = next(a for a in _rec_q2["agents_invoked"] if a["agent"] == runs_mod.WEB_LOCATOR_AGENT_ROW)
+check("ADR-0084 (G.9, corrector) bajo skipped-cap la fila web de agents_invoked NO es 'invoked' (corrió pero NO envió): status "
+      "'not-applicable (skipped-cap (monthly cap …))', invocation_id 'web_locator:-/-' y evidence_generated con '-' (jamás el literal 'None')",
+      _ai_q2["status"].startswith("not-applicable (skipped-cap (monthly cap WITT_WEB_MONTHLY_CAP=1 reached")
+      and _ai_q2["invocation_id"] == "web_locator:-/-" and "located:-" in _ai_q2["evidence_generated"]
+      and not any("None" in e for e in _ai_q2["evidence_generated"]) and _ai_q2.get("reason"),
+      json.dumps(_ai_q2))
+check("ADR-0084 (G.7) bajo skipped-cap la familia CORRIÓ (declarada): token_usage.web_locator {n_queries 1, n_queries_billable 0, "
+      "usd_projected 0.0, quota_state 'cap-reached'} presente y estimated_cost_usd_total_projected == estimated_cost_usd (nada facturable)",
+      _rec_q2["token_usage"]["web_locator"]["n_queries"] == 1 and _rec_q2["token_usage"]["web_locator"]["n_queries_billable"] == 0
+      and _rec_q2["token_usage"]["web_locator"]["usd_projected"] == 0.0
+      and _rec_q2["token_usage"]["web_locator"]["quota_state"] == "cap-reached"
+      and _rec_q2["token_usage"]["estimated_cost_usd_total_projected"] == _rec_q2["token_usage"]["estimated_cost_usd"],
+      json.dumps(_rec_q2["token_usage"]["web_locator"], default=str)[:300])
+
+# --- (a) la corrida 'located' de punta a punta (cap default 900) ----------------------------------------------------------------------
+_rid_wa, _rec_wa, _ev_wa, _row_wa, _net_wa, _esp_wa = _run84("ADR-0084 a: web located end to end", "plan-84-a")
+_t_wa = _ev_types(_ev_wa)
+_wl_a = _rec_wa["web_locator"]
+_sl_a = _rec_wa["search_ledger"]
+_papers_a = json.loads(_row_wa["bundle_json"])["path_b"]["papers"]
+_web_papers_a = [p for p in _papers_a if p.get("source_family") == "web"]
+_src_ev_a = _ev_payloads(_ev_wa, "stage.search.source")
+_web_src_ev_a = [p for p in _src_ev_a if p.get("family") == "web"]
+_loc_ev_a = _ev_payloads(_ev_wa, "stage.web.locate")
+_i_web_src = next(i for i, e in enumerate(_ev_wa) if e["type"] == "stage.search.source" and e["payload"].get("family") == "web")
+check("ADR-0084 (C.4/G.6) TRAZA: no competente (must web sin cubrir) → stage.council.directives {families ['web']} → stage.search.plan "
+      "(families[0] == 'web', families_order_rule) → stage.web.locate ×1 (agent 'web_locator', UNO por consulta) → stage.search.source(web) "
+      "PRIMERA de la ronda → stage.search.round → stage.path_b → pass2; el proveedor Brave REAL recibió UNA GET con la llave SÓLO en la "
+      "cabecera (no en la URL)",
+      _rec_wa["competence"]["competent"] is False and _ev_payloads(_ev_wa, "stage.council.directives")[0]["families"] == ["web"]
+      and _sl_a["plan"]["families"][0] == "web" and _sl_a["plan"]["families_order_rule"] == _sh.FAMILIES_ORDER_RULE_WEB_FIRST
+      and len(_loc_ev_a) == 1 and all(e["agent"] == "web_locator" for e in _ev_wa if e["type"] == "stage.web.locate")
+      and _t_wa.index("stage.search.plan") < _t_wa.index("stage.web.locate") < _i_web_src < _t_wa.index("stage.search.round")
+      < _t_wa.index("stage.path_b") < _t_wa.index("stage.synthesize.pass2")
+      and _src_ev_a[0].get("family") == "web"
+      and len(_net_wa.calls) == 1 and _net_wa.calls[0]["key_in_header"] is True and _net_wa.calls[0]["key_in_url"] is False,
+      json.dumps({"families": _sl_a["plan"]["families"], "stages": [t for t in _t_wa if t.startswith("stage.")][:16],
+                  "net": [{k: v for k, v in c.items() if k != "url"} for c in _net_wa.calls]}))
+check("ADR-0084 (G.2) frozen.web_locator 'located': provider 'brave' (env:WITT_WEB_LOCATOR), entered_by 'directive', directive_requirement_ids "
+      "[req web], gate 'directive-only', versiones wl-1/wlr-2/bws-1, measured True, n_queries 1, n_results 6, n_located 5, n_unresolved 1, "
+      "n_materialized 3 (333, el DOI 666 → PMID 888 y el 111 que el pool declaró dup), n_not_found_in_europepmc 1, n_already_present_pool 1, n_admitted 2, "
+      "n_papers_web_located 2, gap_flags_typed 2 (unresolved + unmaterialized), cost {n_queries_billable 1, usd_projected 0.005, class "
+      "'proyección'}, quota under-cap, resolver_rules 12, state_vocabulary, text_policy, rule; kill_switch AUSENTE",
+      _wl_a["state"] == "located" and _wl_a["provider"] == "brave" and _wl_a["provider_source"] == "env:WITT_WEB_LOCATOR"
+      and _wl_a["entered_by"] == "directive" and _wl_a["directive_requirement_ids"] == [_c_rid84["web"]] and _wl_a["gate"] == "directive-only"
+      and (_wl_a["module_version"], _wl_a["resolver_version"], _wl_a["tool_version"]) == ("wl-1", "wlr-2", "bws-1")
+      and _wl_a["measured"] is True and _wl_a["n_queries"] == 1 and _wl_a["n_results"] == 6 and _wl_a["n_located"] == 5
+      and _wl_a["n_unresolved"] == 1 and _wl_a["n_materialized"] == 3 and _wl_a["n_not_found_in_europepmc"] == 1
+      and _wl_a["n_already_present_pool"] == 1 and _wl_a["n_admitted"] == 2 and _wl_a["n_papers_web_located"] == 2
+      and len(_wl_a["gap_flags_typed"]) == 2 and _wl_a["n_gap_flags"] == {"web-located-unresolved": 1, "web-located-unmaterialized": 1}
+      and _wl_a["cost"]["n_queries_billable"] == 1 and _wl_a["cost"]["usd_projected"] == 0.005 and _wl_a["cost"]["class"] == "proyección"
+      and _wl_a["quota"]["state"] == "under-cap" and len(_wl_a["resolver_rules"]) == 12
+      and _wl_a["state_vocabulary"]["exact"] == list(_wl84.WEB_STATES_EXACT) and _wl_a["text_policy"] == _wl84.TEXT_POLICY
+      and _wl_a["rule"] == _wl84.WEB_LOCATOR_RULE and "kill_switch" not in _wl_a and _wl_a["source"] == runs_mod.WEB_FROZEN_SOURCE,
+      json.dumps({k: _wl_a.get(k) for k in ("state", "n_queries", "n_results", "n_located", "n_unresolved", "n_materialized",
+                                              "n_not_found_in_europepmc", "n_already_present_pool", "n_admitted", "n_papers_web_located",
+                                              "n_gap_flags")}, default=str))
+_loc_a = {l["id"]: l for l in _wl_a["located"]}
+check("ADR-0084 (G.2) located[]/unresolved[] del frozen: 5 localizados con url HALLADA (SÓLO aquí), kind/resolver_rule/confidence/canonical_url, "
+      "fed_to y feed_state del vocabulario; PMID:33333333 y el DOI 10.1000/web666 (evidence_id PMID:88888888) 'materialized-same-round' admitted True selected True fetched_found True; "
+      "PMID:11111111 'already-present (dup of PMID:11111111)' con pool_dedup; 10.1000/notfound84 'not-found-in-europepmc'; ZFIN 'fed-same-round' "
+      "ctx:curies; unresolved[0] {url researchgate, title_web ≤ 120 rotulado, reason 'no-identifier-pattern'}",
+      set(_loc_a) == {"PMID:33333333", "10.1000/web666", "PMID:11111111", "10.1000/notfound84", "ZFIN:ZDB-GENE-980526-558"}
+      and _loc_a["PMID:33333333"]["url"] == _URLS84["pm333"] and _loc_a["PMID:33333333"]["resolver_rule"] == "pubmed-path"
+      and _loc_a["PMID:33333333"]["feed_state"] == "materialized-same-round" and _loc_a["PMID:33333333"]["admitted"] is True
+      and _loc_a["PMID:33333333"]["selected"] is True and _loc_a["PMID:33333333"]["fetched_found"] is True
+      and _loc_a["10.1000/web666"]["resolver_rule"] == "doi-org-path" and _loc_a["10.1000/web666"]["kind"] == "doi"
+      and _loc_a["10.1000/web666"]["feed_state"] == "materialized-same-round" and _loc_a["10.1000/web666"]["admitted"] is True
+      and _loc_a["10.1000/web666"]["evidence_id"] == "PMID:88888888" and _loc_a["10.1000/web666"]["selected"] is True
+      and _loc_a["10.1000/web666"]["fetched_found"] is True and _loc_a["10.1000/web666"]["url"] == _URLS84["doi666"]
+      and _loc_a["PMID:11111111"]["feed_state"] == "already-present (dup of PMID:11111111)" and _loc_a["PMID:11111111"]["admitted"] is False
+      and _loc_a["PMID:11111111"]["duplicate_of"] == "PMID:11111111" and _loc_a["PMID:11111111"]["pool_dedup"]["layer"] == "pool"
+      and _loc_a["10.1000/notfound84"]["feed_state"] == "not-found-in-europepmc"
+      and _loc_a["ZFIN:ZDB-GENE-980526-558"]["feed_state"] == "fed-same-round" and _loc_a["ZFIN:ZDB-GENE-980526-558"]["fed_to"] == "ctx:curies"
+      and all(_wl84.feed_state_in_vocabulary(l["feed_state"]) and l["fed_to"] in _wl84.FED_TO and l["kind"] in _wl84.LOCATED_KINDS
+              for l in _wl_a["located"])
+      and len(_wl_a["unresolved"]) == 1 and _wl_a["unresolved"][0]["url"] == _URLS84["rg"]
+      and _wl_a["unresolved"][0]["reason"] == "no-identifier-pattern" and len(_wl_a["unresolved"][0]["title_web"]) <= 120,
+      json.dumps({k: (v["feed_state"], v.get("admitted"), v.get("selected"), v.get("fetched_found")) for k, v in _loc_a.items()}))
+check("ADR-0084 (C.5/D.3) papers del bundle: 0 con source 'web' o kind 'web'; EXACTAMENTE 2 web-localizados (PMID:33333333, PMID:66666666) con "
+      "source 'europepmc', source_family 'web', kind 'literature-candidate', identifier_provenance 'web-located:<regla>', url CANÓNICA (la hallada "
+      "con '?dopt' AUSENTE), search_rec/título de EPMC ('WEB TITLE' y description AUSENTES en TODO el bundle_json), located_via 'web', located_from "
+      "SIN url; el nativo PMID:11111111 conserva su identidad (identifier_provenance 'europepmc-api-live', sin located_via); "
+      "n_results_by_source.web == 0 (PMID:33333333 y PMID:88888888 — el DOI 666 materializado por EPMC)",
+      not any(p.get("source") == "web" or p.get("kind") == "web" for p in _papers_a)
+      and sorted(p["evidence_id"] for p in _web_papers_a) == ["PMID:33333333", "PMID:88888888"]
+      and all(p["source"] == "europepmc" and p["kind"] == "literature-candidate" and p["located_via"] == "web"
+              and p["identifier_provenance"].startswith("web-located:") and "url" not in p["located_from"] for p in _web_papers_a)
+      and next(p for p in _web_papers_a if p["evidence_id"] == "PMID:33333333")["url"] == "https://pubmed.ncbi.nlm.nih.gov/33333333/"
+      and next(p for p in _web_papers_a if p["evidence_id"] == "PMID:33333333")["search_rec"]["title"] == "EPMC record for web-located 333"
+      and next(p for p in _web_papers_a if p["evidence_id"] == "PMID:88888888")["url"] == "https://doi.org/10.1000/web666"
+      and next(p for p in _web_papers_a if p["evidence_id"] == "PMID:88888888")["identifier_provenance"] == "web-located:doi-org-path"
+      and "WEB TITLE" not in json.dumps(_papers_a) and WEB_TEXT84 not in _row_wa["bundle_json"] and "?dopt" not in json.dumps(_papers_a)
+      and next(p for p in _papers_a if p["evidence_id"] == "PMID:11111111")["identifier_provenance"] == "europepmc-api-live"
+      and "located_via" not in next(p for p in _papers_a if p["evidence_id"] == "PMID:11111111")
+      and json.loads(_row_wa["bundle_json"])["path_b"]["n_results_by_source"].get("web") == 0,
+      json.dumps([(p["evidence_id"], p.get("identifier_provenance"), p.get("url")) for p in _papers_a]))
+check("ADR-0084 (E/G.3) deterministic_checks.web_locator 'checked': web_text_not_cited / web_located_cited_requires_fetch / web_items_native_only "
+      "ok True gating True, web_urls_not_in_answer ok True gating False, conjunction == los 3 DUROS, rules == verify_output.WEB_RULES, "
+      "predicates_version 'wlpred-1'; pass2 ADMISIBLE; stage.deterministic_gate{pass2}.web_locator_state 'checked'",
+      _rec_wa["deterministic_checks"]["web_locator"]["state"] == "checked"
+      and all(_rec_wa["deterministic_checks"]["web_locator"][p]["ok"] is True for p in _vo.WEB_PREDICATES)
+      and all(_rec_wa["deterministic_checks"]["web_locator"][p]["gating"] is _vo.WEB_GATING[p] for p in _vo.WEB_PREDICATES)
+      and _rec_wa["deterministic_checks"]["web_locator"]["conjunction"] == ["web_text_not_cited", "web_located_cited_requires_fetch", "web_items_native_only"]
+      and _rec_wa["deterministic_checks"]["web_locator"]["rules"] == _vo.WEB_RULES
+      and _rec_wa["deterministic_checks"]["web_locator"]["predicates_version"] == "wlpred-1"
+      and _rec_wa["deterministic_checks"]["admissible"] is True
+      and [p for p in _ev_payloads(_ev_wa, "stage.deterministic_gate") if p.get("pass") == "pass2"][0]["web_locator_state"] == "checked",
+      json.dumps({p: _rec_wa["deterministic_checks"]["web_locator"][p]["ok"] for p in _vo.WEB_PREDICATES}))
+_gf_a = _rec_wa["answer"]["gap_flags"]
+_gf_web_a = [g for g in _gf_a if g.startswith(runs_mod.WEB_GAP_FLAG_PREFIXES)]
+check("ADR-0084 (G.4) answer.gap_flags gana EXACTAMENTE los 2 strings de CONTEO por clase ('web-located-unresolved: 1 URL(s) …', "
+      "'web-located-unmaterialized: 1 identifier(s) …') apilados por CÓDIGO tras pass2 — SIN ninguna URL, título ni description; el resto de "
+      "gap_flags intacto",
+      _gf_web_a == [runs_mod.WEB_GAP_FLAG_UNRESOLVED.format(n=1), runs_mod.WEB_GAP_FLAG_UNMATERIALIZED.format(k=1)]
+      and _no_web_text84(json.dumps(_gf_a)) and "http" not in json.dumps(_gf_web_a),
+      json.dumps(_gf_web_a))
+check("ADR-0084 (G.5) citations[]: la cita PMID:33333333 (web-localizada, fetched.found True) gana located_via 'web' y la DI located_via null; "
+      "citations_support_summary.n_located_via_web == 1; la cita web-localizada resuelve (support_state ≠ unresolved)",
+      [c["located_via"] for c in _rec_wa["citations"]] == ["web", None]
+      and _rec_wa["citations_support_summary"]["n_located_via_web"] == 1
+      and _rec_wa["citations"][0].get("resolved") is True,
+      json.dumps([(c["id"], c.get("located_via"), c.get("support_state")) for c in _rec_wa["citations"]]))
+check("ADR-0084 (G.7) token_usage: web_locator {provider 'brave', n_queries 1, n_queries_billable 1, usd_projected 0.005, class 'proyección', "
+      "n_results 6, n_located 5, quota_state 'under-cap'} APARTE; estimated_cost_usd INTACTO (cost_class de tokens) y "
+      "estimated_cost_usd_total_projected == estimated_cost_usd + 0.005 con total_class; by_stage.search {in 0, out 0, note '… web locator cost "
+      "travels apart (ADR-0084)', web_locator_usd_projected 0.005}; by_stage_sum_matches_by_model True",
+      _rec_wa["token_usage"]["web_locator"]["provider"] == "brave" and _rec_wa["token_usage"]["web_locator"]["n_queries"] == 1
+      and _rec_wa["token_usage"]["web_locator"]["n_queries_billable"] == 1 and _rec_wa["token_usage"]["web_locator"]["usd_projected"] == 0.005
+      and _rec_wa["token_usage"]["web_locator"]["class"] == "proyección" and _rec_wa["token_usage"]["web_locator"]["n_results"] == 6
+      and _rec_wa["token_usage"]["web_locator"]["n_located"] == 5 and _rec_wa["token_usage"]["web_locator"]["quota_state"] == "under-cap"
+      and _rec_wa["token_usage"]["cost_class"].startswith("PROJECTION (calculated from measured tokens x per-Mtok prices")
+      and _rec_wa["token_usage"]["estimated_cost_usd_total_projected"] == round(_rec_wa["token_usage"]["estimated_cost_usd"] + 0.005, 4)
+      and _rec_wa["token_usage"]["total_class"] == runs_mod.WEB_TOTAL_CLASS
+      and _rec_wa["token_usage"]["by_stage"]["search"]["in"] == 0 and _rec_wa["token_usage"]["by_stage"]["search"]["out"] == 0
+      and _rec_wa["token_usage"]["by_stage"]["search"]["note"] == runs_mod.WEB_SEARCH_STAGE_NOTE
+      and _rec_wa["token_usage"]["by_stage"]["search"]["web_locator_usd_projected"] == 0.005
+      and _rec_wa["token_usage"]["by_stage_sum_matches_by_model"] is True,
+      json.dumps({"wl": _rec_wa["token_usage"]["web_locator"], "total": _rec_wa["token_usage"].get("estimated_cost_usd_total_projected"),
+                  "search": _rec_wa["token_usage"]["by_stage"]["search"]}, default=str)[:500])
+_epi_a = app.get_run(_rid_wa, authorization=AUTH)["epistemic_summary"]
+_ai_a = {a["agent"]: a for a in _rec_wa["agents_invoked"]}
+check("ADR-0084 (G.8/G.9) epistemic_summary {web_locator_state 'located', web_n_located 5, web_n_unresolved 1}; agents_invoked fila "
+      "'web_locator (lib/web_locator.py — …)' status 'invoked', provider 'brave', invocation_id 'web_locator:5/6'",
+      _epi_a["web_locator_state"] == "located" and _epi_a["web_n_located"] == 5 and _epi_a["web_n_unresolved"] == 1
+      and _ai_a[runs_mod.WEB_LOCATOR_AGENT_ROW]["status"] == "invoked" and _ai_a[runs_mod.WEB_LOCATOR_AGENT_ROW]["provider"] == "brave"
+      and _ai_a[runs_mod.WEB_LOCATOR_AGENT_ROW]["invocation_id"] == "web_locator:5/6",
+      json.dumps({"epi": {k: _epi_a[k] for k in ("web_locator_state", "web_n_located", "web_n_unresolved")},
+                  "row": _ai_a.get(runs_mod.WEB_LOCATOR_AGENT_ROW)}))
+_pass2_json_a = next(s["json"] for s in _SYNTH84 if s["pass"] == "pass2")
+_r3_texts_a = [c["user_text"] for c in _COUNCIL84 if c["round"] == "r3"]
+check("ADR-0084 (doctrina, Context 3) NINGÚN texto web llega al modelo: el user_text de pass2 (evidencia), de las 4 lentes del panel y de la "
+      "ronda 3 del consejo NO contienen ninguna URL hallada, 'WEB TITLE', la description ni la llave fake; el evidence de pass2 no trae la llave "
+      "'web_locator'; r3 SÍ corrió (n_admitted > 0)",
+      _no_web_text84(_pass2_json_a) and '"web_locator"' not in _pass2_json_a
+      and all(_no_web_text84(p["user_text"]) for p in _PANEL84) and len(_PANEL84) >= 4
+      and _r3_texts_a and all(_no_web_text84(t) for t in _r3_texts_a),
+      json.dumps({"n_panel": len(_PANEL84), "n_r3": len(_r3_texts_a), "urls_pass2": _urls_in84(_pass2_json_a)}))
+_ev_json_a = json.dumps([e["payload"] for e in _ev_wa], ensure_ascii=False, default=str)
+check("ADR-0084 (G.6) NINGUNA URL hallada en NINGÚN evento de la corrida (payloads de stage.web.locate, stage.search.source(web), stage.path_b, "
+      "stage.search.round…); stage.web.locate {round 1, provider 'brave', query_en, requirement_ids [req web], provider_status 'success', n_results 6, "
+      "n_located 5, n_materialized 3, n_unresolved 1, located_ids (ids nativos), hosts_unresolved ['www.researchgate.net'], cost_usd_projected 0.005, "
+      "quota {state, n_after, cap}}; stage.search.source(web) += provider/n_queries/n_located/n_materialized/cost_usd_projected/quota_state; "
+      "stage.path_b += n_web_located 5 / n_web_unresolved 1",
+      not _urls_in84(_ev_json_a) and "WEB TITLE" not in _ev_json_a and WEB_TEXT84 not in _ev_json_a and FAKE_KEY84 not in _ev_json_a
+      and _loc_ev_a[0]["round"] == 1 and _loc_ev_a[0]["provider"] == "brave" and _loc_ev_a[0]["requirement_ids"] == [_c_rid84["web"]]
+      and _loc_ev_a[0]["provider_status"] == "success" and _loc_ev_a[0]["n_results"] == 6 and _loc_ev_a[0]["n_located"] == 5
+      and _loc_ev_a[0]["n_materialized"] == 3 and _loc_ev_a[0]["n_unresolved"] == 1
+      and set(_loc_ev_a[0]["located_ids"]) == set(_loc_a) and _loc_ev_a[0]["hosts_unresolved"] == ["www.researchgate.net"]
+      and _loc_ev_a[0]["cost_usd_projected"] == 0.005 and set(_loc_ev_a[0]["quota"]) == {"state", "n_after", "cap"}
+      and _web_src_ev_a[0]["provider"] == "brave" and _web_src_ev_a[0]["n_queries"] == 1 and _web_src_ev_a[0]["n_located"] == 5
+      and _web_src_ev_a[0]["n_materialized"] == 3 and _web_src_ev_a[0]["cost_usd_projected"] == 0.005 and _web_src_ev_a[0]["quota_state"] == "under-cap"
+      and _ev_payloads(_ev_wa, "stage.path_b")[0]["n_web_located"] == 5 and _ev_payloads(_ev_wa, "stage.path_b")[0]["n_web_unresolved"] == 1,
+      json.dumps({"locate": {k: _loc_ev_a[0].get(k) for k in ("provider_status", "n_results", "n_located", "located_ids", "hosts_unresolved")},
+                  "src": {k: _web_src_ev_a[0].get(k) for k in ("provider", "n_queries", "n_located", "quota_state")}}))
+check("ADR-0084 (corrector: C.4/D.1/D.2 en los EVENTOS) stage.search.plan.payload lleva families_order_rule (WEB_FIRST) y "
+      "stage.path_b.selection lleva pool_admission_rule / tie_break_web_located — la Traza/Hoja los pintan desde el evento; la materialización "
+      "por Europe PMC corrió por search_europepmc_ledger con timeout ACOTADO (0.5 <= t <= WITT_WEB_BUDGET_S 30) en las 4 GETs de la ronda",
+      _ev_payloads(_ev_wa, "stage.search.plan")[0].get("families_order_rule") == _sh.FAMILIES_ORDER_RULE_WEB_FIRST
+      and _ev_payloads(_ev_wa, "stage.path_b")[0]["selection"]["pool_admission_rule"] == answer_pipeline.WEB_POOL_ADMISSION_RULE
+      and _ev_payloads(_ev_wa, "stage.path_b")[0]["selection"]["tie_break_web_located"] == answer_pipeline.WEB_TIE_BREAK_RULE
+      and len(_esp_wa.timeouts) >= 4 and all(t is not None and 0.5 <= t <= 30.0 for t in _esp_wa.timeouts[:4]),
+      json.dumps({"plan_rule": _ev_payloads(_ev_wa, "stage.search.plan")[0].get("families_order_rule"),
+                  "sel": _ev_payloads(_ev_wa, "stage.path_b")[0]["selection"], "timeouts": _esp_wa.timeouts[:4]}))
+_web_row_sl = next(s for rd in _sl_a["rounds"] for s in rd["sources"] if s["family"] == "web")
+_frozen_wo_wl = json.dumps({k: v for k, v in _rec_wa.items() if k != "web_locator"}, ensure_ascii=False, default=str)
+check("ADR-0084 (G.2, lectura estricta) las URLs viven SÓLO en frozen.web_locator: la fila web de frozen.search_ledger.rounds[].sources[] NO lleva el "
+      "ledger anidado `web_locator` (podado al congelar; web_locator_frozen_at lo declara; el bundle_json conserva el bloque íntegro) y el frozen "
+      "SIN la llave web_locator no contiene NINGUNA URL hallada ni title_web; la fila web SÍ lleva provider/n_queries/n_located/n_materialized/"
+      "n_unresolved/cost_usd_projected/quota_state (C.7)",
+      "web_locator" not in _web_row_sl and _web_row_sl.get("web_locator_frozen_at") == "frozen.web_locator"
+      and not _urls_in84(_frozen_wo_wl) and "WEB TITLE" not in _frozen_wo_wl
+      and _web_row_sl["provider"] == "brave" and _web_row_sl["n_queries"] == 1 and _web_row_sl["n_located"] == 5
+      and _web_row_sl["n_materialized"] == 3 and _web_row_sl["n_unresolved"] == 1 and _web_row_sl["quota_state"] == "under-cap"
+      and "web_locator" in next(s for rd in json.loads(_row_wa["bundle_json"])["path_b"]["search_ledger"]["rounds"] for s in rd["sources"]
+                                if s["family"] == "web"),
+      json.dumps({"urls_outside": _urls_in84(_frozen_wo_wl), "row_keys": sorted(_web_row_sl)[:40]}))
+_after_a = _rec_wa["council"]["coverage"]["after_search"]
+_by_req_a = {b["requirement_id"]: b for b in _after_a["by_requirement"]}
+check("ADR-0084 (F.4) coverage_after_search recibió el ledger web (web_locator=): by_requirement[req web].web_locator {n_queries 1, n_results 6, "
+      "n_located 5, n_materialized 2 (materialized-same-round admitidos… W6: feed_state), n_unresolved 1}, ausente en los demás requisitos; "
+      "web_locator_source 'caller (web_locator=)'; el requisito web queda 'retrieved-for' (≥ 1 candidato admitido con su requirement_id)",
+      _by_req_a[_c_rid84["web"]].get("web_locator", {}).get("n_queries") == 1 and _by_req_a[_c_rid84["web"]]["web_locator"]["n_results"] == 6
+      and _by_req_a[_c_rid84["web"]]["web_locator"]["n_located"] == 5 and _by_req_a[_c_rid84["web"]]["web_locator"]["n_unresolved"] == 1
+      and _by_req_a[_c_rid84["web"]]["web_locator"]["n_materialized"] in (2, 3)
+      and all("web_locator" not in b for rid_, b in _by_req_a.items() if rid_ != _c_rid84["web"])
+      and _after_a.get("web_locator_source") == "caller (web_locator=)"
+      and _by_req_a[_c_rid84["web"]]["state"] == "retrieved-for",
+      json.dumps({"web": _by_req_a[_c_rid84["web"]].get("web_locator"), "state": _by_req_a[_c_rid84["web"]]["state"],
+                  "source": _after_a.get("web_locator_source")}))
+_tc_a = runs_mod.build_thread_context(db.get_run(_rid_wa), [], _dt.datetime(2026, 9, 16, tzinfo=_dt.timezone.utc))
+_tc_json_a = json.dumps(_tc_a, ensure_ascii=False, default=str)
+check("ADR-0084 (Context 3) el snapshot thread_context de un HIJO de esta corrida (build_thread_context sobre su fila) transporta los 2 strings de "
+      "CONTEO en previous_answer.gap_flags y NINGUNA URL hallada, 'WEB TITLE', title_web ni canonical_url (el ledger no viaja al hijo)",
+      _tc_a["snapshot"] is not None and _gf_web_a[0] in _tc_a["snapshot"]["previous_answer"]["gap_flags"]
+      and _no_web_text84(_tc_json_a) and "title_web" not in _tc_json_a and "canonical_url" not in _tc_json_a,
+      json.dumps({"urls": _urls_in84(_tc_json_a), "n_gap": len(_tc_a["snapshot"]["previous_answer"]["gap_flags"])}))
+check("ADR-0084 (C.5 ii/iii, encadenado en la MISMA ronda) el DOI 10.1000/web666 y el curie ZFIN:ZDB-GENE-980526-558 localizados por la web llegaron a "
+      "ctx (fed_ctx ['ctx:dois'] / fed_to 'ctx:curies') — la web corrió PRIMERA; el spy de Europe PMC recibió idents SÓLO en forma EPMC "
+      "(PMID:<n> | DOI:<doi>) y 4 en la ronda (333, 666, 111 y el notfound)",
+      _loc_a["10.1000/web666"].get("fed_ctx") == ["ctx:dois"] and _loc_a["ZFIN:ZDB-GENE-980526-558"]["fed_to"] == "ctx:curies"
+      and all(_wl84.EPMC_IDENT_RE.match(i) for i in _esp_wa.calls[:4])
+      and set(_esp_wa.calls[:4]) == {"PMID:33333333", "DOI:10.1000/web666", "PMID:11111111", "DOI:10.1000/notfound84"},
+      json.dumps(_esp_wa.calls[:6]))
+
+# --- (b) cita FABRICADA a una URL → pass2 INADMISIBLE por web_text_not_cited (id-is-url) -----------------------------------------------
+_CIT_URL84 = [{"kind": "other", "id": "https://example.org/wt1a-blog"}, {"kind": "di-record", "id": "CORPUS-2026-0001"}]
+_rid_wb, _rec_wb, _ev_wb, _row_wb, _net_wb, _esp_wb = _run84("ADR-0084 b: fabricated URL citation", "plan-84-b",
+                                                              synth=_mk_synth84(_ANS84, _CIT_URL84))
+_dc_wb = _rec_wb["deterministic_checks"]["web_locator"]
+check("ADR-0084 (E.1) una cita fabricada con id URL ('https://example.org/wt1a-blog', kind other) → web_text_not_cited ok False (why 'id-is-url') → "
+      "pass2 INADMISIBLE con reason 'hard predicate failed: web_text_not_cited'; la URL fabricada NO está en el ledger (ledger_index None); "
+      "deterministic_checks.web_locator.state 'checked'",
+      _dc_wb["state"] == "checked" and _dc_wb["web_text_not_cited"]["ok"] is False
+      and _dc_wb["web_text_not_cited"]["offenders"][0]["why"] == "id-is-url"
+      and _rec_wb["deterministic_checks"]["admissible"] is False
+      and "hard predicate failed: web_text_not_cited" in _rec_wb["deterministic_checks"]["reasons"],
+      json.dumps({"ok": _dc_wb["web_text_not_cited"]["ok"], "off": _dc_wb["web_text_not_cited"]["offenders"][:1],
+                  "reasons": _rec_wb["deterministic_checks"]["reasons"]}, default=str)[:400])
+
+# --- (c) KILL-SWITCH explícito CON directiva web y llave presente: excluida con el literal de 7d9ce15, 0 stage.web.*, 3 excepciones ---------
+_rid_wc, _rec_wc, _ev_wc, _row_wc, _net_wc, _esp_wc = _run84("ADR-0084 c: kill-switch with web directive", "plan-84-c",
+                                                              env={"WITT_WEB_LOCATOR": "off"})
+_wl_c = _rec_wc["web_locator"]
+_excl_c = _rec_wc["council"]["directives_excluded"]
+check("ADR-0084 (L) KILL-SWITCH WITT_WEB_LOCATOR=off CON llave y must web sin cubrir: la directiva web se EXCLUYE al compilar con el literal EXACTO "
+      "de 7d9ce15 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' (harness_state_recomputed True: el plan la vio satisfiable), el plan "
+      "NO trae web, CERO stage.web.* y CERO GETs; frozen.web_locator == EXACTAMENTE {state 'kill-switch WITT_WEB_LOCATOR=off', provider 'off', "
+      "provider_source 'env:WITT_WEB_LOCATOR', kill_switch {WITT_WEB_LOCATOR 'off', enabled False, source, declared_exceptions [3]}, "
+      "state_vocabulary, rule}; deterministic_checks.web_locator == {state}; agents_invoked SIN fila web; token_usage SIN web_locator; "
+      "citations SIN located_via; epistemic web_n_located null",
+      len(_excl_c) == 1 and _excl_c[0]["family"] == "web" and _excl_c[0]["reason"] == _sh.WEB_UNSATISFIABLE_LITERAL
+      == "unsatisfiable-by-harness (tool-unavailable (ADR-0084))" and _excl_c[0].get("harness_state_recomputed") is True
+      and "web" not in _rec_wc["search_ledger"]["plan"]["families"]
+      and not any(t.startswith("stage.web.") for t in _ev_types(_ev_wc)) and len(_net_wc.calls) == 0
+      and set(_wl_c) == set(runs_mod.WEB_FROZEN_KILL_SWITCH_KEYS)
+      and _wl_c["state"] == "kill-switch WITT_WEB_LOCATOR=off" and _wl_c["provider"] == "off"
+      and _wl_c["provider_source"] == "env:WITT_WEB_LOCATOR"
+      and _wl_c["kill_switch"] == {"WITT_WEB_LOCATOR": "off", "enabled": False, "source": "env:WITT_WEB_LOCATOR",
+                                   "declared_exceptions": ["render_contract_version", "web_locator", "deterministic_checks.web_locator"]}
+      and _rec_wc["deterministic_checks"]["web_locator"] == {"state": "kill-switch WITT_WEB_LOCATOR=off"}
+      and not any(a["agent"] == runs_mod.WEB_LOCATOR_AGENT_ROW for a in _rec_wc["agents_invoked"])
+      and "web_locator" not in _rec_wc["token_usage"] and "estimated_cost_usd_total_projected" not in _rec_wc["token_usage"]
+      and all("located_via" not in c for c in _rec_wc["citations"]) and "n_located_via_web" not in _rec_wc["citations_support_summary"]
+      and app.get_run(_rid_wc, authorization=AUTH)["epistemic_summary"]["web_n_located"] is None
+      and app.get_run(_rid_wc, authorization=AUTH)["epistemic_summary"]["web_locator_state"] == "kill-switch WITT_WEB_LOCATOR=off",
+      json.dumps({"wl": _wl_c, "excl": _excl_c}, default=str)[:600])
+
+# --- (d/e) M.1 byte a byte: el MISMO fixture SIN directiva web (string sin cubrir), ON vs OFF ------------------------------------------------
+_ADDITIVE_113_KEYS = {"located_via", "n_located_via_web", "families_order_rule", "pool_admission_rule", "tie_break_web_located",
+                      "web_locator_usd_projected", "estimated_cost_usd_total_projected", "total_class",
+                      "web_locator_state", "web_n_located", "web_n_unresolved", "harness_state_at_plan", "harness_state_at_compile",
+                      "harness_state_recomputed"}
+
+
+def _strip84(rec):
+    """El registro SIN las llaves aditivas 1.13 ni las de identidad — para medir que el kill-switch no cambia NADA más."""
+    r = json.loads(json.dumps(rec))
+    for k in _IDENTITY_KEYS83 + ("web_locator",):
+        r.pop(k, None)
+    _drop_key83(r, "thread_id")
+    r["deterministic_checks"].pop("web_locator", None)
+    r["agents_invoked"] = [a for a in r["agents_invoked"] if a["agent"] != runs_mod.WEB_LOCATOR_AGENT_ROW]
+    for k in _ADDITIVE_113_KEYS:
+        _drop_key83(r, k)
+    for k in ("queue_wait_s", "stagger_wait_s", "elapsed_s", "cache_dir"):   # reloj (consejo fake, rondas) y caché por corrida: identidad, no fuga
+        _drop_key83(r, k)
+    return r
+
+
+_rid_wd, _rec_wd, _ev_wd, _row_wd, _net_wd, _esp_wd = _run84("ADR-0084 d: no web directive ON", "plan-84-de", uncovered=("string",),
+                                                              cj=_c_json84(_C_LEDGER84, "plan-84-de"))
+_rid_we, _rec_we, _ev_we, _row_we, _net_we, _esp_we = _run84("ADR-0084 d: no web directive ON", "plan-84-de", uncovered=("string",),
+                                                              cj=_c_json84(_C_LEDGER84, "plan-84-de"), env={"WITT_WEB_LOCATOR": "off"})
+_diff_de = _diff83(_strip84(_rec_wd), _strip84(_rec_we))
+check("ADR-0084 (L, M.1) KILL-SWITCH byte a byte contra la corrida ENCENDIDA del MISMO fixture SIN directiva web (string sin cubrir, misma "
+      "pregunta): quitadas las llaves ADITIVAS 1.13 (web_locator, deterministic_checks.web_locator, fila web de agents, citations[].located_via, "
+      "n_located_via_web, token_usage.web_locator/total, epistemic web_*, families_order_rule, pool_admission_rule/tie_break, recomputo del "
+      "consejo) y las de identidad de corrida, los dos registros son IDÉNTICOS (json sort_keys, keyset Y valores) — cualquier otra diferencia "
+      "falla listando el path; ON: web_locator.state 'not-requested (no web directive)' y deterministic_checks.web_locator 'no-web-items' con 4 "
+      "bloques; OFF: las 3 excepciones",
+      _diff_de == set() and _rec_wd["web_locator"]["state"] == "not-requested (no web directive)"
+      and _rec_wd["deterministic_checks"]["web_locator"]["state"] == "no-web-items"
+      and set(_vo.WEB_PREDICATES) <= set(_rec_wd["deterministic_checks"]["web_locator"])
+      and _rec_wd["deterministic_checks"]["web_locator"]["conjunction"] == []
+      and _rec_we["web_locator"]["state"] == "kill-switch WITT_WEB_LOCATOR=off"
+      and _rec_we["deterministic_checks"]["web_locator"] == {"state": "kill-switch WITT_WEB_LOCATOR=off"}
+      and _rec_wd["render_contract_version"] == _rec_we["render_contract_version"] == "1.13"
+      and len(_net_wd.calls) == 0 and len(_net_we.calls) == 0,
+      json.dumps(sorted(_diff_de))[:600])
+_RULE_DIRECTIVES_112 = ("one directive per KEPT requirement with coverage_final ∈ {uncovered, partial, not-judged} and harness_state "
+                        "satisfiable; family/query/entities come from the REQUIREMENT (never from optional prose); a valid vote's "
+                        "search_directive only refines query_en/entities (refined_by_members); dedup by (family, requirement_id); order must > "
+                        "should, requirement_id asc")
+_RULE_AFTER_112 = ("retrieved-for = at least one item ADMITTED by the harness carries this requirement_id in directive_requirement_ids "
+                   "(structural MEASUREMENT, not a judgment); still-uncovered = a directive was compiled but nothing admitted for it; "
+                   "not-searched = no directive (unsatisfiable, discarded or no search); covered-pre = coverage_final ∈ {covered, "
+                   "covered-by-attestation} before the search")
+check("ADR-0084 (L, corrector) los literales COMPARTIDOS del consejo que viajan al frozen son los de 1.12 @ 7d9ce15 BYTE A BYTE en ON y en OFF "
+      "(council.directives_rule, council.coverage.after_search.rule): la ampliación web vive en llaves propias (availability_rule SÓLO con "
+      "recomputo — presente en la corrida c bajo off con directiva web y AUSENTE en d/e —, web_locator_rule SÓLO con ledger web)",
+      _rec_wd["council"]["directives_rule"] == _rec_we["council"]["directives_rule"] == _RULE_DIRECTIVES_112
+      and _rec_wd["council"]["coverage"]["after_search"]["rule"] == _rec_we["council"]["coverage"]["after_search"]["rule"] == _RULE_AFTER_112
+      and "directives_availability_rule" not in _rec_wd["council"] and "directives_availability_rule" not in _rec_we["council"]
+      and _rec_wc["council"].get("directives_availability_rule") == _council.DIRECTIVES_AVAILABILITY_RULE
+      and "web_locator_rule" not in _rec_wd["council"]["coverage"]["after_search"]
+      and _rec_wa["council"]["coverage"]["after_search"].get("web_locator_rule") == _council.WEB_LOCATOR_COVERAGE_RULE,
+      json.dumps({"d": _rec_wd["council"]["directives_rule"][:60], "c_avail": _rec_wc["council"].get("directives_availability_rule", "")[:60]}))
+_ai_d = {a["agent"]: a for a in _rec_wd["agents_invoked"]}
+check("ADR-0084 (G.9/G.8) ON sin directiva web: agents_invoked fila web 'not-applicable (not-requested (no web directive))'; epistemic "
+      "web_locator_state 'not-requested (no web directive)', web_n_located null (no midió); token_usage SIN web_locator (la familia no corrió); "
+      "citations[].located_via null en todas (localizador disponible, nada web)",
+      _ai_d[runs_mod.WEB_LOCATOR_AGENT_ROW]["status"] == "not-applicable (not-requested (no web directive))"
+      and app.get_run(_rid_wd, authorization=AUTH)["epistemic_summary"]["web_locator_state"] == "not-requested (no web directive)"
+      and app.get_run(_rid_wd, authorization=AUTH)["epistemic_summary"]["web_n_located"] is None
+      and "web_locator" not in _rec_wd["token_usage"]
+      and all(c.get("located_via") is None and "located_via" in c for c in _rec_wd["citations"])
+      and _rec_wd["citations_support_summary"]["n_located_via_web"] == 0,
+      json.dumps(_ai_d.get(runs_mod.WEB_LOCATOR_AGENT_ROW)))
+
+# --- (f) brave EXPLÍCITO sin llave → literal con causa; (g) competente → 'not-requested (no search round)' ----------------------------------
+_rid_wf, _rec_wf, _ev_wf, _row_wf, _net_wf, _esp_wf = _run84("ADR-0084 f: brave without key", "plan-84-f", env={"BRAVE_API_KEY": ""})
+_wl_f = _rec_wf["web_locator"]
+check("ADR-0084 (B.3/G.2) WITT_WEB_LOCATOR=brave SIN llave: la directiva web se excluye con 'unsatisfiable-by-harness (tool-unavailable (ADR-0084: "
+      "BRAVE_API_KEY unset))' (prefijo ya glosado, literal con CAUSA), frozen.web_locator.state 'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)' "
+      "(la causa viaja aquí), provider 'brave' env:WITT_WEB_LOCATOR, provider_available False, SIN contadores (no midió: nada de n_results/n_located), "
+      "deterministic_checks.web_locator == {state 'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)'}, agents_invoked fila 'tool-unavailable', "
+      "CERO GETs",
+      _rec_wf["council"]["directives_excluded"][0]["reason"] == "unsatisfiable-by-harness (tool-unavailable (ADR-0084: BRAVE_API_KEY unset))"
+      and _wl_f["state"] == "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)" and _wl_f["provider"] == "brave"
+      and _wl_f["provider_source"] == "env:WITT_WEB_LOCATOR" and _wl_f["provider_available"] is False
+      and "n_results" not in _wl_f and "n_located" not in _wl_f and "n_materialized" not in _wl_f
+      and _rec_wf["deterministic_checks"]["web_locator"] == {"state": "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)"}
+      and next(a for a in _rec_wf["agents_invoked"] if a["agent"] == runs_mod.WEB_LOCATOR_AGENT_ROW)["status"] == "tool-unavailable"
+      and len(_net_wf.calls) == 0 and _wl84.web_state_in_vocabulary(_wl_f["state"]),
+      json.dumps({k: _wl_f.get(k) for k in ("state", "state_detail", "provider", "provider_available")}))
+_rid_wg, _rec_wg, _ev_wg, _row_wg, _net_wg, _esp_wg = _run84("ADR-0084 g: competent run", "plan-84-g", uncovered=())
+_wl_g = _rec_wg["web_locator"]
+check("ADR-0084 (G.2) corrida COMPETENTE (0 must sin cubrir, sin Ruta B): frozen.web_locator.state 'not-requested (no search round)', measured False, "
+      "queries/located/unresolved [], SIN contadores, provider 'brave' disponible, encabezado (versiones, resolver_rules 12, text_policy); "
+      "deterministic_checks.web_locator 'no-web-items'; agents fila 'not-applicable (not-requested (no search round))'; token_usage SIN web_locator; "
+      "epistemic web_n_located null",
+      _rec_wg["competence"]["competent"] is True and _wl_g["state"] == "not-requested (no search round)" and _wl_g["measured"] is False
+      and _wl_g["queries"] == [] and _wl_g["located"] == [] and _wl_g["unresolved"] == [] and "n_results" not in _wl_g
+      and _wl_g["provider"] == "brave" and _wl_g["provider_available"] is True and len(_wl_g["resolver_rules"]) == 12
+      and _wl_g["module_version"] == "wl-1" and _wl_g["text_policy"] == _wl84.TEXT_POLICY
+      and _rec_wg["deterministic_checks"]["web_locator"]["state"] == "no-web-items"
+      and next(a for a in _rec_wg["agents_invoked"] if a["agent"] == runs_mod.WEB_LOCATOR_AGENT_ROW)["status"]
+      == "not-applicable (not-requested (no search round))"
+      and "web_locator" not in _rec_wg["token_usage"]
+      and app.get_run(_rid_wg, authorization=AUTH)["epistemic_summary"]["web_n_located"] is None,
+      json.dumps({k: _wl_g.get(k) for k in ("state", "state_detail", "measured", "provider")}))
+
+# --- (h) alterno Anthropic web_search con _post_json FALSO (fixture SINTÉTICO): tokens MEDIDOS del despachador + USD 10/1k -------------------
+_rid_wh, _rec_wh, _ev_wh, _row_wh, _net_wh, _esp_wh = _run84("ADR-0084 h: anthropic alternate", "plan-84-h",
+                                                              env={"WITT_WEB_LOCATOR": "anthropic", "ANTHROPIC_API_KEY": "fake-anthropic-key-adr84",
+                                                                   "BRAVE_API_KEY": None},
+                                                              anthropic_fx=_ANTH_FX84["response"],
+                                                              epmc={"PMID:15982647": _rec84("15982647", title="EPMC 15982647")})
+_wl_h = _rec_wh["web_locator"]
+_tu_h = _rec_wh["token_usage"]
+_disp_model = _ANTH_FX84["response"]["model"]
+check("ADR-0084 (I/G.7) alterno Anthropic (WITT_WEB_LOCATOR=anthropic, _post_json falso con el fixture SINTÉTICO): frozen.web_locator provider "
+      "'anthropic', 1 consulta, n_results 5 (4 URLs de web_search_tool_result + 1 de citations[], dedup), cost {price_usd_per_1k 10.0, n_queries_billable 1 (web_search_requests), "
+      "usd_projected 0.01, tokens {in 1480, out 92, class 'medición'}}; token_usage.web_locator.tokens medidos; by_stage.search {in 1480, out 92, model "
+      "<despachador>, state 'measured (anthropic web_search dispatcher)'}; by_model[<despachador>] los suma; by_stage_sum_matches_by_model True; "
+      "CERO GETs a Brave; la PROSA del despachador (sentinela del fixture) NO persiste ni en frozen, ni en bundle_json, ni en eventos",
+      _wl_h["provider"] == "anthropic" and _wl_h["n_queries"] == 1 and _wl_h["n_results"] == 5
+      and _wl_h["cost"]["price_usd_per_1k"] == 10.0 and _wl_h["cost"]["n_queries_billable"] == 1 and _wl_h["cost"]["usd_projected"] == 0.01
+      and _wl_h["cost"]["tokens"] == {"in": 1480, "out": 92, "class": "medición", "model": _disp_model}
+      and _tu_h["web_locator"]["tokens"]["in"] == 1480 and _tu_h["by_stage"]["search"]["in"] == 1480 and _tu_h["by_stage"]["search"]["out"] == 92
+      and _tu_h["by_stage"]["search"]["model"] == _disp_model and _tu_h["by_stage"]["search"]["state"] == runs_mod.WEB_ANTHROPIC_SEARCH_STATE
+      and _tu_h["by_model"].get(_disp_model, {}).get("in", 0) >= 1480 and _tu_h["by_stage_sum_matches_by_model"] is True
+      and len(_net_wh.calls) == 0
+      and "SYNTHETIC_MODEL_PROSE_MUST_NEVER_PERSIST" not in json.dumps(_rec_wh)
+      and "SYNTHETIC_MODEL_PROSE_MUST_NEVER_PERSIST" not in _row_wh["bundle_json"]
+      and "SYNTHETIC_MODEL_PROSE_MUST_NEVER_PERSIST" not in json.dumps([e["payload"] for e in _ev_wh], default=str),
+      json.dumps({"cost": _wl_h["cost"], "search": _tu_h["by_stage"]["search"], "state": _wl_h["state"]}, default=str)[:500])
+_papers_wh = json.loads(_row_wh["bundle_json"])["path_b"]["papers"]
+_p_wh = next(p for p in _papers_wh if p.get("source_family") == "web")
+_dc_wh = _rec_wh["deterministic_checks"]
+check("ADR-0084 (D.3 <-> E.3, corrector) el paper web-localizado SELECCIONADO cuyo fetch_external NO lo entregó (fetched.found False: timeout "
+      "transitorio) queda SIN PASAJE — abstract None, text_excerpt None, text_provenance 'none', text_withheld_reason 'web-located-not-fetched "
+      "(ADR-0084 D.3)' — y la respuesta (que no lo cita) es ADMISIBLE: web_items_native_only ok True (0 offenders) — antes E.3 disparaba "
+      "'text-without-fetch' sobre el abstract del registro EPMC y volvía inadmisible TODA la pass2 por un fallo de red",
+      _p_wh["fetched"]["found"] is False and _p_wh["abstract"] is None and _p_wh["text_excerpt"] is None
+      and _p_wh["text_provenance"] == "none" and _p_wh["text_withheld_reason"] == answer_pipeline.WEB_TEXT_WITHHELD_REASON
+      and _dc_wh["admissible"] is True and _dc_wh["web_locator"]["web_items_native_only"]["ok"] is True
+      and _dc_wh["web_locator"]["web_items_native_only"]["n_offenders"] == 0 and _dc_wh["web_locator"]["state"] == "checked",
+      json.dumps({"fetched": _p_wh["fetched"], "prov": _p_wh["text_provenance"], "adm": _dc_wh["admissible"], "reasons": _dc_wh["reasons"]}, default=str)[:400])
+_q_wh = _wl_h["queries"][0]
+check("ADR-0084 (I, corrector) el alterno DECLARA en el frozen lo que hace: queries[0] {tool_type 'web_search_20250305' (vocabulario CERRADO "
+      "web_locator.ANTHROPIC_TOOL_TYPES), provider_property == ANTHROPIC_READS_WEB_TEXT (el modelo LEE texto web), n_text_blocks_discarded 1, "
+      "request_shape {has_tool_choice False, has_allowed_callers False, has_blocked_domains False}, query_sent_matches_directive False, stop_reason}; "
+      "cost.provider_detail {tool_type, tool_type_source 'default', tool_types_allowed ['web_search_20250305'], reads_web_text True, property} "
+      "también en token_usage.web_locator",
+      _q_wh["tool_type"] == "web_search_20250305" and _wl84.ANTHROPIC_TOOL_TYPES == ("web_search_20250305",)
+      and _q_wh["provider_property"] == _wl84.ANTHROPIC_READS_WEB_TEXT and _q_wh["n_text_blocks_discarded"] == 1
+      and _q_wh["request_shape"]["has_tool_choice"] is False and _q_wh["request_shape"]["has_allowed_callers"] is False
+      and _q_wh["request_shape"]["has_blocked_domains"] is False and _q_wh["query_sent_matches_directive"] is False
+      and "stop_reason" in _q_wh
+      and _wl_h["cost"]["provider_detail"] == {"tool_type": "web_search_20250305", "tool_type_source": "default",
+                                              "tool_types_allowed": ["web_search_20250305"], "reads_web_text": True,
+                                              "property": _wl84.ANTHROPIC_READS_WEB_TEXT}
+      and _tu_h["web_locator"]["provider_detail"]["reads_web_text"] is True,
+      json.dumps({k: _q_wh.get(k) for k in ("tool_type", "n_text_blocks_discarded", "request_shape", "stop_reason")}, default=str)
+      + " " + json.dumps(_wl_h["cost"].get("provider_detail"), default=str)[:200])
+
+# --- assert GLOBAL sobre la BD del gate: ninguna URL de fixture web fuera de frozen.web_locator ni en run_events --------------------------------
+_leaks84 = []
+with db.engine().begin() as _cx84:
+    for _rid84, _fr84 in _cx84.execute(_sa_f8.text("SELECT run_id, frozen_record_json FROM runs WHERE frozen_record_json IS NOT NULL")).all():
+        _d = json.loads(_fr84)
+        _d.pop("web_locator", None)
+        _s = json.dumps(_d, ensure_ascii=False)
+        if _urls_in84(_s) or "WEB TITLE" in _s or WEB_TEXT84 in _s or FAKE_KEY84 in _s:
+            _leaks84.append(("frozen", _rid84, _urls_in84(_s)[:2]))
+    for _rid84, _seq84, _pl84 in _cx84.execute(_sa_f8.text("SELECT run_id, seq, payload_json FROM run_events WHERE payload_json IS NOT NULL")).all():
+        if _urls_in84(_pl84 or "") or "WEB TITLE" in (_pl84 or "") or WEB_TEXT84 in (_pl84 or "") or FAKE_KEY84 in (_pl84 or ""):
+            _leaks84.append(("event", _rid84, _seq84))
+check("ADR-0084 assert GLOBAL sobre la BD del gate: NINGUNA URL de fixture web (Brave ni Anthropic), 'WEB TITLE', description ni la llave fake en "
+      "ningún frozen_record_json fuera de la llave web_locator, ni en ningún payload de run_events (todas las corridas de todos los ADR)",
+      _leaks84 == [], json.dumps(_leaks84[:5], default=str))
+check("ADR-0084 los estados congelados están en los vocabularios CERRADOS: web_locator.state ∈ WEB_STATES (exactos | prefijos) en las 9 corridas; "
+      "deterministic_checks.web_locator.state ∈ WEB_CHECK_STATES; quota.state ∈ QUOTA_STATES cuando existe",
+      all(_wl84.web_state_in_vocabulary(r["web_locator"]["state"]) for r in (_rec_q1, _rec_q2, _rec_wa, _rec_wb, _rec_wc, _rec_wd, _rec_we, _rec_wf, _rec_wg, _rec_wh))
+      and all(_vo.web_check_state_in_vocabulary(r["deterministic_checks"]["web_locator"]["state"])
+              for r in (_rec_q1, _rec_q2, _rec_wa, _rec_wb, _rec_wc, _rec_wd, _rec_we, _rec_wf, _rec_wg, _rec_wh))
+      and all(_wl84.quota_state_in_vocabulary(r["web_locator"]["quota"]["state"]) for r in (_rec_q1, _rec_q2, _rec_wa, _rec_wb, _rec_wh)),
+      json.dumps([r["web_locator"]["state"] for r in (_rec_q1, _rec_q2, _rec_wa, _rec_wb, _rec_wc, _rec_wd, _rec_we, _rec_wf, _rec_wg, _rec_wh)]))
+_sh._TOOL_CACHE.pop("web", None)
+
+
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()
-check("ADR-0080 (H) / ADR-0081 / ADR-0083 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y "
-      "contado durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 + las de ADR-0082 y ADR-0083 (0 llamadas), mcp_cache "
+check("ADR-0080 (H) / ADR-0081 / ADR-0083 / ADR-0084 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y "
+      "contado durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 + las de ADR-0082, ADR-0083 y ADR-0084 (0 llamadas), mcp_cache "
       "byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate; la caché de figuras vive en un TMP propio), "
       "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
       _NET_CALLS == [] and _mcp_before == _mcp_after,

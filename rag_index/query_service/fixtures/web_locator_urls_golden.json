@@ -1,0 +1,1787 @@
+{
+ "_golden": {
+  "adr": "ADR-0084",
+  "generated_by": "W2 (gen_web_locator_golden.py in the session scratchpad; hand expectations verified == resolver output)",
+  "resolver_version": "wlr-2",
+  "module_version": "wl-1",
+  "n_cases": 61,
+  "n_batches": 3,
+  "n_urlopen": 0,
+  "deterministic": true,
+  "canon": "json.dumps({cases, batches}, sort_keys=True, ensure_ascii=False, separators=(',', ':')) -> sha256",
+  "sha256": "5364878257f22b3e5a0a99093a9711feee73c14eb926324fd65fd0050bb57574",
+  "fake_store": {
+   "ENSDARG00000031420": {
+    "raw_cache_ref": "RAW:mcp_cache/raw_ensembl_lookup_genes_20260531.json"
+   },
+   "ENSDARG00000007739": {
+    "raw_cache_ref": "DERIVED:ensembl_symbol_map.json"
+   }
+  },
+  "note": "Golden of the deterministic URL->identifier resolver (ADR-0084 (B.1)/(B.2)). Every case carries the HAND expectation and the resolver output at generation time; smoke_web_locator re-runs resolve_url/resolve_urls and compares byte for byte. URLs are public record locations used for their FORM (no network, no claim about their content). Titles are placeholders: a search-engine title is never evidence.",
+  "note_w7": "W7 (integrador): la trampa 'unsupported-scheme' pasa de un mailto con direccion de correo (example.org) a 'mailto:nobody' (sin forma de correo) para que el cinturon transversal de smoke_tools_c ('CERO correos en fixtures/*.json') siga estricto; expectativa y sha256 re-sellados con el mismo canon",
+  "note_corrector": "corrector ADR-0084 (wlr-2): +10 casos — sufijos de publisher recortados del DOI (Frontiers /full y /pdf, Springer .pdf y /figures/1, Wiley /abstract, doi.org con '/' final, biorxiv .article-info), PMC case-insensitive (ncbi /pmc/articles/pmc<n>/), europepmc.org/articles/PMC<n> (forma legacy real) y la trampa /articles/<digitos> (no es registro); los 51 casos previos siguen byte-identicos; lotes re-sellados solo por resolver_version"
+ },
+ "cases": [
+  {
+   "url": "https://doi.org/10.1242/dev.02071",
+   "title": "doi.org canonical",
+   "opts": {},
+   "tag": "doi-org-path",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1242/dev.02071",
+    "kind": "doi",
+    "rule": "doi-org-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://doi.org/10.1242/dev.02071",
+     "host": "doi.org",
+     "id": "10.1242/dev.02071",
+     "kind": "doi",
+     "resolver_rule": "doi-org-path",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1242/dev.02071",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://doi.org/10.1242/DEV.02071.",
+   "title": "doi.org with trailing dot + uppercase",
+   "opts": {},
+   "tag": "trap: trailing punct + case",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1242/dev.02071",
+    "kind": "doi",
+    "rule": "doi-org-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://doi.org/10.1242/DEV.02071.",
+     "host": "doi.org",
+     "id": "10.1242/dev.02071",
+     "kind": "doi",
+     "resolver_rule": "doi-org-path",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1242/dev.02071",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "http://dx.doi.org/10.1016/j.ydbio.2007.03.023?utm_source=x",
+   "title": "dx.doi.org with ?utm",
+   "opts": {},
+   "tag": "trap: ?utm ignored",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1016/j.ydbio.2007.03.023",
+    "kind": "doi",
+    "rule": "doi-org-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "http://dx.doi.org/10.1016/j.ydbio.2007.03.023?utm_source=x",
+     "host": "dx.doi.org",
+     "id": "10.1016/j.ydbio.2007.03.023",
+     "kind": "doi",
+     "resolver_rule": "doi-org-path",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1016/j.ydbio.2007.03.023",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://doi.org/10.1002/(SICI)1097-0177(199906)215:2%3C143::AID-DVDY5%3E3.0.CO;2-K",
+   "title": "percent-encoded SICI DOI",
+   "opts": {},
+   "tag": "trap: percent-encoding decoded",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k",
+    "kind": "doi",
+    "rule": "doi-org-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://doi.org/10.1002/(SICI)1097-0177(199906)215:2%3C143::AID-DVDY5%3E3.0.CO;2-K",
+     "host": "doi.org",
+     "id": "10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k",
+     "kind": "doi",
+     "resolver_rule": "doi-org-path",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1002/(sici)1097-0177(199906)215:2<143::aid-dvdy5>3.0.co;2-k",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+   "title": "pubmed",
+   "opts": {},
+   "tag": "pubmed-path",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:15982647",
+    "kind": "pmid",
+    "rule": "pubmed-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "host": "pubmed.ncbi.nlm.nih.gov",
+     "id": "PMID:15982647",
+     "kind": "pmid",
+     "resolver_rule": "pubmed-path",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://pubmed.ncbi.nlm.nih.gov/9834190/?dopt=Abstract",
+   "title": "pubmed /?dopt=",
+   "opts": {},
+   "tag": "trap: /?dopt=",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:9834190",
+    "kind": "pmid",
+    "rule": "pubmed-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/9834190/?dopt=Abstract",
+     "host": "pubmed.ncbi.nlm.nih.gov",
+     "id": "PMID:9834190",
+     "kind": "pmid",
+     "resolver_rule": "pubmed-path",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/9834190/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://pubmed.ncbi.nlm.nih.gov:443/15982647/",
+   "title": "pubmed with explicit port",
+   "opts": {},
+   "tag": "trap: port stripped",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:15982647",
+    "kind": "pmid",
+    "rule": "pubmed-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov:443/15982647/",
+     "host": "pubmed.ncbi.nlm.nih.gov",
+     "id": "PMID:15982647",
+     "kind": "pmid",
+     "resolver_rule": "pubmed-path",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://pubmed.ncbi.nlm.nih.gov/?term=wt1a+zebrafish",
+   "title": "pubmed search page",
+   "opts": {},
+   "tag": "search page is not a record",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/?term=wt1a+zebrafish",
+     "host": "pubmed.ncbi.nlm.nih.gov",
+     "title_web": "pubmed search page",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/pubmed/15982647",
+   "title": "ncbi legacy pubmed",
+   "opts": {},
+   "tag": "ncbi-pubmed-legacy",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:15982647",
+    "kind": "pmid",
+    "rule": "ncbi-pubmed-legacy",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/pubmed/15982647",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "PMID:15982647",
+     "kind": "pmid",
+     "resolver_rule": "ncbi-pubmed-legacy",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2688018/",
+   "title": "pmc new host",
+   "opts": {},
+   "tag": "pmc-path",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "pmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2688018/",
+     "host": "pmc.ncbi.nlm.nih.gov",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "pmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2688018/",
+   "title": "pmc legacy host",
+   "opts": {},
+   "tag": "ncbi-pmc-legacy",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "ncbi-pmc-legacy",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2688018/",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "ncbi-pmc-legacy",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2688018/pdf/x.pdf",
+   "title": "pmc legacy pdf path",
+   "opts": {},
+   "tag": "trap: deeper path",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "ncbi-pmc-legacy",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2688018/pdf/x.pdf",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "ncbi-pmc-legacy",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/article/MED/15982647",
+   "title": "europepmc MED",
+   "opts": {},
+   "tag": "europepmc-path pmid",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:15982647",
+    "kind": "pmid",
+    "rule": "europepmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://europepmc.org/article/MED/15982647",
+     "host": "europepmc.org",
+     "id": "PMID:15982647",
+     "kind": "pmid",
+     "resolver_rule": "europepmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/abstract/MED/9834190",
+   "title": "europepmc /abstract/MED/",
+   "opts": {},
+   "tag": "trap: /abstract/MED/",
+   "hand": {
+    "outcome": "located",
+    "id": "PMID:9834190",
+    "kind": "pmid",
+    "rule": "europepmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://europepmc.org/abstract/MED/9834190",
+     "host": "europepmc.org",
+     "id": "PMID:9834190",
+     "kind": "pmid",
+     "resolver_rule": "europepmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/9834190/",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/article/PMC/PMC2688018",
+   "title": "europepmc PMC",
+   "opts": {},
+   "tag": "europepmc-path pmcid",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "europepmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://europepmc.org/article/PMC/PMC2688018",
+     "host": "europepmc.org",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "europepmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/search?query=wt1a",
+   "title": "europepmc search",
+   "opts": {},
+   "tag": "search page",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://europepmc.org/search?query=wt1a",
+     "host": "europepmc.org",
+     "title_web": "europepmc search",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2",
+   "title": "biorxiv v2",
+   "opts": {},
+   "tag": "biorxiv v2 (label preprint)",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1101/2021.03.15.435418",
+    "kind": "doi",
+    "rule": "biorxiv-doi",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2",
+     "host": "www.biorxiv.org",
+     "id": "10.1101/2021.03.15.435418",
+     "kind": "doi",
+     "resolver_rule": "biorxiv-doi",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1101/2021.03.15.435418",
+     "label": "preprint"
+    }
+   }
+  },
+  {
+   "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2.full.pdf",
+   "title": "biorxiv v2.full.pdf",
+   "opts": {},
+   "tag": "trap: .full.pdf suffix",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1101/2021.03.15.435418",
+    "kind": "doi",
+    "rule": "biorxiv-doi",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2.full.pdf",
+     "host": "www.biorxiv.org",
+     "id": "10.1101/2021.03.15.435418",
+     "kind": "doi",
+     "resolver_rule": "biorxiv-doi",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1101/2021.03.15.435418",
+     "label": "preprint"
+    }
+   }
+  },
+  {
+   "url": "https://www.medrxiv.org/content/10.1101/2022.01.01.22268600v1.full",
+   "title": "medrxiv v1.full",
+   "opts": {},
+   "tag": "medrxiv",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1101/2022.01.01.22268600",
+    "kind": "doi",
+    "rule": "biorxiv-doi",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.medrxiv.org/content/10.1101/2022.01.01.22268600v1.full",
+     "host": "www.medrxiv.org",
+     "id": "10.1101/2022.01.01.22268600",
+     "kind": "doi",
+     "resolver_rule": "biorxiv-doi",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1101/2022.01.01.22268600",
+     "label": "preprint"
+    }
+   }
+  },
+  {
+   "url": "https://www.biorxiv.org/content/biorxiv/early/2021/03/16/2021.03.15.435418.full.pdf",
+   "title": "biorxiv early path (no DOI)",
+   "opts": {},
+   "tag": "no DOI in path",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.biorxiv.org/content/biorxiv/early/2021/03/16/2021.03.15.435418.full.pdf",
+     "host": "www.biorxiv.org",
+     "title_web": "biorxiv early path (no DOI)",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://zfin.org/ZDB-GENE-980526-558",
+   "title": "zfin gene",
+   "opts": {},
+   "tag": "zfin-curie gene",
+   "hand": {
+    "outcome": "located",
+    "id": "ZFIN:ZDB-GENE-980526-558",
+    "kind": "zfin-curie",
+    "rule": "zfin-curie",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://zfin.org/ZDB-GENE-980526-558",
+     "host": "zfin.org",
+     "id": "ZFIN:ZDB-GENE-980526-558",
+     "kind": "zfin-curie",
+     "resolver_rule": "zfin-curie",
+     "confidence": "host-table",
+     "canonical_url": "https://zfin.org/ZDB-GENE-980526-558",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.zfin.org/action/marker/view/ZDB-GENE-980526-558",
+   "title": "zfin marker view",
+   "opts": {},
+   "tag": "zfin www + deep path",
+   "hand": {
+    "outcome": "located",
+    "id": "ZFIN:ZDB-GENE-980526-558",
+    "kind": "zfin-curie",
+    "rule": "zfin-curie",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.zfin.org/action/marker/view/ZDB-GENE-980526-558",
+     "host": "www.zfin.org",
+     "id": "ZFIN:ZDB-GENE-980526-558",
+     "kind": "zfin-curie",
+     "resolver_rule": "zfin-curie",
+     "confidence": "host-table",
+     "canonical_url": "https://zfin.org/ZDB-GENE-980526-558",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://zfin.org/action/publication/view?id=ZDB-PUB-050801-2",
+   "title": "zfin publication ?id=",
+   "opts": {},
+   "tag": "zfin ZDB-PUB (located; fed_to None in W3)",
+   "hand": {
+    "outcome": "located",
+    "id": "ZFIN:ZDB-PUB-050801-2",
+    "kind": "zfin-curie",
+    "rule": "zfin-curie",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://zfin.org/action/publication/view?id=ZDB-PUB-050801-2",
+     "host": "zfin.org",
+     "id": "ZFIN:ZDB-PUB-050801-2",
+     "kind": "zfin-curie",
+     "resolver_rule": "zfin-curie",
+     "confidence": "host-table",
+     "canonical_url": "https://zfin.org/ZDB-PUB-050801-2",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://zfin.org/ZDB-FIG-070117-2069",
+   "title": "zfin figure",
+   "opts": {},
+   "tag": "zfin ZDB-FIG",
+   "hand": {
+    "outcome": "located",
+    "id": "ZFIN:ZDB-FIG-070117-2069",
+    "kind": "zfin-curie",
+    "rule": "zfin-curie",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://zfin.org/ZDB-FIG-070117-2069",
+     "host": "zfin.org",
+     "id": "ZFIN:ZDB-FIG-070117-2069",
+     "kind": "zfin-curie",
+     "resolver_rule": "zfin-curie",
+     "confidence": "host-table",
+     "canonical_url": "https://zfin.org/ZDB-FIG-070117-2069",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://zfin.org/ZDB-ALT-980203-1091",
+   "title": "zfin allele",
+   "opts": {},
+   "tag": "zfin ZDB-ALT",
+   "hand": {
+    "outcome": "located",
+    "id": "ZFIN:ZDB-ALT-980203-1091",
+    "kind": "zfin-curie",
+    "rule": "zfin-curie",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://zfin.org/ZDB-ALT-980203-1091",
+     "host": "zfin.org",
+     "id": "ZFIN:ZDB-ALT-980203-1091",
+     "kind": "zfin-curie",
+     "resolver_rule": "zfin-curie",
+     "confidence": "host-table",
+     "canonical_url": "https://zfin.org/ZDB-ALT-980203-1091",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://zfin.org/search?q=wt1a",
+   "title": "zfin search",
+   "opts": {},
+   "tag": "search page",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://zfin.org/search?q=wt1a",
+     "host": "zfin.org",
+     "title_web": "zfin search",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+   "title": "ensembl ?g=",
+   "opts": {},
+   "tag": "ensembl-ensdarg query",
+   "hand": {
+    "outcome": "located",
+    "id": "ENSDARG00000031420",
+    "kind": "ensdarg",
+    "rule": "ensembl-ensdarg",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+     "host": "www.ensembl.org",
+     "id": "ENSDARG00000031420",
+     "kind": "ensdarg",
+     "resolver_rule": "ensembl-ensdarg",
+     "confidence": "host-table",
+     "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://ensembl.org/id/ENSDARG00000031420.7",
+   "title": "ensembl versioned id",
+   "opts": {},
+   "tag": "trap: version .7 stripped and declared",
+   "hand": {
+    "outcome": "located",
+    "id": "ENSDARG00000031420",
+    "kind": "ensdarg",
+    "rule": "ensembl-ensdarg",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://ensembl.org/id/ENSDARG00000031420.7",
+     "host": "ensembl.org",
+     "id": "ENSDARG00000031420",
+     "kind": "ensdarg",
+     "resolver_rule": "ensembl-ensdarg",
+     "confidence": "host-table",
+     "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+     "label": null,
+     "version_stripped": ".7"
+    }
+   }
+  },
+  {
+   "url": "https://may2024.archive.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=ENSDARG00000005112",
+   "title": "ensembl archive subdomain",
+   "opts": {},
+   "tag": "ensembl archive host",
+   "hand": {
+    "outcome": "located",
+    "id": "ENSDARG00000005112",
+    "kind": "ensdarg",
+    "rule": "ensembl-ensdarg",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://may2024.archive.ensembl.org/Danio_rerio/Gene/Summary?db=core;g=ENSDARG00000005112",
+     "host": "may2024.archive.ensembl.org",
+     "id": "ENSDARG00000005112",
+     "kind": "ensdarg",
+     "resolver_rule": "ensembl-ensdarg",
+     "confidence": "host-table",
+     "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000005112",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG0000003142",
+   "title": "ensembl 10-digit (invalid)",
+   "opts": {},
+   "tag": "trap: ENSDARG needs 11 digits",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG0000003142",
+     "host": "www.ensembl.org",
+     "title_web": "ensembl 10-digit (invalid)",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.uniprot.org/uniprotkb/Q90X47/entry",
+   "title": "uniprot valid",
+   "opts": {},
+   "tag": "uniprot-acc",
+   "hand": {
+    "outcome": "located",
+    "id": "Q90X47",
+    "kind": "uniprot",
+    "rule": "uniprot-acc",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.uniprot.org/uniprotkb/Q90X47/entry",
+     "host": "www.uniprot.org",
+     "id": "Q90X47",
+     "kind": "uniprot",
+     "resolver_rule": "uniprot-acc",
+     "confidence": "host-table",
+     "canonical_url": "https://www.uniprot.org/uniprotkb/Q90X47",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.uniprot.org/uniprot/A0A0R4IZY7",
+   "title": "uniprot legacy path 10-char acc",
+   "opts": {},
+   "tag": "uniprot legacy path",
+   "hand": {
+    "outcome": "located",
+    "id": "A0A0R4IZY7",
+    "kind": "uniprot",
+    "rule": "uniprot-acc",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.uniprot.org/uniprot/A0A0R4IZY7",
+     "host": "www.uniprot.org",
+     "id": "A0A0R4IZY7",
+     "kind": "uniprot",
+     "resolver_rule": "uniprot-acc",
+     "confidence": "host-table",
+     "canonical_url": "https://www.uniprot.org/uniprotkb/A0A0R4IZY7",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.uniprot.org/uniprotkb/ZZZZZZ/entry",
+   "title": "uniprot invalid acc",
+   "opts": {},
+   "tag": "trap: invalid accession form",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.uniprot.org/uniprotkb/ZZZZZZ/entry",
+     "host": "www.uniprot.org",
+     "title_web": "uniprot invalid acc",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.uniprot.org/uniprotkb?query=wt1a",
+   "title": "uniprot search",
+   "opts": {},
+   "tag": "search page",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.uniprot.org/uniprotkb?query=wt1a",
+     "host": "www.uniprot.org",
+     "title_web": "uniprot search",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE218068",
+   "title": "GEO GSE",
+   "opts": {},
+   "tag": "geo-gse",
+   "hand": {
+    "outcome": "located",
+    "id": "GSE218068",
+    "kind": "gse",
+    "rule": "geo-gse",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE218068",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "GSE218068",
+     "kind": "gse",
+     "resolver_rule": "geo-gse",
+     "confidence": "host-table",
+     "canonical_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE218068",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?view=quick&acc=GSE99999",
+   "title": "GEO GSE with other params first",
+   "opts": {},
+   "tag": "trap: acc not first param",
+   "hand": {
+    "outcome": "located",
+    "id": "GSE99999",
+    "kind": "gse",
+    "rule": "geo-gse",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?view=quick&acc=GSE99999",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "GSE99999",
+     "kind": "gse",
+     "resolver_rule": "geo-gse",
+     "confidence": "host-table",
+     "canonical_url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE99999",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GDS1234",
+   "title": "GEO GDS (not GSE)",
+   "opts": {},
+   "tag": "GDS is not a GSE",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GDS1234",
+     "host": "www.ncbi.nlm.nih.gov",
+     "title_web": "GEO GDS (not GSE)",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://journals.biologists.com/dev/article/132/13/2961/43105/10.1242/dev.02071",
+   "title": "publisher path with DOI",
+   "opts": {},
+   "tag": "generic DOI rule (pattern-only)",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1242/dev.02071",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://journals.biologists.com/dev/article/132/13/2961/43105/10.1242/dev.02071",
+     "host": "journals.biologists.com",
+     "id": "10.1242/dev.02071",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1242/dev.02071",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+   "title": "wiley /doi/ path",
+   "opts": {},
+   "tag": "generic DOI rule",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1002/dvdy.24132",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+     "host": "onlinelibrary.wiley.com",
+     "id": "10.1002/dvdy.24132",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1002/dvdy.24132",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://link.springer.com/article/10.1007/s00441-021-03430-4",
+   "title": "springer /article/ path",
+   "opts": {},
+   "tag": "generic DOI rule",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1007/s00441-021-03430-4",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://link.springer.com/article/10.1007/s00441-021-03430-4",
+     "host": "link.springer.com",
+     "id": "10.1007/s00441-021-03430-4",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1007/s00441-021-03430-4",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+   "title": "wiley with generic rule OFF",
+   "opts": {
+    "generic_doi": false
+   },
+   "tag": "WITT_WEB_GENERIC_DOI_RULE=0",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+     "host": "onlinelibrary.wiley.com",
+     "title_web": "wiley with generic rule OFF",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.nature.com/articles/s41586-020-2308-7",
+   "title": "nature article id (no DOI in path)",
+   "opts": {},
+   "tag": "no pattern",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.nature.com/articles/s41586-020-2308-7",
+     "host": "www.nature.com",
+     "title_web": "nature article id (no DOI in path)",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://www.researchgate.net/publication/7742441_The_zebrafish_pronephros",
+   "title": "researchgate",
+   "opts": {},
+   "tag": "no pattern",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://www.researchgate.net/publication/7742441_The_zebrafish_pronephros",
+     "host": "www.researchgate.net",
+     "title_web": "researchgate",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "https://en.wikipedia.org/wiki/Pronephros",
+   "title": "wikipedia",
+   "opts": {},
+   "tag": "no pattern",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://en.wikipedia.org/wiki/Pronephros",
+     "host": "en.wikipedia.org",
+     "title_web": "wikipedia",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  },
+  {
+   "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/15982647",
+   "title": "ftp scheme",
+   "opts": {},
+   "tag": "unsupported-scheme",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "unsupported-scheme"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "ftp://ftp.ncbi.nlm.nih.gov/pubmed/15982647",
+     "host": "ftp.ncbi.nlm.nih.gov",
+     "title_web": "ftp scheme",
+     "reason": "unsupported-scheme"
+    }
+   }
+  },
+  {
+   "url": "mailto:nobody",
+   "title": "mailto scheme",
+   "opts": {},
+   "tag": "unsupported-scheme",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "unsupported-scheme"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "mailto:nobody",
+     "host": null,
+     "title_web": "mailto scheme",
+     "reason": "unsupported-scheme"
+    }
+   }
+  },
+  {
+   "url": "not a url",
+   "title": "plain text",
+   "opts": {},
+   "tag": "malformed-url",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "malformed-url"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "not a url",
+     "host": null,
+     "title_web": "plain text",
+     "reason": "malformed-url"
+    }
+   }
+  },
+  {
+   "url": "",
+   "title": "empty string",
+   "opts": {},
+   "tag": "malformed-url",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "malformed-url"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "",
+     "host": null,
+     "title_web": "empty string",
+     "reason": "malformed-url"
+    }
+   }
+  },
+  {
+   "url": "https:///no-host/10.1242/dev.02071",
+   "title": "https with no host",
+   "opts": {},
+   "tag": "malformed-url",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "malformed-url"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https:///no-host/10.1242/dev.02071",
+     "host": null,
+     "title_web": "https with no host",
+     "reason": "malformed-url"
+    }
+   }
+  },
+  {
+   "url": "https://doi.org/10.1242/dev.02071",
+   "title": "doi.org outside allow-list",
+   "opts": {
+    "allowed_hosts": [
+     "pubmed.ncbi.nlm.nih.gov"
+    ]
+   },
+   "tag": "WITT_WEB_ALLOWED_HOSTS restricts",
+   "hand": {
+    "outcome": "unresolved",
+    "id": null,
+    "kind": null,
+    "rule": null,
+    "reason": "host-not-allowed"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://doi.org/10.1242/dev.02071",
+     "host": "doi.org",
+     "title_web": "doi.org outside allow-list",
+     "reason": "host-not-allowed"
+    }
+   }
+  },
+  {
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2688018/",
+   "title": "pmc host allowed by suffix",
+   "opts": {
+    "allowed_hosts": [
+     "ncbi.nlm.nih.gov"
+    ]
+   },
+   "tag": "allow-list by host suffix",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "pmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2688018/",
+     "host": "pmc.ncbi.nlm.nih.gov",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "pmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.frontiersin.org/articles/10.3389/fcell.2020.00123/full",
+   "title": "Frontiers /full (corrector)",
+   "opts": {},
+   "tag": "corrector: publisher suffix /full trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.3389/fcell.2020.00123",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.frontiersin.org/articles/10.3389/fcell.2020.00123/full",
+     "host": "www.frontiersin.org",
+     "id": "10.3389/fcell.2020.00123",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.3389/fcell.2020.00123",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.frontiersin.org/articles/10.3389/fcell.2020.00123/pdf",
+   "title": "Frontiers /pdf (corrector)",
+   "opts": {},
+   "tag": "corrector: publisher suffix /pdf trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.3389/fcell.2020.00123",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.frontiersin.org/articles/10.3389/fcell.2020.00123/pdf",
+     "host": "www.frontiersin.org",
+     "id": "10.3389/fcell.2020.00123",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.3389/fcell.2020.00123",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://link.springer.com/content/pdf/10.1007/s00441-021-03430-4.pdf",
+   "title": "Springer .pdf (corrector)",
+   "opts": {},
+   "tag": "corrector: .pdf extension trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1007/s00441-021-03430-4",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://link.springer.com/content/pdf/10.1007/s00441-021-03430-4.pdf",
+     "host": "link.springer.com",
+     "id": "10.1007/s00441-021-03430-4",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1007/s00441-021-03430-4",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://link.springer.com/article/10.1007/s00441-021-03430-4/figures/1",
+   "title": "Springer /figures/1 (corrector)",
+   "opts": {},
+   "tag": "corrector: /figures/<n> trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1007/s00441-021-03430-4",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://link.springer.com/article/10.1007/s00441-021-03430-4/figures/1",
+     "host": "link.springer.com",
+     "id": "10.1007/s00441-021-03430-4",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1007/s00441-021-03430-4",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://doi.org/10.1242/dev.02071/",
+   "title": "doi.org trailing slash (corrector)",
+   "opts": {},
+   "tag": "corrector: trailing / trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1242/dev.02071",
+    "kind": "doi",
+    "rule": "doi-org-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://doi.org/10.1242/dev.02071/",
+     "host": "doi.org",
+     "id": "10.1242/dev.02071",
+     "kind": "doi",
+     "resolver_rule": "doi-org-path",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1242/dev.02071",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132/abstract",
+   "title": "Wiley /abstract (corrector)",
+   "opts": {},
+   "tag": "corrector: /abstract trimmed",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1002/dvdy.24132",
+    "kind": "doi",
+    "rule": "doi-in-url-any-host",
+    "confidence": "pattern-only"
+   },
+   "expected": {
+    "located": {
+     "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132/abstract",
+     "host": "onlinelibrary.wiley.com",
+     "id": "10.1002/dvdy.24132",
+     "kind": "doi",
+     "resolver_rule": "doi-in-url-any-host",
+     "confidence": "pattern-only",
+     "canonical_url": "https://doi.org/10.1002/dvdy.24132",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2.article-info",
+   "title": "biorxiv .article-info (corrector)",
+   "opts": {},
+   "tag": "corrector: biorxiv .article-info",
+   "hand": {
+    "outcome": "located",
+    "id": "10.1101/2021.03.15.435418",
+    "kind": "doi",
+    "rule": "biorxiv-doi",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.biorxiv.org/content/10.1101/2021.03.15.435418v2.article-info",
+     "host": "www.biorxiv.org",
+     "id": "10.1101/2021.03.15.435418",
+     "kind": "doi",
+     "resolver_rule": "biorxiv-doi",
+     "confidence": "host-table",
+     "canonical_url": "https://doi.org/10.1101/2021.03.15.435418",
+     "label": "preprint"
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/articles/PMC2688018",
+   "title": "europepmc legacy /articles/PMC (corrector)",
+   "opts": {},
+   "tag": "corrector: europepmc /articles/PMC<n> legacy form",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "europepmc-path",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://europepmc.org/articles/PMC2688018",
+     "host": "europepmc.org",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "europepmc-path",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/pmc2688018/",
+   "title": "ncbi pmc lowercase (corrector)",
+   "opts": {},
+   "tag": "corrector: PMC case-insensitive",
+   "hand": {
+    "outcome": "located",
+    "id": "PMC2688018",
+    "kind": "pmcid",
+    "rule": "ncbi-pmc-legacy",
+    "confidence": "host-table"
+   },
+   "expected": {
+    "located": {
+     "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/pmc2688018/",
+     "host": "www.ncbi.nlm.nih.gov",
+     "id": "PMC2688018",
+     "kind": "pmcid",
+     "resolver_rule": "ncbi-pmc-legacy",
+     "confidence": "host-table",
+     "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+     "label": null
+    }
+   }
+  },
+  {
+   "url": "https://europepmc.org/articles/12345",
+   "title": "europepmc /articles/<digits> is not a record (corrector)",
+   "opts": {},
+   "tag": "corrector: legacy branch requires PMC",
+   "hand": {
+    "outcome": "unresolved",
+    "reason": "no-identifier-pattern"
+   },
+   "expected": {
+    "unresolved": {
+     "url": "https://europepmc.org/articles/12345",
+     "host": "europepmc.org",
+     "title_web": "europepmc /articles/<digits> is not a record (corrector)",
+     "reason": "no-identifier-pattern"
+    }
+   }
+  }
+ ],
+ "batches": [
+  {
+   "name": "dedup-in-response + existing_ids + store",
+   "opts": {
+    "existing_ids": [
+     "PMID:15982647",
+     "10.1016/j.ydbio.2007.03.023"
+    ]
+   },
+   "results": [
+    {
+     "url": "https://doi.org/10.1242/dev.02071",
+     "title": "t1"
+    },
+    {
+     "url": "https://journals.biologists.com/dev/article/132/13/2961/43105/10.1242/dev.02071",
+     "title": "t2 (same DOI, publisher)"
+    },
+    {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "title": "t3 (already in pool)"
+    },
+    {
+     "url": "http://dx.doi.org/10.1016/j.ydbio.2007.03.023",
+     "title": "t4 (DOI already in pool)"
+    },
+    {
+     "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+     "title": "t5"
+    },
+    {
+     "url": "https://ensembl.org/id/ENSDARG00000007739.3",
+     "title": "t6"
+    },
+    {
+     "url": "https://ensembl.org/id/ENSDARG00000000001",
+     "title": "t7"
+    },
+    {
+     "url": "https://www.uniprot.org/uniprotkb/Q90X47/entry",
+     "title": "t8"
+    },
+    {
+     "url": "https://en.wikipedia.org/wiki/Pronephros",
+     "title": "Pronephros - Wikipedia"
+    },
+    "https://www.researchgate.net/publication/7742441_The_zebrafish_pronephros"
+   ],
+   "store": "fake (FAKE_STORE in golden)",
+   "expected": {
+    "located": [
+     {
+      "url": "https://doi.org/10.1242/dev.02071",
+      "host": "doi.org",
+      "id": "10.1242/dev.02071",
+      "kind": "doi",
+      "resolver_rule": "doi-org-path",
+      "confidence": "host-table",
+      "canonical_url": "https://doi.org/10.1242/dev.02071",
+      "label": null,
+      "dedup": null
+     },
+     {
+      "url": "https://journals.biologists.com/dev/article/132/13/2961/43105/10.1242/dev.02071",
+      "host": "journals.biologists.com",
+      "id": "10.1242/dev.02071",
+      "kind": "doi",
+      "resolver_rule": "doi-in-url-any-host",
+      "confidence": "pattern-only",
+      "canonical_url": "https://doi.org/10.1242/dev.02071",
+      "label": null,
+      "dedup": "duplicate-in-response"
+     },
+     {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "host": "pubmed.ncbi.nlm.nih.gov",
+      "id": "PMID:15982647",
+      "kind": "pmid",
+      "resolver_rule": "pubmed-path",
+      "confidence": "host-table",
+      "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "label": null,
+      "dedup": "already-present (existing_ids)"
+     },
+     {
+      "url": "http://dx.doi.org/10.1016/j.ydbio.2007.03.023",
+      "host": "dx.doi.org",
+      "id": "10.1016/j.ydbio.2007.03.023",
+      "kind": "doi",
+      "resolver_rule": "doi-org-path",
+      "confidence": "host-table",
+      "canonical_url": "https://doi.org/10.1016/j.ydbio.2007.03.023",
+      "label": null,
+      "dedup": "already-present (existing_ids)"
+     },
+     {
+      "url": "https://www.ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+      "host": "www.ensembl.org",
+      "id": "ENSDARG00000031420",
+      "kind": "ensdarg",
+      "resolver_rule": "ensembl-ensdarg",
+      "confidence": "host-table",
+      "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000031420",
+      "label": null,
+      "dedup": null,
+      "store_state": "in-store (RAW)"
+     },
+     {
+      "url": "https://ensembl.org/id/ENSDARG00000007739.3",
+      "host": "ensembl.org",
+      "id": "ENSDARG00000007739",
+      "kind": "ensdarg",
+      "resolver_rule": "ensembl-ensdarg",
+      "confidence": "host-table",
+      "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000007739",
+      "label": null,
+      "version_stripped": ".3",
+      "dedup": null,
+      "store_state": "in-store (DERIVED)"
+     },
+     {
+      "url": "https://ensembl.org/id/ENSDARG00000000001",
+      "host": "ensembl.org",
+      "id": "ENSDARG00000000001",
+      "kind": "ensdarg",
+      "resolver_rule": "ensembl-ensdarg",
+      "confidence": "host-table",
+      "canonical_url": "https://ensembl.org/Danio_rerio/Gene/Summary?g=ENSDARG00000000001",
+      "label": null,
+      "dedup": null,
+      "store_state": "not-in-store"
+     },
+     {
+      "url": "https://www.uniprot.org/uniprotkb/Q90X47/entry",
+      "host": "www.uniprot.org",
+      "id": "Q90X47",
+      "kind": "uniprot",
+      "resolver_rule": "uniprot-acc",
+      "confidence": "host-table",
+      "canonical_url": "https://www.uniprot.org/uniprotkb/Q90X47",
+      "label": null,
+      "dedup": null,
+      "store_state": "not-in-store"
+     }
+    ],
+    "unresolved": [
+     {
+      "url": "https://en.wikipedia.org/wiki/Pronephros",
+      "host": "en.wikipedia.org",
+      "title_web": "Pronephros - Wikipedia",
+      "reason": "no-identifier-pattern"
+     },
+     {
+      "url": "https://www.researchgate.net/publication/7742441_The_zebrafish_pronephros",
+      "host": "www.researchgate.net",
+      "title_web": null,
+      "reason": "no-identifier-pattern"
+     }
+    ],
+    "n_results": 10,
+    "n_located": 8,
+    "n_unresolved": 2,
+    "n_duplicates_in_response": 1,
+    "n_already_present": 2,
+    "n_located_new": 5,
+    "resolver_version": "wlr-2",
+    "allowed_hosts": "all (resolver table + doi-in-url on any host)",
+    "generic_doi_rule": true,
+    "rule_order": "first matching rule wins (RESOLVER_RULES order); doi-in-url-any-host is last and optional"
+   }
+  },
+  {
+   "name": "allow-list restricts",
+   "opts": {
+    "allowed_hosts": [
+     "pubmed.ncbi.nlm.nih.gov",
+     "europepmc.org"
+    ]
+   },
+   "results": [
+    {
+     "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+     "title": "a"
+    },
+    {
+     "url": "https://doi.org/10.1242/dev.02071",
+     "title": "b"
+    },
+    {
+     "url": "https://europepmc.org/article/PMC/PMC2688018",
+     "title": "c"
+    },
+    {
+     "url": "https://zfin.org/ZDB-GENE-980526-558",
+     "title": "d"
+    }
+   ],
+   "store": "fake (FAKE_STORE in golden)",
+   "expected": {
+    "located": [
+     {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "host": "pubmed.ncbi.nlm.nih.gov",
+      "id": "PMID:15982647",
+      "kind": "pmid",
+      "resolver_rule": "pubmed-path",
+      "confidence": "host-table",
+      "canonical_url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "label": null,
+      "dedup": null
+     },
+     {
+      "url": "https://europepmc.org/article/PMC/PMC2688018",
+      "host": "europepmc.org",
+      "id": "PMC2688018",
+      "kind": "pmcid",
+      "resolver_rule": "europepmc-path",
+      "confidence": "host-table",
+      "canonical_url": "https://europepmc.org/article/PMC/PMC2688018",
+      "label": null,
+      "dedup": null
+     }
+    ],
+    "unresolved": [
+     {
+      "url": "https://doi.org/10.1242/dev.02071",
+      "host": "doi.org",
+      "title_web": "b",
+      "reason": "host-not-allowed"
+     },
+     {
+      "url": "https://zfin.org/ZDB-GENE-980526-558",
+      "host": "zfin.org",
+      "title_web": "d",
+      "reason": "host-not-allowed"
+     }
+    ],
+    "n_results": 4,
+    "n_located": 2,
+    "n_unresolved": 2,
+    "n_duplicates_in_response": 0,
+    "n_already_present": 0,
+    "n_located_new": 2,
+    "resolver_version": "wlr-2",
+    "allowed_hosts": [
+     "pubmed.ncbi.nlm.nih.gov",
+     "europepmc.org"
+    ],
+    "generic_doi_rule": true,
+    "rule_order": "first matching rule wins (RESOLVER_RULES order); doi-in-url-any-host is last and optional"
+   }
+  },
+  {
+   "name": "generic rule off",
+   "opts": {
+    "generic_doi": false
+   },
+   "results": [
+    {
+     "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+     "title": "a"
+    },
+    {
+     "url": "https://doi.org/10.1002/dvdy.24132",
+     "title": "b"
+    }
+   ],
+   "store": "fake (FAKE_STORE in golden)",
+   "expected": {
+    "located": [
+     {
+      "url": "https://doi.org/10.1002/dvdy.24132",
+      "host": "doi.org",
+      "id": "10.1002/dvdy.24132",
+      "kind": "doi",
+      "resolver_rule": "doi-org-path",
+      "confidence": "host-table",
+      "canonical_url": "https://doi.org/10.1002/dvdy.24132",
+      "label": null,
+      "dedup": null
+     }
+    ],
+    "unresolved": [
+     {
+      "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+      "host": "onlinelibrary.wiley.com",
+      "title_web": "a",
+      "reason": "no-identifier-pattern"
+     }
+    ],
+    "n_results": 2,
+    "n_located": 1,
+    "n_unresolved": 1,
+    "n_duplicates_in_response": 0,
+    "n_already_present": 0,
+    "n_located_new": 1,
+    "resolver_version": "wlr-2",
+    "allowed_hosts": "all (resolver table + doi-in-url on any host)",
+    "generic_doi_rule": false,
+    "rule_order": "first matching rule wins (RESOLVER_RULES order); doi-in-url-any-host is last and optional"
+   }
+  }
+ ]
+}

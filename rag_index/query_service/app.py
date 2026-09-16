@@ -57,6 +57,10 @@ import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import models  # noqa: E402  (ADR-0081 (A): la tabla de modelos — resolución EN LA LLAMADA)
 from lib import figures as figures_mod  # noqa: E402  (ADR-0083 (I): índice y bytes de figuras; env leída EN LA LLAMADA)
+try:
+    from lib import web_locator as web_locator_mod  # noqa: E402  (ADR-0084 (I): /usage.web_locator.month_to_date; env EN LA LLAMADA)
+except ImportError:   # pragma: no cover — depende del árbol (rebanada W2); /usage lo declara 'table-missing'
+    web_locator_mod = None
 from lib import rag_backend  # noqa: E402
 from lib import agent_matrix, catalog_cards  # noqa: E402  (ADR-0082 (A)/(B): membresía cm-1 + fichas verbatim — C1)
 
@@ -2342,6 +2346,146 @@ class _FiguresUsageAccumulator:
                 "class": USAGE_FIGURES_CLASS, "source": USAGE_FIGURES_SOURCE, "rule": USAGE_FIGURES_RULE}
 
 
+# ADR-0084 (I): /usage.web_locator — consultas / resultados / localizados / materializados / sin resolver son MEDICIÓN (copiados de
+# frozen.web_locator al usage_json.web_locator de la corrida por runs, G.7); el USD es PROYECCIÓN (consultas facturables × tarifa
+# pública) y viaja APARTE de totals (que sigue byte a byte: suma de estimated_cost_usd congelado — tokens × precio); el total que
+# cuadra en M8 se agrega aparte con su clase. month_to_date se LEE de la tabla web_locator_usage (H): el contador local de lo que
+# ESTE despliegue envió en el mes UTC; la verdad del saldo es el dashboard del proveedor (web_locator.QUOTA_RULE).
+USAGE_WEB_LOCATOR_CLASS = "MEASUREMENT (queries, results, located, materialized, unresolved) / PROJECTION (USD = billable queries x unit price)"
+USAGE_WEB_LOCATOR_SOURCE = ("usage_json.web_locator {provider, n_queries, n_results, n_located, n_materialized, n_unresolved, "
+                            "n_queries_billable, usd_projected, quota_state, tokens?} (espejo de frozen.web_locator.cost + conteos, "
+                            "escrito por runs al congelar — ADR-0084 (G.7)) + tabla web_locator_usage (db, ADR-0084 (H)) para month_to_date")
+USAGE_WEB_LOCATOR_RULE = ("una corrida sin usage_json.web_locator (registro < 1.13, kill-switch WITT_WEB_LOCATOR=off, sin llave o sin "
+                          "directiva web) se CUENTA en n_runs_locator_off — ausencia ≠ 0 consultas; el USD del localizador jamás se suma a "
+                          "totals.estimated_cost_usd (tokens × precio): el total que cuadra viaja en estimated_cost_usd_total_projected con su clase")
+USAGE_WEB_LOCATOR_STATES = ("measured", "not-measured")
+USAGE_WEB_CREDIT_USD_ASSUMED = 5.0                       # PROYECCIÓN: crédito mensual publicado del plan Search de Brave (LG0 lo atestigua)
+USAGE_WEB_CREDIT_SOURCE_URL = "https://brave.com/search/api/"
+USAGE_WEB_MONTH_STATES = ("under-cap", "cap-reached", "disabled (WITT_WEB_MONTHLY_CAP=0)", "table-missing", "error")
+
+
+class _WebLocatorUsageAccumulator:
+    """ADR-0084 (I): agrega usage_json.web_locator de N corridas, APARTE del bucle de totals (que sigue byte a byte). Suma SÓLO
+    enteros; n_runs_locator_off cuenta las corridas con usage pero sin la llave (pre-1.13, kill-switch, sin llave, sin directiva)
+    — nunca se les inventa 0. Con 0 corridas declaradas los conteos van null + state 'not-measured' (0 medido ≠ null no medido)."""
+
+    def __init__(self):
+        self.n_declared = self.n_without = self.n_with_queries = 0
+        self.sums = {"n_queries": 0, "n_results": 0, "n_located": 0, "n_materialized": 0, "n_unresolved": 0, "n_queries_billable": 0}
+        self.usd = 0.0
+        self.usd_total_projected = 0.0
+        self.by_provider = {}
+        self.by_state = {}
+        self.by_quota_state = {}
+
+    def add(self, u):
+        w = u.get("web_locator")
+        if not isinstance(w, dict):
+            self.n_without += 1
+            return
+        self.n_declared += 1
+        st = w.get("state")
+        if isinstance(st, str) and st:
+            self.by_state[st] = self.by_state.get(st, 0) + 1
+        qs = w.get("quota_state")
+        if isinstance(qs, str) and qs:
+            self.by_quota_state[qs] = self.by_quota_state.get(qs, 0) + 1
+        if _es_entero(w.get("n_queries")) and w["n_queries"] > 0:
+            self.n_with_queries += 1
+        for k in self.sums:
+            if _es_entero(w.get(k)):
+                self.sums[k] += w[k]
+        usd = w.get("usd_projected")
+        if isinstance(usd, (int, float)) and not isinstance(usd, bool):
+            self.usd += float(usd)
+        tot = u.get("estimated_cost_usd_total_projected")
+        if isinstance(tot, (int, float)) and not isinstance(tot, bool):
+            self.usd_total_projected += float(tot)
+        prov = w.get("provider")
+        if isinstance(prov, str) and prov:
+            bp = self.by_provider.setdefault(prov, {"n_runs": 0, "n_queries": 0, "n_queries_billable": 0, "n_results": 0,
+                                                    "n_located": 0, "n_materialized": 0, "n_unresolved": 0,
+                                                    "cost_usd_projected": 0.0, "price_usd_per_1k": w.get("price_usd_per_1k"),
+                                                    "tokens_in": 0, "tokens_out": 0})
+            bp["n_runs"] += 1
+            for k in ("n_queries", "n_queries_billable", "n_results", "n_located", "n_materialized", "n_unresolved"):
+                if _es_entero(w.get(k)):
+                    bp[k] += w[k]
+            if isinstance(usd, (int, float)) and not isinstance(usd, bool):
+                bp["cost_usd_projected"] = round(bp["cost_usd_projected"] + float(usd), 6)
+            toks = w.get("tokens") if isinstance(w.get("tokens"), dict) else None
+            if toks:
+                for kk, tk in (("tokens_in", "in"), ("tokens_out", "out")):
+                    if _es_entero(toks.get(tk)):
+                        bp[kk] += toks[tk]
+
+    def result(self, month_to_date):
+        measured = self.n_declared > 0
+        n_res, n_loc = self.sums["n_results"], self.sums["n_located"]
+        return {"state": "measured" if measured else "not-measured",
+                "n_runs_with_queries": self.n_with_queries,
+                "n_runs_web_locator_declared": self.n_declared,
+                "n_runs_locator_off": self.n_without,
+                "by_state": self.by_state, "by_quota_state": self.by_quota_state,
+                "n_queries": self.sums["n_queries"] if measured else None,
+                "n_queries_billable": self.sums["n_queries_billable"] if measured else None,
+                "n_results": n_res if measured else None,
+                "n_located": n_loc if measured else None,
+                "n_materialized": self.sums["n_materialized"] if measured else None,
+                "n_unresolved": self.sums["n_unresolved"] if measured else None,
+                "rate_located_over_results": (round(n_loc / n_res, 4) if measured and n_res > 0 else None),
+                "cost_usd_projected": round(self.usd, 6) if measured else None,
+                "estimated_cost_usd_total_projected": round(self.usd_total_projected, 4) if measured else None,
+                "by_provider": self.by_provider,
+                "month_to_date": month_to_date,
+                "class": USAGE_WEB_LOCATOR_CLASS, "source": USAGE_WEB_LOCATOR_SOURCE, "rule": USAGE_WEB_LOCATOR_RULE,
+                "price_as_of": getattr(web_locator_mod, "PRICE_AS_OF", None) if web_locator_mod is not None else None}
+
+
+def _web_locator_month_to_date():
+    """ADR-0084 (I/H): la fila del mes UTC en curso de la tabla web_locator_usage para el proveedor EFECTIVO (web_locator.
+    provider_state EN LA LLAMADA) — {month, provider, provider_source, n_queries, n_results, cost_usd_projected, cap, cap_source,
+    state ∈ USAGE_WEB_MONTH_STATES, remaining, credit_usd_assumed, credit_source_url, rule, updated_at, row_present, rows[]} —
+    n_queries 0 MEDIDO cuando nada se envió (sin fila). Tolerante: sin tabla o sin módulo se DECLARA, jamás 500."""
+    if web_locator_mod is None:
+        return {"state": "table-missing", "note": "lib/web_locator.py not importable — month_to_date not derivable", "provider": None,
+                "month": None, "n_queries": None, "cap": None, "cap_source": None,
+                "credit_usd_assumed": USAGE_WEB_CREDIT_USD_ASSUMED, "credit_source_url": USAGE_WEB_CREDIT_SOURCE_URL}
+    try:
+        ps = web_locator_mod.provider_state()
+        cfg = web_locator_mod.env_config()
+        month = web_locator_mod.month_utc()
+        cap = int(cfg.get("monthly_cap") or 0)
+        cap_source = (cfg.get("sources") or {}).get("monthly_cap")
+        provider = ps.get("provider")
+        if not db.web_locator_usage_table_exists():
+            return {"state": "table-missing", "month": month, "provider": provider, "provider_source": ps.get("provider_source"),
+                    "n_queries": None, "n_results": None, "cost_usd_projected": None, "cap": cap, "cap_source": cap_source,
+                    "remaining": None, "credit_usd_assumed": USAGE_WEB_CREDIT_USD_ASSUMED,
+                    "credit_source_url": USAGE_WEB_CREDIT_SOURCE_URL, "rule": web_locator_mod.QUOTA_RULE, "rows": []}
+        # bajo `off` la fila del mes se lee para el proveedor que SÍ pudo enviar (brave por default): el contador es de lo enviado
+        row_provider = provider if provider in ("brave", "anthropic") else "brave"
+        mtd = db.web_locator_month_to_date(row_provider, month)
+        n_q = int(mtd.get("n_queries") or 0)
+        if cap == 0:
+            state = "disabled (WITT_WEB_MONTHLY_CAP=0)"
+        elif n_q >= cap:
+            state = "cap-reached"
+        else:
+            state = "under-cap"
+        return {"state": state, "month": month, "provider": provider, "provider_source": ps.get("provider_source"),
+                "row_provider": row_provider, "n_queries": n_q, "n_results": int(mtd.get("n_results") or 0),
+                "cost_usd_projected": mtd.get("cost_usd_projected"), "cap": cap, "cap_source": cap_source,
+                "remaining": (max(0, cap - n_q) if cap > 0 else None), "row_present": bool(mtd.get("row_present")),
+                "updated_at": mtd.get("updated_at"), "credit_usd_assumed": USAGE_WEB_CREDIT_USD_ASSUMED,
+                "credit_source_url": USAGE_WEB_CREDIT_SOURCE_URL, "rule": web_locator_mod.QUOTA_RULE,
+                "rows": db.web_locator_usage_months(limit=12)}
+    except Exception as e:   # §6 no-hang: /usage jamás cae por la cuota — se declara
+        return {"state": "error", "error": f"{type(e).__name__}: {str(e)[:120]}", "provider": None, "month": None,
+                "n_queries": None, "cap": None, "cap_source": None, "credit_usd_assumed": USAGE_WEB_CREDIT_USD_ASSUMED,
+                "credit_source_url": USAGE_WEB_CREDIT_SOURCE_URL}
+
+
 class _StageAccumulator:
     """ADR-0081 (H): agrega usage_json.by_stage de N corridas SIN tocar la suma de hoy (totals/by_user/
     most_expensive siguen byte a byte en el bucle de /usage). Por etapa: in/out (suma SÓLO de enteros),
@@ -2591,6 +2735,7 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     n_unknown = 0       # corridas anteriores a la llave: no declararon; no se les inventa un estado
     stage_acc = _StageAccumulator()   # ADR-0081 (H): por ETAPA y MODELO×ETAPA, acumulación APARTE del bucle de hoy
     figs_acc = _FiguresUsageAccumulator()   # ADR-0083 (H): figuras (conteos/bytes medidos · visión proyectada), APARTE
+    web_acc = _WebLocatorUsageAccumulator()   # ADR-0084 (I): localizador web (consultas MEDIDAS · USD PROYECTADO), APARTE de totals
     for r in rows:
         u = json.loads(r["usage_json"]) if r.get("usage_json") else None
         if not u:
@@ -2598,6 +2743,7 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
         n_with += 1
         stage_acc.add(u)
         figs_acc.add(u)
+        web_acc.add(u)
         cost = float(u.get("estimated_cost_usd") or 0.0)
         if u.get("cost_projection_complete") is False:
             n_incomplete += 1
@@ -2676,6 +2822,10 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
             # visión PROYECTADOS por modelo (by_stage.panel.by_model[*].vision), APARTE de totals (jamás sumados: ya
             # están dentro de los input_tokens medidos). M8 lo lee del servidor (HANDOFF §17.3).
             "figures": figs_acc.result(),
+            # ADR-0084 (I): localizador web — consultas/resultados/localizados MEDIDOS (usage_json.web_locator, espejo de
+            # frozen.web_locator) y USD PROYECTADO por proveedor, APARTE de totals (jamás sumado a estimated_cost_usd: tokens ×
+            # precio); month_to_date desde la tabla web_locator_usage (H) con cap/estado; el total que cuadra lleva su clase
+            "web_locator": web_acc.result(_web_locator_month_to_date()),
             "models_catalog": catalogo,
             "model_generation_current": models.resolve_generation()[0],
             # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la

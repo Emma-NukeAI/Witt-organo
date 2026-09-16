@@ -1,0 +1,110 @@
+{
+ "_fixture": {
+  "recorded_by": "W2 hand-built (ADR-0084 (I)) — NO Anthropic web_search call was made; LG5 records the LIVE fixture",
+  "live": false,
+  "synthetic": true,
+  "shape_source": "https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool (verified 2026-09-16): server_tool_use{input{query}} · web_search_tool_result.content[]{type web_search_result, url, title, encrypted_content, page_age} | content{type web_search_tool_result_error, error_code} · text.citations[]{type web_search_result_location, url, title, encrypted_index, cited_text} · usage.server_tool_use.web_search_requests · stop_reason pause_turn",
+  "note": "SYNTHETIC — values are NOT a measurement. encrypted_content is OMITTED on purpose (the caller never persists it). The text block, cited_text and encrypted_index carry SENTINEL strings so smoke_web_locator can prove by substring that NOTHING of them reaches the ledger. URLs are public record locations of known identifiers (form only)."
+ },
+ "directive_query": "wt1a zebrafish pronephros podocyte",
+ "request": {
+  "url": "https://api.anthropic.com/v1/messages",
+  "headers_sent": ["x-api-key (redacted, never in fixtures)", "anthropic-version", "content-type"],
+  "body": {
+   "model": "claude-opus-5",
+   "max_tokens": 256,
+   "system": "You are a search dispatcher: call web_search exactly once with the query verbatim; do not answer, do not summarize.",
+   "messages": [{"role": "user", "content": "wt1a zebrafish pronephros podocyte"}],
+   "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 1,
+              "allowed_domains": ["doi.org", "dx.doi.org", "pubmed.ncbi.nlm.nih.gov", "ncbi.nlm.nih.gov", "pmc.ncbi.nlm.nih.gov", "europepmc.org", "biorxiv.org", "medrxiv.org", "zfin.org", "ensembl.org", "uniprot.org"]}]
+  },
+  "shape_asserted_by_smoke": {"has_tool_choice": false, "has_allowed_callers": false, "has_blocked_domains": false}
+ },
+ "response": {
+  "id": "msg_SYNTHETIC_wt1a_20260916",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-opus-5",
+  "content": [
+   {"type": "server_tool_use", "id": "srvtoolu_SYNTHETIC_01", "name": "web_search",
+    "input": {"query": "wt1a zebrafish pronephros podocyte development"}},
+   {"type": "web_search_tool_result", "tool_use_id": "srvtoolu_SYNTHETIC_01",
+    "content": [
+     {"type": "web_search_result", "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "title": "SYNTHETIC search title 1 (wt1a pronephros) — not evidence", "page_age": "2005-07-01"},
+     {"type": "web_search_result", "url": "https://europepmc.org/article/PMC/PMC2688018",
+      "title": "SYNTHETIC search title 2 (zebrafish podocyte) — not evidence", "page_age": null},
+     {"type": "web_search_result", "url": "https://doi.org/10.1242/dev.02071",
+      "title": "SYNTHETIC search title 3 (glomerulus development) — not evidence", "page_age": "2005-06-15"},
+     {"type": "web_search_result", "url": "https://zfin.org/ZDB-GENE-980526-558",
+      "title": "SYNTHETIC search title 4 (ZFIN gene page) — not evidence", "page_age": null}
+    ]},
+   {"type": "text",
+    "text": "SYNTHETIC_MODEL_PROSE_MUST_NEVER_PERSIST: the dispatcher model wrote a summary here; the caller discards it.",
+    "citations": [
+     {"type": "web_search_result_location", "url": "https://onlinelibrary.wiley.com/doi/10.1002/dvdy.24132",
+      "title": "SYNTHETIC citation title (publisher page) — not evidence",
+      "encrypted_index": "SYNTHETIC_ENCRYPTED_INDEX_MUST_NEVER_PERSIST",
+      "cited_text": "SYNTHETIC_CITED_TEXT_MUST_NEVER_PERSIST"},
+     {"type": "web_search_result_location", "url": "https://pubmed.ncbi.nlm.nih.gov/15982647/",
+      "title": "SYNTHETIC citation title (duplicate of result 1) — not evidence",
+      "encrypted_index": "SYNTHETIC_ENCRYPTED_INDEX_2_MUST_NEVER_PERSIST",
+      "cited_text": "SYNTHETIC_CITED_TEXT_2_MUST_NEVER_PERSIST"}
+    ]}
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "usage": {"input_tokens": 1480, "output_tokens": 92, "server_tool_use": {"web_search_requests": 1}}
+ },
+ "variants": {
+  "tool_error_max_uses": {
+   "http_status": 200,
+   "response": {
+    "id": "msg_SYNTHETIC_err_max_uses", "type": "message", "role": "assistant", "model": "claude-opus-5",
+    "content": [
+     {"type": "server_tool_use", "id": "srvtoolu_SYNTHETIC_02", "name": "web_search", "input": {"query": "wt1a zebrafish pronephros podocyte"}},
+     {"type": "web_search_tool_result", "tool_use_id": "srvtoolu_SYNTHETIC_02",
+      "content": {"type": "web_search_tool_result_error", "error_code": "max_uses_exceeded"}}
+    ],
+    "stop_reason": "end_turn", "stop_sequence": null,
+    "usage": {"input_tokens": 210, "output_tokens": 18, "server_tool_use": {"web_search_requests": 0}}
+   }
+  },
+  "pause_turn": {
+   "http_status": 200,
+   "response": {
+    "id": "msg_SYNTHETIC_pause", "type": "message", "role": "assistant", "model": "claude-opus-5",
+    "content": [
+     {"type": "server_tool_use", "id": "srvtoolu_SYNTHETIC_03", "name": "web_search", "input": {"query": "wt1a zebrafish pronephros podocyte"}},
+     {"type": "web_search_tool_result", "tool_use_id": "srvtoolu_SYNTHETIC_03",
+      "content": [{"type": "web_search_result", "url": "https://pubmed.ncbi.nlm.nih.gov/9834190/", "title": "SYNTHETIC title — not evidence", "page_age": null}]}
+    ],
+    "stop_reason": "pause_turn", "stop_sequence": null,
+    "usage": {"input_tokens": 900, "output_tokens": 12, "server_tool_use": {"web_search_requests": 1}}
+   }
+  },
+  "declined": {
+   "http_status": 200,
+   "response": {
+    "id": "msg_SYNTHETIC_declined", "type": "message", "role": "assistant", "model": "claude-opus-5",
+    "content": [{"type": "text", "text": "SYNTHETIC_MODEL_PROSE_MUST_NEVER_PERSIST: I will not search."}],
+    "stop_reason": "end_turn", "stop_sequence": null,
+    "usage": {"input_tokens": 150, "output_tokens": 9, "server_tool_use": {"web_search_requests": 0}}
+   }
+  },
+  "http_400_not_enabled": {
+   "http_status": 400,
+   "body": {"type": "error", "error": {"type": "invalid_request_error",
+            "message": "Web search is not enabled for this organization. An administrator can enable it in the Claude Console."}}
+  },
+  "http_400_allowed_domains": {
+   "http_status": 400,
+   "body": {"type": "error", "error": {"type": "invalid_request_error",
+            "message": "tools.0.allowed_domains: domain 'zfin.org' is not permitted by your organization's policy"}}
+  },
+  "http_401": {
+   "http_status": 401,
+   "body": {"type": "error", "error": {"type": "authentication_error", "message": "invalid x-api-key"}}
+  }
+ }
+}

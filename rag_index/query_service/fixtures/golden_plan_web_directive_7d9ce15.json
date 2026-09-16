@@ -1,0 +1,613 @@
+{
+  "_golden": {
+    "adr": "ADR-0084",
+    "canon": "json.dumps(obj, sort_keys=True, ensure_ascii=False, separators=(',', ':')).encode('utf-8') -> sha256",
+    "commit": "7d9ce15",
+    "deterministic": true,
+    "env_mask": {
+      "ANTHROPIC_API_KEY": "",
+      "BRAVE_API_KEY": "",
+      "NEO4J_URI": "",
+      "OPENAI_API_KEY": "",
+      "RAG_BACKEND": "sparse",
+      "WITT_BACKEND_DB_URL": "sqlite:///<tmp>",
+      "WITT_MCP_CACHE_DIR": "<tmp>",
+      "WITT_RUN_ORIGIN": "smoke"
+    },
+    "env_measured_as_default": {
+      "WITT_COUNCIL_INDEX": null,
+      "WITT_COUNCIL_INDEX_ORIGINS": null,
+      "WITT_COUNCIL_PRIOR_K": null,
+      "WITT_COUNCIL_PRIOR_KINDS": null,
+      "WITT_SEARCH_DEFAULT_FAMILIES": null,
+      "WITT_SEARCH_ROUNDS_CAP": null,
+      "WITT_SEARCH_ROUND_BUDGET_S": null,
+      "WITT_WEB_LOCATOR": null
+    },
+    "exclusion_literal_at_7d9ce15": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
+    "generated_by": "W0",
+    "n_urlopen": 0,
+    "note": "Golden LIGERO del plan grabado EN 7d9ce15 (tag contract-1.12-frozen) ANTES de la primera línea de ADR-0084 (Decision (L), Plan W0). Vara del literal de exclusión: bajo kill-switch WITT_WEB_LOCATOR=off (explícito o derivado sin BRAVE_API_KEY) el plan con la directiva web, harness_state_for('web','web') y la forma de demand() sobre BD vacía deben ser byte-idénticos a estas tres llaves (W3 compara). Sin reloj, sin red (urlopen bloqueado y contado = 0), sin gasto de modelo, BD sqlite vacía temporal. `cache_dir` del plan se OMITE (ruta de la máquina; patrón smoke_search_harness._plan_sha). Comparar con el canon declarado.",
+    "recipe": {
+      "demand": "council_index.demand() after db.init_db() on an EMPTY temporary sqlite (no runs, no plans)",
+      "harness_state_web": "council.harness_state_for('web', 'web')",
+      "plan": "search_harness.build_search_plan(question, ['wt1a'], 'wt1a pronephros glomerulus podocyte', directives=smoke_search_harness.DIRECTIVES_C6) minus key 'cache_dir'",
+      "plan_inputs": {
+        "directives_source": "rag_index/query_service/smoke_search_harness.py DIRECTIVES_C6 (8 directivas; web = req-fff 'wt1a review', evidence_kind web, priority should)",
+        "entities": [
+          "wt1a"
+        ],
+        "pass1_query_en": "wt1a pronephros glomerulus podocyte",
+        "question": "Is wt1a required for zebrafish pronephros development?"
+      }
+    },
+    "sha256": {
+      "demand": "1b94228bfb0f31132b01a86d5b7db3a2a22ce089151cb488e3a0ee516ded0713",
+      "harness_state_web": "41fcfd5ac2ce857e65a16c4bd9848f1fc2eab327fb5653028edefddb155d6801",
+      "plan": "639667ebe327d5877731f95191952597dbdb8d66ad3d2be773c9f5aaa8774f9c"
+    },
+    "shapes": [
+      "plan",
+      "harness_state_web",
+      "demand"
+    ],
+    "web_dispatch_row_at_7d9ce15": {
+      "adapter": null,
+      "budget_s": 0.0,
+      "evidence_kind": "web",
+      "fn": null,
+      "gate": "directive-only",
+      "host": null,
+      "inputs": "free-query",
+      "key_env": null,
+      "label_provenance": null,
+      "tool_module": null,
+      "unavailable_reason": "tool-unavailable (ADR-0084)"
+    }
+  },
+  "demand": {
+    "by_family_units": {
+      "figure": {
+        "n_plans": 0,
+        "n_runs": 0
+      },
+      "tooluniverse": {
+        "n_plans": 0,
+        "n_runs": 0
+      },
+      "web": {
+        "n_plans": 0,
+        "n_runs": 0
+      }
+    },
+    "class": "medicion (frozen.council + plans.council_json, origin production)",
+    "excluded_by_origin": {},
+    "fired": false,
+    "fired_by_family": {
+      "figure": false,
+      "tooluniverse": false,
+      "web": false
+    },
+    "index_enabled": true,
+    "index_version": "council-index-1",
+    "n_plans_excluded_consumed_by_indexed_run": 0,
+    "n_plans_scanned": 0,
+    "n_requirements_harness_state_unsatisfiable": 0,
+    "n_requirements_scanned": 0,
+    "n_requirements_unsatisfiable_by_family": {
+      "figure": 0,
+      "tooluniverse": 0,
+      "web": 0
+    },
+    "n_requirements_unsatisfiable_total": 0,
+    "n_runs_closed_in_scope": 0,
+    "n_runs_council_absent": 0,
+    "n_runs_council_without_ledger": 0,
+    "n_runs_scanned": 0,
+    "n_runs_with_tooluniverse_uncovered": 0,
+    "n_units_scanned": 0,
+    "origin_policy": "por default solo origin 'production' cuenta como precedente/calibracion; smoke, simulation, fixture, replay y dev-offline se EXCLUYEN y se CUENTAN (excluded_by_origin). origin NULL = corrida anterior a ADR-0079: se INCLUYE y se DECLARA (origin_unknown_included) — la ausencia no se rellena (ADR-0074). include_origins=[...] amplia el alcance de forma explicita",
+    "origin_unknown_included": 0,
+    "origin_unknown_label": "unknown-pre-adr-0079",
+    "origins_included": [
+      "production"
+    ],
+    "origins_source": "default (WITT_COUNCIL_INDEX_ORIGINS unset)",
+    "plans_excluded_by_origin": {},
+    "plans_origin_unknown_included": 0,
+    "plans_state": "empty",
+    "rule": "a requirement is unsatisfiable-by-harness when its source_family has no executable tool (SEARCH_DISPATCH fn None: tooluniverse, web) or its evidence_kind is 'figure' (ADR-0083); counted over closed runs whose frozen.council.ledger.requirements exist (n_runs_scanned) + plans with council_json not consumed by an indexed run (n_plans_scanned), inside the origin scope; fired_by_family[f] = n_units_scanned >= min_runs AND n_requirements_unsatisfiable_by_family[f] >= min_requirements; fired = any. n_runs_with_tooluniverse_uncovered = runs with >= 1 tooluniverse requirement not discarded whose latest coverage_final is not covered/covered-by-attestation (absence of a judgment counts as open). n_requirements_harness_state_unsatisfiable is the council's own harness_state (C2), side by side, never merged",
+    "threshold": {
+      "min_requirements": 3,
+      "min_runs": 5,
+      "source": "brief §6.3"
+    },
+    "unsatisfiable_evidence_kinds": [
+      "figure"
+    ],
+    "unsatisfiable_families": [
+      "tooluniverse",
+      "web"
+    ],
+    "unsatisfiable_families_source": "derived: search_harness.SEARCH_DISPATCH rows with fn None"
+  },
+  "harness_state_web": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
+  "plan": {
+    "directives": [
+      {
+        "entities": [
+          "wt1a"
+        ],
+        "evidence_kind": "paper",
+        "family": "openalex",
+        "priority": "must",
+        "query_en": "wt1a pronephros glomerulus podocyte",
+        "refined_by_members": [],
+        "requested_by": [
+          "literature-monitor"
+        ],
+        "requirement_id": "req-aaa",
+        "symbols": [
+          "wt1a"
+        ]
+      },
+      {
+        "entities": [
+          "wt1a"
+        ],
+        "evidence_kind": "gene-phenotype-association",
+        "family": "monarch",
+        "priority": "should",
+        "query_en": "wt1a phenotype associations",
+        "refined_by_members": [],
+        "requested_by": [
+          "marker-validator"
+        ],
+        "requirement_id": "req-bbb",
+        "symbols": [
+          "wt1a"
+        ]
+      },
+      {
+        "entities": [],
+        "evidence_kind": "interaction",
+        "family": "string",
+        "priority": "should",
+        "query_en": "",
+        "refined_by_members": [],
+        "requested_by": [
+          "cross-modality-integrator"
+        ],
+        "requirement_id": "req-ccc",
+        "symbols": [
+          "Pax2a",
+          "osr1",
+          "wt1a"
+        ]
+      },
+      {
+        "entities": [],
+        "evidence_kind": "paper",
+        "family": "europepmc",
+        "priority": "must",
+        "query_en": "wt1a knockdown pronephric duct",
+        "refined_by_members": [],
+        "requested_by": [
+          "literature-monitor"
+        ],
+        "requirement_id": "req-ddd",
+        "symbols": []
+      },
+      {
+        "entities": [],
+        "evidence_kind": "phenotype",
+        "family": "zfin",
+        "priority": "must",
+        "query_en": null,
+        "refined_by_members": [],
+        "requested_by": [
+          "marker-validator"
+        ],
+        "requirement_id": "req-eee",
+        "symbols": [
+          "osr1",
+          "x"
+        ]
+      },
+      {
+        "entities": [],
+        "evidence_kind": "web",
+        "family": "web",
+        "priority": "should",
+        "query_en": "wt1a review",
+        "refined_by_members": [],
+        "requested_by": [
+          "domain-knowledge-curator"
+        ],
+        "requirement_id": "req-fff",
+        "symbols": []
+      },
+      {
+        "entities": [],
+        "evidence_kind": "paper",
+        "family": "nope",
+        "priority": "should",
+        "query_en": "x",
+        "refined_by_members": [],
+        "requested_by": [
+          "hypothesis-generator"
+        ],
+        "requirement_id": "req-ggg",
+        "symbols": []
+      },
+      {
+        "entities": [],
+        "evidence_kind": "paper",
+        "family": "openalex",
+        "priority": "should",
+        "query_en": "second openalex query",
+        "refined_by_members": [],
+        "requested_by": [
+          "hypothesis-generator"
+        ],
+        "requirement_id": "req-hhh",
+        "symbols": []
+      }
+    ],
+    "directives_applied": [
+      {
+        "applied_as": [
+          "family-entry",
+          "free-query"
+        ],
+        "family": "openalex",
+        "requirement_id": "req-aaa",
+        "state": "applied"
+      },
+      {
+        "applied_as": [
+          "family-entry"
+        ],
+        "family": "monarch",
+        "requirement_id": "req-bbb",
+        "state": "applied"
+      },
+      {
+        "applied_as": [
+          "family-entry",
+          "symbol:pax2a",
+          "symbol:osr1"
+        ],
+        "family": "string",
+        "requirement_id": "req-ccc",
+        "state": "applied"
+      },
+      {
+        "applied_as": [
+          "literature-extra-query"
+        ],
+        "family": "europepmc",
+        "requirement_id": "req-ddd",
+        "state": "applied"
+      },
+      {
+        "applied_as": [
+          "symbol:osr1"
+        ],
+        "family": "zfin",
+        "requirement_id": "req-eee",
+        "state": "applied"
+      },
+      {
+        "applied_as": [],
+        "family": "web",
+        "reason": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
+        "requirement_id": "req-fff",
+        "state": "excluded-unsatisfiable"
+      },
+      {
+        "applied_as": [],
+        "family": "nope",
+        "reason": "unknown-family",
+        "requirement_id": "req-ggg",
+        "state": "excluded-unknown-family"
+      },
+      {
+        "applied_as": [
+          "family-entry",
+          "free-query-extra"
+        ],
+        "family": "openalex",
+        "requirement_id": "req-hhh",
+        "state": "applied"
+      }
+    ],
+    "directives_state": "provided",
+    "families": [
+      "europepmc",
+      "pubmed",
+      "zfin",
+      "alliance_orthologs",
+      "zfin_expression",
+      "openalex",
+      "monarch",
+      "string"
+    ],
+    "families_default": [
+      "europepmc",
+      "pubmed",
+      "zfin",
+      "alliance_orthologs",
+      "zfin_expression"
+    ],
+    "families_default_source": "default-unset:WITT_SEARCH_DEFAULT_FAMILIES",
+    "families_excluded": [
+      {
+        "family": "web",
+        "reason": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
+        "requirement_ids": [
+          "req-fff"
+        ]
+      },
+      {
+        "family": "nope",
+        "reason": "unknown-family",
+        "requirement_ids": [
+          "req-ggg"
+        ]
+      }
+    ],
+    "families_from_directives": [
+      "openalex",
+      "monarch",
+      "string"
+    ],
+    "families_source": "directives+default",
+    "harness_version": "sh-1",
+    "n_directives_excluded": 2,
+    "plan_version": "1",
+    "queries": {
+      "alliance_orthologs": {
+        "inputs": "symbols",
+        "query_builder": "search_harness:v1:symbols",
+        "symbols": [
+          "wt1a"
+        ]
+      },
+      "europepmc": {
+        "directive_inputs": {
+          "wt1a knockdown pronephric duct": [
+            "req-ddd"
+          ]
+        },
+        "directive_queries": [
+          {
+            "query_en": "wt1a knockdown pronephric duct",
+            "requirement_id": "req-ddd"
+          }
+        ],
+        "directive_requirement_ids": [
+          "req-ddd"
+        ],
+        "entered_by": "default+directive",
+        "inputs": "literature-query",
+        "query": "(TITLE:wt1a OR ABSTRACT:wt1a) AND (MESH:\"Zebrafish\" OR zebrafish) AND (pronephros OR pronephric OR glomerulus OR glomerular OR podocyte)",
+        "query_builder": "search_queries:v1"
+      },
+      "monarch": {
+        "curies": "from-zfin-items-at-round-time",
+        "directive_requirement_ids": [
+          "req-bbb"
+        ],
+        "entered_by": "directive",
+        "inputs": "zfin-curies",
+        "query_builder": "search_harness:v1:zfin-curies",
+        "symbols": [
+          "wt1a"
+        ]
+      },
+      "openalex": {
+        "directive_inputs": {
+          "second openalex query": [
+            "req-hhh"
+          ],
+          "wt1a pronephros glomerulus podocyte": [
+            "req-aaa"
+          ]
+        },
+        "directive_queries": [
+          {
+            "query_en": "wt1a pronephros glomerulus podocyte",
+            "requirement_id": "req-aaa"
+          },
+          {
+            "query_en": "second openalex query",
+            "requirement_id": "req-hhh"
+          }
+        ],
+        "directive_requirement_ids": [
+          "req-aaa",
+          "req-hhh"
+        ],
+        "entered_by": "directive",
+        "inputs": "free-query",
+        "query": "wt1a pronephros glomerulus podocyte",
+        "query_replaced": {
+          "query": "wt1a pronephros glomerulus podocyte",
+          "query_source": "pass1_query_en"
+        },
+        "query_source": "council-directive:req-aaa"
+      },
+      "pubmed": {
+        "inputs": "literature-query",
+        "query": "(wt1a[tiab]) AND (zebrafish[mh] OR zebrafish[tiab] OR \"danio rerio\"[tiab]) AND (pronephros[tiab] OR pronephric[tiab] OR glomerulus[tiab] OR glomerular[tiab] OR podocyte[tiab])",
+        "query_builder": "search_queries:v1"
+      },
+      "string": {
+        "directive_inputs": {
+          "osr1": [
+            "req-ccc"
+          ],
+          "pax2a": [
+            "req-ccc"
+          ]
+        },
+        "directive_requirement_ids": [
+          "req-ccc"
+        ],
+        "entered_by": "directive",
+        "inputs": "symbols",
+        "query_builder": "search_harness:v1:symbols",
+        "symbols": [
+          "wt1a",
+          "pax2a",
+          "osr1"
+        ],
+        "symbols_from_directives": [
+          "pax2a",
+          "osr1"
+        ]
+      },
+      "zfin": {
+        "anatomy_filter": "pronephr|glomer|podocyte",
+        "directive_inputs": {
+          "osr1": [
+            "req-eee"
+          ]
+        },
+        "directive_requirement_ids": [
+          "req-eee"
+        ],
+        "entered_by": "default+directive",
+        "inputs": "symbols",
+        "query_builder": "search_queries.build_zfin_filter:v1",
+        "symbols": [
+          "wt1a",
+          "osr1"
+        ],
+        "symbols_from_directives": [
+          "osr1"
+        ],
+        "symbols_from_directives_dropped": [
+          "x"
+        ]
+      },
+      "zfin_expression": {
+        "inputs": "symbols",
+        "query_builder": "search_harness:v1:symbols",
+        "symbols": [
+          "wt1a"
+        ]
+      }
+    },
+    "query_builder": {
+      "builder_version": "1",
+      "europepmc": {
+        "anatomy_terms_used": [
+          "pronephros",
+          "pronephric",
+          "glomerulus",
+          "glomerular",
+          "podocyte"
+        ],
+        "builder_version": "1",
+        "notes": {
+          "anatomy": "from-both",
+          "anatomy_text_source": [
+            "question",
+            "question_en"
+          ],
+          "index": "europepmc",
+          "mode": "symbols",
+          "organism_block": true,
+          "organism_field": "MESH",
+          "question_terms": [],
+          "question_terms_source": null,
+          "symbols_dropped": [],
+          "symbols_sanitized": {}
+        },
+        "query": "(TITLE:wt1a OR ABSTRACT:wt1a) AND (MESH:\"Zebrafish\" OR zebrafish) AND (pronephros OR pronephric OR glomerulus OR glomerular OR podocyte)",
+        "symbols_used": [
+          "wt1a"
+        ]
+      },
+      "inputs": {
+        "entities": [
+          "wt1a"
+        ],
+        "question": "Is wt1a required for zebrafish pronephros development?",
+        "question_en": "wt1a pronephros glomerulus podocyte",
+        "question_en_source": "pass1_query_en"
+      },
+      "pubmed": {
+        "anatomy_terms_used": [
+          "pronephros",
+          "pronephric",
+          "glomerulus",
+          "glomerular",
+          "podocyte"
+        ],
+        "builder_version": "1",
+        "notes": {
+          "anatomy": "from-both",
+          "anatomy_text_source": [
+            "question",
+            "question_en"
+          ],
+          "index": "pubmed",
+          "mode": "symbols",
+          "organism_block": true,
+          "question_terms": [],
+          "question_terms_source": null,
+          "symbols_dropped": [],
+          "symbols_sanitized": {}
+        },
+        "query": "(wt1a[tiab]) AND (zebrafish[mh] OR zebrafish[tiab] OR \"danio rerio\"[tiab]) AND (pronephros[tiab] OR pronephric[tiab] OR glomerulus[tiab] OR glomerular[tiab] OR podocyte[tiab])",
+        "symbols_used": [
+          "wt1a"
+        ]
+      },
+      "query_source": "query-builder-v1:symbols",
+      "zfin": {
+        "anatomy_terms_used": [
+          "pronephros",
+          "pronephric",
+          "glomerulus",
+          "glomerular",
+          "podocyte"
+        ],
+        "builder_version": "1",
+        "notes": {
+          "anatomy": "from-both",
+          "anatomy_text_source": [
+            "question",
+            "question_en"
+          ],
+          "index": "zfin",
+          "mode": "anatomy-filter",
+          "semantics": "ledger representation only: the tool sends ONE filter.termName GET per stem (server) and matches word-prefix \\b<stem> (client backstop)",
+          "separator": "|",
+          "stems": [
+            "pronephr",
+            "glomer",
+            "podocyte"
+          ]
+        },
+        "query": "pronephr|glomer|podocyte",
+        "symbols_used": []
+      }
+    },
+    "question": "Is wt1a required for zebrafish pronephros development?",
+    "question_en": "wt1a pronephros glomerulus podocyte",
+    "question_en_source": "pass1_query_en",
+    "round_budget_s": 120.0,
+    "round_budget_s_source": "default-unset:WITT_SEARCH_ROUND_BUDGET_S",
+    "rounds_cap": 2,
+    "rounds_cap_source": "default-unset:WITT_SEARCH_ROUNDS_CAP",
+    "symbols": [
+      "wt1a"
+    ],
+    "symbols_dropped": [],
+    "symbols_sanitized": {}
+  }
+}

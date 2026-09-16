@@ -24,11 +24,17 @@ Cubre (E):
     n_marker_absent medido, figure_license_known) + FIGURE_RULES congeladas; sin citas figura -> 'no-figure-citations'
     y ningun predicado entra; kill-switch WITT_FIGURES=0 -> fragmento EXACTAMENTE {state}. Bytes desde los zips
     fixture (figures._get_bytes FALSEADA), sha recalculado al gatear, cache en TMP.
+  - ADR-0084 (E), rebanada W5 — la web como LOCALIZADOR, jamás fuente: `web_predicates(citations, bundle, answer_text, web_ledger,
+    provider_state)` devuelve el fragmento `deterministic_checks.web_locator` con los CUATRO predicados (3 DUROS: web_text_not_cited
+    con carve-out https://doi.org/<doi>, web_located_cited_requires_fetch, web_items_native_only estructural; 1 INFORMATIVO gating
+    False: web_urls_not_in_answer) + WEB_RULES congeladas; sin ítems web ni ledger -> 'no-web-items' y ningún predicado entra (byte a
+    byte hoy); kill-switch WITT_WEB_LOCATOR=off -> fragmento EXACTAMENTE {state}; sin llave y sin datos web -> {state} con la causa;
+    el fragmento no lleva ninguna URL del ledger (viaja al panel). Disponibilidad INYECTADA (env / provider_state); cero red.
 
 100% offline: cero red (urlopen BLOQUEADO Y CONTADO == 0), cero spend (caller inyectado; ANTHROPIC/OPENAI keys
 vacias), cero mutacion de la DATA INAMOVIBLE, del mcp_cache del repo ni del registro congelado. Exit 0 = todo PASS.
 
-Corre (mascara):  WITT_BACKEND_DB_URL=sqlite:///<tmp>.db NEO4J_URI="" RAG_BACKEND=sparse OPENAI_API_KEY="" ANTHROPIC_API_KEY=""
+Corre (mascara):  WITT_BACKEND_DB_URL=sqlite:///<tmp>.db NEO4J_URI="" RAG_BACKEND=sparse OPENAI_API_KEY="" ANTHROPIC_API_KEY="" BRAVE_API_KEY=""
                   WITT_RUN_ORIGIN=smoke [WITT_MCP_CACHE_DIR=<tmp>] python rag_index/query_service/smoke_gate_citations.py
 """
 import os
@@ -755,6 +761,314 @@ check("ADR-0083 M.5: urlopen (urllib y la costura figures._urlopen) = 0 llamadas
       "el mcp_cache/figures del REPO no cambió de existencia (la caché del smoke vive en TMP / WITT_MCP_CACHE_DIR)",
       _NET_CALLS == [] and len(GET_CALLS) == 2 and REPO_FIG_CACHE.exists() == _repo_fig_cache_before,
       f"net={_NET_CALLS} gets={len(GET_CALLS)} cache={CR}")
+# ---------------------------------------------------------------------------------------------------
+# 7) ADR-0084 (E) — la web como LOCALIZADOR, jamás fuente: los CUATRO predicados web (rebanada W5)
+#    3 DUROS (web_text_not_cited con carve-out https://doi.org/<doi>, web_located_cited_requires_fetch,
+#    web_items_native_only) + 1 INFORMATIVO (web_urls_not_in_answer); 'no-web-items' → 0 predicados en la conjunción
+#    (byte a byte hoy); kill-switch → EXACTAMENTE {state}; sin llave y sin datos web → {state} con la causa; el fragmento
+#    no lleva NINGUNA URL del ledger (deterministic_checks viaja al panel). La disponibilidad viaja INYECTADA (env /
+#    provider_state: la máscara no trae llave). Cero red (urlopen sigue bloqueado y contado).
+# ---------------------------------------------------------------------------------------------------
+from lib import web_locator as wl  # noqa: E402
+
+ENV_ON = {"BRAVE_API_KEY": "fake-brave-key-smoke-w5", "WITT_WEB_LOCATOR": "brave"}
+PS_ON = wl.provider_state(ENV_ON)
+U_PUBMED = "https://pubmed.ncbi.nlm.nih.gov/37844491/"
+U_BIORXIV = "https://www.biorxiv.org/content/10.1101/2024.01.01.111111v2"
+U_RG = "https://www.researchgate.net/publication/12345_wt1a_pronephros"
+LEDGER_URLS = (U_PUBMED, U_BIORXIV, U_RG)
+W_LEDGER = {
+    "located": [
+        {"url": U_PUBMED, "host": "pubmed.ncbi.nlm.nih.gov", "id": "PMID:37844491", "kind": "pmid", "resolver_rule": "pubmed-path",
+         "confidence": "host-table", "canonical_url": U_PUBMED, "dedup": "already-present (existing_ids)"},
+        {"url": U_BIORXIV, "host": "www.biorxiv.org", "id": "10.1101/2024.01.01.111111", "kind": "doi", "resolver_rule": "biorxiv-doi",
+         "confidence": "host-table", "canonical_url": "https://doi.org/10.1101/2024.01.01.111111", "dedup": None}],
+    "unresolved": [{"url": U_RG, "host": "www.researchgate.net", "title_web": "wt1a pronephros (search title - not evidence)",
+                    "reason": "no-identifier-pattern"}],
+}
+
+
+def _web_paper(eid, pmid=None, doi=None, found=True, abstract="Abstract delivered by Europe PMC.", url=None, rule="pubmed-path", **over):
+    """Un paper web-localizado con la forma que W3/W4 entregan: source 'europepmc', source_family 'web', web-located:<rule>, url canónica."""
+    p = {"source": "europepmc", "source_family": "web", "kind": "literature-candidate", "evidence_id": eid,
+         "search_rec": {"pmid": pmid, "pmcid": None, "doi": doi}, "identifier_provenance": f"web-located:{rule}", "located_via": "web",
+         "located_from": {"host": "x", "rule_id": rule, "confidence": "host-table", "kind": "pmid", "round": 1, "requirement_ids": ["req-w"]},
+         "url": url, "abstract": abstract, "text_excerpt": None, "text_provenance": "abstract" if abstract else "none",
+         "fetched": {"found": found, "full_text": False, "n_chunks": None}}
+    p.update(over)
+    return p
+
+
+P_NATIVE = {"source": "europepmc", "source_family": "europepmc", "evidence_id": "PMID:37844491", "identifier_provenance": "europepmc-api-live",
+            "search_rec": {"pmid": "37844491", "pmcid": "PMC10000001", "doi": "10.1242/dev.02071"}, "url": "https://doi.org/10.1242/dev.02071",
+            "abstract": "The Wilms tumor suppressor wt1a ...", "text_excerpt": None, "fetched": {"found": True, "full_text": False}}
+P_WEB_OK = _web_paper("PMID:22222222", pmid="22222222", doi="10.1101/2024.01.01.111111", url="https://doi.org/10.1101/2024.01.01.111111", rule="biorxiv-doi")
+P_WEB_NF = _web_paper("PMID:33333333", pmid="33333333", found=False, abstract=None, url="https://pubmed.ncbi.nlm.nih.gov/33333333/")
+W_BUNDLE = {"path_b": {"papers": [P_NATIVE, P_WEB_OK, P_WEB_NF]}}
+B_NAT = {"path_b": {"papers": [P_NATIVE]}}
+W_ANS = {"direct_answer": "wt1a is required for podocyte specification [1][2].", "absence_kind": "not-applicable"}
+WC_OK = [{"n": 1, "kind": "paper", "id": "PMID:37844491", "note": ""}, {"n": 2, "kind": "paper", "id": "PMID:22222222", "note": ""}]
+W_HARD = ["web_text_not_cited", "web_located_cited_requires_fetch", "web_items_native_only"]
+
+
+def _wp(cits, bundle=W_BUNDLE, ans=W_ANS, ledger=W_LEDGER, ps=PS_ON, **kw):
+    return vo.web_predicates(cits, bundle, ans, ledger, ps, **kw)
+
+
+def _wadm(ans, cits, preds):
+    a = ans if isinstance(ans, dict) else {"direct_answer": ans}
+    return vo.admissible({"direct_answer": a.get("direct_answer"), "evidence_cited": cits, "absence_kind": a.get("absence_kind")},
+                         extra_predicates=preds or None)
+
+
+def _no_ledger_url(frag):
+    s = json.dumps(frag, ensure_ascii=False)
+    return not any(u in s for u in LEDGER_URLS) and "researchgate" not in s.replace("www.researchgate.net", "")
+
+
+# 7a) todo verde
+wf, wp = _wp(WC_OK)
+wa, wr = _wadm(W_ANS, WC_OK, wp)
+check("(E) web_predicates todo verde: state 'checked' (ledger 3 URLs: 2 located + 1 unresolved; 2 ítems web-localizados), 4 bloques con "
+      "{ok, gating, n_checked, n_offenders, offenders, reason, rule}, los 3 DUROS (y SOLO ellos) como extra_predicates con .evaluation y "
+      "__name__, conjunction == los 3; text_not_cited n_checked 2 ok; requires_fetch n_checked 1 ok (PMID:22222222 fetched); "
+      "items_native_only n_checked 3 n_web_located 2 ok; urls_not_in_answer n_checked 3 ok gating False; admissible True sin reasons; "
+      "ledger_source 'caller'; provider 'brave'; NINGUNA URL del ledger en el fragmento",
+      wf["state"] == "checked" and wf["n_ledger_urls"] == 3 and wf["n_ledger_located"] == 2 and wf["n_ledger_unresolved"] == 1
+      and wf["n_web_items"] == 2 and wf["n_citations_valid"] == 2
+      and all(set(("ok", "gating", "n_checked", "n_offenders", "offenders", "reason", "rule")) <= set(wf[p]) for p in vo.WEB_PREDICATES)
+      and [p.__name__ for p in wp] == W_HARD and all(isinstance(p.evaluation, dict) and p.evaluation["rule"] == p.__name__ for p in wp)
+      and wf["conjunction"] == W_HARD
+      and wf["web_text_not_cited"]["ok"] is True and wf["web_text_not_cited"]["n_checked"] == 2
+      and wf["web_located_cited_requires_fetch"]["ok"] is True and wf["web_located_cited_requires_fetch"]["n_checked"] == 1
+      and wf["web_items_native_only"]["ok"] is True and wf["web_items_native_only"]["n_checked"] == 3 and wf["web_items_native_only"]["n_web_located"] == 2
+      and wf["web_urls_not_in_answer"]["ok"] is True and wf["web_urls_not_in_answer"]["n_checked"] == 3 and wf["web_urls_not_in_answer"]["gating"] is False
+      and wa is True and wr == [] and wf["ledger_source"] == "caller" and wf["provider"] == "brave" and _no_ledger_url(wf),
+      json.dumps({p: (wf[p]["ok"], wf[p]["n_checked"]) for p in vo.WEB_PREDICATES}) + " " + str(wr))
+
+# 7b) vocabularios y literales congelados
+check("(E) WEB_RULES congeladas (4 literales, cada uno cita ADR-0084; == frag.rules), gating 3 DUROS / 1 informativo == WEB_GATING (== frag.gating y "
+      "== cada bloque), WEB_WHYS cerrados por predicado, decided_by 'code', predicates_version 'wlpred-1', module_version == wl.MODULE_VERSION, "
+      "url_policy declarado, WEB_CHECK_STATE_KILL_SWITCH == wl.WEB_KILL_SWITCH_STATE, web_check_state_in_vocabulary exactos + prefijos y rechaza 'bogus'",
+      set(wf["rules"]) == set(vo.WEB_PREDICATES) == set(vo.WEB_GATING) == set(vo.WEB_WHYS) and all("ADR-0084" in r for r in wf["rules"].values())
+      and wf["rules"] == vo.WEB_RULES
+      and wf["gating"] == {"web_text_not_cited": True, "web_located_cited_requires_fetch": True, "web_items_native_only": True, "web_urls_not_in_answer": False}
+      and all(wf[p]["gating"] == vo.WEB_GATING[p] for p in vo.WEB_PREDICATES)
+      and wf["decided_by"] == "code" and wf["predicates_version"] == vo.WEB_PREDICATES_VERSION == "wlpred-1"
+      and wf["module_version"] == wl.MODULE_VERSION == "wl-1" and wf["url_policy"] == vo.WEB_FRAGMENT_URL_POLICY
+      and vo.WEB_CHECK_STATE_KILL_SWITCH == wl.WEB_KILL_SWITCH_STATE == "kill-switch WITT_WEB_LOCATOR=off"
+      and vo.WEB_CHECK_STATES_EXACT == ("checked", "no-web-items", "kill-switch WITT_WEB_LOCATOR=off")
+      and vo.WEB_CHECK_STATES_PREFIXES == ("tool-unavailable (", "error: ")
+      and all(vo.web_check_state_in_vocabulary(s) for s in ("checked", "no-web-items", "kill-switch WITT_WEB_LOCATOR=off",
+                                                            "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)", "error: y"))
+      and not vo.web_check_state_in_vocabulary("bogus") and not vo.web_check_state_in_vocabulary(None))
+
+# 7c) E.1 web_text_not_cited: id con forma de URL que NO resuelve
+WC_URL = [WC_OK[0], {"n": 2, "kind": "other", "id": "https://example.org/x", "note": ""}]
+wf_u, wp_u = _wp(WC_URL)
+wa_u, wr_u = _wadm(W_ANS, WC_URL, wp_u)
+check("(E.1) cita kind 'other' id 'https://example.org/x' → web_text_not_cited ok False, offenders [{n 2, why 'id-is-url', id VERBATIM (texto del modelo, "
+      "no del ledger), resolved False}], n_url_ids 1, n_carve_out 0; admissible False con 'hard predicate failed: web_text_not_cited' (los otros dos DUROS ok)",
+      wf_u["web_text_not_cited"]["ok"] is False and wf_u["web_text_not_cited"]["n_offenders"] == 1
+      and wf_u["web_text_not_cited"]["offenders"][0]["why"] == "id-is-url" and wf_u["web_text_not_cited"]["offenders"][0]["id"] == "https://example.org/x"
+      and wf_u["web_text_not_cited"]["offenders"][0]["n"] == 2 and wf_u["web_text_not_cited"]["offenders"][0]["resolved"] is False
+      and wf_u["web_text_not_cited"]["n_url_ids"] == 1 and wf_u["web_text_not_cited"]["n_carve_out_doi_org"] == 0
+      and wa_u is False and wr_u == ["hard predicate failed: web_text_not_cited"], str(wr_u))
+
+# 7d) E.1 carve-out https://doi.org/<doi> (Context 8): resuelve por _citation_keys → NO ofende
+WC_DOI = [{"n": 1, "kind": "doi", "id": "https://doi.org/10.1242/dev.02071", "note": ""},
+          {"n": 2, "kind": "doi", "id": "https://doi.org/10.1101/2024.01.01.111111", "note": ""}]
+wf_d, wp_d = _wp(WC_DOI)
+check("(E.1) carve-out: 'https://doi.org/<doi>' de un paper NATIVO y de uno WEB-LOCALIZADO (fetched) resuelven por _citation_keys → 0 ofensores, "
+      "n_url_ids 2, n_carve_out_doi_org 2, admissible True; requires_fetch n_checked 1 (la DOI resolvió al web-localizado PMID:22222222) ok; la "
+      "escalera de hoy no cambia (ambas 'passage_delivered')",
+      wf_d["web_text_not_cited"]["ok"] is True and wf_d["web_text_not_cited"]["n_url_ids"] == 2 and wf_d["web_text_not_cited"]["n_carve_out_doi_org"] == 2
+      and wf_d["web_located_cited_requires_fetch"]["ok"] is True and wf_d["web_located_cited_requires_fetch"]["n_checked"] == 1
+      and _wadm(W_ANS, WC_DOI, wp_d) == (True, [])
+      and [r["support_state"] for r in vo.support_state_for(WC_DOI, W_BUNDLE)] == ["passage_delivered", "passage_delivered"]
+      and vo.support_state_for(WC_DOI, W_BUNDLE)[1]["resolved_to"] == "PMID:22222222", json.dumps(wf_d["web_text_not_cited"]["reason"]))
+
+# 7e) E.1 id == URL del ledger (located / unresolved) → ofensor REDACTADO a host (el fragmento viaja al panel)
+WC_LM = [WC_OK[0], {"n": 2, "kind": "other", "id": U_RG, "note": ""}, {"n": 3, "kind": "other", "id": U_BIORXIV + "/", "note": ""}]
+wf_l, wp_l = _wp(WC_LM)
+o_l = {o["n"]: o for o in wf_l["web_text_not_cited"]["offenders"]}
+check("(E.1) cita id == URL de unresolved[] → why 'id-matches-unresolved-url'; id == URL de located[] (con '/' final: comparación normalizada) → "
+      "'id-matches-located-url'; en AMBOS el id se REDACTA (WEB_URL_REDACTED) y viajan id_host + url_kind + ledger_index; ninguna URL del ledger en el "
+      "fragmento; admissible False",
+      set(o_l) == {2, 3} and o_l[2]["why"] == "id-matches-unresolved-url" and o_l[3]["why"] == "id-matches-located-url"
+      and o_l[2]["id"] == vo.WEB_URL_REDACTED and o_l[3]["id"] == vo.WEB_URL_REDACTED
+      and o_l[2]["id_host"] == "www.researchgate.net" and o_l[2]["url_kind"] == "unresolved" and o_l[2]["ledger_index"] == 0
+      and o_l[3]["id_host"] == "www.biorxiv.org" and o_l[3]["url_kind"] == "located" and o_l[3]["ledger_index"] == 1
+      and _no_ledger_url(wf_l) and _wadm(W_ANS, WC_LM, wp_l)[0] is False, json.dumps(o_l))
+
+# 7f) E.1 kind 'web' | 'url' → ofende aunque el id resuelva a un paper nativo (regla (c))
+WC_KW = [{"n": 1, "kind": "web", "id": "PMID:37844491", "note": ""}, {"n": 2, "kind": "url", "id": "PMID:22222222", "note": ""}]
+wf_k, wp_k = _wp(WC_KW)
+check("(E.1) kind 'web' y kind 'url' con ids que SÍ resuelven → why 'kind-web' ×2 (resolved True, id verbatim: no es URL del ledger), inadmisible",
+      wf_k["web_text_not_cited"]["n_offenders"] == 2 and all(o["why"] == "kind-web" and o["resolved"] is True for o in wf_k["web_text_not_cited"]["offenders"])
+      and wf_k["web_text_not_cited"]["offenders"][0]["id"] == "PMID:37844491" and _wadm(W_ANS, WC_KW, wp_k)[0] is False)
+
+# 7g) E.2 web_located_cited_requires_fetch: cita a un paper web-localizado que Europe PMC NO entregó (fetched.found False)
+WC_NF = [WC_OK[0], {"n": 2, "kind": "paper", "id": "33333333", "note": ""}]
+wf_n, wp_n = _wp(WC_NF)
+wa_n, wr_n = _wadm(W_ANS, WC_NF, wp_n)
+check("(E.2) cita '33333333' (numérico sin prefijo: variante determinista) → resuelve a PMID:33333333 web-localizado con fetched.found False → "
+      "requires_fetch ok False, offenders [{n 2, resolved_to 'PMID:33333333', fetched_found False, passage_delivered False, why "
+      "'web-located-not-fetched'}], n_checked 1; admissible False 'hard predicate failed: web_located_cited_requires_fetch'; items_native_only sigue ok "
+      "(sin texto: coherente); la escalera dice 'resolved' (ADR-0053: la procedencia se declara, la escalera no cambia)",
+      wf_n["web_located_cited_requires_fetch"]["ok"] is False and wf_n["web_located_cited_requires_fetch"]["n_checked"] == 1
+      and wf_n["web_located_cited_requires_fetch"]["offenders"] == [{"n": 2, "id": "33333333", "resolved_to": "PMID:33333333", "fetched_found": False,
+                                                                    "passage_delivered": False, "why": "web-located-not-fetched"}]
+      and wa_n is False and wr_n == ["hard predicate failed: web_located_cited_requires_fetch"] and wf_n["web_items_native_only"]["ok"] is True
+      and vo.support_state_for(WC_NF, W_BUNDLE)[1]["support_state"] == "resolved", str(wr_n))
+B_NOFETCH = copy.deepcopy(W_BUNDLE)
+B_NOFETCH["path_b"]["papers"][1].pop("fetched")
+wf_nf2, wp_nf2 = _wp(WC_OK, bundle=B_NOFETCH)
+check("(E.2) paper web-localizado SIN llave `fetched` → fetched_found None → 'is not True' → ofende igual (ausencia ≠ entrega); inadmisible",
+      wf_nf2["web_located_cited_requires_fetch"]["ok"] is False and wf_nf2["web_located_cited_requires_fetch"]["offenders"][0]["fetched_found"] is None
+      and _wadm(W_ANS, WC_OK, wp_nf2)[0] is False)
+
+# 7h) E.3 web_items_native_only (estructural sobre TODO el bundle, citado o no): source 'web' | kind 'web'
+B_SW = copy.deepcopy(W_BUNDLE)
+B_SW["path_b"]["papers"].append({"source": "web", "evidence_id": "WEB:rg-12345", "search_rec": {}, "title": "web title", "url": U_RG,
+                                 "text": "web snippet that must never be evidence"})
+B_SW["path_b"]["papers"].append({"source": "europepmc", "kind": "web", "evidence_id": "PMID:44444444", "search_rec": {"pmid": "44444444"},
+                                 "fetched": {"found": True}})
+wf_s, wp_s = _wp(WC_OK, bundle=B_SW)
+wa_s, wr_s = _wadm(W_ANS, WC_OK, wp_s)
+o_s = sorted((o["evidence_id"], o["why"]) for o in wf_s["web_items_native_only"]["offenders"])
+check("(E.3) paper source 'web' inyectado (NO citado) → 'source-web'; paper kind 'web' → 'kind-web'; items_native_only ok False, n_checked 5, "
+      "offenders con evidence_id/source/source_family/why y SIN la URL hallada; admissible False 'hard predicate failed: web_items_native_only' "
+      "(estructural: la cita no importa)",
+      wf_s["web_items_native_only"]["ok"] is False and wf_s["web_items_native_only"]["n_checked"] == 5
+      and o_s == [("PMID:44444444", "kind-web"), ("WEB:rg-12345", "source-web")]
+      and all(set(o) >= {"evidence_id", "source", "source_family", "why"} and "url" not in o for o in wf_s["web_items_native_only"]["offenders"])
+      and _no_ledger_url(wf_s) and wa_s is False and wr_s == ["hard predicate failed: web_items_native_only"], json.dumps(o_s))
+
+# 7i) E.3 las cinco condiciones de un paper web-localizado
+B_BAD = {"path_b": {"papers": [
+    P_NATIVE,
+    _web_paper("PMID:55555555", pmid="55555555", url="https://pubmed.ncbi.nlm.nih.gov/55555555/", identifier_provenance="europepmc-api-live"),
+    _web_paper("PMID:66666666", pmid="66666666", found=False, abstract=None, text_excerpt="an excerpt without a fetch",
+               url="https://pubmed.ncbi.nlm.nih.gov/66666666/"),
+    _web_paper("EPMC:77777777", pmid=None, doi=None, source="pubmed", url=U_BIORXIV),
+]}}
+wf_b, wp_b = _wp(WC_OK[:1], bundle=B_BAD)
+o_b = {}
+for o in wf_b["web_items_native_only"]["offenders"]:
+    o_b.setdefault(o["evidence_id"], []).append(o["why"])
+o_nc = next(o for o in wf_b["web_items_native_only"]["offenders"] if o["why"] == "non-canonical-url")
+check("(E.3) web-localizado con identifier_provenance 'europepmc-api-live' → 'provenance-not-web-located'; text_excerpt con fetched.found False → "
+      "'text-without-fetch' (fetched_found False); search_rec sin pmid/pmcid/doi + source 'pubmed' + url == la URL HALLADA (biorxiv) → "
+      "'no-resolvable-identifier' + 'source-not-europepmc' + 'non-canonical-url' (url_host 'www.biorxiv.org', la URL misma NO viaja); "
+      "n_web_located 3; inadmisible; whys ⊆ WEB_WHYS",
+      o_b == {"PMID:55555555": ["provenance-not-web-located"], "PMID:66666666": ["text-without-fetch"],
+              "EPMC:77777777": ["no-resolvable-identifier", "source-not-europepmc", "non-canonical-url"]}
+      and o_nc["url_host"] == "www.biorxiv.org" and "url" not in o_nc and U_BIORXIV not in json.dumps(wf_b)
+      and next(o for o in wf_b["web_items_native_only"]["offenders"] if o["why"] == "text-without-fetch")["fetched_found"] is False
+      and wf_b["web_items_native_only"]["n_web_located"] == 3
+      and set(o["why"] for o in wf_b["web_items_native_only"]["offenders"]) <= set(vo.WEB_WHYS["web_items_native_only"])
+      and _wadm(W_ANS, WC_OK[:1], wp_b)[0] is False, json.dumps(o_b))
+B_LV = {"path_b": {"papers": [P_NATIVE, dict(P_WEB_OK, source_family="europepmc", identifier_provenance="europepmc-api-live", located_via="web")]}}
+wf_lv, _ = _wp(WC_OK[:1], bundle=B_LV, ledger=None)
+check("(E.3) superset conservador: un paper marcado SÓLO por located_via 'web' cuenta como web-localizado (state 'checked' sin ledger) y su provenance "
+      "'europepmc-api-live' ofende; los tres marcadores (source_family | identifier_provenance | located_via) bastan por separado",
+      wf_lv["state"] == "checked" and wf_lv["n_web_items"] == 1 and wf_lv["web_items_native_only"]["offenders"][0]["why"] == "provenance-not-web-located"
+      and vo._is_web_located_paper({"identifier_provenance": "web-located:doi-org-path"}) and vo._is_web_located_paper({"source_family": "web"})
+      and not vo._is_web_located_paper({"source": "europepmc", "source_family": "europepmc"}))
+
+# 7j) E.4 web_urls_not_in_answer (INFORMATIVO): se mide, jamás gatea; los ofensores NO llevan la URL
+ANS_URL = {"direct_answer": f"See {U_BIORXIV} and {U_RG} for details; also {U_PUBMED.rstrip('/')} [1][2].", "absence_kind": "not-applicable"}
+wf_a, wp_a = _wp(WC_OK, ans=ANS_URL)
+check("(E.4) direct_answer con 3 URLs del ledger verbatim (una sin '/' final) → web_urls_not_in_answer ok False, n_offenders 3, offenders "
+      "[{ledger_index, url_kind, host, why 'url-in-answer'}] SIN llave url ni la URL; gating False; 'web_urls_not_in_answer' NO está en los "
+      "extra_predicates; admissible True (la admisibilidad no cambia); ninguna URL del ledger en el fragmento",
+      wf_a["web_urls_not_in_answer"]["ok"] is False and wf_a["web_urls_not_in_answer"]["n_offenders"] == 3
+      and all(set(o) == {"ledger_index", "url_kind", "host", "why"} and o["why"] == "url-in-answer" for o in wf_a["web_urls_not_in_answer"]["offenders"])
+      and sorted(o["url_kind"] for o in wf_a["web_urls_not_in_answer"]["offenders"]) == ["located", "located", "unresolved"]
+      and wf_a["web_urls_not_in_answer"]["gating"] is False and "web_urls_not_in_answer" not in [p.__name__ for p in wp_a]
+      and _wadm(ANS_URL, WC_OK, wp_a) == (True, []) and _no_ledger_url(wf_a), json.dumps(wf_a["web_urls_not_in_answer"]["offenders"]))
+
+# 7k) sin ítems web ni ledger → 'no-web-items': los 4 bloques se MIDEN y NINGÚN predicado entra (admisibilidad de hoy byte a byte)
+wf_0, wp_0 = _wp(WC_OK[:1], bundle=B_NAT, ledger=None)
+check("(E) sin ítems web ni ledger → state 'no-web-items', extra_predicates [], conjunction [], ledger_source 'absent', los 4 bloques presentes con "
+      "n_checked (1 cita, 0, 1 paper, 0 URLs) y ok True; admissible == la conjunción de hoy (mismo resultado que sin extra_predicates)",
+      wf_0["state"] == "no-web-items" and wp_0 == [] and wf_0["conjunction"] == [] and wf_0["ledger_source"] == "absent"
+      and [wf_0[p]["n_checked"] for p in vo.WEB_PREDICATES] == [1, 0, 1, 0] and all(wf_0[p]["ok"] is True for p in vo.WEB_PREDICATES)
+      and wf_0["n_web_items"] == 0 and wf_0["n_ledger_urls"] == 0
+      and _wadm(W_ANS, WC_OK[:1], wp_0) == vo.admissible({"direct_answer": W_ANS["direct_answer"], "evidence_cited": WC_OK[:1], "absence_kind": "not-applicable"}),
+      json.dumps({p: wf_0[p]["n_checked"] for p in vo.WEB_PREDICATES}))
+WC_0U = [{"n": 1, "kind": "other", "id": "https://example.org/x", "note": ""}]
+wf_0u, wp_0u = _wp(WC_0U, bundle=B_NAT, ledger=None)
+check("(E) cita URL en una corrida SIN datos web → sigue 'no-web-items' y 0 predicados (byte-identidad de hoy): el bloque web_text_not_cited la MIDE "
+      "honestamente (ok False, 1 ofensor id-is-url) pero no gatea; admissible == hoy (True)",
+      wf_0u["state"] == "no-web-items" and wp_0u == [] and wf_0u["web_text_not_cited"]["ok"] is False
+      and wf_0u["web_text_not_cited"]["offenders"][0]["why"] == "id-is-url"
+      and _wadm(W_ANS, WC_0U, wp_0u) == vo.admissible({"direct_answer": W_ANS["direct_answer"], "evidence_cited": WC_0U, "absence_kind": "not-applicable"}) == (True, []))
+
+# 7l) el ledger puede venir del bundle (W4 D.4: path_b.web_locator) o de la raíz (frozen.web_locator)
+wf_f1, _ = _wp(WC_OK, bundle={"path_b": {"papers": [P_NATIVE], "web_locator": W_LEDGER}}, ledger=None)
+wf_f2, _ = _wp(WC_OK, bundle={"path_b": {"papers": [P_NATIVE]}, "web_locator": W_LEDGER}, ledger=None)
+check("(E) web_ledger None → se toma de bundle.path_b.web_locator ('bundle.path_b.web_locator') o de bundle.web_locator ('bundle.web_locator'): state "
+      "'checked' por las 3 URLs aunque el bundle no traiga ítems web; n_ledger_urls 3; el llamador explícito gana ('caller')",
+      wf_f1["state"] == "checked" and wf_f1["ledger_source"] == "bundle.path_b.web_locator" and wf_f1["n_ledger_urls"] == 3 and wf_f1["n_web_items"] == 0
+      and wf_f2["state"] == "checked" and wf_f2["ledger_source"] == "bundle.web_locator" and wf["ledger_source"] == "caller")
+
+# 7m) kill-switch WITT_WEB_LOCATOR=off → fragmento EXACTAMENTE {state} y sin predicados (M.1: una de las 3 excepciones declaradas del frozen 1.13)
+wf_k1, wp_k1 = vo.web_predicates(WC_OK, W_BUNDLE, W_ANS, W_LEDGER, None, env={"WITT_WEB_LOCATOR": "off", "BRAVE_API_KEY": "k"})
+wf_k2, wp_k2 = vo.web_predicates(WC_OK, W_BUNDLE, W_ANS, dict(W_LEDGER, state=wl.WEB_KILL_SWITCH_STATE), PS_ON)
+wf_k3, wp_k3 = vo.web_predicates(WC_OK, W_BUNDLE, W_ANS, W_LEDGER, wl.provider_state({"WITT_WEB_LOCATOR": "off"}))
+os.environ["WITT_WEB_LOCATOR"] = "off"
+wf_k4, wp_k4 = vo.web_predicates(WC_OK, W_BUNDLE, W_ANS, W_LEDGER)          # provider_state leído del env EN LA LLAMADA (M.4)
+os.environ.pop("WITT_WEB_LOCATOR", None)
+check("(M.1) kill-switch: env WITT_WEB_LOCATOR=off (con llave) | ledger.state kill-switch | provider_state explicit_off | os.environ leído en la llamada → "
+      "fragmento EXACTAMENTE {'state': 'kill-switch WITT_WEB_LOCATOR=off'} (ninguna otra llave) y extra_predicates [] — aun con ítems web y ledger presentes",
+      all(f == {"state": "kill-switch WITT_WEB_LOCATOR=off"} for f in (wf_k1, wf_k2, wf_k3, wf_k4)) and wp_k1 == wp_k2 == wp_k3 == wp_k4 == [],
+      json.dumps([wf_k1, wf_k2, wf_k3, wf_k4]))
+
+# 7n) localizador NO disponible y SIN datos web → {state} con la CAUSA (state_when_not_run); con datos web presentes → 'checked' (los datos ganan)
+wf_t1, wp_t1 = vo.web_predicates(WC_OK[:1], B_NAT, W_ANS, None, None, env={})
+wf_t2, _ = vo.web_predicates(WC_OK[:1], B_NAT, W_ANS, None, None, env={"WITT_WEB_LOCATOR": "brave"})
+wf_t3, _ = vo.web_predicates(WC_OK[:1], B_NAT, W_ANS, None, None, env={"WITT_WEB_LOCATOR": "duck"})
+wf_t4, _ = vo.web_predicates(WC_OK[:1], B_NAT, W_ANS, None, None, env={"WITT_WEB_LOCATOR": "anthropic"})
+wf_t5, wp_t5 = vo.web_predicates(WC_OK, W_BUNDLE, W_ANS, W_LEDGER, None, env={})
+wf_t6, _ = vo.web_predicates(WC_OK[:1], B_NAT, W_ANS, {"state": wl.UNAVAILABLE_BRAVE_NO_KEY, "located": [], "unresolved": []}, PS_ON)
+check("(E/G.2) sin datos web: env vacía (off DERIVADO) → {state 'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)'}; brave sin llave → el mismo literal; "
+      "env inválida → '… WITT_WEB_LOCATOR invalid)'; anthropic sin llave → '… ANTHROPIC_API_KEY unset)'; ledger que declara tool-unavailable → su literal; "
+      "todos EXACTAMENTE {state}, en vocabulario (prefijo), 0 predicados; CON datos web y sin llave → 'checked' con los 3 DUROS (los datos ganan a la "
+      "disponibilidad; provider_available False declarado)",
+      wf_t1 == {"state": "tool-unavailable (ADR-0084: BRAVE_API_KEY unset)"} and wp_t1 == [] and wf_t2 == wf_t1
+      and wf_t3 == {"state": "tool-unavailable (ADR-0084: WITT_WEB_LOCATOR invalid)"} and wf_t4 == {"state": "tool-unavailable (ADR-0084: ANTHROPIC_API_KEY unset)"}
+      and wf_t6 == {"state": wl.UNAVAILABLE_BRAVE_NO_KEY}
+      and all(vo.web_check_state_in_vocabulary(f["state"]) for f in (wf_t1, wf_t2, wf_t3, wf_t4, wf_t6))
+      and wf_t5["state"] == "checked" and [p.__name__ for p in wp_t5] == W_HARD and wf_t5["provider_available"] is False and wf_t5["provider"] == "off",
+      json.dumps([wf_t1, wf_t3, wf_t4, wf_t5["state"]]))
+_saved_wl = vo._wl
+vo._wl = None
+wf_na, wp_na = _wp(WC_OK)
+vo._wl = _saved_wl
+check("(E) árbol sin lib/web_locator.py (import tolerante) → {state 'tool-unavailable (lib/web_locator.py not importable — ADR-0084 W5)'}, [] — declarado, "
+      "jamás re-implementado",
+      wf_na == {"state": vo.WEB_CHECK_STATE_TOOL_UNAVAILABLE} and wp_na == [] and vo.web_check_state_in_vocabulary(wf_na["state"]))
+
+
+# 7o) error interno → 'error: …' declarado en state, jamás relanza (§6 no-hang)
+class _BoomCits:
+    def __iter__(self):
+        raise RuntimeError("boom-w5")
+
+
+wf_e, wp_e = _wp(_BoomCits())
+check("(E) un fallo interno al medir (citations que lanza al iterar) → fragmento {state 'error: RuntimeError: boom-w5'}, [] (en vocabulario por prefijo)",
+      wf_e == {"state": "error: RuntimeError: boom-w5"} and wp_e == [] and vo.web_check_state_in_vocabulary(wf_e["state"]))
+
+# 7p) determinismo y cero red
+wf_r1, _ = _wp(WC_LM, ans=ANS_URL, bundle=B_BAD)
+wf_r2, _ = _wp(WC_LM, ans=ANS_URL, bundle=B_BAD)
+check("(E) determinista byte a byte (dos corridas del caso más cargado → mismo JSON sort_keys) y serializable; urlopen == 0 en toda la sección "
+      "(ADR-0084 M.2: el gate no toca la red)",
+      json.dumps(wf_r1, sort_keys=True) == json.dumps(wf_r2, sort_keys=True) and _NET_CALLS == [], f"net={_NET_CALLS}")
+
 import shutil  # noqa: E402
 shutil.rmtree(CR, ignore_errors=True)      # la caché del smoke es efímera: nada queda en WITT_MCP_CACHE_DIR
 shutil.rmtree(TMP, ignore_errors=True)

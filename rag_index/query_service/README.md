@@ -36,7 +36,7 @@ expuesta (ADR-0047, decisión 5).
 | POST | `/plans/{plan_id}/council/skip` | ✓ | `{reason}` → `council_state 'skipped-by-human'` con autor y hora (la corrida sale con ledger VACÍO declarado; el sistema jamás salta solo); 400 `skip_without_reason` |
 | GET | `/council/membership` | ✓ | **NO-SPEND, sin BD**: `agent_matrix.membership_view` (cm-1: 17 miembros con `group`/`mode`/`tool`/`gate`/`card_sha`, 8 `not-applicable-by-category`, 9 sustrato con estado, 3 filas sin ficha) + `vocabulary` (= `council.council_vocabulary()`, el que el gate (F) de paridad compara con `types.ts`) + `catalog_sha`/`rules_sha`/`shared_block_sha`/`cache` |
 | GET | `/council/search?q=&k=&include_origins=&kinds=` | ✓ | **el índice del consejo** (ADR-0082 (I), patrón `precedent`): requisitos, coberturas, DECISIONES humanas (sin la razón), gap_flags, alternativas, hallazgos del panel y comentarios (sólo con `kinds=comment`) de corridas CERRADAS + planes con `council_json` del alcance de origen; letras `A..`, `admissible_as_evidence false` estructural, `scorer` declarado, `corpus_state`; 400 sin `q` / kind fuera del enum · 503 `council-index-disabled` (`WITT_COUNCIL_INDEX=0`) |
-| GET | `/council/demand?include_origins=` | ✓ | el criterio MEDIDO de disparo de los sidecars ADR-0083/0084/0085: requisitos `unsatisfiable-by-harness` por familia (`web`, `tooluniverse`, `figure`), umbral `{min_runs 5, min_requirements 3}`, `fired_by_family`, `fired`; clase medición; independiente del kill-switch del índice |
+| GET | `/council/demand?include_origins=` | ✓ | el criterio MEDIDO de disparo de los sidecars ADR-0083/0084/0085: requisitos `unsatisfiable-by-harness` por familia (`web`, `tooluniverse`, `figure`), umbral `{min_runs 5, min_requirements 3}`, `fired_by_family`, `fired`; clase medición; independiente del kill-switch del índice. **ADR-0084 (F.3)**: `demand_families` es ESTÁTICO (`council_index.DEMAND_FAMILIES = ('figure', 'tooluniverse', 'web')` — la serie MEDIDA de `web` NO se rompe al llegar `BRAVE_API_KEY`), `unsatisfiable_families[]` se deriva EN LA LLAMADA (`unsatisfiable_families_source 'derived: SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available'`: bajo off `['tooluniverse', 'web']`, con llave `['tooluniverse']`) y la respuesta gana `web_locator_provider_state {provider, provider_source, available, unavailable_reason}` + `demand_families_rule`; sin cambio de firma |
 | GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) + **columnas de investigación** (ADR-0079: `parent_run_id`, `thread_id`, `turn_no`, `turn_kind`, `origin`, `root_question_id` — NULL = anterior al contrato, sin backfill). **`GET /runs?thread=<thread_id>&limit=&after=`** lista los TURNOS de una investigación (orden `turn_no ASC`, sin el tope 50, cursor `after` = turn_no exclusivo, `has_more` medido, `next_after`); la lista general declara `limit`/`limit_cap`. **`root_run_no`** (ADR-0081 (F)): nace en la BD por JOIN a la raíz (`db._list_select`/`db.get_run`, UNA definición) — lista, detalle, `POST /runs` y `/runs?thread=` la traen; raíz = su `run_no`; `null` = corrida anterior a ADR-0079, declarado, jamás rellenado |
 | GET | `/threads/{thread_id}` | ✓ | **la investigación T-<run_no raíz> como UNA unidad** (ADR-0079): `turns[]` en orden con veredicto/decision_state/origin/costo por turno, `gap_flags_union` (conteos con igualdad normalizada, jamás prosa nueva), `total_cost_usd` PROYECCIÓN con `complete`, `pivot_suggested` (regla `WITT_PIVOT_TURNS` declarada), `origins`, `authors`, `root_pre_adr_0079` (raíz virtual anterior al contrato); 404 `thread_not_found` |
 | GET | `/threads?mine=&limit=&after=` | ✓ | **el índice de investigaciones** (ADR-0081 (G); declarada ANTES de `/threads/{thread_id}`): UNA consulta `GROUP BY thread_id` con la raíz por JOIN — `label 'T-<n>'`, `root_run_no`, `n_turns` (IGUAL al de `/threads/{id}`: la raíz virtual cuenta +1, `root_counted` lo declara), `n_closed`, `n_with_record`, `last_turn`, `authors`, `origins`, `states`, `root_pre_adr_0079`; orden `root_run_no DESC NULLS LAST`, cursor `after` = `root_run_no` EXCLUSIVO, `has_more` MEDIDO (`limit+1`), `limit_cap` 50, `mine` (≥ 1 turno del usuario; `mine_rule`), `n_threads_total`, `n_runs_without_thread` del SERVIDOR; sin costo agregado (`costs 'not-aggregated (GET /threads/{id})'`); `limit < 1` → 400 |
@@ -49,7 +49,7 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
-| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio. **ADR-0082 (H)**: `by_stage` gana `council_r1/r2/r3` iterando `TOKEN_STAGES` (sin código nuevo), `by_model[m] += cache_creation, cache_read` (tokens) y **`plans_council`** = el gasto de rondas 1 de planes que NUNCA se corrieron (`n_plans`, `n_unconsumed`, tokens, `cache {creation, read, multipliers}`, `estimated_cost_usd` [E] con `price_state`, `by_state {<council_state>: n}`, `by_model`) — sin él M8 no cuadra. **ADR-0083 (H)**: `figures {n_runs_with_figures, n_figures_verified, n_figures_cited, bytes_downloaded, vision_tokens_projected_by_model {model: n}, class 'PROJECTION (tokens) / MEASUREMENT (counts, bytes)'}` — bloque APARTE del medido (M8 lo pinta aparte; cierra el hueco HANDOFF §17.3) |
+| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio. **ADR-0082 (H)**: `by_stage` gana `council_r1/r2/r3` iterando `TOKEN_STAGES` (sin código nuevo), `by_model[m] += cache_creation, cache_read` (tokens) y **`plans_council`** = el gasto de rondas 1 de planes que NUNCA se corrieron (`n_plans`, `n_unconsumed`, tokens, `cache {creation, read, multipliers}`, `estimated_cost_usd` [E] con `price_state`, `by_state {<council_state>: n}`, `by_model`) — sin él M8 no cuadra. **ADR-0083 (H)**: `figures {n_runs_with_figures, n_figures_verified, n_figures_cited, bytes_downloaded, vision_tokens_projected_by_model {model: n}, class 'PROJECTION (tokens) / MEASUREMENT (counts, bytes)'}` — bloque APARTE del medido (M8 lo pinta aparte; cierra el hueco HANDOFF §17.3). **ADR-0084 (I)**: `web_locator {state 'measured' \| 'not-measured', n_runs_with_queries, n_runs_web_locator_declared, n_runs_locator_off, by_state, by_quota_state, n_queries, n_queries_billable, n_results, n_located, n_materialized, n_unresolved, rate_located_over_results, cost_usd_projected, estimated_cost_usd_total_projected, by_provider {brave? \| anthropic?}, month_to_date {state ∈ under-cap \| cap-reached \| disabled (WITT_WEB_MONTHLY_CAP=0) \| table-missing \| error, month, provider, n_queries, n_results, cost_usd_projected, cap, cap_source, remaining, row_present, credit_usd_assumed 5.0, credit_source_url, rule, rows[]}, class, source, rule, price_as_of}` — consultas MEDIDAS · USD PROYECTADO (requests × tarifa) desde `usage_json.web_locator` de cada corrida 1.13 + la tabla `web_locator_usage` para el mes en curso; **`totals.estimated_cost_usd` NO incluye el localizador** (el total que cuadra viaja en `estimated_cost_usd_total_projected` con su clase); ver la sección ADR-0084 |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056). **ADR-0081 (I)**: `entries` (archivo, clase ATESTIGUADA — incluida `budget_approval`) + `ledger[]` (tabla `config_history`: MEDICIÓN del diff de configuración al arrancar, `changed_by 'system:boot-diff'` / `'system:runtime-diff'`, `actor_state` declarado) + `ledger_state ∈ ok | kill-switch WITT_CONFIG_LEDGER=0 | table-missing | error: <tipo> | not-booted (lifespan no corrió: config_ledger.boot() no se ha llamado)` (el quinto = antes del lifespan; un TestClient sin lifespan lo ve — corrector) + `ledger_writer` / `ledger_encoding` / `ledger_scope_rule` + `current {fields {value, source}, warnings, unknown_models}` + `provenance.db` |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
@@ -420,7 +420,7 @@ contrato no cambie de forma cuando el consejo aterrice.
 byte-compatibles) + 10 tools Layer 0 NUEVAS y stdlib-puras en `.tooluniverse/tools/`: `alliance_orthologs.py`,
 `zfin_expression_tsv.py`, `ensembl_homology.py`, `uniprot_search.py`, `monarch_associations.py`, `reactome_search.py`
 (`label 'inferred-by-orthology'`), `string_partners.py` (`label 'predictive'`), `geo_gds.py`, `unpaywall_crossref.py`,
-`openalex_search.py`; `web` y `tooluniverse` son `tool-unavailable` declarados (ADR-0084/0085). `gate 'auto'` =
+`openalex_search.py`; `web` es REAL desde ADR-0084 (fila con `adapter 'web'` → `search_harness._run_web_family` y disponibilidad DINÁMICA `family_available` → `web_locator.provider_state`: sin `BRAVE_API_KEY` o con `WITT_WEB_LOCATOR=off` sigue excluida con el literal byte-idéntico `tool-unavailable (ADR-0084)`; la web LOCALIZA identificadores y jamás es fuente — sección ADR-0084 más abajo) y `tooluniverse` sigue `tool-unavailable` declarado (ADR-0085). `gate 'auto'` =
 corre por default (`WITT_SEARCH_DEFAULT_FAMILIES`: `europepmc,pubmed,zfin,alliance_orthologs,zfin_expression`);
 `'directive-only'` = sólo por directiva del consejo (ADR-0082, hueco `directives: []`) o nombrada en esa env. El plan lo
 arma código (`build_search_plan`: familias, queries por familia vía `search_queries.build_all`, `rounds_cap`,
@@ -1001,6 +1001,327 @@ red (el único modo que corre F8). Python: `dev/.venvs/witt-query-service` con l
 **Decisiones abiertas (E1–E5, defaults aplicados; el ADR las lista):** E1 `WITT_FIGURES=1` y `WITT_FIGURES_VISION=1` · E2 las dos lentes SÍ
 ven bytes NC/ND (embeber sigue prohibido) · E3 prosa CC BY = `cc-by` con `source 'license-p-prose'` visible · E4 sin volumen, declarado
 (`REFETCH_ON_GET=0`) · E5 texto de la aprobación presupuestal `<pendiente E5>`.
+
+### La web como LOCALIZADOR de identificadores, jamás fuente (ADR-0084, 2026-09-16 — **Proposed**; conteos de gates MEDIDOS por W7 el 2026-09-16: 45/45 smokes exit 0 (tabla en el ADR); llevado al README por W9; **re-medidos por el corrector el 2026-09-16: 45/45 exit 0 + `--dry-run` exit 0** — `smoke_run_pipeline` 407/407, `smoke_web_locator` 182/182, `smoke_web_pipeline` 32/32, `smoke_search_harness` 94/94, `smoke_web_quota_db` 17/17, `smoke_council` 78/78, `smoke_models` 102/102)
+
+**Doctrina (decidida por Emmanuel el 2026-09-14, brief *Consejo de agentes* §6.4; `docs/decisions/0084-busqueda-libre-como-localizador.md`):**
+la búsqueda libre en internet LOCALIZA identificadores y JAMÁS es fuente. Ningún texto, snippet, título ni URL de la web entra al bundle de
+evidencia, al prompt del sintetizador, al panel, al consejo, a los eventos ni a `answer.gap_flags` (el canal que viaja al turno siguiente
+como `thread_context`). Lo único que la web produce son URLs; un resolutor DETERMINISTA — TABLA cerrada de 12 patrones por host
+(`analysis/scripts/lib/web_locator.RESOLVER_RULES`, `resolver_version 'wlr-2'` — *corrector: sufijos de publisher `/full`, `/pdf`, `.pdf`, `/figures/n`,
+`/abstract`, `.article-info`, `/` final recortados del DOI antes de validar; PMC case-insensitive; `europepmc.org/articles/PMC<n>`; golden 61 casos* —, `resolver_rule` por hallazgo; `doi-in-url-any-host` con
+`confidence 'pattern-only'` es la última y opcional) — extrae PMID / PMCID / DOI / `ZFIN:ZDB-*` / ENSDARG / UniProt / GSE; los identificadores
+de LITERATURA se MATERIALIZAN en la MISMA ronda por Europe PMC (`fetch_paper._resolve_one(ident)`, UNA GET paceada, SIN escribir caché —
+`fetch_external` escribiría un raw abstract-only que envenenaría el fetch completo del paper seleccionado) y entran al pool como candidatos
+`source 'europepmc'` / `source_family 'web'` / `identifier_provenance 'web-located:<regla>'` con `url` CANÓNICA (`doi.org` |
+`pubmed.ncbi.nlm.nih.gov` | `europepmc.org` — jamás la URL hallada); lo no resuelto se declara y se cuenta en `frozen.web_locator.unresolved[]`
+(URL + `title_web` ≤ 120 rotulado «no es evidencia» — SÓLO ahí) y jamás se cita. **0 ítems `source 'web'` por construcción** (predicado duro
+`web_items_native_only`). Primario: **Brave Search API REST** stdlib sin modelo (`.tooluniverse/tools/brave_web_search.py`, `TOOL_VERSION
+'bws-1'`; plan «Search» US$5/1 000 requests con US$5 de crédito/mes — NO «Answers», que mete un LLM en la recuperación; SÓLO parámetros
+DOCUMENTADOS `q`, `count`, `country`, `search_lang`, `freshness`; la llave `BRAVE_API_KEY` viaja SÓLO en la cabecera `X-Subscription-Token`;
+raw ÍNTEGRO cacheado por día en `mcp_cache/raw_brave_*` y `description`/`extra_snippets` DESCARTADOS en la SALIDA — `fields_dropped`).
+Alterno EXPLÍCITO (`WITT_WEB_LOCATOR=anthropic`, sin auto-failover): Anthropic `web_search_20250305` como server-tool con caller PROPIO
+(`web_locator._anthropic_web_search`: SIN `tool_choice`, `max_uses 1`, `allowed_domains` = hosts de la tabla, modelo `WITT_WEB_LOCATOR_MODEL` o
+el rol `elicitation` — NINGÚN rol nuevo en `PIPELINE_ROLES`, `panel_signature` intacta); se parsean SÓLO URLs (`web_search_tool_result` y
+`citations[].url`), `encrypted_content`/`cited_text`/todo texto del modelo se descartan sin persistir; **propiedad DECLARADA: el modelo
+despachador LEE texto web** (la API cuenta los resultados como tokens de entrada) — por eso es alterno, jamás default; está CABLEADO y NO es
+«alterno operativo» hasta pasar LG5. Sin llave (hoy): proveedor derivado `off`, familia `web` excluida con el literal byte-idéntico de
+7d9ce15 `unsatisfiable-by-harness (tool-unavailable (ADR-0084))`, CERO red, US$0. El precedente agéntico de 2026-05-14 (dos cachés
+`literature_pronephros_*_20260514.json` con texto de la web guardado como evidencia) queda declarado `not-admissible (agentic web cache; no
+source-pointer per claim; ADR-0062/0084)` en `web_locator.NOT_ADMISSIBLE_PRECEDENTS` y MEDIDO que nadie lo lee; no se muta ni se borra.
+
+**Cómo corre (harness C, pipeline D):** `SEARCH_DISPATCH['web']` es REAL — `{tool_module 'brave_web_search.py', fn 'locate', adapter 'web',
+inputs 'free-query', budget_s 30.0 (`WITT_WEB_BUDGET_S`, clamp 1..120), host 'api.search.brave.com', key_env 'BRAVE_API_KEY', evidence_kind 'web'
+(la CLASE DE DEMANDA del consejo; ningún ítem emitido es `kind 'web'`), gate 'directive-only', availability 'web_locator.provider_state'}`.
+Disponibilidad DINÁMICA — UNA verdad — en `search_harness.family_available(family, env=None) -> (bool, reason)` y
+`unsatisfiable_families(env=None)` (bajo off `('tooluniverse', 'web')`; con llave `('tooluniverse',)`), leídas EN LA LLAMADA (plan, compilación,
+despacho). Gate `directive-only` ESTRICTO: la query es `queries.web.directive_queries[].query_en` (`query_source 'council-directive:<rids>'`,
+`entered_by 'directive'`); nombrar `web` en `WITT_SEARCH_DEFAULT_FAMILIES` ES la directiva del operador (`entered_by
+'env:WITT_SEARCH_DEFAULT_FAMILIES'`) y entonces la query es `WITT_WEB_TEST_QUERY` (`query_source 'operator-env:WITT_WEB_TEST_QUERY'`) o
+`pass1_query_en` — **jamás la pregunta cruda**. Web va PRIMERA en la ronda SÓLO cuando entra (`plan.families_order_rule 'web first — the
+locator feeds the round (ADR-0084)'`; con `families=` impuesto por el llamador `'caller order (families= mandates; web not moved)
+(ADR-0084)'`; un plan sin web es byte-idéntico a 7d9ce15): es el ÚNICO encadenado determinista — `should_run_next_round` exige `n_new == 0`,
+así que la «siguiente ronda» NO alimenta familias — para que el DOI localizado llegue a `ctx['dois']` → `unpaywall_crossref` y la curie
+`ZDB-GENE-*` a `ctx['curies']` → `monarch` en la MISMA ronda (append sobre las listas pre-creadas, jamás reasignar). La familia corre por
+ADAPTADOR PROPIO `search_harness._run_web_family` (nunca por `normalize_item`, que convertiría `title`+`description` en evidencia): por
+insumo dentro de `WITT_WEB_MAX_QUERIES` (3) y del presupuesto, `web_locator.locate(query, cfg, provider_fn=tools['web'],
+quota_fn=ctx['web_quota'], existing_ids=…, timeout, requirement_ids, round_no, query_source)` → fila-query; `located[]` de literatura →
+`_resolve_one` (forma verificada ANTES: `^PMID:\d+$ | ^PMC\d+$ | ^DOI:10\.\S+$`; tope `WITT_WEB_MAX_MATERIALIZE` 6) → candidato
+`answer_pipeline._epmc_candidate(rec)` (misma forma de `evidence_id` que el nativo: mismas DOS capas de dedup) + `located_from {host, rule_id,
+confidence, kind, round, requirement_ids}`, `located_via 'web'`; `rec None` → `feed_state 'not-found-in-europepmc'` (contado, NO candidato);
+`ZDB-PUB/FIG/ALT/FISH`, ENSDARG, UniProt, GSE → `fed_to None`, `'no-sink-in-1.13 (<kind>)'`; cortacircuito de autenticación (un `error: auth` deja
+las consultas restantes `skipped-cap` con detail, cero red); `success` = ≥ 1 candidato materializado, `no-match` = midió y 0 materializados.
+Admisión al pool **native-first dentro de la ronda** (`selection.pool_admission_rule 'native-first within a round (ADR-0084)'`: lo que EPMC/PubMed
+trajeron Y la web señaló queda `selection.duplicates[]` con `source_family 'web'` y `feed_state 'already-present (dup of <id>)'` —
+`n_already_present` MIDE «la web halló lo que ya teníamos») y tercer componente de orden en `_select_top_n` (`selection.tie_break_web_located
+'native-before-web-located (ADR-0084)'`); ambas llaves viajan SÓLO cuando hubo candidatos web — sin web la selección es byte-idéntica a hoy.
+`block['web_locator']` (`answer_pipeline._web_locator_block`, `block_version 'wlb-1'`) = unión de las filas web de todas las rondas con
+`located[]` cerrados tras selección y `_paper_item` (`admitted`, `duplicate_of`, `selected`, `selection_rank`, `fetched_found`);
+`n_results_by_source.web == 0` SIEMPRE (los web-localizados cuentan en `europepmc`; `n_papers_web_located` lo declara). `_PROMPT_PATH_B_TOP` /
+`_PROMPT_PAPER_KEYS` NO incluyen `url`, `search_ledger` ni `web_locator`: el bloque es INVISIBLE para el modelo por construcción.
+
+**Gate (E, `verify_output.web_predicates(citations, bundle, answer_text, web_ledger=None, provider_state=None, *, env=None)`, `wlpred-1`):**
+CUATRO predicados, TRES gating — `web_text_not_cited` (toda cita cuyo `id` es URL y NO resuelve a un ítem del bundle — carve-out
+`https://doi.org/<doi>` que `_citation_keys` ya resuelve —, o coincide con una URL del ledger web, o tiene `kind ∈ {web, url}`; `why ∈ id-is-url |
+id-matches-located-url | id-matches-unresolved-url | kind-web`), `web_located_cited_requires_fetch` (cita a un paper `source_family 'web'` con
+`fetched.found is not True` = citar la web), `web_items_native_only` (estructural: 0 papers `source 'web'`/`kind 'web'`; todo web-localizado con
+id resoluble, `web-located:` y URL canónica), `web_urls_not_in_answer` (informativo: URL del ledger verbatim en `direct_answer`; LG8 decide si
+sube a gating). Fragmento `deterministic_checks.web_locator {state ∈ checked | no-web-items | kill-switch WITT_WEB_LOCATOR=off | tool-unavailable (… |
+error: …, <pred> {ok, gating, n_checked, offenders[], rule}, conjunction[], decided_by 'code', …}`; `no-web-items` mide los 4 con ceros y NINGÚN
+predicado entra a la conjunción (admisibilidad de hoy byte a byte); bajo kill-switch EXACTAMENTE `{state}`; un `id` que iguala una URL del ledger
+viaja en `offenders[]` REDACTADO (`WEB_URL_REDACTED`: `deterministic_checks` llega al panel). Cableado en `runs._web_checks` y en la conjunción de
+`_gate` (`reasons[] 'hard predicate failed: <nombre>'`). La escalera `support_state_for` NO cambia (ADR-0053: la procedencia se declara, no gatea).
+
+**Consejo y demanda (F):** `council.harness_state_for(source_family, evidence_kind, env=None)` delega en `family_available` — con localizador
+disponible la directiva web es `'satisfiable'` y se COMPILA; apagado o sin llave el literal de hoy (o `unsatisfiable-by-harness (tool-unavailable
+(ADR-0084: BRAVE_API_KEY unset))` cuando el operador fijó `brave` sin llave). `directives_from` RECOMPUTA en tiempo de compilación el
+`harness_state` guardado en r1 y declara `harness_state_at_plan` / `harness_state_at_compile` / `harness_state_recomputed True` cuando difieren
+(la llave llegó o se fue entre el plan y la corrida; sin re-planear). `council_index.DEMAND_FAMILIES = ('figure', 'tooluniverse', 'web')` es
+ESTÁTICA (`DEMAND_FAMILIES_RULE`): `n_requirements_unsatisfiable_by_family.web` sigue contando la demanda de TODOS los registros — la serie MEDIDA
+de disparo no se rompe al llegar la llave —; `unsatisfiable_families[]` se deriva EN LA LLAMADA (`unsatisfiable_families_source 'derived:
+SEARCH_DISPATCH fn None ∪ web_locator.provider_state not available'`); `demand()` += `web_locator_provider_state {provider, provider_source,
+available, unavailable_reason}`, `demand_families[]`, `demand_families_rule`. `coverage_after_search.by_requirement[]` += `web_locator? {n_queries,
+n_results, n_located, n_materialized, n_unresolved}` SÓLO en requisitos de familia web; `retrieved-for` sigue estructural (≥ 1 candidato ADMITIDO
+con el `requirement_id` — por la web = existe en EPMC). **`GET /council/demand` sin cambio de firma** (aditivo).
+
+**Registro congelado 1.13 (aditivo; `runs.RENDER_CONTRACT_VERSION = "1.13"`; NINGÚN literal nuevo en `SOURCE_STATES` — la cuota es
+`skipped-cap` + `detail` —, en `SearchFamily` ni en el enum `kind` de `SYNTH_TOOL`):** `frozen.web_locator` **SIEMPRE presente** en ≥ 1.13 con TRES
+formas (`runs._web_locator_frozen`): **(1)** off EXPLÍCITO → EXACTAMENTE `{state 'kill-switch WITT_WEB_LOCATOR=off', provider 'off',
+provider_source 'env:WITT_WEB_LOCATOR', kill_switch {WITT_WEB_LOCATOR '<raw>', enabled false, source, declared_exceptions
+['render_contract_version', 'web_locator', 'deterministic_checks.web_locator']}, state_vocabulary {exact, prefixes, rule}, rule}`
+(`runs.WEB_FROZEN_KILL_SWITCH_KEYS`); **(2)** Ruta B por el harness → el bloque D.4 copiado íntegro (`block_version 'wlb-1'`, encabezado
+`module_version 'wl-1'` / `resolver_version 'wlr-2'` / `tool_version 'bws-1'|null` / `state_vocabulary` / `resolver_rules[12]` / `allowed_hosts` /
+`generic_doi_rule` / `text_policy` / `rule` / `gate`, `state`, `state_detail`, `measured`, `in_plan`, `plan_exclusion_reason`, `provider`,
+`provider_source`, `provider_available`, `provider_state`, `entered_by`, `directive_requirement_ids`, `query_source`, `families_order_rule`,
+`n_rounds_with_web`, `by_round[]`, `n_queries`, `queries[]`, `located[]` (URL HALLADA sólo aquí + cierre), `unresolved[]` (`title_web` sólo aquí),
+`gap_flags_typed[]`, `n_gap_flags`, `cost {provider, n_queries_billable, price_usd_per_1k, price_as_of, price_source_url, usd_projected, class
+'proyección', tokens? {in, out, class 'medición', model}}`, `cost_usd_projected`, `quota {state, n_before, n_after, cap, cap_source, month, hook,
+n_record_errors, rule}`, `quota_state`, `had_web_candidates`, `pool_admission_rule`, `tie_break_rule`, `dedup_layer_rule`, `materialize_rule`,
+`located_close_keys`) + `source`; si NO midió (`measured false`) los contadores `null` de `runs.WEB_FROZEN_COUNTER_KEYS` se OMITEN (no midió ≠ 0) y, con
+el proveedor no disponible y `state 'not-requested …'` (directiva excluida al compilar), `state` pasa a `web_locator.state_when_not_run(ps)` —
+p. ej. `'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)'`: la CAUSA viaja aquí, no en el plan — y la ruta queda en `state_detail`; **(3)** sin
+ronda del harness → encabezado de `web_locator.frozen_header` + `{state 'not-requested (no search round)' | state_when_not_run(ps), state_detail,
+measured false, in_plan false, …, n_queries 0, queries [], located [], unresolved [], gap_flags_typed [], quota {state null, cap, cap_source,
+month null, rule}, quota_state null, had_web_candidates false, …}` SIN contadores. Estados (`web_locator.WEB_STATES_EXACT` + `WEB_STATE_PREFIXES`):
+`located` · `no-results` · `not-requested (no web directive)` · `not-requested (no search round)` · `kill-switch WITT_WEB_LOCATOR=off` ·
+`tool-unavailable (ADR-0084…` · `skipped-cap (` · `skipped-budget (` · `error: `. La fila web de `frozen.search_ledger.rounds[].sources` conserva
+`provider, n_queries, n_results, n_located, n_materialized, n_unresolved, n_already_present, cost_usd_projected, quota_state` y PODA el
+`web_locator` anidado (`web_locator_frozen_at 'frozen.web_locator'`); `bundle_json` la conserva íntegra. `deterministic_checks.web_locator` =
+fragmento de (E). `answer.gap_flags` += a lo sumo DOS strings de CONTEO apilados por CÓDIGO tras pass2/revisión (`runs.WEB_GAP_FLAG_UNRESOLVED`
+`'web-located-unresolved: <n> URL(s) located on the web could not be resolved to an identifier by code — declared in frozen.web_locator.unresolved,
+never cited'` y `runs.WEB_GAP_FLAG_UNMATERIALIZED` `'web-located-unmaterialized: <k> identifier(s) … not found in Europe PMC — declared in
+frozen.web_locator.located, never cited'`; sólo con n/k > 0; JAMÁS URLs). `citations[].located_via ('web' | null)` y
+`citations_support_summary.n_located_via_web` SÓLO cuando `web_locator.provider_state().available` (ausentes bajo off explícito/derivado y bajo
+`brave`/`anthropic` sin llave). `epistemic_summary` += `web_locator_state` (str), `web_n_located` / `web_n_unresolved` (int | null — null = no
+midió ≠ 0). `agents_invoked` += fila `{agent 'web_locator (lib/web_locator.py — Brave|Anthropic locator + deterministic URL→id resolver; web text
+never enters the bundle)', status 'invoked' | 'not-applicable (<state>)' | 'tool-unavailable', provider, invocation_id
+'web_locator:<n_located|->/<n_results|->', evidence_generated[], reason?}` — AUSENTE bajo off explícito o derivado (para que la enumeración de
+excepciones sea verdad). Históricos < 1.13: `web_locator` ausente → PDF «NO INSTRUMENTADO (contrato < 1.13)», webapp «?»; nada se recalcula.
+
+**Eventos:** NUEVO `stage.web.locate` (`agent 'web_locator'`, UNO por consulta DECLARADA — enviada o `skipped-cap`/`skipped-budget`/`error`, jamás
+bajo `tool-unavailable`; + `detail?` / `error?` *(corrector: el latido de la consulta que la cuota frenó también se emite)* —, latido dentro de la ronda; payload `{round, provider,
+query_en, query_source, requirement_ids[], provider_status, http_status?, elapsed_s, throttle_wait_s, cache_hit, query_altered_by_provider,
+n_results, n_located, n_materialized, n_unresolved, located_ids[], hosts_unresolved[], cost_usd_projected, quota {state, n_after, cap}}` — ids y
+hosts, SIN URLs); `stage.search.source` (fila web) += `provider, n_queries, n_results, n_located, n_materialized, n_unresolved, n_already_present,
+cost_usd_projected, quota_state` (las otras 14 familias no los ganan); `stage.path_b` += `n_web_located, n_web_unresolved` y `papers[] +=
+located_from?, search_rec_source?`; `stage.deterministic_gate` += `web_locator_state`. Ninguna URL en ningún evento (assert GLOBAL del smoke sobre
+`run_events`).
+
+**Costo (G.7 — dos clases, un total que cuadra) y cuota (H):** `token_usage.web_locator {provider, n_queries_billable, price_usd_per_1k (5.0 brave |
+10.0 anthropic), price_as_of '2026-09-16', price_source_url, usd_projected, class 'proyección', tokens? {in, out, class 'medición', model},
+tokens_usd_projected?, tokens_price_state?, provider_detail? (anthropic: {tool_type, tool_type_source, tool_types_allowed, reads_web_text True, property} —
+*corrector*), state, n_queries, n_results | null, n_located | null, n_materialized | null, n_unresolved | null (null = no midió, p. ej. `skipped-cap` —
+*corrector*), quota_state}` SÓLO cuando la familia
+CORRIÓ (`n_rounds_with_web > 0`; también `skipped-cap` con 0 facturables); **`estimated_cost_usd` INTACTO** (su `cost_class` sigue diciendo «tokens
+× per-Mtok prices») y NUEVO `estimated_cost_usd_total_projected = round(estimated_cost_usd + usd_projected, 4)` con `total_class 'PROJECTION (tokens
+× price) + PROJECTION (web locator requests × unit price) — two projections, same class; measurement counts travel apart'`;
+`by_stage.search.note = 'Layer 0 tools — no model call (ADR-0080); web locator cost travels apart (ADR-0084)'` y
+`by_stage.search.web_locator_usd_projected`; con `anthropic` los tokens del despachador SÍ son tokens medidos de un modelo: `by_stage.search {in,
+out, model, state 'measured (anthropic web_search dispatcher)'}` y `by_model[<despachador>]` los suma (`by_stage_sum_matches_by_model` se
+conserva). Cuota mensual: tabla NUEVA **`web_locator_usage`** `(id, month VARCHAR(7) 'YYYY-MM' UTC, provider VARCHAR(16), n_queries, n_results,
+cost_usd_projected FLOAT, updated_at TZ; UNIQUE (month, provider))` — nace por `create_all`, `_migrate` no la toca;
+`db.web_locator_reserve(provider, month, cap, record=None) -> {granted (bool | None con record), n_before, n_after, cap}` = INSERT idempotente +
+`UPDATE … SET n_queries = n_queries + 1 WHERE … AND n_queries < :cap` (rowcount 1 = granted; ATÓMICO en SQLite y Postgres, sin `RETURNING` / `ON
+CONFLICT` / `INSERT OR IGNORE`; `cap 0` = cuenta y concede — `disabled (WITT_WEB_MONTHLY_CAP=0)`); `record=` suma `n_results`/`cost` DESPUÉS de la
+llamada; `db.web_locator_month_to_date(provider, month)`, `db.web_locator_usage_months(limit=12)`, `db.web_locator_usage_table_exists()`. Secuencia
+ÚNICA por consulta en `web_locator.locate`: `provider_state` → sondear la caché por día (hit → cuota NO reservada, `'not-consumed (cache-hit)'`) →
+`quota_fn` ANTES de la red (`granted False` → `skipped-cap` con `detail 'monthly cap WITT_WEB_MONTHLY_CAP=<cap> reached (n_queries=<n>, month
+<m>)'`, CERO red; sin `quota_fn` → `'not-enforced (no quota callable)'`) → proveedor → `resolve_urls` → `quota_fn(record=)`. `runs` construye
+`web_quota = db.web_locator_reserve` y lo inyecta por firma (`path_b_bundle(web_quota=)`); el harness NO importa `db`. `quota.rule`: «local counter of
+queries SENT by this deployment (UTC calendar month); CLI probes do not count; the provider dashboard is the truth of the balance; provider cycle
+attested in LG0».
+
+**`GET /usage` gana `web_locator` (I; `app._WebLocatorUsageAccumulator`, APARTE de `totals`):** `{state 'measured' | 'not-measured',
+n_runs_with_queries, n_runs_web_locator_declared, n_runs_locator_off, by_state, by_quota_state, n_queries, n_queries_billable, n_results, n_located,
+n_materialized, n_unresolved, rate_located_over_results, cost_usd_projected, estimated_cost_usd_total_projected, by_provider {brave? | anthropic?
+{n_runs, n_queries, n_queries_billable, n_results, n_located, n_materialized, n_unresolved, cost_usd_projected, price_usd_per_1k, tokens_in,
+tokens_out}}, month_to_date {state ∈ under-cap | cap-reached | disabled (WITT_WEB_MONTHLY_CAP=0) | table-missing | error, month, provider,
+provider_source, row_provider, n_queries, n_results, cost_usd_projected, cap, cap_source, remaining, row_present, updated_at, credit_usd_assumed
+5.0, credit_source_url 'https://brave.com/search/api/', rule, rows[]}, class 'MEASUREMENT (queries, results, located, materialized, unresolved) /
+PROJECTION (USD = billable queries x unit price)', source, rule, price_as_of}` — 21 llaves; una corrida sin `usage_json.web_locator` (registro <
+1.13, kill-switch, sin llave o sin directiva web) se CUENTA en `n_runs_locator_off` (ausencia ≠ 0 consultas); **`totals.estimated_cost_usd` NO
+incluye el localizador** (M8 lo pinta APARTE con «la verdad del saldo es el dashboard de Brave»). CERO rutas nuevas.
+
+**PDF (J, `record_pdf.py`):** `KEY_BORN['web_locator'] = '1.13'`; `SECCIONES` 52 → **53** (`('web_locator', 'localizador')`); `ORDEN_SECCIONES` +=
+`('localizador', 'LOCALIZADOR WEB (ADR-0084) - la web LOCALIZA identificadores, jamas es fuente: …')` tras `busqueda`; `_section_localizador` con
+los TRES estados (registro < 1.13 → `NO INSTRUMENTADO (contrato < 1.13)`): estado + glosa (vocabulario cerrado de `web_locator`), proveedor y
+fuente, `entered_by`, consultas verbatim (req-ids, proveedor, país/idioma, `n_results`, caché, `USD [PROYECCION]`), tabla `located[]` (id · kind ·
+regla · confianza · fed_to · feed_state · seleccionado · fetched — **SIN la URL hallada**: vive sólo en `frozen.web_locator.located[]`, que la Hoja
+pinta; el PDF circula fuera de la app), tabla `unresolved[]` (URL completa rotulada «NO ADMISIBLE COMO EVIDENCIA» · host · razón glosada · título
+del buscador rotulado «no es evidencia»), contadores con la palabra `MEDICION`, cuota `n/cap` con `quota.rule`, `text_policy`; bajo kill-switch el
+literal; `_section_gate` gana el bloque `web_locator` (4 predicados) y `web_locator` entra a `conocidas`; `token_usage.web_locator` y el total
+proyectado en CONSUMO; `epistemic_summary.web_*` en la faceta. Gate de cobertura (ADR-0083 K): `frozen_keys` 53, `pdf_sections_cover(frozen 1.13
+real) == {missing [], extra []}`, born `'1.13'` — MEDIDO `smoke_record_pdf.py` 68/68.
+
+**Kill-switch y byte-identidad (L, M.1 de la casa):** `WITT_WEB_LOCATOR=off` (explícito) o `off` DERIVADO (sin `BRAVE_API_KEY`, env unset) →
+familia web excluida con el literal EXACTO de 7d9ce15 (`grep -c 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))'` == 1 en
+`search_harness.py`, 0 en runs/app/db/models — UNA verdad), `harness_state` y `/council/demand` idénticos, 0 eventos `stage.web.*`, 0 ítems web,
+`token_usage` sin `web_locator`, `citations[]` sin `located_via`, `agents_invoked` sin fila web; **el frozen es igual al 1.12 del MISMO fixture
+(json sort_keys, keyset Y valores) salvo EXACTAMENTE `runs.WEB_DECLARED_EXCEPTIONS = ('render_contract_version', 'web_locator',
+'deterministic_checks.web_locator')`** *(corrector: verdad para el MISMO fixture SIN datos web — los literales compartidos del consejo
+`directives_rule` / `coverage.after_search.rule` volvieron a los de 1.12 byte a byte y la ampliación web viaja en `directives_availability_rule` (sólo con
+recomputo) y `web_locator_source/_rule` (sólo con ledger web no vacío); `runs.WEB_ADDITIVE_KEYS_WITH_WEB_DATA` enumera lo que SÓLO existe con datos web;
+`epistemic_summary` es otra columna, no el frozen; con `web` nombrada en la env bajo off el plan y la fila son los MÍNIMOS de 7d9ce15 — sin reorden ni
+`families_order_rule`, la fila con el keyset de una familia `fn None` y el literal `tool-unavailable (ADR-0084)`)* — `smoke_run_pipeline` mide el diff de
+paths == ∅ contra la corrida ENCENDIDA del mismo fixture tras restar
+las aditivas 1.13 e identidad; ADEMÁS el golden LIGERO `fixtures/golden_plan_web_directive_7d9ce15.json` (grabado EN 7d9ce15: `build_search_plan`
+con la directiva web, `harness_state_for('web','web')` y la forma de `demand()`) contra el que el plan bajo off se compara byte a byte.
+Invariantes: §6 no-hang (proveedor caído → fila `error`/`tool-unavailable`, la ronda sigue) · `urlopen` bloqueado y contado == 0 en los smokes ·
+`ctx['dois']`/`ctx['curies']` append-only (`id()` medido) · env leída EN LA LLAMADA (`env_config()` por corrida, `provider_state()` por
+plan/compilación/despacho) · la llave jamás en salida/ledger/caché/fixture/eventos (grep del valor fake == 0).
+
+**Variables de entorno nuevas (ADR-0084; 17 = `web_locator.ENV_VARS` + el secreto `BRAVE_API_KEY`, que NO entra a `models.ENV_TABLE`)** —
+default declarado en `web_locator.ENV_SPECS` (17 filas; `assert len == 17`); lector tolerante EN LA LLAMADA (`web_locator.env_config()`: vacía/basura →
+default con fuente `default` | `default-invalid-env:<VAR>`; fuera de rango → recorte DECLARADO en `cfg.clamped`); `models.ENV_TABLE` gana las mismas
+17 filas con `adr '0084'` (`models.ENV_ADR_0084`, en el orden del ADR; paridad de defaults/kinds/clamps MEDIDA en `smoke_models`; `WITT_WEB_LOCATOR`
+kind `choice ('', brave, anthropic, off)` casefold) y `SNAPSHOT_FIELDS += ('web.locator', 'web.provider')` (`models.WEB_SNAPSHOT_FIELDS`, FUERA de
+`panel_signature`; `snapshot().fields['web.provider'] = models._web_provider_field(env)` con la MISMA derivación que `web_locator.provider_state` —
+paridad medida en 8 combinaciones); el valor efectivo y su fuente viajan en `frozen.web_locator`; **toda env implica reinicio** (el compose lo dice en
+su bloque ADR-0084, tras el bloque 0083). `BRAVE_API_KEY` viaja SÓLO como presencia (`api_key_present: bool`); en compose es `${BRAVE_API_KEY:-}`
+con «never git» — never vault, never memoria, sólo la pestaña Environment de Dokploy (LG0).
+
+| Variable | Default | Lector | Efecto / fuente declarada |
+|---|---|---|---|
+| `BRAVE_API_KEY` | — (unset; **never git**, never vault, never memoria — sólo la pestaña Environment de Dokploy) | `brave_web_search._api_key` · `web_locator.provider_state` | cabecera `X-Subscription-Token`; en salida/ledger/caché/fixture sólo `api_key_present: bool`; ausente ⇒ proveedor derivado `off` (familia web `unsatisfiable-by-harness (tool-unavailable (ADR-0084))`), `frozen.web_locator.state 'tool-unavailable (ADR-0084: BRAVE_API_KEY unset)'`, CERO red |
+| `WITT_WEB_LOCATOR` | — (unset ⇒ derivado: `brave` si hay llave, `off` si no) | `web_locator.provider_state` (plan, compilación, despacho) | `brave \| anthropic \| off`; `off` = kill-switch (L); fuera de vocabulario ⇒ `off` con `provider_source 'default-invalid-env:WITT_WEB_LOCATOR'`; `anthropic` es EXPLÍCITO (sin auto-failover: el despachador LEE texto web) |
+| `WITT_WEB_MAX_RESULTS` | `10` (clamp 1..20) | `brave_web_search.locate` | `count` por consulta (tope documentado 20); anthropic no aplica (`count_sent null`) |
+| `WITT_WEB_MAX_QUERIES` | `3` (clamp 1..10) | `search_harness._run_web_family` | consultas por ronda (una por directiva); sobrantes `skipped-cap` en `calls[]` + `n_queries_dropped_by_cap` |
+| `WITT_WEB_MAX_MATERIALIZE` | `6` (clamp 0..20) | `_run_web_family` | ids de literatura verificados en Europe PMC por ronda (`_resolve_one`, una GET c/u); resto `not-materialized (feed cap)`; `0` = sólo localizar |
+| `WITT_WEB_MAX_QUERY_CHARS` | `400` | `brave_web_search.locate` | tope NUESTRO de `q` (Brave no documenta longitud); `query_truncated` declarado |
+| `WITT_WEB_BUDGET_S` | `30` (clamp 1..120) | `SEARCH_DISPATCH['web'].budget_s` (`search_harness.family_budget_s`) | presupuesto de la familia dentro de la ronda (consultas + materialización) |
+| `WITT_WEB_MIN_INTERVAL_S` | `1.0` | `net_throttle.get_throttle('api.search.brave.com')` | pacing PROPIO (Brave publica 50 qps); `throttle.waited_s` medido |
+| `WITT_WEB_COUNTRY` | — (no se envía) | `brave_web_search.locate` | `country` 2 letras; vacío ⇒ ausente (`country_sent null`) |
+| `WITT_WEB_LANG` | `en` | idem | `search_lang` ISO 639-1 (las `query_en` son inglés); presente y VACÍA ⇒ no se envía |
+| `WITT_WEB_FRESHNESS` | — (no se envía) | idem | `pd \| pw \| pm \| py \| YYYY-MM-DDtoYYYY-MM-DD`; fuera de forma ⇒ no se envía + `freshness_ignored` |
+| `WITT_WEB_ALLOWED_HOSTS` | — (unset = `'all (resolver table + doi-in-url on any host)'`) | `web_locator.resolve_urls` · `_anthropic_web_search` | CSV que RESTRINGE los resolubles (host fuera ⇒ `host-not-allowed`); para anthropic viaja como `allowed_domains` (≤ 20, sin esquema) |
+| `WITT_WEB_GENERIC_DOI_RULE` | `1` | `web_locator.resolve_urls` | regla `doi-in-url-any-host` (`confidence 'pattern-only'`); `0` = sólo reglas por host; la existencia la verifica EPMC en la misma ronda |
+| `WITT_WEB_MONTHLY_CAP` | `900` | `db.web_locator_reserve` (vía `web_quota`) | tope mensual UTC de consultas facturables por proveedor (tabla `web_locator_usage`, UPDATE condicional atómico); alcanzado ⇒ `skipped-cap` con detail, cero red; `0` = sin tope declarado (OE2) |
+| `WITT_WEB_TEST_QUERY` | — (unset) | `search_harness.build_search_plan` | consulta EXPLÍCITA del operador cuando `web` entra por `WITT_SEARCH_DEFAULT_FAMILIES` (`query_source 'operator-env:WITT_WEB_TEST_QUERY'`); sin ella, `pass1_query_en`; nunca en producción |
+| `WITT_ANTHROPIC_WEB_SEARCH_MAX_USES` | `1` (clamp 1..5) | `web_locator._anthropic_web_search` | `max_uses` del server-tool (una directiva = una búsqueda); `max_uses_exceeded` declarado como error no facturado |
+| `WITT_WEB_ANTHROPIC_TOOL_TYPE` | `web_search_20250305` | idem | literal del `type` — VOCABULARIO CERRADO `web_locator.ANTHROPIC_TOOL_TYPES` (sólo `web_search_20250305`, sin dynamic filtering; `20260209`/`20260318` entran por ADR, jamás por env); otro literal ⇒ default + `default-invalid-env`; el tipo enviado y «el modelo LEE texto web» viajan en `frozen.web_locator.queries[].tool_type/provider_property` y en `cost.provider_detail` *(corrector)* |
+| `WITT_WEB_LOCATOR_MODEL` | — (unset ⇒ `models.resolve_role('elicitation')`) | idem | modelo del despachador; validado contra `models.MODELS`; FUERA de `PIPELINE_ROLES` (la firma no cambia) |
+
+**Gates NO-SPEND (máscara de siempre + `BRAVE_API_KEY=''` + `WITT_RUN_ORIGIN=smoke` + `WITT_MCP_CACHE_DIR=<tmp>`; UNA `.db` y UN directorio de
+caché temporal por smoke; `urlopen` bloqueado y contado == 0; `mcp_cache/` real byte-idéntico; conteos MEDIDOS por W7 el 2026-09-16 — la tabla
+con «qué mide cada uno» vive en el ADR):** NUEVOS `smoke_tools_d.py` (**50/50**: el tool Brave con `_get` monkeypatcheada — estados jamás
+fundidos, `fields_dropped`, el sobre de caché SÍ conserva `description` y la SALIDA no, 429 con UN reintento, `query_truncated`, `params_sent` ==
+documentados, la llave fake JAMÁS en salida/caché/fixture; fixture `provenance: synthetic`) · `smoke_web_locator.py` (**170/170** → corrector **182/182**: GOLDEN del
+resolutor sobre `fixtures/web_locator_urls_golden.json`, determinismo byte a byte, `provider_state` × 8 combinaciones con `provider_source` y
+`unavailable_reason` exactos, `locate()` con `quota_fn` que niega → `skipped-cap` sin llamar al proveedor, `cache_probe` positivo → cuota NO
+reservada, alterno Anthropic con fixture SINTÉTICO — URLs sí, `encrypted_content`/`cited_text`/texto AUSENTES, body SIN `tool_choice` —,
+`cost_of`, `ENV_SPECS` tolerante, `NOT_ADMISSIBLE_PRECEDENTS` medidos) · `smoke_web_pipeline.py` (**29/29** → corrector **32/32**: `_path_b_harness` con fake web +
+`_resolve_one` + `fetch_external` stubs — paper web-localizado con `search_rec` de EPMC y NO el `title_web` del fixture, `selection.duplicates[]`
+con `source_family 'web'`, `not_selected` con n=5 nativos, `n_results_by_source.web == 0`, `_PROMPT_*` sin `web_locator`/`url`, sin web
+`selection` byte-idéntica) · `smoke_web_quota_db.py` (**15/15** → corrector **17/17**: tabla EXACTA + UNIQUE, 8 hilos → exactamente `cap` granted, cap 0, `record=`,
+`month_to_date`, SQL portable, costura `locate(quota_fn=db.web_locator_reserve)`); TOCADOS `smoke_search_harness.py` (**91/91** → corrector **94/94**: tabla de 15 con
+`web` real, plan bajo off == golden 7d9ce15, web PRIMERA con directiva, `pass1_query_en` sin la pregunta cruda, `WITT_WEB_TEST_QUERY`, ronda con 6
+URLs → 1 candidato `europepmc`/`web-located:pubmed-path`, DOI y curie en `ctx` la MISMA ronda hacia `unpaywall_crossref`/`monarch` (spy), topes,
+auth circuit, `id(ctx['dois'])` inalterado, 0 URLs en payloads) · `smoke_gate_citations.py` (**100/100**: los 4 predicados, carve-out
+`doi.org`, `web_located_cited_requires_fetch`, `no-web-items` byte a byte, kill-switch `{state}`) · `smoke_council.py` **77/77** → corrector **78/78** ·
+`smoke_council_index.py` **67/67** · `smoke_council_http.py` **76/76** (literal de hoy bajo off, `satisfiable` + `compiled` con `provider_state`
+parcheado, `harness_state_recomputed`, `coverage_after_search.web_locator` sólo en el requisito web, `DEMAND_FAMILIES` conserva `web`, `demand()`
+cuenta `web` histórico CON llave fake) · `smoke_run_pipeline.py` (**402/402** → corrector **407/407**; línea base 372; la meta ≥ 410 del borrador NO se alcanzó en número
+y se declara — era estimación de conteo; todos los checks listados están: contrato `'1.13'`, 3 excepciones, Traza con `stage.web.locate`,
+`frozen.web_locator located` con clases, prompt/lentes/r3 sin texto web, cita URL fabricada inadmisible, `gap_flags` de conteo, `thread_context`
+del hijo sin URLs, costo y total, cuota cap=1, **KILL-SWITCH M.1 diff == ∅**, `brave` sin llave, competente, alterno Anthropic con `_post_json`
+falso, assert GLOBAL sobre la BD) · `smoke_usage_http.py` (**39/39**) · `smoke_record_pdf.py` (**68/68**) · `smoke_models.py` (**102/102**:
+`ENV_TABLE` 85 = 21+27+20+17 ⊆ compose ∩ README, `BRAVE_API_KEY` fuera de la tabla y en compose/README con «never git», `SNAPSHOT_FIELDS` 37,
+`panel_signature` == golden 9d90c01). Estático: **`analysis/scripts/smoke_live_web.py --dry-run` exit 0** (el único modo del CI — construye el cuerpo
+Brave: `url_sent` sin token, `params_sent ['q', 'count', 'search_lang']`, y el cuerpo Anthropic: sin `tool_choice`, `allowed_domains` == lista,
+`urlopen` bloqueado == 0; resuelve el fixture SINTÉTICO: 11 resultados, 9 located, 2 unresolved). Los 41 smokes restantes sin regresión — **45/45
+exit 0** (`smoke_tools_c` 68/68 tras corregir un `mailto:` del fixture de W2).
+
+**Gates EN VIVO — LG0–LG9 (los corre Emmanuel; cada uno gasta lo que dice; ningún smoke del CI gasta; el resultado se anota en el ADR como MEDICIÓN
+con fecha). El instrumento es `analysis/scripts/smoke_live_web.py --provider brave|anthropic --query … [--count N] [--materialize] [--dry-run]`
+(usa el código REAL: `brave_web_search.locate`, `web_locator.resolve_urls`, `fetch_paper._resolve_one`; NUNCA importa la BD) y la CLI del tool
+`python .tooluniverse/tools/brave_web_search.py "<query>" [--count N] [--record-fixture]`:**
+
+0. **LG0 · Alta de Brave (acción, sin código):** llave en api-dashboard.search.brave.com bajo el plan **«Search»** (US$5/1k, US$5 de crédito/mes,
+   50 qps; tarjeta sólo identidad) — **NO «Answers»**; `BRAVE_API_KEY` en Dokploy (jamás git/vault/memoria). ATESTIGUAR en el ADR: plan, fecha, si
+   el crédito se renueva por mes calendario o por ciclo (`quota.rule`), y si el dashboard muestra tope mensual.
+1. **LG1 · Fixture REAL (1 GET, ≈ US$0.005):** `brave_web_search.py "wt1a zebrafish pronephros podocyte" --record-fixture` →
+   `fixtures/brave_web_search_wt1a-…_<YYYYMMDD>.json` con `live true`; HTTP 200, `web.results[]`, cabeceras `X-RateLimit-*` anotadas, `count`
+   efectivo 10; borrar el SINTÉTICO y correr `smoke_tools_d` (declara `provenance 'live'`); un 422 se registra como deriva de API.
+2. **LG2 · Punta a punta en dev (1 GET Brave + ≤ 6 GET EPMC):** `smoke_live_web.py --provider brave --query "…" --materialize` → `located[]` /
+   `unresolved[]` con reglas, `n_materialized`, idents 100 % en forma, `_resolve_one` real `found True/False`; 0 campos `description` en la salida.
+3. **LG3 · Rate limit real:** 3 consultas seguidas con `WITT_WEB_MIN_INTERVAL_S=1.0` → cabeceras `X-RateLimit-*`, ningún 429; ajustar por env, no código.
+4. **LG4 · Cuota:** dev con `WITT_WEB_MONTHLY_CAP=1` → 1.ª granted, 2.ª `skipped-cap` con detail y CERO GETs; fila del mes UTC en
+   `web_locator_usage`; restaurar 900.
+5. **LG5 · Alterno Anthropic (1 llamada, ≈ US$0.01 + tokens):** `WITT_WEB_LOCATOR=anthropic` en dev → 400 «web search is not enabled» ⇒
+   `tool-unavailable (… Console)` y el alterno queda DECLARADO no operativo; si responde: fixture REAL sin `encrypted_content`, `web_search_requests
+   == 1`, `input.query` vs directiva, tokens, `n_text_blocks_discarded`, costo. Sólo con LG5 en verde el README podrá nombrarlo «alterno operativo».
+6. **LG6 · Una corrida REAL en prod tras redeploy** cuya ronda 2 emita un `must source_family 'web'` (o dev con
+   `WITT_SEARCH_DEFAULT_FAMILIES=…,web` + `WITT_WEB_TEST_QUERY`): Traza `stage.search.plan` (web primera) → `stage.web.locate` → `stage.search.source
+   (web)`; `frozen.web_locator.located[]` con `fed_to`/`feed_state`/`fetched_found` reales, ≥ 1 paper `web-located:…` con texto de EPMC
+   (`raw_paper_*` nuevo), `deterministic_checks.web_locator checked`, `usd_projected == n_billable × 0.005`, tabla mensual incrementada; PDF con
+   «LOCALIZADOR WEB»; Hoja 2c / Traza / M8 pintan; `parity_check` 0 huecos nuevos.
+7. **LG7 · Kill-switch en prod:** `WITT_WEB_LOCATOR=off` con la misma pregunta → sin `stage.web.*`, `families_excluded[web].reason` == literal de
+   7d9ce15, `frozen.web_locator.state 'kill-switch WITT_WEB_LOCATOR=off'`, `/council/demand` sigue contando `web`; reencender.
+8. **LG8 · Tasas tras 5 corridas con directiva web (descriptivo, n≈5):** `n_located/n_results`, `n_materialized/n_located`,
+   `n_located_selected/n_located`, `unresolved[].reason` por host, `n_already_present/n_located` → ADR posterior decide ranura en top-n · regla
+   `doi-from-html-meta` · ampliar `WITT_WEB_ALLOWED_HOSTS` · si `web_urls_not_in_answer` sube a gating.
+9. **LG9 · Ops:** redeploy con las 17 env del compose + `BRAVE_API_KEY`; `mcp_cache` con escritura (`raw_brave_*`, `raw_paper_*`); el redeploy
+   pendiente de ADR-0076…0083 ya en prod; fila `new-field` de `web.locator`/`web.provider` en `config_history` visible en M6.
+
+**Proyección de costo (CLASE: PROYECCIÓN, precios públicos verificados 2026-09-16; LG1–LG8 sustituyen cada cifra):** Brave US$0.005 por consulta
+cobrable, ≈ 1 000/mes sin gasto; supuestos ≤ 3 consultas/ronda, ≤ 2 rondas, 50 % de las corridas con ronda emiten directiva web, 40 corridas/mes ⇒
+≈ 60 consultas ≈ US$0.30/mes típico, peor caso 240 ≈ US$1.20; `WITT_WEB_MONTHLY_CAP=900` impide rebasar el crédito (sobregiro imposible con el
+UPDATE condicional). Anthropic sólo si se enciende: ≈ US$0.02–0.04 por consulta (US$0.010 + tokens del despachador) — 4–8× Brave y CON modelo leyendo
+texto web. Latencia añadida ≤ 5 s de consultas + ≤ 18 s de materialización dentro de `WITT_WEB_BUDGET_S=30`. Costo INDUCIDO de modelo: con llave
+los `must` web dejan de ser «unsatisfiable» y GATEAN la competencia → más pass2 (US$0.2–0.5 c/u según M8); es el costo de buscar lo que el consejo
+pide, medible en LG6/LG8, kill-switch inmediato por env.
+
+**Decisiones abiertas (OE1–OE5, defaults aplicados; el ADR las lista):** OE1 llave de Brave — acción de Emmanuel (plan Search, Dokploy, LG1); hasta
+entonces proveedor derivado `off`, declarado; nada bloquea el merge · OE2 `WITT_WEB_MONTHLY_CAP=900` (≈ 90 % del crédito; alternativas 500 / 0) ·
+OE3 alterno Anthropic CABLEADO tras `WITT_WEB_LOCATOR=anthropic`, NO operativo hasta LG5 · OE4 regla `doi-in-url-any-host` ENCENDIDA (la
+existencia la verifica EPMC en la misma ronda) · OE5 «gap_flag con la URL» = conteo por clase en `answer.gap_flags`; la URL SÓLO en
+`frozen.web_locator` (Hoja, PDF) — porque `answer.gap_flags` viaja al planner y al sintetizador del turno siguiente.
+
+**Webapp (tipar y pintar; OTRO workflow — `witt-webapp` @ `d41e4a8` NO se tocó):** `RegistroCongelado.web_locator?` (las 3 formas),
+`DeterministicChecks.web_locator?`, `Citation.located_via?`, `CitationsSupportSummary.n_located_via_web?`, `EpistemicSummary.web_*?`,
+`TokenUsage.web_locator? / estimated_cost_usd_total_projected? / total_class?`, `by_stage.search.web_locator_usd_projected? / model? / state?`,
+`SearchSource.web_locator_frozen_at?`, `StageWebLocatePayload` + caso `'stage.web.locate'` en la Traza, `UsageResponse.web_locator?`,
+`CouncilDemand.web_locator_provider_state? / unsatisfiable_families_source`, `CouncilDirective.harness_state_at_plan? / harness_state_at_compile? /
+harness_state_recomputed?` y `CouncilDirectiveExcluded.…` (sólo cuando difieren; `CouncilRequirement` NO cambia — *corrector*), `Council.directives_availability_rule?`,
+`SearchPlanEventPayload.families_order_rule?`, `PathBSelectionEvent.pool_admission_rule? / tie_break_web_located?`, `PathBPaperResumen.located_via?`,
+`SearchSource` con el keyset MEDIDO de la fila web (ver (7) del ADR) y `SearchCall += http_status? n_results? n_located? n_materialized? n_unresolved?
+provider_elapsed_s? retries_429? throttle_wait_s?` (*corrector*), `AgentsInvokedRow` con status `'tool-unavailable'` y `provider`, `EnteredBy += 'env:WITT_SEARCH_DEFAULT_FAMILIES'`.
+Hoja: entrada «2c · Localizador web» (URL como palabra-máquina, jamás enlace a texto; «sin resolver» como brechas declaradas; `text_policy` y
+kill-switch como ESTADO). **Gate de paridad MEDIDO por W7 el 2026-09-16** (copia de lectura de `parity_check.py` con `BACKEND` → este worktree):
+EXIT 1 · 968 filas · 8 huecos — 5 ya en `parity_debt.json` y 3 SIN declarar: `[registro] web_locator` CONGELA SIN TIPO · `[etapas] stage.web.locate`
+SIN CASO EN TRAZA · `[trigger] entered_by 'env:WITT_SEARCH_DEFAULT_FAMILIES'` LITERAL SIN TIPO · `[pdf]` 0 · rutas 0 nuevas. Fixtures que la webapp
+generará contra este backend (fakes inyectados; SINTÉTICOS declarados en `MANIFIESTO.md`): `web-localizador.json`, `web-kill-switch.json`,
+`web-sin-llave.json`, `web-cap-mensual.json`, `web-anthropic.json`, `eventos-web-locate.json`, `usage-web-locator.json`,
+`demand-web-provider-state.json`.
+
+**Qué NO se hace (y por qué NO es deuda):** DuckDuckGo html/lite (captcha + ToS, MEDIDO) · SearXNG autohospedado · scraping de HTML o `<meta
+name="citation_doi">` (alternativa `doi-from-html-meta` con disparador MEDIDO en LG8 — ADR propio) · `description`/`extra_snippets`/`title` de Brave
+como texto o evidencia · parámetros no documentados de Brave (`result_filter`, `text_decorations`, `spellcheck`, `summary`) · plan «Answers» ·
+`web_search_20260209/20260318` con dynamic filtering y `web_fetch` de Anthropic · auto-failover Brave → Anthropic · deep-research agéntica (ADR-0062;
+el sidecar es ADR-0085) · reordenar el plan SIN web · ranura reservada para web en el top-n (se mide primero) · alimentar símbolos o GSE desde la
+web · materializar en la ronda con `fetch_external` · rol nuevo en `PIPELINE_ROLES` · literal nuevo en `SOURCE_STATES` · ruta HTTP nueva · URLs en
+`answer.gap_flags`, eventos o prompt · borrar o mutar las cachés del precedente 2026-05-14.
+
 
 ## Pendiente
 

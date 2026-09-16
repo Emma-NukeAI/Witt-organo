@@ -21,8 +21,8 @@ import os
 import secrets
 from pathlib import Path
 
-from sqlalchemy import (Boolean, Column, DateTime, ForeignKey, Index, Integer, MetaData, String, Table,
-                        Text, case, create_engine, delete, func, inspect as sa_inspect, or_, select)
+from sqlalchemy import (Boolean, Column, DateTime, Float, ForeignKey, Index, Integer, MetaData, String, Table,
+                        Text, UniqueConstraint, case, create_engine, delete, func, inspect as sa_inspect, or_, select)
 
 _SERVICE_DIR = Path(__file__).resolve().parent
 DB_URL = os.environ.get("WITT_BACKEND_DB_URL", f"sqlite:///{_SERVICE_DIR / 'backend.db'}")
@@ -303,6 +303,26 @@ config_history = Table(
     Column("note", Text),                                             # 'first-boot-snapshot' | NULL
     Index("ix_config_history_field_recorded", "field", "recorded_at"),
 )
+
+# --- ADR-0084 (H): la CUOTA MENSUAL del localizador web — UNA fila por (mes UTC 'YYYY-MM', proveedor) ---------------------
+# Contador LOCAL de consultas ENVIADAS por este despliegue (web_locator.QUOTA_RULE): la reserva es UN `UPDATE … SET n_queries =
+# n_queries + 1 WHERE month=:m AND provider=:p AND n_queries < :cap` (rowcount 1 = granted; 0 = tope alcanzado) — atómico en
+# SQLite y en Postgres, sin carrera entre hilos (`--workers 1` con hilos) ni entre procesos; el registro posterior (n_results,
+# cost_usd_projected) suma sobre la MISMA fila. Nace por create_all (patrón config_history): sin ALTER, sin backfill; _migrate no
+# la toca. Las sondas CLI (LG1/LG3/LG5) no pasan por aquí; la verdad del saldo es el dashboard del proveedor.
+web_locator_usage = Table(
+    "web_locator_usage", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("month", String(7), nullable=False),                       # 'YYYY-MM' (mes calendario UTC)
+    Column("provider", String(16), nullable=False),                   # 'brave' | 'anthropic'
+    Column("n_queries", Integer, nullable=False, default=0),          # consultas RESERVADAS (enviadas o a punto de enviarse)
+    Column("n_results", Integer, nullable=False, default=0),          # URLs devueltas (record= tras la llamada)
+    Column("cost_usd_projected", Float, nullable=False, default=0.0),  # PROYECCIÓN (consultas facturables × tarifa)
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("month", "provider", name="uq_web_locator_usage_month_provider"),
+)
+WEB_LOCATOR_USAGE_TABLE = "web_locator_usage"
+WEB_LOCATOR_USAGE_FIELDS = ("month", "provider", "n_queries", "n_results", "cost_usd_projected", "updated_at")
 
 _engine = None
 
@@ -2303,6 +2323,115 @@ def config_ledger_stats():
         n = cx.execute(select(func.count()).select_from(config_history)).scalar() or 0
         ult = cx.execute(select(func.max(config_history.c.recorded_at))).scalar()
     return {"table": CONFIG_LEDGER_TABLE, "n_rows": int(n), "last_recorded_at": _iso(ult)}
+
+
+# --- ADR-0084 (H): cuota mensual del localizador web ---------------------------------------------------------------
+
+def web_locator_usage_table_exists() -> bool:
+    """¿Existe la tabla en la BD conectada? Insumo de /usage.web_locator.month_to_date.state 'table-missing' (declarado)."""
+    try:
+        return bool(sa_inspect(engine()).has_table(WEB_LOCATOR_USAGE_TABLE))
+    except Exception:
+        return False
+
+
+def _web_locator_insert_row(cx, month, provider):
+    """El INSERT de la fila del mes (costura para el smoke: aquí se simula al PERDEDOR de la carrera UNIQUE)."""
+    t = web_locator_usage
+    cx.execute(t.insert().values(month=month, provider=provider, n_queries=0, n_results=0, cost_usd_projected=0.0, updated_at=_now()))
+
+
+def _web_locator_ensure_row(month, provider):
+    """INSERT idempotente de la fila (month, provider) — SELECT + INSERT es SQL portable (SQLite y Postgres, sin RETURNING ni
+    ON CONFLICT); una carrera entre dos procesos la resuelve la UNIQUE: el perdedor cae al except y la fila ya existe.
+    corrector ADR-0084: el INSERT corre en su PROPIA transacción corta, ANTES de la del UPDATE condicional — en PostgreSQL una
+    violación de UNIQUE aborta la transacción entera hasta ROLLBACK (InFailedSqlTransaction en la siguiente sentencia); compartir
+    la transacción convertía una carrera legítima (dos hilos creando la PRIMERA fila del mes) en una fila 'error' de la ronda.
+    → (row_present_before: bool, inserted: bool, lost_race: bool)."""
+    t = web_locator_usage
+    exists = select(t.c.id).where(t.c.month == month, t.c.provider == provider).limit(1)
+    with engine().begin() as cx:
+        if cx.execute(exists).first() is not None:
+            return True, False, False
+    try:
+        with engine().begin() as cx:   # transacción PROPIA: si el INSERT falla se revierte SOLA y la del UPDATE nace limpia
+            _web_locator_insert_row(cx, month, provider)
+        return False, True, False
+    except Exception:   # UNIQUE (month, provider): otro proceso la insertó entre el SELECT y el INSERT — la fila existe
+        return False, False, True
+
+
+def _web_locator_row(cx, month, provider):
+    t = web_locator_usage
+    r = cx.execute(select(t.c.n_queries, t.c.n_results, t.c.cost_usd_projected)
+                   .where(t.c.month == month, t.c.provider == provider)).first()
+    if r is None:
+        return 0, 0, 0.0
+    return int(r[0] or 0), int(r[1] or 0), float(r[2] or 0.0)
+
+
+def web_locator_reserve(provider, month, cap, record=None):
+    """ADR-0084 (H) — el `quota_fn` que runs inyecta al harness (web_locator.locate lo llama ANTES de la red y DESPUÉS con
+    `record=`). Devuelve {granted, n_before, n_after, cap}.
+      · record None (RESERVAR): INSERT idempotente de la fila del mes + `UPDATE … SET n_queries = n_queries + 1 WHERE month
+        AND provider AND n_queries < :cap` — rowcount 1 = granted True; 0 = tope alcanzado (granted False, n_after == cap).
+        cap == 0 (WITT_WEB_MONTHLY_CAP=0) = sin tope DECLARADO: se cuenta (n_queries + 1) y granted True siempre.
+      · record {n_results, cost, n_requests_extra?} (REGISTRAR, tras la llamada): suma n_results y cost_usd_projected sobre la fila y —
+        corrector ADR-0084 — suma n_requests_extra a n_queries (peticiones FACTURADAS por encima de la reserva: reintento 429, anthropic
+        max_uses > 1; la fila puede rebasar el tope por ese delta declarado, web_locator.QUOTA_RULE); granted None.
+    Un cache_hit del tool NO llega aquí (web_locator.locate sondea la caché antes de reservar: 'not-consumed (cache-hit)')."""
+    provider = str(provider or "")[:16]
+    month = str(month or "")[:7]
+    cap = int(cap or 0)
+    t = web_locator_usage
+    _web_locator_ensure_row(month, provider)   # transacción propia (corrector): la del UPDATE de abajo nace limpia
+    with engine().begin() as cx:
+        if record is not None:
+            n_res = int((record or {}).get("n_results") or 0)
+            cost = float((record or {}).get("cost") or 0.0)
+            n_extra = max(0, int((record or {}).get("n_requests_extra") or 0))
+            cx.execute(t.update().where(t.c.month == month, t.c.provider == provider)
+                       .values(n_results=t.c.n_results + n_res, cost_usd_projected=t.c.cost_usd_projected + cost,
+                               n_queries=t.c.n_queries + n_extra, updated_at=_now()))
+            n_q, _r, _c = _web_locator_row(cx, month, provider)
+            return {"granted": None, "n_before": n_q, "n_after": n_q, "cap": cap}
+        upd = t.update().where(t.c.month == month, t.c.provider == provider)
+        if cap > 0:
+            upd = upd.where(t.c.n_queries < cap)
+        n = cx.execute(upd.values(n_queries=t.c.n_queries + 1, updated_at=_now())).rowcount
+        n_q, _r, _c = _web_locator_row(cx, month, provider)
+        granted = n == 1
+        return {"granted": granted, "n_before": (n_q - 1) if granted else n_q, "n_after": n_q, "cap": cap}
+
+
+def web_locator_month_to_date(provider, month):
+    """{month, provider, n_queries, n_results, cost_usd_projected, updated_at (ISO|None), row_present} de la fila del mes —
+    ceros MEDIDOS con row_present False cuando nada se ha enviado (la ausencia de fila = 0 consultas de este despliegue)."""
+    t = web_locator_usage
+    with engine().begin() as cx:
+        r = cx.execute(select(t).where(t.c.month == str(month or "")[:7], t.c.provider == str(provider or "")[:16])).first()
+    if r is None:
+        return {"month": month, "provider": provider, "n_queries": 0, "n_results": 0, "cost_usd_projected": 0.0,
+                "updated_at": None, "row_present": False}
+    d = dict(r._mapping)
+    return {"month": d["month"], "provider": d["provider"], "n_queries": int(d["n_queries"] or 0),
+            "n_results": int(d["n_results"] or 0), "cost_usd_projected": round(float(d["cost_usd_projected"] or 0.0), 6),
+            "updated_at": _iso(d["updated_at"]), "row_present": True}
+
+
+def web_locator_usage_months(limit=12):
+    """Las filas (mes, proveedor) más recientes primero — insumo de /usage.web_locator (ADR-0084 (I))."""
+    limit = max(1, int(limit))
+    t = web_locator_usage
+    with engine().begin() as cx:
+        rows = cx.execute(select(t).order_by(t.c.month.desc(), t.c.provider).limit(limit)).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        out.append({"month": d["month"], "provider": d["provider"], "n_queries": int(d["n_queries"] or 0),
+                    "n_results": int(d["n_results"] or 0), "cost_usd_projected": round(float(d["cost_usd_projected"] or 0.0), 6),
+                    "updated_at": _iso(d["updated_at"])})
+    return out
 # La COMPARACIÓN (qué campo cambió respecto a la última fila) NO vive aquí: es del escritor
 # (config_ledger.diff_rows, S5 — ADR-0081 (I): "compara con la ÚLTIMA fila por campo y appendea"). db sólo
 # codifica, cuida el cinturón, escribe y lee: una sola verdad para el diff.

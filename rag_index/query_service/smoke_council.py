@@ -21,6 +21,16 @@ Qué MIDE (todo offline; los 17 miembros son FAKES inyectados por `caller`; cero
   requisito; con él → `refined_by_members`; (26) `coverage_after_search` → retrieved-for / still-uncovered / not-searched /
   covered-pre; (27) `council_vocabulary()` == tuplas congeladas; ledger (F.1) por código; `summary_for_thread`; env tolerante;
   `urlopen` REAL bloqueado y contado = 0; `openai` jamás importado.
+  ADR-0084 (W6 — F.1/F.2/F.4): (11) bajo off (máscara sin BRAVE_API_KEY) `harness_state_for('web','web')` == literal de 7d9ce15
+  byte-idéntico al golden `fixtures/golden_plan_web_directive_7d9ce15.json` e importado de `search_harness.WEB_UNSATISFIABLE_LITERAL`;
+  (11b) `env` con llave fake → 'satisfiable'; `WITT_WEB_LOCATOR=brave|anthropic` sin llave → literal con causa; `off` explícito con
+  llave → literal exacto; (11c) `aggregate_r1` con llave fake en os.environ → la directiva web nace `satisfiable`, `n_unsatisfiable 1`,
+  la llave JAMÁS en el agregado; (25d) `directives_from` RECOMPUTA el harness_state de la familia web al compilar: guardado
+  'unsatisfiable' + llave → directiva `compiled` con `query_en` y `harness_state_at_plan/at_compile/recomputed True`; sin llave →
+  `excluded-unsatisfiable` sin llaves de recomputo (iguales); guardado 'satisfiable' + off → excluida con `recomputed True`; familia
+  estática conserva el guardado byte a byte; (26b) `coverage_after_search(…, web_locator=)` → `web_locator {n_queries, n_results,
+  n_located, n_materialized, n_unresolved}` SÓLO en el requisito web (también desde `rounds[].sources[web]`), 0 URLs/títulos en la
+  salida; sin web la forma es la de 1.12 byte a byte.
 
 Corre (máscara offline):
   WITT_BACKEND_DB_URL="sqlite:///C:/Users/Emmanuel/AppData/Local/Temp/claude/witt-smokes/adr82-smoke_council.db"
@@ -32,6 +42,7 @@ import inspect
 import json
 import os
 import random
+import re
 import sys
 import threading
 import time
@@ -66,6 +77,12 @@ urllib.request.urlopen = _blocked_urlopen
 
 from lib import agent_matrix, catalog_cards, council, models  # noqa: E402
 from lib import composite_auditor as ca  # noqa: E402
+from lib import search_harness as sh  # noqa: E402
+from lib import web_locator as wl  # noqa: E402
+# ADR-0084 (L / W0): la vara del literal de exclusión grabada EN 7d9ce15 antes de la primera línea de la obra
+GOLDEN_W0 = json.loads((ROOT / "rag_index" / "query_service" / "fixtures" / "golden_plan_web_directive_7d9ce15.json")
+                       .read_text(encoding="utf-8"))
+FAKE_BRAVE_KEY = "smoke-fake-brave-key-never-sent-0084"      # sólo PRESENCIA: provider_state jamás la lee ni la envía
 
 CHECKS = []
 
@@ -358,12 +375,59 @@ check("(10) cross-field-bridge-agent SOLO emisor con must → priority 'should' 
       and xf_req[0]["exploratory"] is True and "Test 5" in xf_req[0]["priority_downgrade_reason"]
       and common[0]["priority"] == "must" and "priority_downgraded_from" not in common[0] and common[0]["exploratory"] is False)
 uns = [r for r in agg1["requirements"] if r["harness_state"] != "satisfiable"]
-check("(11) source_family 'web' → 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))'; evidence_kind 'figure' → "
-      "'unsatisfiable-by-harness (evidence_kind figure — ADR-0083)'; n_unsatisfiable 2; europepmc (tool_module None pero fn) SÍ es satisfiable",
-      agg1["n_unsatisfiable"] == 2 and {r["harness_state"] for r in uns} == {"unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
-                                                                              "unsatisfiable-by-harness (evidence_kind figure — ADR-0083)"}
-      and council.harness_state_for("europepmc", "paper") == "satisfiable" and council.harness_state_for("tooluniverse", "paper").startswith("unsatisfiable")
-      and all(council.harness_state_in_vocabulary(r["harness_state"]) for r in agg1["requirements"]))
+check("(11) bajo off DERIVADO (máscara: BRAVE_API_KEY vacía, WITT_WEB_LOCATOR unset) source_family 'web' → el literal de 7d9ce15 "
+      "'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' == search_harness.WEB_UNSATISFIABLE_LITERAL == golden W0 (byte a byte); "
+      "evidence_kind 'figure' → 'unsatisfiable-by-harness (evidence_kind figure — ADR-0083)'; n_unsatisfiable 2; europepmc (tool_module "
+      "None pero fn) SÍ es satisfiable; tooluniverse sigue unsatisfiable (ADR-0085)",
+      os.environ.get("BRAVE_API_KEY", "") == "" and not os.environ.get("WITT_WEB_LOCATOR")
+      and agg1["n_unsatisfiable"] == 2 and {r["harness_state"] for r in uns} == {sh.WEB_UNSATISFIABLE_LITERAL,
+                                                                                  "unsatisfiable-by-harness (evidence_kind figure — ADR-0083)"}
+      and sh.WEB_UNSATISFIABLE_LITERAL == "unsatisfiable-by-harness (tool-unavailable (ADR-0084))" == GOLDEN_W0["harness_state_web"]
+      and council.harness_state_for("web", "web") == GOLDEN_W0["harness_state_web"]
+      and council.harness_state_for("europepmc", "paper") == "satisfiable"
+      and council.harness_state_for("tooluniverse", "paper") == "unsatisfiable-by-harness (tool-unavailable (ADR-0085))"
+      and council.harness_state_for("no-such-family", "paper") == "unsatisfiable-by-harness (unknown-family)"
+      and all(council.harness_state_in_vocabulary(r["harness_state"]) for r in agg1["requirements"]),
+      json.dumps({r["source_family"]: r["harness_state"] for r in uns}))
+HS_BRAVE_NO_KEY = f"{sh.UNSATISFIABLE_PREFIX}{wl.UNAVAILABLE_BRAVE_NO_KEY})"
+HS_ANTH_NO_KEY = f"{sh.UNSATISFIABLE_PREFIX}{wl.UNAVAILABLE_ANTHROPIC_NO_KEY})"
+check("(11b) ADR-0084 F.1 — harness_state_for DINÁMICA por env (family_available leída en la llamada): llave fake → 'satisfiable'; "
+      "WITT_WEB_LOCATOR=brave sin llave → 'unsatisfiable-by-harness (tool-unavailable (ADR-0084: BRAVE_API_KEY unset))'; anthropic sin "
+      "llave → '… ANTHROPIC_API_KEY unset)'; off EXPLÍCITO con llave → literal exacto de 7d9ce15; env basura → literal exacto (provider off "
+      "derivado); todos en vocabulario por prefijo; figure gana siempre (family web + kind figure → literal 0083)",
+      council.harness_state_for("web", "web", env={"BRAVE_API_KEY": FAKE_BRAVE_KEY}) == "satisfiable"
+      and council.harness_state_for("web", "web", env={"WITT_WEB_LOCATOR": "brave", "BRAVE_API_KEY": FAKE_BRAVE_KEY}) == "satisfiable"
+      and council.harness_state_for("web", "web", env={"WITT_WEB_LOCATOR": "brave"}) == HS_BRAVE_NO_KEY
+      == "unsatisfiable-by-harness (tool-unavailable (ADR-0084: BRAVE_API_KEY unset))"
+      and council.harness_state_for("web", "web", env={"WITT_WEB_LOCATOR": "anthropic"}) == HS_ANTH_NO_KEY
+      and council.harness_state_for("web", "web", env={"WITT_WEB_LOCATOR": "off", "BRAVE_API_KEY": FAKE_BRAVE_KEY}) == sh.WEB_UNSATISFIABLE_LITERAL
+      and council.harness_state_for("web", "web", env={"WITT_WEB_LOCATOR": "duckduckgo", "BRAVE_API_KEY": FAKE_BRAVE_KEY}) == sh.WEB_UNSATISFIABLE_LITERAL
+      and council.harness_state_for("web", "figure", env={"BRAVE_API_KEY": FAKE_BRAVE_KEY}) == "unsatisfiable-by-harness (evidence_kind figure — ADR-0083)"
+      and council.harness_state_for("europepmc", "paper", env={}) == "satisfiable"
+      and all(council.harness_state_in_vocabulary(x) for x in (HS_BRAVE_NO_KEY, HS_ANTH_NO_KEY, sh.WEB_UNSATISFIABLE_LITERAL))
+      and list(inspect.signature(council.harness_state_for).parameters) == ["source_family", "evidence_kind", "env"])
+_prev_brave = os.environ.get("BRAVE_API_KEY")
+os.environ["BRAVE_API_KEY"] = FAKE_BRAVE_KEY
+try:
+    agg_key = council.aggregate_r1(res1, MEMBERS, CFG, resolver=lambda e: "ENSDARG00000000000" if e == "wt1a" else None)
+finally:
+    if _prev_brave is None:
+        os.environ.pop("BRAVE_API_KEY", None)
+    else:
+        os.environ["BRAVE_API_KEY"] = _prev_brave
+web_key = [r for r in agg_key["requirements"] if r["source_family"] == "web"]
+check("(11c) ADR-0084 F.1 — aggregate_r1 con BRAVE_API_KEY fake en os.environ (misma ronda 1): el requisito web nace 'satisfiable', "
+      "n_unsatisfiable 1 (sólo figure), mismos requirement_id que bajo off (el id no depende del harness_state), aggregation_sha "
+      "DISTINTO (el estado viaja), rules.harness_state == HARNESS_STATE_RULE (declara family_available y ADR-0084), la llave fake "
+      "JAMÁS en el agregado; tras restaurar la máscara harness_state_for vuelve al literal",
+      len(web_key) == 1 and web_key[0]["harness_state"] == "satisfiable" and agg_key["n_unsatisfiable"] == 1
+      and [r["requirement_id"] for r in agg_key["requirements"]] == [r["requirement_id"] for r in agg1["requirements"]]
+      and agg_key["aggregation_sha"] != agg1["aggregation_sha"]
+      and agg_key["rules"]["harness_state"] == council.HARNESS_STATE_RULE == agg1["rules"]["harness_state"]
+      and "family_available" in council.HARNESS_STATE_RULE and "ADR-0084" in council.HARNESS_STATE_RULE
+      and FAKE_BRAVE_KEY not in json.dumps(agg_key) and FAKE_BRAVE_KEY not in json.dumps(agg1)
+      and council.harness_state_for("web", "web") == sh.WEB_UNSATISFIABLE_LITERAL
+      and os.environ.get("BRAVE_API_KEY", "") == "")
 check("(C.4) entidades por resolver inyectado: wt1a → entities_resolved, pax2a → entities_unresolved (nunca afirmadas); orden must > should, "
       "n_requested_by desc, id asc; n_raw 16×1 + 4 + 2 (xf/lit) = 22 → n_dedup 19; state 'applicable'; aggregation_sha presente",
       common[0]["entities_resolved"] == ["wt1a"] and common[0]["entities_unresolved"] == []
@@ -804,6 +868,60 @@ check("(25c) todo atestiguado → 0 directivas, state 'none (all must covered)';
       council.directives_from(cov_all, {"requirements": [{**r, "decision": "aporto"} for r in ledger["requirements"]]})["state"] == "none (all must covered)"
       and cov_all["must_uncovered"] == 0 and cov_all["must_attested"] == cov_all["must_total"])
 
+# ---- ADR-0084 (F.2): el harness_state guardado en r1 es lo que vio el PLAN; la compilación lo RECOMPUTA para la familia web ----
+web_req_off = dict(next(r for r in ledger["requirements"] if r["requirement_id"] == lit_web))
+web_req_off.update(decision="keep", decided_by="human:emmanuel")
+zfin_req = dict(next(r for r in ledger["requirements"] if r["requirement_id"] == common_id))
+assert web_req_off["harness_state"] == sh.WEB_UNSATISFIABLE_LITERAL and zfin_req["harness_state"] == "satisfiable"
+ledger_web = {"requirements": [web_req_off, zfin_req]}
+cov_web = {"by_requirement": [{"requirement_id": lit_web, "coverage_final": "uncovered", "votes": []},
+                              {"requirement_id": common_id, "coverage_final": "uncovered", "votes": []}]}
+KEY_ENV = {"BRAVE_API_KEY": FAKE_BRAVE_KEY}
+RECOMP_KEYS = ("harness_state_at_plan", "harness_state_at_compile", "harness_state_recomputed")
+d_key = council.directives_from(cov_web, ledger_web, MEMBERS, env=KEY_ENV)
+dk_by = {d["requirement_id"]: d for d in d_key["directives"]}
+check("(25d) ADR-0084 F.2 — plan aprobado bajo off (web guardado 'unsatisfiable…') y llave presente al COMPILAR → la directiva web se "
+      "compila SIN re-planear: state 'compiled', family 'web', evidence_kind 'web', query_en del requisito, harness_state_at_plan == literal, "
+      "harness_state_at_compile 'satisfiable', harness_state_recomputed True; la de zfin (estática) NO gana ninguna de las 3 llaves; "
+      "families ∋ web; n_excluded 0; harness_state_recompute_rule declarada; rule == DIRECTIVES_RULE de 1.12 BYTE A BYTE (corrector L: sin "
+      "ADR-0084 en el literal compartido) y availability_rule == DIRECTIVES_AVAILABILITY_RULE (nombra ADR-0084 F.2) SÓLO porque hubo recomputo",
+      lit_web in dk_by and dk_by[lit_web]["state"] == "compiled" and dk_by[lit_web]["family"] == "web"
+      and dk_by[lit_web]["evidence_kind"] == "web" and dk_by[lit_web]["query_en"] == "latest preprints pronephros wt1a"
+      and dk_by[lit_web]["harness_state_at_plan"] == sh.WEB_UNSATISFIABLE_LITERAL
+      and dk_by[lit_web]["harness_state_at_compile"] == "satisfiable" and dk_by[lit_web]["harness_state_recomputed"] is True
+      and common_id in dk_by and not any(k in dk_by[common_id] for k in RECOMP_KEYS)
+      and "web" in d_key["families"] and d_key["n_excluded"] == 0 and d_key["n"] == 2
+      and d_key["harness_state_recompute_rule"] == council.HARNESS_STATE_RECOMPUTE_RULE and d_key["rule"] == council.DIRECTIVES_RULE
+      and "ADR-0084" not in d_key["rule"] and d_key["availability_rule"] == council.DIRECTIVES_AVAILABILITY_RULE
+      and "ADR-0084 F.2" in d_key["availability_rule"]
+      and FAKE_BRAVE_KEY not in json.dumps(d_key),
+      json.dumps(dk_by.get(lit_web)))
+d_off = council.directives_from(cov_web, ledger_web, MEMBERS, env={})
+check("(25d-bis, corrector ADR-0084 L) sin recomputo (guardado == recomputado bajo off) directives_from NO emite availability_rule: la salida "
+      "conserva el keyset de 1.12 + harness_state_recompute_rule; DIRECTIVES_RULE y AFTER_SEARCH_RULE son los literales de 1.12 (sin 'ADR-0084')",
+      "availability_rule" not in d_off and "ADR-0084" not in council.DIRECTIVES_RULE and "ADR-0084" not in council.AFTER_SEARCH_RULE
+      and "ADR-0084 F.4" in council.WEB_LOCATOR_COVERAGE_RULE, json.dumps(sorted(d_off)))
+web_req_sat = {**web_req_off, "harness_state": "satisfiable"}
+d_left = council.directives_from(cov_web, {"requirements": [web_req_sat, zfin_req]}, MEMBERS, env={})
+zfin_stale = {**zfin_req, "harness_state": "unsatisfiable-by-harness (stale-static-value)"}
+d_stale = council.directives_from(cov_web, {"requirements": [web_req_off, zfin_stale]}, MEMBERS, env=KEY_ENV)
+ex_off = {e["requirement_id"]: e for e in d_off["excluded"]}
+ex_left = {e["requirement_id"]: e for e in d_left["excluded"]}
+ex_stale = {e["requirement_id"]: e for e in d_stale["excluded"]}
+check("(25e) ADR-0084 F.2 — sin llave: web 'excluded-unsatisfiable' con el literal EXACTO y SIN llaves de recomputo (guardado == recomputado: "
+      "byte-idéntico a 1.12); guardado 'satisfiable' + llave que SE FUE → excluida con reason literal + harness_state_at_plan 'satisfiable' + "
+      "recomputed True; familia ESTÁTICA (zfin) con guardado obsoleto → se respeta el guardado (excluida con ese texto, sin recomputo); "
+      "directives_from acepta env= (firma [coverage, ledger, members_order, env])",
+      lit_web in ex_off and ex_off[lit_web]["state"] == "excluded-unsatisfiable" and ex_off[lit_web]["reason"] == sh.WEB_UNSATISFIABLE_LITERAL
+      and not any(k in ex_off[lit_web] for k in RECOMP_KEYS) and d_off["n"] == 1 and d_off["families"] == ["zfin"]
+      and lit_web in ex_left and ex_left[lit_web]["reason"] == sh.WEB_UNSATISFIABLE_LITERAL
+      and ex_left[lit_web]["harness_state_at_plan"] == "satisfiable" and ex_left[lit_web]["harness_state_at_compile"] == sh.WEB_UNSATISFIABLE_LITERAL
+      and ex_left[lit_web]["harness_state_recomputed"] is True
+      and common_id in ex_stale and ex_stale[common_id]["reason"] == "unsatisfiable-by-harness (stale-static-value)"
+      and not any(k in ex_stale[common_id] for k in RECOMP_KEYS) and lit_web in {d["requirement_id"] for d in d_stale["directives"]}
+      and list(inspect.signature(council.directives_from).parameters) == ["coverage", "ledger", "members_order", "env"],
+      json.dumps({"off": ex_off.get(lit_web), "left": ex_left.get(lit_web)}))
+
 search_ledger = {"plan": {"directives": [dict(d) for d in dirs["directives"]]},
                  "rounds": [{"round": 1, "items": [
                      {"evidence_id": "zfin:ZDB-GENE-000000-1", "source_family": "zfin", "kind": "phenotype", "directive_requirement_ids": [common_id]},
@@ -819,6 +937,66 @@ check("(26) coverage_after_search (código, siempre): común → 'retrieved-for'
       and a_by[cp_own]["state"] == "still-uncovered" and a_by[fig_id]["state"] == "not-searched" and a_by[aporto_id]["state"] == "covered-pre"
       and after["n_items_for_directives"] == {common_id: 2} and after["state"] == "measured"
       and council.coverage_after_search(cov, None)["state"] == "not-run (no search ledger)")
+KEYS_112_TOP = {"state", "by_requirement", "n_retrieved_for", "n_still_uncovered", "n_not_searched", "n_covered_pre",
+                "n_items_for_directives", "rule", "decided_by"}
+KEYS_112_ROW = {"requirement_id", "priority", "state", "n_items_retrieved", "families"}
+check("(26a) ADR-0084 F.4 — sin ledger web la forma de coverage_after_search es la de 1.12 byte a byte: llaves de nivel superior y de fila "
+      "EXACTAS (ni web_locator, ni web_locator_source, ni web_locator_rule); firma [coverage_pre, search_ledger, directives, web_locator]",
+      set(after) == KEYS_112_TOP and all(set(b) == KEYS_112_ROW for b in after["by_requirement"])
+      and set(council.coverage_after_search(cov, None)) == KEYS_112_TOP
+      and list(inspect.signature(council.coverage_after_search).parameters) == ["coverage_pre", "search_ledger", "directives", "web_locator"])
+# el ledger del localizador (forma W3/D.4: queries[]/located[]/unresolved[] con requirement_ids; las URLs y title_web viven SÓLO ahí)
+WL_BLOCK = {"queries": [{"round": 1, "requirement_ids": [lit_web], "query_en": "latest preprints pronephros wt1a", "n_results": 6,
+                         "provider_status": "success", "cache_hit": False},
+                        {"round": 1, "requirement_ids": [lit_web], "query_en": "latest preprints pronephros wt1a", "n_results": None,
+                         "provider_status": "skipped-cap", "detail": "WITT_WEB_MAX_QUERIES=1 reached"}],
+            "located": [{"round": 1, "requirement_ids": [lit_web], "id": "PMID:7", "kind": "pmid", "resolver_rule": "pubmed-path",
+                         "feed_state": "materialized-same-round", "url": "https://pubmed.ncbi.nlm.nih.gov/7/", "evidence_id": "PMID:7"},
+                        {"round": 1, "requirement_ids": [lit_web], "id": "PMID:8", "kind": "pmid", "resolver_rule": "pubmed-path",
+                         "feed_state": "not-found-in-europepmc", "url": "https://pubmed.ncbi.nlm.nih.gov/8/"},
+                        {"round": 1, "requirement_ids": [lit_web], "id": "10.1000/smoke.x", "kind": "doi", "resolver_rule": "doi-org-path",
+                         "feed_state": "already-present (dup of PMID:9)", "url": "https://doi.org/10.1000/smoke.x"}],
+            "unresolved": [{"round": 1, "requirement_ids": [lit_web], "host": "www.researchgate.net", "reason": "no-identifier-pattern",
+                            "url": "https://www.researchgate.net/publication/SECRET-URL-1", "title_web": "SECRET-TITLE-WEB-1"},
+                           {"round": 1, "requirement_ids": [lit_web], "host": "en.wikipedia.org", "reason": "no-identifier-pattern",
+                            "url": "https://en.wikipedia.org/wiki/SECRET-URL-2", "title_web": "SECRET-TITLE-WEB-2"}]}
+WEB_ITEM = {"evidence_id": "PMID:7", "source": "europepmc", "source_family": "web", "kind": "literature-candidate",
+            "identifier_provenance": "web-located:pubmed-path", "directive_requirement_ids": [lit_web]}
+ledger_w = {"plan": {"directives": [dict(d) for d in d_key["directives"]]}, "items": [WEB_ITEM]}      # la forma que runs pasa
+after_w = council.coverage_after_search(cov_web, ledger_w, web_locator=WL_BLOCK)
+aw_by = {b["requirement_id"]: b for b in after_w["by_requirement"]}
+EXPECT_WL = {"n_queries": 2, "n_results": 6, "n_located": 3, "n_materialized": 1, "n_unresolved": 2}
+ledger_r = {"plan": {"directives": [dict(d) for d in d_key["directives"]]},
+            "rounds": [{"round": 1, "items": [WEB_ITEM],
+                        "sources": [{"family": "web", "status": "success", "n_found": 6, "web_locator": WL_BLOCK},
+                                    {"family": "zfin", "status": "no-match", "n_found": 0}]}]}
+after_r = council.coverage_after_search(cov_web, ledger_r)
+ar_by = {b["requirement_id"]: b for b in after_r["by_requirement"]}
+check("(26b) ADR-0084 F.4 — coverage_after_search(web_locator=block D.4): el requisito web queda 'retrieved-for' (1 candidato admitido "
+      "source_family 'web' — materializado por EPMC), families ['web'], web_locator {n_queries 2, n_results 6 (None no cuenta), n_located 3, "
+      "n_materialized 1 (feed_state 'materialized-same-round' == web_locator.FEED_STATES_EXACT[0]), n_unresolved 2}; el requisito zfin "
+      "('still-uncovered') NO lleva web_locator; web_locator_source 'caller (web_locator=)' y web_locator_rule declaradas; la MISMA "
+      "medición desde rounds[].sources[web].web_locator (ledger íntegro del harness) con su fuente; 0 URLs (regex https?://) y 0 "
+      "title_web en la salida — las URLs viven SÓLO en el ledger",
+      aw_by[lit_web]["state"] == "retrieved-for" and aw_by[lit_web]["n_items_retrieved"] == 1 and aw_by[lit_web]["families"] == ["web"]
+      and aw_by[lit_web]["web_locator"] == EXPECT_WL and "web_locator" not in aw_by[common_id]
+      and aw_by[common_id]["state"] == "still-uncovered"
+      and after_w["web_locator_source"] == "caller (web_locator=)" and after_w["web_locator_rule"] == council.WEB_LOCATOR_COVERAGE_RULE
+      and council._WEB_MATERIALIZED_FEED_STATE == wl.FEED_STATES_EXACT[0] == "materialized-same-round"
+      and tuple(EXPECT_WL) == council.WEB_LOCATOR_COVERAGE_KEYS
+      and ar_by[lit_web]["web_locator"] == EXPECT_WL and "web_locator" not in ar_by[common_id]
+      and after_r["web_locator_source"] == "search_ledger.rounds[].sources[web].web_locator"
+      and not re.search(r"https?://", json.dumps(after_w) + json.dumps(after_r))
+      and "SECRET" not in json.dumps(after_w) + json.dumps(after_r)
+      and set(after_w) == KEYS_112_TOP | {"web_locator_source", "web_locator_rule"}
+      and set(aw_by[lit_web]) == KEYS_112_ROW | {"web_locator"} and set(aw_by[common_id]) == KEYS_112_ROW,
+      json.dumps({"web": aw_by.get(lit_web), "src": after_w.get("web_locator_source")}))
+after_nowl = council.coverage_after_search(cov_web, ledger_w)          # directiva web compilada pero SIN ledger del localizador
+check("(26c) ADR-0084 F.4 — directiva web compilada pero sin ledger del localizador (web_locator ausente) → ninguna llave web: no se "
+      "inventan ceros (ausente ≠ 0 medido, ADR-0043); el requisito web sigue 'retrieved-for' por el ítem admitido",
+      "web_locator" not in {k for b in after_nowl["by_requirement"] for k in b} and "web_locator_source" not in after_nowl
+      and {b["requirement_id"]: b["state"] for b in after_nowl["by_requirement"]}[lit_web] == "retrieved-for")
+
 owners = council.recoverage_members(cov, ledger)
 check("(C.7) recoverage_members: los DUEÑOS de los must kept sin cubrir, en orden de tabla, subconjunto < 17 (incluye causal-pruner y los 4 del común)",
       set(MEMBERS[:4]) <= set(owners) and len(owners) < 17 and owners == [a for a in FULL if a in set(owners)])
@@ -844,14 +1022,15 @@ check("(G.9) con post_search juzgado → must_uncovered_post 1 y coverage_source
 # =====================================================================================================================
 check("contrato C2: run_round(members, round_, ctx, caller=None, budget_s=None, on_event=None, cancel_check=None, cfg=None, env=None, clock=None, cancel_exc=None (corrector), "
       "payload_for=None, phase=None); aggregate_r1(round_result, members=None, cfg=None, resolver=None); judge_coverage(round_result, ledger, "
-      "evidence_ids, phase='pre-search', round_=None); directives_from(coverage, ledger, members_order=None); coverage_after_search(coverage_pre, "
-      "search_ledger, directives=None); summary_for_thread(council, cap=24); validate_tool_input(agent, round_, raw, cfg=None); aliases",
+      "evidence_ids, phase='pre-search', round_=None); directives_from(coverage, ledger, members_order=None, env=None) (ADR-0084 F.2); "
+      "coverage_after_search(coverage_pre, search_ledger, directives=None, web_locator=None) (ADR-0084 F.4); summary_for_thread(council, cap=24); "
+      "validate_tool_input(agent, round_, raw, cfg=None); aliases",
       list(inspect.signature(council.run_round).parameters) == ["members", "round_", "ctx", "caller", "budget_s", "on_event", "cancel_check",
                                                                   "cfg", "env", "clock", "payload_for", "phase", "cancel_exc"]
       and list(inspect.signature(council.aggregate_r1).parameters) == ["round_result", "members", "cfg", "resolver"]
       and list(inspect.signature(council.judge_coverage).parameters) == ["round_result", "ledger", "evidence_ids", "phase", "round_"]
-      and list(inspect.signature(council.directives_from).parameters) == ["coverage", "ledger", "members_order"]
-      and list(inspect.signature(council.coverage_after_search).parameters) == ["coverage_pre", "search_ledger", "directives"]
+      and list(inspect.signature(council.directives_from).parameters) == ["coverage", "ledger", "members_order", "env"]
+      and list(inspect.signature(council.coverage_after_search).parameters) == ["coverage_pre", "search_ledger", "directives", "web_locator"]
       and list(inspect.signature(council.summary_for_thread).parameters) == ["council", "cap"]
       and council.aggregate_requirements is council.aggregate_r1 and council.aggregate_coverage is council.judge_coverage
       and council.compile_directives is council.directives_from)

@@ -358,6 +358,30 @@ ENV_TABLE = {
     "WITT_FIGURES_REFETCH_ON_GET":  {"default": "0", "kind": "bool", "reader": "app.get_figure_bytes", "effect": "1 = ante bytes-not-in-cache UNA GET y servir SOLO si sha == congelado (409 si no)", "adr": "0083"},
     "WITT_FIGURES_PDF_THUMBS":      {"default": "1", "kind": "bool", "reader": "record_pdf.build_pdf", "effect": "0 = palabras + enlace aunque la licencia permita", "adr": "0083"},
     "WITT_FIGURES_COUNT_TOKENS":    {"default": "0", "kind": "bool", "reader": "composite_auditor.audit (lentes Anthropic)", "effect": "1 = saw_figures.tokens_measured por count_tokens de la MISMA petición sin imágenes (una llamada gratuita por lente)", "adr": "0083"},
+    # ---- ADR-0084 (tabla de env): las 17 env del LOCALIZADOR WEB (toda env = reinicio). El lector EFECTIVO es
+    # web_locator.env_config() (tolerante EN LA LLAMADA, clamps declarados en cfg['clamped']); aquí viven con los MISMOS defaults
+    # (paridad medida en smoke_models contra web_locator.ENV_SPECS) para el snapshot (web.locator / web.provider), el ledger
+    # config_history y el gate compose ∩ README. BRAVE_API_KEY queda FUERA de esta tabla a propósito (la tabla no registra
+    # secretos: sólo su PRESENCIA viaja, en web_locator.provider_state.key_present). Kinds: provider → choice con '' = derivar;
+    # int/float con minimum/maximum = el clamp de ENV_SPECS (web_locator RECORTA al rango y lo declara; env_value cae al default
+    # con 'default-invalid-env' — dos lectores, una tabla de defaults); country/lang/freshness/csv/model viajan como str.
+    "WITT_WEB_LOCATOR":             {"default": "", "kind": "choice", "choices": ("", "brave", "anthropic", "off"), "casefold": True, "reader": "web_locator.provider_state (plan, compilación, despacho)", "effect": "brave | anthropic | off; vacía = derivado (brave si hay BRAVE_API_KEY, off si no); off = kill-switch (L); fuera de vocabulario → off 'default-invalid-env:WITT_WEB_LOCATOR'", "adr": "0084"},
+    "WITT_WEB_MAX_RESULTS":         {"default": "10", "kind": "int", "minimum": 1, "maximum": 20, "reader": "brave_web_search.locate", "effect": "count por consulta (tope documentado 20); anthropic no aplica (count_sent null)", "adr": "0084"},
+    "WITT_WEB_MAX_QUERIES":         {"default": "3", "kind": "int", "minimum": 1, "maximum": 10, "reader": "search_harness._run_web_family", "effect": "consultas por ronda (una por directiva); sobrantes skipped-cap en calls[] + n_queries_dropped_by_cap", "adr": "0084"},
+    "WITT_WEB_MAX_MATERIALIZE":     {"default": "6", "kind": "int", "minimum": 0, "maximum": 20, "reader": "search_harness._run_web_family", "effect": "ids de literatura verificados en Europe PMC por ronda (_resolve_one, una GET c/u); resto not-materialized (feed cap); 0 = sólo localizar", "adr": "0084"},
+    "WITT_WEB_MAX_QUERY_CHARS":     {"default": "400", "kind": "int", "minimum": 1, "maximum": 2000, "reader": "brave_web_search.locate", "effect": "tope NUESTRO de q (Brave no documenta longitud); query_truncated declarado", "adr": "0084"},
+    "WITT_WEB_BUDGET_S":            {"default": "30", "kind": "float", "minimum": 1.0, "maximum": 120.0, "reader": "SEARCH_DISPATCH['web'].budget_s (search_harness.family_budget_s)", "effect": "presupuesto de la familia dentro de la ronda (consultas + materialización)", "adr": "0084"},
+    "WITT_WEB_MIN_INTERVAL_S":      {"default": "1.0", "kind": "float", "minimum": 0.0, "maximum": 60.0, "reader": "net_throttle.get_throttle('api.search.brave.com')", "effect": "pacing PROPIO (Brave publica 50 qps); throttle.waited_s medido", "adr": "0084"},
+    "WITT_WEB_COUNTRY":             {"default": "", "kind": "str", "reader": "brave_web_search.locate", "effect": "country 2 letras; vacía = no se envía (country_sent null)", "adr": "0084"},
+    "WITT_WEB_LANG":                {"default": "en", "kind": "str", "reader": "brave_web_search.locate", "effect": "search_lang ISO 639-1 (las query_en son inglés); presente y VACÍA = no se envía", "adr": "0084"},
+    "WITT_WEB_FRESHNESS":           {"default": "", "kind": "str", "reader": "brave_web_search.locate", "effect": "pd | pw | pm | py | YYYY-MM-DDtoYYYY-MM-DD; fuera de forma = no se envía + freshness_ignored", "adr": "0084"},
+    "WITT_WEB_ALLOWED_HOSTS":       {"default": "", "kind": "str", "reader": "web_locator.resolve_urls · web_locator._anthropic_web_search", "effect": "CSV que RESTRINGE los resolubles (host fuera = host-not-allowed); anthropic: allowed_domains (<= 20, sin esquema)", "adr": "0084"},
+    "WITT_WEB_GENERIC_DOI_RULE":    {"default": "1", "kind": "bool", "reader": "web_locator.resolve_urls", "effect": "regla doi-in-url-any-host (confidence pattern-only); 0 = sólo reglas por host; la existencia la verifica Europe PMC", "adr": "0084"},
+    "WITT_WEB_MONTHLY_CAP":         {"default": "900", "kind": "int", "minimum": 0, "maximum": 1000000, "reader": "db.web_locator_reserve (vía web_quota)", "effect": "tope mensual UTC de consultas facturables por proveedor; alcanzado = skipped-cap con detail, cero red; 0 = sin tope declarado", "adr": "0084"},
+    "WITT_WEB_TEST_QUERY":          {"default": "", "kind": "str", "reader": "search_harness.build_search_plan", "effect": "consulta EXPLÍCITA del operador cuando web entra por WITT_SEARCH_DEFAULT_FAMILIES (query_source 'operator-env:WITT_WEB_TEST_QUERY'); nunca en producción", "adr": "0084"},
+    "WITT_ANTHROPIC_WEB_SEARCH_MAX_USES": {"default": "1", "kind": "int", "minimum": 1, "maximum": 5, "reader": "web_locator._anthropic_web_search", "effect": "max_uses del server-tool (una directiva = una búsqueda); max_uses_exceeded declarado como error no facturado", "adr": "0084"},
+    "WITT_WEB_ANTHROPIC_TOOL_TYPE": {"default": "web_search_20250305", "kind": "choice", "choices": ("web_search_20250305",), "reader": "web_locator._anthropic_web_search", "effect": "literal del type del server-tool — VOCABULARIO CERRADO (sólo web_search_20250305, sin dynamic filtering): otro literal = default + default-invalid-env y se declara en cost.provider_detail (corrector ADR-0084)", "adr": "0084"},
+    "WITT_WEB_LOCATOR_MODEL":       {"default": "", "kind": "str", "reader": "web_locator._anthropic_web_search (anthropic_model)", "effect": "modelo del despachador; validado contra models.MODELS por web_locator.env_config (fuera de tabla → default-invalid-env); vacía = models.resolve_role('elicitation'); FUERA de PIPELINE_ROLES (la firma no cambia)", "adr": "0084"},
 }
 # Las env que ADR-0082 añade (27): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide
 # que compose ∩ README las declaran (C8). Vocabulario cerrado de kinds de ENV_TABLE (env_value los gobierna).
@@ -365,6 +389,9 @@ ENV_ADR_0082 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0082")
 # Las env que ADR-0083 añade (20): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide que compose ∩
 # README las declaran (dueño de compose/README: F7) y que sus defaults == figures.ENV_SPECS (una sola verdad, dos sedes medidas).
 ENV_ADR_0083 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0083")
+# Las env que ADR-0084 añade (17): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide que compose ∩
+# README las declaran (dueño de compose/README: W7) y que sus defaults == web_locator.ENV_SPECS (una sola verdad, dos sedes medidas).
+ENV_ADR_0084 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0084")
 ENV_KINDS = ("str", "int", "float", "bool01", "bool", "choice", "effort")
 _BOOL_TRUTHY = ("1", "true", "yes", "on")
 _BOOL_FALSEY = ("0", "false", "no", "off")
@@ -391,9 +418,15 @@ SNAPSHOT_FIELDS = (
     # config_history al arrancar tras el redeploy — excepción DECLARADA del kill-switch, patrón 0082 L.2 ii); FUERA de
     # panel_signature (la firma no cambia con figuras encendidas o apagadas — medido en smoke_models)
     "figures.enabled", "figures.vision",
+    # ADR-0084 (tabla de env): el localizador web entra al snapshot (fila `new-field` en config_history al arrancar tras el
+    # redeploy — excepción DECLARADA del kill-switch, patrón 0082 L.2 ii / 0083 O.5): web.locator = WITT_WEB_LOCATOR efectiva
+    # ('' = derivar) y web.provider = el proveedor EFECTIVO de web_locator.provider_state (brave | anthropic | off) con su
+    # fuente; FUERA de panel_signature (la firma no cambia con el localizador encendido o apagado — medido en smoke_models)
+    "web.locator", "web.provider",
 )
 COUNCIL_SNAPSHOT_FIELDS = ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
 FIGURES_SNAPSHOT_FIELDS = ("figures.enabled", "figures.vision")
+WEB_SNAPSHOT_FIELDS = ("web.locator", "web.provider")
 # Campos que models.py NO puede derivar (viven en runs/competence): el llamador (app.config_ledger_boot) los
 # pasa en `extra={campo: {value, source}}`; ausentes → {value: None, source: 'not-provided-by-caller'} (null
 # declarado, jamás un default duplicado de otro módulo).
@@ -870,6 +903,27 @@ def past_retirement(env=None, today=None):
 # 7. Snapshot (I): el estado EFECTIVO con fuente por campo — insumo del ledger, de stage.models y de
 #    /config-history.current
 # ---------------------------------------------------------------------------------------------------------------
+WEB_PROVIDERS = ("brave", "anthropic", "off")   # == web_locator.PROVIDERS (paridad medida en smoke_models)
+
+
+def _web_provider_field(env=None):
+    """ADR-0084: {value: proveedor EFECTIVO ∈ WEB_PROVIDERS, source: provider_source} — la MISMA derivación que
+    web_locator.provider_state (B.3), replicada aquí SIN importar lib (models.py es stdlib puro por gate): WITT_WEB_LOCATOR en
+    vocabulario → ese proveedor ('env:WITT_WEB_LOCATOR'); fuera de vocabulario → 'off' ('default-invalid-env:WITT_WEB_LOCATOR');
+    vacía → 'brave' si hay BRAVE_API_KEY ('default-derived:BRAVE_API_KEY present'), si no 'off' ('default-derived:BRAVE_API_KEY
+    absent'). Sólo la PRESENCIA de la llave decide; su valor jamás sale de aquí."""
+    e = _env(env)
+    raw = _raw(e, "WITT_WEB_LOCATOR")
+    key_present = bool(str(e.get("BRAVE_API_KEY") or "").strip())
+    if raw == "":
+        return ({"value": "brave", "source": "default-derived:BRAVE_API_KEY present"} if key_present
+                else {"value": "off", "source": "default-derived:BRAVE_API_KEY absent"})
+    low = raw.lower()
+    if low in WEB_PROVIDERS:
+        return {"value": low, "source": "env:WITT_WEB_LOCATOR"}
+    return {"value": "off", "source": "default-invalid-env:WITT_WEB_LOCATOR"}
+
+
 def snapshot(env=None, today=None, extra=None):
     """{generation, generation_source, table_version, table_as_of, panel_signature, today, fields, roles, panel,
     panel_source, seat_substitutions, panel_duplicate_models, rejected_env, warnings, unknown_models,
@@ -910,6 +964,11 @@ def snapshot(env=None, today=None, extra=None):
     for field, var in (("figures.enabled", "WITT_FIGURES"), ("figures.vision", "WITT_FIGURES_VISION")):
         v, s = env_value(var, env)
         f[field] = {"value": v, "source": s}
+    # ADR-0084: el localizador web — la env CRUDA validada ('' = derivar; basura → '' con 'default-invalid-env') y el proveedor
+    # EFECTIVO leído de web_locator.provider_state en la llamada (M.4); la llave de Brave JAMÁS viaja (sólo su efecto: el proveedor)
+    v, s = env_value("WITT_WEB_LOCATOR", env)
+    f["web.locator"] = {"value": v, "source": s}
+    f["web.provider"] = _web_provider_field(env)
     ignored = []
     for field in EXTRA_FIELDS:
         given = extra.get(field)
