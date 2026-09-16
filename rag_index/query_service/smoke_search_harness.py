@@ -14,12 +14,23 @@ Cubre lib/search_harness.py y el cableado search_plan= de lib/answer_pipeline.py
   * path_b_bundle(search_plan=) y retrieve(search_plan=): eventos search.plan / search.source / search.round en
     orden, search_ledger congelable, ledgers legados + selection, dos rondas solo si la primera no trajo nada
     (cap), n_papers <= 0 -> literatura 'not-requested', y sin plan NINGÚN evento search.* (comportamiento actual).
+  * ADR-0082 (G.3) directivas del consejo (rebanada C3): UNIÓN — directivas [openalex, monarch, string] -> familias
+    = 5 auto ∪ 3, families_source 'directives+default' (las 5 auto SIGUEN); openalex.query == query_en de la
+    directiva con query_source 'council-directive:req-…' (la sustituida declarada); símbolos AÑADIDOS a zfin/string
+    declarados (symbols_from_directives, saneados); familia desconocida -> 'unknown-family' con requirement_ids;
+    web -> excluida 'unsatisfiable-by-harness (tool-unavailable (ADR-0084))'; directive_queries de europepmc = UNA
+    llamada EXTRA dentro del presupuesto (el fake cuenta), 'skipped-budget' con presupuesto 0 sin llamar; filas e
+    ítems con directive_requirement_ids (atribución por insumo, no por contagio); stage.search.source lo lleva;
+    path_b_bundle conserva los campos de directiva en search_ledger.plan; SIN directivas el plan es byte-idéntico
+    al de 9d90c01 (GOLDEN sha256 del plan sin cache_dir, capturado antes de la rebanada).
 
 100% offline: cero red (fetch_paper/pubmed/zfin parcheados; tools Layer 0 inyectadas), cero modelo, cero DB.
 Exit 0 = todo PASS.
 
 Corre:  python rag_index/query_service/smoke_search_harness.py
 """
+import hashlib
+import json
 import os
 import sys
 import time
@@ -38,6 +49,27 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "")
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "analysis" / "scripts"))
+
+# ---- cero red: urlopen bloqueado y CONTADO durante TODO el smoke (ADR-0082 L.3; patrón smoke_models) ----------------
+import urllib.request as _urlreq  # noqa: E402
+
+_NET_CALLS = []
+_urlopen_real = _urlreq.urlopen
+
+
+def _urlopen_blocked(*a, **kw):
+    # se registra QUIÉN llamó (primer frame fuera de urllib): el detalle del check nombra al culpable, no sólo cuenta
+    import traceback as _tb
+    frames = [f for f in _tb.extract_stack()[:-1] if "urllib" not in f.filename.replace("\\", "/")]
+    who = f"{Path(frames[-1].filename).name}:{frames[-1].lineno}:{frames[-1].name}" if frames else "?"
+    req = a[0] if a else kw.get("url")
+    url = getattr(req, "full_url", None) or str(req)
+    _NET_CALLS.append(f"{who} -> {url[:120]}")
+    raise RuntimeError("network blocked by smoke_search_harness (offline gate)")
+
+
+_urlreq.urlopen = _urlopen_blocked
+
 from lib import search_harness as sh  # noqa: E402
 from lib import answer_pipeline as ap  # noqa: E402
 from lib import fetch_paper  # noqa: E402
@@ -101,6 +133,49 @@ def mk_slow(seconds):
     return slow
 
 
+def fake_free(query, timeout=None):
+    """Tool 'free-query' falsa (openalex/geo): un ítem cuyo id depende de la QUERY — así se mide qué llamada lo trajo."""
+    key = hashlib.sha256(query.encode("utf-8")).hexdigest()[:8]
+    return {"status": "success", "query_sent": f"https://fake/free?q={query}", "elapsed_s": 0.01, "cache_hit": False,
+            "data": {"records": [{"id": f"W:{key}", "title": f"paper for {query}", "url": f"https://fake/W:{key}"}]}}
+
+
+def _plan_sha(plan):
+    """sha256 del plan SIN cache_dir (ruta de la máquina) — canon json sort_keys; el GOLDEN se capturó @ 9d90c01."""
+    body = {k: v for k, v in plan.items() if k != "cache_dir"}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+# GOLDEN @ 9d90c01 (ADR-0080 + 0081; capturado 2026-09-15 ANTES de la rebanada C3 de ADR-0082, con las env
+# WITT_SEARCH_* sin fijar): el plan SIN directivas debe seguir siendo estos bytes (kill-switch WITT_COUNCIL=0).
+PLAN_GOLDEN_SHA = {
+    ("wt1a,pax2a", "wt1a pax2a pronephros zebrafish"): "360fdda0c7f0cd3e53d1eab5e0bfb126a54fb55b37ecdf31cbf25175dd6aa5e6",
+    ("wt1a", None): "878b10fc8b2ad41b46b64e00180500acc0a92f836147206163d58c1e758d9b10",
+}
+
+# Directivas del consejo con la forma C.6 (council.compile_directives) — lo que runs._build_search_plan pasará
+DIRECTIVES_C6 = [
+    {"requirement_id": "req-aaa", "family": "openalex", "query_en": "wt1a pronephros glomerulus podocyte",
+     "entities": ["wt1a"], "symbols": ["wt1a"], "evidence_kind": "paper", "priority": "must",
+     "requested_by": ["literature-monitor"], "refined_by_members": []},
+    {"requirement_id": "req-bbb", "family": "monarch", "query_en": "wt1a phenotype associations",
+     "entities": ["wt1a"], "symbols": ["wt1a"], "evidence_kind": "gene-phenotype-association", "priority": "should",
+     "requested_by": ["marker-validator"], "refined_by_members": []},
+    {"requirement_id": "req-ccc", "family": "string", "query_en": "", "entities": [], "symbols": ["Pax2a", "osr1", "wt1a"],
+     "evidence_kind": "interaction", "priority": "should", "requested_by": ["cross-modality-integrator"], "refined_by_members": []},
+    {"requirement_id": "req-ddd", "family": "europepmc", "query_en": "wt1a knockdown pronephric duct", "entities": [],
+     "symbols": [], "evidence_kind": "paper", "priority": "must", "requested_by": ["literature-monitor"], "refined_by_members": []},
+    {"requirement_id": "req-eee", "family": "zfin", "query_en": None, "entities": [], "symbols": ["osr1", "x"],
+     "evidence_kind": "phenotype", "priority": "must", "requested_by": ["marker-validator"], "refined_by_members": []},
+    {"requirement_id": "req-fff", "family": "web", "query_en": "wt1a review", "entities": [], "symbols": [],
+     "evidence_kind": "web", "priority": "should", "requested_by": ["domain-knowledge-curator"], "refined_by_members": []},
+    {"requirement_id": "req-ggg", "family": "nope", "query_en": "x", "entities": [], "symbols": [],
+     "evidence_kind": "paper", "priority": "should", "requested_by": ["hypothesis-generator"], "refined_by_members": []},
+    {"requirement_id": "req-hhh", "family": "openalex", "query_en": "second openalex query", "entities": [], "symbols": [],
+     "evidence_kind": "paper", "priority": "should", "requested_by": ["hypothesis-generator"], "refined_by_members": []},
+]
+
+
 def main():
     # ============ 1. SEARCH_DISPATCH declarado ============
     req = {"tool_module", "fn", "inputs", "budget_s", "host", "key_env", "evidence_kind", "gate", "label_provenance"}
@@ -133,15 +208,154 @@ def main():
           and "TITLE:wt1a" in plan["queries"]["europepmc"]["query"] and "wt1a[tiab]" in plan["queries"]["pubmed"]["query"]
           and plan["queries"]["alliance_orthologs"] == {"inputs": "symbols", "symbols": ["wt1a", "pax2a"], "query_builder": "search_harness:v1:symbols"}
           and plan["question_en_source"] == "pass1_query_en", repr(plan["queries"]))
+    check("GOLDEN 9d90c01: el plan SIN directivas es byte-idéntico al de ADR-0080/0081 (sha256 del plan sin cache_dir, "
+          "dos insumos distintos) — kill-switch WITT_COUNCIL=0 → build_search_plan(directives=None) EXACTAMENTE como hoy (ADR-0082 L.2)",
+          _plan_sha(plan) == PLAN_GOLDEN_SHA[("wt1a,pax2a", "wt1a pax2a pronephros zebrafish")]
+          and _plan_sha(sh.build_search_plan(q, ["wt1a"], None)) == PLAN_GOLDEN_SHA[("wt1a", None)],
+          repr((_plan_sha(plan), _plan_sha(sh.build_search_plan(q, ["wt1a"], None)))))
+    # ADR-0082 (G.3): con directivas la semántica es de UNIÓN (antes REEMPLAZO: una directiva apagaba las 5 auto)
     plan_d = sh.build_search_plan(q, ["wt1a"], None, directives=[{"family": "reactome"}, {"family": "openalex"}, {"family": "nope"}])
-    check("plan con directivas: familias de las directivas (directive-only incluidas), source 'directives', desconocida declarada",
-          plan_d["families"] == ["reactome", "openalex"] and plan_d["families_source"] == "directives"
-          and plan_d["families_excluded"] == [{"family": "nope", "reason": "unknown-family"}]
-          and plan_d["directives_state"] == "provided" and len(plan_d["directives"]) == 3, repr(plan_d["families_excluded"]))
-    check("plan sin pass1_query_en: free-query = símbolos + anatomía + 'zebrafish' (determinista, fuente declarada)",
-          plan_d["queries"]["openalex"] == {"inputs": "free-query", "query": "wt1a pronephros pronephric zebrafish",
-                                            "query_source": "search_harness:v1:symbols+anatomy"}
+    check("ADR-0082 (G.3) plan con directivas (forma vieja {family} sin requirement_id): UNIÓN — las 5 auto SIGUEN + reactome/openalex "
+          "(directive-only ENTRAN por directiva), families_source 'directives+default', desconocida declarada con su id posicional "
+          "'directive:2' (declarado, no inventado), directives_state 'provided', directives verbatim",
+          plan_d["families"] == list(sh.DEFAULT_FAMILIES) + ["reactome", "openalex"] and plan_d["families_source"] == "directives+default"
+          and plan_d["families_excluded"] == [{"family": "nope", "reason": "unknown-family", "requirement_ids": ["directive:2"]}]
+          and plan_d["directives_state"] == "provided" and len(plan_d["directives"]) == 3
+          and plan_d["families_from_directives"] == ["reactome", "openalex"] and plan_d["n_directives_excluded"] == 1
+          and [r["state"] for r in plan_d["directives_applied"]] == ["applied", "applied", "excluded-unknown-family"],
+          repr((plan_d["families"], plan_d["families_excluded"])))
+    check("plan sin pass1_query_en y directiva SIN query_en: free-query = símbolos + anatomía + 'zebrafish' (la directiva no "
+          "sustituye nada: entered_by 'directive', sin query_source de consejo)",
+          plan_d["queries"]["openalex"]["query"] == "wt1a pronephros pronephric zebrafish"
+          and plan_d["queries"]["openalex"]["query_source"] == "search_harness:v1:symbols+anatomy"
+          and plan_d["queries"]["openalex"]["entered_by"] == "directive"
+          and plan_d["queries"]["openalex"]["directive_requirement_ids"] == ["directive:1"]
+          and "directive_queries" not in plan_d["queries"]["openalex"]
           and plan_d["question_en_source"] is None, repr(plan_d["queries"]["openalex"]))
+    _restore(old)
+
+    # ============ 2b. ADR-0082 (G.3): directivas del consejo con la forma C.6 ============
+    old = _env(WITT_SEARCH_DEFAULT_FAMILIES=None, WITT_SEARCH_ROUNDS_CAP=None, WITT_SEARCH_ROUND_BUDGET_S=None)
+    pdc = sh.build_search_plan(q, ["wt1a"], "wt1a pronephros", directives=DIRECTIVES_C6)
+    qd = pdc["queries"]
+    check("directivas C.6 [openalex, monarch, string, europepmc, zfin, web, nope, openalex]: familias = 5 auto ∪ [openalex, monarch, "
+          "string] en el orden pedido; families_source 'directives+default' ∈ FAMILIES_SOURCES; families_from_directives las 3 "
+          "directive-only; europepmc/zfin (default) NO se duplican",
+          pdc["families"] == list(sh.DEFAULT_FAMILIES) + ["openalex", "monarch", "string"]
+          and pdc["families_source"] == "directives+default" and pdc["families_source"] in sh.FAMILIES_SOURCES
+          and pdc["families_from_directives"] == ["openalex", "monarch", "string"] and pdc["directives_state"] == "provided"
+          and pdc["directives"] == DIRECTIVES_C6, repr(pdc["families"]))
+    check("exclusiones con razón y requirement_ids: 'nope' → 'unknown-family'; 'web' (sin tool ni adaptador) → "
+          "'unsatisfiable-by-harness (tool-unavailable (ADR-0084))' — NO se despacha una llamada que nacería tool-unavailable; "
+          "n_directives_excluded 2; ni web ni nope en families",
+          pdc["families_excluded"] == [
+              {"family": "web", "reason": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))", "requirement_ids": ["req-fff"]},
+              {"family": "nope", "reason": "unknown-family", "requirement_ids": ["req-ggg"]}]
+          and pdc["n_directives_excluded"] == 2 and "web" not in pdc["families"] and "nope" not in pdc["families"],
+          repr(pdc["families_excluded"]))
+    check("free-query (openalex): la query_en de la PRIMERA directiva sustituye a pass1_query_en — query_source "
+          "'council-directive:req-aaa', la sustituida declarada en query_replaced; la segunda directiva de la misma familia es "
+          "insumo EXTRA (directive_queries ×2; _inputs_for → 2 llamadas); directive_inputs mapea cada query a su id",
+          qd["openalex"]["query"] == "wt1a pronephros glomerulus podocyte"
+          and qd["openalex"]["query_source"] == "council-directive:req-aaa"
+          and qd["openalex"]["query_replaced"] == {"query": "wt1a pronephros", "query_source": "pass1_query_en"}
+          and qd["openalex"]["directive_requirement_ids"] == ["req-aaa", "req-hhh"] and qd["openalex"]["entered_by"] == "directive"
+          and [d["requirement_id"] for d in qd["openalex"]["directive_queries"]] == ["req-aaa", "req-hhh"]
+          and sh._inputs_for("openalex", sh.SEARCH_DISPATCH["openalex"], pdc, {})[0] == ["wt1a pronephros glomerulus podocyte", "second openalex query"]
+          and qd["openalex"]["directive_inputs"] == {"wt1a pronephros glomerulus podocyte": ["req-aaa"], "second openalex query": ["req-hhh"]},
+          repr(qd["openalex"]))
+    check("symbols (string, directive-only): símbolos de la directiva AÑADIDOS con el MISMO saneo (Pax2a → pax2a), el ya presente "
+          "(wt1a) no se duplica ni se atribuye; symbols_from_directives declarado; zfin (default) gana osr1 y descarta 'x' "
+          "(symbols_from_directives_dropped); entered_by 'directive' vs 'default+directive'",
+          qd["string"]["symbols"] == ["wt1a", "pax2a", "osr1"] and qd["string"]["symbols_from_directives"] == ["pax2a", "osr1"]
+          and qd["string"]["directive_inputs"] == {"pax2a": ["req-ccc"], "osr1": ["req-ccc"]} and qd["string"]["entered_by"] == "directive"
+          and qd["zfin"]["symbols"] == ["wt1a", "osr1"] and qd["zfin"]["symbols_from_directives"] == ["osr1"]
+          and qd["zfin"]["symbols_from_directives_dropped"] == ["x"] and qd["zfin"]["entered_by"] == "default+directive"
+          and qd["zfin"]["directive_inputs"] == {"osr1": ["req-eee"]} and qd["zfin"]["anatomy_filter"] == "pronephr",
+          repr((qd["string"], qd["zfin"])))
+    check("literatura (europepmc, default): la query del constructor SIGUE; la directiva va a directive_queries[] (UNA llamada "
+          "EXTRA en la ronda); _inputs_for la ve como insumo (inputs_used / inputs_signature completos); pubmed (sin directiva) "
+          "queda EXACTAMENTE como sin directivas",
+          "TITLE:wt1a" in qd["europepmc"]["query"] and qd["europepmc"]["entered_by"] == "default+directive"
+          and qd["europepmc"]["directive_queries"] == [{"requirement_id": "req-ddd", "query_en": "wt1a knockdown pronephric duct"}]
+          and sh._inputs_for("europepmc", sh.SEARCH_DISPATCH["europepmc"], pdc, {})[0] == [qd["europepmc"]["query"], "wt1a knockdown pronephric duct"]
+          and qd["pubmed"] == {"inputs": "literature-query", "query": qd["pubmed"]["query"], "query_builder": "search_queries:v1"}
+          and "directive_requirement_ids" not in qd["pubmed"], repr(qd["europepmc"]))
+    check("monarch (zfin-curies, directive-only): entra por la directiva (family-entry) — sus insumos siguen siendo las curies "
+          "resueltas en la ronda (jamás un símbolo de memoria); directives_applied: una fila por directiva con state ∈ "
+          "DIRECTIVE_PLAN_STATES y applied_as por insumo",
+          qd["monarch"]["entered_by"] == "directive" and qd["monarch"]["directive_requirement_ids"] == ["req-bbb"]
+          and qd["monarch"]["curies"] == "from-zfin-items-at-round-time" and "directive_inputs" not in qd["monarch"]
+          and all(r["state"] in sh.DIRECTIVE_PLAN_STATES for r in pdc["directives_applied"])
+          and {r["requirement_id"]: (r["state"], r["applied_as"]) for r in pdc["directives_applied"]} == {
+              "req-aaa": ("applied", ["family-entry", "free-query"]), "req-bbb": ("applied", ["family-entry"]),
+              "req-ccc": ("applied", ["family-entry", "symbol:pax2a", "symbol:osr1"]), "req-ddd": ("applied", ["literature-extra-query"]),
+              "req-eee": ("applied", ["symbol:osr1"]), "req-fff": ("excluded-unsatisfiable", []), "req-ggg": ("excluded-unknown-family", []),
+              "req-hhh": ("applied", ["family-entry", "free-query-extra"])},
+          repr(pdc["directives_applied"]))
+    check("plan_event_payload con directivas: families_source 'directives+default', n_directives 8, state 'built', queries con los "
+          "campos de directiva (la Traza glosa 'lo pidió el consejo + las 5 de siempre'); inputs_signature incluye los insumos de "
+          "las directivas (openalex 2 queries, string 3 símbolos)",
+          sh.plan_event_payload(pdc)["families_source"] == "directives+default" and sh.plan_event_payload(pdc)["n_directives"] == 8
+          and sh.plan_event_payload(pdc)["state"] == "built"
+          and sh.plan_event_payload(pdc)["queries"]["openalex"]["query_source"] == "council-directive:req-aaa"
+          and sh.inputs_signature(pdc, {})["openalex"] == ["free-query", ["wt1a pronephros glomerulus podocyte", "second openalex query"]]
+          and sh.inputs_signature(pdc, {})["string"] == ["symbols", ["wt1a", "pax2a", "osr1"]])
+    pcd = sh.build_search_plan(q, ["wt1a"], None, directives=DIRECTIVES_C6[:2], families=["openalex"])
+    check("families= del llamador MANDA sobre las directivas ('caller'): openalex entra por el llamador y la directiva refina su "
+          "query (entered_by 'caller+directive'); la directiva de monarch (no pedida por el llamador) queda "
+          "'not-requested (caller families)' — declarada, no callada",
+          pcd["families"] == ["openalex"] and pcd["families_source"] == "caller"
+          and pcd["queries"]["openalex"]["entered_by"] == "caller+directive"
+          and pcd["queries"]["openalex"]["query_source"] == "council-directive:req-aaa"
+          and [(r["requirement_id"], r["state"]) for r in pcd["directives_applied"]] == [("req-aaa", "applied"), ("req-bbb", "not-requested (caller families)")],
+          repr(pcd["directives_applied"]))
+    # run_round con el plan de directivas: filas e ítems con directive_requirement_ids (atribución por INSUMO)
+    plan_rd = sh.build_search_plan(q, ["wt1a"], "wt1a pronephros", families=None,
+                                   directives=[d for d in DIRECTIVES_C6 if d["family"] in ("openalex", "string", "monarch")])
+    plan_rd["families"] = ["openalex", "string", "monarch", "alliance_orthologs"]   # sólo Layer 0 (las legadas van en §4)
+    rows_rd = []
+    def fake_al(symbol, timeout=None):   # ids distintos de fake_ok: así el [] de alliance se MIDE (no queda vacuo por dedup)
+        return {"status": "success", "query_sent": f"https://fake/al/{symbol}", "elapsed_s": 0.01,
+                "data": {"orthologs": [{"id": f"AL:{symbol}", "statement": f"{symbol} ortholog"}]}}
+    rd_d = sh.run_round(plan_rd, 1, 30.0, on_source=rows_rd.append, tools={"openalex": fake_free, "string": fake_ok, "alliance_orthologs": fake_al, "monarch": fake_ok})
+    by_d = {s["family"]: s for s in rd_d["sources"]}
+    it_d = {i["evidence_id"]: i for i in rd_d["items"]}
+    w1 = "W:" + hashlib.sha256(b"wt1a pronephros glomerulus podocyte").hexdigest()[:8]
+    w2 = "W:" + hashlib.sha256(b"second openalex query").hexdigest()[:8]
+    check("run_round: TODA fila lleva directive_requirement_ids (openalex [aaa, hhh] · string [ccc] · monarch [bbb] aunque quede "
+          "'not-requested' sin curie · alliance_orthologs [] = nadie la pidió); openalex hizo 2 llamadas (una por query de "
+          "directiva) y cada llamada declara su id",
+          by_d["openalex"]["directive_requirement_ids"] == ["req-aaa", "req-hhh"] and by_d["string"]["directive_requirement_ids"] == ["req-ccc"]
+          and by_d["monarch"]["directive_requirement_ids"] == ["req-bbb"] and by_d["monarch"]["status"] == "not-requested"
+          and by_d["alliance_orthologs"]["directive_requirement_ids"] == []
+          and by_d["openalex"]["n_calls"] == 2 and [c["directive_requirement_ids"] for c in by_d["openalex"]["calls"]] == [["req-aaa"], ["req-hhh"]],
+          repr({f: (s["status"], s["directive_requirement_ids"]) for f, s in by_d.items()}))
+    check("ítems: atribución POR INSUMO, no por contagio — el paper de la 1ª query openalex lleva [req-aaa], el de la 2ª [req-hhh]; "
+          "string entró SÓLO por la directiva → sus ítems de pax2a/osr1 llevan [req-ccc] y los de wt1a (símbolo base de una "
+          "familia que corrió POR la directiva) también; alliance_orthologs (default) → []",
+          it_d[w1]["directive_requirement_ids"] == ["req-aaa"] and it_d[w2]["directive_requirement_ids"] == ["req-hhh"]
+          and it_d["FAKE:pax2a:1"]["source_family"] == "string" and it_d["FAKE:pax2a:1"]["directive_requirement_ids"] == ["req-ccc"]
+          and it_d["FAKE:osr1:1"]["directive_requirement_ids"] == ["req-ccc"]
+          and it_d["FAKE:wt1a:1"]["source_family"] == "string" and it_d["FAKE:wt1a:1"]["directive_requirement_ids"] == ["req-ccc"]
+          and it_d["AL:wt1a"]["source_family"] == "alliance_orthologs" and it_d["AL:wt1a"]["directive_requirement_ids"] == []
+          and all("directive_requirement_ids" in i for i in rd_d["items"]),
+          repr({k: v["directive_requirement_ids"] for k, v in it_d.items()}))
+    check("source_event_payload lleva directive_requirement_ids (stage.search.source: 'lo pidió el consejo · req-…'); [] cuando nadie "
+          "la pidió — la llave viaja SIEMPRE",
+          sh.source_event_payload(by_d["openalex"])["directive_requirement_ids"] == ["req-aaa", "req-hhh"]
+          and sh.source_event_payload(by_d["alliance_orthologs"])["directive_requirement_ids"] == []
+          and all("directive_requirement_ids" in sh.source_event_payload(r) for r in rows_rd))
+    check("_rids_for (la regla de atribución, pura): insumo mapeado → sus ids; familia entered_by 'directive' → todos; base de una "
+          "familia default → []; sin queries → []; _family_status reproduce la agregación de ADR-0080 (refactor sin cambio)",
+          sh._rids_for({"directive_inputs": {"osr1": ["r1"]}, "entered_by": "default+directive", "directive_requirement_ids": ["r1"]}, "osr1") == ["r1"]
+          and sh._rids_for({"directive_inputs": {"osr1": ["r1"]}, "entered_by": "default+directive", "directive_requirement_ids": ["r1"]}, "wt1a") == []
+          and sh._rids_for({"entered_by": "directive", "directive_requirement_ids": ["r1", "r2"]}, "wt1a") == ["r1", "r2"]
+          and sh._rids_for({}, "wt1a") == [] and sh._rids_for(None, None) == []
+          and sh._family_status([{"x": 1}], ["error"]) == "success" and sh._family_status([], []) == "skipped-budget"
+          and sh._family_status([], ["no-match", "error"]) == "no-match" and sh._family_status([], ["tool-unavailable"] * 2) == "tool-unavailable"
+          and sh._family_status([], ["skipped-budget"] * 3) == "skipped-budget" and sh._family_status([], ["not-requested"]) == "not-requested"
+          and sh._family_status([], ["error", "skipped-budget"]) == "error")
     _restore(old)
     old = _env(WITT_SEARCH_DEFAULT_FAMILIES="zfin, uniprot,zzz", WITT_SEARCH_ROUNDS_CAP="abc", WITT_SEARCH_ROUND_BUDGET_S="-4")
     plan_e = sh.build_search_plan(q, ["wt1a"], None)
@@ -212,8 +426,9 @@ def main():
     check("round_event_payload: sin items; sources resumidas; n_duplicates",
           "items" not in sh.round_event_payload(rd) and len(sh.round_event_payload(rd)["sources"]) == len(fams)
           and sh.round_event_payload(rd)["n_duplicates"] == 0)
-    # tool que LANZA -> error declarado, la ronda sigue
-    rd_x = sh.run_round(plan_r, 1, 30.0, tools={"alliance_orthologs": fake_raises, "uniprot": fake_ok})
+    # tool que LANZA -> error declarado, la ronda sigue (TODAS las familias fakeadas: con sólo dos inyectadas, reactome/string
+    # cargaban la tool REAL y, sin caché del día UTC, tocaban la red — medido por el contador de urlopen, ADR-0082 L.3)
+    rd_x = sh.run_round(plan_r, 1, 30.0, tools={**tools, "alliance_orthologs": fake_raises, "uniprot": fake_ok})
     bx = {s["family"]: s for s in rd_x["sources"]}
     check("tool que lanza: fila 'error' con RuntimeError declarado y la siguiente familia corre (§6 no-hang)",
           bx["alliance_orthologs"]["status"] == "error" and "RuntimeError: boom" in bx["alliance_orthologs"]["error"]
@@ -336,6 +551,94 @@ def main():
               bl["pubmed"]["ledger"]["duplicates_of_europepmc"] == ["PMID:111"] and bl["pubmed"]["n_new"] == 1
               and not any(d["evidence_id"] == "PMID:111" for d in rd_l["duplicates"])
               and [i["evidence_id"] for i in rd_l["items"] if i["kind"] == "literature-candidate"] == ["PMID:111", "PMID:222"])
+        check("legadas SIN directivas (ADR-0082): las filas no ganan calls[] ni error; directive_requirement_ids [] en filas e ítems "
+              "(la llave viaja siempre; el resto de la fila es el de ADR-0080)",
+              all("calls" not in s and s["directive_requirement_ids"] == [] for s in rd_l["sources"])
+              and all(i["directive_requirement_ids"] == [] for i in rd_l["items"]))
+
+        # ---- ADR-0082 (G.3): directive_queries de europepmc = UNA llamada EXTRA dentro del presupuesto (el fake CUENTA) ----
+        epmc_calls = []
+
+        def fake_epmc_dir(query, n=5, sort=None, synonym=True):
+            epmc_calls.append(query)
+            if "knockdown" in query:
+                return ([{"epmc_id": "4", "source": "MED", "pmid": "444", "pmcid": None, "doi": "10.1/ddd", "title": "directive paper",
+                          "year": "2022", "journal": "J", "is_oa": False, "abstract": "wt1a knockdown pronephric duct", "cited_by": 0}],
+                        {"source": "europepmc", "status": "success", "query_sent": query, "n_found": 1, "n_returned": 1,
+                         "elapsed_s": 0.01, "contact": "unset"})
+            return fake_epmc(query, n, sort, synonym)
+        fetch_paper.search_europepmc_ledger = fake_epmc_dir
+        plan_ld = sh.build_search_plan(q, ["wt1a"], "wt1a pronephros",
+                                       directives=[d for d in DIRECTIVES_C6 if d["family"] in ("europepmc", "zfin")])
+        plan_ld["families"] = ["europepmc", "pubmed", "zfin"]
+        epmc_calls.clear()
+        rd_ld = sh.run_round(plan_ld, 1, 30.0, ctx={"retmax": 20, "n_papers": 5, "literature_requested": True, "pubmed_seen": {}})
+        bld = {s["family"]: s for s in rd_ld["sources"]}
+        ep = bld["europepmc"]
+        check("legadas + directiva (G.3): europepmc hizo DOS llamadas — la del constructor y UNA EXTRA con la query_en de la directiva "
+              "(el fake cuenta 2); calls[] = [builder, council-directive req-ddd]; n_found 2 (1 + 1); `ledger` sigue siendo el de la "
+              "BASE (europepmc_searched byte-compatible); el paper de la directiva (PMID:444) lleva [req-ddd] y el de la base (PMID:111) "
+              "[]; zfin: el ítem de osr1 (símbolo añadido) lleva [req-eee] y el de wt1a []; pubmed sin directiva → [] y sin calls",
+              len(epmc_calls) == 2 and "knockdown" in epmc_calls[1] and ep["status"] == "success" and ep["n_found"] == 2
+              and [c["kind"] for c in ep["calls"]] == ["builder", "council-directive"] and ep["calls"][1]["requirement_id"] == "req-ddd"
+              and ep["calls"][1]["status"] == "success" and ep["calls"][1]["n_found"] == 1 and ep["n_calls"] == 2
+              and ep["ledger"]["query_sent"] == epmc_calls[0] and ep["directive_requirement_ids"] == ["req-ddd"]
+              and ep["n_new"] == 2 and "error" not in ep
+              and {i["evidence_id"]: i["directive_requirement_ids"] for i in rd_ld["items"] if i["source_family"] == "europepmc"}
+              == {"PMID:111": [], "PMID:444": ["req-ddd"]}
+              and {(i.get("zfin") or {}).get("symbol"): i["directive_requirement_ids"] for i in rd_ld["items"] if i["source_family"] == "zfin"}
+              == {"wt1a": [], "osr1": ["req-eee"]}
+              and bld["pubmed"]["directive_requirement_ids"] == [] and "calls" not in bld["pubmed"],
+              repr((epmc_calls, {k: (v["status"], v.get("n_found"), v["directive_requirement_ids"]) for k, v in bld.items()})))
+        epmc_calls.clear()
+        row0, items0 = sh.run_source("europepmc", plan_ld, {"retmax": 20, "n_papers": 5, "literature_requested": True, "pubmed_seen": {}}, 0.0)
+        check("presupuesto de familia 0: la llamada BASE corre (la admisión la decidió el reparto de la ronda) y la EXTRA de la "
+              "directiva queda 'skipped-budget' declarada SIN tocar la red (el fake cuenta 1); n_calls_skipped_budget 1; la fila sigue "
+              "'success' con lo medido (n_found 1)",
+              len(epmc_calls) == 1 and row0["status"] == "success" and row0["calls"][1]["status"] == "skipped-budget"
+              and "family budget" in row0["calls"][1]["detail"] and row0["n_calls_skipped_budget"] == 1 and row0["n_found"] == 1
+              and row0["calls"][1]["directive_requirement_ids"] == ["req-ddd"]
+              and [i["evidence_id"] for i in items0] == ["PMID:111"], repr(row0["calls"]))
+        # ---- path_b_bundle con directivas: el camino que runs recorre (C5 pasará directives=…) ----
+        # las 5 auto SIGUEN en el plan: alliance_orthologs / zfin_expression se FAKEAN (cero red, mcp_cache intacto)
+        ev_d = []
+        sh._TOOL_CACHE["openalex"] = (fake_free, "injected", None)
+        sh._TOOL_CACHE["alliance_orthologs"] = (fake_ok, "injected", None)
+        sh._TOOL_CACHE["zfin_expression"] = (fake_nomatch, "injected", None)
+        dirs_pb = [d for d in DIRECTIVES_C6 if d["family"] in ("openalex", "europepmc", "web")]   # aaa, ddd, fff, hhh
+        plan_pbd = sh.build_search_plan(q, ["wt1a"], "wt1a pronephros", directives=dirs_pb)
+        epmc_calls.clear()
+        blkd = ap.path_b_bundle(q, entities=["wt1a"], triggered_by=["competence"], search_plan=plan_pbd,
+                                on_stage=lambda n, p: ev_d.append((n, p)))
+        sld = blkd["search_ledger"]
+        pl_ev = next(p for n, p in ev_d if n == "search.plan")
+        ep_row = next(s for s in sld["rounds"][0]["sources"] if s["family"] == "europepmc")
+        oa_row = next(s for s in sld["rounds"][0]["sources"] if s["family"] == "openalex")
+        src_evs = {p["family"]: p for n, p in ev_d if n == "search.source"}
+        check("path_b_bundle con directivas (4: openalex ×2, europepmc, web): stage.search.plan {families_source 'directives+default', "
+              "n_directives 4, familias = 5 auto + openalex, web excluida 'unsatisfiable-by-harness'}; _plan_with_queries CONSERVA los "
+              "campos de directiva (search_ledger.plan.queries.openalex.query_source 'council-directive:req-aaa', europepmc."
+              "directive_queries, directives_applied ×4); la fila congelada de europepmc lleva calls[] con la directiva (el fake contó 2) "
+              "y la de openalex directive_requirement_ids [aaa, hhh] con 2 llamadas; stage.search.source lo lleva (zfin []); los dos "
+              "papers de openalex entran a papers con kind 'paper' / source_family",
+              pl_ev["families_source"] == "directives+default" and pl_ev["n_directives"] == 4
+              and pl_ev["families"] == list(sh.DEFAULT_FAMILIES) + ["openalex"]
+              and pl_ev["families_excluded"] == [{"family": "web", "reason": "unsatisfiable-by-harness (tool-unavailable (ADR-0084))",
+                                                   "requirement_ids": ["req-fff"]}]
+              and sld["plan"]["queries"]["openalex"]["query_source"] == "council-directive:req-aaa"
+              and sld["plan"]["queries"]["europepmc"]["directive_queries"][0]["requirement_id"] == "req-ddd"
+              and [r["state"] for r in sld["plan"]["directives_applied"]] == ["applied", "applied", "excluded-unsatisfiable", "applied"]
+              and sld["plan"]["families_source"] == "directives+default"
+              and [c["kind"] for c in ep_row["calls"]] == ["builder", "council-directive"] and ep_row["directive_requirement_ids"] == ["req-ddd"]
+              and oa_row["directive_requirement_ids"] == ["req-aaa", "req-hhh"] and oa_row["status"] == "success" and oa_row["n_calls"] == 2
+              and src_evs["openalex"]["directive_requirement_ids"] == ["req-aaa", "req-hhh"] and src_evs["zfin"]["directive_requirement_ids"] == []
+              and sum(1 for p in blkd["papers"] if p.get("source_family") == "openalex" and p.get("kind") == "paper") == 2
+              and len(epmc_calls) == 2,
+              repr((pl_ev["n_directives"], pl_ev["families"], pl_ev["families_excluded"], [c["kind"] for c in ep_row.get("calls", [])],
+                    oa_row.get("directive_requirement_ids"), len(epmc_calls))))
+        fetch_paper.search_europepmc_ledger = fake_epmc
+        for fam in ("openalex", "alliance_orthologs", "zfin_expression"):
+            sh._TOOL_CACHE.pop(fam, None)
 
         # ---- path_b_bundle(search_plan=) ----
         events = []
@@ -547,9 +850,12 @@ def main():
         fetch_paper.search_europepmc_ledger, fetch_paper.fetch_external, ap._cache_zfin = _epmc_real, _fetch_real, _cache_zfin_real
         ap._WS_CACHE.pop(("pubmed_literature.py", "query_pubmed"), None)
         ap._WS_CACHE.pop(("zfin_zebrafish.py", "query_zfin"), None)
-        for fam in ("alliance_orthologs", "uniprot", "monarch"):
+        for fam in ("alliance_orthologs", "uniprot", "monarch", "openalex"):
             sh._TOOL_CACHE.pop(fam, None)
 
+    check("el smoke corrió 100% OFFLINE — MEDIDO: urllib.request.urlopen bloqueado y contado == 0 (fakes/parches para toda familia)",
+          _NET_CALLS == [], f"calls={_NET_CALLS[:5]}")
+    _urlreq.urlopen = _urlopen_real
     n_pass, n_total = sum(CHECKS), len(CHECKS)
     print(f"\n{n_pass}/{n_total} PASS")
     return 0 if n_pass == n_total else 1

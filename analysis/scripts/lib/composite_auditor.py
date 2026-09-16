@@ -68,10 +68,23 @@ ADR-0081 (C, D, K — este módulo):
     intacto cuando ok. Con ambos kill-switches el veredicto es EXACTAMENTE el de f57a3d3 (golden en
     smoke_panel_quorum.py).
   - (K) `directives` (ADR-0082) se acepta, se ignora y se DECLARA en `audit.panel_source`.
+
+ADR-0082 (D.1 — el caller, aditivo; el consejo de criterio vive en lib/council.py):
+  - `_anthropic_tool_call(..., tools=None)`: lista COMPLETA de tools a enviar (el consejo manda sus TRES byte a byte y
+    fuerza la ronda con `tool_choice`); sin `tools=` el cuerpo es `[tool]`, el de hoy. `system` acepta `str` o
+    `list[block]` con `cache_control` tal cual (prompt caching: bloque A compartido + ficha verbatim).
+  - `_INFLIGHT = threading.BoundedSemaphore(WITT_ANTHROPIC_MAX_INFLIGHT=8)` alrededor de urlopen para TODA llamada
+    Anthropic del proceso (consejo, síntesis, elicitación, planner, jueces) — `meta.queue_wait_s` lo mide.
+  - `Retry-After` honrado en http-429/529 con tope WITT_ANTHROPIC_RETRY_AFTER_CAP_S (default 30); sin cabecera, el
+    `_backoff(2·(intento+1))` de hoy; `CallerError.retry_after` y `meta.retry_after_honored_s`.
+  - `meta.attempts` (intentos HECHOS) y `meta.usage_prior_attempts` (lo que la API cobró en intentos fallidos) para que
+    el consejo sume TODO gasto de todo intento (C.3). La 2-tupla `return_meta=False` sigue byte a byte.
 """
+import email.utils
 import json
 import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -139,16 +152,19 @@ class CallerError(RuntimeError):
     en `attempts[].error` — 'RuntimeError' por default (el string de hoy queda BYTE A BYTE) o el nombre de la
     excepción del SDK que se envolvió (`_wrap`), para que un error de chat.completions se lea igual que en 1.9.
     `.usage` / `.meta` (opcionales): lo MEDIDO de un intento que erró después de que la API respondió (tokens
-    cobrados, model_reported) — audit() lo conserva en el intento; una medición jamás se tira."""
+    cobrados, model_reported) — audit() lo conserva en el intento; una medición jamás se tira.
+    `.retry_after` (ADR-0082 D.1): los segundos que la cabecera `Retry-After` pidió en el ÚLTIMO http-429/529 (None sin
+    cabecera o sin ese código) — el consejo lo congela en la fila del miembro; el caller ya lo honró con tope."""
     legacy_type_name = "RuntimeError"
 
-    def __init__(self, kind, message, legacy_type_name=None, usage=None, meta=None):
+    def __init__(self, kind, message, legacy_type_name=None, usage=None, meta=None, retry_after=None):
         super().__init__(message)
         self.kind = kind
         if legacy_type_name:
             self.legacy_type_name = legacy_type_name
         self.usage = usage if isinstance(usage, dict) else None
         self.meta = meta if isinstance(meta, dict) else None
+        self.retry_after = retry_after if isinstance(retry_after, (int, float)) and not isinstance(retry_after, bool) else None
 
 
 FAILURE_KINDS_EXACT = ("no-api-key", "sdk-unavailable", "network", "refusal", "no-function-call",
@@ -220,6 +236,96 @@ def _backoff(seconds):
     """Espera entre reintentos (2·(intento+1) s transporte, 1 s contenido — como f57a3d3). Separada para que
     los smokes la anulen sin tocar `time.sleep` global."""
     time.sleep(seconds)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ADR-0082 (D.1): semáforo de PROCESO alrededor de urlopen para TODA llamada Anthropic (consejo, síntesis, elicitación,
+# planner, jueces) y Retry-After honrado con tope en http-429/529. Lectores TOLERANTES: `models.ENV_TABLE` si C3 ya
+# declaró la env (una sola verdad), si no un default local declarado — jamás tumba el import.
+# ---------------------------------------------------------------------------------------------------------------
+INFLIGHT_ENV = "WITT_ANTHROPIC_MAX_INFLIGHT"
+INFLIGHT_DEFAULT = 8
+RETRY_AFTER_CAP_ENV = "WITT_ANTHROPIC_RETRY_AFTER_CAP_S"
+RETRY_AFTER_CAP_DEFAULT = 30
+RETRY_AFTER_KINDS = ("http-429", "http-529")      # sólo aquí se lee la cabecera; 500/502/503 conservan el backoff de hoy
+
+
+def _env_int_tolerant(name, default, minimum=0, env=None):
+    """(valor, fuente): models.env_value si la env está en la tabla; si no, lectura local con el MISMO contrato
+    (vacía → default-unset, basura/negativa → default-invalid-env)."""
+    try:
+        return models.env_value(name, env)
+    except KeyError:
+        pass
+    raw = (os.environ if env is None else env).get(name)
+    if raw is None or str(raw).strip() == "":
+        return default, f"default-unset:{name}"
+    try:
+        v = int(str(raw).strip())
+    except (ValueError, TypeError):
+        return default, f"default-invalid-env:{name}"
+    if v < minimum:
+        return default, f"default-invalid-env:{name}"
+    return v, f"env:{name}"
+
+
+def inflight_limit(env=None):
+    """(n, fuente) del tope de peticiones Anthropic en vuelo por proceso (default 8). Se lee al IMPORTAR (un
+    BoundedSemaphore no se redimensiona; toda env = reinicio, ADR-0081 Context 10)."""
+    return _env_int_tolerant(INFLIGHT_ENV, INFLIGHT_DEFAULT, minimum=1, env=env)
+
+
+_INFLIGHT_LIMIT, _INFLIGHT_SOURCE = inflight_limit()
+_INFLIGHT = threading.BoundedSemaphore(_INFLIGHT_LIMIT)
+_INFLIGHT_RULE = ("BoundedSemaphore(WITT_ANTHROPIC_MAX_INFLIGHT) acquired around urlopen for EVERY Anthropic call in the "
+                  "process (council members, synthesizer, elicitation, planner, judges); meta.queue_wait_s measures the "
+                  "wait; it bounds REQUESTS in flight, not tokens per minute (ADR-0082 L.7)")
+
+
+def retry_after_cap(env=None):
+    return _env_int_tolerant(RETRY_AFTER_CAP_ENV, RETRY_AFTER_CAP_DEFAULT, minimum=0, env=env)
+
+
+def _retry_after_seconds(headers):
+    """Segundos de la cabecera Retry-After (entero o HTTP-date, RFC 7231 §7.1.3) o None sin cabecera / ilegible.
+    Nunca negativo. `headers` es HTTPMessage (urllib) o dict (fakes) — se lee por duck-typing."""
+    if headers is None:
+        return None
+    try:
+        raw = headers.get("Retry-After") if hasattr(headers, "get") else None
+        if raw is None and hasattr(headers, "get"):
+            raw = headers.get("retry-after")
+    except Exception:
+        return None
+    if raw is None:
+        return None
+    s = str(raw).strip()
+    if not s:
+        return None
+    try:
+        return max(0.0, float(s))
+    except ValueError:
+        pass
+    try:
+        dt = email.utils.parsedate_to_datetime(s)
+    except (TypeError, ValueError, IndexError):
+        return None
+    if dt is None:
+        return None
+    try:
+        now = email.utils.parsedate_to_datetime(email.utils.formatdate(usegmt=True))
+        return max(0.0, (dt - now).total_seconds())
+    except Exception:
+        return None
+
+
+def _transport_wait(code, headers, attempt, cap_s):
+    """(segundos a esperar, retry_after_crudo | None, honrado: bool) para un reintento de transporte: Retry-After con
+    tope en 429/529; sin cabecera (o en 500/502/503) el `2·(intento+1)` de f57a3d3."""
+    ra = _retry_after_seconds(headers) if f"http-{code}" in RETRY_AFTER_KINDS else None
+    if ra is None:
+        return 2 * (attempt + 1), None, False
+    return min(ra, float(cap_s)), ra, True
 
 
 def parse_citation_support(raw):
@@ -475,48 +581,81 @@ def _anthropic_content_kind(stop_reason, bad_verdict):
 
 
 def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200,
-                         effort=None, return_meta=False):
+                         effort=None, return_meta=False, tools=None):
     """Forced-tool Messages call (urllib; the run_held_out.py pattern). Returns (tool_input, usage) — la 2-tupla de
     f57a3d3, INTACTA para todos los llamadores y fakes de hoy — o, con `return_meta=True` (ADR-0081 B),
     (tool_input, usage, meta) con meta = {model_reported: payload['model'], api: 'anthropic-messages', stop_reason,
-    stop_details? (categoría del refusal, cuando la API la manda), response_id?} y usage NUMÉRICO con
-    `thinking_tokens` aplanado (C.4). `tool` defaults to VERDICT_TOOL; the run synthesizer reuses this with its own
-    schema (ADR-0050). `effort` (C.4): `output_config: {effort}` se envía SÓLO si el llamador lo pasa (S3/_default_caller
-    lo deciden por env + tabla); el cuerpo NO cambia entre generaciones salvo `max_tokens` y ese bloque.
+    stop_details? (categoría del refusal, cuando la API la manda), response_id?, attempts (ADR-0082: intentos HECHOS),
+    usage_prior_attempts? (el usage NUMÉRICO de los intentos previos que la API SÍ cobró — el consejo lo suma),
+    queue_wait_s (espera en el semáforo de proceso, sumada sobre los intentos), retry_after_honored_s? (sólo si un
+    429/529 trajo Retry-After y se esperó)} y usage NUMÉRICO con `thinking_tokens` aplanado (C.4). `tool` defaults
+    to VERDICT_TOOL; the run synthesizer reuses this with its own schema (ADR-0050). `effort` (C.4): `output_config:
+    {effort}` se envía SÓLO si el llamador lo pasa (S3/_default_caller lo deciden por env + tabla); el cuerpo NO cambia
+    entre generaciones salvo `max_tokens` y ese bloque.
+    ADR-0082 (D.1), aditivo: `tools=` es la lista COMPLETA a enviar (el consejo manda sus TRES tools byte a byte en
+    toda llamada; `tool` sigue nombrando el forzado y debe estar en la lista) — sin `tools=` el cuerpo lleva `[tool]`,
+    byte a byte el de hoy; `system` puede ser `str` (hoy) o `list[block]` (bloques `{type:'text', text, cache_control}`
+    tal cual — el JSON los serializa igual); el semáforo de PROCESO `_INFLIGHT` se adquiere alrededor de urlopen;
+    `Retry-After` se honra en http-429/529 con tope WITT_ANTHROPIC_RETRY_AFTER_CAP_S (sin cabecera, el backoff de hoy).
     Fallos → CallerError con kind (C.2) y los MISMOS mensajes de f57a3d3; refusal y http-4xx no se reintentan."""
     tool = tool or VERDICT_TOOL
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
         raise CallerError("no-api-key",
                           "ANTHROPIC_API_KEY not set — add to .secrets/deploy.env / service env (never git).")
+    if tools is not None:
+        tools = list(tools)
+        if tool["name"] not in {t.get("name") for t in tools}:
+            raise ValueError(f"forced tool {tool['name']!r} is not in tools= {[t.get('name') for t in tools]}")
     body = {"model": model, "max_tokens": max_tokens, "system": system,
             "messages": [{"role": "user", "content": user_text}],
-            "tools": [tool], "tool_choice": {"type": "tool", "name": tool["name"]}}
+            "tools": tools if tools is not None else [tool], "tool_choice": {"type": "tool", "name": tool["name"]}}
     if effort:
         body["output_config"] = {"effort": effort}
     headers = {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json"}
+    cap_s, _cap_src = retry_after_cap()
     last = None
+    prior_usages = []                # (D.1) lo que la API cobró en intentos que NO valieron — nunca se tira
+    queue_wait_total = 0.0
+    honored_total = 0.0
+    honored_any = False
     for attempt in range(retries + 1):
         try:
             req = urllib.request.Request(ANTHROPIC_URL, data=json.dumps(body).encode("utf-8"),
                                          headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                payload = json.loads(resp.read().decode("utf-8"))
+            t_q = time.monotonic()
+            with _INFLIGHT:
+                queue_wait_total += time.monotonic() - t_q
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    payload = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
-            last = CallerError(f"http-{e.code}", f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}")
+            wait_s, ra, honored = _transport_wait(e.code, getattr(e, "headers", None), attempt, cap_s)
+            last = CallerError(f"http-{e.code}", f"HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}",
+                               meta={"api": "anthropic-messages", "attempts": attempt + 1,
+                                     **({"usage_prior_attempts": list(prior_usages)} if prior_usages else {})},
+                               retry_after=ra)
             if e.code in (429, 500, 502, 503, 529) and attempt < retries:
-                _backoff(2 * (attempt + 1))
+                if honored:
+                    honored_any, honored_total = True, honored_total + wait_s
+                _backoff(wait_s)
                 continue
             raise last
         except (urllib.error.URLError, TimeoutError, OSError) as e:
-            last = CallerError("network", f"network error: {e}")
+            last = CallerError("network", f"network error: {e}",
+                               meta={"api": "anthropic-messages", "attempts": attempt + 1,
+                                     **({"usage_prior_attempts": list(prior_usages)} if prior_usages else {})})
             if attempt < retries:
                 _backoff(2 * (attempt + 1))
                 continue
             raise last
         usage = payload.get("usage", {})
         meta = {"model_reported": payload.get("model"), "api": "anthropic-messages",
-                "stop_reason": payload.get("stop_reason")}
+                "stop_reason": payload.get("stop_reason"), "attempts": attempt + 1,
+                "queue_wait_s": round(queue_wait_total, 3)}
+        if prior_usages:
+            meta["usage_prior_attempts"] = list(prior_usages)
+        if honored_any:
+            meta["retry_after_honored_s"] = round(honored_total, 3)
         if payload.get("stop_details") is not None:
             meta["stop_details"] = payload["stop_details"]
         if payload.get("id"):
@@ -538,6 +677,7 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
                                usage=_numeric_usage(usage), meta=meta)
             # (C.2) el refusal es un clasificador determinista: repetir la misma petición no cambia la respuesta
             if kind != "refusal" and attempt < retries:
+                prior_usages.append(_numeric_usage(usage))
                 _backoff(1)
                 continue
             raise last
@@ -550,6 +690,7 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
         if missing and attempt < retries:
             last = CallerError(f"required-missing:{','.join(missing)}", f"tool_use omitted required fields {missing}",
                                usage=_numeric_usage(usage), meta=meta)
+            prior_usages.append(_numeric_usage(usage))
             _backoff(1)
             continue
         if not return_meta:

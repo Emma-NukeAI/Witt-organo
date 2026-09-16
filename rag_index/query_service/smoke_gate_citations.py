@@ -168,6 +168,41 @@ check("ladder: https://doi.org/<doi> resolves to the paper's evidence_id (determ
 check("pertinent is the declared literal 'not-available (ADR-0082)' on every row (never fused)",
       all(r["pertinent"] == vo.PERTINENT_NOT_AVAILABLE for r in rows) and all("ladder_rule" in r for r in rows))
 
+# --- ADR-0082 (G.4): `pertinent` deja de ser gris cuando el consejo juzgó — mapa {evidence_id: [requirement_id]} de votos VÁLIDOS ---
+PERT = {"PMID:37844491": ["req-a"], "CORPUS:schoels2021:chunk-12": ["req-b", "req-c"]}
+rows_p = vo.support_state_for(CITS, BUNDLE, council_pertinence=PERT, council_source="council.r2 (covered|partial votes)")
+p = {r["n"]: r for r in rows_p}
+check("ADR-0082 (G.4) con council_pertinence: la cita [1] PMID:37844491 -> pertinent True + pertinent_to ['req-a'] + pertinent_source; "
+      "la [7] (DOI que RESUELVE al mismo paper) -> True por resolved_to; la [5] (chunk citado por dos requisitos) -> ['req-b', 'req-c'] "
+      "ordenados; la escalera (support_state) NO cambia",
+      p[1]["pertinent"] is True and p[1]["pertinent_to"] == ["req-a"] and p[1]["pertinent_source"] == "council.r2 (covered|partial votes)"
+      and p[7]["pertinent"] is True and p[7]["pertinent_to"] == ["req-a"]
+      and p[5]["pertinent"] is True and p[5]["pertinent_to"] == ["req-b", "req-c"]
+      and [r["support_state"] for r in rows_p] == [r["support_state"] for r in rows], str({n: (p[n]["pertinent"], p[n].get("pertinent_to")) for n in (1, 5, 7)}))
+check("ADR-0082 (G.4) una cita resuelta que NINGÚN voto nombró ([2]) y una no resuelta ([3]) -> 'not-named-by-council (valid round; no "
+      "vote cites this id)' — JAMÁS false (un miembro sólo juzga SUS requisitos: ausencia ≠ negación), pertinent_to []",
+      p[2]["pertinent"] == vo.PERTINENT_NOT_NAMED and p[2]["pertinent_to"] == []
+      and p[3]["pertinent"] == vo.PERTINENT_NOT_NAMED and p[3]["pertinent_to"] == []
+      and all(r["pertinent"] is not False for r in rows_p), str(p[2]["pertinent"]))
+rows_pm = vo.support_state_for(CITS[:2], BUNDLE, council_pertinence={"37844491": ["req-z"]})
+rows_ns = vo.support_state_for(CITS[:1], BUNDLE, council_state="incomplete")
+check("ADR-0082 (G.4) variantes deterministas de llave: un mapa con el PMID SIN prefijo ('37844491') casa con la cita 'PMID:37844491' "
+      "(y con la que resuelve a ella); sin mapa pero con council_state -> 'not-available (council incomplete)' (la razón viaja; sin "
+      "council_state el literal viejo 'not-available (ADR-0082)' sigue); pertinent_source sólo cuando hubo mapa",
+      rows_pm[0]["pertinent"] is True and rows_pm[0]["pertinent_to"] == ["req-z"] and rows_pm[1]["pertinent"] == vo.PERTINENT_NOT_NAMED
+      and rows_ns[0]["pertinent"] == "not-available (council incomplete)" and "pertinent_source" not in rows_ns[0]
+      and rows[0]["pertinent"] == vo.PERTINENT_NOT_AVAILABLE, str((rows_pm[0]["pertinent"], rows_ns[0]["pertinent"])))
+summ_p = vo.support_summary(rows_p)
+summ_ns = vo.support_summary(rows_ns)
+check("ADR-0082 (G.4) support_summary.pertinent pasa de literal a {state, n_true, n_not_named, n_not_available, literal, rule}: con mapa "
+      "state 'checked' n_true 3 n_not_named 5; sin ronda válida state = el literal not-available de las filas; el literal viejo "
+      "sigue DENTRO (`literal` == PERTINENT_NOT_AVAILABLE) en ambos",
+      summ_p["pertinent"]["state"] == "checked" and summ_p["pertinent"]["n_true"] == 3 and summ_p["pertinent"]["n_not_named"] == 5
+      and summ_p["pertinent"]["n_not_available"] == 0 and summ_p["pertinent"]["literal"] == vo.PERTINENT_NOT_AVAILABLE
+      and summ_ns["pertinent"]["state"] == "not-available (council incomplete)" and summ_ns["pertinent"]["n_not_available"] == 1
+      and summ_ns["pertinent"]["literal"] == vo.PERTINENT_NOT_AVAILABLE and summ_p["pertinent"]["rule"] == vo.PERTINENT_RULE,
+      str(summ_p["pertinent"]))
+
 grounding = [{"n": 1, "verdict": "supported"}, {"n": 4, "verdict": "unsupported"},
              {"n": 5, "verdict": "not-assessable"}, {"n": 3, "verdict": "supported"},   # 3 es unresolved
              {"n": 2, "verdict": "supported"},                                            # 2 sin pasaje

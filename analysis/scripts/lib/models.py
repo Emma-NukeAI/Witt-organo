@@ -16,6 +16,16 @@ incompatible). Kill-switch declarado: WITT_MODEL_GENERATION=g1-2026-08 devuelve 
 stdlib puro; sin `from lib import` (composite_auditor lo importa en duro y runs/app lo importan vía sys.path).
 Nada aquí toca red, BD ni llaves API: `snapshot()` lee SÓLO las envs declaradas en ENV_TABLE/SNAPSHOT_ALSO_READS
 y pasa cada valor por un cinturón anti-secreto.
+
+ADR-0082 (D.2) — el consejo de criterio: rol `council` FUERA de PIPELINE_ROLES (COUNCIL_ROLES), así
+`panel_signature` y `role.<rol>` del snapshot no cambian con el consejo encendido ni apagado (la serie de
+ADR-0087 no se corta); env `WITT_MODEL_COUNCIL`, default claude-opus-5 en g2 / claude-opus-4-8 en g1 (declarado:
+g1 no tenía consejo, la llave existe para que resolve_role('council') no lance), tope `max_tokens.council`
+4000 (g2) / 1200 (g1); `WITT_COUNCIL_EFFORT` (default 'medium', E2) fijo por ruta — `council_effort()`;
+CACHE_MULTIPLIERS / cache_prices() para cotizar la caché de prompt (clase derivada, no medida); ENV_TABLE gana
+las 27 env del consejo (ENV_ADR_0082) con lectores tolerantes (kinds nuevos `bool` y `float`); SNAPSHOT_FIELDS
++= role.council, council.enabled, council.full, council.effort, council.cache_ttl (una fila `new-field` en
+config_history al arrancar: excepción DECLARADA del kill-switch, ADR-0082 (L.2)(ii)).
 """
 import datetime as _dt
 import hashlib
@@ -113,6 +123,32 @@ def prices():
     return dict(_PRICES)
 
 
+# ADR-0082 (D.2): multiplicadores PUBLICADOS de la caché de prompt sobre el precio de entrada — escritura 1.25×
+# (TTL 5 min) · 2× (TTL 1 h) · lectura 0.1×. Verificados contra la referencia (skill claude-api,
+# shared/prompt-caching.md, cache 2026-06-24, § Economics). Son insumo de la PROYECCIÓN de USD de runs._token_usage
+# (H): los TOKENS de caché se MIDEN (usage.cache_creation_input_tokens / cache_read_input_tokens); el USD es
+# proyección con clase declarada. Cambian de valor sólo con un ADR (registros viejos conservan su `as_of`).
+CACHE_MULTIPLIERS = {"write_5m": 1.25, "write_1h": 2.0, "read": 0.1}
+CACHE_MULTIPLIERS_SOURCE = ("platform.claude.com pricing (prompt caching); skill claude-api shared/prompt-caching.md "
+                            "cached 2026-06-24")
+CACHE_AS_OF = "2026-06-24"
+CACHE_PRICE_CLASS = "derived-from-published-multipliers"   # hasta que LG1 mida cache_creation/cache_read reales
+CACHE_PRICE_FIELDS = ("write_5m", "write_1h", "read", "price_in", "class", "multipliers", "source", "as_of")
+
+
+def cache_prices(model):
+    """{write_5m, write_1h, read, price_in, class, multipliers, source, as_of} en USD por Mtok DERIVADOS de
+    `price_in` × CACHE_MULTIPLIERS (clase 'derived-from-published-multipliers'); None para un modelo que la tabla
+    no cotiza (priced False → runs lo declara missing_price, jamás un 0)."""
+    p = _PRICES.get(model)
+    if p is None:
+        return None
+    price_in = p[0]
+    return {"write_5m": price_in * CACHE_MULTIPLIERS["write_5m"], "write_1h": price_in * CACHE_MULTIPLIERS["write_1h"],
+            "read": price_in * CACHE_MULTIPLIERS["read"], "price_in": price_in, "class": CACHE_PRICE_CLASS,
+            "multipliers": dict(CACHE_MULTIPLIERS), "source": CACHE_MULTIPLIERS_SOURCE, "as_of": CACHE_AS_OF}
+
+
 # ---------------------------------------------------------------------------------------------------------------
 # 3. Roles, lentes, envs, generaciones
 # ---------------------------------------------------------------------------------------------------------------
@@ -121,22 +157,30 @@ LENS_FAMILY = {"correctness": "anthropic", "overclaim": "anthropic", "evidence-g
                "reproducibility": "openai"}
 PIPELINE_ROLES = ("synthesizer", "planner", "elicitation", "question_agent")
 JUDGE_ROLES = tuple("judge." + lens for lens in LENSES)
-ROLES = PIPELINE_ROLES + JUDGE_ROLES
+# ADR-0082 (D.2): el rol del consejo va FUERA de PIPELINE_ROLES a propósito — panel_signature() itera
+# PIPELINE_ROLES y snapshot() escribe `role.<rol>` por PIPELINE_ROLES + el suyo propio; la firma de toda corrida
+# queda INTACTA con o sin consejo (medido en smoke_models con el golden @ 9d90c01).
+COUNCIL_ROLES = ("council",)
+ROLES = PIPELINE_ROLES + JUDGE_ROLES + COUNCIL_ROLES
 # Familia que el rol EXIGE: los roles del pipeline hablan anthropic-messages con schemas Anthropic
 # (runs._anthropic_tool_call); cada lente tiene su familia (ADR-0047 d.4 / ADR-0038: reproducibility es el juez
-# cross-provider).
-ROLE_FAMILY = {**{r: "anthropic" for r in PIPELINE_ROLES}, **{"judge." + l: f for l, f in LENS_FAMILY.items()}}
+# cross-provider); el consejo habla anthropic-messages con tools forzados (council.py, ADR-0082 C.2).
+ROLE_FAMILY = {**{r: "anthropic" for r in PIPELINE_ROLES}, **{"judge." + l: f for l, f in LENS_FAMILY.items()},
+               **{r: "anthropic" for r in COUNCIL_ROLES}}
 ROLE_ENVS = {
     "synthesizer": "WITT_MODEL_SYNTH", "planner": "WITT_MODEL_PLANNER", "elicitation": "WITT_MODEL_ELICIT",
     "question_agent": "WITT_MODEL_QUESTION",
     "judge.correctness": "WITT_JUDGE_CORRECTNESS", "judge.overclaim": "WITT_JUDGE_OVERCLAIM",
     "judge.evidence-grounding": "WITT_JUDGE_GROUNDING",
     "judge.reproducibility": "OPENAI_JUDGE_MODEL",   # conserva su nombre: es la palanca que Emmanuel flipará (E1)
+    "council": "WITT_MODEL_COUNCIL",                # ADR-0082 (D.2): el modelo de los 17 miembros (3 rondas)
 }
 # Qué tope de la generación aplica a cada rol (los jueces Anthropic comparten uno; el juez OpenAI NO usa
 # max_tokens de aquí: su tope es del transporte — WITT_OPENAI_MAX_OUTPUT_TOKENS en Responses, 1200 en chat).
-MAX_TOKENS_KEYS = ("synthesizer", "planner", "elicitation", "question_agent", "judge-anthropic")
-_ROLE_TOPE = {**{r: r for r in PIPELINE_ROLES}, **{"judge." + l: "judge-anthropic" for l in LENSES}}
+# `council`: techo, no gasto — opus-5 piensa por default y el tope acota pensamiento + respuesta del tool.
+MAX_TOKENS_KEYS = ("synthesizer", "planner", "elicitation", "question_agent", "judge-anthropic", "council")
+_ROLE_TOPE = {**{r: r for r in PIPELINE_ROLES}, **{"judge." + l: "judge-anthropic" for l in LENSES},
+              **{r: r for r in COUNCIL_ROLES}}
 
 GENERATIONS = {
     "g2-2026-09": {
@@ -146,11 +190,15 @@ GENERATIONS = {
             "question_agent": "claude-opus-5",
             "judge.correctness": "claude-opus-5", "judge.overclaim": "claude-sonnet-5",
             "judge.evidence-grounding": "claude-haiku-4-5-20251001", "judge.reproducibility": "gpt-4o",
+            # ADR-0082 (D.2): el consejo de criterio = opus-5 vía la tabla (decisión de Emmanuel, brief §14);
+            # Sonnet es palanca declarada (WITT_MODEL_COUNCIL), no default (ADR-0082 K.f)
+            "council": "claude-opus-5",
         },
         # TOPES, no gasto (C.4): opus-5 piensa por default y max_tokens acota pensamiento + respuesta; con los
-        # topes g1 la mini-llamada de confianza (300) se truncaría en cada corrida.
+        # topes g1 la mini-llamada de confianza (300) se truncaría en cada corrida. `council` 4000 (ADR-0082 D.2):
+        # 17 llamadas de CRITERIO con tool forzado; el tope acota pensamiento adaptativo + el tool_use.
         "max_tokens": {"synthesizer": 8000, "planner": 4000, "elicitation": 2000, "question_agent": 4000,
-                       "judge-anthropic": 4000},
+                       "judge-anthropic": 4000, "council": 4000},
         "note": "panel CONSERVA gpt-4o hasta que LG3 pase con gpt-6-astra (OPENAI_JUDGE_MODEL es la palanca)",
     },
     "g1-2026-08": {
@@ -161,10 +209,14 @@ GENERATIONS = {
             "question_agent": "claude-opus-4-8",
             "judge.correctness": "claude-opus-4-8", "judge.overclaim": "claude-sonnet-5",
             "judge.evidence-grounding": "claude-haiku-4-5-20251001", "judge.reproducibility": "gpt-4o",
+            # ADR-0082 (D.2), DECLARADO: g1 (f57a3d3) no tenía consejo; la llave existe para que
+            # resolve_role('council') no lance bajo el kill-switch de generación — no es un default de f57a3d3
+            "council": "claude-opus-4-8",
         },
         "max_tokens": {"synthesizer": 2500, "planner": 1200, "elicitation": 300, "question_agent": 1200,
-                       "judge-anthropic": 1200},
-        "note": "kill-switch (M.2): WITT_MODEL_GENERATION=g1-2026-08 restaura los 8 defaults y los 5 topes de hoy",
+                       "judge-anthropic": 1200, "council": 1200},   # council 1200: declarado (ADR-0082 D.2), no f57a3d3
+        "note": "kill-switch (M.2): WITT_MODEL_GENERATION=g1-2026-08 restaura los 8 defaults y los 5 topes de hoy "
+                "(council opus-4-8 / 1200 es una llave DECLARADA por ADR-0082, g1 no tenía consejo)",
     },
 }
 GENERATION_DEFAULT = "g2-2026-09"
@@ -175,6 +227,15 @@ OPENAI_API_CHOICES = ("table", "responses", "chat-completions")
 EMBED_MODEL_ENV = "OPENAI_EMBED_MODEL"
 REASONING_EFFORTS = ("low", "medium", "high")                      # Responses API `reasoning.effort`
 ANTHROPIC_EFFORTS = ("low", "medium", "high", "xhigh", "max")      # Messages API `output_config.effort`
+# ADR-0082 (D.2 / E2): el effort del consejo se FIJA por ruta para las 17 llamadas de las tres rondas (cambiarlo
+# por petición invalida la caché de messages y, según el modelo, también tools+system — "pin per route"). Default
+# 'medium' (17 llamadas de CRITERIO, no de síntesis). El literal `inherit` es la alternativa de E2 como palanca
+# DECLARADA (hereda WITT_ANTHROPIC_EFFORT; vacío = default de la API) — ver council_effort().
+COUNCIL_EFFORT_ENV = "WITT_COUNCIL_EFFORT"
+COUNCIL_EFFORT_DEFAULT = "medium"
+COUNCIL_EFFORT_INHERIT = "inherit"
+COUNCIL_EFFORT_CHOICES = ANTHROPIC_EFFORTS + (COUNCIL_EFFORT_INHERIT,)
+COUNCIL_CACHE_TTLS = ("5m", "1h")                                  # WITT_COUNCIL_CACHE_TTL (catalog_cards.CACHE_TTLS)
 
 # Motivos CERRADOS de rechazo de una env (van dentro de `default-invalid-env:<VAR> (<motivo>)`).
 INVALID_ENV_REASONS = ("excluded-model", "wrong-family-for-lens", "wrong-family-for-role", "same-model-same-lens",
@@ -215,7 +276,43 @@ ENV_TABLE = {
     "WITT_ANTHROPIC_EFFORT_ELICIT": {"default": "", "kind": "effort", "choices": ANTHROPIC_EFFORTS, "reader": "runs._elicit_confidence", "effect": "override para CONF_TOOL (vacío = hereda WITT_ANTHROPIC_EFFORT)"},
     "WITT_CONFIG_LEDGER":           {"default": "1", "kind": "bool01", "reader": "app.config_ledger_boot/observe", "effect": "0 = cero escrituras; ledger_state lo dice"},
     "WITT_JUDGE_RETRIES":           {"default": "1", "kind": "int", "minimum": 0, "reader": "composite_auditor.audit", "effect": "sin cambio (ADR-0080); entra al snapshot", "preexisting": True},
+    # ---- ADR-0082 (D.2): las 27 env del consejo de criterio (tabla de env del ADR; toda env = reinicio). Kinds nuevos:
+    # `bool` = tolerante 1/true/yes/on · 0/false/no/off (los mismos literales que agent_matrix.council_full y
+    # catalog_cards.cache_config, así el snapshot y el lector del dueño jamás divergen); `float` con rango.
+    "WITT_COUNCIL":                 {"default": "1", "kind": "bool", "reader": "council.enabled · app.create_plan · runs.execute_run", "effect": "kill-switch global: 0 = sin job en el plan, sin r2/r3, componente 'kill-switch WITT_COUNCIL=0' (gating false), camino 9d90c01 con las excepciones de (L.2)", "adr": "0082"},
+    "WITT_COUNCIL_FULL":            {"default": "0", "kind": "bool", "reader": "agent_matrix.council_members (al ENCOLAR r1)", "effect": "1 = los 8 operativos también se sientan (N=25, cuórum 15); requisitos from_operative contados aparte", "adr": "0082"},
+    "WITT_MODEL_COUNCIL":           {"default": "", "kind": "str", "reader": "models.resolve_role('council')", "effect": "modelo de los miembros (vacía → claude-opus-5 en g2 · claude-opus-4-8 en g1); fable rechazado excluded-model; tope max_tokens.council 4000/1200", "adr": "0082"},
+    "WITT_COUNCIL_EFFORT":          {"default": COUNCIL_EFFORT_DEFAULT, "kind": "effort", "choices": COUNCIL_EFFORT_CHOICES, "reader": "models.council_effort → council.build_request", "effect": "output_config.effort FIJO por ruta para las 3 rondas (cambiarlo por petición invalida la caché); sólo a modelos adaptive; 'inherit' = hereda WITT_ANTHROPIC_EFFORT (alternativa E2, declarada)", "adr": "0082"},
+    "WITT_CG_COUNCIL_COMPONENT":    {"default": "1", "kind": "bool", "reader": "competence.env_config", "effect": "1 = council_uncovered_must GATEA cuando state ∈ {checked, vacuous, incomplete}; 0 = informativo declarado (fuera de conjunction)", "adr": "0082"},
+    "WITT_COUNCIL_RECOVERAGE":      {"default": "1", "kind": "bool", "reader": "runs.execute_run", "effect": "1 = ronda r3 (sólo si n_admitted_total > 0, sólo dueños de must sin cubrir); 0 = post_search.state 'not-run (kill-switch …)'", "adr": "0082"},
+    "WITT_COUNCIL_ORIGINS":         {"default": "production", "kind": "str", "reader": "app.create_plan (CSV tolerante; 'all' = sin filtro declarado)", "effect": "orígenes del PROCESO que encolan r1; smoke/fixture/dev-offline → 'not-requested (origin …)'", "adr": "0082"},
+    "WITT_COUNCIL_WORKERS":         {"default": "1", "kind": "int", "minimum": 0, "reader": "runs.start_workers → council_jobs.worker_loop", "effect": "hilos daemon council-worker-N que reclaman plans.council_state='queued'", "adr": "0082"},
+    "WITT_COUNCIL_DEDUP_S":         {"default": "600", "kind": "int", "minimum": 0, "reader": "app.create_plan", "effect": "ventana del dedup del doble clic (misma pregunta+entidades+padre, mismo usuario, r1 queued|running → se reutiliza el plan vivo)", "adr": "0082"},
+    "WITT_COUNCIL_MAX_QUEUED_PER_USER": {"default": "3", "kind": "int", "minimum": 0, "reader": "app.create_plan", "effect": "tope de jobs r1 queued por usuario; el excedente nace 'not-requested (queue-cap per user)'", "adr": "0082"},
+    "WITT_COUNCIL_CONCURRENCY":     {"default": "6", "kind": "int", "minimum": 1, "reader": "council.run_round (clamp 1..25)", "effect": "max_workers del pool por ronda; el miembro #1 va SOLO y el resto tras su respuesta", "adr": "0082"},
+    "WITT_COUNCIL_MEMBER_TIMEOUT_S": {"default": "120", "kind": "int", "minimum": 1, "reader": "council.run_round", "effect": "future.result(timeout) y timeout del socket por miembro; vencido → fila 'timeout', la ronda sigue", "adr": "0082"},
+    "WITT_COUNCIL_ROUND_BUDGET_S":  {"default": "300", "kind": "int", "minimum": 1, "reader": "council.run_round", "effect": "presupuesto de reloj por ronda; agotado → skipped-budget (cero llamadas), en vuelo abandonados y contados; regla ≤ WITT_REAP_STALE_S − 300", "adr": "0082"},
+    "WITT_COUNCIL_MEMBER_RETRIES":  {"default": "1", "kind": "int", "minimum": 0, "reader": "council.run_round → _anthropic_tool_call(retries=)", "effect": "intentos ADICIONALES por miembro (transporte con Retry-After; contenido); refusal/4xx nunca; attempts ≤ 2", "adr": "0082"},
+    "WITT_COUNCIL_QUORUM":          {"default": "0.6", "kind": "float", "min_exclusive": 0.0, "maximum": 1.0, "reader": "council.round_valid", "effect": "fracción de miembros válidos (ceil(q·N): 17 → 11, 25 → 15); fuera de (0,1] → default declarado", "adr": "0082"},
+    "WITT_COUNCIL_MAX_REQUIREMENTS": {"default": "24", "kind": "int", "minimum": 1, "reader": "council.aggregate_requirements", "effect": "tope del ledger; truncated, n_truncated, truncated_ids[]", "adr": "0082"},
+    "WITT_COUNCIL_MAX_PER_MEMBER":  {"default": "5", "kind": "int", "minimum": 1, "reader": "council.validate_tool_input (y maxItems del schema)", "effect": "requisitos por miembro; excedente descartado en orden y contado", "adr": "0082"},
+    "WITT_COUNCIL_R2_EVIDENCE_CHARS": {"default": "24000", "kind": "int", "minimum": 1, "reader": "council.payload_r2", "effect": "tope de la vista de evidencia por miembro en r2/r3; payload_truncated declarado; acota tokens/min", "adr": "0082"},
+    "WITT_COUNCIL_ATTESTATION_CHARS": {"default": "4000", "kind": "int", "minimum": 1, "reader": "app (ledger)", "effect": "tope de knowledge_now y de cada attested_text (600 en el frozen, truncated)", "adr": "0082"},
+    "WITT_COUNCIL_CACHE":           {"default": "1", "kind": "bool", "reader": "catalog_cards.cache_config → council.build_system", "effect": "1 = cache_control en los dos bloques system; 0 = string concatenado (A/B medible en usage.cache_*)", "adr": "0082"},
+    "WITT_COUNCIL_CACHE_TTL":       {"default": "5m", "kind": "choice", "choices": COUNCIL_CACHE_TTLS, "casefold": True, "reader": "catalog_cards.cache_config → council.build_system", "effect": "5m (escritura 1.25×) · 1h (2×) para el bloque de la ficha; E3 tras medir el hueco r1→r2", "adr": "0082"},
+    "WITT_COUNCIL_INDEX":           {"default": "1", "kind": "bool", "reader": "council_index · app", "effect": "0 = GET /council/search 503 declarado, prior_observations {state 'disabled'}", "adr": "0082"},
+    "WITT_COUNCIL_PRIOR_K":         {"default": "5", "kind": "int", "minimum": 0, "reader": "council_index.prior_observations (clamp 0..12)", "effect": "observaciones previas inyectadas en r1 (letras P-A…); 0 = ninguna", "adr": "0082"},
+    "WITT_COUNCIL_PRIOR_KINDS":     {"default": "requirement,coverage,decision,gap_flag,panel_finding", "kind": "str", "reader": "council_index.prior_observations (CSV tolerante)", "effect": "kinds que ENTRAN al prompt de r1; 'comment' EXCLUIDO por default (inyección); la búsqueda siempre puede pedirlo", "adr": "0082"},
+    "WITT_COUNCIL_INDEX_ORIGINS":   {"default": "production", "kind": "str", "reader": "council_index · /council/demand", "effect": "orígenes del corpus (NULL incluido y declarado, regla de precedent)", "adr": "0082"},
+    "WITT_ANTHROPIC_MAX_INFLIGHT":  {"default": "8", "kind": "int", "minimum": 1, "reader": "composite_auditor._anthropic_tool_call", "effect": "BoundedSemaphore de PROCESO alrededor de urlopen para TODA llamada Anthropic; meta.queue_wait_s", "adr": "0082"},
+    "WITT_ANTHROPIC_RETRY_AFTER_CAP_S": {"default": "30", "kind": "int", "minimum": 0, "reader": "composite_auditor._anthropic_tool_call", "effect": "tope al Retry-After honrado en http-429/529; sin cabecera, backoff de hoy", "adr": "0082"},
 }
+# Las env que ADR-0082 añade (27): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide
+# que compose ∩ README las declaran (C8). Vocabulario cerrado de kinds de ENV_TABLE (env_value los gobierna).
+ENV_ADR_0082 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0082")
+ENV_KINDS = ("str", "int", "float", "bool01", "bool", "choice", "effort")
+_BOOL_TRUTHY = ("1", "true", "yes", "on")
+_BOOL_FALSEY = ("0", "false", "no", "off")
 # Envs PREEXISTENTES que snapshot() también lee (default del dueño, declarado aquí sólo para el snapshot).
 SNAPSHOT_ALSO_READS = {
     EMBED_MODEL_ENV: {"default": "text-embedding-3-small", "kind": "str", "owner": "rag_index/graphrag/embeddings.py · runs._token_usage"},
@@ -232,7 +329,11 @@ SNAPSHOT_FIELDS = (
     "anthropic.effort", "anthropic.effort_elicit",
     "judge.retries", "prices.as_of", "contract.render_contract_version", "embed.model",
     "competence.gate", "search.harness", "revision.cycle",
+    # ADR-0082 (D.2): el consejo entra al snapshot (una fila `new-field` en config_history al arrancar tras el
+    # redeploy — excepción DECLARADA del kill-switch, (L.2)(ii)); role.council va aquí y NO en panel_signature
+    "role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl",
 )
+COUNCIL_SNAPSHOT_FIELDS = ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
 # Campos que models.py NO puede derivar (viven en runs/competence): el llamador (app.config_ledger_boot) los
 # pasa en `extra={campo: {value, source}}`; ausentes → {value: None, source: 'not-provided-by-caller'} (null
 # declarado, jamás un default duplicado de otro módulo).
@@ -293,11 +394,27 @@ def env_value(name, env=None):
             if v < spec.get("minimum", 0):
                 raise ValueError(s)
             return v
+        if kind == "float":
+            # ADR-0082: fracciones con rango declarado (WITT_COUNCIL_QUORUM ∈ (0, 1]); nan/inf caen fuera del rango
+            v = float(s)
+            if not (v > spec.get("min_exclusive", float("-inf"))) or v > spec.get("maximum", float("inf")):
+                raise ValueError(s)
+            return v
         if kind == "bool01":
             if s not in ("0", "1"):
                 raise ValueError(s)
             return s == "1"
+        if kind == "bool":
+            # ADR-0082: los MISMOS literales que agent_matrix.council_full / catalog_cards.cache_config
+            low = s.lower()
+            if low in _BOOL_TRUTHY:
+                return True
+            if low in _BOOL_FALSEY:
+                return False
+            raise ValueError(s)
         if kind == "choice":
+            if spec.get("casefold"):
+                s = s.lower()   # ADR-0082: WITT_COUNCIL_CACHE_TTL '1H' == '1h' (paridad con catalog_cards.cache_config)
             if s not in spec["choices"]:
                 raise ValueError(s)
             return s
@@ -332,6 +449,21 @@ def resolve_openai_api(env=None):
     """(table|responses|chat-completions, fuente) — WITT_OPENAI_API. Default 'table' (C.3: la decisión tomada
     conserva gpt-4o por chat.completions hasta el smoke vivo)."""
     return env_value(OPENAI_API_ENV, env)
+
+
+def council_effort(env=None):
+    """ADR-0082 (D.2 / E2): (effort | None, fuente) del rol `council`, FIJO por ruta para las 3 rondas.
+    Vacía → 'medium' ('default-unset:WITT_COUNCIL_EFFORT'); ∈ ANTHROPIC_EFFORTS → ese ('env:WITT_COUNCIL_EFFORT');
+    'inherit' (la alternativa de E2, declarada) → el valor de WITT_ANTHROPIC_EFFORT con fuente
+    'env:WITT_COUNCIL_EFFORT (inherit -> <fuente de WITT_ANTHROPIC_EFFORT>)' — None = no se envía (default de la
+    API); basura → 'medium' ('default-invalid-env:WITT_COUNCIL_EFFORT'). C2 (council.build_request) lee AQUÍ, no
+    env_value(): env_value devuelve el literal 'inherit' sin resolver. El envío como output_config.effort sigue la
+    regla ADR-0081 C.4 (sólo a modelos thinking_default 'adaptive') — la aplica el llamador con MODELS[model]."""
+    raw, src = env_value(COUNCIL_EFFORT_ENV, env)
+    if raw == COUNCIL_EFFORT_INHERIT:
+        val, inner = env_value("WITT_ANTHROPIC_EFFORT", env)
+        return val, f"env:{COUNCIL_EFFORT_ENV} (inherit -> {inner})"
+    return raw, src
 
 
 def _as_date(today):
@@ -484,7 +616,8 @@ def _member(lens, r):
 
 
 def _resolve(env=None, today=None):
-    """La resolución COMPLETA (8 roles + panel + avisos) de un `env` en un `today`. Todo lo público la rebana."""
+    """La resolución COMPLETA (9 roles: 4 pipeline + 4 jueces + council, panel + avisos) de un `env` en un
+    `today`. Todo lo público la rebana."""
     env = _env(env)
     today = _as_date(today)
     gen, gen_src = resolve_generation(env)
@@ -701,6 +834,15 @@ def snapshot(env=None, today=None, extra=None):
     f["prices.as_of"] = {"value": PRICES_AS_OF, "source": "models.PRICES_AS_OF"}
     em, em_src = embed_model(env)
     f["embed.model"] = {"value": em, "source": em_src}
+    # ADR-0082 (D.2): el consejo en el snapshot — role.council FUERA de panel_signature; bools tolerantes
+    for role in COUNCIL_ROLES:
+        f[f"role.{role}"] = {"value": R["roles"][role]["model"], "source": R["roles"][role]["source"]}
+    for field, var in (("council.enabled", "WITT_COUNCIL"), ("council.full", "WITT_COUNCIL_FULL"),
+                       ("council.cache_ttl", "WITT_COUNCIL_CACHE_TTL")):
+        v, s = env_value(var, env)
+        f[field] = {"value": v, "source": s}
+    ce, ce_src = council_effort(env)
+    f["council.effort"] = {"value": ce, "source": ce_src}
     ignored = []
     for field in EXTRA_FIELDS:
         given = extra.get(field)
@@ -816,7 +958,12 @@ def provenance_block(roles, passes, planner_meta, panel_rows, question_meta=None
         "generation": synth.get("generation"), "generation_source": synth.get("generation_source"),
         "table_version": MODELS_TABLE_VERSION, "table_as_of": MODEL_TABLE_AS_OF,
         "panel_signature": panel_signature(members, signature_roles if signature_roles is not None else roles),
-        "roles": {"synthesizer": synth, "elicitation": elic, "question_agent": qa, "planner": planner},
+        # ADR-0082 (M, C9): roles.council = el RoleResolved del rol `council` del MISMO snapshot de stage.models que
+        # runs pasa en `roles` (frozen.models.roles.council == stage.models.roles.council); None declarado cuando el
+        # llamador no lo trae (llamadores anteriores a 0082). Viaja también bajo WITT_COUNCIL=0: el rol está en la
+        # tabla aunque el consejo esté apagado (excepción DECLARADA L.2 ii, junto a stage.models.roles.council).
+        "roles": {"synthesizer": synth, "elicitation": elic, "question_agent": qa, "planner": planner,
+                  "council": roles.get("council")},
         "ran": {"synthesize_pass1": _synth_ran("pass1"), "synthesize_pass2": _synth_ran("pass2"),
                 "revision": _synth_ran("revision"), "elicit_pass1": _elicit_ran("pass1"),
                 "elicit_pass2": _elicit_ran("pass2"), "plan": plan_ran, "question": question_ran,

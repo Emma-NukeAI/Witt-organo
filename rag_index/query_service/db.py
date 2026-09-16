@@ -102,6 +102,11 @@ runs = Table(
     Column("thread_context_json", Text),                      # snapshot del padre que el modelo VIO (servidor)
     Column("origin", String(24)),                             # RUN_ORIGINS | 'invalid-env:<v>'; NULL = pre-ADR
     Column("root_question_id", String(64)),                   # apunte->pregunta raíz, conservada por investigación
+    # ADR-0082 (F.4): la COPIA server-side del consejo al encolar — {plan_id, r1_state, r1: plans.council_json,
+    # ledger: plans.council_ledger_json, membership_version, n_members, members[], full_council, catalog_sha,
+    # membership_source, composed_at, source}. La compone app.create_run, la persiste runs.new_run (C5), JAMÁS el
+    # cliente. NULL = corrida sin plan o anterior a 1.11 ('not-applicable (no-ledger)' en el frozen, declarado).
+    Column("council_json", Text),
 )
 
 plans = Table(
@@ -115,6 +120,42 @@ plans = Table(
     Column("plan_json", Text, nullable=False),
     Column("created_at", DateTime(timezone=True), nullable=False),
     Column("run_id", String(64)),                             # sellado al consumirse (un plan, una corrida)
+    # ADR-0082 (E.1) — la RONDA 1 del consejo es un JOB del plan (ni corrida ni tabla `jobs` genérica): el plan YA es
+    # el objeto que el humano aprueba. Columnas ADITIVAS; las filas anteriores quedan NULL en todas y council_state
+    # NULL se LEE 'pre-adr-0082' (COUNCIL_STATE_PRE_ADR) — ausencia declarada, jamás backfill (ADR-0074).
+    Column("origin", String(24)),                             # runs.run_origin() al crear el plan (mismo derivador)
+    Column("council_state", String(96)),                      # council.COUNCIL_STATES_EXACT | prefijos 'errored (' 'not-requested ('
+                                                              # 96 y no 40 (ADR E.1): el literal E.3 'not-requested (origin <o>
+                                                              # not in WITT_COUNCIL_ORIGINS)' mide 56-74 chars — declarado
+    Column("council_json", Text),                             # r1: rounds[0] + agregación + requisitos SIN decisiones
+    Column("council_ledger_json", Text),                      # decisiones humanas + knowledge_now (F.1) — íntegro
+    Column("council_usage_json", Text),                       # gasto MEDIDO de r1 (se escribe tras CADA miembro recogido)
+    Column("council_claimed_by", String(64)),                 # boot:pid:hilo del council-worker que reclamó
+    Column("council_claimed_at", DateTime(timezone=True)),
+    Column("council_started_at", DateTime(timezone=True)),
+    Column("council_finished_at", DateTime(timezone=True)),
+    Column("council_last_event_at", DateTime(timezone=True)), # latido del job (plan_add_event lo refresca)
+    Column("council_approved_by", String(64)),                # quién aprobó el ledger (o lo saltó)
+    Column("council_approved_at", DateTime(timezone=True)),
+    Column("council_error", Text),                            # 'errored (<kind>)': el porqué, sin secretos
+)
+
+# ADR-0082 (E.1): la traza de la RONDA 1 del plan — espejo de run_events (mismas columnas, misma lectura) con FK a
+# plans y SIN FK a runs (Context 5: reutilizar run_events exigiría una corrida que no existe). Nace por create_all
+# (tabla nueva, esquema completo desde el día uno; _migrate no la toca). PK (plan_id, seq): seq monotónico por plan,
+# asignado en la MISMA transacción del INSERT (plan_add_event) — un solo escritor lógico (el hilo orquestador del
+# worker) por plan; plan_events.seq y run_events.seq no se mezclan jamás (M).
+plan_events = Table(
+    "plan_events", metadata,
+    Column("plan_id", String(64), ForeignKey("plans.plan_id"), primary_key=True),
+    Column("seq", Integer, primary_key=True),
+    Column("ts", DateTime(timezone=True), nullable=False),
+    Column("type", String(64), nullable=False),               # council.state | stage.council.* | council.ledger | council.skip
+    Column("agent", String(64)),
+    Column("tool", String(64)),
+    Column("level", String(16), nullable=False, default="info"),
+    Column("degraded", String(64)),                           # espejo exacto de run_events (misma forma de fila)
+    Column("payload_json", Text),
 )
 
 run_events = Table(
@@ -312,12 +353,24 @@ def _migrate():
                  "ALTER TABLE runs ADD COLUMN turn_kind VARCHAR(16)",
                  "ALTER TABLE runs ADD COLUMN thread_context_json TEXT",
                  "ALTER TABLE runs ADD COLUMN origin VARCHAR(24)",
-                 "ALTER TABLE runs ADD COLUMN root_question_id VARCHAR(64)"):
+                 "ALTER TABLE runs ADD COLUMN root_question_id VARCHAR(64)",
+                 # ADR-0082 (E.1): columnas aditivas del consejo en plans y runs — la lista vive en
+                 # council_migration_statements() para que el smoke la compile con el dialecto postgresql.
+                 *council_migration_statements(engine().dialect)):
         try:
             with engine().begin() as cx:
                 cx.execute(text(stmt))
         except Exception:
             pass  # column already there
+    # ADR-0082 (E.1): el índice del reclamo FIFO y de las consultas por estado (claim_next_council_plan,
+    # count_plans_council, plans_council_pending, reap_stale_council_plans). IF NOT EXISTS = idempotente.
+    for stmt in ("CREATE INDEX IF NOT EXISTS ix_plans_council_state ON plans (council_state, created_at)",):
+        try:
+            with engine().begin() as cx:
+                cx.execute(text(stmt))
+        except Exception as e:
+            import sys as _sys
+            print(f"[db._migrate] ADR-0082 índice no aplicó: {e!r}", file=_sys.stderr)
     # ADR-0079: índices de consulta de la investigación (hijos de una corrida, turnos de un hilo). No
     # únicos: un padre tiene N hijos (branch) y un hilo N turnos. IF NOT EXISTS = idempotente.
     # Corrector ADR-0079: índice ÚNICO (thread_id, turn_no) — el mismo patrón que ix_runs_run_no: dos hijos
@@ -373,6 +426,70 @@ def _migrate():
                            .values(epistemic_summary_json=_json.dumps(summ, ensure_ascii=False)))
     except Exception:
         pass
+
+
+# ADR-0082 (E.1): las columnas del consejo por tabla (nombre → tipo SQL; 'dt' se compila por dialecto). Una sola lista
+# alimenta el ALTER de _migrate, el chequeo de esquema (council_schema_state) y el smoke (SQL compilado para postgresql).
+PLAN_COUNCIL_COLUMNS = ("origin", "council_state", "council_json", "council_ledger_json", "council_usage_json",
+                        "council_claimed_by", "council_claimed_at", "council_started_at", "council_finished_at",
+                        "council_last_event_at", "council_approved_by", "council_approved_at", "council_error")
+_PLAN_COUNCIL_TYPES = {"origin": "VARCHAR(24)", "council_state": "VARCHAR(96)", "council_json": "TEXT",
+                       "council_ledger_json": "TEXT", "council_usage_json": "TEXT", "council_claimed_by": "VARCHAR(64)",
+                       "council_claimed_at": "dt", "council_started_at": "dt", "council_finished_at": "dt",
+                       "council_last_event_at": "dt", "council_approved_by": "VARCHAR(64)", "council_approved_at": "dt",
+                       "council_error": "TEXT"}
+RUN_COUNCIL_COLUMNS = ("council_json",)
+COUNCIL_STATE_MAXLEN = 96      # == String(96) de plans.council_state (el literal más largo del ADR E.3 mide 74)
+PLAN_COUNCIL_DT_COLUMNS = tuple(c for c, t in _PLAN_COUNCIL_TYPES.items() if t == "dt")
+
+
+def council_migration_statements(dialect=None):
+    """ADR-0082 (E.1): las sentencias `ALTER TABLE … ADD COLUMN` del consejo (plans + runs), con el tipo FECHA compilado
+    para el DIALECTO dado (lección ADR-0078: un literal DATETIME fallaría en Postgres, el except lo callaría y la columna
+    no existiría). `dialect=None` → el del engine. Sin funciones exclusivas de SQLite: el smoke las compila con
+    postgresql.dialect() y mide 'TIMESTAMP WITH TIME ZONE'."""
+    dialect = dialect or engine().dialect
+    dt = DateTime(timezone=True).compile(dialect=dialect)
+    out = [f"ALTER TABLE runs ADD COLUMN {c} TEXT" for c in RUN_COUNCIL_COLUMNS]
+    for col in PLAN_COUNCIL_COLUMNS:
+        t = _PLAN_COUNCIL_TYPES[col]
+        out.append(f"ALTER TABLE plans ADD COLUMN {col} {dt if t == 'dt' else t}")
+    return out
+
+
+# corrector ADR-0082 (E.1/LG8): caché por tabla de "la superficie E.1 está completa" — una vez lista, create_plan/create_run
+# no vuelven a inspeccionar el esquema (un smoke que simula la BD sin migrar la resetea explícitamente)
+_COUNCIL_SCHEMA_READY = {"plans": False, "runs": False}
+
+
+def _missing_council_columns(table):
+    """Columnas E.1 AUSENTES en `table` ('plans' | 'runs') según council_schema_state(); set() cuando la superficie está
+    completa (cacheado). En una BD sin migrar el INSERT las omite en vez de fallar con 500 — el estado del consejo se sirve
+    'not-requested (council db unavailable)' (council_state_of → None), que antes era inalcanzable (corrector ADR-0082)."""
+    if _COUNCIL_SCHEMA_READY.get(table):
+        return set()
+    st = council_schema_state()
+    miss = set(st.get("plans_missing" if table == "plans" else "runs_missing") or [])
+    if not miss and "error" not in st:
+        _COUNCIL_SCHEMA_READY[table] = True
+    return miss
+
+
+def council_schema_state():
+    """¿La BD conectada tiene la superficie E.1? {plans_missing[], runs_missing[], plan_events_table: bool, ready: bool}
+    — insumo de un 503 'council-db-unavailable' honesto (app) y del smoke (_migrate idempotente ×2)."""
+    insp = sa_inspect(engine())
+    try:
+        pcols = {c["name"] for c in insp.get_columns("plans")}
+        rcols = {c["name"] for c in insp.get_columns("runs")}
+        has_pe = bool(insp.has_table("plan_events"))
+    except Exception as e:
+        return {"plans_missing": list(PLAN_COUNCIL_COLUMNS), "runs_missing": list(RUN_COUNCIL_COLUMNS),
+                "plan_events_table": False, "ready": False, "error": f"{type(e).__name__}: {e}"}
+    pm = [c for c in PLAN_COUNCIL_COLUMNS if c not in pcols]
+    rm = [c for c in RUN_COUNCIL_COLUMNS if c not in rcols]
+    return {"plans_missing": pm, "runs_missing": rm, "plan_events_table": has_pe,
+            "ready": not pm and not rm and has_pe}
 
 
 def _now():
@@ -480,7 +597,7 @@ def _dt_utc(v):
 
 def create_run(run_id: str, user_id: str, question: str, entities=None, plan_json=None,
                parent_run_id=None, thread_id=None, turn_no=None, turn_kind=None,
-               thread_context_json=None, origin=None, root_question_id=None):
+               thread_context_json=None, origin=None, root_question_id=None, council_json=None):
     """ADR-0076: el NÚMERO de corrida se asigna AQUÍ, al nacer — MAX(run_no)+1 dentro de la misma
     transacción del INSERT. Si dos corridas se encolan a la vez y leen el mismo máximo (Postgres en
     READ COMMITTED lo permite), el índice único ix_runs_run_no rechaza a la segunda y ésta reintenta
@@ -492,24 +609,27 @@ def create_run(run_id: str, user_id: str, question: str, entities=None, plan_jso
     romper a los llamadores actuales; un None aquí queda NULL = ausencia declarada, así que el llamador
     que encola una RAÍZ debe pasar explícitamente thread_id=run_id, turn_no=1, turn_kind='root' y su
     origin. Lo único que db valida es el enum de turn_kind (una fila con un tipo fuera de TURN_KINDS
-    sería un hueco en el registro)."""
+    sería un hueco en el registro).
+
+    ADR-0082 (F.4): `council_json` es la COPIA server-side del consejo del plan (str JSON compuesto por app.create_run),
+    persistida tal cual al nacer; None = corrida sin plan/consejo (NULL declarado)."""
     from sqlalchemy.exc import IntegrityError
     if turn_kind is not None and turn_kind not in TURN_KINDS:
         raise ValueError(f"turn_kind {turn_kind!r} not in {TURN_KINDS} (ADR-0079)")
     ultimo_error = None
     for _intento in range(5):
         try:
+            values = dict(run_id=run_id, user_id=user_id, question=question,
+                          entities_csv=",".join(entities or []), state="queued",
+                          created_at=_now(), cancel_requested=False, plan_json=plan_json,
+                          parent_run_id=parent_run_id, thread_id=thread_id, turn_no=turn_no, turn_kind=turn_kind,
+                          thread_context_json=thread_context_json, origin=origin, root_question_id=root_question_id,
+                          council_json=council_json)
+            for col in _missing_council_columns("runs"):   # corrector ADR-0082 (E.1): BD sin migrar → columna omitida
+                values.pop(col, None)
             with engine().begin() as cx:
                 siguiente = (cx.execute(select(func.max(runs.c.run_no))).scalar() or 0) + 1
-                cx.execute(runs.insert().values(run_id=run_id, run_no=siguiente, user_id=user_id,
-                                                question=question,
-                                                entities_csv=",".join(entities or []), state="queued",
-                                                created_at=_now(), cancel_requested=False,
-                                                plan_json=plan_json,
-                                                parent_run_id=parent_run_id, thread_id=thread_id,
-                                                turn_no=turn_no, turn_kind=turn_kind,
-                                                thread_context_json=thread_context_json,
-                                                origin=origin, root_question_id=root_question_id))
+                cx.execute(runs.insert().values(run_no=siguiente, **values))
             return siguiente
         except IntegrityError as e:
             # sólo se reintenta la CARRERA del número; un run_id repetido es otro defecto y sube tal cual
@@ -519,17 +639,40 @@ def create_run(run_id: str, user_id: str, question: str, entities=None, plan_jso
     raise ultimo_error
 
 
-def create_plan(plan_id: str, user_id: str, question: str, entities, plan_json: str):
+def create_plan(plan_id: str, user_id: str, question: str, entities, plan_json: str,
+                origin=None, council_state=None):
+    """ADR-0082 (E.1/E.3): `origin` (runs.run_origin()['value'], el MISMO derivador de la corrida) y `council_state`
+    inicial ('queued' encola la ronda 1; 'not-requested (…)' / 'disabled (kill-switch WITT_COUNCIL=0)' la declaran) los
+    decide app.create_plan — db sólo persiste. Sin ellos (llamadores viejos) quedan NULL: origin desconocido y
+    council_state NULL = 'pre-adr-0082' al leer (declarado)."""
+    if council_state is not None and len(council_state) > COUNCIL_STATE_MAXLEN:
+        raise ValueError(f"council_state excede {COUNCIL_STATE_MAXLEN} caracteres (Postgres lo rechazaría): {council_state!r}")
+    values = dict(plan_id=plan_id, user_id=user_id, question=question, entities_csv=",".join(entities or []),
+                  plan_json=plan_json, created_at=_now(), origin=origin, council_state=council_state)
+    for col in _missing_council_columns("plans"):      # corrector ADR-0082 (E.1): BD sin migrar → columnas omitidas, no 500
+        values.pop(col, None)
     with engine().begin() as cx:
-        cx.execute(plans.insert().values(plan_id=plan_id, user_id=user_id, question=question,
-                                         entities_csv=",".join(entities or []),
-                                         plan_json=plan_json, created_at=_now()))
+        cx.execute(plans.insert().values(**values))
+
+
+_PLAN_DT_KEYS = ("created_at",) + PLAN_COUNCIL_DT_COLUMNS
+
+
+def _plan_row(row) -> dict:
+    """Fila de plans → dict con TODAS las columnas (las del consejo incluidas, NULL = None) y las fechas normalizadas a
+    UTC (SQLite pierde tzinfo). council_state se sirve CRUDO: NULL sigue siendo None — la lectura 'pre-adr-0082' la hace
+    council_state_of() / el consumidor (tres estados: columna ausente ≠ NULL ≠ valor)."""
+    d = dict(row._mapping)
+    for k in _PLAN_DT_KEYS:
+        if k in d:
+            d[k] = _dt_utc(d.get(k))
+    return d
 
 
 def get_plan(plan_id: str):
     with engine().begin() as cx:
         row = cx.execute(select(plans).where(plans.c.plan_id == plan_id)).first()
-    return dict(row._mapping) if row else None
+    return _plan_row(row) if row else None
 
 
 def mark_plan_used(plan_id: str, run_id: str):
@@ -540,6 +683,333 @@ def mark_plan_used(plan_id: str, run_id: str):
                        .where(plans.c.plan_id == plan_id, plans.c.run_id.is_(None))
                        .values(run_id=run_id)).rowcount
     return n == 1
+
+
+# --- consejo de criterio (ADR-0082 E.1): la RONDA 1 es un JOB del PLAN -----------------------------------------
+# db SÓLO persiste y consulta: quién reclama (council_jobs.worker_loop), qué se escribe tras cada miembro
+# (council_jobs.execute_round1) y qué decide el humano (app: ledger/skip) viven fuera. Vocabulario de estados: el de
+# lib.council (COUNCIL_STATES_EXACT + prefijos 'errored (' / 'not-requested ('); aquí sólo los literales que db escribe.
+
+COUNCIL_STATE_PRE_ADR = "pre-adr-0082"           # lectura de council_state NULL (plan anterior al ADR; jamás backfill)
+COUNCIL_PENDING_STATES = ("queued", "running")   # la ronda 1 está viva: dedup (E.3), 409 council_round1_pending (F.3)
+COUNCIL_REAP_REASONS = ("worker-lost", "worker-lost-restart")   # == REAP_REASONS (definida más abajo): los mismos
+                                                                # dos motivos que el reaper de corridas (ADR-0078)
+COUNCIL_REAP_STATE = {r: f"errored ({r})" for r in COUNCIL_REAP_REASONS}
+
+
+def council_state_of(row):
+    """Los TRES estados de plans.council_state (ADR-0043): columna AUSENTE del dict (BD sin migrar) → None (el llamador
+    lo declara 'not-requested (council db unavailable)'); NULL → 'pre-adr-0082'; valor → tal cual."""
+    if row is None or "council_state" not in row:
+        return None
+    return row.get("council_state") or COUNCIL_STATE_PRE_ADR
+
+
+def _check_council_state(value):
+    if value is not None and (not isinstance(value, str) or not value or len(value) > COUNCIL_STATE_MAXLEN):
+        raise ValueError(f"council_state inválido o > {COUNCIL_STATE_MAXLEN} chars (Postgres lo rechazaría): {value!r}")
+
+
+def update_plan_council(plan_id: str, expected_state=None, **values) -> bool:
+    """UPDATE parcial de las columnas del consejo de UN plan (sólo PLAN_COUNCIL_COLUMNS; una llave ajena → ValueError:
+    plan_json/run_id/user_id no se tocan por aquí). Devuelve True si la fila se escribió. Es la escritura INCREMENTAL del
+    worker (council_json/council_usage_json tras cada miembro, council_state al cerrar) y la del skip (app).
+    `expected_state` (corrector ADR-0082 E.2, patrón db.finish_run de ADR-0078): el UPDATE exige además
+    `council_state == expected_state` — cierre CONDICIONAL del job; rowcount 0 = el reaper ya sentenció (o el humano saltó)
+    mientras el worker seguía vivo y el llamador NO pisa el veredicto terminal."""
+    extra = sorted(set(values) - set(PLAN_COUNCIL_COLUMNS))
+    if extra:
+        raise ValueError(f"update_plan_council: columnas fuera de PLAN_COUNCIL_COLUMNS: {extra}")
+    if not values:
+        return get_plan(plan_id) is not None
+    _check_council_state(values.get("council_state"))
+    where = [plans.c.plan_id == plan_id]
+    if expected_state is not None:
+        where.append(plans.c.council_state == expected_state)
+    with engine().begin() as cx:
+        n = cx.execute(plans.update().where(*where).values(**values)).rowcount
+    return n == 1
+
+
+def _claim_council_query(origins=None, plan_id=None):
+    """El SELECT del reclamo (expuesto para compilarlo con postgresql en el smoke): el plan 'queued' más viejo (FIFO por
+    created_at, empate por plan_id) cuyo origin ∈ origins (None = sin filtro, 'all' declarado por el llamador);
+    `plan_id` acota el reclamo a ESE plan (si sigue 'queued'). ADR-0082 (C9, hueco de C6): `run_id IS NULL` — un plan
+    'queued' que ya respalda una corrida (bajo WITT_COUNCIL=0 la puerta deja correr sin aprobar, L.2) NO se reclama al
+    reencender el consejo: sus 17 llamadas serían gasto huérfano sobre un ledger que ya nadie puede aprobar."""
+    q = select(plans).where(plans.c.council_state == "queued", plans.c.run_id.is_(None))
+    if origins is not None:
+        q = q.where(plans.c.origin.in_(list(origins)))
+    if plan_id is not None:
+        q = q.where(plans.c.plan_id == plan_id)
+    return q.order_by(plans.c.created_at.asc(), plans.c.plan_id.asc()).limit(1)
+
+
+def claim_next_council_plan(worker_id, origins=None, plan_id=None):
+    """ADR-0082 (E.2): reclamo OPTIMISTA del job de ronda 1 más viejo — `UPDATE plans SET council_state='running',
+    council_claimed_by, council_claimed_at, council_started_at, council_last_event_at WHERE plan_id=? AND
+    council_state='queued'`; rowcount 0 = otro worker ganó la carrera → None (el llamador vuelve a sondear). FIFO por
+    created_at. `origins` = WITT_COUNCIL_ORIGINS (lista) o None = sin filtro: un plan 'queued' de un origen que este
+    proceso NO atiende se queda 'queued' (Context 9: un job que reclamara CUALQUIER plan dispararía 17 llamadas por
+    fixture). `worker_id` = boot:pid:hilo (procedencia del reclamo; None = 'nadie declaró quién', servido así). El
+    latido arranca en el reclamo (council_last_event_at) para que el reaper mida desde aquí. `plan_id` reclama ESE plan
+    si sigue 'queued' (operador / smokes), con la misma compuerta optimista. Devuelve la fila con los valores ESCRITOS,
+    o None."""
+    with engine().begin() as cx:
+        row = cx.execute(_claim_council_query(origins, plan_id)).first()
+        if row is None:
+            return None
+        ahora = _now()
+        n = cx.execute(plans.update()
+                       .where(plans.c.plan_id == row._mapping["plan_id"], plans.c.council_state == "queued",
+                              plans.c.run_id.is_(None))
+                       .values(council_state="running", council_claimed_by=worker_id, council_claimed_at=ahora,
+                               council_started_at=ahora, council_last_event_at=ahora)).rowcount
+        if n != 1:   # otro worker ganó entre el SELECT y el UPDATE
+            return None
+        d = _plan_row(row)
+        d.update(council_state="running", council_claimed_by=worker_id, council_claimed_at=ahora,
+                 council_started_at=ahora, council_last_event_at=ahora)
+        return d
+
+
+def plan_add_event(plan_id: str, type: str, payload=None, agent=None, tool=None, level="info", degraded=None) -> int:
+    """Appendea UN evento a la traza del PLAN (plan_events; seq monotónico por plan, asignado en la MISMA transacción
+    del INSERT) y refresca el latido plans.council_last_event_at — el espejo de add_event. Un solo escritor lógico por
+    plan (el hilo orquestador del worker: council.run_round emite desde ahí; Context 6 / R16). Devuelve seq."""
+    import json as _json
+    with engine().begin() as cx:
+        seq = (cx.execute(select(func.max(plan_events.c.seq))
+                          .where(plan_events.c.plan_id == plan_id)).scalar() or 0) + 1
+        ahora = _now()
+        cx.execute(plan_events.insert().values(
+            plan_id=plan_id, seq=seq, ts=ahora, type=type, agent=agent, tool=tool, level=level, degraded=degraded,
+            payload_json=_json.dumps(payload, ensure_ascii=False, default=str) if payload is not None else None))
+        cx.execute(plans.update().where(plans.c.plan_id == plan_id).values(council_last_event_at=ahora))
+    return seq
+
+
+def plan_events_after(plan_id: str, after_seq: int = 0, limit: int = 500):
+    """El ÚNICO log que leen el SSE /plans/{id}/stream y el replay /plans/{id}/events — misma forma de fila que
+    events_after: {plan_id, seq, ts (ISO), type, agent, tool, level, degraded, payload (dict|None)}."""
+    import json as _json
+    with engine().begin() as cx:
+        rows = cx.execute(select(plan_events)
+                          .where(plan_events.c.plan_id == plan_id, plan_events.c.seq > int(after_seq))
+                          .order_by(plan_events.c.seq).limit(int(limit))).all()
+    out = []
+    for r in rows:
+        m = dict(r._mapping)
+        m["ts"] = _dt_utc(m["ts"]).isoformat(timespec="seconds")
+        m["payload"] = _json.loads(m.pop("payload_json")) if m.get("payload_json") else None
+        out.append(m)
+    return out
+
+
+def plan_events_count(plan_id: str) -> int:
+    with engine().begin() as cx:
+        v = cx.execute(select(func.count()).select_from(plan_events)
+                       .where(plan_events.c.plan_id == plan_id)).scalar()
+    return int(v or 0)
+
+
+def _council_running_rows():
+    """Las filas 'running' con sus fechas de referencia (el SELECT del reaper; separado para que el smoke simule la
+    carrera reaper ↔ worker vivo devolviendo un latido ya viejo)."""
+    with engine().begin() as cx:
+        return [dict(r._mapping) for r in cx.execute(
+            select(plans.c.plan_id, plans.c.council_last_event_at, plans.c.council_started_at,
+                   plans.c.council_claimed_at, plans.c.created_at, plans.c.council_claimed_by)
+            .where(plans.c.council_state == "running")).all()]
+
+
+def reap_stale_council_plans(stale_s, now=None, reason="worker-lost", stale_s_source=None):
+    """ADR-0082 (E.2) — el segador de jobs de ronda 1 huérfanos, mismo patrón que reap_stale_running (ADR-0078): un plan
+    'running' cuyo último latido (council_last_event_at; si null, council_started_at; si null, council_claimed_at; si
+    null, created_at) es más viejo que `stale_s` segundos perdió a su worker → council_state 'errored (worker-lost)' |
+    'errored (worker-lost-restart)' (COUNCIL_REAP_STATE), council_finished_at, council_error, y UN evento council.state
+    {state, plan_id, reason, stale_s, stale_s_source, idle_s, ref_field, claimed_by, error} en plan_events (agent
+    'council-reaper', level 'error'). La carrera resuelta: el UPDATE exige `council_state='running' AND <ref_field> =
+    <valor leído>` — si el worker latió entre el SELECT y el UPDATE, rowcount 0 y no se toca. JAMÁS re-encola (nada se
+    re-ejecuta solo); council_json / council_usage_json quedan como estén (lo que los miembros que respondieron gastaron
+    SOBREVIVE: persistencia incremental). `now` inyectable. Devuelve los plan_id segados."""
+    if reason not in COUNCIL_REAP_REASONS:
+        raise ValueError(f"reap reason {reason!r} not in {COUNCIL_REAP_REASONS}")
+    ahora = now or _now()
+    stale_s = float(stale_s)
+    segados = []
+    for m in _council_running_rows():
+        ref_field = next((k for k in ("council_last_event_at", "council_started_at", "council_claimed_at",
+                                      "created_at") if m.get(k) is not None), None)
+        if ref_field is None:   # sin ninguna fecha no se puede medir la edad — no se toca
+            continue
+        idle_s = (ahora - _dt_utc(m[ref_field])).total_seconds()
+        if idle_s <= stale_s:
+            continue
+        if reason == "worker-lost-restart":
+            error = "worker-lost: proceso reiniciado, el job de ronda 1 'running' no tiene worker (ADR-0082 E.2)"
+        else:
+            error = f"worker-lost: sin latido por >{int(stale_s)} s (ADR-0082 E.2)"
+        with engine().begin() as cx:
+            n = cx.execute(plans.update()
+                           .where(plans.c.plan_id == m["plan_id"], plans.c.council_state == "running",
+                                  getattr(plans.c, ref_field) == m[ref_field])
+                           .values(council_state=COUNCIL_REAP_STATE[reason], council_finished_at=ahora,
+                                   council_error=error)).rowcount
+        if n != 1:   # el worker sí vivía (latió o cerró el job en medio): no se pisa
+            continue
+        plan_add_event(m["plan_id"], "council.state",
+                       payload={"state": COUNCIL_REAP_STATE[reason], "plan_id": m["plan_id"], "reason": reason,
+                                "stale_s": stale_s, "stale_s_source": stale_s_source, "idle_s": round(idle_s, 1),
+                                "ref_field": ref_field, "claimed_by": m.get("council_claimed_by"), "error": error},
+                       agent="council-reaper", level="error")
+        segados.append(m["plan_id"])
+    return segados
+
+
+def set_plan_ledger(plan_id: str, ledger_json: str, approved_by=None, council_state=None) -> bool:
+    """ADR-0082 (F.1/F.2): escribe plans.council_ledger_json (decisiones humanas + knowledge_now, ÍNTEGRO) de forma
+    ATÓMICA contra el sello: `UPDATE … WHERE plan_id=? AND run_id IS NULL`. Con `approved_by`, sella
+    council_approved_by/at (hora del servidor); con `council_state` (el skip: 'skipped-by-human') escribe la columna.
+    False = el plan ya respalda una corrida (o no existe) → 409 plan_already_used en app. Un borrador (approved_by None)
+    se guarda igual y se puede completar después."""
+    _check_council_state(council_state)
+    values = {"council_ledger_json": ledger_json}
+    if approved_by:
+        values.update(council_approved_by=approved_by, council_approved_at=_now())
+    elif council_state is None:
+        # corrector ADR-0082 (F.1): un BORRADOR guardado DESPUÉS de una aprobación vuelve el ledger a 'draft' — las columnas del
+        # aprobador se limpian en el MISMO UPDATE (antes GET /plans/{id} servía approved_by del aprobador anterior junto a
+        # ledger.state 'draft' y run_gate cerrado: dos verdades para un solo hecho)
+        values.update(council_approved_by=None, council_approved_at=None)
+    if council_state:
+        values["council_state"] = council_state
+    with engine().begin() as cx:
+        n = cx.execute(plans.update()
+                       .where(plans.c.plan_id == plan_id, plans.c.run_id.is_(None))
+                       .values(**values)).rowcount
+    return n == 1
+
+
+def _plans_council_pending_query(user_id, question, entities_csv, since):
+    """El SELECT del dedup (expuesto para el smoke): mismo usuario, MISMA pregunta y entities_csv exactos, ronda 1 viva
+    (COUNCIL_PENDING_STATES), creado desde `since`. El padre (plan_json.thread_parent_run_id) se compara en Python: el
+    JSON no se consulta en SQL (dialecto neutral)."""
+    return (select(plans)
+            .where(plans.c.user_id == user_id, plans.c.question == question, plans.c.entities_csv == entities_csv,
+                   plans.c.council_state.in_(COUNCIL_PENDING_STATES), plans.c.created_at >= since)
+            .order_by(plans.c.created_at.desc(), plans.c.plan_id.asc()))
+
+
+def plans_council_pending(user_id, question, entities_csv, parent_run_id, since):
+    """ADR-0082 (E.3) — el dedup del doble clic: el plan VIVO más reciente del MISMO usuario con la MISMA (question,
+    entities_csv, parent_run_id) en council_state ∈ {queued, running} creado desde `since` (tz-aware), o None.
+    parent_run_id = plan_json.thread_parent_run_id (None en la raíz); un plan_json ilegible no casa (se salta)."""
+    if isinstance(since, datetime.datetime) and since.tzinfo is None:
+        since = since.replace(tzinfo=datetime.timezone.utc)
+    with engine().begin() as cx:
+        rows = cx.execute(_plans_council_pending_query(user_id, question, entities_csv or "", since)).all()
+    for r in rows:
+        d = _plan_row(r)
+        try:
+            pj = json.loads(d.get("plan_json") or "{}")
+        except (ValueError, TypeError):
+            continue
+        padre = pj.get("thread_parent_run_id") if isinstance(pj, dict) else None
+        if (padre or None) != (parent_run_id or None):
+            continue
+        if _dt_utc(d["created_at"]) < since:   # SQLite compara texto: se re-mide en Python
+            continue
+        return d
+    return None
+
+
+def count_plans_council(user_id=None, states=None) -> int:
+    """COUNT de planes con consejo: `states` (tupla de council_state) acota; None = TODOS los que tienen council_state
+    NOT NULL. app: count_plans_council(user_id=<u>, states=('queued',)) = el tope WITT_COUNCIL_MAX_QUEUED_PER_USER."""
+    q = select(func.count()).select_from(plans)
+    if user_id is not None:
+        q = q.where(plans.c.user_id == user_id)
+    if states is None:
+        q = q.where(plans.c.council_state.isnot(None))
+    else:
+        q = q.where(plans.c.council_state.in_(tuple(states)))
+    with engine().begin() as cx:
+        v = cx.execute(q).scalar()
+    return int(v or 0)
+
+
+def _plans_origin_where(q, include_origins, include_unknown=True):
+    """El filtro por procedencia de _origin_where, sobre plans (origin NULL = plan anterior al ADR, INCLUIDO por default
+    y declarable por el consumidor)."""
+    if include_origins is None:
+        return q
+    cond = plans.c.origin.in_(list(include_origins))
+    if include_unknown:
+        cond = cond | plans.c.origin.is_(None)
+    return q.where(cond)
+
+
+def plans_council_usage(frm=None, to=None, include_origins=None):
+    """ADR-0082 (H) — para GET /usage.plans_council: TODOS los planes con council_state NOT NULL en el periodo
+    (created_at), con su gasto de ronda 1 y su sello: [{plan_id, user_id, created_at, origin, council_state,
+    council_usage_json, run_id}]. La SUMA y la cotización (in×p_in + out×p_out + caché por multiplicadores) las hace
+    app; aquí sólo filas. run_id NOT NULL = el r1 ya está en su corrida (by_stage.council_r1 copiado): el agregador
+    lo separa para no sumar dos veces (LOTE-01·A4 aplicado al plan)."""
+    q = select(plans.c.plan_id, plans.c.user_id, plans.c.created_at, plans.c.origin, plans.c.council_state,
+               plans.c.council_usage_json, plans.c.run_id).where(plans.c.council_state.isnot(None))
+    if frm is not None:
+        q = q.where(plans.c.created_at >= frm)
+    if to is not None:
+        q = q.where(plans.c.created_at <= to)
+    q = _plans_origin_where(q, include_origins)
+    with engine().begin() as cx:
+        rows = cx.execute(q.order_by(plans.c.created_at.asc(), plans.c.plan_id.asc())).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        d["created_at"] = _dt_utc(d["created_at"])
+        out.append(d)
+    return out
+
+
+def plans_with_council(include_origins=None, limit=1000):
+    """ADR-0082 (I) — el corpus de PLANES del índice del consejo: planes con council_json (ronda 1 agregada), corridos o
+    no (un requisito emitido en un plan nunca corrido también es observación). include_origins None = sin filtro
+    (origin NULL incluido y declarable). Filas ligeras + los dos blobs del consejo (council_json, council_ledger_json)."""
+    q = (select(plans.c.plan_id, plans.c.user_id, plans.c.question, plans.c.entities_csv, plans.c.created_at,
+                plans.c.run_id, plans.c.origin, plans.c.council_state, plans.c.council_json, plans.c.council_ledger_json,
+                plans.c.council_finished_at)
+         .where(plans.c.council_json.isnot(None)))
+    q = _plans_origin_where(q, include_origins)
+    with engine().begin() as cx:
+        rows = cx.execute(q.order_by(plans.c.created_at.desc(), plans.c.plan_id.asc()).limit(int(limit))).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        for k in ("created_at", "council_finished_at"):
+            d[k] = _dt_utc(d.get(k))
+        out.append(d)
+    return out
+
+
+def closed_runs_with_council(limit=1000, include_origins=None):
+    """ADR-0082 (I) — closed_runs() acotado a las corridas que llevan runs.council_json (la copia del consejo al encolar,
+    F.4) y con esa columna en la fila. El `frozen.council` vive dentro de frozen_record_json (lo parsea el consumidor:
+    council_index); aquí no se abre el blob."""
+    with engine().begin() as cx:
+        q = (select(runs.c.run_id, runs.c.run_no, runs.c.question, runs.c.user_id, runs.c.frozen_at,
+                    runs.c.closed_by, runs.c.frozen_record_json, runs.c.origin, runs.c.thread_id,
+                    runs.c.turn_no, runs.c.turn_kind, runs.c.parent_run_id, runs.c.council_json)
+             .where(runs.c.state == "closed", runs.c.council_json.isnot(None)))
+        q = _origin_where(q, include_origins)
+        rows = cx.execute(q.order_by(runs.c.frozen_at.desc()).limit(int(limit))).all()
+    out = []
+    for r in rows:
+        d = dict(r._mapping)
+        d["frozen_at"] = _dt_utc(d["frozen_at"])
+        out.append(d)
+    return out
 
 
 def _origin_where(q, include_origins, include_unknown=True):
@@ -810,7 +1280,11 @@ def _list_select():
                       runs.c.closed_by,
                       # ADR-0079
                       runs.c.parent_run_id, runs.c.thread_id, runs.c.turn_no, runs.c.turn_kind,
-                      runs.c.thread_context_json, runs.c.origin, runs.c.root_question_id)
+                      runs.c.thread_context_json, runs.c.origin, runs.c.root_question_id,
+                      # ADR-0082 (F.4/J): runs.council_json ENTRA al SELECT de la lista — cuarta vez la misma lección
+                      # (ADR-0055/0076/0079): _run_view deriva plan_council_state / council_n_valid y DESCARTA el blob;
+                      # lista == detalle (smoke_runs_list_http lo mide).
+                      runs.c.council_json)
 
 
 def _list_row(r) -> dict:

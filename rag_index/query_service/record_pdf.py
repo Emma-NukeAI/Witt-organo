@@ -273,6 +273,164 @@ def _section_ejes(pdf, record):
     _rule(pdf)
 
 
+# --- ADR-0082: CONSEJO DE CRITERIO — tres estados por llave (registro < 1.11 -> NO INSTRUMENTADO; state declarado; valor) ---
+_NOT_INSTRUMENTED_1_11 = "NO INSTRUMENTADO (contrato < 1.11) - el registro nacio antes de ADR-0082; no se rellena"
+_COUNCIL_STATE_GLOSS = {
+    "applicable": "el consejo JUZGO la cobertura (ronda valida, cuorum alcanzado)",
+    "incomplete": "ronda INCOMPLETA (k/N < cuorum) - la compuerta la cuenta como NO competente, se declara",
+    "skipped-by-human": "el humano SALTO el consejo con razon - ledger vacio declarado",
+    "not-applicable (no-ledger)": "sin ledger del consejo (corrida sin plan o plan sin ronda 1 aprobada)",
+    "disabled (kill-switch WITT_COUNCIL=0)": "APAGADO por kill-switch - camino sin consejo, componente informativo",
+    "pre-adr-0082": "plan anterior al ADR - sin consejo, declarado",
+}
+_COVERAGE_GLOSS = {
+    "covered": "cubierto", "partial": "PARCIAL (cuenta como sin cubrir)", "uncovered": "SIN CUBRIR",
+    "not-judged": "SIN JUZGAR (cuenta como sin cubrir)", "covered-by-attestation": "cubierto por ATESTIGUACION humana (no evidencia)",
+    "discarded": "descartado por el humano",
+}
+_AFTER_SEARCH_GLOSS = {
+    "retrieved-for": "se RECUPERO evidencia para su directiva (medicion estructural, no juicio)",
+    "still-uncovered": "directiva compilada, nada admitido", "not-searched": "sin directiva (no se busco)",
+    "covered-pre": "ya cubierto antes de buscar",
+}
+
+
+def _council_state_gloss(state):
+    if state in _COUNCIL_STATE_GLOSS:
+        return _COUNCIL_STATE_GLOSS[state]
+    if isinstance(state, str) and state.startswith("errored ("):
+        return "la ronda del consejo FALLO - declarado, la corrida siguio sin cobertura"
+    if isinstance(state, str) and state.startswith("not-requested ("):
+        return "la ronda 1 NO se pidio para este plan (compuerta de gasto declarada)"
+    return f"estado fuera de tabla: {state}"
+
+
+def _section_consejo(pdf, record):
+    """ADR-0082 (K.m): la seccion 'CONSEJO DE CRITERIO' nace con el bloque frozen.council. Tres estados: llave ausente
+    (registro < 1.11) -> NO INSTRUMENTADO; `state` declarado sin rondas (kill-switch, no-ledger, not-requested, skip,
+    errored); valor (membresia, ledger con decisiones, cobertura pre/post, rondas n/N, catalog_sha, costo r1/r2/r3).
+    El consejo NUNCA escribe la respuesta: aqui solo se imprimen sus requisitos, decisiones humanas y coberturas."""
+    _h(pdf, "CONSEJO DE CRITERIO (ADR-0082) - requisitos de informacion y cobertura; JAMAS escribe la respuesta")
+    if "council" not in record:
+        _p(pdf, f"[?] {_NOT_INSTRUMENTED_1_11}", style="I", size=8)
+        _rule(pdf)
+        return
+    c = record.get("council")
+    if not isinstance(c, dict):
+        _p(pdf, "council: null declarado - la corrida no congelo consejo", style="I", size=8)
+        _rule(pdf)
+        return
+    state = c.get("state")
+    _p(pdf, f"estado: {state} - {_council_state_gloss(state)}"
+            + (f"   |   razon: {c.get('state_reason')}" if c.get("state_reason") else ""), style="B", size=9)
+    ledger = c.get("ledger") if isinstance(c.get("ledger"), dict) else None
+    rounds = [r for r in (c.get("rounds") or []) if isinstance(r, dict)]
+    if ledger is None and not rounds:
+        # estado declarado SIN rondas: nada mas que imprimir salvo la version y la membresia
+        _p(pdf, f"membresia {c.get('membership_version')} - {c.get('n_members')} miembros"
+                f"{' (full-council)' if c.get('full_council') else ''}   |   catalog_sha "
+                f"{str(c.get('catalog_sha') or 'no consta')[:16]}...   |   kill_switch WITT_COUNCIL="
+                f"{((c.get('kill_switch') or {}).get('WITT_COUNCIL') or 'unset')}", size=8)
+        _rule(pdf)
+        return
+    model = c.get("model") or {}
+    _p(pdf, f"membresia {c.get('membership_version')} ({c.get('membership_source')}) - {c.get('n_members')} miembros"
+            f"{' (full-council)' if c.get('full_council') else ''} - cuorum {c.get('quorum_required')}   |   modelo "
+            f"{model.get('requested')} ({model.get('source')}; effort {model.get('effort') or 'no enviado'})", size=8)
+    pcm = c.get("plan_catalog_matches_run")
+    _p(pdf, f"catalog_sha (al ejecutar) {str(c.get('catalog_sha') or 'no consta')[:16]}...   |   fichas del plan "
+            + ("COINCIDEN" if pcm is True else "NO COINCIDEN - las fichas cambiaron entre plan y corrida" if pcm is False
+               else "no verificable (plan sin catalog_sha)"), size=8)
+    # ledger: decisiones humanas
+    if ledger is not None:
+        kn = ledger.get("knowledge_now") or {}
+        _p(pdf, f"LEDGER {ledger.get('state')} - {ledger.get('n_requirements')} requisitos: {ledger.get('n_kept')} keep, "
+                f"{ledger.get('n_discarded')} discard, {ledger.get('n_attested')} aportados, {ledger.get('n_pending')} pendientes, "
+                f"{ledger.get('n_hard_rule')} hard-rule (causal-pruner)   |   aprobado por {ledger.get('approved_by') or 'nadie'}"
+                f"{' (autor del plan)' if ledger.get('approved_by_is_author') else ''}"
+                + (f"   |   saltado por {ledger.get('skipped_by')}: {ledger.get('skip_reason')}" if ledger.get("skipped_by") else ""),
+           style="B", size=8)
+        if kn.get("present"):
+            _p(pdf, f"QUE SABES AHORA (ATESTIGUADO por {kn.get('by')}, {kn.get('chars')} chars"
+                    f"{', RECORTADO a 600 en el registro' if kn.get('truncated') else ''}; NO es evidencia): {kn.get('text')}",
+               style="I", size=8)
+        cov = c.get("coverage") or {}
+        pre = cov.get("pre_search") if isinstance(cov.get("pre_search"), dict) else {}
+        post = cov.get("post_search") if isinstance(cov.get("post_search"), dict) else {}
+        after = cov.get("after_search") if isinstance(cov.get("after_search"), dict) else {}
+        pre_by = {b["requirement_id"]: b for b in (pre.get("by_requirement") or []) if isinstance(b, dict)}
+        post_by = {b["requirement_id"]: b for b in (post.get("by_requirement") or []) if isinstance(b, dict)}
+        after_by = {b["requirement_id"]: b for b in (after.get("by_requirement") or []) if isinstance(b, dict)}
+        for r in ledger.get("requirements") or []:
+            rid = r.get("requirement_id")
+            head = (f"  [{r.get('priority')}] {rid}: {r.get('gap')}   -   {r.get('source_family')}/{r.get('evidence_kind')}"
+                    f"   -   pedido por {r.get('n_requested_by')} de {r.get('n_members')}   -   decision {r.get('decision')}"
+                    f" ({r.get('decided_by') or 'sin decidir'})")
+            if r.get("hard_rule_gate"):
+                head += "   -   HARD-RULE §7.1 (decision humana explicita)"
+            if r.get("priority_downgraded_from"):
+                head += f"   -   degradado de {r['priority_downgraded_from']} (exploratorio)"
+            if r.get("harness_state") and r.get("harness_state") != "satisfiable":
+                head += f"   -   {r['harness_state']} (no gatea, contado)"
+            _p(pdf, head, size=7)
+            if r.get("decision_reason"):
+                _p(pdf, f"      razon del humano: {r['decision_reason']}", size=7)
+            if r.get("attested_text"):
+                _p(pdf, f"      ATESTIGUADO ({r.get('attested_chars')} chars{', recortado a 600' if r.get('attested_text_truncated') else ''}; "
+                        f"no es evidencia): {r['attested_text']}", style="I", size=7)
+            pb, qb, ab = pre_by.get(rid), post_by.get(rid), after_by.get(rid)
+            if pb or qb or ab:
+                partes = []
+                if pb:
+                    partes.append(f"pre-busqueda {pb.get('coverage_final')} ({_COVERAGE_GLOSS.get(pb.get('coverage_final'), '?')}; "
+                                  f"{pb.get('n_valid_votes')} votos validos, {pb.get('n_annulled_votes')} anulados)")
+                if ab and ab.get("state"):
+                    partes.append(f"tras buscar: {ab['state']} ({_AFTER_SEARCH_GLOSS.get(ab['state'], '?')}"
+                                  + (f", {ab.get('n_items_retrieved')} items" if ab.get("n_items_retrieved") else "") + ")")
+                if qb:
+                    partes.append(f"post-busqueda {qb.get('coverage_final')} ({qb.get('n_valid_votes')} votos validos)")
+                _p(pdf, "      cobertura: " + "   |   ".join(partes), size=7)
+                for v in (pb or {}).get("votes") or []:
+                    if v.get("annulled"):
+                        _p(pdf, f"      voto ANULADO de {v.get('agent')}: {v.get('annul_reason')} "
+                                f"{v.get('hallucinated_evidence_ids') or ''}", style="B", size=7)
+        for f in ledger.get("flags") or []:
+            _p(pdf, f"  BANDERA §7 (gate humano) {f.get('kind')}: {f.get('statement')}   -   emitida por "
+                    f"{', '.join(f.get('emitted_by') or [])}", style="B", size=7)
+        if pre:
+            _p(pdf, f"must: total {pre.get('must_total')} | SIN CUBRIR {pre.get('must_uncovered')} (uncovered {pre.get('must_uncovered_strict')}"
+                    f" + partial {pre.get('must_partial')} + sin juzgar {pre.get('must_not_judged')}) | atestiguados {pre.get('must_attested')}"
+                    f" | descartados {pre.get('must_discarded')} | no satisfacibles por el harness {pre.get('must_unsatisfiable')} (no gatean, E1)"
+                    f" | votos alucinados {pre.get('n_hallucinated_votes')}   -   clase: {pre.get('class')}", size=7)
+        elif isinstance(cov.get("pre_search"), dict):
+            _p(pdf, f"cobertura pre-busqueda: {cov['pre_search'].get('state')}", size=7)
+        if post and post.get("state") == "judged":
+            _p(pdf, f"post-busqueda (r3 sobre {len((post.get('r3') or {}).get('members') or [])} duenos): must SIN CUBRIR "
+                    f"{post.get('must_uncovered')}   -   INFORMATIVA (jamas re-gatea)", size=7)
+        elif isinstance(cov.get("post_search"), dict):
+            _p(pdf, f"post-busqueda: {cov['post_search'].get('state')}", size=7)
+        d = c.get("directives") or []
+        _p(pdf, f"directivas de busqueda compiladas por CODIGO: {len(d)} ({c.get('directives_state')})"
+                + (f" -> familias {sorted({x.get('family') for x in d})}" if d else "")
+                + (f"   |   excluidas {len(c.get('directives_excluded') or [])}" if c.get("directives_excluded") else ""), size=7)
+    # rondas n/N y costo
+    for r in rounds:
+        u = r.get("usage") or {}
+        cache = f" | cache creation {u.get('cache_creation')} / read {u.get('cache_read')}" if isinstance(u, dict) and ("cache_creation" in u or "cache_read" in u) else ""
+        tag = " (COPIADA del plan: gastada ANTES de encolar)" if r.get("copied_from_plan_id") else ""
+        _p(pdf, f"ronda {r.get('round')} ({r.get('kind')}, fase {r.get('phase')}){tag}: {r.get('n_valid')}/{r.get('n_members')} validos"
+                f" - estado {r.get('state')} - invocados {r.get('n_invoked')} - errored {r.get('n_errored')} - timeout {r.get('n_timeout')}"
+                f" - {r.get('elapsed_s')} s - tokens in {u.get('in') if isinstance(u, dict) else '?'} / out "
+                f"{u.get('out') if isinstance(u, dict) else '?'}{cache} [MEDICION]", size=7)
+    for s in c.get("rounds_skipped") or []:
+        _p(pdf, f"ronda {s.get('round')} NO corrio: {s.get('reason')}", size=7)
+    cache = c.get("cache") or {}
+    if cache:
+        _p(pdf, f"cache de prompt: {'activa' if cache.get('enabled') else 'apagada'} (ttl {cache.get('ttl')}) - hit_ratio_r2 "
+                f"{cache.get('hit_ratio_r2') if cache.get('hit_ratio_r2') is not None else 'no medido'} [MEDICION]", size=7)
+    _rule(pdf)
+
+
 class _Doc(FPDF):
     def header(self):
         self.set_font("Helvetica", "B", 9)
@@ -454,8 +612,13 @@ def build_pdf(record, compress=True):
     sl = record.get("search_ledger")
     if isinstance(sl, dict):
         _p(pdf, f"search_ledger: state {sl.get('state')} | rondas {sl.get('n_rounds')} / cap {sl.get('cap')}"
-                + (f" | stop {sl.get('stop_reason')}" if sl.get("stop_reason") else ""), size=7)
+                + (f" | stop {sl.get('stop_reason')}" if sl.get("stop_reason") else "")
+                + (f" | familias {(sl.get('plan') or {}).get('families_source')}"
+                   if isinstance(sl.get("plan"), dict) and sl["plan"].get("families_source") else ""), size=7)
     _rule(pdf)
+
+    # --- 4b. el consejo de criterio (ADR-0082) — NACE con el bloque (regla del brief §18) --------------
+    _section_consejo(pdf, record)
 
     # --- 5. evidencia, huecos, alternativas --------------------------------------------------------
     _h(pdf, "EVIDENCIA CITADA (numeros = evidencia; letras reservadas a precedente)")

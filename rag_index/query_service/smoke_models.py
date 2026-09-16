@@ -16,7 +16,16 @@ question_agent.py y sus smokes, este check FALLA y ES lo esperado (la lista de o
 (13) openai >= 1.66 con `client.responses` en el venv; requirements.txt; (14) run_held_out.py toma panel y
 sintetizador de la tabla, delega el juez OpenAI en `composite_auditor._default_caller` (fake con `tool=`) y erra
 en voz alta ante una familia desconocida; ab_trapped_scalar.py sigue leyendo el alias `runs_mod.SYNTH_MODEL`;
-(15) cero red: `urllib.request.urlopen` bloqueado y CONTADO (== 0); `sys.modules` sin `openai` al terminar.
+(15) cero red: `urllib.request.urlopen` bloqueado y CONTADO (== 0); `sys.modules` sin `openai` al terminar;
+(16) ADR-0082 (D.2, rebanada C3): rol `council` FUERA de PIPELINE_ROLES — `resolve_role('council')` g2 opus-5 / g1
+opus-4-8 (declarado) con fuente, `WITT_MODEL_COUNCIL` respetado, fable → excluded-model, gpt-* → wrong-family-for-role,
+tope `max_tokens.council` 4000/1200; `panel_signature` byte-IGUAL al GOLDEN @ 9d90c01 con y sin el rol (y con
+WITT_MODEL_COUNCIL pineado / WITT_COUNCIL=0); `snapshot().fields` 33 con `role.council` y `council.*` sin secretos;
+`council_effort()` (default medium, `inherit` declarado); kinds `bool`/`float` tolerantes y PARIDAD de literales con
+agent_matrix.council_full y catalog_cards.cache_config (C1); `CACHE_MULTIPLIERS` con fuente/fecha y `cache_prices()` =
+1.25×/2×/0.1× de `prices()`; ENV_TABLE 48 = 21 (ADR-0081) + 27 (ENV_ADR_0082); compose ∩ README ⊇ ENV_TABLE en DOS
+checks: las 21 de ADR-0081 (PASS hoy) y las 27 de ADR-0082 (FALLA hasta que C8 entregue compose/README — esperado y
+declarado, patrón del gate M.4).
 
 100% offline: ninguna llamada de modelo, ninguna mutación de la DATA INAMOVIBLE ni de mcp_cache. Las envs de la
 tabla se QUITAN del proceso al arrancar (el gate mide con env inyectada, nunca con la del operador). Exit 0 = todo PASS.
@@ -155,6 +164,10 @@ G2_DEFAULTS = {"synthesizer": "claude-opus-5", "planner": "claude-opus-5", "elic
                "judge.overclaim": "claude-sonnet-5", "judge.evidence-grounding": "claude-haiku-4-5-20251001",
                "judge.reproducibility": "gpt-4o"}
 G2_TOPES = {"synthesizer": 8000, "planner": 4000, "elicitation": 2000, "question_agent": 4000, "judge-anthropic": 4000}
+# ADR-0082 (D.2): el rol `council` — opus-5 / 4000 en g2 (decisión de Emmanuel); opus-4-8 / 1200 en g1 DECLARADO (g1 no
+# tenía consejo; la llave existe para que resolve_role('council') no lance bajo el kill-switch de generación).
+G2_COUNCIL = ("claude-opus-5", 4000)
+G1_COUNCIL = ("claude-opus-4-8", 1200)
 # f57a3d3 byte a byte: runs.SYNTH_MODEL (L91) en synth/planner/elicit; question_agent.QUESTION_MODEL (L37);
 # composite_auditor.DEFAULT_PANEL (L60-65); topes CONF_TOOL 300 · PLAN_TOOL 1200 · SYNTH_TOOL 2500 · QUESTION 1200 · jueces 1200.
 G1_DEFAULTS = {**{r: "claude-opus-4-8" for r in ("synthesizer", "planner", "elicitation", "question_agent", "judge.correctness")},
@@ -163,28 +176,52 @@ G1_DEFAULTS = {**{r: "claude-opus-4-8" for r in ("synthesizer", "planner", "elic
 G1_TOPES = {"synthesizer": 2500, "planner": 1200, "elicitation": 300, "question_agent": 1200, "judge-anthropic": 1200}
 F57_DEFAULT_PANEL = [("claude-opus-4-8", "anthropic", "correctness"), ("claude-sonnet-5", "anthropic", "overclaim"),
                      ("claude-haiku-4-5-20251001", "anthropic", "evidence-grounding"), ("gpt-4o", "openai", "reproducibility")]
-check("GENERATIONS: exactamente {g2-2026-09, g1-2026-08}; g2 defaults y TOPES de (A)",
-      set(m.GENERATIONS) == {"g2-2026-09", "g1-2026-08"} and m.GENERATIONS["g2-2026-09"]["defaults"] == G2_DEFAULTS
-      and m.GENERATIONS["g2-2026-09"]["max_tokens"] == G2_TOPES)
-check("GENERATIONS: g1-2026-08 == f57a3d3 byte a byte (8 defaults + 5 topes 2500·1200·300·1200·1200)",
-      m.GENERATIONS["g1-2026-08"]["defaults"] == G1_DEFAULTS and m.GENERATIONS["g1-2026-08"]["max_tokens"] == G1_TOPES)
+
+
+def _sin_council(d):
+    return {k: v for k, v in d.items() if k != "council"}
+
+
+check("GENERATIONS: exactamente {g2-2026-09, g1-2026-08}; g2 defaults y TOPES de (A) + council opus-5 / 4000 (ADR-0082 D.2)",
+      set(m.GENERATIONS) == {"g2-2026-09", "g1-2026-08"} and _sin_council(m.GENERATIONS["g2-2026-09"]["defaults"]) == G2_DEFAULTS
+      and _sin_council(m.GENERATIONS["g2-2026-09"]["max_tokens"]) == G2_TOPES
+      and (m.GENERATIONS["g2-2026-09"]["defaults"]["council"], m.GENERATIONS["g2-2026-09"]["max_tokens"]["council"]) == G2_COUNCIL)
+check("GENERATIONS: g1-2026-08 == f57a3d3 byte a byte en los 8 defaults + 5 topes 2500·1200·300·1200·1200; la llave `council` "
+      "(opus-4-8 / 1200) es DECLARADA por ADR-0082 — g1 no tenía consejo — y la nota lo dice",
+      _sin_council(m.GENERATIONS["g1-2026-08"]["defaults"]) == G1_DEFAULTS and _sin_council(m.GENERATIONS["g1-2026-08"]["max_tokens"]) == G1_TOPES
+      and (m.GENERATIONS["g1-2026-08"]["defaults"]["council"], m.GENERATIONS["g1-2026-08"]["max_tokens"]["council"]) == G1_COUNCIL
+      and "council" in m.GENERATIONS["g1-2026-08"]["note"])
 _all_defaults = {v for g in m.GENERATIONS.values() for v in g["defaults"].values()}
 check("defaults g1/g2: 100% conocidos por la tabla y 100% cotizados (ningún default sin precio)",
       all(v in m.MODELS and v in m.prices() for v in _all_defaults)
       and all(set(g["defaults"]) == set(m.ROLES) and set(g["max_tokens"]) == set(m.MAX_TOKENS_KEYS) for g in m.GENERATIONS.values()),
       f"defaults={sorted(_all_defaults)}")
-check("ROLE_ENVS exacto (8 roles; OPENAI_JUDGE_MODEL conserva su nombre) y ENV_TABLE cerrada (21 envs del ADR)",
+ENV_ADR_0081 = {"WITT_MODEL_GENERATION", "WITT_MODEL_SYNTH", "WITT_MODEL_PLANNER", "WITT_MODEL_ELICIT",
+                "WITT_MODEL_QUESTION", "WITT_JUDGE_CORRECTNESS", "WITT_JUDGE_OVERCLAIM", "WITT_JUDGE_GROUNDING",
+                "OPENAI_JUDGE_MODEL", "WITT_PANEL_AUTO_RETIRE", "WITT_PANEL_MIN_FAMILIES", "WITT_PANEL_MIN_LENSES",
+                "WITT_OPENAI_API", "WITT_OPENAI_STORE", "WITT_OPENAI_MAX_OUTPUT_TOKENS",
+                "WITT_OPENAI_REASONING_EFFORT", "WITT_OPENAI_TIMEOUT_S", "WITT_ANTHROPIC_EFFORT",
+                "WITT_ANTHROPIC_EFFORT_ELICIT", "WITT_CONFIG_LEDGER", "WITT_JUDGE_RETRIES"}
+# ADR-0082 tabla de env: las 27 nuevas (WITT_REAP_STALE_S ya existía y NO es de models.ENV_TABLE)
+ENV_ADR_0082 = ("WITT_COUNCIL", "WITT_COUNCIL_FULL", "WITT_MODEL_COUNCIL", "WITT_COUNCIL_EFFORT", "WITT_CG_COUNCIL_COMPONENT",
+                "WITT_COUNCIL_RECOVERAGE", "WITT_COUNCIL_ORIGINS", "WITT_COUNCIL_WORKERS", "WITT_COUNCIL_DEDUP_S",
+                "WITT_COUNCIL_MAX_QUEUED_PER_USER", "WITT_COUNCIL_CONCURRENCY", "WITT_COUNCIL_MEMBER_TIMEOUT_S",
+                "WITT_COUNCIL_ROUND_BUDGET_S", "WITT_COUNCIL_MEMBER_RETRIES", "WITT_COUNCIL_QUORUM",
+                "WITT_COUNCIL_MAX_REQUIREMENTS", "WITT_COUNCIL_MAX_PER_MEMBER", "WITT_COUNCIL_R2_EVIDENCE_CHARS",
+                "WITT_COUNCIL_ATTESTATION_CHARS", "WITT_COUNCIL_CACHE", "WITT_COUNCIL_CACHE_TTL", "WITT_COUNCIL_INDEX",
+                "WITT_COUNCIL_PRIOR_K", "WITT_COUNCIL_PRIOR_KINDS", "WITT_COUNCIL_INDEX_ORIGINS",
+                "WITT_ANTHROPIC_MAX_INFLIGHT", "WITT_ANTHROPIC_RETRY_AFTER_CAP_S")
+check("ROLE_ENVS exacto (9 roles: 8 de ADR-0081 + council→WITT_MODEL_COUNCIL; OPENAI_JUDGE_MODEL conserva su nombre) y ENV_TABLE "
+      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 (models.ENV_ADR_0082 == la lista exacta de la tabla del ADR, en su orden), "
+      "cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS",
       m.ROLE_ENVS == {"synthesizer": "WITT_MODEL_SYNTH", "planner": "WITT_MODEL_PLANNER", "elicitation": "WITT_MODEL_ELICIT",
                       "question_agent": "WITT_MODEL_QUESTION", "judge.correctness": "WITT_JUDGE_CORRECTNESS",
                       "judge.overclaim": "WITT_JUDGE_OVERCLAIM", "judge.evidence-grounding": "WITT_JUDGE_GROUNDING",
-                      "judge.reproducibility": "OPENAI_JUDGE_MODEL"}
-      and set(m.ENV_TABLE) == {"WITT_MODEL_GENERATION", "WITT_MODEL_SYNTH", "WITT_MODEL_PLANNER", "WITT_MODEL_ELICIT",
-                               "WITT_MODEL_QUESTION", "WITT_JUDGE_CORRECTNESS", "WITT_JUDGE_OVERCLAIM", "WITT_JUDGE_GROUNDING",
-                               "OPENAI_JUDGE_MODEL", "WITT_PANEL_AUTO_RETIRE", "WITT_PANEL_MIN_FAMILIES", "WITT_PANEL_MIN_LENSES",
-                               "WITT_OPENAI_API", "WITT_OPENAI_STORE", "WITT_OPENAI_MAX_OUTPUT_TOKENS",
-                               "WITT_OPENAI_REASONING_EFFORT", "WITT_OPENAI_TIMEOUT_S", "WITT_ANTHROPIC_EFFORT",
-                               "WITT_ANTHROPIC_EFFORT_ELICIT", "WITT_CONFIG_LEDGER", "WITT_JUDGE_RETRIES"}
-      and all("default" in v and "kind" in v and "reader" in v and "effect" in v for v in m.ENV_TABLE.values()),
+                      "judge.reproducibility": "OPENAI_JUDGE_MODEL", "council": "WITT_MODEL_COUNCIL"}
+      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) and len(m.ENV_TABLE) == 48
+      and m.ENV_ADR_0082 == ENV_ADR_0082 and len(m.ENV_ADR_0082) == 27
+      and all(m.ENV_TABLE[k].get("adr") == "0082" for k in ENV_ADR_0082) and not any(m.ENV_TABLE[k].get("adr") for k in ENV_ADR_0081)
+      and all("default" in v and "kind" in v and "reader" in v and "effect" in v and v["kind"] in m.ENV_KINDS for v in m.ENV_TABLE.values()),
       f"envs={sorted(m.ENV_TABLE)}")
 
 # =====================================================================================================
@@ -200,11 +237,13 @@ check("resolve_role: env vacía → RoleResolved con forma cerrada (ROLE_RESOLVE
 g1 = {"WITT_MODEL_GENERATION": "g1-2026-08"}
 g1_roles = {role: m.resolve_role(role, env=g1, today=T) for role in m.ROLES}
 check("KILL-SWITCH WITT_MODEL_GENERATION=g1-2026-08: los 8 roles dan los modelos de f57a3d3 y los topes 2500/1200/300/1200/1200 "
-      "(juez OpenAI: tope None declarado — es del transporte); generation_source 'env:WITT_MODEL_GENERATION'",
-      {k: v["model"] for k, v in g1_roles.items()} == G1_DEFAULTS
+      "(juez OpenAI: tope None declarado — es del transporte); el 9º (council) opus-4-8 / 1200 declarado; generation_source "
+      "'env:WITT_MODEL_GENERATION'",
+      _sin_council({k: v["model"] for k, v in g1_roles.items()}) == G1_DEFAULTS
       and g1_roles["synthesizer"]["max_tokens"] == 2500 and g1_roles["planner"]["max_tokens"] == 1200
       and g1_roles["elicitation"]["max_tokens"] == 300 and g1_roles["question_agent"]["max_tokens"] == 1200
       and g1_roles["judge.correctness"]["max_tokens"] == 1200 and g1_roles["judge.reproducibility"]["max_tokens"] is None
+      and (g1_roles["council"]["model"], g1_roles["council"]["max_tokens"]) == G1_COUNCIL
       and all(v["generation_source"] == "env:WITT_MODEL_GENERATION" and v["generation"] == "g1-2026-08" for v in g1_roles.values()))
 check("KILL-SWITCH g1: panel() == composite_auditor.DEFAULT_PANEL @ f57a3d3 (reviewer, family, lens) en el mismo orden",
       [(x["reviewer"], x["family"], x["lens"]) for x in m.panel(env=g1, today=T)] == F57_DEFAULT_PANEL)
@@ -405,8 +444,10 @@ check("thinking_state por tabla (C.4): opus-5 'adaptive-by-api-default (tokens d
 # 9. snapshot (I)
 # =====================================================================================================
 S = m.snapshot(env={}, today=T)
-check("snapshot: fields == SNAPSHOT_FIELDS (28, cerrada, en orden) y cada campo es exactamente {value, source}",
-      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 28
+check("snapshot: fields == SNAPSHOT_FIELDS (33 = 28 de ADR-0081 + 5 de ADR-0082 al final, cerrada, en orden) y cada campo es "
+      "exactamente {value, source}",
+      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 33
+      and m.SNAPSHOT_FIELDS[28:] == m.COUNCIL_SNAPSHOT_FIELDS == ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
       and all(set(c) == {"value", "source"} for c in S["fields"].values()))
 F = S["fields"]
 check("snapshot env vacía: defaults TIPADOS con fuente 'default-unset:' — min_families 2 · min_lenses 3 · auto_retire False · openai.api "
@@ -511,14 +552,21 @@ PANEL_ROWS = [
      "model_reported": "gpt-4o-2024-08-06", "attempts": [{"attempt": 1, "status": "ok"}]},
 ]
 B = m.provenance_block(ROLES_RUN, PASSES, {"model": "claude-opus-4-8", "usage": {"input_tokens": 3, "output_tokens": 2}}, PANEL_ROWS)
-check("provenance_block: llaves top-level == PROVENANCE_FIELDS; roles {synthesizer, elicitation, question_agent null, planner}; "
+check("provenance_block: llaves top-level == PROVENANCE_FIELDS; roles {synthesizer, elicitation, question_agent null, planner, "
+      "council null (ADR-0082 M: el llamador no lo trajo — declarado, no inventado)}; "
       "ran {synthesize_pass1/2, revision, elicit_pass1/2, plan, question, panel}; generation copiada del rol resuelto",
-      tuple(B) == m.PROVENANCE_FIELDS and set(B["roles"]) == {"synthesizer", "elicitation", "question_agent", "planner"}
-      and B["roles"]["question_agent"] is None and B["roles"]["synthesizer"] == ROLES_RUN["synthesizer"]
+      tuple(B) == m.PROVENANCE_FIELDS and set(B["roles"]) == {"synthesizer", "elicitation", "question_agent", "planner", "council"}
+      and B["roles"]["question_agent"] is None and B["roles"]["council"] is None and B["roles"]["synthesizer"] == ROLES_RUN["synthesizer"]
       and B["roles"]["elicitation"]["source"] == "env:WITT_MODEL_ELICIT"
       and set(B["ran"]) == {"synthesize_pass1", "synthesize_pass2", "revision", "elicit_pass1", "elicit_pass2", "plan", "question", "panel"}
       and B["generation"] == "g2-2026-09" and B["table_version"] == "g2-2026-09" and B["table_as_of"] == "2026-09-15"
       and B["ran"]["question"] is None and B["rule"] == m.PROVENANCE_RULE)
+_B_c = m.provenance_block({**ROLES_RUN, "council": m.resolve_role("council")}, PASSES, None, [])
+check("ADR-0082 (M): provenance_block copia roles.council TAL CUAL del snapshot que runs le pasa (frozen.models.roles.council == "
+      "stage.models.roles.council — el rol council FUERA de panel_signature: la firma no cambia con o sin él)",
+      _B_c["roles"]["council"] == m.resolve_role("council") and _B_c["roles"]["council"]["model"] == m.GENERATIONS["g2-2026-09"]["defaults"]["council"]
+      and _B_c["panel_signature"] == m.provenance_block(ROLES_RUN, PASSES, None, [])["panel_signature"],
+      f"council={_B_c['roles']['council']['model']} sig={_B_c['panel_signature']}")
 R_ = B["ran"]
 check("ran.*: Ran = {requested, reported, relation, thinking_state} — pass1 stub → not-reported · pass2 alias fechado → prefix (NEUTRO) · "
       "revision otro modelo → different (objeción) · elicit_pass1 intentada y fallida → Ran not-reported · elicit_pass2 exact · "
@@ -714,6 +762,133 @@ except Exception as e:   # pragma: no cover
 _ab = (ROOT / "evaluation" / "scripts" / "ab_trapped_scalar.py").read_text(encoding="utf-8")
 check("evaluation/scripts/ab_trapped_scalar.py SIN cambio: sigue leyendo el alias runs_mod.SYNTH_MODEL (>= 4 lecturas) y no tiene literal de modelo",
       _ab.count("runs_mod.SYNTH_MODEL") >= 4 and not _LIT.search(_ab))
+
+# =====================================================================================================
+# 16. ADR-0082 (D.2, rebanada C3): rol `council` fuera de PIPELINE_ROLES · effort · caché · env · snapshot
+# =====================================================================================================
+PANEL_SIGNATURE_GOLDEN_9D90C01 = "5f60c94ab22e65f5"   # models.panel_signature(panel(env={}), roles PIPELINE, today T) @ 9d90c01
+check("ADR-0082 (D.2): COUNCIL_ROLES ('council',) FUERA de PIPELINE_ROLES; ROLES = PIPELINE + JUDGE + COUNCIL (9); ROLE_FAMILY "
+      "council 'anthropic'; 'council' ∈ MAX_TOKENS_KEYS (6 topes); las dos generaciones lo cotizan",
+      m.COUNCIL_ROLES == ("council",) and "council" not in m.PIPELINE_ROLES and "council" not in m.JUDGE_ROLES
+      and m.ROLES == m.PIPELINE_ROLES + m.JUDGE_ROLES + m.COUNCIL_ROLES and len(m.ROLES) == 9
+      and m.ROLE_FAMILY["council"] == "anthropic" and "council" in m.MAX_TOKENS_KEYS and len(m.MAX_TOKENS_KEYS) == 6
+      and all("council" in g["defaults"] and "council" in g["max_tokens"] for g in m.GENERATIONS.values()))
+rc = m.resolve_role("council", env={}, today=T)
+rc1 = m.resolve_role("council", env=g1, today=T)
+check("resolve_role('council'): g2 → claude-opus-5 'default:g2-2026-09', anthropic-messages, known, priced, tope 4000; g1 → "
+      "claude-opus-4-8 'default:g1-2026-08', tope 1200 (declarado); forma cerrada ROLE_RESOLVED_FIELDS",
+      tuple(rc) == m.ROLE_RESOLVED_FIELDS and rc["model"] == "claude-opus-5" and rc["source"] == "default:g2-2026-09"
+      and rc["api"] == "anthropic-messages" and rc["known"] and rc["priced"] and rc["max_tokens"] == 4000
+      and rc1["model"] == "claude-opus-4-8" and rc1["source"] == "default:g1-2026-08" and rc1["max_tokens"] == 1200, f"{rc}")
+rc_env = m.resolve_role("council", env={"WITT_MODEL_COUNCIL": "claude-sonnet-5"}, today=T)
+rc_fab = m.resolve_role("council", env={"WITT_MODEL_COUNCIL": "claude-fable-5-1"}, today=T)
+rc_gpt = m.resolve_role("council", env={"WITT_MODEL_COUNCIL": "gpt-4o"}, today=T)
+rc_sec = m.resolve_role("council", env={"WITT_MODEL_COUNCIL": "sk-live-SECRETOenUnModelo"}, today=T)
+check("WITT_MODEL_COUNCIL respetado (sonnet-5 → 'env:WITT_MODEL_COUNCIL', tope SIGUE 4000: palanca declarada, no default — K.f); "
+      "fable → 'default-invalid-env:WITT_MODEL_COUNCIL (excluded-model)'; gpt-4o → '(wrong-family-for-role)' (el consejo habla "
+      "anthropic-messages con tools forzados); valor con forma de llave → '(secret-like-value)' y jamás viaja",
+      rc_env["model"] == "claude-sonnet-5" and rc_env["source"] == "env:WITT_MODEL_COUNCIL" and rc_env["max_tokens"] == 4000
+      and rc_fab["model"] == "claude-opus-5" and rc_fab["source"] == "default-invalid-env:WITT_MODEL_COUNCIL (excluded-model)"
+      and rc_gpt["model"] == "claude-opus-5" and rc_gpt["source"] == "default-invalid-env:WITT_MODEL_COUNCIL (wrong-family-for-role)"
+      and rc_sec["model"] == "claude-opus-5" and rc_sec["source"] == "default-invalid-env:WITT_MODEL_COUNCIL (secret-like-value)"
+      and "SECRETO" not in json.dumps(m.resolve_panel(env={"WITT_MODEL_COUNCIL": "sk-live-SECRETOenUnModelo"}, today=T)))
+roles_all = {role: m.resolve_role(role, env={}, today=T) for role in m.ROLES}
+sig_all = m.panel_signature(P, roles_all)
+sig_pin_council = m.panel_signature(P, {**roles_all, "council": m.resolve_role("council", env={"WITT_MODEL_COUNCIL": "claude-sonnet-5"}, today=T)})
+sig_off = m.snapshot(env={"WITT_COUNCIL": "0"}, today=T)["panel_signature"]
+sig_full = m.snapshot(env={"WITT_COUNCIL_FULL": "1", "WITT_COUNCIL_EFFORT": "max", "WITT_MODEL_COUNCIL": "claude-sonnet-5"}, today=T)["panel_signature"]
+check("panel_signature INTACTA (veredicto de los dos jueces, D.2): == GOLDEN @ 9d90c01 '5f60c94ab22e65f5' con los 4 roles del pipeline, "
+      "con los 9 roles, con WITT_MODEL_COUNCIL pineado a sonnet, con WITT_COUNCIL=0 y con FULL=1/effort max — el consejo NO es "
+      "identidad de la configuración (la serie de ADR-0087 no se corta)",
+      sig0 == PANEL_SIGNATURE_GOLDEN_9D90C01 and sig_all == sig0 and sig_pin_council == sig0 and sig_off == sig0 and sig_full == sig0
+      and m.snapshot(env={}, today=T)["panel_signature"] == sig0, f"sig0={sig0} all={sig_all} pin={sig_pin_council} off={sig_off}")
+FC = m.snapshot(env={}, today=T)["fields"]
+check("snapshot env vacía: role.council {claude-opus-5, 'default:g2-2026-09'} · council.enabled True 'default-unset:WITT_COUNCIL' · "
+      "council.full False · council.effort 'medium' 'default-unset:WITT_COUNCIL_EFFORT' · council.cache_ttl '5m'; roles del snapshot "
+      "== ROLES (9); stage.models.roles.council viaja aunque el consejo esté apagado (excepción declarada L.2 ii)",
+      FC["role.council"] == {"value": "claude-opus-5", "source": "default:g2-2026-09"}
+      and FC["council.enabled"] == {"value": True, "source": "default-unset:WITT_COUNCIL"}
+      and FC["council.full"] == {"value": False, "source": "default-unset:WITT_COUNCIL_FULL"}
+      and FC["council.effort"] == {"value": "medium", "source": "default-unset:WITT_COUNCIL_EFFORT"}
+      and FC["council.cache_ttl"] == {"value": "5m", "source": "default-unset:WITT_COUNCIL_CACHE_TTL"}
+      and set(m.snapshot(env={}, today=T)["roles"]) == set(m.ROLES)
+      and "council" in m.snapshot(env={"WITT_COUNCIL": "0"}, today=T)["roles"]
+      and m.snapshot(env={"WITT_COUNCIL": "0"}, today=T)["fields"]["council.enabled"] == {"value": False, "source": "env:WITT_COUNCIL"},
+      json.dumps({k: FC[k] for k in m.COUNCIL_SNAPSHOT_FIELDS}, ensure_ascii=False))
+S5 = m.snapshot(env={"WITT_MODEL_COUNCIL": "sk-live-SECRETOenUnModelo", "WITT_COUNCIL_EFFORT": "sk-ant-SECRETO"}, today=T)
+check("snapshot JAMÁS lleva una llave por el consejo: WITT_MODEL_COUNCIL con forma de llave → default con '(secret-like-value)'; "
+      "WITT_COUNCIL_EFFORT basura → 'medium' default-invalid; el dump no contiene 'SECRETO' ni 'sk-'",
+      "SECRETO" not in json.dumps(S5, ensure_ascii=False) and "sk-" not in json.dumps(S5, ensure_ascii=False)
+      and S5["fields"]["role.council"] == {"value": "claude-opus-5", "source": "default-invalid-env:WITT_MODEL_COUNCIL (secret-like-value)"}
+      and S5["fields"]["council.effort"] == {"value": "medium", "source": "default-invalid-env:WITT_COUNCIL_EFFORT"})
+check("council_effort() (E2, default medium, FIJO por ruta): vacía → ('medium', 'default-unset:WITT_COUNCIL_EFFORT'); 'HIGH' → "
+      "('high', 'env:…') normalizado; 'inherit' (alternativa E2 declarada) → hereda WITT_ANTHROPIC_EFFORT: (None, 'env:WITT_COUNCIL_EFFORT "
+      "(inherit -> default-unset:WITT_ANTHROPIC_EFFORT)') = no se envía, o ('low', '… (inherit -> env:WITT_ANTHROPIC_EFFORT)'); "
+      "'ultra' → ('medium', 'default-invalid-env:…'); COUNCIL_EFFORT_CHOICES = ANTHROPIC_EFFORTS + ('inherit',)",
+      m.council_effort(env={}) == ("medium", "default-unset:WITT_COUNCIL_EFFORT")
+      and m.council_effort(env={"WITT_COUNCIL_EFFORT": "HIGH"}) == ("high", "env:WITT_COUNCIL_EFFORT")
+      and m.council_effort(env={"WITT_COUNCIL_EFFORT": "inherit"}) == (None, "env:WITT_COUNCIL_EFFORT (inherit -> default-unset:WITT_ANTHROPIC_EFFORT)")
+      and m.council_effort(env={"WITT_COUNCIL_EFFORT": "inherit", "WITT_ANTHROPIC_EFFORT": "low"}) == ("low", "env:WITT_COUNCIL_EFFORT (inherit -> env:WITT_ANTHROPIC_EFFORT)")
+      and m.council_effort(env={"WITT_COUNCIL_EFFORT": "ultra"}) == ("medium", "default-invalid-env:WITT_COUNCIL_EFFORT")
+      and m.COUNCIL_EFFORT_CHOICES == m.ANTHROPIC_EFFORTS + ("inherit",) and m.COUNCIL_EFFORT_DEFAULT == "medium"
+      and m.env_value("WITT_COUNCIL_EFFORT", env={"WITT_COUNCIL_EFFORT": "inherit"}) == ("inherit", "env:WITT_COUNCIL_EFFORT"))
+check("kind `bool` tolerante (WITT_COUNCIL): 'false' → (False, 'env:'), 'YES' → (True, 'env:'), 'maybe' → (True, 'default-invalid-env:'), "
+      "vacía → (True, 'default-unset:'); kind `float` con rango (WITT_COUNCIL_QUORUM ∈ (0,1]): vacía 0.6, '0.75' env, '0'/'1.5'/'nan' → "
+      "0.6 default-invalid; kind `choice` (WITT_COUNCIL_CACHE_TTL): '1h' env, '2h' → '5m' default-invalid; ints con mínimo "
+      "(CONCURRENCY '0' → 6 default-invalid; WORKERS '0' → 0 válido)",
+      m.env_value("WITT_COUNCIL", env={"WITT_COUNCIL": "false"}) == (False, "env:WITT_COUNCIL")
+      and m.env_value("WITT_COUNCIL", env={"WITT_COUNCIL": "YES"}) == (True, "env:WITT_COUNCIL")
+      and m.env_value("WITT_COUNCIL", env={"WITT_COUNCIL": "maybe"}) == (True, "default-invalid-env:WITT_COUNCIL")
+      and m.env_value("WITT_COUNCIL", env={}) == (True, "default-unset:WITT_COUNCIL")
+      and m.env_value("WITT_COUNCIL_QUORUM", env={}) == (0.6, "default-unset:WITT_COUNCIL_QUORUM")
+      and m.env_value("WITT_COUNCIL_QUORUM", env={"WITT_COUNCIL_QUORUM": "0.75"}) == (0.75, "env:WITT_COUNCIL_QUORUM")
+      and all(m.env_value("WITT_COUNCIL_QUORUM", env={"WITT_COUNCIL_QUORUM": bad}) == (0.6, "default-invalid-env:WITT_COUNCIL_QUORUM")
+              for bad in ("0", "1.5", "nan", "-0.2", "abc"))
+      and m.env_value("WITT_COUNCIL_QUORUM", env={"WITT_COUNCIL_QUORUM": "1"}) == (1.0, "env:WITT_COUNCIL_QUORUM")
+      and m.env_value("WITT_COUNCIL_CACHE_TTL", env={"WITT_COUNCIL_CACHE_TTL": "1h"}) == ("1h", "env:WITT_COUNCIL_CACHE_TTL")
+      and m.env_value("WITT_COUNCIL_CACHE_TTL", env={"WITT_COUNCIL_CACHE_TTL": "2h"}) == ("5m", "default-invalid-env:WITT_COUNCIL_CACHE_TTL")
+      and m.env_value("WITT_COUNCIL_CONCURRENCY", env={"WITT_COUNCIL_CONCURRENCY": "0"}) == (6, "default-invalid-env:WITT_COUNCIL_CONCURRENCY")
+      and m.env_value("WITT_COUNCIL_WORKERS", env={"WITT_COUNCIL_WORKERS": "0"}) == (0, "env:WITT_COUNCIL_WORKERS"))
+try:
+    from lib import agent_matrix as _am  # noqa: E402
+    from lib import catalog_cards as _cc  # noqa: E402
+    _lits = ("1", "true", "yes", "on", "TRUE", "On", "0", "false", "no", "off", "OFF", "maybe", "2", "", "  ")
+    _parity_full = all(m.env_value("WITT_COUNCIL_FULL", env={"WITT_COUNCIL_FULL": s})[0] == _am.council_full(env={"WITT_COUNCIL_FULL": s})[0] for s in _lits)
+    _parity_cache = all(m.env_value("WITT_COUNCIL_CACHE", env={"WITT_COUNCIL_CACHE": s})[0] == _cc.cache_config(env={"WITT_COUNCIL_CACHE": s})["enabled"] for s in _lits)
+    _parity_ttl = all(m.env_value("WITT_COUNCIL_CACHE_TTL", env={"WITT_COUNCIL_CACHE_TTL": s})[0] == _cc.cache_config(env={"WITT_COUNCIL_CACHE_TTL": s})["ttl_card"] for s in ("5m", "1h", "1H", "2h", "", "x"))
+    check("PARIDAD de lectores (C1 ↔ C3, medida sobre 15 literales): models.env_value(kind bool) == agent_matrix.council_full "
+          "(WITT_COUNCIL_FULL) == catalog_cards.cache_config.enabled (WITT_COUNCIL_CACHE); TTL == cache_config.ttl_card — el snapshot "
+          "y el lector del dueño jamás divergen; COUNCIL_CACHE_TTLS == catalog_cards.CACHE_TTLS",
+          _parity_full and _parity_cache and _parity_ttl and m.COUNCIL_CACHE_TTLS == _cc.CACHE_TTLS,
+          f"full={_parity_full} cache={_parity_cache} ttl={_parity_ttl}")
+except Exception as e:   # pragma: no cover — C1 entrega agent_matrix v1.3 / catalog_cards en la misma rama
+    check("PARIDAD de lectores C1 ↔ C3: import lib.agent_matrix / lib.catalog_cards", False, f"{type(e).__name__}: {e}")
+check("CACHE_MULTIPLIERS {write_5m 1.25, write_1h 2.0, read 0.1} con fuente (platform.claude.com + skill claude-api cache 2026-06-24) y "
+      "CACHE_AS_OF '2026-06-24'; cache_prices('claude-opus-5') = {6.25, 10.0, 0.5, price_in 5.0, class 'derived-from-published-multipliers', "
+      "multipliers, source, as_of} (forma CACHE_PRICE_FIELDS); para TODO modelo cotizado write_5m/write_1h/read == price_in × mult; "
+      "modelo sin precio → None (jamás un 0)",
+      m.CACHE_MULTIPLIERS == {"write_5m": 1.25, "write_1h": 2.0, "read": 0.1} and "2026-06-24" in m.CACHE_MULTIPLIERS_SOURCE
+      and "platform.claude.com" in m.CACHE_MULTIPLIERS_SOURCE and m.CACHE_AS_OF == "2026-06-24"
+      and tuple(m.cache_prices("claude-opus-5")) == m.CACHE_PRICE_FIELDS
+      and {k: m.cache_prices("claude-opus-5")[k] for k in ("write_5m", "write_1h", "read", "price_in", "class")}
+      == {"write_5m": 6.25, "write_1h": 10.0, "read": 0.5, "price_in": 5.0, "class": "derived-from-published-multipliers"}
+      and all(m.cache_prices(mid) == {"write_5m": p[0] * 1.25, "write_1h": p[0] * 2.0, "read": p[0] * 0.1, "price_in": p[0],
+                                       "class": m.CACHE_PRICE_CLASS, "multipliers": m.CACHE_MULTIPLIERS,
+                                       "source": m.CACHE_MULTIPLIERS_SOURCE, "as_of": m.CACHE_AS_OF}
+              for mid, p in m.prices().items())
+      and m.cache_prices("llama-9") is None and m.prices() == GOLDEN_PRICES, f"{m.cache_prices('claude-opus-5')}")
+# --- compose ∩ README ⊇ ENV_TABLE (C8 es dueño de compose/README: el segundo check FALLA hasta que entregue — esperado) ---
+_compose = (HERE / "docker-compose.query.yml").read_text(encoding="utf-8")
+_readme = (HERE / "README.md").read_text(encoding="utf-8")
+_compose_vars = set(re.findall(r"^\s*-\s*([A-Z][A-Z0-9_]+)=", _compose, re.M))
+_missing_81 = sorted(v for v in ENV_ADR_0081 if v not in _compose_vars or f"`{v}`" not in _readme)
+_missing_82 = sorted(v for v in ENV_ADR_0082 if v not in _compose_vars or f"`{v}`" not in _readme)
+check("ENV_TABLE ⊆ compose ∩ README — las 21 env de ADR-0081 declaradas en docker-compose.query.yml (- VAR=${VAR:-…}) y en README.md (`VAR`)",
+      not _missing_81, f"faltan={_missing_81}")
+check("ENV_TABLE ⊆ compose ∩ README — las 27 env de ADR-0082 (ENV_ADR_0082) declaradas en compose (bloque ADR-0082 tras WITT_CONFIG_LEDGER, "
+      "27 placeholders ${VAR:-default}) y en README (tabla de env). Dueño: C8. Hasta que aterrice este check FALLA y ES lo esperado "
+      "(patrón del gate M.4 de ADR-0081); la lista de faltantes se imprime",
+      not _missing_82, f"{len(_missing_82)} faltan: {_missing_82}")
 
 # =====================================================================================================
 # 15. Cero red · sys.modules sin openai

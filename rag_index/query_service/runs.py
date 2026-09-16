@@ -38,8 +38,8 @@ import config_ledger  # noqa: E402  — ADR-0081 (E/I): bitácora de configuraci
 import db  # noqa: E402
 import niche_catalog  # noqa: E402
 import precedent  # noqa: E402  — ADR-0079: la serie de letras del precedente la produce precedent.py, no runs.py
-from lib import (agent_matrix, answer_pipeline, composite_auditor, models, reasoning_catalog,  # noqa: E402
-                 resolve_id, verify_output)
+from lib import (agent_matrix, answer_pipeline, catalog_cards, composite_auditor, council, models,  # noqa: E402
+                 reasoning_catalog, resolve_id, verify_output)   # ADR-0082: council (C2) y catalog_cards (C1) en DURO
 try:
     # ADR-0080 (C), rebanada C2: el harness de búsqueda. Import TOLERANTE — si la rebanada aún no aterrizó,
     # runs.py declara `search_ledger.state 'harness-unavailable'` y la Ruta B corre por el camino de hoy.
@@ -47,7 +47,27 @@ try:
 except ImportError:   # pragma: no cover — depende del árbol
     search_harness = None
 
-RENDER_CONTRACT_VERSION = "1.10"  # ADR-0081 (política best-tier v2 / generación g2-2026-09): +models (procedencia
+RENDER_CONTRACT_VERSION = "1.11"  # ADR-0082 (el consejo de criterio ejecutable): +council {state, module_version, membership_version,
+                                  # membership_source, catalog_sha, plan_catalog_matches_run, rules_sha, tools_sha, model, full_council,
+                                  # n_members, members[], quorum_rule, ledger (decisiones humanas + knowledge_now atestiguados,
+                                  # texto ≤600), rounds[] (r1 COPIADA del plan + r2/r3 medidas: miembros/usage/estados),
+                                  # coverage {pre_search, after_search, post_search}, must_uncovered, must_unsatisfiable,
+                                  # directives[], directives_state, index, cache, vocabulary, decided_by, kill_switch} +
+                                  # competence.components.council_uncovered_must (cg-4, forma G.2) + competence.config.
+                                  # council_component_gating + deterministic_checks.{council, attestation_identifier_leak
+                                  # (+_state, _rule)} + citations[].pertinent true | 'not-named-by-council (…)' | 'not-available
+                                  # (council <state>)' (+pertinent_to, pertinent_source) + citations_support_summary.pertinent
+                                  # objeto + search_ledger.plan.{directives, directives_state, families_source
+                                  # 'directives+default'} + search_ledger.n_items_for_directives + fallback.fb_meta.council +
+                                  # token_usage.{by_stage.council_r1/r2/r3, cache, input_tokens_total, council_judgment,
+                                  # cache_sum_matches_by_model} + by_model[m].{cache_creation, cache_read} + agents_invoked
+                                  # 'council:n/N' + filas por miembro + epistemic_summary.{council_state, council_n_valid,
+                                  # council_n_members, council_must_uncovered} + thread_context.council_summary +
+                                  # plan v4 (will_run 'council-member'). Eventos NUEVOS (agent 'council'): stage.council.
+                                  # {ledger, round, member, progress, coverage, directives}; stage.plan += council_state;
+                                  # run.state{queued}.council. TODO aditivo; kill-switch WITT_COUNCIL=0 = camino de 9d90c01
+                                  # con las excepciones DECLARADAS de ADR-0082 (L.2).
+                                  # 1.10 = ADR-0081 (política best-tier v2 / generación g2-2026-09): +models (procedencia
                                   # MEDIDA del modelo que corrió — roles resueltos con fuente, ran {requested,
                                   # reported, relation, thinking_state}, panel_signature; models.provenance_block) +
                                   # answer.{model_source, model_reported, relation} + audit/audit_initial.
@@ -126,7 +146,9 @@ def _max_tokens_for(role, role_name):
     familia desconocida (max_tokens null en la tabla) se toma el tope del rol en la generación — jamás un literal."""
     if role.get("max_tokens") is not None:
         return role["max_tokens"]
-    key = role_name if role_name in models.PIPELINE_ROLES else "judge-anthropic"
+    # ADR-0082 (D.2, C9): `council` está FUERA de PIPELINE_ROLES pero tiene tope propio en MAX_TOKENS_KEYS —
+    # antes caía en 'judge-anthropic' (coincidía 4000/1200 por accidente, no por tabla).
+    key = role_name if role_name in models.MAX_TOKENS_KEYS else "judge-anthropic"
     return models.GENERATIONS[role["generation"]]["max_tokens"][key]
 
 
@@ -204,7 +226,10 @@ SYNTH_TOOL = {
                     "only assert gene IDs that appear in the evidence or the verified-store resolutions. "
                     # ADR-0079 — instrucción anti-fuga: el turno anterior es precedente, no evidencia
                     "The previous turn (thread_context), when present, is PRIOR ART, not evidence; never "
-                    "cite or reuse an identifier from it unless it appears in evidence."),
+                    "cite or reuse an identifier from it unless it appears in evidence. "
+                    # ADR-0082 (F.5) — lo atestiguado por humanos es PRIOR ART, jamás evidencia
+                    "Human attestations (human_attestations), when present, are PRIOR ART attested by humans, "
+                    "not evidence; never cite an identifier from them unless it appears in evidence."),
     "input_schema": {
         "type": "object",
         "properties": {
@@ -349,7 +374,10 @@ def _elicit_confidence(question, evidence, direct_answer, gap_flags, pass_label)
 #   projection       — costo/duración: mediana de la historia REAL, calculada por código (constitución:
 #                      una proyección la calcula un tool desde insumos declarados, nunca la estima un
 #                      modelo). Sin historia suficiente: "[?] sin historia suficiente" (LOTE-01).
-PLAN_VERSION = "3"   # v3 (ADR-0066, adopción VB): +judgment.clarifying_questions (alineación pre-gasto,
+PLAN_VERSION = "4"   # v4 (ADR-0082 B/J): agent_matrix v1.3 — digest() CAMBIA por construcción (34 nombres, 5 filas
+                     # nuevas) y los 17 miembros del consejo son componentizados ('lib/council.py'):
+                     # judgment.agents_applicable[].will_run gana el literal 'council-member'. Declarado, no fingido.
+                     # v3 (ADR-0066, adopción VB): +judgment.clarifying_questions (alineación pre-gasto,
                      # jamás bloquea) + data_landscape estructural (preview DI sparse NO-SPEND + qué
                      # fuentes Ruta B aplican — el briefing chief-of-staff, versión Witt).
                      # v2 (ADR-0063): +judgment.route — el juicio del planner ahora TIENE a dónde ir
@@ -606,6 +634,12 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
                                "reason": a.get("reason", ""), "will_run": "unknown-off-matrix"})
                 continue
             comp = row.get("componentized")
+            # ADR-0082 (G.7, plan v4): un MIEMBRO del consejo (componentized == agent_matrix.COUNCIL_COMPONENT) deja de ser
+            # 'skipped-ad-hoc' — corre como código en lib/council.py (r1 en el plan, r2/r3 en la corrida): 'council-member'
+            if comp == agent_matrix.COUNCIL_COMPONENT:
+                will_run = "council-member"
+            else:
+                will_run = "runs-always-componentized" if comp else "skipped-ad-hoc"
             agents.append({
                 "agent": a["agent"],
                 "gate": row["gate"],
@@ -615,7 +649,7 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
                 "component": comp[0] if comp else None,
                 "matrix_note": row.get("note"),
                 "reason": a.get("reason", ""),
-                "will_run": "runs-always-componentized" if comp else "skipped-ad-hoc",
+                "will_run": will_run,
             })
         # la ruta (ADR-0063): el modelo la elige; la GUÍA la resuelve la tabla — dónde vive la
         # respuesta es un hecho del sistema, no un juicio
@@ -677,10 +711,13 @@ def build_plan(question, entities=None, planner=None, history_rows=None, thread_
     return plan
 
 
-def plan_event_payload(plan):
-    """Resumen de stage.plan — la traza viva y el replay leen el MISMO resumen."""
+def plan_event_payload(plan, council_state=None):
+    """Resumen de stage.plan — la traza viva y el replay leen el MISMO resumen.
+    ADR-0082 (J): `+= council_state` — el estado de la ronda 1 del consejo del plan que respalda la corrida
+    (runs.council_json.r1_state); None = la corrida no trae copia del consejo (ausencia declarada)."""
     j = plan.get("judgment", {})
     p = {"plan_version": plan.get("plan_version"),
+         "council_state": council_state,
          "judgment_state": j.get("state"),
          "work_type": j.get("work_type"),
          "route": j.get("route"),
@@ -696,7 +733,116 @@ def plan_event_payload(plan):
     return p
 
 
-def _agents_invoked(audit_result, deterministic_checks, plan=None):
+COUNCIL_AGENT_ROW = "(consejo de criterio — cm-1)"
+COUNCIL_OPERATIVES_ROW = "(operativos — not-applicable-by-category, cm-1)"
+COUNCIL_SUBSTRATE_ROW = "(sustrato — cm-1)"
+_COUNCIL_SUBSTRATE_INVOKED_ELSEWHERE = ("composite-auditor", "identifier-verification-gate")
+
+
+def _council_agent_rows(council_block):
+    """ADR-0082 (G.7) — las filas de `agents_invoked` DERIVADAS de frozen.council (código, jamás self-report): una fila
+    agregada '(consejo de criterio — cm-1)' con `council:<n_valid>/<N>`; una fila por miembro con status 'invoked'
+    (un miembro caído SÍ fue invocado: lo dice su evidence — 'errored:<kind>' / 'timeout' —, no gana un literal nuevo)
+    o 'not-invoked' cuando la corrida no lo despachó; los 8 operativos en UNA fila `not-applicable` (bajo full-council
+    son miembros); los 9 de sustrato en UNA fila con su estado real de la tabla (B). Bajo kill-switch la fila agregada
+    es `not-applicable` con reason 'kill-switch WITT_COUNCIL=0' y nada más (camino 9d90c01, excepción L.2 iii)."""
+    c = council_block if isinstance(council_block, dict) else {}
+    state = c.get("state")
+    rows = []
+    if state == COUNCIL_STATE_DISABLED:
+        rows.append({"agent": COUNCIL_AGENT_ROW, "status": "not-applicable", "reason": "kill-switch WITT_COUNCIL=0",
+                     "evidence_generated": []})
+        return rows, set()
+    members = [m for m in (c.get("members") or []) if isinstance(m, str)]
+    N = c.get("n_members") or len(members)
+    rounds = {r.get("round"): r for r in (c.get("rounds") or []) if isinstance(r, dict) and r.get("round")}
+    ledger = c.get("ledger") if isinstance(c.get("ledger"), dict) else {}
+    reqs = ledger.get("requirements") or []
+    cov = c.get("coverage") if isinstance(c.get("coverage"), dict) else {}
+    post, pre = cov.get("post_search"), cov.get("pre_search")
+    judged = post if isinstance(post, dict) and post.get("state") == "judged" else (
+        pre if isinstance(pre, dict) and pre.get("state") == "judged" else {})
+    votes_by_agent = {}
+    for br in judged.get("by_requirement") or []:
+        for v in br.get("votes") or []:
+            if v.get("annulled"):
+                continue
+            slot = votes_by_agent.setdefault(v.get("agent"), {"covered": 0, "partial": 0, "uncovered": 0})
+            if v.get("coverage") in slot:
+                slot[v["coverage"]] += 1
+    sha = c.get("catalog_sha") or ""
+    if not rounds:
+        rows.append({"agent": COUNCIL_AGENT_ROW, "status": "not-applicable",
+                     "reason": f"council {state}" + (f" — {c.get('state_reason')}" if c.get("state_reason") else ""),
+                     "evidence_generated": [f"catalog_sha:{sha[:16]}"] if sha else []})
+        return rows, set()
+    r1, r2, r3 = rounds.get("r1") or {}, rounds.get("r2") or {}, rounds.get("r3") or {}
+    n_valid = r2.get("n_valid") if r2 else r1.get("n_valid")
+    ev_agg = []
+    for rn, rr in (("r1", r1), ("r2", r2), ("r3", r3)):
+        if rr:
+            ev_agg.append(f"{rn}:{rr.get('n_ok', rr.get('n_valid'))}/{rr.get('n_members', N)}")
+    ev_agg += [f"requirements:{ledger.get('n_kept')}", f"must_uncovered:{c.get('must_uncovered')}"]
+    if sha:
+        ev_agg.append(f"catalog_sha:{sha[:16]}")
+    rows.append({"agent": COUNCIL_AGENT_ROW, "status": "invoked", "invocation_id": f"council:{n_valid}/{N}",
+                 "evidence_generated": ev_agg})
+    seated = set()
+    for a in members:
+        seated.add(a)
+        per_round = {}
+        for rn, rr in (("r1", r1), ("r2", r2), ("r3", r3)):
+            for m in rr.get("members") or []:
+                if isinstance(m, dict) and m.get("agent") == a:
+                    per_round[rn] = m
+        n_req = sum(1 for r in reqs if a in (r.get("requested_by") or []))
+        ev = [f"requirements:{n_req}"]
+        vc = votes_by_agent.get(a)
+        if vc:
+            ev.append(f"coverage:{vc['covered']}/{vc['partial']}/{vc['uncovered']}")
+        dispatched = []
+        for rn, m in per_round.items():
+            st = m.get("status")
+            if m.get("dispatched") or st in ("ok", "not-applicable", "errored", "timeout"):
+                dispatched.append(rn)
+            if st == "errored":
+                ev.append(f"errored:{m.get('error_kind')} ({rn})")
+            elif st == "timeout":
+                ev.append(f"timeout ({rn})")
+            elif st in ("skipped-budget", "skipped-cancelled", "not-invoked"):
+                ev.append(f"{st} ({rn})")
+        # r1 corrió en el JOB del plan: si el plan la copió sin filas por miembro, los N fueron despachados por construcción
+        if r1 and "r1" not in per_round and not (r1.get("members")):
+            dispatched.insert(0, "r1")
+        if dispatched:
+            rows.append({"agent": a, "status": "invoked",
+                         "invocation_id": "council:" + a + ":" + "+".join(sorted(set(dispatched))),
+                         "evidence_generated": ev})
+        else:
+            rows.append({"agent": a, "status": "not-invoked", "invocation_id": f"council:{a}",
+                         "reason": "council member (cm-1) seated, not dispatched in this run's rounds (no kept requirement "
+                                   "of its own, or the round did not run)", "evidence_generated": ev})
+    return rows, seated
+
+
+def _council_static_rows(full_council):
+    """Operativos (una fila) y sustrato (una fila con el estado REAL de la tabla B) — sin ruido de 17 renglones."""
+    rows = []
+    cm = agent_matrix.COUNCIL_MEMBERSHIP
+    if not full_council:
+        rows.append({"agent": COUNCIL_OPERATIVES_ROW, "status": "not-applicable",
+                     "reason": ("category operations-reporting — not-applicable-by-category (cm-1; WITT_COUNCIL_FULL=1 "
+                                "los sienta)"),
+                     "evidence_generated": [f"{n}:{e.get('state')}" for n, e in cm["operatives"].items()]})
+    rows.append({"agent": COUNCIL_SUBSTRATE_ROW, "status": "not-applicable",
+                 "reason": ("substrate agents with their REAL state (agent_matrix.COUNCIL_MEMBERSHIP.substrate); "
+                            "composite-auditor and identifier-verification-gate are the two `invoked` rows above"),
+                 "evidence_generated": [f"{n}:{s}" for n, s in cm["substrate"].items()
+                                        if n not in _COUNCIL_SUBSTRATE_INVOKED_ELSEWHERE]})
+    return rows
+
+
+def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None):
     """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
     agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
 
@@ -706,6 +852,11 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None):
     del catálogo queda en UNA fila agregada `not-applicable` (trazabilidad sin 25 filas de ruido).
 
     Sin plan: el hueco sigue declarado como `not-assessed` — nadie juzgó, y eso se dice.
+
+    ADR-0082 (G.7): `council` = frozen.council → fila agregada 'council:n/N' + una fila por miembro (invoked /
+    not-invoked con su evidence), operativos y sustrato en filas agregadas; un miembro del consejo que el planner juzgó
+    aplicable deja de ser 'skipped-ad-hoc' (es 'council-member' en el plan y su fila la deriva el consejo). Bajo
+    kill-switch sólo la fila agregada `not-applicable 'kill-switch WITT_COUNCIL=0'` (L.2 iii).
 
     Schema per §11: {agent, status, invocation_id|reason, evidence_generated}."""
     out = [{
@@ -722,21 +873,44 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None):
         "invocation_id": "deterministic_gate",
         "evidence_generated": [f"admissible:{deterministic_checks.get('admissible')}"],
     }]
+    seated = set()
+    council_rows = []
+    if isinstance(council, dict):
+        council_rows, seated = _council_agent_rows(council)
+        out.extend(council_rows)
     judgment = (plan or {}).get("judgment") or {}
     if judgment.get("state") == "declared":
         judged = 0
         for a in judgment.get("agents_applicable", []):
+            name = a.get("agent")
+            is_member = (a.get("will_run") == "council-member" or a.get("component") == agent_matrix.COUNCIL_COMPONENT[0]
+                         or agent_matrix.council_member(name) is not None)
+            if is_member and isinstance(council, dict):
+                # ADR-0082 (G.7): miembro del consejo — su fila la deriva el consejo (invoked/not-invoked arriba); si el
+                # consejo no corrió en esta corrida, se declara 'not-invoked' con el estado del consejo, jamás skipped-ad-hoc.
+                # Bajo kill-switch (L.2 iii) NO hay filas por miembro: el camino de 9d90c01 con la matriz v1.3 los omite
+                # (componentizados → `continue`) y sólo queda la fila agregada 'kill-switch WITT_COUNCIL=0'.
+                if council.get("state") == COUNCIL_STATE_DISABLED:
+                    continue
+                if name not in seated:
+                    out.append({"agent": name, "status": "not-invoked", "invocation_id": f"council:{name}",
+                                "reason": (f"planner (§11): {a.get('reason', '')} — council member (cm-1, component "
+                                           f"lib/council.py) not dispatched: council {council.get('state')}"),
+                                "evidence_generated": []})
+                continue
             if a.get("componentized"):
                 continue   # composite-auditor / verify_output ya están arriba como invoked, medidos
             judged += 1
             out.append({
-                "agent": a.get("agent"),
+                "agent": name,
                 "status": "skipped-ad-hoc",   # literal §5 de la matriz: el rol corre ad-hoc en la síntesis
                 "reason": (f"planner (§11): {a.get('reason', '')} — no existe como componente; la "
                            f"síntesis cubre el rol ad-hoc. Gate de matriz: {a.get('gate')}"
                            + (f". {a.get('matrix_note')}" if a.get("matrix_note") else "")),
                 "evidence_generated": [],
             })
+        if isinstance(council, dict) and council.get("state") != COUNCIL_STATE_DISABLED:
+            out.extend(_council_static_rows(bool(council.get("full_council"))))
         out.append({
             "agent": f"(resto del catálogo — {agent_matrix.MATRIX_VERSION})",
             "status": "not-applicable",
@@ -1016,6 +1190,12 @@ def build_thread_context(parent_run_row, comments_rows, now):
         }
         snap["previous_audit"] = {"verdict": audit.get("verdict"), "n_valid": audit.get("n_valid"),
                                   "findings": _panel_findings(audit)[:5]}
+    # ADR-0082 (G.9): el resumen del consejo del padre — requisitos (gap ≤200, estados, decisión), banderas, si hubo
+    # "qué sabes ahora" y must sin cubrir tras la búsqueda — como llave hermana ESTRUCTURADA para el PLANNER
+    # (plan_thread_context) y la RONDA 1 del turno N+1 (council_jobs._inherited_criteria: criterios heredados). El
+    # SINTETIZADOR del hijo NO lo recibe: execute_run se lo quita de su copia del snapshot (E5, corrector ADR-0082 —
+    # `gap` y `flags[].statement` son texto escrito por los miembros). None = padre sin consejo o sin ledger.
+    snap["council_summary"] = council.summary_for_thread((frozen or {}).get("council")) if frozen else None
     if parent.get("thread_id") is None:
         snap["parent_pre_adr_0079"] = True   # el padre nació antes del contrato: raíz VIRTUAL (turn_no 2)
     snap["bytes_unit"] = "utf-8 bytes"   # corrector ADR-0079: la unidad viaja junto a la cifra
@@ -1380,12 +1560,21 @@ THREAD_ANTI_LEAK_CLAUSE = ("The previous turn (thread_context) is PRIOR ART, not
                            "humans commented — then answer THIS question from THIS evidence.")
 
 
-def synth_system(pass_label, thread_context=False):
+# ADR-0082 (F.5) — la cláusula anti-fuga de lo ATESTIGUADO: `aporto` y "qué sabes ahora" viajan como llave hermana
+# `human_attestations` FUERA de `evidence` (misma disciplina que thread_context); son PRIOR ART atestiguado, no evidencia.
+ATTESTATION_ANTI_LEAK_CLAUSE = ("Human attestations (human_attestations: knowledge_now and attested requirements) are "
+                                "PRIOR ART attested by humans, not evidence; never cite or reuse an identifier from them "
+                                "unless it appears in evidence. Use them only to understand what the humans already know "
+                                "or supplied — then answer THIS question from THIS evidence.")
+
+
+def synth_system(pass_label, thread_context=False, human_attestations=False):
     """The EXACT production system prompt of a synthesis pass — factored out so diagnostics
     (evaluation/scripts/ab_trapped_scalar.py) measure against the real string, never a replica.
 
     ADR-0079: `thread_context=True` añade la cláusula anti-fuga (THREAD_ANTI_LEAK_CLAUSE). Sin turno
-    anterior el string es EXACTAMENTE el de antes — la medición de ab_trapped_scalar no cambia."""
+    anterior el string es EXACTAMENTE el de antes — la medición de ab_trapped_scalar no cambia.
+    ADR-0082 (F.5): `human_attestations=True` añade ATTESTATION_ANTI_LEAK_CLAUSE (sólo cuando viajan atestiguaciones)."""
     return ("You answer zebrafish pronephros research questions for a medical team, from a curated "
             "evidence bundle (DATA INAMOVIBLE"
             + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
@@ -1394,7 +1583,8 @@ def synth_system(pass_label, thread_context=False):
             "report confidence_by_subclaim instead of averaging. If your answer rests on an absence, "
             "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
             "identifier that is not in the evidence."
-            + (" " + THREAD_ANTI_LEAK_CLAUSE if thread_context else "") + "\n\n"
+            + (" " + THREAD_ANTI_LEAK_CLAUSE if thread_context else "")
+            + (" " + ATTESTATION_ANTI_LEAK_CLAUSE if human_attestations else "") + "\n\n"
             # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
             # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
             # fabrica números de sección, que es peor que no pedir nada.
@@ -1423,18 +1613,25 @@ def _lista_serializada(raw, keep_dicts=False):
             else json.dumps(x, ensure_ascii=False) for x in v]
 
 
-def _default_synthesizer(question, evidence, pass_label, thread_context=None):
+def _default_synthesizer(question, evidence, pass_label, thread_context=None, human_attestations=None):
     """One synthesis pass over an evidence view (pass1 = DI-only, pass2 = DI + Path B). Returns
     {direct_answer, stated_confidence, confidence_by_subclaim, absence_kind, gap_flags,
     evidence_cited, model, usage}.
 
     ADR-0079: `thread_context` (snapshot del turno anterior) viaja como LLAVE HERMANA de evidence en el
     user_text — {question, evidence, thread_context} — nunca dentro de evidence (patrón revision_input).
-    Con snapshot, el system gana la cláusula anti-fuga. None = raíz: prompt idéntico al de siempre."""
-    system = synth_system(pass_label, thread_context=thread_context is not None)
+    Con snapshot, el system gana la cláusula anti-fuga. None = raíz: prompt idéntico al de siempre.
+    ADR-0082 (F.5): `human_attestations` ({knowledge_now, attestations[] {requirement_id, text, by, at}}) viaja
+    igual — llave HERMANA `human_attestations`, jamás dentro de evidence — y el system gana
+    ATTESTATION_ANTI_LEAK_CLAUSE. El sintetizador es CIEGO al consejo (E5): aquí sólo llega lo que el humano
+    atestiguó, nunca los criterios ni la cobertura del consejo."""
+    system = synth_system(pass_label, thread_context=thread_context is not None,
+                          human_attestations=human_attestations is not None)
     payload = {"question": question, "evidence": evidence}
     if thread_context is not None:
         payload["thread_context"] = thread_context
+    if human_attestations is not None:
+        payload["human_attestations"] = human_attestations
     user_text = json.dumps(payload, ensure_ascii=False, default=str)
     # ADR-0081 (A/C.4): el rol se resuelve EN LA LLAMADA (tabla + env, con fuente), el tope es el de la generación
     # (g2 8000: opus-5 piensa por default y max_tokens acota pensamiento + respuesta; g1 2500 = f57a3d3) y el effort
@@ -1652,13 +1849,114 @@ def _usage_in_out(usage):
             int(u.get("output_tokens") or u.get("completion_tokens") or 0))
 
 
-TOKEN_STAGES = ("plan", "synthesize_pass1", "elicit_pass1", "search", "synthesize_pass2", "elicit_pass2",
-                "panel", "revision", "embed")
+# ADR-0082 (H): + council_r1 (COPIADA del plan: el gasto ocurrió ANTES de encolar — si no se copia M8 lo pierde, si se
+# suma dos veces miente), council_r2 y council_r3 (MEDIDAS aquí), en el orden en que gastan.
+TOKEN_STAGES = ("plan", "council_r1", "synthesize_pass1", "elicit_pass1", "council_r2", "search", "council_r3",
+                "synthesize_pass2", "elicit_pass2", "panel", "revision", "embed")
+COUNCIL_STAGES = ("council_r1", "council_r2", "council_r3")
+COUNCIL_STAGE_OF_ROUND = {"r1": "council_r1", "r2": "council_r2", "r3": "council_r3"}
+# corrector ADR-0082 (H / gate F): la ÚNICA fuente vive en lib.council (viaja en council.vocabulary.usage_stage_states)
+COUNCIL_USAGE_STAGE_STATES_EXACT = council.USAGE_STAGE_STATES_EXACT
+COUNCIL_USAGE_STAGE_STATE_PREFIXES = council.USAGE_STAGE_STATE_PREFIXES
+
+
+def council_vocabulary_full():
+    """corrector ADR-0082 (gate F): TODOS los vocabularios cerrados que la paridad compara con types.ts y los fixtures — los
+    de lib.council (estados, miembros, cobertura, decisiones, directivas, by_stage.council_r*) más el del componente cg-4
+    de competence (`competence_component_states`), que vive en el servicio. UNA función para frozen.council.vocabulary y
+    para GET /council/membership.vocabulary (app)."""
+    voc = council.council_vocabulary()
+    voc["competence_component_states"] = {"exact": list(competence.COUNCIL_COMPONENT_STATES_EXACT),
+                                          "prefixes": list(competence.COUNCIL_COMPONENT_STATE_PREFIXES)}
+    return voc
 _PASS_STAGE = {"pass1": ("synthesize_pass1", "elicit_pass1"), "pass2": ("synthesize_pass2", "elicit_pass2"),
                "revision": ("revision", "revision")}   # la elicitación de la revisión se atribuye a 'revision'
 
 
-def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False):
+def _council_round_usage(usage):
+    """{in, out, cache_creation, cache_read, thinking_tokens?} desde un usage de ronda del consejo — lectura TOLERANTE
+    (in|input_tokens, out|output_tokens, cache_creation|cache_creation_input_tokens, cache_read|cache_read_input_tokens),
+    la misma que app._plans_council_usage aplica a council_usage_json (C6). None si no hay usage medido."""
+    if not isinstance(usage, dict):
+        return None
+
+    def g(*keys):
+        for k in keys:
+            v = usage.get(k)
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                return int(v)
+        return 0
+    out = {"in": g("in", "input_tokens"), "out": g("out", "output_tokens"),
+           "cache_creation": g("cache_creation", "cache_creation_input_tokens"),
+           "cache_read": g("cache_read", "cache_read_input_tokens")}
+    if isinstance(usage.get("thinking_tokens"), (int, float)):
+        out["thinking_tokens"] = int(usage["thinking_tokens"])
+    return out
+
+
+def _council_stages(council):
+    """by_stage.council_r1/r2/r3 (ADR-0082 H) desde el holder del consejo de execute_run: {enabled, present, r1 {usage,
+    model, model_source, n_members, n_valid, plan_id}, rounds[] (RoundResult de r2/r3 medidas), not_run {r2, r3}}.
+    Cada etapa: {in, out, cache_creation, cache_read, thinking_tokens?, n_members, n_invoked, n_calls, model,
+    model_source, state ∈ 'measured' | 'copied-from-plan_json' | 'not-run (<razón>)' | 'kill-switch WITT_COUNCIL=0' |
+    'plan-without-council'}. Sin holder (llamador legado) → 'not-run (no council block)' con in/out null — jamás un 0."""
+    c = council if isinstance(council, dict) else {}
+    out = {}
+    if not c:
+        for s in COUNCIL_STAGES:
+            out[s] = {"in": None, "out": None, "state": "not-run (no council block)"}
+        return out
+    r1 = c.get("r1") if isinstance(c.get("r1"), dict) else {}
+    u1 = _council_round_usage(r1.get("usage"))
+    if not c.get("enabled", True):
+        # Kill-switch: cero llamadas NUEVAS — pero un gasto de ronda 1 que el plan YA hizo (antes de encolar) se COPIA igual:
+        # apagar el consejo detiene el gasto, no la contabilidad (M8 debe cuadrar; app excluye de plans_council los planes
+        # consumidos porque esta copia los cuenta). Sin r1 en la copia, las tres quedan 'kill-switch WITT_COUNCIL=0'.
+        if u1 is not None:
+            out["council_r1"] = {**u1, "n_members": r1.get("n_members"), "n_valid": r1.get("n_valid"),
+                                 "n_calls": r1.get("n_calls"), "model": r1.get("model"), "model_source": r1.get("model_source"),
+                                 "state": "copied-from-plan_json",
+                                 "source": f"plan_json (spent BEFORE enqueue; plan_id {c.get('plan_id')}; council disabled at "
+                                           "execution — WITT_COUNCIL=0 stops new calls, not accounting)"}
+        else:
+            out["council_r1"] = {"in": None, "out": None, "state": "kill-switch WITT_COUNCIL=0"}
+        for s in ("council_r2", "council_r3"):
+            out[s] = {"in": None, "out": None, "state": "kill-switch WITT_COUNCIL=0"}
+        return out
+    if not c.get("present"):
+        out["council_r1"] = {"in": None, "out": None, "state": "plan-without-council"}
+        for s in ("council_r2", "council_r3"):
+            out[s] = {"in": None, "out": None, "state": "not-run (no-ledger)"}
+        return out
+    if u1 is not None:
+        out["council_r1"] = {**u1, "n_members": r1.get("n_members"), "n_valid": r1.get("n_valid"),
+                             "n_calls": r1.get("n_calls"), "model": r1.get("model"), "model_source": r1.get("model_source"),
+                             "state": "copied-from-plan_json",
+                             "source": f"plan_json (spent BEFORE enqueue; plan_id {c.get('plan_id')})"}
+    else:
+        out["council_r1"] = {"in": None, "out": None, "state": f"not-run ({c.get('r1_state') or 'round 1 without usage'})",
+                             "model": r1.get("model")}
+    by_round = {}
+    for rr in c.get("rounds") or []:
+        if isinstance(rr, dict) and rr.get("round") in ("r2", "r3"):
+            by_round[rr["round"]] = rr
+    for rn in ("r2", "r3"):
+        stage = COUNCIL_STAGE_OF_ROUND[rn]
+        rr = by_round.get(rn)
+        if rr is None:
+            reason = (c.get("not_run") or {}).get(rn) or "round not reached"
+            out[stage] = {"in": None, "out": None, "state": f"not-run ({reason})"}
+            continue
+        u = _council_round_usage(rr.get("usage")) or {"in": 0, "out": 0, "cache_creation": 0, "cache_read": 0}
+        model = (rr.get("model") or {}) if isinstance(rr.get("model"), dict) else {}
+        out[stage] = {**u, "n_members": rr.get("n_members"), "n_invoked": rr.get("n_invoked"),
+                      "n_calls": sum(int(m.get("attempts") or 0) for m in (rr.get("members") or []) if isinstance(m, dict)),
+                      "model": model.get("requested"), "model_source": model.get("source"),
+                      "state": "measured" if not rr.get("cancelled") else "measured (partial: round cancelled)"}
+    return out
+
+
+def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None):
     """ADR-0080 (F): reparto del gasto MEDIDO por etapa. Insumos: cada pasada trae `usage` (síntesis +
     elicitación fusionadas — M8) y, desde ADR-0080, `usage_elicitation` aparte: la etapa synthesize_* es la
     resta y elicit_* la parte. Un sintetizador que no separa (stub, firma vieja) deja elicit_* con in/out null
@@ -1667,11 +1965,14 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     Corrector ADR-0080: `plan` distingue TRES estados — medido (planner con usage), `plan-without-usage`
     (plan declarado pero el planner no reportó gasto: in/out null, no 0) y `no-plan`; y el panel cuenta el gasto
     de TODA fila con `usage` medido, incluida la de un juez agotado (`errored`) cuyos intentos cobraron —
-    composite_auditor lo suma en audit.usage y M8 debe cuadrar contra el mismo número."""
-    stages = {s: {"in": 0, "out": 0} for s in TOKEN_STAGES if s != "embed"}
+    composite_auditor lo suma en audit.usage y M8 debe cuadrar contra el mismo número.
+    ADR-0082 (H): `council` = el holder del consejo (ver _council_stages) → council_r1 (copiada del plan), council_r2/r3
+    (medidas) con cache_creation/cache_read; sin holder las tres quedan 'not-run (no council block)' con in/out null."""
+    stages = {s: {"in": 0, "out": 0} for s in TOKEN_STAGES if s != "embed" and s not in COUNCIL_STAGES}
     stages["search"]["note"] = "Layer 0 tools — no model call (ADR-0080)"
     stages["elicit_pass1"] = {"in": None, "out": None, "state": "not-run"}
     stages["elicit_pass2"] = {"in": None, "out": None, "state": "not-run"}
+    stages.update(_council_stages(council))
     for label, p in passes:
         synth_stage, elicit_stage = _PASS_STAGE.get(label, ("revision", "revision"))
         ti, to = _usage_in_out(p.get("usage"))
@@ -1729,24 +2030,39 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     stages["embed"] = {"tokens": embed_tokens, "unit": "embedding tokens (not chat tokens; excluded from _sum)"}
     stages["_sum"] = {"in": sum(v["in"] for k, v in stages.items() if k != "embed" and isinstance(v.get("in"), int)),
                       "out": sum(v["out"] for k, v in stages.items() if k != "embed" and isinstance(v.get("out"), int)),
-                      "rule": "sum over model stages (embed excluded); must equal by_model totals"}
+                      # ADR-0082 (H): la caché se cuadra APARTE (cache_sum_matches_by_model); in/out conservan la semántica
+                      # de la API (el remanente no cacheado)
+                      "rule": ("sum over model stages (embed excluded; council_r1 copied from plan_json counts once); "
+                               "must equal by_model totals; cache_creation/cache_read reconciled apart")}
     return stages
 
 
-def _token_usage(passes, audit_result, embed_tokens, plan=None):
+def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
     `passes` = [(label, answer_dict)] for the synthesis passes that ran.
 
     `plan` (ADR-0061): el planner es una llamada de modelo y GASTA. Dejarla fuera haría que M8 no
     cuadre — misma disciplina que LOTE-01·A4 (lo gastado antes de morir sobrevive). El gasto del plan
-    se atribuye al modelo que lo hizo y se declara aparte en `plan_judgment`."""
+    se atribuye al modelo que lo hizo y se declara aparte en `plan_judgment`.
+
+    `council` (ADR-0082 H): el holder del consejo — council_r1 se COPIA de runs.council_json.r1 (gastado ANTES de
+    encolar), council_r2/r3 se MIDEN aquí; by_model[m] gana cache_creation/cache_read (tokens) para el modelo del
+    consejo; USD = in×p_in + out×p_out + cache_creation×p_in×mult_write(ttl) + cache_read×p_in×0.1 con
+    models.CACHE_MULTIPLIERS (clase derivada, declarada); `cache` {creation_input_tokens, read_input_tokens, priced,
+    multipliers, source, as_of}; `input_tokens_total` = input_tokens + creation + read (input_tokens conserva la
+    semántica de la API: el remanente no cacheado); `cache_sum_matches_by_model`; `council_judgment` aparte (como
+    plan_judgment). Sin holder: cache 0/0 con estado declarado — la forma no cambia."""
     by_model = {}
 
-    def _add(model, usage):
+    def _add(model, usage, cache=None):
         i, o = _usage_in_out(usage)
         m = by_model.setdefault(model, {"in": 0, "out": 0})
         m["in"] += i
         m["out"] += o
+        if cache is not None:
+            # ADR-0082 (H): sólo los modelos con caché MEDIDA ganan las llaves (aditivo; UsageByModel.cache_*?)
+            m["cache_creation"] = m.get("cache_creation", 0) + int(cache[0] or 0)
+            m["cache_read"] = m.get("cache_read", 0) + int(cache[1] or 0)
 
     # ADR-0081: el gasto se atribuye al modelo RESUELTO de cada pasada (el wrapper lo escribe); una pasada sin `model`
     # (stub) cae a 'unknown-model' declarado (mismo patrón que 'unknown-reviewer') — jamás a una constante copiada.
@@ -1761,50 +2077,124 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None):
         # by_model bajo su reviewer (composite_auditor ya lo suma en audit.usage — M8 cuadra contra ese número)
         if isinstance(row.get("usage"), dict) and row["usage"]:
             _add(row.get("reviewer") or "unknown-reviewer", row["usage"])
+    by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
+                               plan_declared=plan is not None, council=council)
+    # ADR-0082 (H): las etapas del consejo MEDIDAS (r2/r3) o COPIADAS (r1) entran a by_model bajo el modelo del consejo con
+    # su caché; una etapa 'not-run'/'kill-switch' no aporta (in/out null, no 0)
+    council_rows = []
+    for s in COUNCIL_STAGES:
+        st = by_stage.get(s) or {}
+        if isinstance(st.get("in"), int):
+            cm = st.get("model") or "unknown-model"
+            _add(cm, {"input_tokens": st["in"], "output_tokens": st["out"]},
+                 cache=(st.get("cache_creation", 0), st.get("cache_read", 0)))
+            council_rows.append((s, cm, st))
     embed_model, _embed_src = models.embed_model()   # ADR-0081: OPENAI_EMBED_MODEL o la fila `embed` de la tabla
     # ADR-0078: un modelo sin precio en la tabla NO se cotiza a 0 — se EXCLUYE de la proyección y se
     # declara en missing_price_models; cost_projection_complete dice si el número cubre todo el gasto.
     cost = 0.0
     missing = []
+    ttl = ((council or {}).get("cache_ttl") if isinstance(council, dict) else None) or "5m"
+    write_key = "write_1h" if str(ttl) == "1h" else "write_5m"
+    cache_usd = 0.0
+    cache_priced = True
     for model, m in by_model.items():
         if model not in PRICES_PER_MTOK_USD:
             missing.append(model)
             continue
         pi, po = PRICES_PER_MTOK_USD[model]
         cost += (m["in"] * pi + m["out"] * po) / 1e6
+        cc, cr = m.get("cache_creation", 0), m.get("cache_read", 0)
+        if cc or cr:
+            cp = models.cache_prices(model) if hasattr(models, "cache_prices") else None
+            if cp:
+                c_usd = (cc * cp[write_key] + cr * cp["read"]) / 1e6
+                cost += c_usd
+                cache_usd += c_usd
+            else:
+                cache_priced = False
     if embed_tokens:
         if embed_model in PRICES_PER_MTOK_USD:
             cost += embed_tokens * PRICES_PER_MTOK_USD[embed_model][0] / 1e6
         else:
             missing.append(embed_model)
     pi, po = _usage_in_out(planner_usage)
-    by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
-                               plan_declared=plan is not None)
     total_in, total_out = sum(m["in"] for m in by_model.values()), sum(m["out"] for m in by_model.values())
+    cache_creation_total = sum(m.get("cache_creation", 0) for m in by_model.values())
+    cache_read_total = sum(m.get("cache_read", 0) for m in by_model.values())
+    stage_cc = sum(int(st.get("cache_creation") or 0) for _s, _m, st in council_rows)
+    stage_cr = sum(int(st.get("cache_read") or 0) for _s, _m, st in council_rows)
+    c_state = (council or {}).get("state") if isinstance(council, dict) else None
+    if council_rows and isinstance(council, dict) and not council.get("enabled", True):
+        cache_state = "measured (council_r1 copied from plan_json; r2/r3 kill-switch WITT_COUNCIL=0)"
+    elif council_rows:
+        cache_state = "measured (council rounds)"
+    elif isinstance(council, dict) and not council.get("enabled", True):
+        cache_state = "no cached calls measured (council disabled (kill-switch WITT_COUNCIL=0))"
+    else:
+        cache_state = f"no cached calls measured (council {c_state or 'not present'})"
+    council_judgment = None
+    if council_rows:
+        cj_in = sum(st["in"] for _s, _m, st in council_rows)
+        cj_out = sum(st["out"] for _s, _m, st in council_rows)
+        cj_models = sorted({m for _s, m, _st in council_rows})
+        cj_usd = None
+        if all(m in PRICES_PER_MTOK_USD for m in cj_models) and cache_priced:
+            cj_usd = 0.0
+            for _s, m, st in council_rows:
+                p_in, p_out = PRICES_PER_MTOK_USD[m]
+                cp = models.cache_prices(m)
+                cj_usd += (st["in"] * p_in + st["out"] * p_out
+                           + int(st.get("cache_creation") or 0) * cp[write_key]
+                           + int(st.get("cache_read") or 0) * cp["read"]) / 1e6
+            cj_usd = round(cj_usd, 6)
+        council_judgment = {"model": cj_models[0] if len(cj_models) == 1 else cj_models, "in": cj_in, "out": cj_out,
+                            "cache_creation": stage_cc, "cache_read": stage_cr, "usd_projected": cj_usd,
+                            "rounds": [s for s, _m, _st in council_rows],
+                            "class": "PROJECTION (usd) over MEASURED tokens; council_r1 copied from plan_json"}
     return {
         "input_tokens": total_in,
         "output_tokens": total_out,
+        # ADR-0082 (H): input_tokens conserva la semántica de la API (remanente no cacheado); el total con caché va aparte
+        "input_tokens_total": total_in + cache_creation_total + cache_read_total,
         "by_model": by_model,
-        # ADR-0080 (F): el MISMO gasto repartido por ETAPA (plan, synthesize_pass1, elicit_pass1, search,
-        # synthesize_pass2, elicit_pass2, panel, revision, embed). suma(by_stage) == by_model total — el check
-        # viaja con el dato; embed se cuenta aparte (tokens de embedding, no tokens de modelo de chat).
+        # ADR-0080 (F): el MISMO gasto repartido por ETAPA (plan, council_r1, synthesize_pass1, elicit_pass1, council_r2,
+        # search, council_r3, synthesize_pass2, elicit_pass2, panel, revision, embed). suma(by_stage) == by_model total —
+        # el check viaja con el dato; embed se cuenta aparte (tokens de embedding, no tokens de modelo de chat).
         "by_stage": by_stage,
         "by_stage_sum_matches_by_model": (by_stage["_sum"]["in"] == total_in
                                           and by_stage["_sum"]["out"] == total_out),
+        # ADR-0082 (H): la caché se cuadra aparte — Σ by_stage.council_*.cache_* == Σ by_model.cache_*
+        "cache_sum_matches_by_model": (stage_cc == cache_creation_total and stage_cr == cache_read_total),
+        "cache": {"creation_input_tokens": cache_creation_total, "read_input_tokens": cache_read_total,
+                  "priced": bool(cache_priced), "usd_projected": round(cache_usd, 6),
+                  "multipliers": dict(getattr(models, "CACHE_MULTIPLIERS", {})),
+                  "source": getattr(models, "CACHE_MULTIPLIERS_SOURCE", None),
+                  "as_of": getattr(models, "CACHE_AS_OF", None),
+                  "price_class": getattr(models, "CACHE_PRICE_CLASS", None),
+                  "ttl": str(ttl), "write_multiplier_key": write_key,
+                  "state": cache_state,
+                  "rule": ("usd = cache_creation × price_in × write_mult(ttl) + cache_read × price_in × 0.1 (per Mtok); "
+                           "tokens are MEASURED (API usage.cache_*), dollars are PROJECTION")},
         # el gasto del plan va DENTRO del total (M8 cuadra) y ADEMÁS aparte, para que se pueda
         # responder "¿cuánto cuesta declarar un plan?" sin re-derivarlo
         "plan_judgment": ({"model": planner_meta.get("model"), "in": pi, "out": po}
                           if planner_usage else None),
+        # ADR-0082 (H): idem para el consejo (r1 copiada + r2/r3 medidas), null cuando ninguna etapa midió
+        "council_judgment": council_judgment,
         "embedding": {"model": embed_model, "total_tokens": embed_tokens,
                       "attribution": "process-wide window during this run (concurrent runs may overlap)"},
         "estimated_cost_usd": round(cost, 4),
         # ADR-0078: modelos con gasto medido pero SIN precio en la tabla — excluidos del número de arriba
         "missing_price_models": missing,
-        "cost_projection_complete": not missing,
+        "cost_projection_complete": not missing and cache_priced,
         "cost_class": f"PROJECTION (calculated from measured tokens x per-Mtok prices as of "
                       f"{PRICES_AS_OF}; the token counts are measurements, the dollars are not"
+                      + ("; prompt-cache tokens priced via published multipliers (write x1.25|2.0, read x0.1; "
+                         "ADR-0082 H)" if (cache_creation_total or cache_read_total) else "")
                       + ("" if not missing else
-                         f"; INCOMPLETE — sin precio para {missing}, excluidos") + ")",
+                         f"; INCOMPLETE — sin precio para {missing}, excluidos")
+                      + ("" if cache_priced else "; INCOMPLETE — cache tokens of an unpriced model excluded") + ")",
     }
 
 
@@ -1966,25 +2356,28 @@ def _positive_claim_check(answer, n_citations_valid, identifier_report=None):
             [lambda _obj, _report: ("positive_claim_requires_citations", ok)])
 
 
-def _gate(answer, bundle, thread_snapshot, run, pass_no):
+def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None):
     """El gate determinista (verify_output.admissible, clase Logic-LM) sobre UNA pasada: predicados duros
-    de identificadores + parent_identifier_leak (ADR-0079) + positive_claim_requires_citations (ADR-0080 E,
-    si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre pass1 (su admisibilidad es un componente de
-    la compuerta) y de nuevo sobre pass2/revisión. `pass_no` viaja en el payload del evento como ETIQUETA
-    ('pass1' | 'pass2' | 'revision' — el mismo vocabulario que usage_raw.passes; corrector ADR-0080: antes
-    mezclaba int y str en la misma llave)."""
+    de identificadores + parent_identifier_leak (ADR-0079) + attestation_identifier_leak (ADR-0082 F.5) +
+    positive_claim_requires_citations (ADR-0080 E, si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre
+    pass1 (su admisibilidad es un componente de la compuerta) y de nuevo sobre pass2/revisión. `pass_no` viaja
+    en el payload del evento como ETIQUETA ('pass1' | 'pass2' | 'revision' — el mismo vocabulario que
+    usage_raw.passes; corrector ADR-0080: antes mezclaba int y str en la misma llave).
+    `attestations` = human_attestations_of(ledger) (ADR-0082 F.5) o None: un identificador que sólo existe en lo
+    atestiguado y reaparece en la respuesta sin estar en la evidencia = fuga → inadmisible (predicado DURO)."""
     leak_frag, leak_preds = _leak_check(thread_snapshot, answer["direct_answer"], bundle, run)
+    att_frag, att_preds = _attestation_leak_check(attestations, answer["direct_answer"], bundle)
     _cits, schema, _raw = _citations_of(answer)
     # el informe de identificadores se mide UNA vez y alimenta también al predicado de citas (corrector ADR-0080)
     report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
     pc_frag, pc_preds = _positive_claim_check(answer, schema.get("n_valid"), identifier_report=report)
-    preds = list(leak_preds or []) + list(pc_preds or [])
+    preds = list(leak_preds or []) + list(att_preds or []) + list(pc_preds or [])
     adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
                                              "evidence_cited": answer.get("evidence_cited") or [],
                                              "absence_kind": answer.get("absence_kind")},
                                             extra_predicates=preds or None)
     return {"pass": pass_no, "admissible": adm, "reasons": reasons, "identifier_report": report,
-            **leak_frag, **pc_frag,
+            **leak_frag, **att_frag, **pc_frag,
             # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
             "thread": _thread_checks_summary(run, thread_snapshot)}
 
@@ -2017,25 +2410,29 @@ def _elicit_event_payload(answer, pass_no, conf, source):
             "usage": _usage_payload(answer.get("usage_elicitation"), answer.get("elicitation_model"))}
 
 
-def _build_search_plan(question, entities, pass1_query_en, cfg):
+def _build_search_plan(question, entities, pass1_query_en, cfg, directives=None):
     """(C) El plan de búsqueda lo arma search_harness.build_search_plan (rebanada C2). Sin el módulo en el
     árbol se devuelve un plan-sobre DECLARADO (state 'harness-unavailable') para que el registro diga qué
-    faltó; nada se inventa. Devuelve (plan, state)."""
+    faltó; nada se inventa. Devuelve (plan, state).
+    ADR-0082 (G.3): `directives` = las directivas COMPILADAS por council.compile_directives (forma C.6) o None —
+    con ellas el harness hace la UNIÓN default ∪ directivas (families_source 'directives+default'; las familias
+    'directive-only' entran por directiva); con WITT_COUNCIL=0 o sin directivas se pasa None: camino de hoy byte a byte."""
+    directives = list(directives) if directives else None
     if search_harness is None or not hasattr(search_harness, "build_search_plan"):
         return ({"plan_version": None, "rounds_cap": cfg["rounds_cap"], "families": list(cfg["families_default"]),
-                 "queries": None, "directives": [], "source": "default-families",
+                 "queries": None, "directives": directives or [], "source": "default-families",
                  "state": "harness-unavailable (lib.search_harness not in tree — ADR-0080 C2)"},
                 "harness-unavailable")
     try:
-        # families=None: el harness resuelve WITT_SEARCH_DEFAULT_FAMILIES (con su fuente declarada) y deja fuera
-        # las familias gate 'directive-only' hasta que haya directivas del consejo (ADR-0082)
-        plan = search_harness.build_search_plan(question, entities, pass1_query_en, directives=None,
+        # families=None: el harness resuelve WITT_SEARCH_DEFAULT_FAMILIES (con su fuente declarada); las familias gate
+        # 'directive-only' entran SÓLO nombradas por una directiva del consejo (ADR-0082 G.3)
+        plan = search_harness.build_search_plan(question, entities, pass1_query_en, directives=directives,
                                                 families=None)
         plan.setdefault("rounds_cap", cfg["rounds_cap"])
         return plan, "built"
     except Exception as e:   # §6 no-hang: un plan que falla deja fila 'error' y la Ruta B corre por el camino de hoy
         return ({"plan_version": None, "rounds_cap": cfg["rounds_cap"], "families": list(cfg["families_default"]),
-                 "queries": None, "directives": [], "source": "default-families",
+                 "queries": None, "directives": directives or [], "source": "default-families",
                  "state": f"error: {type(e).__name__}: {str(e)[:160]}"}, "error")
 
 
@@ -2115,18 +2512,27 @@ def _search_ledger_of(block, search_plan, plan_state, harness_used, cfg):
     return out
 
 
-def _support_states(citations, bundle, audit_result):
+def _support_states(citations, bundle, audit_result, council_pertinence=None, council_state=None,
+                    council_source=None):
     """(E/G) support_state por cita — verify_output.support_state_for (rebanada E) si está en el árbol; el
     grounding viene de la lente evidence-grounding (citation_support opcional en su fila). Devuelve
     (citations con support_state aditivo, citations_support_summary). Sin el helper: support_state None por
-    cita + summary.state 'tool-unavailable' — nunca se funden los peldaños."""
+    cita + summary.state 'tool-unavailable' — nunca se funden los peldaños.
+    ADR-0082 (G.4): `council_pertinence` = {evidence_id: [requirement_id]} de los votos VÁLIDOS covered|partial de
+    r2/r3 (council.judge_coverage.pertinence) → citations[].pertinent true | 'not-named-by-council (…)'; sin mapa
+    → 'not-available (council <council_state>)' (la escalera no cambia de peldaños)."""
     fn = getattr(verify_output, "support_state_for", None)
     ladder = tuple(getattr(verify_output, "SUPPORT_LADDER", None)
                    or ("unresolved", "resolved", "passage_delivered", "supported", "unsupported"))
+    na_literal = getattr(verify_output, "PERTINENT_NOT_AVAILABLE", "not-available (ADR-0082)")
+    if council_state and council_pertinence is None:
+        na_literal = f"not-available (council {council_state})"
     # corrector ADR-0080 (G): la forma degradada conserva la FORMA — los 5 peldaños con null (no medido), no un
     # dict vacío; ladder/pertinent viajan igual para que el front tipe UNA forma
     summary = {"n": len(citations), "by_state": {rung: None for rung in ladder}, "ladder": list(ladder),
-               "pertinent": getattr(verify_output, "PERTINENT_NOT_AVAILABLE", "not-available (ADR-0082)")}
+               "pertinent": {"state": na_literal, "n_true": 0, "n_not_named": 0, "n_not_available": len(citations),
+                             "literal": getattr(verify_output, "PERTINENT_NOT_AVAILABLE", "not-available (ADR-0082)"),
+                             "rule": getattr(verify_output, "PERTINENT_RULE", None)}}
     if fn is None:
         for c in citations:
             c.setdefault("support_state", None)
@@ -2144,7 +2550,15 @@ def _support_states(citations, bundle, audit_result):
             if isinstance(row.get("citation_support"), list):
                 grounding.extend(row["citation_support"])
     try:
-        per = fn(citations, bundle, grounding=grounding or None)
+        kwargs = {"grounding": grounding or None}
+        try:
+            fn_params = inspect.signature(fn).parameters
+        except (TypeError, ValueError):
+            fn_params = {}
+        if "council_pertinence" in fn_params:   # verify_output ≥ ADR-0082 (G.4); un árbol anterior sigue válido
+            kwargs.update(council_pertinence=council_pertinence, council_state=council_state,
+                          council_source=council_source)
+        per = fn(citations, bundle, **kwargs)
     except Exception as e:
         for c in citations:
             c.setdefault("support_state", None)
@@ -2157,8 +2571,9 @@ def _support_states(citations, bundle, audit_result):
             c.setdefault("support_state", None)
             continue
         # los peldaños viajan SEPARADOS dentro de la cita (aditivo, ADR-0080 G); la regla de la escalera va UNA
-        # vez en el resumen, no repetida por cita
-        for k in ("resolved", "resolved_to", "passage_delivered", "pertinent", "supported", "support_state"):
+        # vez en el resumen, no repetida por cita. ADR-0082 (G.4): + pertinent_to / pertinent_source cuando el consejo juzgó
+        for k in ("resolved", "resolved_to", "passage_delivered", "pertinent", "pertinent_to", "pertinent_source",
+                  "supported", "support_state"):
             if k in p:
                 c[k] = p[k]
         c.setdefault("support_state", None)
@@ -2246,7 +2661,397 @@ def _verdict_payload(a, revision_round):
             "panel_incomplete": bool(a.get("panel_incomplete")), "panel_incomplete_reasons": reasons}
 
 
-def execute_run(run, synthesizer=None, panel_caller=None):
+# --- ADR-0082: el CONSEJO DE CRITERIO en la corrida (F.4 copia congelada · F.5 atestiguado ≠ evidencia · G orden de
+# etapas y componente · H gasto · J frozen.council). El consejo NUNCA escribe respuesta, veredicto ni ranking (§7): aquí
+# sólo se cablea lo que lib/council.py (C2) mide y agrega por código, y se congela con su clase y su estado. ------------
+COUNCIL_AGENT = "council"                                   # `agent` de todo evento stage.council.*
+COUNCIL_STATE_NO_LEDGER = "not-applicable (no-ledger)"
+COUNCIL_STATE_DISABLED = "disabled (kill-switch WITT_COUNCIL=0)"
+COUNCIL_STATE_PENDING_R2 = "pending-r2"                     # centinela INTERNO: la ronda 2 decide el estado (jamás se congela)
+COUNCIL_LEDGER_FROZEN_TEXT_CAP = 600                        # attested_text / knowledge_now en el frozen (íntegros en plans)
+COUNCIL_MEMBERSHIP_SOURCE_PLAN = "plan.council (frozen at r1)"
+COUNCIL_MEMBERSHIP_SOURCE_ENV = "agent_matrix.council_members (env at execution — plan without frozen members)"
+COUNCIL_DECIDED_BY = "code (council.aggregate_*)"
+POST_SEARCH_MERGE_RULE = ("post_search = council.judge_coverage over the UNION of the r2 rows of members NOT re-invoked in r3 "
+                          "and the r3 rows (status ok) of the re-invoked members: a member's r3 judgment REPLACES its r2 "
+                          "judgment; nothing is re-judged twice; r3 never re-gates (informative — ADR-0082 C.7)")
+AFTER_SEARCH_ITEMS_RULE = ("items = bundle.path_b.papers (what ENTERED the run after the directed search); "
+                           "directive_requirement_ids taken from the item when the harness wrote it (Layer-0 items keep "
+                           "the key), else family-level attribution from search_plan.queries[fam].directive_requirement_ids "
+                           "when the family entered ONLY by directive (entered_by 'directive'); a literature paper loses the "
+                           "key in answer_pipeline._paper_item → 'not-attributable' (declared, never inferred)")
+COUNCIL_CACHE_HIT_RATIO_RULE = ("hit_ratio = cache_read / (cache_read + cache_creation) over the round's member usage "
+                                "(API usage.cache_*); null when neither was measured")
+ATTESTATION_LEAK_RULE = ("ids in human_attestations (knowledge_now + attested_text of `aporto` requirements) AND in "
+                         "direct_answer AND absent from the run's evidence_ids + evidence text; patterns: "
+                         + ", ".join(f"{k}={v.pattern}" for k, v in IDENTIFIER_PATTERNS.items()) + " (ADR-0082 F.5)")
+COUNCIL_CHECKS_RULE = ("counts only — the panel is HANDED deterministic_checks.council {must_uncovered_pre/post, "
+                       "n_hallucinated_votes, n_directives, n_requirements_kept} with its class; no council prose travels "
+                       "to the judges (ADR-0082 G.6)")
+COUNCIL_SUMMARY_SYNTH_RULE = ("thread_context.council_summary (parent's council: gap ≤200 written by the members, "
+                              "flags[].statement, coverage_final, decision) is handed to the PLANNER and to the council's "
+                              "round 1 of turn N+1 ONLY; the synthesizer receives thread_context WITHOUT that key (E5 default: "
+                              "a synthesizer that reads the uncovered criteria is an ADR with held-out — corrector ADR-0082 G.9)")
+COUNCIL_MEMBERSHIP_SOURCE_NONE = ("not-available (no council copy: membership and N are facts of the plan's round 1, not of "
+                                  "this run — corrector ADR-0082 J/G.8)")
+
+
+def _council_json_of(run):
+    """runs.council_json (F.4) parseado: dict | None (ausente) | {r1_state 'errored (council_json unparseable)'}."""
+    raw = run.get("council_json") if isinstance(run, dict) else None
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    try:
+        cj = json.loads(raw)
+    except (TypeError, ValueError):
+        return {"r1_state": "errored (council_json unparseable)", "r1": None, "ledger": None}
+    return cj if isinstance(cj, dict) else None
+
+
+def council_ledger_from(council_json):
+    """El ledger en la FORMA de lib/council (requirements[] con `decision`) desde runs.council_json {r1, ledger} (F.4).
+    Tolerante a las DOS formas del ledger: la de council.apply_ledger_decisions (requirements[]) y el sobre HTTP de app
+    (C6: decisions[] por requirement_id + knowledge_now + approved_by…) — ésta se FUSIONA con r1.requirements[] (el
+    agregado de la ronda 1) por requirement_id: un requisito sin decisión queda 'pending' (no kept), una decisión sin
+    requisito se declara en decisions_without_requirement[]. None = sin ledger (r1 no corrió o nadie aprobó/saltó)."""
+    cj = council_json if isinstance(council_json, dict) else {}
+    led = cj.get("ledger")
+    if not isinstance(led, dict):
+        return None
+    r1 = cj.get("r1") if isinstance(cj.get("r1"), dict) else {}
+    agg_reqs = r1.get("requirements")
+    if agg_reqs is None:
+        agg_reqs = (r1.get("aggregation") or {}).get("requirements") or []
+    out = {"state": led.get("state"), "plan_id": led.get("plan_id") or cj.get("plan_id"),
+           "ledger_version": led.get("ledger_version"),
+           "approved_by": led.get("approved_by"), "approved_at": led.get("approved_at"),
+           "approved_by_is_author": led.get("approved_by_is_author"),
+           "skipped_by": led.get("skipped_by"), "skipped_at": led.get("skipped_at"),
+           "skip_reason": led.get("reason") if led.get("state") == "skipped-by-human" else None,
+           "knowledge_now": led.get("knowledge_now") if isinstance(led.get("knowledge_now"), dict) else None,
+           "flags": list(led.get("flags") or r1.get("flags") or []),
+           "truncated": bool(r1.get("truncated")), "n_truncated": int(r1.get("n_truncated") or 0)}
+    if isinstance(led.get("requirements"), list):
+        reqs = [dict(r) for r in led["requirements"] if isinstance(r, dict) and r.get("requirement_id")]
+        out["requirements_source"] = "ledger.requirements (council.apply_ledger_decisions form)"
+        out["decisions_without_requirement"] = []
+    else:
+        decs = {d.get("requirement_id"): d for d in (led.get("decisions") or []) if isinstance(d, dict)}
+        reqs = []
+        for r in agg_reqs:
+            if not isinstance(r, dict) or not r.get("requirement_id"):
+                continue
+            q = dict(r)
+            d = decs.get(q["requirement_id"]) or {}
+            q["decision"] = d.get("decision") or "pending"
+            q["decided_by"] = d.get("decided_by")
+            q["decided_at"] = d.get("decided_at")
+            if d.get("reason") is not None:
+                q["decision_reason"] = d["reason"]
+            if d.get("attested_text") is not None:
+                q["attested_text"] = d["attested_text"]
+                q["attested_class"] = d.get("attested_class") or "attested"
+                q["attested_chars"] = (d["attested_chars"] if isinstance(d.get("attested_chars"), int)
+                                       else len(str(d["attested_text"])))
+            reqs.append(q)
+        out["requirements_source"] = "r1.requirements ⨝ ledger.decisions by requirement_id (app HTTP ledger form, C6)"
+        known = {q["requirement_id"] for q in reqs}
+        out["decisions_without_requirement"] = sorted(str(rid) for rid in decs if rid not in known)
+    for q in reqs:
+        q.setdefault("decision", "pending")
+    out["requirements"] = reqs
+    out["n_requirements"] = len(reqs)
+    out["n_kept"] = sum(1 for q in reqs if q["decision"] == "keep")
+    out["n_discarded"] = sum(1 for q in reqs if q["decision"] == "discard")
+    out["n_attested"] = sum(1 for q in reqs if q["decision"] == "aporto")
+    out["n_pending"] = sum(1 for q in reqs if q["decision"] == "pending")
+    out["n_hard_rule"] = sum(1 for q in reqs if q.get("hard_rule_gate"))
+    out["source"] = "runs.council_json.ledger (plans.council_ledger_json copied at enqueue, F.4)"
+    return out
+
+
+def _council_members_frozen(council_json, env=None):
+    """(members[], N, source, full_council) — la membresía y N quedan CONGELADOS en la copia del plan (F.4): r2/r3 usan
+    `members[]` del plan, no la env vigente (cambiar WITT_COUNCIL_FULL entre plan y corrida no mueve el cuórum en
+    silencio). Sin copia con miembros → agent_matrix.council_members(env, full=<full_council del plan | env>), declarado."""
+    if council_json is None:
+        # corrector ADR-0082 (J/G.8): sin copia NO hay consejo en esta corrida — N y members son hechos de la ronda 1 del
+        # plan, no de la tabla vigente al ejecutar; congelar 17 aquí era una segunda verdad frente a epistemic (null)
+        return [], None, COUNCIL_MEMBERSHIP_SOURCE_NONE, None
+    cj = council_json if isinstance(council_json, dict) else {}
+    members = cj.get("members")
+    if isinstance(members, list) and members and all(isinstance(m, str) for m in members):
+        return list(members), len(members), COUNCIL_MEMBERSHIP_SOURCE_PLAN, bool(cj.get("full_council"))
+    full = cj.get("full_council") if isinstance(cj.get("full_council"), bool) else None
+    mem = agent_matrix.council_members(env, full=full)
+    is_full, _src = agent_matrix.council_full(env, full=full)
+    return mem, len(mem), COUNCIL_MEMBERSHIP_SOURCE_ENV, is_full
+
+
+def human_attestations_of(ledger):
+    """(F.5) Lo que el humano ATESTIGUÓ en el ledger APROBADO — {knowledge_now {text, by, at, chars, truncated, class},
+    attestations[] {requirement_id, text, by, at, class}, n_attestations, class 'attested', rule} | None. Viaja al
+    sintetizador como llave HERMANA de evidence (jamás dentro) y a r2/r3 como PRIOR ART etiquetado; al panel NO viaja."""
+    if not isinstance(ledger, dict) or ledger.get("state") != "approved":
+        return None
+    items = []
+    for r in ledger.get("requirements") or []:
+        if r.get("decision") == "aporto" and r.get("attested_text"):
+            items.append({"requirement_id": r.get("requirement_id"), "text": str(r["attested_text"]),
+                          "by": r.get("decided_by"), "at": r.get("decided_at"), "class": "attested"})
+    kn = ledger.get("knowledge_now")
+    kn_view = None
+    if isinstance(kn, dict) and str(kn.get("text") or "").strip():
+        kn_view = {"text": str(kn["text"]), "by": kn.get("by"), "at": kn.get("at"),
+                   "chars": kn.get("chars") if isinstance(kn.get("chars"), int) else len(str(kn["text"])),
+                   "truncated": bool(kn.get("truncated")), "class": "attested"}
+    if not items and kn_view is None:
+        return None
+    return {"knowledge_now": kn_view, "attestations": items, "n_attestations": len(items), "class": "attested",
+            "rule": ("PRIOR ART attested by humans (ledger `aporto` + knowledge_now) — never evidence; sibling key of "
+                     "`evidence` in the synthesizer prompt; identifiers from it must appear in evidence to be cited "
+                     "(attestation_identifier_leak, hard predicate) — ADR-0082 F.5")}
+
+
+def attestation_identifier_leak(attestations, direct_answer, evidence_ids, evidence_text=""):
+    """(F.5) Identificadores presentes en lo ATESTIGUADO Y en la respuesta Y AUSENTES de la evidencia de la corrida — el
+    MISMO mecanismo que parent_identifier_leak (ADR-0079). Lista ordenada; [] sin atestiguaciones."""
+    if not attestations:
+        return []
+    att_ids = extract_identifiers(json.dumps(attestations, ensure_ascii=False, default=str))
+    ans_ids = extract_identifiers(direct_answer or "")
+    ev_ids = extract_identifiers(" ".join(str(i) for i in (evidence_ids or []))) | extract_identifiers(evidence_text)
+    ev_ids |= {str(i).upper() for i in (evidence_ids or [])}
+    return sorted((att_ids & ans_ids) - ev_ids)
+
+
+def _attestation_leak_check(attestations, direct_answer, bundle):
+    """(fragmento para deterministic_checks, extra_predicates) — predicado DURO attestation_identifier_leak (F.5):
+    fuga no vacía → inadmisible. Tres estados: 'no-attestations' (nada atestiguado viajó) | 'checked'."""
+    if not attestations:
+        return ({"attestation_identifier_leak": [], "attestation_identifier_leak_state": "no-attestations",
+                 "attestation_identifier_leak_rule": ATTESTATION_LEAK_RULE}, None)
+    ev_text = json.dumps(_compact_evidence(bundle), ensure_ascii=False, default=str)
+    leak = attestation_identifier_leak(attestations, direct_answer, _evidence_ids(bundle), ev_text)
+    frag = {"attestation_identifier_leak": leak, "attestation_identifier_leak_state": "checked",
+            "attestation_identifier_leak_rule": ATTESTATION_LEAK_RULE}
+    return frag, [lambda _obj, _report: ("attestation_identifier_leak", not leak)]
+
+
+def _council_initial_state(enabled, council_json, ledger):
+    """(state, state_reason) ANTES de la ronda 2 (G.1): kill-switch → disabled; sin copia → no-ledger; r1 applicable|
+    incomplete + ledger approved → centinela pending-r2 (la ronda 2 decide); + skipped-by-human → 'skipped-by-human';
+    r1 terminal sin aprobar ni saltar → no-ledger con razón; r1 queued|running → no-ledger con razón; not-requested (…) /
+    disabled (…) / errored (…) / pre-adr-0082 → el literal tal cual (vocabulario C.8)."""
+    if not enabled:
+        return COUNCIL_STATE_DISABLED, "WITT_COUNCIL=0 at execution"
+    if council_json is None:
+        return COUNCIL_STATE_NO_LEDGER, "run without council copy (no plan_id, or plan/db without council round 1)"
+    r1 = council_json.get("r1_state")
+    if r1 in ("applicable", "incomplete"):
+        st = (ledger or {}).get("state") if isinstance(ledger, dict) else None
+        if st == "approved":
+            return COUNCIL_STATE_PENDING_R2, None
+        if st == "skipped-by-human":
+            return "skipped-by-human", (ledger or {}).get("skip_reason")
+        return COUNCIL_STATE_NO_LEDGER, f"round 1 {r1} but ledger {st or 'absent'} (neither approved nor skipped)"
+    if r1 in ("queued", "running"):
+        return COUNCIL_STATE_NO_LEDGER, f"round 1 {r1} at execution (no ledger yet)"
+    if isinstance(r1, str) and council.council_state_in_vocabulary(r1):
+        return r1, None
+    return f"errored (r1_state {r1!r} off-vocabulary)", None
+
+
+def council_run_gate(council_state, ledger=None, enabled=None):
+    """(F.3) El predicado de la PUERTA antes de encolar — la capa HTTP (app.py, C6) emite los 409: {allowed, reason ∈
+    null | 'council_round1_pending' | 'council_ledger_unapproved', council_state, kill_switch}. queued|running →
+    round1_pending; applicable|incomplete sin ledger approved ni skipped-by-human → ledger_unapproved; errored (…) /
+    not-requested (…) / disabled (…) / pre-adr-0082 / skipped-by-human NO bloquean; WITT_COUNCIL=0 → nunca bloquea (L.2)."""
+    if enabled is None:
+        enabled = council.enabled()[0]
+    out = {"allowed": True, "reason": None, "council_state": council_state, "kill_switch": not enabled}
+    if not enabled:
+        return out
+    if council_state in ("queued", "running"):
+        return {**out, "allowed": False, "reason": "council_round1_pending"}
+    if council_state in ("applicable", "incomplete"):
+        st = ledger.get("state") if isinstance(ledger, dict) else None
+        if st not in ("approved", "skipped-by-human"):
+            return {**out, "allowed": False, "reason": "council_ledger_unapproved"}
+    return out
+
+
+def _council_r1_view(council_json):
+    """La ronda 1 COPIADA de runs.council_json.r1 para frozen.council.rounds[0] (+copied_from_plan_id): rounds[0] del
+    plan cuando el worker (C4) la escribió; si no, un resumen desde el agregado {n_valid, n_members, usage, state,
+    aggregation_sha, prior_observations}. None sin ronda 1. Lectura tolerante — nada se rellena."""
+    cj = council_json if isinstance(council_json, dict) else {}
+    r1 = cj.get("r1") if isinstance(cj.get("r1"), dict) else None
+    if r1 is None:
+        return None
+    rounds = r1.get("rounds") if isinstance(r1.get("rounds"), list) else []
+    base = dict(rounds[0]) if rounds and isinstance(rounds[0], dict) else {}
+    view = {"round": "r1", "kind": "requirements", "phase": "plan", **base}
+    view["copied_from_plan_id"] = cj.get("plan_id")
+    view.setdefault("state", r1.get("state") or cj.get("r1_state"))
+    view.setdefault("n_members", r1.get("n_members") or cj.get("n_members"))
+    view.setdefault("n_valid", r1.get("n_valid"))
+    if "usage" not in view and isinstance(r1.get("usage"), dict):
+        view["usage"] = r1["usage"]
+    view.setdefault("aggregation_sha", r1.get("aggregation_sha"))
+    if "prior_observations" not in view and isinstance(r1.get("prior_observations"), dict):
+        view["prior_observations"] = r1["prior_observations"]
+    view["source"] = "plans.council_json (round 1 ran as the plan's job, BEFORE enqueue — copied, not re-measured)"
+    return view
+
+
+def _council_r1_usage_holder(council_json):
+    """El insumo de by_stage.council_r1 (H): {usage, model, model_source, n_members, n_valid, n_calls} desde la ronda 1
+    copiada. usage None = la ronda no midió (o el plan no la trae) — declarado, jamás 0."""
+    v = _council_r1_view(council_json)
+    if v is None:
+        return None
+    model = v.get("model") if isinstance(v.get("model"), dict) else {}
+    return {"usage": v.get("usage") if isinstance(v.get("usage"), dict) else None,
+            "model": model.get("requested") if model else (v.get("model") if isinstance(v.get("model"), str) else None),
+            "model_source": model.get("source") if model else None,
+            "n_members": v.get("n_members"), "n_valid": v.get("n_valid"),
+            "n_calls": sum(int(m.get("attempts") or 0) for m in (v.get("members") or []) if isinstance(m, dict)) or None}
+
+
+def _items_for_after_search(bundle, search_plan):
+    """Los ítems que ENTRARON a la corrida (bundle.path_b.papers) con su atribución a directivas para
+    council.coverage_after_search (C.7) — ver AFTER_SEARCH_ITEMS_RULE. Cada ítem declara `directive_attribution`."""
+    papers = ((bundle.get("path_b") or {}).get("papers") or []) if isinstance(bundle, dict) else []
+    queries = (search_plan or {}).get("queries") or {}
+    items = []
+    for p in papers:
+        if not isinstance(p, dict):
+            continue
+        fam = p.get("source_family") or p.get("source")
+        q = queries.get(fam) if isinstance(queries, dict) else None
+        q = q or {}
+        if "directive_requirement_ids" in p:
+            rids, attr = list(p.get("directive_requirement_ids") or []), "item (harness normalize_item)"
+        elif q.get("entered_by") == "directive":
+            rids, attr = list(q.get("directive_requirement_ids") or []), "family-entry (entered_by directive)"
+        else:
+            rids, attr = [], "not-attributable (paper item without directive_requirement_ids)"
+        items.append({"evidence_id": p.get("evidence_id"), "source_family": fam, "round": p.get("round"),
+                      "directive_requirement_ids": rids, "directive_attribution": attr})
+    return items
+
+
+def _post_search_rows(r2, r3):
+    """(filas para judge_coverage post-búsqueda, miembros re-juzgados) — POST_SEARCH_MERGE_RULE."""
+    r3_ok = {m.get("agent") for m in ((r3 or {}).get("members") or []) if m.get("status") == "ok"}
+    rows = [m for m in ((r2 or {}).get("members") or []) if m.get("agent") not in r3_ok]
+    rows += [m for m in ((r3 or {}).get("members") or []) if m.get("status") == "ok"]
+    return rows, sorted(a for a in r3_ok if a)
+
+
+def _frozen_ledger_view(ledger, cap=COUNCIL_LEDGER_FROZEN_TEXT_CAP):
+    """frozen.council.ledger (J): decisiones humanas + knowledge_now ATESTIGUADOS con el texto RECORTADO a `cap` y
+    `truncated` declarado (íntegros en plans.council_ledger_json). None sin ledger."""
+    if not isinstance(ledger, dict):
+        return None
+    reqs = []
+    keep = ("requirement_id", "gap", "evidence_kind", "source_family", "query_en", "variants", "entities",
+            "entities_resolved", "entities_unresolved", "acceptance_test", "priority", "requested_by", "n_requested_by",
+            "n_members", "hard_rule_gate", "exploratory", "from_operative", "harness_state", "decision", "decided_by",
+            "decided_at")
+    for r in ledger.get("requirements") or []:
+        q = {k: r.get(k) for k in keep}
+        if "priority_downgraded_from" in r:
+            q["priority_downgraded_from"] = r["priority_downgraded_from"]
+        if r.get("decision_reason") is not None:
+            q["decision_reason"] = r["decision_reason"]
+        if r.get("attested_text") is not None:
+            t = str(r["attested_text"])
+            q.update(attested_text=t[:cap], attested_text_truncated=len(t) > cap, attested_chars=len(t),
+                     attested_class="attested")
+        reqs.append(q)
+    kn = ledger.get("knowledge_now")
+    if isinstance(kn, dict) and str(kn.get("text") or "").strip():
+        t = str(kn["text"])
+        kn_view = {"present": True, "text": t[:cap], "chars": kn.get("chars") if isinstance(kn.get("chars"), int) else len(t),
+                   "truncated": bool(len(t) > cap or kn.get("truncated")), "by": kn.get("by"), "at": kn.get("at"),
+                   "class": "attested"}
+    else:
+        kn_view = {"present": False, "text": None, "chars": 0, "truncated": False}
+    return {"plan_id": ledger.get("plan_id"), "state": ledger.get("state"),
+            "approved_by": ledger.get("approved_by"), "approved_by_is_author": ledger.get("approved_by_is_author"),
+            "approved_at": ledger.get("approved_at"), "skipped_by": ledger.get("skipped_by"),
+            "skip_reason": ledger.get("skip_reason"), "knowledge_now": kn_view,
+            "n_requirements": ledger.get("n_requirements"), "n_kept": ledger.get("n_kept"),
+            "n_discarded": ledger.get("n_discarded"), "n_attested": ledger.get("n_attested"),
+            "n_pending": ledger.get("n_pending"), "n_hard_rule": ledger.get("n_hard_rule"),
+            "truncated": ledger.get("truncated"), "n_truncated": ledger.get("n_truncated"),
+            "requirements": reqs, "flags": list(ledger.get("flags") or []),
+            "requirements_source": ledger.get("requirements_source"),
+            "decisions_without_requirement": list(ledger.get("decisions_without_requirement") or []),
+            "text_cap_chars": cap,
+            "source": ("plans.council_ledger_json copied at enqueue (runs.council_json.ledger); attested text ≤ "
+                       f"{cap} chars here, full text lives in plans")}
+
+
+def _council_cache_view(cfg, rounds):
+    """frozen.council.cache (J): {enabled, ttl, ttl_shared, min_cacheable_tokens, r1|r2|r3 {creation, read} | null,
+    hit_ratio_r2, hit_ratio_rule, class 'medicion'} — tokens MEDIDOS (API usage.cache_*), nunca supuestos."""
+    cache_cfg = (cfg or {}).get("cache") or {}
+    out = {"enabled": cache_cfg.get("enabled"), "ttl": cache_cfg.get("ttl_card"), "ttl_shared": cache_cfg.get("ttl_shared"),
+           "min_cacheable_tokens": cache_cfg.get("min_cacheable_tokens", council.MIN_CACHEABLE_TOKENS),
+           "r1": None, "r2": None, "r3": None, "hit_ratio_r2": None, "hit_ratio_rule": COUNCIL_CACHE_HIT_RATIO_RULE,
+           "class": "medicion"}
+    for rr in rounds or []:
+        if not isinstance(rr, dict) or rr.get("round") not in ("r1", "r2", "r3"):
+            continue
+        u = _council_round_usage(rr.get("usage"))
+        if u is None:
+            continue
+        out[rr["round"]] = {"creation": u["cache_creation"], "read": u["cache_read"]}
+    r2 = out.get("r2")
+    if r2 and (r2["creation"] or r2["read"]):
+        out["hit_ratio_r2"] = round(r2["read"] / float(r2["read"] + r2["creation"]), 4)
+    return out
+
+
+def _council_index_block(council_json):
+    """frozen.council.index (J): council_index.frozen_index_block(prior) sobre las prior observations que la ronda 1
+    copió (rounds[0].prior_observations {n, kinds, state}); sin módulo o sin ronda 1 → estado declarado."""
+    v = _council_r1_view(council_json) or {}
+    prior = v.get("prior_observations") if isinstance(v.get("prior_observations"), dict) else None
+    try:
+        import council_index   # C7 — import perezoso (importa db); su ausencia se declara
+    except ImportError:
+        return {"index_version": None, "state": "not-available (council_index not in tree — C7 pending)",
+                "prior_observations_n": (prior or {}).get("n"), "scorer": None, "origins_included": None,
+                "kinds_included": list((prior or {}).get("kinds") or [])}
+    if prior is None:
+        blk = council_index.frozen_index_block({})
+        blk["state"] = "not-available (round 1 without prior_observations)" if v else "not-available (no council round 1)"
+        return blk
+    return council_index.frozen_index_block(prior)
+
+
+def _council_checks_summary(state, cov_pre, cov_post, directives, ledger):
+    """deterministic_checks.council (G.6): conteos con clase para el panel — jamás prosa del consejo."""
+    n_hall = 0
+    for cov in (cov_pre, cov_post):
+        if isinstance(cov, dict):
+            n_hall += int(cov.get("n_hallucinated_votes") or 0)
+    return {"state": state,
+            "must_uncovered_pre": cov_pre.get("must_uncovered") if isinstance(cov_pre, dict) else None,
+            "must_uncovered_post": cov_post.get("must_uncovered") if isinstance(cov_post, dict) else None,
+            "n_hallucinated_votes": n_hall if (cov_pre is not None or cov_post is not None) else None,
+            "n_directives": directives.get("n") if isinstance(directives, dict) else None,
+            "n_requirements_kept": ledger.get("n_kept") if isinstance(ledger, dict) else None,
+            "class": council.COVERAGE_CLASS, "rule": COUNCIL_CHECKS_RULE}
+
+
+def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
     """Execute one claimed run end-to-end. Deterministic under injected synthesizer/panel_caller (the
     offline gate); live otherwise. Never raises — every exit is a recorded terminal state + event.
 
@@ -2257,7 +3062,16 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     ADR-0080: tras pass1 → stage.confidence.elicit{pass:1} → stage.deterministic_gate{pass:1} (adelantado) →
     stage.competence (competence.evaluate, decidido por código). Competente → pass1 es la candidata, sin ronda
     extra, fallback.trigger null. No competente (o kill-switch con `pass1 < tau`) → stage.search.plan + Ruta B
-    por el harness (C2) → pass2 → elicit{pass:2} → gate{pass:2}. Estructural → trigger 'structural' como hoy."""
+    por el harness (C2) → pass2 → elicit{pass:2} → gate{pass:2}. Estructural → trigger 'structural' como hoy.
+
+    ADR-0082 (G.1): stage.models → stage.plan{council_state} → stage.council.ledger → thread_context → retrieve → pass1 →
+    elicit → gate{pass1} → council r2 (stage.council.round/member/progress + coverage{pre-search}, cobertura sobre
+    _compact_evidence(include_path_b=True)) → competence.evaluate(council_coverage=…) → [no competente] stage.council.
+    directives → _build_search_plan(directives) → Ruta B → council r3 (sólo dueños de must sin cubrir, si el harness
+    admitió algo) → coverage{post-search} → pass2 → gate → panel → revisión. `council_caller(request) -> (tool_input,
+    usage, meta)` inyectable (default council.default_caller = la API real); el sintetizador es CIEGO al consejo (E5):
+    sólo recibe `human_attestations` (aporto + knowledge_now) como llave hermana. WITT_COUNCIL=0 → cero llamadas y
+    cero eventos stage.council.* (L.2); una cancelación a media ronda persiste lo gastado (LOTE-01·A4)."""
     run_id = run["run_id"]
     synthesizer = synthesizer or _default_synthesizer
 
@@ -2315,11 +3129,21 @@ def execute_run(run, synthesizer=None, panel_caller=None):
     # poder verlo en los caminos failed/cancelled — el gasto del planner ya ocurrió y debe sobrevivir
     # (LOTE-01·A4). Una clausura sobre `plan` con locals() no lo alcanza.
     plan_holder = {}
+    # ADR-0082 (H / LOTE-01·A4): el holder del consejo — las rondas YA recogidas (r2/r3 medidas, r1 copiada del plan)
+    # sobreviven en usage_json cuando la corrida muere o se cancela a media ronda (council.run_round adjunta el
+    # RoundResult PARCIAL a la excepción y aquí se recoge ANTES de relanzar).
+    council_holder = {"present": False, "enabled": True, "state": None, "r1": None, "r1_state": None, "plan_id": None,
+                      "rounds": [], "not_run": {}, "model": None, "model_source": None, "cache_ttl": None}
 
     def _usage_now():
         return _token_usage(passes, {"panel": panel_rows_all},
                             max(0, _embed_usage_snapshot() - embed_t0),
-                            plan=plan_holder.get("plan"))
+                            plan=plan_holder.get("plan"), council=council_holder)
+
+    def _council_event(etype, payload):
+        """TODOS los eventos stage.council.* salen del HILO ORQUESTADOR (council.run_round los emite al recoger
+        futures; Context 6: db.add_event no es reentrante) con agent 'council'."""
+        db.add_event(run_id, etype, payload=payload, agent=COUNCIL_AGENT)
 
     try:
         db.add_event(run_id, "run.state", payload={"state": "running"})
@@ -2341,8 +3165,47 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # stage.models (el boceto M3 lo pinta como primera línea). No traerlo no bloquea nada: se declara.
         plan = json.loads(run["plan_json"]) if run.get("plan_json") else None
         plan_holder["plan"] = plan
+        # 0a') ADR-0082 (F.4/G.1): la copia SERVER-SIDE del consejo (runs.council_json: r1 + ledger + membresía y N
+        # CONGELADAS) y el estado inicial del consejo en esta corrida. Kill-switch WITT_COUNCIL=0 → cero llamadas, cero
+        # eventos stage.council.*, componente 'kill-switch …' (L.2). Sin copia → 'not-applicable (no-ledger)'.
+        council_enabled, council_enabled_src = council.enabled()
+        cj = _council_json_of(run)
+        c_members, c_n, c_membership_src, c_full = _council_members_frozen(cj)
+        c_ledger = council_ledger_from(cj) if council_enabled else None
+        c_r1_state = (cj or {}).get("r1_state") if cj else None
+        c_state, c_state_reason = _council_initial_state(council_enabled, cj, c_ledger)
+        c_cfg = council.config()
+        c_model = council.resolve_council_model(cfg=c_cfg)
+        c_quorum_required = council.quorum_required(c_n, c_cfg["quorum"])
+        c_attest = human_attestations_of(c_ledger) if council_enabled else None
+        c_catalog_plan = (cj or {}).get("catalog_sha") if cj else None
+        council_holder.update(present=cj is not None, enabled=council_enabled, state=c_state,
+                              model=c_model["model"], model_source=c_model["source"],
+                              cache_ttl=c_cfg["cache"]["ttl_card"], r1=_council_r1_usage_holder(cj),
+                              plan_id=(cj or {}).get("plan_id") if cj else None, r1_state=c_r1_state)
         if plan:
-            db.add_event(run_id, "stage.plan", agent="planner", payload=plan_event_payload(plan))
+            db.add_event(run_id, "stage.plan", agent="planner",
+                         payload=plan_event_payload(plan, council_state=c_r1_state))
+            _check_cancel()
+        if council_enabled and cj is not None:
+            # G.1: stage.council.ledger — qué ledger respalda la corrida (decisiones humanas, "qué sabes ahora")
+            db.add_event(run_id, "stage.council.ledger", agent=COUNCIL_AGENT, payload={
+                "plan_id": (cj or {}).get("plan_id"), "r1_state": c_r1_state,
+                "ledger_state": (c_ledger or {}).get("state"),
+                # corrector ADR-0082 (J / gate F): el centinela interno pending-r2 JAMÁS se escribe en la traza — mientras la
+                # ronda 2 decide, `state` es el estado de la ronda 1 (∈ vocabulario) y `r2_pending` lo declara
+                "state": c_r1_state if c_state == COUNCIL_STATE_PENDING_R2 else c_state,
+                "r2_pending": c_state == COUNCIL_STATE_PENDING_R2,
+                "state_reason": c_state_reason,
+                "n_requirements": (c_ledger or {}).get("n_requirements"), "n_keep": (c_ledger or {}).get("n_kept"),
+                "n_discard": (c_ledger or {}).get("n_discarded"), "n_aporto": (c_ledger or {}).get("n_attested"),
+                "n_pending": (c_ledger or {}).get("n_pending"), "n_hard_rule": (c_ledger or {}).get("n_hard_rule"),
+                "knowledge_now_present": bool(c_attest and c_attest.get("knowledge_now")),
+                "n_attestations": (c_attest or {}).get("n_attestations", 0),
+                "catalog_sha": c_catalog_plan,
+                "plan_catalog_matches_run": (c_catalog_plan == catalog_cards.CATALOG_SHA) if c_catalog_plan else None,
+                "n_members": c_n, "membership_source": c_membership_src, "full_council": c_full,
+                "membership_version": (cj or {}).get("membership_version") or council.MEMBERSHIP_VERSION})
             _check_cancel()
 
         # 0b) investigación (ADR-0079): el sobre del turno anterior se armó al ENCOLAR (servidor) y vive en
@@ -2359,8 +3222,20 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             thread_snapshot = None
             thread_delivery["skipped_reason"] = (f"kill-switch {THREAD_CONTEXT_ENV}=0 at execution (snapshot "
                                                  "persisted at enqueue, NOT delivered)")
+        # corrector ADR-0082 (E5 / G.9 / K.i): el sintetizador recibe el snapshot SIN `council_summary` — la prosa del consejo
+        # del padre (gap ≤200 escrito por los miembros, flags[].statement, coverage_final, decision) sólo la ven el planner
+        # y la ronda 1 del turno N+1. La copia íntegra sigue en runs.thread_context_json (planner/r1) y en frozen.thread_context.
+        synth_thread_snapshot = None
         if thread_snapshot is not None:
-            thread_delivery["prompt_components"] = ["user_text.thread_context (sibling of evidence)",
+            synth_thread_snapshot = {k: v for k, v in thread_snapshot.items() if k != "council_summary"}
+            thread_delivery["council_summary"] = {
+                "present_in_snapshot": thread_snapshot.get("council_summary") is not None,
+                "delivered_to_synthesizer": False,
+                "delivered_to": ["planner (runs.plan_thread_context at POST /runs/plan)",
+                                 "council round 1 of turn N+1 (council_jobs._inherited_criteria)"],
+                "rule": COUNCIL_SUMMARY_SYNTH_RULE}
+            thread_delivery["prompt_components"] = ["user_text.thread_context (sibling of evidence) WITHOUT council_summary "
+                                                    "(E5: synthesizer blind to the council — corrector ADR-0082)",
                                                     "synth_system: THREAD_ANTI_LEAK_CLAUSE",
                                                     "SYNTH_TOOL.description: anti-leak sentence"]
             hc = thread_snapshot.get("human_comments") or {}
@@ -2373,16 +3248,39 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                                   "previous_answer_present": thread_snapshot.get("previous_answer") is not None})
             _check_cancel()
 
+        attest_delivery = {"synthesizer": None, "panel": False, "council_rounds": c_attest is not None,
+                           "present": c_attest is not None}
+
         def _synth(evidence, label):
             """Cada pasada recibe el snapshot como LLAVE HERMANA si existe; un stub con la firma vieja
-            (question, evidence, pass_label) sigue válido y el registro declara que no lo recibió."""
-            if thread_snapshot is None:
-                return synthesizer(run["question"], evidence, label)
-            out, delivered = _call_with_optional(synthesizer, (run["question"], evidence, label),
-                                                 "thread_context", thread_snapshot)
-            thread_delivery["synthesizer"] = delivered
-            if not delivered:
-                thread_delivery["synthesizer_note"] = "synthesizer signature without thread_context — not delivered"
+            (question, evidence, pass_label) sigue válido y el registro declara que no lo recibió.
+            ADR-0082 (F.5): idem para `human_attestations` (aporto + knowledge_now del ledger aprobado) — llave
+            hermana, jamás dentro de evidence; el sintetizador sigue CIEGO al consejo (E5): ni criterios ni cobertura."""
+            args = (run["question"], evidence, label)
+            wanted = {}
+            if thread_snapshot is not None:
+                wanted["thread_context"] = synth_thread_snapshot     # corrector ADR-0082 (E5): sin council_summary
+            if c_attest is not None:
+                wanted["human_attestations"] = c_attest
+            if not wanted:
+                return synthesizer(*args)
+            try:
+                params = inspect.signature(synthesizer).parameters
+                varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+            except (TypeError, ValueError):
+                params, varkw = {}, False
+            kwargs = {k: v for k, v in wanted.items() if k in params or varkw}
+            out = synthesizer(*args, **kwargs)
+            if thread_snapshot is not None:
+                delivered = "thread_context" in kwargs
+                thread_delivery["synthesizer"] = delivered
+                if not delivered:
+                    thread_delivery["synthesizer_note"] = "synthesizer signature without thread_context — not delivered"
+            if c_attest is not None:
+                attest_delivery["synthesizer"] = "human_attestations" in kwargs
+                if not attest_delivery["synthesizer"]:
+                    attest_delivery["synthesizer_note"] = ("synthesizer signature without human_attestations — not "
+                                                           "delivered (ADR-0082 F.5)")
             return out
 
         # 1) retrieve — the ONE state machine, instrumented via on_stage (never re-assembled)
@@ -2415,9 +3313,82 @@ def execute_run(run, synthesizer=None, panel_caller=None):
 
         # 2b) ADR-0080 (B): el gate determinista ADELANTADO sobre pass1 — su admisibilidad es un componente
         # de la compuerta (una pasada inadmisible no puede ser candidata por competente que se declare).
-        checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1")
+        checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1", attestations=c_attest)
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                      payload=checks1, level="info" if checks1["admissible"] else "warning")
+        _check_cancel()
+
+        # 2c) ADR-0082 (G.1 / C.5): la RONDA 2 del consejo — cada miembro juzga la COBERTURA de SUS requisitos kept
+        # sobre el bundle (DI + path_b si lo estructural ya disparó; evidence_view declarado) ANTES de la compuerta. El
+        # sintetizador no ve nada de esto (E5). Cero llamadas bajo kill-switch / sin ledger aprobado / 0 kept.
+        r2, cov_pre, c_directives = None, None, None
+        c_rounds_skipped = []
+        c_evidence_ids = _evidence_ids(bundle)
+        if c_state == COUNCIL_STATE_PENDING_R2:
+            kept = [r for r in c_ledger["requirements"] if council.is_kept(r)]
+            if not kept:
+                c_rounds_skipped.append({"round": "r2", "reason": "0 kept requirements (all discarded or attested) — "
+                                                                   "nothing for the council to judge (0 calls)"})
+                council_holder["not_run"]["r2"] = "0 kept requirements"
+                c_state = "applicable"
+                cov_pre = council.judge_coverage({"members": [], "round": "r2"}, c_ledger, c_evidence_ids,
+                                                 phase="pre-search", round_="r2")
+                cov_pre["round"] = "r2"
+            else:
+                ctx2 = {"question": run["question"],
+                        "entities": [e for e in run["entities_csv"].split(",") if e],
+                        "ledger": c_ledger,
+                        "evidence_view": _compact_evidence(bundle, include_path_b=True),
+                        "evidence_ids": c_evidence_ids,
+                        "pass1": {"direct_answer": pass1.get("direct_answer"), "gap_flags": pass1.get("gap_flags", []),
+                                  "absence_kind": pass1.get("absence_kind"),
+                                  "citations": _citations_of(pass1)[0]},
+                        "human_attestations": c_attest, "phase": "run"}
+                try:
+                    r2 = council.run_round(c_members, "r2", ctx2, caller=council_caller, on_event=_council_event,
+                                           cancel_check=_check_cancel, cfg=c_cfg, cancel_exc=(RunCancelled,))
+                except RunCancelled as e:
+                    partial = getattr(e, "council_round_result", None)
+                    if isinstance(partial, dict):
+                        council_holder["rounds"].append(partial)   # LOTE-01·A4: lo gastado por los que SÍ terminaron
+                    raise
+                except Exception as e:   # §6 no-hang: una ronda caída es una fila 'errored (…)', la corrida sigue
+                    c_state = f"errored ({type(e).__name__})"
+                    c_state_reason = f"{type(e).__name__}: {str(e)[:200]}"
+                    council_holder["not_run"]["r2"] = c_state
+                    db.add_event(run_id, "stage.council.round", agent=COUNCIL_AGENT, level="error",
+                                 payload={"round": "r2", "kind": "coverage", "phase": "run", "state": c_state,
+                                          "error": c_state_reason, "n_members": c_n, "heartbeat": True})
+                if r2 is not None:
+                    council_holder["rounds"].append(r2)
+                    c_state = r2["state"]
+                    cov_pre = council.judge_coverage(r2, c_ledger, c_evidence_ids, phase="pre-search", round_="r2")
+            council_holder["state"] = c_state
+        if cov_pre is not None:
+            # corrector ADR-0082 (C.3/C.5): el cuórum de r2 se mide sobre los ELEGIBLES (dueños de un requisito kept) — la fila
+            # copia quorum.required / n_eligible de la ronda; quorum_required_full_membership = ceil(q·N) sobre la membresía.
+            # Sin ronda (0 kept → vacua) no hay cuórum medido: null, no 0.
+            cov_pre["round_summary"] = {"state": r2["state"] if r2 else "applicable",
+                                        "n_valid": r2["n_valid"] if r2 else 0, "n_members": c_n,
+                                        "n_eligible": r2["n_eligible"] if r2 else 0,
+                                        "quorum_required": r2["quorum"]["required"] if r2 else None,
+                                        "quorum_required_full_membership": c_quorum_required,
+                                        "quorum_met": r2["quorum"]["met"] if r2 else None,
+                                        "quorum_rule": council.QUORUM_SOURCE,
+                                        "n_invoked": r2["n_invoked"] if r2 else 0}
+            # C.6: las directivas se COMPILAN por código desde los requisitos sin cubrir (puro, sin costo); se USAN sólo
+            # si la compuerta declara no competente (G.1) — directives_state lo dice
+            c_directives = council.directives_from(cov_pre, c_ledger, members_order=c_members)
+            db.add_event(run_id, "stage.council.coverage", agent=COUNCIL_AGENT, payload={
+                "phase": "pre-search", "round": "r2", "evidence_view": cov_pre.get("evidence_view"),
+                "must_total": cov_pre["must_total"], "must_uncovered": cov_pre["must_uncovered"],
+                "must_partial": cov_pre["must_partial"], "must_not_judged": cov_pre["must_not_judged"],
+                "must_covered": cov_pre["must_covered"], "must_attested": cov_pre["must_attested"],
+                "must_discarded": cov_pre["must_discarded"], "must_unsatisfiable": cov_pre["must_unsatisfiable"],
+                "n_hallucinated_votes": cov_pre["n_hallucinated_votes"], "n_valid_votes": cov_pre["n_valid_votes"],
+                "n_foreign_votes": cov_pre["n_foreign_votes"], "n_requirements_kept": cov_pre["n_requirements_kept"],
+                "n_directives": c_directives["n"], "directives_state": c_directives["state"],
+                "round_state": cov_pre["round_summary"]["state"], "class": cov_pre["class"]})
         _check_cancel()
 
         # 3) ADR-0080 (A/B): la COMPUERTA DE COMPETENCIA decide — por código — si pass1 basta. Sustituye al
@@ -2435,8 +3406,19 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # fuente; competence._calibration_component los copia al componente que la webapp pinta
         cal_cov["include_origins"] = list(cal_origins) if cal_origins is not None else CG_CALIBRATION_ORIGINS_ALL
         cal_cov["include_origins_source"] = cal_origins_src
+        # ADR-0082 (G.2): el insumo del componente council_uncovered_must — None bajo kill-switch (competence lo lee de la
+        # env, L.2); la cobertura JUZGADA (+ round {state, n_valid, quorum}) cuando r2 corrió; un {state} declarado si no
+        if not council_enabled:
+            council_input = None
+        elif cov_pre is not None:
+            council_input = dict(cov_pre)
+            council_input["round"] = cov_pre["round_summary"]
+            council_input["council_state"] = c_state
+        else:
+            council_input = {"state": c_state if c_state != COUNCIL_STATE_PENDING_R2 else COUNCIL_STATE_NO_LEDGER,
+                             "council_state": c_state, "reason": c_state_reason}
         comp = competence.evaluate(conf1, checks1["admissible"], plan, structural_fired, cal_cov,
-                                   council_coverage=None, tau=FALLBACK_CONF_TAU)
+                                   council_coverage=council_input, tau=FALLBACK_CONF_TAU)
         legacy_conf_fired = (not structural_fired) and (conf1 is None or conf1 < FALLBACK_CONF_TAU)
         if structural_fired:
             trigger, decision_source = "structural", "structural (assess_sufficiency, inside retrieve)"
@@ -2461,6 +3443,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         search_cfg = _search_config()
         harness_enabled, harness_enabled_src = _search_harness_enabled()
         search_plan, search_plan_state, harness_used = None, "not-requested", False
+        dirs_for_plan = None            # ADR-0082 (G.3): las directivas compiladas que VIAJAN al harness (o None)
+        c_directives_state = "not-run"  # ∈ council.DIRECTIVES_STATES — 'provided' | 'none (all must covered)' | 'not-run'
         if trigger in ("competence", TRIGGER_LEGACY_CONFIDENCE):
             # ADR-0057: the query SENT to the English index is never the raw (Spanish) question when a
             # better source exists — the synthesizer's English keywords first, entities second.
@@ -2484,11 +3468,26 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 accepts = _path_b_bundle_accepts()
                 harness_live = False
             else:
-                # ADR-0080 (C): el plan de búsqueda (familias por default o directivas — vacías hasta ADR-0082)
+                # ADR-0082 (G.1/G.3): las directivas del consejo — compiladas por CÓDIGO desde los must kept sin cubrir
+                # (C.6) — mueven la búsqueda: UNIÓN default ∪ directivas ('directives+default'; las familias
+                # directive-only entran por directiva). Sin consejo (kill-switch, no-ledger) → directives=None: hoy.
+                if c_directives is not None and trigger == "competence":
+                    db.add_event(run_id, "stage.council.directives", agent=COUNCIL_AGENT, payload={
+                        "n": c_directives["n"], "families": c_directives["families"],
+                        "n_excluded": c_directives["n_excluded"], "excluded": c_directives["excluded"],
+                        "state": c_directives["state"],
+                        "requirement_ids": [d["requirement_id"] for d in c_directives["directives"]],
+                        "decided_by": c_directives["decided_by"]})
+                    dirs_for_plan = c_directives["directives"] or None
+                    c_directives_state = c_directives["state"]
+                # ADR-0080 (C): el plan de búsqueda (familias por default ∪ directivas del consejo, ADR-0082)
                 search_plan, search_plan_state = _build_search_plan(run["question"], entities,
-                                                                    pass1.get("search_query_en"), search_cfg)
+                                                                    pass1.get("search_query_en"), search_cfg,
+                                                                    directives=dirs_for_plan)
                 accepts = _path_b_bundle_accepts()
                 harness_live = search_plan_state == "built" and {"search_plan", "on_stage"} <= accepts
+                if dirs_for_plan and not harness_live:
+                    c_directives_state = "not-run"   # compiladas, pero el harness no corre en vivo: no se despacharon
             if not harness_live:
                 # el harness emite stage.search.plan/round/source por on_stage cuando corre en vivo (C2); si
                 # no va a correr, el plan-sobre (declarado: unavailable/error/legacy/kill-switch) se emite desde aquí
@@ -2500,7 +3499,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                                       "source": search_plan.get("source") or search_plan.get("families_source"),
                                       "n_directives": len(search_plan.get("directives") or []),
                                       "round_budget_s": search_cfg["round_budget_s"],
-                                      "families_source": search_cfg["families_source"],
+                                      "families_source": (search_plan.get("families_source") if dirs_for_plan
+                                                          else search_cfg["families_source"]),
                                       "harness_enabled": harness_enabled, "harness_enabled_source": harness_enabled_src,
                                       "path_b_bundle_accepts": sorted(accepts),
                                       "pass1_query_en_present": bool((pass1.get("search_query_en") or "").strip())})
@@ -2545,12 +3545,100 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             _check_cancel()
         bundle["search_ledger"] = _search_ledger_of(bundle["path_b"], search_plan, search_plan_state,
                                                     harness_used, search_cfg)
+
+        # 3b) ADR-0082 (C.7): re-cobertura ESTRUCTURAL (código, corre siempre que hubo cobertura pre) y la RONDA 3 de
+        # MODELO (re-juicio) SÓLO si WITT_COUNCIL_RECOVERAGE=1 ∧ el harness admitió algo ∧ quedan must kept sin cubrir,
+        # y SÓLO sobre los dueños de esos must (subconjunto). r3 es INFORMATIVA: jamás re-gatea ni abre otra ronda.
+        after_search, r3, cov_post = None, None, None
+        post_state = None
+        n_admitted_total = bundle["search_ledger"].get("n_admitted_total") if harness_used else None
+        if cov_pre is not None:
+            items_as = _items_for_after_search(bundle, search_plan if harness_used else None)
+            after_search = council.coverage_after_search(
+                cov_pre, ({"plan": search_plan or {}, "items": items_as} if trigger else None),
+                directives=(c_directives or {}).get("directives"))
+            after_search["items_rule"] = AFTER_SEARCH_ITEMS_RULE
+            after_search["n_admitted_total"] = n_admitted_total
+            after_search["n_items_considered"] = len(items_as) if trigger else 0
+            bundle["search_ledger"]["n_items_for_directives"] = after_search.get("n_items_for_directives")
+            if dirs_for_plan and harness_used:
+                c_directives_state = c_directives["state"]
+            if trigger is None:
+                post_state = "not-run (search not triggered)"
+            elif trigger == "structural":
+                post_state = "not-run (structural search preceded r2; nothing admitted after r2)"
+            elif not cov_pre.get("uncovered_must_ids"):
+                post_state = "not-run (all must covered)"
+            elif not c_cfg["recoverage"]:
+                post_state = "not-run (kill-switch WITT_COUNCIL_RECOVERAGE=0)"
+            elif not n_admitted_total:
+                post_state = "not-run (nothing admitted)"
+            else:
+                r3_members = council.recoverage_members(cov_pre, c_ledger)
+                ctx3 = {"question": run["question"],
+                        "entities": [e for e in run["entities_csv"].split(",") if e],
+                        "ledger": c_ledger,
+                        "evidence_view": _compact_evidence(bundle, include_path_b=True),
+                        "evidence_ids": _evidence_ids(bundle),
+                        "pass1": {"direct_answer": pass1.get("direct_answer"), "gap_flags": pass1.get("gap_flags", []),
+                                  "absence_kind": pass1.get("absence_kind"), "citations": _citations_of(pass1)[0]},
+                        "human_attestations": c_attest, "phase": "run"}
+                try:
+                    r3 = council.run_round(r3_members, "r3", ctx3, caller=council_caller, on_event=_council_event,
+                                           cancel_check=_check_cancel, cfg=c_cfg, cancel_exc=(RunCancelled,))
+                except RunCancelled as e:
+                    partial = getattr(e, "council_round_result", None)
+                    if isinstance(partial, dict):
+                        council_holder["rounds"].append(partial)
+                    raise
+                except Exception as e:
+                    post_state = f"not-run (errored ({type(e).__name__}))"
+                    db.add_event(run_id, "stage.council.round", agent=COUNCIL_AGENT, level="error",
+                                 payload={"round": "r3", "kind": "recoverage", "phase": "run",
+                                          "state": f"errored ({type(e).__name__})",   # corrector: vocabulario de RONDA
+                                          "post_search_state": post_state,
+                                          "error": f"{type(e).__name__}: {str(e)[:200]}",
+                                          "n_members": len(r3_members), "heartbeat": True})
+                if r3 is not None:
+                    council_holder["rounds"].append(r3)
+                    post_rows, rejudged = _post_search_rows(r2, r3)
+                    cov_post = council.judge_coverage({"members": post_rows, "round": "r3"}, c_ledger,
+                                                      _evidence_ids(bundle), phase="post-search", round_="r3")
+                    cov_post["merge_rule"] = POST_SEARCH_MERGE_RULE
+                    cov_post["rejudged_members"] = rejudged
+                    cov_post["r3"] = {"state": r3["state"], "n_members": r3["n_members"], "n_invoked": r3["n_invoked"],
+                                      "n_valid": r3["n_valid"], "members": list(r3_members)}
+                    post_state = "judged"
+                    db.add_event(run_id, "stage.council.coverage", agent=COUNCIL_AGENT, payload={
+                        "phase": "post-search", "round": "r3", "evidence_view": cov_post.get("evidence_view"),
+                        "must_total": cov_post["must_total"], "must_uncovered": cov_post["must_uncovered"],
+                        "must_partial": cov_post["must_partial"], "must_not_judged": cov_post["must_not_judged"],
+                        "must_covered": cov_post["must_covered"], "must_attested": cov_post["must_attested"],
+                        "must_discarded": cov_post["must_discarded"], "must_unsatisfiable": cov_post["must_unsatisfiable"],
+                        "n_hallucinated_votes": cov_post["n_hallucinated_votes"], "n_valid_votes": cov_post["n_valid_votes"],
+                        "n_foreign_votes": cov_post["n_foreign_votes"], "n_requirements_kept": cov_post["n_requirements_kept"],
+                        "n_directives": c_directives["n"] if c_directives else None, "rejudged_members": rejudged,
+                        "round_state": r3["state"], "class": cov_post["class"]})
+            if post_state != "judged":
+                council_holder["not_run"]["r3"] = post_state[len("not-run ("):-1] if post_state.startswith("not-run (") else post_state
+            _check_cancel()
+        elif council_enabled and c_state != COUNCIL_STATE_DISABLED:
+            council_holder["not_run"].setdefault("r3", f"no round 2 coverage (council {c_state})")
+            council_holder["not_run"].setdefault("r2", f"council {c_state}")
+        if c_directives is not None and c_directives["n"] == 0:
+            c_directives_state = "none (all must covered)"
         bundle["fallback"] = {"trigger": trigger,
                               "fb_meta": {"pass1_confidence": conf1,
                                           "pass1_confidence_source": conf1_source,
                                           "tau": FALLBACK_CONF_TAU, "tau_source": FALLBACK_CONF_TAU_SOURCE,
                                           "structural_sufficient": not structural_fired,
                                           "absence_kind": pass1.get("absence_kind"),
+                                          # ADR-0082 (J): qué hizo el consejo con la decisión de buscar
+                                          "council": {"state": c_state,
+                                                      "must_uncovered_pre": cov_pre.get("must_uncovered") if cov_pre else None,
+                                                      "n_directives": c_directives["n"] if c_directives else None,
+                                                      "directives_state": c_directives_state,
+                                                      "families_from_directives": list((search_plan or {}).get("families_from_directives") or [])},
                                           # ADR-0080: el literal viejo como ALIAS declarado + quién decidió
                                           "trigger_legacy": (TRIGGER_LEGACY_CONFIDENCE if legacy_conf_fired
                                                              else ("structural" if structural_fired else None)),
@@ -2598,13 +3686,15 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # ADR-0080: sobre pass1 YA corrió (checks1, evento pass:1); competente → la candidata ES pass1 y sus
         # checks son los del gate adelantado (no se re-mide lo mismo dos veces); con pass2 → gate{pass:2}.
         if trigger:
-            checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2")
+            checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2", attestations=c_attest)
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                          payload=checks, level="info" if checks["admissible"] else "warning")
         else:
             checks = dict(checks1)
         checks["pass1_admissible"] = checks1["admissible"]
         checks["competence_gate"] = competence.compact(comp)
+        # ADR-0082 (G.6): al panel viajan CONTEOS con clase (deterministic_checks.council), jamás la prosa del consejo
+        checks["council"] = _council_checks_summary(c_state, cov_pre, cov_post, c_directives, c_ledger)
         _check_cancel()
 
         # 6) composite audit — 100% of runs (ADR-0049), the terminal transition
@@ -2658,9 +3748,10 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             _check_cancel()
             # ADR-0080: el MISMO gate (_gate) que corrió sobre pass1/pass2 — predicados de identificadores +
             # fuga del padre + positive_claim_requires_citations; conserva pass1_admissible y competence_gate.
-            checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision")
+            checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision", attestations=c_attest)
             checks2["pass1_admissible"] = checks1["admissible"]
             checks2["competence_gate"] = competence.compact(comp)
+            checks2["council"] = checks["council"]   # ADR-0082 (G.6): los mismos conteos (r3 no se repite en revisión)
             adm2 = checks2["admissible"]
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
                          payload=checks2, level="info" if adm2 else "warning")
@@ -2696,7 +3787,8 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2).
         # El usage cuenta TODOS los paneles (con revisión hay dos — ADR-0067).
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
-        token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan)
+        council_holder["state"] = c_state
+        token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan, council=council_holder)
         # ADR-0078 corrector: UNA sola sede de re-parseo. Si evidence_cited LLEGÓ como string (el wrapper
         # real lo guarda en evidence_cited_raw; un sintetizador stub puede dejarlo en evidence_cited),
         # _normalize_citations recibe ESE string y declara 'string-reparsed' | 'string-unparseable'; si
@@ -2706,7 +3798,74 @@ def execute_run(run, synthesizer=None, panel_caller=None):
         # ADR-0080 (E/G): la ESCALERA de soporte por cita (unresolved → resolved → passage_delivered →
         # supported|unsupported), aditiva dentro de cada cita, jamás fundida en un solo bool; el resumen
         # cuenta por peldaño. El helper vive en verify_output (rebanada E); su ausencia se declara.
-        citations, citations_support_summary = _support_states(citations, bundle, audit_result)
+        # ADR-0082 (G.4): `pertinent` deja de ser gris — el mapa {evidence_id: [requirement_id]} sale SÓLO de votos VÁLIDOS
+        # covered|partial de r2/r3 (post-búsqueda si hubo r3); sin ronda válida el literal lleva el estado del consejo
+        if isinstance(cov_post, dict) and cov_post.get("state") == "judged":
+            c_pert, c_pert_src = cov_post.get("pertinence") or {}, cov_post.get("pertinent_source")
+        elif isinstance(cov_pre, dict) and cov_pre.get("state") == "judged" and cov_pre["round_summary"]["state"] == "applicable":
+            c_pert, c_pert_src = cov_pre.get("pertinence") or {}, cov_pre.get("pertinent_source")
+        else:
+            c_pert, c_pert_src = None, None
+        citations, citations_support_summary = _support_states(citations, bundle, audit_result,
+                                                               council_pertinence=c_pert, council_state=c_state,
+                                                               council_source=c_pert_src)
+        # --- ADR-0082 (J): frozen.council — el consejo congelado: estado, membresía y N congeladas, ledger atestiguado
+        # (texto ≤600), rondas (r1 COPIADA del plan + r2/r3 medidas con miembros/usage/estados), cobertura pre/after/post,
+        # directivas, índice, caché medida, vocabularios. decided_by 'code (council.aggregate_*)'.
+        c_rounds_frozen = [r for r in (_council_r1_view(cj),) if r] + [r for r in council_holder["rounds"] if isinstance(r, dict)]
+        frozen_council = {
+            "state": c_state, "state_reason": c_state_reason,
+            "module_version": council.MODULE_VERSION, "council_version": council.COUNCIL_VERSION,
+            "membership_version": (cj or {}).get("membership_version") or council.MEMBERSHIP_VERSION,
+            "membership_source": c_membership_src,
+            "catalog_sha": catalog_cards.CATALOG_SHA, "catalog_state": catalog_cards.CATALOG_STATE,
+            "plan_catalog_sha": c_catalog_plan,
+            "plan_catalog_matches_run": (c_catalog_plan == catalog_cards.CATALOG_SHA) if c_catalog_plan else None,
+            "rules_sha": council.RULES_SHA, "tools_sha": council.TOOLS_SHA, "shared_block_sha": council.SHARED_BLOCK_SHA,
+            "model": {"requested": c_model["model"], "source": c_model["source"], "generation": c_model["generation"],
+                      "effort": c_model["effort_sent"], "effort_source": c_model["effort_sent_source"],
+                      "effort_pinned": c_model["effort"], "max_tokens": c_model["max_tokens"]},
+            "full_council": c_full, "n_members": c_n, "members": list(c_members),
+            "quorum_rule": council.QUORUM_SOURCE, "quorum_required": c_quorum_required,
+            "plan_id": (cj or {}).get("plan_id") if cj else None, "r1_state": c_r1_state,
+            "ledger": _frozen_ledger_view(c_ledger),
+            "human_attestations": ({"present": True, "n_attestations": c_attest["n_attestations"],
+                                    "knowledge_now_present": c_attest["knowledge_now"] is not None,
+                                    "delivery": attest_delivery, "class": "attested"} if c_attest
+                                   else {"present": False, "n_attestations": 0, "knowledge_now_present": False,
+                                         "delivery": attest_delivery}),
+            "rounds": c_rounds_frozen,
+            "rounds_skipped": c_rounds_skipped,
+            "coverage": {"pre_search": cov_pre if cov_pre is not None else {
+                             "state": f"not-run ({c_state_reason or c_state})"},
+                         "after_search": after_search if after_search is not None else {
+                             "state": "not-run (no round 2 coverage)"},
+                         "post_search": cov_post if cov_post is not None else {
+                             "state": post_state or f"not-run (no round 2 coverage: council {c_state})"}},
+            "must_uncovered": cov_pre.get("must_uncovered") if isinstance(cov_pre, dict) else None,
+            "must_uncovered_post": cov_post.get("must_uncovered") if isinstance(cov_post, dict) else None,
+            "must_unsatisfiable": cov_pre.get("must_unsatisfiable") if isinstance(cov_pre, dict) else None,
+            "directives": list((c_directives or {}).get("directives") or []),
+            "directives_excluded": list((c_directives or {}).get("excluded") or []),
+            "directives_state": c_directives_state,
+            "directives_rule": (c_directives or {}).get("rule"),
+            "r3": ({"state": "judged", "members": cov_post["r3"]["members"], "n_invoked": cov_post["r3"]["n_invoked"],
+                    "n_valid": cov_post["r3"]["n_valid"], "round_state": cov_post["r3"]["state"]} if cov_post
+                   else {"state": post_state or "not-run (no round 2 coverage)", "members": []}),
+            "index": _council_index_block(cj),
+            "cache": _council_cache_view(c_cfg, c_rounds_frozen),
+            "usage": {r.get("round"): _council_round_usage(r.get("usage")) for r in c_rounds_frozen},
+            "config": {"recoverage": c_cfg["recoverage"], "recoverage_source": c_cfg["recoverage_source"],
+                       "concurrency": c_cfg["concurrency"], "member_timeout_s": c_cfg["member_timeout_s"],
+                       "budget_s": c_cfg["budget_s"], "quorum": c_cfg["quorum"], "cg_component": c_cfg["cg_component"],
+                       "r2_evidence_chars": c_cfg["r2_evidence_chars"]},
+            "vocabulary": council_vocabulary_full(),
+            "decided_by": COUNCIL_DECIDED_BY,
+            "kill_switch": {"WITT_COUNCIL": os.environ.get("WITT_COUNCIL", ""), "enabled": council_enabled,
+                            "source": council_enabled_src},
+            "source": ("runs.council_json (F.4 copy at enqueue) + council.run_round/judge_coverage/directives_from/"
+                       "coverage_after_search measured in this run"),
+        }
         frozen = {
             "render_contract_version": RENDER_CONTRACT_VERSION,
             "run_id": run_id, "user_id": run["user_id"], "question": run["question"],
@@ -2762,7 +3921,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
             # S7 (N): la firma se calcula con los MISMOS 8 roles del snapshot de stage.models → frozen.models.
             # panel_signature == stage.models.panel_signature == audit.panel_source.panel_signature (UNA identidad de
             # configuración por corrida; medido en smoke_run_pipeline).
-            "models": models.provenance_block({"synthesizer": synth_role, "elicitation": elicit_role}, passes,
+            # ADR-0082 (M, C9): roles.council = stage.models.roles.council (mismo snapshot; igualdad medida en smoke).
+            "models": models.provenance_block({"synthesizer": synth_role, "elicitation": elicit_role,
+                                               "council": models_snapshot["roles"].get("council")}, passes,
                                               ((plan or {}).get("judgment") or {}).get("planner"),
                                               bundle["audit"].get("panel"),
                                               signature_roles=models_snapshot["roles"]),
@@ -2780,7 +3941,9 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                 # y el contrapeso honesto: lo que el PIPELINE aplica, pase lo que pase con la etiqueta
                 "structural_frameworks": reasoning_catalog.structural_frameworks(),
             },
-            "agents_invoked": _agents_invoked(audit_result, checks, plan),
+            "agents_invoked": _agents_invoked(audit_result, checks, plan, council=frozen_council),
+            # --- ADR-0082 (J): el consejo de criterio congelado (ver arriba) ------------------------------------
+            "council": frozen_council,
             # --- tapón 3 (ADR-0061): el plan declarado viaja congelado; su ausencia se DECLARA -----
             "plan": plan,
             "plan_declared": plan is not None,
@@ -2947,7 +4110,15 @@ def execute_run(run, synthesizer=None, panel_caller=None):
                              # ADR-0081: generación de modelos de la corrida y familias que votaron válidas (null =
                              # el audit() del árbol no midió cuórum por familias) — ListaCorridas/Banco: "3/4 · 1 familia"
                              "model_generation": synth_role["generation"],
-                             "panel_n_families_valid": audit_result.get("n_families_valid")}
+                             "panel_n_families_valid": audit_result.get("n_families_valid"),
+                             # ADR-0082 (G.8): estado del consejo, k/N válidos de la ronda de cobertura (o de r1 copiada)
+                             # y must sin cubrir (int | null: 0 medido ≠ null) — frozen-counter, la lista no re-deriva
+                             "council_state": c_state,
+                             "council_n_valid": (r2["n_valid"] if r2 else
+                                                 ((_council_r1_view(cj) or {}).get("n_valid") if cj else None)),
+                             # corrector ADR-0082 (G.8): UNA verdad — el N que congela frozen.council (null sin copia)
+                             "council_n_members": frozen_council["n_members"],
+                             "council_must_uncovered": frozen_council["must_uncovered"]}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),
@@ -3018,17 +4189,72 @@ def close_run(run_id, by):
     return {"closed": True, "run_id": run_id, "frozen_at": frozen["frozen_at"]}
 
 
-def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None, from_question_id=None):
+def compose_council_json(prow, now_iso=None):
+    """ADR-0082 (F.4) — la copia SERVER-SIDE que la corrida CONGELA al encolar, compuesta desde la fila del plan (jamás
+    del cliente): {plan_id, r1_state, r1: plans.council_json | null, ledger: plans.council_ledger_json | null,
+    membership_version, n_members, members[], full_council, catalog_sha (los cuatro tal como r1 los congeló: r2/r3 usan
+    ESTA N, no la env vigente), membership_source, composed_at, source}. La MISMA forma que app._compose_run_council_json
+    (C6) — app la compone cuando tiene la fila; runs la compone si sólo recibe plan_id (una verdad, dos puertas).
+    Tres estados de plans.council_state: columna AUSENTE (BD sin migrar la superficie E.1) → 'not-requested (council db
+    unavailable)'; NULL → 'pre-adr-0082'; valor → tal cual."""
+    if not isinstance(prow, dict):
+        return None
+
+    def _json(s):
+        if s is None:
+            return None
+        if isinstance(s, (dict, list)):
+            return s
+        try:
+            return json.loads(s)
+        except (TypeError, ValueError):
+            return None
+    if "council_state" not in prow:
+        r1_state = "not-requested (council db unavailable)"
+    else:
+        r1_state = prow.get("council_state") or "pre-adr-0082"
+    r1 = _json(prow.get("council_json"))
+    r1d = r1 if isinstance(r1, dict) else {}
+    return {"plan_id": prow.get("plan_id"), "r1_state": r1_state, "r1": r1, "ledger": _json(prow.get("council_ledger_json")),
+            "membership_version": r1d.get("membership_version"), "n_members": r1d.get("n_members"),
+            "members": r1d.get("members"), "full_council": r1d.get("full_council"),
+            "catalog_sha": r1d.get("catalog_sha"),
+            "membership_source": (COUNCIL_MEMBERSHIP_SOURCE_PLAN if r1d else "not-available (plan without council round 1)"),
+            "composed_at": now_iso or db._now().isoformat(timespec="seconds"),
+            "source": "plans.council_json + plans.council_ledger_json (copied at enqueue)"}
+
+
+def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None, from_question_id=None,
+            council_json=None, plan_id=None):
     """Encola una corrida. ADR-0079: la investigación se DERIVA aquí (derive_thread — servidor, jamás del
     cliente) y la procedencia también (run_origin). Con parent_run_id: ParentNotFound (404) /
     ParentNotTerminal (409) suben ANTES de insertar — la capa HTTP las traduce. `from_question_id` sólo
     siembra root_question_id de una RAÍZ (el sello mark_question_used sigue siendo de app.py). El plan:
     un plan_id se consume por UNA corrida (409 plan_already_used en app.py) — el hijo declara plan nuevo
-    o el llamador copia plan_json; aquí sólo se persiste lo que llegue."""
+    o el llamador copia plan_json; aquí sólo se persiste lo que llegue.
+
+    ADR-0082 (F.4): `council_json` (str JSON o dict) = la copia server-side del consejo que app compone desde la fila
+    del plan (compose_council_json); si NO llega y sí `plan_id`, se compone AQUÍ desde db.get_plan (misma función).
+    Se persiste en runs.council_json (db.create_run(council_json=), columna E.1); run.state{queued}.council.persisted
+    lo declara (False sólo cuando no hubo copia que persistir → la corrida ejecuta 'not-applicable (no-ledger)'). Jamás se
+    acepta del cliente. La membresía y N viajan CONGELADOS dentro de la copia (r2/r3 no releen WITT_COUNCIL_FULL)."""
     from sqlalchemy.exc import IntegrityError
     run_id = uuid.uuid4().hex
     entities = list(entities or [])
     origin = run_origin()
+    if council_json is None and plan_id:
+        try:
+            council_json = compose_council_json(db.get_plan(plan_id))
+        except Exception:   # §6 no-hang: sin fila legible no hay copia — se declara, no se inventa
+            council_json = None
+    if isinstance(council_json, str):
+        try:
+            council_dict = json.loads(council_json)
+        except ValueError:
+            council_dict = None
+    else:
+        council_dict = council_json if isinstance(council_json, dict) else None
+    council_str = (json.dumps(council_dict, ensure_ascii=False, default=str) if isinstance(council_dict, dict) else None)
     ultimo_error = None
     for _intento in range(5):
         thread = derive_thread(run_id, question, entities, parent_run_id=parent_run_id,
@@ -3038,11 +4264,13 @@ def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None
         # encolar dentro del sobre — el registro congelado copia esta fuente en vez de re-derivarla.
         envelope["origin"] = origin
         try:
+            # ADR-0082 (F.4): runs.council_json = la copia server-side (db.create_run(council_json=), columna de C4)
             db.create_run(run_id, user_id, question, entities, plan_json=plan_json,
                           parent_run_id=thread["parent_run_id"], thread_id=thread["thread_id"],
                           turn_no=thread["turn_no"], turn_kind=thread["turn_kind"],
                           thread_context_json=json.dumps(envelope, ensure_ascii=False, default=str),
-                          origin=origin["value"], root_question_id=thread["root_question_id"])
+                          origin=origin["value"], root_question_id=thread["root_question_id"],
+                          council_json=council_str)
             break
         except IntegrityError as e:
             # corrector ADR-0079: SÓLO la carrera de turn_no (índice único ux_runs_thread_turn) se reintenta
@@ -3066,6 +4294,16 @@ def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None
         # `.get` que la contradecía (AttributeError latente).
         raise RuntimeError(f"new_run: fila {run_id} no legible tras el INSERT (db.get_run devolvió None)")
     root_run_no = row["root_run_no"]
+    # ADR-0082 (J): run.state{queued}.council {ledger_present, n_kept, n_hard_rule, r1_state, persisted} desde la copia
+    c_ledger = council_ledger_from(council_dict) if isinstance(council_dict, dict) else None
+    council_ev = None
+    if isinstance(council_dict, dict):
+        council_ev = {"ledger_present": c_ledger is not None,
+                      "ledger_state": (c_ledger or {}).get("state"),
+                      "n_kept": (c_ledger or {}).get("n_kept"), "n_hard_rule": (c_ledger or {}).get("n_hard_rule"),
+                      "r1_state": council_dict.get("r1_state"), "plan_id": council_dict.get("plan_id"),
+                      "n_members": council_dict.get("n_members"),
+                      "persisted": council_str is not None}
     db.add_event(run_id, "run.state", payload={
         "state": "queued", "origin": origin, "run_no": row.get("run_no"),
         "thread": {"thread_id": thread["thread_id"], "turn_no": thread["turn_no"],
@@ -3074,7 +4312,8 @@ def new_run(user_id, question, entities=None, plan_json=None, parent_run_id=None
                    "context": ("built" if envelope.get("snapshot") is not None else "skipped"),
                    "context_skipped_reason": envelope.get("skipped_reason"),
                    "context_bytes": snap.get("bytes"),
-                   "n_comments_included": ((snap.get("human_comments") or {}).get("n_included"))}})
+                   "n_comments_included": ((snap.get("human_comments") or {}).get("n_included"))},
+        "council": council_ev})
     return run_id
 
 
@@ -3173,7 +4412,52 @@ def start_workers(n=2, reap_stale_s=None):
     for i in range(n):
         threading.Thread(target=worker_loop, name=f"run-worker-{i}", daemon=True).start()
     threading.Thread(target=reaper_loop, args=(stale_s,), name="run-reaper", daemon=True).start()
+    # ADR-0082 (E.2): los hilos council-worker-N del JOB de ronda 1 (council_jobs, C4) junto a los run-worker-N
+    return start_council_workers()
+
+
+def start_council_workers(n=None):
+    """ADR-0082 (E.2/L): lanza council_jobs.start_council_workers(WITT_COUNCIL_WORKERS) — el worker propio de la ronda
+    1 del plan (rag_index/query_service/council_jobs.py) — y devuelve un estado DECLARADO: 'started' (+ `council_jobs` =
+    la declaración del arranque: hilos, reaper, siega, orígenes) | 'disabled (kill-switch WITT_COUNCIL=0)' |
+    'not-started (WITT_COUNCIL_WORKERS=0)' | 'error: …'. Ningún fallo tumba el arranque (§6 no-hang); el número de hilos
+    sale de models.env_value('WITT_COUNCIL_WORKERS') (tolerante, default 1)."""
+    enabled, en_src = council.enabled()
+    if n is None:
+        try:
+            n, n_src = models.env_value("WITT_COUNCIL_WORKERS")
+        except Exception:
+            n, n_src = council.env_config()["WITT_COUNCIL_WORKERS"]["value"], "council.env_config"
+    else:
+        n_src = "caller"
+    state = {"workers": int(n or 0), "workers_source": n_src, "enabled": enabled, "enabled_source": en_src}
+    if not enabled:
+        state["state"] = COUNCIL_STATE_DISABLED
+        print(f"[runs.council] council-worker: {state['state']} (sin hilos)", file=sys.stderr)
+        return state
+    if int(n or 0) <= 0:
+        state["state"] = "not-started (WITT_COUNCIL_WORKERS=0)"
+        print(f"[runs.council] council-worker: {state['state']}", file=sys.stderr)
+        return state
+    # import PEREZOSO dentro de la función (council_jobs no importa runs; boot_id() reutiliza WORKER_BOOT_ID vía
+    # sys.modules) — ADR-0082 E.2, costura C4↔C5 cosida por C9. El reaper de planes es el hilo propio `council-reaper`
+    # de council_jobs (reaper=True): runs._reap_once sigue segando SÓLO corridas (deviación declarada en el ADR).
+    import council_jobs
+    try:
+        state["council_jobs"] = council_jobs.start_council_workers(int(n))
+        state["state"] = "started"
+        print(f"[runs.council] council-worker: {n} hilo(s) ({n_src}) — council_jobs.start_council_workers", file=sys.stderr)
+    except Exception as e:
+        state["state"] = f"error: {type(e).__name__}: {str(e)[:120]}"
+        print(f"[runs.council] council-worker: {state['state']}", file=sys.stderr)
+    return state
 
 
 def stop_workers():
     _STOP.set()
+    # ADR-0082 (E.2, C9): los hilos council-worker-N / council-reaper comparten el apagado (council_jobs._STOP)
+    try:
+        import council_jobs
+        council_jobs.stop_council_workers()
+    except Exception as e:   # §6 no-hang: apagar jamás lanza
+        print(f"[runs.council] stop_council_workers: {type(e).__name__}: {str(e)[:120]}", file=sys.stderr)

@@ -27,8 +27,16 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/artifacts/report/{name}` | ✓ | sirve un HTML histórico (path-safe por membresía) |
 | GET | `/artifacts/run/{set}/{name}` | ✓ | un run histórico (JSON; `instrumented: false` = sin `decision_state`) |
 | GET | `/rack/search` · `/rack/resolve` · `/rack/status` | ✓ | alias de la superficie propuesta por la UI |
-| POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061; **plan v3** por ADR-0066): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla + **0-3 `clarifying_questions` never-stopper**) + **`data_landscape`** estructural (preview DI sparse NO-SPEND + qué fuentes Ruta B aplican) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`). **`parent_run_id`** (ADR-0079): el planner recibe el `thread_context` del padre (armado en el servidor); la respuesta declara `thread_context_passed` / `thread_context_skipped_reason` |
-| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`). **`parent_run_id`** (ADR-0079): el turno siguiente de una investigación — 404 `parent_not_found` · 409 `parent_not_terminal` (queued/running); `thread_id`/`turn_no`/`turn_kind`/`origin`/`thread_context` los deriva el SERVIDOR, jamás el cliente |
+| POST | `/runs/plan` | ✓ | **el plan declarado** (ADR-0061; **plan v3** por ADR-0066): estructura del código + juicio del planner (nichos §3 + agentes §11 con gate resuelto por tabla + **0-3 `clarifying_questions` never-stopper**) + **`data_landscape`** estructural (preview DI sparse NO-SPEND + qué fuentes Ruta B aplican) + estimaciones DETERMINISTAS por métrica. Se refiere por `plan_id`; se consume UNA vez (409 `plan_already_used`). **`parent_run_id`** (ADR-0079): el planner recibe el `thread_context` del padre (armado en el servidor); la respuesta declara `thread_context_passed` / `thread_context_skipped_reason`. **ADR-0082 (E.3)**: si `WITT_COUNCIL=1` ∧ `judgment.state 'declared'` ∧ `route 'evidence-run'` ∧ `niches ≠ []` ∧ `origin ∈ WITT_COUNCIL_ORIGINS`, ENCOLA la ronda 1 del consejo como JOB del plan (`council.state 'queued'`, `poll`/`events`/`stream`, `budget`, `estimate` [E]); si no, `council.state 'not-requested (…)'` \| `'disabled (kill-switch WITT_COUNCIL=0)'` con la razón; dedup del doble clic (`plan_response 'reused'`, `reused_from_plan_id`, ventana `WITT_COUNCIL_DEDUP_S`; el dedup se RE-CONSULTA tras el planner: dos POST idénticos concurrentes → UN job, el segundo `reused_after_planner true` — corrector) y tope `WITT_COUNCIL_MAX_QUEUED_PER_USER`; el plan es **v4** (`will_run 'council-member'`) |
+| POST | `/runs` | ✓ | encola una corrida (async); terminal SIEMPRE post-audit (ADR-0049). **409 `index_offline`** si el índice está OFFLINE — bloquea, no degrada (dev sparse: `WITT_ALLOW_RUNS_OFFLINE=1`). **`parent_run_id`** (ADR-0079): el turno siguiente de una investigación — 404 `parent_not_found` · 409 `parent_not_terminal` (queued/running); `thread_id`/`turn_no`/`turn_kind`/`origin`/`thread_context` los deriva el SERVIDOR, jamás el cliente. **ADR-0082 (F.3)**: con `plan_id` exige la puerta del consejo — 409 `council_round1_pending` mientras la ronda 1 está `queued|running`, 409 `council_ledger_unapproved` con r1 `applicable|incomplete` sin ledger aprobado ni saltado (`errored`/`not-requested`/`disabled`/`pre-adr-0082` NO bloquean); 409 `plan_already_used {run_id, cancelled_run_id}` si OTRA corrida selló el plan entre la lectura y el sello (la perdedora queda `cancelled` por `server` con razón — corrector); el servidor compone `runs.council_json` (r1 + ledger + membresía CONGELADA) al encolar; la vista gana `plan_council_state` y `council_n_valid` |
+| GET | `/plans/{plan_id}` | ✓ | **el plan declarado y su ronda 1** (ADR-0082 (E.3)): `plan`, `origin`, `council_state` (vocabulario `council.COUNCIL_STATES_*`; NULL = `pre-adr-0082`), `council` (= `plans.council_json`: r1 + agregación + requisitos SIN decisiones), `ledger`, `council_usage`, `approved_by/_at/_is_author`, `council_claimed_by/_at`, `heartbeat_age_s`/`heartbeat_stale` (300 s), `run_gate {allowed, reason}`, `poll`/`events`/`stream`; 404 `plan_not_found` |
+| GET | `/plans/{plan_id}/events?after=` | ✓ | **replay de la traza del PLAN** (tabla `plan_events`, espejo de `run_events`, `agent 'council'`): `council.state` → `stage.council.member` ×N → `stage.council.progress` (latido ≤ 30 s) → `stage.council.round` → `stage.council.aggregate` → `council.ledger` / `council.skip` (+ `council.state.conflict` si el worker sobrevivió a la siega del reaper: el estado terminal no se pisa — corrector); 503 `council-db-unavailable` si la BD no tiene las columnas del ADR |
+| GET | `/plans/{plan_id}/stream?after=` | ✓ | la misma traza por SSE (keep-alive 15 s); cierra con `event: end {council_state}` en estado terminal (`∉ {queued, running}`) |
+| POST | `/plans/{plan_id}/council/ledger` | ✓ | **la ÚNICA puerta donde la prosa del consejo se vuelve gasto** (ADR-0082 (F.1)): body `{decisions[] {requirement_id, decision keep\|discard\|aporto, reason? (obligatoria con discard), attested_text? (obligatorio con aporto, ≤ `WITT_COUNCIL_ATTESTATION_CHARS`)}, knowledge_now?, approve}` → `ledger` (`draft`\|`approved`; `pending` no hard-rule → `keep` con `decided_by 'default-keep'`; `decided_by 'human:<user>'`, `approved_by_is_author`). 400 `hard_rule_requirements_undecided` (§7.1: `causal-pruner` exige decisión EXPLÍCITA) · `unknown_requirement_id` · `duplicated_requirement_id` · `invalid_decision` · `discard_without_reason` · `aporto_without_text` · `attested_text_too_long` · `knowledge_now_too_long`; 409 `council_not_terminal` (r1 viva) · `council_ledger_not_applicable` · `plan_already_used`; 404 `plan_not_found` |
+| POST | `/plans/{plan_id}/council/skip` | ✓ | `{reason}` → `council_state 'skipped-by-human'` con autor y hora (la corrida sale con ledger VACÍO declarado; el sistema jamás salta solo); 400 `skip_without_reason` |
+| GET | `/council/membership` | ✓ | **NO-SPEND, sin BD**: `agent_matrix.membership_view` (cm-1: 17 miembros con `group`/`mode`/`tool`/`gate`/`card_sha`, 8 `not-applicable-by-category`, 9 sustrato con estado, 3 filas sin ficha) + `vocabulary` (= `council.council_vocabulary()`, el que el gate (F) de paridad compara con `types.ts`) + `catalog_sha`/`rules_sha`/`shared_block_sha`/`cache` |
+| GET | `/council/search?q=&k=&include_origins=&kinds=` | ✓ | **el índice del consejo** (ADR-0082 (I), patrón `precedent`): requisitos, coberturas, DECISIONES humanas (sin la razón), gap_flags, alternativas, hallazgos del panel y comentarios (sólo con `kinds=comment`) de corridas CERRADAS + planes con `council_json` del alcance de origen; letras `A..`, `admissible_as_evidence false` estructural, `scorer` declarado, `corpus_state`; 400 sin `q` / kind fuera del enum · 503 `council-index-disabled` (`WITT_COUNCIL_INDEX=0`) |
+| GET | `/council/demand?include_origins=` | ✓ | el criterio MEDIDO de disparo de los sidecars ADR-0083/0084/0085: requisitos `unsatisfiable-by-harness` por familia (`web`, `tooluniverse`, `figure`), umbral `{min_runs 5, min_requirements 3}`, `fired_by_family`, `fired`; clase medición; independiente del kill-switch del índice |
 | GET | `/runs` · `/runs/{id}` | ✓ | lista y detalle por la MISMA vista: `heartbeat_age_s` + `heartbeat_stale` + `heartbeat_stale_after_s` (el umbral viaja) + `token_usage` (gasto en TODO camino de salida, failed/cancelled incluidos) + **`run_no`** (ADR-0076: el NÚMERO de corrida — identidad legible asignada al nacer; las anteriores a la columna se numeraron por orden de creación al arrancar) + **columnas de investigación** (ADR-0079: `parent_run_id`, `thread_id`, `turn_no`, `turn_kind`, `origin`, `root_question_id` — NULL = anterior al contrato, sin backfill). **`GET /runs?thread=<thread_id>&limit=&after=`** lista los TURNOS de una investigación (orden `turn_no ASC`, sin el tope 50, cursor `after` = turn_no exclusivo, `has_more` medido, `next_after`); la lista general declara `limit`/`limit_cap`. **`root_run_no`** (ADR-0081 (F)): nace en la BD por JOIN a la raíz (`db._list_select`/`db.get_run`, UNA definición) — lista, detalle, `POST /runs` y `/runs?thread=` la traen; raíz = su `run_no`; `null` = corrida anterior a ADR-0079, declarado, jamás rellenado |
 | GET | `/threads/{thread_id}` | ✓ | **la investigación T-<run_no raíz> como UNA unidad** (ADR-0079): `turns[]` en orden con veredicto/decision_state/origin/costo por turno, `gap_flags_union` (conteos con igualdad normalizada, jamás prosa nueva), `total_cost_usd` PROYECCIÓN con `complete`, `pivot_suggested` (regla `WITT_PIVOT_TURNS` declarada), `origins`, `authors`, `root_pre_adr_0079` (raíz virtual anterior al contrato); 404 `thread_not_found` |
 | GET | `/threads?mine=&limit=&after=` | ✓ | **el índice de investigaciones** (ADR-0081 (G); declarada ANTES de `/threads/{thread_id}`): UNA consulta `GROUP BY thread_id` con la raíz por JOIN — `label 'T-<n>'`, `root_run_no`, `n_turns` (IGUAL al de `/threads/{id}`: la raíz virtual cuenta +1, `root_counted` lo declara), `n_closed`, `n_with_record`, `last_turn`, `authors`, `origins`, `states`, `root_pre_adr_0079`; orden `root_run_no DESC NULLS LAST`, cursor `after` = `root_run_no` EXCLUSIVO, `has_more` MEDIDO (`limit+1`), `limit_cap` 50, `mine` (≥ 1 turno del usuario; `mine_rule`), `n_threads_total`, `n_runs_without_thread` del SERVIDOR; sin costo agregado (`costs 'not-aggregated (GET /threads/{id})'`); `limit < 1` → 400 |
@@ -39,7 +47,7 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
-| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio |
+| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio. **ADR-0082 (H)**: `by_stage` gana `council_r1/r2/r3` iterando `TOKEN_STAGES` (sin código nuevo), `by_model[m] += cache_creation, cache_read` (tokens) y **`plans_council`** = el gasto de rondas 1 de planes que NUNCA se corrieron (`n_plans`, `n_unconsumed`, tokens, `cache {creation, read, multipliers}`, `estimated_cost_usd` [E] con `price_state`, `by_state {<council_state>: n}`, `by_model`) — sin él M8 no cuadra |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056). **ADR-0081 (I)**: `entries` (archivo, clase ATESTIGUADA — incluida `budget_approval`) + `ledger[]` (tabla `config_history`: MEDICIÓN del diff de configuración al arrancar, `changed_by 'system:boot-diff'` / `'system:runtime-diff'`, `actor_state` declarado) + `ledger_state ∈ ok | kill-switch WITT_CONFIG_LEDGER=0 | table-missing | error: <tipo> | not-booted (lifespan no corrió: config_ledger.boot() no se ha llamado)` (el quinto = antes del lifespan; un TestClient sin lifespan lo ve — corrector) + `ledger_writer` / `ledger_encoding` / `ledger_scope_rule` + `current {fields {value, source}, warnings, unknown_models}` + `provenance.db` |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
@@ -646,6 +654,183 @@ estático de literales en PASS) · `smoke_openai_responses.py` 74 (kwargs exacto
 TOCADOS `smoke_run_pipeline.py` 251 → 271 (contrato 1.10, `frozen.models`, `stage.models`, kill-switch g1 → keyset 1.9, costuras (N)), `smoke_run_recovery.py` 40,
 `smoke_question_agent_http.py` 35 → 39, `smoke_threads_db.py` 42 → 77, `smoke_runs_thread_http.py` 54 → 71, `smoke_runs_list_http.py` 17 → 21; los otros 19 sin cambio (31/31 en verde, 1623 checks); estático
 `smoke_live_models.py --dry-run` (6 filas, exit 0). Ningún gate del CI gasta modelo ni toca la red (`urlopen` bloqueado y contado = 0).
+
+### El consejo de criterio ejecutable (ADR-0082, 2026-09-15 — **Proposed**; conteos de gates MEDIDOS por C9 el 2026-09-15/16: 37/37 smokes en verde)
+
+**Qué es.** Hasta `9d90c01` dos filas de la matriz corrían como código y el planner declaraba, corrida tras corrida,
+que ninguno de los 17 agentes aplicables corrió (`will_run 'skipped-ad-hoc'`). Desde ADR-0082 las **31 fichas del
+catálogo se parsean como código** (`analysis/scripts/lib/catalog_cards.py`: `text_verbatim`, `sha` por ficha,
+`CATALOG_SHA` global — 31 golden), la **membresía es una TABLA** (`agent_matrix.COUNCIL_MEMBERSHIP`, versión `cm-1`,
+matriz v1.3: 17 miembros en orden FIJO — 5 cómputo · 7 lab/lectura · 3 conocimiento · `cross-field-bridge-agent`
+exploratorio · `regulatory-ethics-advisor` sólo banderas —, 8 operativos `not-applicable-by-category` que sólo se sientan
+con `WITT_COUNCIL_FULL=1`, 9 de sustrato con su estado real; **19/34 filas ejecutables**) y el consejo corre como
+`analysis/scripts/lib/council.py` (stdlib puro) en tres rondas: **r1** requisitos de información (JOB del plan, ANTES de
+gastar la corrida), **r2** cobertura de SUS requisitos sobre `DI + path_b` ANTES de la compuerta de competencia, **r3**
+re-cobertura informativa sólo si la búsqueda dirigida admitió algo. **El consejo JAMÁS escribe la respuesta, ni
+veredicto, ni ranking, ni despacha** (CLAUDE.md §7): sus tres tools (`emit_information_requirements`, `emit_flags`,
+`emit_coverage_judgment`) no tienen campo `direct_answer`/`verdict`/`confidence`/`ranking`/`score`/`dispatch`
+(`council.tools_static_check()` lo mide); la agregación es CÓDIGO byte a byte (`aggregate_r1`: mismos insumos barajados →
+mismo JSON, mismos `requirement_id`); las directivas de búsqueda las COMPILA código desde los requisitos `kept` sin cubrir
+(`directives_from`) y `SEARCH_DISPATCH` resuelve el mecanismo; el sintetizador es CIEGO al consejo (E5); la ÚNICA puerta
+donde su prosa se vuelve gasto es la aprobación humana del ledger; `causal-pruner` (hard-rule §7.1) no pasa sin decisión
+humana EXPLÍCITA sobre CADA requisito suyo (400 `hard_rule_requirements_undecided`, ningún default la toma).
+
+**El flujo para el operador.** `POST /runs/plan` sigue síncrono (el planner) y, si aplica, encola la ronda 1
+(`council.state 'queued'`); un hilo `council-worker-N` la reclama (FIFO, sólo orígenes de `WITT_COUNCIL_ORIGINS`), lanza al
+miembro #1 SOLO (el prefijo compartido se escribe una vez en la caché y se lee 16×) y luego ≤ 6 en vuelo, emite latido
+`stage.council.progress` cada ≤ 30 s a `plan_events`, persiste INCREMENTALMENTE tras cada miembro (un redeploy a media
+ronda conserva lo gastado), agrega y deja `plans.council_state ∈ applicable | incomplete | errored (…)`. M3 lee
+`GET /plans/{id}` + SSE y pinta el **ledger**: keep / discard (razón obligatoria) / "yo lo aporto" (texto ATESTIGUADO,
+jamás evidencia) + "qué sabes ahora"; **Aprobar** (un clic "keep todo" salvo los `hard_rule` pendientes) o **Saltar
+(razón)** libera `POST /runs {plan_id}` (409 hasta entonces — E4). En la corrida: `stage.council.ledger` → … →
+`gate{pass1}` → **r2** (`stage.council.round/member/progress` + `stage.council.coverage {phase 'pre-search'}`) →
+`stage.competence` con el componente NUEVO **`council_uncovered_must`** (`cg-4`: gatea por default — 0 must sin cubrir;
+`vacuous` = True declarado; `incomplete` = False con razón; kill-switch/no-ledger = null fuera de la conjunción) → si no
+competente, `stage.council.directives` → `stage.search.plan {families_source 'directives+default'}` (UNIÓN: las 5 auto
+SIGUEN y las `directive-only` entran por directiva) → Ruta B → **r3** condicional → `coverage {phase 'post-search'}` →
+pass2 → panel (recibe SÓLO `deterministic_checks.council` con conteos y clase, jamás la prosa). Cobertura = worst-of-N
+sobre votos VÁLIDOS; un `evidence_id` que no está en el bundle ANULA el voto (`hallucinated_evidence_ids`); `must` con
+`coverage_final ∈ {uncovered, partial, not-judged}` cuenta como SIN cubrir; `must` `unsatisfiable-by-harness`
+(`web`/`tooluniverse`/`figure`) se CUENTA y no gatea (E1; `GET /council/demand` es el criterio de disparo de
+ADR-0083/0084/0085). Lo atestiguado viaja al sintetizador como llave HERMANA `human_attestations` con cláusula anti-fuga y
+predicado DURO `attestation_identifier_leak` (identificador presente en lo atestiguado y en la respuesta pero ausente de la
+evidencia = inadmisible).
+
+**Registro congelado 1.11** (aditivo; `plan_version '4'`): `frozen.council {state, membership_version 'cm-1',
+membership_source, catalog_sha, plan_catalog_matches_run, rules_sha, tools_sha, shared_block_sha, model {requested, source,
+generation, effort, effort_source, effort_pinned, max_tokens}, n_members, members[], ledger, human_attestations, rounds[]
+(r1 COPIADA del plan + r2/r3 medidas), coverage {pre_search, after_search, post_search}, must_uncovered, must_uncovered_post,
+must_unsatisfiable, directives[], directives_state, r3, index, cache {r1|r2|r3 {creation, read}, hit_ratio_r2}, usage,
+config, vocabulary, kill_switch}`; `competence.components.council_uncovered_must` (G.2); `deterministic_checks.{council,
+attestation_identifier_leak}`; `citations[].pertinent` (`true` | `'not-named-by-council (…)'` | `'not-available (council
+<state>)'`) + `pertinent_to`/`pertinent_source`; `search_ledger.plan.directives[]`/`directives_state`/`families_source`,
+`rows[].directive_requirement_ids`, `n_items_for_directives`; `fallback.fb_meta.council`; `token_usage.by_stage.council_r1`
+(`'copied-from-plan_json'`: el gasto ocurrió ANTES de la corrida) `/r2/r3` con `cache_creation`/`cache_read` (`state` ∈
+`council.vocabulary.usage_stage_states`: `'measured'` | `'measured (partial: round cancelled)'` | `'copied-from-plan_json'` |
+`'plan-without-council'` | `'kill-switch WITT_COUNCIL=0'` | `'not-run (…)'` — corrector),
+`token_usage.cache` (multiplicadores 1.25×/2×/0.1× declarados con fuente y fecha), `input_tokens_total`, `council_judgment`;
+`agents_invoked` con la fila `(consejo de criterio — cm-1)` (`council:<n_valid>/<N>`) y una fila `invoked` por miembro (un
+miembro caído SÍ fue invocado: lo dice su `evidence`); `epistemic_summary.council_*`; `thread_context.council_summary`
+(el turno N+1 hereda criterios, nunca prosa); la vista de corrida gana `plan_council_state`/`council_n_valid`. **Históricos:
+NADA se recalcula ni se backfillea** — registros < 1.11 no ganan `council`; la webapp y el PDF (sección "CONSEJO DE
+CRITERIO (ADR-0082)", `record_pdf.py`) los leen 'NO INSTRUMENTADO (contrato < 1.11)'; planes anteriores a la columna se leen
+`council_state 'pre-adr-0082'`. **La webapp debe tipar (`?`) y pintar** — la lista completa está en *Consequences* del ADR;
+el gate (F) de paridad compara `council.vocabulary` (`GET /council/membership`) con los unions de `types.ts` y con TODOS los
+fixtures.
+
+**BD (aditivo, `db._migrate` por dialecto — lección ADR-0078):** `plans` gana `origin`, `council_state VARCHAR(96)`,
+`council_json`, `council_ledger_json`, `council_usage_json`, `council_claimed_by/_at`, `council_started_at`,
+`council_finished_at`, `council_last_event_at`, `council_approved_by/_at`, `council_error`; `runs` gana `council_json` (la
+COPIA server-side al encolar); tabla NUEVA `plan_events` (espejo exacto de `run_events`, PK `(plan_id, seq)`, sin FK a
+`runs`); índice `ix_plans_council_state`. Reaper: hilo propio `council-reaper` (`council_jobs.reaper_loop`) con el MISMO
+`WITT_REAP_STALE_S` → `errored (worker-lost)`; al arrancar, todo job `running` cae `errored (worker-lost-restart)`; jamás
+se re-encola. Kill-switch `WITT_COUNCIL=0`: cero hilos, cero siega, cero llamadas, cero `stage.council.*`; `POST /runs`
+sin 409; el frozen tiene el keyset Y los valores de 1.10 + `council {state 'disabled (…)'}` con las excepciones DECLARADAS
+en el ADR (L.2).
+
+**Semáforo y `Retry-After` (D.1, TODA llamada Anthropic):** `composite_auditor._anthropic_tool_call` adquiere un
+`BoundedSemaphore(WITT_ANTHROPIC_MAX_INFLIGHT)` de PROCESO alrededor de `urlopen` (consejo, síntesis, elicitación, planner,
+jueces; `meta.queue_wait_s` medido), honra `Retry-After` en `http-429/529` con tope `WITT_ANTHROPIC_RETRY_AFTER_CAP_S`
+(`meta.retry_after_honored_s`), acepta `tools=` (los TRES del consejo, bytes idénticos en r1/r2/r3; `tool_choice` cambia y
+CONSERVA la caché de tools+system) y `system` como lista de bloques con `cache_control`. El caller de hoy (2-tupla, `[tool]`,
+`system` str) sigue byte a byte. El semáforo acota PETICIONES en vuelo, no tokens/minuto — se declara (L.7).
+
+**Variables de entorno nuevas (ADR-0082; 27 = `models.ENV_ADR_0082`)** — default declarado en `models.ENV_TABLE`; lector
+tolerante en tiempo de llamada (vacía/basura → default con fuente); el valor efectivo viaja en el registro; **toda env
+implica reinicio** (el compose lo dice en su bloque ADR-0082):
+
+| Variable | Default | Lector | Efecto / fuente declarada |
+|---|---|---|---|
+| `WITT_COUNCIL` | `1` | `council.enabled` · `app.create_plan` · `runs.execute_run` · `council_jobs.start_council_workers` | kill-switch global: `0` = sin job en el plan, `POST /runs` sin 409, sin r2/r3, componente `state 'kill-switch WITT_COUNCIL=0'` (`gating false`), `build_search_plan(directives=None)`, camino `9d90c01` con las excepciones de (L.2) |
+| `WITT_COUNCIL_FULL` | `0` | `agent_matrix.council_members` (al ENCOLAR r1; la corrida usa la N congelada en el plan) | `1` = los 8 operativos también se sientan (N=25, cuórum 15); requisitos `from_operative` contados aparte; E5: sólo A/B |
+| `WITT_MODEL_COUNCIL` | vacía → `claude-opus-5` (g2) · `claude-opus-4-8` (g1) | `models.resolve_role('council')` | modelo de los 17 miembros; `frozen.council.model.source`; `fable` rechazado `excluded-model`; tope `max_tokens.council` 4000/1200 |
+| `WITT_COUNCIL_EFFORT` | `medium` (`inherit` = hereda `WITT_ANTHROPIC_EFFORT`) | `models.council_effort` → `council.build_request` | `output_config.effort` FIJO por ruta para las 3 rondas (cambiarlo por petición invalida la caché); sólo a modelos `thinking_default 'adaptive'`; E2 se decide con `thinking_tokens` de LG1 |
+| `WITT_CG_COUNCIL_COMPONENT` | `1` | `competence.env_config` | `1` = `council_uncovered_must` GATEA cuando `state ∈ {checked, vacuous, incomplete}`; `0` = informativo declarado (fuera de `conjunction`) |
+| `WITT_COUNCIL_RECOVERAGE` | `1` | `runs.execute_run` | `1` = ronda r3 (sólo si `n_admitted_total > 0`, sólo dueños de must sin cubrir); `0` = `post_search.state 'not-run (kill-switch …)'` |
+| `WITT_COUNCIL_ORIGINS` | `production` | `app.create_plan` · `council_jobs.council_origins` → `db.claim_next_council_plan(origins=)` (CSV tolerante; `all` = sin filtro declarado) | orígenes del PROCESO que encolan r1 y que el worker RECLAMA; `smoke/fixture/dev-offline` → `'not-requested (origin …)'` — cero llamadas de opus-5 por fixture |
+| `WITT_COUNCIL_WORKERS` | `1` | `runs.start_council_workers` → `council_jobs.start_council_workers` | hilos daemon `council-worker-N` que reclaman `plans.council_state='queued'`; `0` = `not-started` declarado |
+| `WITT_COUNCIL_DEDUP_S` | `600` | `app.create_plan` → `db.plans_council_pending` | ventana del dedup del doble clic (misma pregunta+entidades+padre, mismo usuario, r1 `queued|running` → se reutiliza el plan vivo, `plan_response 'reused'`) |
+| `WITT_COUNCIL_MAX_QUEUED_PER_USER` | `3` | `app.create_plan` → `db.count_plans_council` | tope de jobs r1 `queued` por usuario; el excedente nace `'not-requested (queue-cap per user)'` (el plan sí se crea) |
+| `WITT_COUNCIL_CONCURRENCY` | `6` | `council.run_round` (clamp 1..25) | `max_workers` del pool por ronda; el miembro #1 va SOLO y el resto tras su respuesta (`stagger_wait_s`) |
+| `WITT_COUNCIL_MEMBER_TIMEOUT_S` | `120` | `council.run_round` · `_anthropic_tool_call(timeout=)` | timeout por miembro; vencido → fila `timeout` (abandonado y contado), la ronda sigue |
+| `WITT_COUNCIL_ROUND_BUDGET_S` | `300` | `council.run_round` | presupuesto de reloj por ronda; agotado → `skipped-budget` (cero llamadas), en vuelo abandonados y contados (`abandoned_cost_upper_usd` [E]); regla `≤ WITT_REAP_STALE_S − 300` |
+| `WITT_COUNCIL_MEMBER_RETRIES` | `1` | `council.run_round` → `_anthropic_tool_call(retries=)` | intentos ADICIONALES por miembro (transporte con `Retry-After`; contenido); `refusal`/4xx nunca; `attempts ≤ 2`; todo gasto de todo intento se suma |
+| `WITT_COUNCIL_QUORUM` | `0.6` | `council.quorum_required` (vía `council.config`) | fracción de miembros válidos (`ceil(q·N)`: 17 → 11, 25 → 15; un `not-applicable` emitido por el miembro CUENTA); fuera de (0,1] → default declarado |
+| `WITT_COUNCIL_MAX_REQUIREMENTS` | `24` | `council.aggregate_r1` (alias `aggregate_requirements`) | tope del ledger; `truncated`, `n_truncated`, `truncated_ids[]` |
+| `WITT_COUNCIL_MAX_PER_MEMBER` | `5` | `council.validate_tool_input` (el schema fija `maxItems 5`: es identidad de la caché) | requisitos por miembro que el CÓDIGO conserva; excedente descartado en orden y contado (`n_dropped_over_cap`) |
+| `WITT_COUNCIL_R2_EVIDENCE_CHARS` | `24000` | `council.payload_r2` | tope de la vista de evidencia por miembro en r2/r3; `payload_truncated` declarado; acota tokens/min |
+| `WITT_COUNCIL_ATTESTATION_CHARS` | `4000` | `app` (ledger) · `council.apply_ledger_decisions` | tope de `knowledge_now` y de cada `attested_text` (íntegros en `plans.council_ledger_json`; 600 en el frozen, `truncated`) |
+| `WITT_COUNCIL_CACHE` | `1` | `catalog_cards.cache_config` → `council.build_system` | `1` = `cache_control` en los DOS bloques `system` (prefijo compartido + ficha VERBATIM); `0` = string concatenado (A/B medible en `usage.cache_*`) |
+| `WITT_COUNCIL_CACHE_TTL` | `5m` | `catalog_cards.cache_config` → `council.build_system` | `5m` (escritura 1.25×) · `1h` (2×) para la ficha; con `1h` el bloque A también va `1h` (regla de la API: una entrada 1h precede a las de 5m); E3 tras medir `hit_ratio_r2` |
+| `WITT_COUNCIL_INDEX` | `1` | `council_index.enabled` · `app` | `0` = `GET /council/search` 503 declarado, `prior_observations {state 'disabled'}`; `/council/demand` sigue contando |
+| `WITT_COUNCIL_PRIOR_K` | `5` | `council_index.prior_observations` (clamp 0..12) | observaciones previas inyectadas en r1 como PRIOR ART (letras `P-A…`); `0` = ninguna |
+| `WITT_COUNCIL_PRIOR_KINDS` | `requirement,coverage,decision,gap_flag,panel_finding` | idem (CSV tolerante) | kinds que ENTRAN al prompt de r1; `comment` EXCLUIDO por default (inyección, R8); la búsqueda siempre puede pedirlo |
+| `WITT_COUNCIL_INDEX_ORIGINS` | `production` | `council_index` · `/council/demand` | orígenes del corpus (NULL incluido y declarado, regla de `precedent`) |
+| `WITT_ANTHROPIC_MAX_INFLIGHT` | `8` | `composite_auditor.inflight_limit` → `_INFLIGHT` | `BoundedSemaphore` de PROCESO alrededor de `urlopen` para TODA llamada Anthropic; `meta.queue_wait_s` |
+| `WITT_ANTHROPIC_RETRY_AFTER_CAP_S` | `30` | `composite_auditor.retry_after_cap` | tope al `Retry-After` honrado en `http-429/529`; sin cabecera, el backoff de hoy |
+| `WITT_REAP_STALE_S` | `900` (ya existe, ADR-0078) | `runs.reaper_loop` · `council_jobs.reap_stale_s_of` → `db.reap_stale_council_plans` | sin cambio; el mismo umbral siega jobs de plan huérfanos (`errored (worker-lost)`) |
+
+**Gates NO-SPEND (máscara de siempre + `WITT_RUN_ORIGIN=smoke`; UNA `.db` por smoke; conteos MEDIDOS por C9 el
+2026-09-15/16 — 37/37 en verde; la tabla completa vive en el ADR):** NUEVOS `smoke_catalog_cards.py` **57/57** (31 fichas,
+shas por substring exacto, un byte mueve SÓLO su sha, `build_system` puro) · `smoke_agent_matrix.py` **46/46** (34 filas, cm-1
+exacto, 19/34 componentizadas, 17/25) · `smoke_council.py` **64/64** (27 mediciones con 17 miembros FAKEADOS: válidos,
+duplicados, caídos, timeout, ids alucinados, fuera de vocabulario, campos prohibidos, tool equivocado, cancelación, eventos
+desde el hilo llamador) · `smoke_council_jobs_db.py` **57/57** (migraciones ×2 + SQL compilado para `postgresql`, claim
+atómico con `run_id IS NULL`, persistencia incremental, reaper, kill-switch) · `smoke_council_http.py` **69/69** (las 8 rutas
++ 409/400 del ledger + `/usage.plans_council`, sobre la superficie E.1 REAL) · `smoke_council_index.py` **63/63** (corpus por
+origen, kinds, `prior_observations` sin `comment`, `demand`, BD sin migrar simulada); TOCADOS `smoke_run_pipeline.py` **297/297**
+(contrato 1.11, orden de la traza, componente gateante, kill-switch keyset+valores 1.10 salvo excepciones,
+`frozen.models.roles.council == stage.models.roles.council`), `smoke_competence.py` **38/38** (`cg-4`),
+`smoke_search_harness.py` **65/65** (UNIÓN de directivas; sin directivas byte-idéntico), `smoke_models.py` **87/87** (rol
+`council`, `CACHE_MULTIPLIERS`, `ENV_TABLE 48 ⊆ compose ∩ README`, gate M.4 de literales en PASS), `smoke_panel_quorum.py`
+**40/40** · `smoke_openai_responses.py` **79/79** (caller: `tools=`, `system` lista, semáforo, `Retry-After`),
+`smoke_usage_http.py` **32/32**, `smoke_thread_context.py` **40/40**, `smoke_runs_list_http.py` **24/24**,
+`smoke_gate_citations.py` **52/52**; los 21 restantes sin cambio (conteos en la tabla del ADR). Todos con
+`urllib.request.urlopen` bloqueado y contado = 0 donde se mide y `mcp_cache` byte-idéntico. Estático:
+`smoke_live_council.py --dry-run` (exit 0 medido 2026-09-15: 3 filas — 20 cuerpos de `count_tokens` construidos, miembro
+`literature-monitor` r1 y r2 con cuerpo REAL capturado: `system` 2 bloques con `cache_control` (sha A == `SHARED_BLOCK_SHA`,
+sha B == `CARDS[agent].sha`), `tools` ×3 byte-idénticos a `council.TOOLS`, `tool_choice` forzado, `max_tokens 4000`,
+`output_config.effort 'medium'`; `urlopen` reales 0; `db` no importado).
+
+**Gates EN VIVO (los corre Emmanuel; cada uno gasta lo que dice; ningún smoke del CI gasta; el resultado se anota en el ADR
+como MEDICIÓN con fecha).** El instrumento es `analysis/scripts/smoke_live_council.py`: usa el código REAL
+(`council.build_request` / `council.default_caller` / `council.run_round` / `council.aggregate_r1` /
+`composite_auditor._anthropic_tool_call(return_meta=True, tools=)`), imprime fila · `kind` · `usage` con caché ·
+`thinking_tokens` · latencia por llamada, escribe `analysis/outputs/live_council_<fecha>.json` SIN secretos, rehúsa correr sin
+llave (`no-api-key`, exit 2), jamás toca la BD (no importa `db`/`runs`/`app`: medido en cada salida); `--dry-run` construye y
+muestra sin red (el único modo que corre C9). Python: `dev/.venvs/witt-query-service` con la llave en el entorno del proceso.
+
+1. **LG1 · MEDIR el prefijo y UNA ficha real ANTES de encender** (≈ 20 `count_tokens` = USD 0 + 2 llamadas reales ≤ 0.10 USD):
+   `python analysis/scripts/smoke_live_council.py --count-tokens` → tokens de `[tools ×3 + bloque A + §7]` (**debe ser ≥ 512**
+   o la caché no escribe — si no llega, el bloque A se completa con las reglas §7 íntegras, declarado) y de las 17 fichas
+   (sustituye "≈ 0.3k tok de media"); `--member literature-monitor --round r1 --repeat 2` → `tool_use` válido con todos los
+   `required` bajo `max_tokens 4000`, `stop_reason 'tool_use'`, 1ª llamada `cache_creation_input_tokens > 0`, 2ª
+   `cache_read_input_tokens ≈ prefijo` y `creation ≈ 0`; `thinking_tokens` y `output_tokens` impresos (E2 se decide con esta
+   cifra); latencia; `--round r2` mide el payload de cobertura. Opcional `--full-r1 --question "…"` (17 llamadas ≈ 0.8–1.5
+   USD [E]): la ronda 1 completa por el mismo código del worker, sin plan ni BD — cuórum, `stagger_wait_s`, caché por miembro,
+   `n_unsatisfiable`, `aggregation_sha`.
+2. **LG2 · Un plan real en prod (17 llamadas r1):** `POST /runs/plan` responde al instante con `council.state 'queued'`; p95 del
+   request MEDIDO contra el timeout del proxy Traefik/Dokploy; `GET /plans/{id}/stream` entrega 17 `stage.council.member` +
+   `progress` sin cortarse y llega a `applicable` en < 300 s; `n_valid/17`, `n_unsatisfiable`, `cache_read` ≥ 16 lecturas del
+   prefijo; ledger visible en M3; aprobar con 1 discard razonado y 1 aporto; `POST /runs` sin 409.
+3. **LG3 · Esa corrida:** Traza con `stage.council.ledger`, `round{r2}`, `coverage{pre}`, `stage.competence` con
+   `council_uncovered_must checked`, si hubo must sin cubrir `stage.council.directives` + `stage.search.plan {families_source
+   'directives+default'}` con una familia directive-only entrando, `round{r3}` sólo si `n_admitted_total > 0`; `frozen.council`
+   íntegro; `by_stage.council_r1 'copied-from-plan_json'` + `r2/r3` con caché; `hit_ratio_r2` medido (decide E3); M8 cuadra.
+4. **LG4 · A/B con y sin consejo** (8 corridas ≈ 12–20 USD [E]; 2 con `WITT_COUNCIL_FULL=1` — E5): descriptivo, sin poder.
+5. **LG5 · Presión sobre el proveedor** (2 corridas simultáneas + 1 plan): cero `http-429` no reintentados, `queue_wait_s > 0`
+   en alguna llamada, ningún `skipped-budget`; con `WITT_COUNCIL_MEMBER_TIMEOUT_S=5` filas `timeout` y la ronda sigue.
+6. **LG6 · Kill-switch en prod** (`WITT_COUNCIL=0`): sin `stage.council.*`, plan sin job, `POST /runs` directo,
+   `panel_signature` igual — el camino de `9d90c01`.
+7. **LG7 · `GET /council/search`** tras ≥ 3 corridas cerradas con consejo; `prior_observations {n ≥ 1}` en el siguiente plan;
+   `GET /council/demand` con conteos y `fired`.
+8. **LG8 · Redeploy:** `_migrate` añade columnas y `plan_events` en el Postgres real; planes pre-ADR se leen `'pre-adr-0082'`;
+   un job r1 a medio correr queda `errored (worker-lost-restart)`; docker-compose con las 27 env; `/config-history` gana
+   `role.council` / `council.*`.
+
+**Decisiones abiertas (E1–E6, defaults aplicados; el ADR las lista):** E1 must `unsatisfiable-by-harness` NO gatea (se cuenta) ·
+E2 `WITT_COUNCIL_EFFORT=medium` · E3 TTL `5m` · E4 409 hasta aprobar/saltar · E5 sintetizador ciego y `WITT_COUNCIL_FULL=0` en
+prod · E6 texto de `budget_approval` `<pendiente E6>`.
 
 ## Pendiente
 

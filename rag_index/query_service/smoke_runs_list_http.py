@@ -18,6 +18,11 @@ db.get_run) y fluye por _run_view como passthrough: POST /runs == lista == detal
 run_no, el hijo el run_no de la raíz, y una corrida pre-ADR-0079 (thread_id NULL) trae la llave con
 null DECLARADO — jamás rellenado. Los blobs siguen fuera del renglón.
 
+2026-09-15 (ADR-0082 (J), rebanada C6): `plan_council_state` y `council_n_valid` viajan por renglón derivados de
+runs.council_json (la copia server-side del consejo, F.4) como plan_niches de plan_json: llave PRESENTE con null
+declarado cuando no hay consejo; lista == detalle == POST /runs; el blob council_json jamás al renglón. El check de
+igualdad con el council.state del plan queda ROJO declarado hasta las costuras C4 (columna) y C5 (new_run(council_json=)).
+
 NO-SPEND: sin red, sin modelo. BD sqlite temporal fuera del repo.
 Uso:  python smoke_runs_list_http.py
 """
@@ -170,6 +175,46 @@ check("ADR-0081 (F): los blobs siguen fuera del renglón tras el JOIN (usage_jso
       all(k not in det_hj for k in ("plan_json", "frozen_record_json", "usage_json", "bundle_json", "thread_context_json"))
       and not any(k.startswith("root_") and k not in ("root_run_no", "root_question_id") for k in det_hj),
       f"{sorted(k for k in det_hj if k.startswith('root_'))}")
+
+# ---- ADR-0082 (J, vista; rebanada C6): plan_council_state / council_n_valid en la vista — lista == detalle ----------------
+# Derivados de runs.council_json (la copia server-side de F.4) como plan_niches lo hace de plan_json. None = corrida sin plan,
+# sin consejo o anterior al contrato: ausencia DECLARADA con la llave PRESENTE (jamás rellenada; 0 medido ≠ null).
+import runs as runs_mod  # noqa: E402
+
+lst3 = {row["run_id"]: row for row in client.get("/runs", headers=AUTH).json()["runs"]}
+det_r1 = client.get("/runs/r1", headers=AUTH).json()
+det_r2 = client.get("/runs/r2", headers=AUTH).json()
+check("ADR-0082: plan_council_state y council_n_valid PRESENTES con null declarado en lista y detalle para una corrida con plan sin "
+      "consejo (r1) y para una sin plan (r2); el blob council_json JAMÁS viaja al renglón",
+      all(k in v and v[k] is None for v in (det_r1, det_r2, lst3.get("r1", {}), lst3.get("r2", {}))
+          for k in ("plan_council_state", "council_n_valid"))
+      and all("council_json" not in v for v in (det_r1, det_r2, lst3.get("r1", {}))),
+      f"det_r1={det_r1.get('plan_council_state', 'AUSENTE')!r} lista_r1={lst3.get('r1', {}).get('plan_council_state', 'AUSENTE')!r}")
+
+
+def _planner_fake(question, entities, thread_context=None):
+    return ({"work_type": "sufficiency", "route": "evidence-run", "niches": [agent_matrix.NICHE_ENUM[0]],
+             "agents_applicable": [], "clarifying_questions": []}, {"input_tokens": 1, "output_tokens": 1})
+
+
+from lib import agent_matrix  # noqa: E402
+runs_mod._default_planner = _planner_fake      # sin red: el juicio del plan lo da un fake (WITT_RUN_ORIGIN=smoke no encola)
+pc = client.post("/runs/plan", json={"question": "¿plan con estado de consejo?", "entities": ["osr1"]}, headers=AUTH)
+PC_STATE = (pc.json().get("council") or {}).get("state")
+rc = client.post("/runs", json={"question": "¿plan con estado de consejo?", "entities": ["osr1"], "plan_id": pc.json()["plan_id"]},
+                 headers=AUTH)
+RC = rc.json()
+# C9: la costura es REAL — runs.council_json en la fila (db.get_run / _list_select, E.1) y runs.new_run(council_json=) (F.4)
+det_c = client.get(f"/runs/{RC['run_id']}", headers=AUTH).json()
+lst4 = {row["run_id"]: row for row in client.get("/runs", headers=AUTH).json()["runs"]}
+check("ADR-0082 (F.4): la fila de la corrida trae runs.council_json (la copia server-side, E.1) y el blob NO viaja al renglón",
+      "council_json" in (db.get_run(RC["run_id"]) or {}) and (db.get_run(RC["run_id"]) or {}).get("council_json")
+      and "council_json" not in RC and "council_json" not in det_c, f"keys={sorted(RC)[:6]}…")
+check(f"ADR-0082: corrida con plan → plan_council_state == el council.state del plan ({PC_STATE!r}) en POST /runs, detalle y lista "
+      "(misma consulta, misma llave — LOTE-01·A1)",
+      pc.status_code == 200 and rc.status_code == 200 and PC_STATE is not None
+      and RC.get("plan_council_state") == det_c.get("plan_council_state") == lst4.get(RC["run_id"], {}).get("plan_council_state") == PC_STATE,
+      f"post={RC.get('plan_council_state')!r} det={det_c.get('plan_council_state')!r} lista={lst4.get(RC.get('run_id'), {}).get('plan_council_state')!r}")
 
 n_pass = sum(CHECKS)
 print(f"\n{n_pass}/{len(CHECKS)} PASS")

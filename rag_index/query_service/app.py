@@ -26,6 +26,7 @@ Run (single process — in-process caches and the block-5 write queue assume ONE
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -55,6 +56,15 @@ import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import models  # noqa: E402  (ADR-0081 (A): la tabla de modelos — resolución EN LA LLAMADA)
 from lib import rag_backend  # noqa: E402
+from lib import agent_matrix, catalog_cards  # noqa: E402  (ADR-0082 (A)/(B): membresía cm-1 + fichas verbatim — C1)
+
+# ADR-0082 — módulos hermanos que estas puertas cablean: lib.council (kill-switch, vocabularios, config, modelo del
+# consejo) y council_index (búsqueda / demanda / prior observations). Imports DIRECTOS (C9 retiró la tolerancia
+# "hasta que aterrice C2/C7"): un fallo de import tumba el servicio en voz alta, como cualquier módulo de la casa.
+from lib import council as council_mod  # noqa: E402
+import council_index as council_index_mod  # noqa: E402
+COUNCIL_MODULE_STATE = "loaded"
+COUNCIL_INDEX_MODULE_STATE = "loaded"
 
 SERVICE_VERSION = "1.0"
 STATUS_TTL_S = int(os.environ.get("WITT_STATUS_TTL_SECONDS", "60"))
@@ -487,28 +497,402 @@ def create_plan(body: PlanBody, authorization: str = Header(None)):
     nunca re-manda el objeto (procedencia).
 
     ADR-0079: con parent_run_id (validado 404/409 igual que al encolar) el planner recibe el
-    thread_context del padre — el MISMO snapshot que verá el sintetizador, armado por el SERVIDOR
+    thread_context del padre — el MISMO snapshot que verá el sintetizador (SIN `council_summary`: el sintetizador es CIEGO
+    al consejo, E5; sólo el planner y la ronda 1 del turno N+1 lo reciben — corrector ADR-0082), armado por el SERVIDOR
     (runs.plan_thread_context -> sobre {snapshot, skipped_reason}) desde el registro congelado +
     comentarios del padre. El sobre entero va a build_plan (que declara en el plan si el planner lo
     vio: plan.thread_context_declared / thread_context_skipped_reason); la respuesta repite el padre
-    y la razón de omisión (identidad del padre inválida, kill-switch) para que el cliente no infiera."""
+    y la razón de omisión (identidad del padre inválida, kill-switch) para que el cliente no infiera.
+
+    ADR-0082 (E.3): el plan es además el JOB de la ronda 1 del consejo. El planner sigue SÍNCRONO; la ronda 1 se ENCOLA
+    (plans.council_state 'queued', la reclama council-worker de C4) SÓLO si WITT_COUNCIL=1 ∧ judgment declared ∧ route
+    evidence-run ∧ niches ≠ [] ∧ origin ∈ WITT_COUNCIL_ORIGINS ∧ cola por usuario < tope; si no, el estado dice por qué
+    ('not-requested (…)' | 'disabled (kill-switch WITT_COUNCIL=0)'). Dedup del doble clic ANTES del planner. La respuesta
+    gana `origin`, `plan_response` ('created' | 'reused' + reused_from_plan_id/reused_reason) y el bloque `council`."""
     user = _user_of(authorization)
     q = body.question.strip()
     if not q:
         raise HTTPException(status_code=400, detail="question must be non-empty")
+    ents = [e.strip() for e in body.entities if e.strip()]
     sobre = None
     if body.parent_run_id:
         sobre = _traduce_thread_error(runs_mod.plan_thread_context, body.parent_run_id)
-    plan = runs_mod.build_plan(q, [e.strip() for e in body.entities if e.strip()], thread_context=sobre)
+    # ADR-0082 (E.1): la PROCEDENCIA del plan la deriva el MISMO derivador que la corrida (runs.run_origin) — es la
+    # compuerta de gasto de (E.3): smoke/fixture/dev-offline no disparan 17 llamadas de opus-5 (Context 9).
+    origin = runs_mod.run_origin()
+    # ADR-0082 (E.3) dedup del doble clic — ANTES de llamar al planner (una llamada de planner también es gasto):
+    # el mismo usuario con la misma (question, entities_csv, parent_run_id) y una ronda 1 viva → ESE plan, 200.
+    reused = _council_dedup_lookup(user["user_id"], q, ents, body.parent_run_id)
+    if reused is not None:
+        return _reused_plan_response(reused, body, origin)
+    plan = runs_mod.build_plan(q, ents, thread_context=sobre)
+    # corrector ADR-0082 (E.3): el dedup se RE-CONSULTA tras el planner (10–20 s) e inmediatamente antes del INSERT — dos POST
+    # idénticos que llegaban dentro de esa ventana pasaban los dos la primera consulta, llamaban al planner los dos y creaban
+    # DOS jobs 'queued' (2 × 17 llamadas). El gasto del planner de ESTE request ya ocurrió y se declara (reused_after_planner);
+    # el tope por usuario se lee en _council_state_for_new_plan, también después del planner.
+    reused = _council_dedup_lookup(user["user_id"], q, ents, body.parent_run_id)
+    if reused is not None:
+        return _reused_plan_response(reused, body, origin, after_planner=True)
     plan_id = uuid.uuid4().hex
-    db.create_plan(plan_id, user["user_id"], q, plan["entities"],
-                   json.dumps(plan, ensure_ascii=False, default=str))
+    council_state = _council_state_for_new_plan(plan, origin["value"], user["user_id"])
+    _create_plan_row(plan_id, user["user_id"], q, plan, origin, council_state)
+    if council_state == COUNCIL_STATE_QUEUED:
+        # el primer evento de la traza del PLAN lo emite la puerta; los siguientes (running, member, aggregate…) el
+        # worker de C4. Sin este evento la card no tendría latido hasta que un worker reclame el job.
+        db.plan_add_event(plan_id, "council.state", agent="council",
+                          payload={"state": COUNCIL_STATE_QUEUED, "plan_id": plan_id, "origin": origin["value"],
+                                   "n_members": agent_matrix.council_size(os.environ),
+                                   "membership_version": agent_matrix.MEMBERSHIP_VERSION,
+                                   "catalog_sha": catalog_cards.CATALOG_SHA, "reason": None})
     return {"plan_id": plan_id, "plan": plan,
             # ADR-0079: qué padre se declaró y si su contexto llegó al planner (o por qué no)
             "parent_run_id": body.parent_run_id,
             "thread_context_passed": (sobre or {}).get("snapshot") is not None,
             "thread_context_skipped_reason": ((sobre or {}).get("skipped_reason")
-                                             if body.parent_run_id else "root-turn")}
+                                             if body.parent_run_id else "root-turn"),
+            # ADR-0082 (E.3): procedencia del plan + el bloque del consejo (estado del job, membresía, modelo, presupuesto,
+            # proyección de costo y las tres puertas de lectura). `plan_response` distingue creado de reutilizado.
+            "origin": origin,
+            "plan_response": "created",
+            "council": _council_plan_block(plan_id, council_state)}
+
+
+# --- el consejo de criterio (ADR-0082): puertas HTTP (rebanada C6) ------------------------------------
+# Doctrina §7 (CLAUDE.md): el consejo NUNCA escribe respuesta, veredicto, ranking ni despacha. Estas puertas sólo
+# (a) ENCOLAN la ronda 1 como job del PLAN con compuertas de gasto (E.3); (b) sirven el estado y los eventos del plan
+# (E.3); (c) reciben la decisión HUMANA sobre cada requisito — el ÚNICO punto donde la prosa del consejo se vuelve
+# gasto (F.1/F.2); (d) exigen esa decisión antes de correr (F.3) y componen server-side la copia congelada (F.4);
+# (e) cablean la membresía y el índice (I) y el gasto de rondas 1 nunca corridas (H).
+# Los módulos hermanos (lib.council — C2 · council_index — C7 · la superficie de db.py — C4) se resuelven en la
+# LLAMADA y su ausencia se DECLARA (503 tipado con `missing[]` / estado 'not-requested (…)'), jamás se simula.
+
+COUNCIL_ENV = "WITT_COUNCIL"
+COUNCIL_ORIGINS_ENV = "WITT_COUNCIL_ORIGINS"
+COUNCIL_ORIGINS_DEFAULT = "production"
+COUNCIL_ORIGINS_ALL = "all"                       # literal DECLARADO: sin filtro de origen (nunca null a secas)
+COUNCIL_DEDUP_S_ENV, COUNCIL_DEDUP_S_DEFAULT = "WITT_COUNCIL_DEDUP_S", 600
+COUNCIL_MAX_QUEUED_ENV, COUNCIL_MAX_QUEUED_DEFAULT = "WITT_COUNCIL_MAX_QUEUED_PER_USER", 3
+COUNCIL_ATTESTATION_ENV, COUNCIL_ATTESTATION_DEFAULT = "WITT_COUNCIL_ATTESTATION_CHARS", 4000
+COUNCIL_INDEX_ENV = "WITT_COUNCIL_INDEX"
+COUNCIL_EFFORT_ENV, COUNCIL_EFFORT_DEFAULT = "WITT_COUNCIL_EFFORT", "medium"     # E2 (default)
+# Espejo de los literales de council.COUNCIL_STATES_EXACT (C.8) que ESTA capa emite o compara. El smoke los compara
+# con council.council_vocabulary() cuando lib.council existe (gate de paridad (F)); aquí no se inventa ninguno.
+COUNCIL_PENDING_STATES = ("queued", "running")          # r1 en curso → 409 council_round1_pending / council_not_terminal
+COUNCIL_LEDGER_STATES = ("applicable", "incomplete")    # r1 terminó con requisitos → exige ledger aprobado o skip
+COUNCIL_STATE_QUEUED = "queued"
+COUNCIL_STATE_SKIPPED = "skipped-by-human"
+COUNCIL_STATE_DISABLED = "disabled (kill-switch WITT_COUNCIL=0)"
+COUNCIL_STATE_PRE_ADR = "pre-adr-0082"                  # plans.council_state NULL (plan anterior al ADR; jamás backfill)
+COUNCIL_STATE_DB_UNAVAILABLE = "not-requested (council db unavailable)"   # la BD conectada NO tiene la superficie E.1 (sin migrar)
+LEDGER_DECISIONS = ("keep", "discard", "aporto")        # DECISION_STATES − 'pending' (pending lo pone el servidor)
+LEDGER_STATES = ("draft", "approved", "skipped-by-human")
+DECIDED_BY_DEFAULT_KEEP = "default-keep"
+DECIDED_BY_GATE_PENDING = "gate-human-pending"
+KNOWLEDGE_NOW_CLASS = "attested"
+COUNCIL_PERMISSIONS_RULE = ("permisos planos (ADR-0047): cualquier sesión autenticada aprueba o salta el ledger; queda "
+                            "registrado quién (approved_by / skipped_by) y si es el autor del plan (approved_by_is_author)")
+# Proyección de la ronda 1 (ADR-0082 §Proyección; LG1 sustituye cada cifra): tokens por miembro y llamada, sin caché.
+COUNCIL_R1_EST_IN_TOKENS = 4200
+COUNCIL_R1_EST_OUT_TOKENS = (1100, 2600)
+COUNCIL_CFG_DEFAULTS = {"member_timeout_s": 120, "round_budget_s": 300, "concurrency": 6, "quorum": 0.6}
+
+
+def _council_enabled():
+    """(enabled, fuente). El kill-switch WITT_COUNCIL (C.9/L.2): council.enabled(env) — el MISMO lector que obedece
+    runs.execute_run y council_jobs (UNA verdad; C9 retiró el lector local de respaldo)."""
+    v, src = council_mod.enabled(os.environ)
+    return bool(v), str(src)
+
+
+def _council_origins():
+    """(orígenes | None, fuente): WITT_COUNCIL_ORIGINS como CSV tolerante; vacía → ['production']; 'all' → None = SIN
+    filtro, declarado (E.3: sólo estos orígenes del PROCESO encolan la ronda 1)."""
+    raw = (os.environ.get(COUNCIL_ORIGINS_ENV) or "").strip()
+    if not raw:
+        return [COUNCIL_ORIGINS_DEFAULT], f"default-unset:{COUNCIL_ORIGINS_ENV}"
+    vals = [v.strip() for v in raw.split(",") if v.strip()]
+    if not vals:
+        return [COUNCIL_ORIGINS_DEFAULT], f"default-invalid-env:{COUNCIL_ORIGINS_ENV}"
+    if COUNCIL_ORIGINS_ALL in vals:
+        return None, f"env:{COUNCIL_ORIGINS_ENV} ({COUNCIL_ORIGINS_ALL} = sin filtro)"
+    return vals, f"env:{COUNCIL_ORIGINS_ENV}"
+
+
+def _council_effort():
+    """(effort | None, fuente) — E2 por models.council_effort (UNA verdad: la misma que council.build_request envía):
+    unset/vacía → 'medium'; ∈ ANTHROPIC_EFFORTS → ese; literal 'inherit' → hereda WITT_ANTHROPIC_EFFORT (None = default
+    de la API, declarado); basura → 'medium' declarado. Sólo se ECHA aquí (la card lo muestra antes de gastar). C9 alineó
+    esta puerta con la tabla (antes "definida vacía → hereda": divergencia C3↔C6 declarada en el ADR)."""
+    return models.council_effort(os.environ)
+
+
+def _council_cfg():
+    """El presupuesto de la ronda que la card muestra ANTES de gastar: council.config(os.environ) (C2 — la configuración
+    PLANA que run_round obedece: member_timeout_s, budget_s, concurrency, quorum) cuando existe; si no, los defaults de la
+    tabla del ADR con la fuente declarada. Sólo las cuatro llaves que viajan en `council.budget`."""
+    base = dict(COUNCIL_CFG_DEFAULTS)
+    cfg = council_mod.config(os.environ) or {}
+    for mine, theirs in (("member_timeout_s", "member_timeout_s"), ("round_budget_s", "budget_s"),
+                         ("concurrency", "concurrency"), ("quorum", "quorum")):
+        if theirs in cfg and cfg[theirs] is not None:
+            base[mine] = cfg[theirs]
+    source = "council.config (env_sources: " + ", ".join(
+        f"{k}={cfg.get(k + '_source') or cfg.get('env_sources', {}).get(k)}"
+        for k in ("member_timeout", "budget", "concurrency", "quorum")) + ")"
+    return {**base, "source": source}
+
+
+def _council_model_view():
+    """El modelo del consejo RESUELTO en la llamada — UNA verdad: council.resolve_council_model(os.environ) (C2, sobre la
+    tabla g2 rol 'council' de C3, D.2) → {model, source, generation, known, max_tokens, effort, effort_source, effort_sent};
+    sin lib.council, models.resolve_role('council') directo; sin el rol en la tabla → null DECLARADO (nunca un literal de
+    modelo aquí: gate estático M.4 de ADR-0081). effort: E2 default 'medium'."""
+    r = council_mod.resolve_council_model(os.environ)
+    return {"model": r.get("model"), "source": r.get("source"), "generation": r.get("generation"),
+            "known": r.get("known"), "priced": (r.get("model") in runs_mod.PRICES_PER_MTOK_USD) if r.get("model") else None,
+            "max_tokens": r.get("max_tokens"), "effort": r.get("effort"), "effort_source": r.get("effort_source"),
+            "effort_sent": r.get("effort_sent"), "effort_sent_source": r.get("effort_sent_source"),
+            "resolver": "council.resolve_council_model"}
+
+
+def _council_r1_estimate(model, n_members):
+    """[PROYECCIÓN] USD de la ronda 1 desde supuestos DECLARADOS × precios de la tabla de HOY (ADR-0082 §Proyección).
+    Sin precio para el modelo → usd null + state (nunca 0). Es lo que la card pinta ANTES de correr (Consequences 3)."""
+    lo_out, hi_out = COUNCIL_R1_EST_OUT_TOKENS
+    base = {"class": "PROJECTION", "round": "r1", "n_members": n_members, "model": model,
+            "assumptions": [f"{COUNCIL_R1_EST_IN_TOKENS} tokens de entrada por miembro (tools + bloque fijo + §7 + ficha "
+                            f"+ pregunta/entidades/juicio del plan/prior observations)",
+                            f"{lo_out}-{hi_out} tokens de salida por miembro (criterio ~600 + pensamiento adaptativo "
+                            f"0.5-2k, facturado como salida)",
+                            "1 intento por miembro (reintentos de contenido ×2 en una fracción: no incluidos)",
+                            "sin caché (la caché sólo abarata el prefijo compartido leído N-1 veces)",
+                            f"precios por Mtok al {runs_mod.PRICES_AS_OF}",
+                            "ADR-0082 §Proyección — LG1 sustituye cada cifra por medición"],
+            "source": "app._council_r1_estimate (regla declarada; sin llamada de modelo)"}
+    precio = runs_mod.PRICES_PER_MTOK_USD.get(model) if model else None
+    if not precio:
+        return {**base, "usd_low": None, "usd_high": None,
+                "state": "not-priced (model unknown or without price in the table)"}
+    p_in, p_out = precio
+    lo = round(n_members * (COUNCIL_R1_EST_IN_TOKENS * p_in + lo_out * p_out) / 1e6, 4)
+    hi = round(n_members * (COUNCIL_R1_EST_IN_TOKENS * p_in + hi_out * p_out) / 1e6, 4)
+    return {**base, "usd_low": lo, "usd_high": hi, "state": "projected"}
+
+
+# ---- la superficie E.1 en la BD CONECTADA (ADR-0082) — medida por ESQUEMA (db.council_schema_state), declarada -------
+# C9 retiró la inspección de firmas de db.py (ventana "C4 pendiente"): las funciones existen; lo que sí puede faltar en
+# tiempo de ejecución es la MIGRACIÓN (una BD Postgres donde _migrate falló, LG8). Se mide una vez y, cuando la BD ya
+# está lista, no se vuelve a inspeccionar (el esquema no se des-migra en caliente).
+_COUNCIL_DB_READY = {"ready": False}
+
+
+def _council_db_missing(*_needed):
+    """Lo que la BD conectada NO tiene de la superficie E.1: ['plans.<col>', …, 'runs.council_json', 'plan_events'] —
+    lista vacía = lista. Los argumentos (nombres lógicos de rutas) se aceptan por compatibilidad con los llamadores y no
+    acotan: la superficie se mide entera (una migración es todo o nada)."""
+    if _COUNCIL_DB_READY["ready"]:
+        return []
+    st = db.council_schema_state()
+    missing = ([f"plans.{c}" for c in st.get("plans_missing") or []]
+               + [f"runs.{c}" for c in st.get("runs_missing") or []]
+               + ([] if st.get("plan_events_table") else ["plan_events"]))
+    if st.get("error"):
+        missing.append(f"schema: {st['error']}")
+    if not missing:
+        _COUNCIL_DB_READY["ready"] = True
+    return missing
+
+
+def _need_council_db(*needed):
+    """503 tipado si la BD conectada no tiene la superficie E.1: la ruta EXISTE y declara qué le falta (jamás un 500 ni
+    un 404 que haría pensar que el plan no está)."""
+    missing = _council_db_missing(*needed)
+    if missing:
+        raise HTTPException(status_code=503, detail={
+            "state": "council-db-unavailable", "missing": missing,
+            "note": "la BD conectada no tiene la superficie ADR-0082 (E.1): db._migrate no la creó — la ruta existe y lo declara"})
+
+
+def _json_or_none(s):
+    if not s:
+        return None
+    try:
+        return json.loads(s)
+    except Exception:
+        return None
+
+
+def _plan_council_state(prow):
+    """Los TRES estados de plans.council_state (ADR-0043): columna AUSENTE (BD sin migrar) →
+    'not-requested (council db unavailable)'; NULL → 'pre-adr-0082' (plan anterior al ADR, declarado, jamás backfill);
+    valor → tal cual."""
+    if "council_state" not in prow:
+        return COUNCIL_STATE_DB_UNAVAILABLE
+    return prow.get("council_state") or COUNCIL_STATE_PRE_ADR
+
+
+def _plan_ledger(prow):
+    return _json_or_none(prow.get("council_ledger_json"))
+
+
+def _plan_council_json(prow):
+    return _json_or_none(prow.get("council_json"))
+
+
+def _requirements_of(cj):
+    """Los requisitos AGREGADOS de la ronda 1 tal como los escribió el worker (council_jobs con council.aggregate_requirements):
+    plans.council_json.requirements[] (tolerante a council_json.aggregation.requirements[]). Orden = el del agregado
+    (must > should, n_requested_by desc, requirement_id asc) — el ledger lo conserva."""
+    if not isinstance(cj, dict):
+        return []
+    reqs = cj.get("requirements")
+    if reqs is None:
+        reqs = (cj.get("aggregation") or {}).get("requirements")
+    return [r for r in (reqs or []) if isinstance(r, dict) and r.get("requirement_id")]
+
+
+def _council_run_gate(prow, enabled=None):
+    """(F.3) La puerta ANTES de encolar la corrida — UNA función para POST /runs (el 409) y GET /plans/{id} (`run_gate`,
+    el motivo con que la webapp deshabilita "Correr"): {allowed, reason ∈ null | 'council_round1_pending' |
+    'council_ledger_unapproved', council_state, kill_switch}. errored (…) / not-requested (…) / disabled (…) /
+    pre-adr-0082 / skipped-by-human NO bloquean (frozen.council.state lo dirá). WITT_COUNCIL=0 → nunca bloquea (L.2)."""
+    enabled = _council_enabled()[0] if enabled is None else enabled
+    cs = _plan_council_state(prow)
+    out = {"allowed": True, "reason": None, "council_state": cs, "kill_switch": not enabled}
+    if not enabled:
+        return out
+    if cs in COUNCIL_PENDING_STATES:
+        return {**out, "allowed": False, "reason": "council_round1_pending"}
+    if cs in COUNCIL_LEDGER_STATES and (_plan_ledger(prow) or {}).get("state") != "approved":
+        return {**out, "allowed": False, "reason": "council_ledger_unapproved"}
+    return out
+
+
+def _council_state_for_new_plan(plan, origin_value, user_id):
+    """(E.3) La decisión de ENCOLAR la ronda 1 — compuertas en orden FIJO, cada 'no' con su literal (prefijo
+    'not-requested (' del vocabulario C.8): kill-switch → juicio no declarado → ruta ≠ evidence-run → nichos vacíos →
+    origen del PROCESO fuera de WITT_COUNCIL_ORIGINS → BD sin la superficie E.1 → tope de cola por usuario → 'queued'."""
+    enabled, _ = _council_enabled()
+    if not enabled:
+        return COUNCIL_STATE_DISABLED
+    j = plan.get("judgment") or {}
+    if j.get("state") != "declared":
+        return f"not-requested (judgment {j.get('state') or 'absent'})"
+    if j.get("route") != "evidence-run":
+        return f"not-requested (route {j.get('route')})"
+    if not j.get("niches"):
+        return "not-requested (niches empty)"
+    origins, _ = _council_origins()
+    if origins is not None and origin_value not in origins:
+        return f"not-requested (origin {origin_value} not in {COUNCIL_ORIGINS_ENV})"
+    if _council_db_missing():
+        return COUNCIL_STATE_DB_UNAVAILABLE
+    cap, _ = runs_mod._env_int_tolerante(COUNCIL_MAX_QUEUED_ENV, COUNCIL_MAX_QUEUED_DEFAULT)
+    # db.count_plans_council(user_id=<str>, states=<tuple>) -> int
+    if db.count_plans_council(user_id=user_id, states=(COUNCIL_STATE_QUEUED,)) >= cap:
+        return "not-requested (queue-cap per user)"
+    return COUNCIL_STATE_QUEUED
+
+
+def _council_dedup_lookup(user_id, question, entities, parent_run_id):
+    """(E.3) El plan VIVO (council_state queued|running, creado hace < WITT_COUNCIL_DEDUP_S) del MISMO usuario con la MISMA
+    (question, entities_csv, parent_run_id), o None. db.plans_council_pending(user_id, question, entities_csv,
+    parent_run_id, since) -> fila de plans | None (parent_run_id = plan_json.thread_parent_run_id, None en la raíz)."""
+    enabled, _ = _council_enabled()
+    if not enabled or _council_db_missing("plans_council_pending"):
+        return None
+    window, _ = runs_mod._env_int_tolerante(COUNCIL_DEDUP_S_ENV, COUNCIL_DEDUP_S_DEFAULT)
+    since = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=window)
+    row = db.plans_council_pending(user_id, question, ",".join(entities), parent_run_id, since)
+    if not row or _plan_council_state(row) not in COUNCIL_PENDING_STATES:
+        return None   # defensa: sólo se reutiliza un job VIVO (la consulta ya filtra; se re-mide aquí)
+    return row
+
+
+def _reused_plan_response(reused, body, origin, after_planner=False):
+    """(E.3) La respuesta 200 'reused' del dedup del doble clic: ESE plan vivo, con el porqué. `after_planner` (corrector
+    ADR-0082): la carrera se resolvió en la re-consulta posterior al planner — el planner de este request ya gastó, y se dice."""
+    plan_r = json.loads(reused["plan_json"])
+    cs_r = _plan_council_state(reused)
+    reason = f"council round 1 {cs_r} for an identical question (dedup window)"
+    if after_planner:
+        reason += (" — concurrent request: the planner call of this request was already spent (declared); "
+                   "no second council job was created")
+    return {"plan_id": reused["plan_id"], "plan": plan_r,
+            "parent_run_id": body.parent_run_id,
+            "thread_context_passed": bool(plan_r.get("thread_context_declared")),
+            "thread_context_skipped_reason": (plan_r.get("thread_context_skipped_reason")
+                                              if body.parent_run_id else "root-turn"),
+            "origin": origin,
+            "plan_response": "reused",
+            "reused_from_plan_id": reused["plan_id"],
+            "reused_reason": reason,
+            "reused_after_planner": after_planner,
+            "council": _council_plan_block(reused["plan_id"], cs_r)}
+
+
+def _create_plan_row(plan_id, user_id, question, plan, origin, council_state):
+    """db.create_plan con la firma de E.1 (origin=, council_state=): `origin` = runs.run_origin()['value'] (el MISMO
+    derivador de la corrida) y el estado inicial del consejo que decidió _council_state_for_new_plan."""
+    plan_json = json.dumps(plan, ensure_ascii=False, default=str)
+    db.create_plan(plan_id, user_id, question, plan["entities"], plan_json,
+                   origin=origin["value"], council_state=council_state)
+    return True
+
+
+def _council_plan_block(plan_id, council_state, extra=None):
+    """El bloque `council` de POST /runs/plan (E.3): estado del job + membresía (cm-1, N, full) + catalog_sha + modelo
+    resuelto + las tres puertas de lectura + presupuesto de ronda + proyección de costo + las compuertas de gasto
+    vigentes. Todo derivado del servidor — la webapp no infiere N ni k (regla 1 de la casa)."""
+    is_full, full_src = agent_matrix.council_full(os.environ)
+    n = agent_matrix.council_size(os.environ)
+    model = _council_model_view()
+    cfg = _council_cfg()
+    enabled, en_src = _council_enabled()
+    origins, o_src = _council_origins()
+    dedup_s, dedup_src = runs_mod._env_int_tolerante(COUNCIL_DEDUP_S_ENV, COUNCIL_DEDUP_S_DEFAULT)
+    cap, cap_src = runs_mod._env_int_tolerante(COUNCIL_MAX_QUEUED_ENV, COUNCIL_MAX_QUEUED_DEFAULT)
+    try:
+        quorum_required = math.ceil(float(cfg["quorum"]) * n)
+    except (TypeError, ValueError):
+        quorum_required = None
+    return {"state": council_state, "plan_id": plan_id,
+            "membership_version": agent_matrix.MEMBERSHIP_VERSION,
+            "matrix_version": agent_matrix.MATRIX_VERSION,
+            "n_members": n, "full_council": is_full, "full_council_source": full_src,
+            "catalog_sha": catalog_cards.CATALOG_SHA, "catalog_state": catalog_cards.CATALOG_STATE,
+            "model": model,
+            "poll": f"/plans/{plan_id}", "events": f"/plans/{plan_id}/events", "stream": f"/plans/{plan_id}/stream",
+            "budget": {"member_timeout_s": cfg["member_timeout_s"], "round_budget_s": cfg["round_budget_s"],
+                       "concurrency": cfg["concurrency"], "quorum": cfg["quorum"],
+                       "quorum_required": quorum_required, "source": cfg["source"]},
+            "estimate": _council_r1_estimate(model["model"], n),
+            "gates": {"kill_switch": {"env": COUNCIL_ENV, "enabled": enabled, "source": en_src},
+                      "origins_allowed": origins, "origins_source": o_src,
+                      "dedup_window_s": dedup_s, "dedup_window_source": dedup_src,
+                      "max_queued_per_user": cap, "max_queued_per_user_source": cap_src},
+            "modules": {"council": COUNCIL_MODULE_STATE, "council_index": COUNCIL_INDEX_MODULE_STATE,
+                        "db_missing": _council_db_missing()},
+            **(extra or {})}
+
+
+def _compose_run_council_json(prow):
+    """(F.4) La copia que la corrida CONGELA al encolar — compuesta en el SERVIDOR desde la fila del plan, jamás del
+    cliente: {plan_id, r1_state, r1: plans.council_json | null, ledger: plans.council_ledger_json | null,
+    membership_version, n_members, members[], full_council, catalog_sha (los cuatro tal como r1 los congeló: r2/r3 usan
+    ESTA N, no la env vigente), membership_source, composed_at, source}. Un plan sin ronda 1 (not-requested/disabled/
+    errored/pre-adr) también viaja: `r1_state` es lo que _run_view.plan_council_state pinta."""
+    r1 = _plan_council_json(prow)
+    r1d = r1 if isinstance(r1, dict) else {}
+    return {"plan_id": prow["plan_id"], "r1_state": _plan_council_state(prow), "r1": r1,
+            "ledger": _plan_ledger(prow),
+            "membership_version": r1d.get("membership_version"), "n_members": r1d.get("n_members"),
+            "members": r1d.get("members"), "full_council": r1d.get("full_council"),
+            "catalog_sha": r1d.get("catalog_sha"),
+            "membership_source": ("plan.council (frozen at r1)" if r1d
+                                  else "not-available (plan without council round 1)"),
+            "composed_at": _now_iso(),
+            "source": "plans.council_json + plans.council_ledger_json (copied at enqueue)"}
 
 
 def config_ledger_boot():
@@ -551,7 +935,8 @@ def _run_view(run):
     view = {k: (v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v)
             for k, v in run.items()
             if k not in ("bundle_json", "frozen_record_json", "usage_json", "epistemic_summary_json",
-                         "plan_json", "thread_context_json")}
+                         "plan_json", "thread_context_json",
+                         "council_json")}   # ADR-0082 (F.4): la copia server-side del consejo es blob del registro
     view["heartbeat_age_s"] = round(hb, 1) if hb is not None else None
     view["heartbeat_stale"] = bool(hb is not None and hb > HEARTBEAT_STALE_S
                                    and run["state"] in ("queued", "running"))
@@ -582,7 +967,23 @@ def _run_view(run):
     # LOTE-02·3: frozen-at-freeze summary for rich list rows; null = run without a frozen record yet
     view["epistemic_summary"] = (json.loads(run["epistemic_summary_json"])
                                  if run.get("epistemic_summary_json") else None)
+    # ADR-0082 (J, vista): el estado del consejo del PLAN que respaldó la corrida y los válidos de su ronda 1, derivados de
+    # runs.council_json (la copia server-side de F.4) como plan_niches lo hace de plan_json. None = corrida sin plan, sin
+    # consejo o anterior al contrato — ausencia declarada, jamás rellenada (0 medido ≠ null).
+    view["plan_council_state"], view["council_n_valid"] = _council_view_of_run(run)
     return view
+
+
+def _council_view_of_run(run):
+    """(plan_council_state, council_n_valid) desde runs.council_json {r1_state, r1 {rounds[0] {n_valid}}} — lectura
+    TOLERANTE: blob ausente/ilegible → (None, None)."""
+    cj = _json_or_none(run.get("council_json")) if run.get("council_json") else None
+    if not isinstance(cj, dict):
+        return None, None
+    r1 = cj.get("r1") if isinstance(cj.get("r1"), dict) else {}
+    rounds = r1.get("rounds") if isinstance(r1.get("rounds"), list) else []
+    n_valid = rounds[0].get("n_valid") if rounds and isinstance(rounds[0], dict) else r1.get("n_valid")
+    return cj.get("r1_state"), (n_valid if isinstance(n_valid, int) and not isinstance(n_valid, bool) else None)
 
 
 @app.post("/runs")
@@ -616,6 +1017,7 @@ def create_run(body: RunBody, authorization: str = Header(None)):
                 "state": "question_already_used", "run_id": qrow["run_id"],
                 "note": "este borrador ya respalda otra corrida; pide uno nuevo o corre sin él"})
     plan_json = None
+    council_copy = None
     if body.plan_id:
         prow = db.get_plan(body.plan_id)
         if prow is None:
@@ -626,19 +1028,45 @@ def create_run(body: RunBody, authorization: str = Header(None)):
             raise HTTPException(status_code=409, detail={
                 "state": "plan_already_used", "run_id": prow["run_id"],
                 "note": "este plan ya respalda otra corrida; declara un plan nuevo"})
+        # ADR-0082 (F.3): la puerta del consejo — la MISMA función que GET /plans/{id}.run_gate. Mientras la ronda 1
+        # corre → 409 council_round1_pending; terminó con requisitos y nadie aprobó ni saltó el ledger → 409
+        # council_ledger_unapproved (E4 default: el humano decide ANTES de gastar r2). WITT_COUNCIL=0 → sin puerta (L.2).
+        gate = _council_run_gate(prow)
+        if not gate["allowed"]:
+            raise HTTPException(status_code=409, detail={
+                "state": gate["reason"], "plan_id": body.plan_id, "council_state": gate["council_state"],
+                "poll": f"/plans/{body.plan_id}",
+                "note": ("la ronda 1 del consejo sigue en curso: espera el ledger (SSE /plans/{id}/stream)"
+                         if gate["reason"] == "council_round1_pending" else
+                         "aprueba el ledger (POST /plans/{id}/council/ledger) o salta el consejo con razón "
+                         "(POST /plans/{id}/council/skip) antes de correr")})
         plan_json = prow["plan_json"]
+        council_copy = _compose_run_council_json(prow)
     # ADR-0079: el padre lo valida runs.new_run ANTES de insertar (ThreadError -> 404 parent_not_found /
     # 409 parent_not_terminal, traducidos aquí). Sólo viaja la REFERENCIA: thread_id, turn_no, turn_kind,
     # origin, root_question_id y el snapshot thread_context los deriva el servidor (ADR-0056 — jamás del
     # cliente). from_question_id viaja también para que la raíz selle root_question_id = su borrador.
+    # ADR-0082 (F.4): runs.council_json es la copia SERVER-SIDE (jamás del cliente) que new_run persiste al encolar
+    # (db.create_run(council_json=)); sin plan no hay copia y la corrida lo declara ('not-applicable (no-ledger)').
     run_id = _traduce_thread_error(runs_mod.new_run, user["user_id"], q,
                                    [e.strip() for e in body.entities if e.strip()],
                                    plan_json=plan_json, parent_run_id=body.parent_run_id,
-                                   from_question_id=body.from_question_id)
+                                   from_question_id=body.from_question_id,
+                                   council_json=(json.dumps(council_copy, ensure_ascii=False, default=str)
+                                                 if council_copy is not None else None))
     if body.from_question_id:
         db.mark_question_used(body.from_question_id, run_id)
-    if body.plan_id:
-        db.mark_plan_used(body.plan_id, run_id)
+    if body.plan_id and not db.mark_plan_used(body.plan_id, run_id):
+        # corrector ADR-0082 (F.3): dos POST /runs concurrentes con el MISMO plan_id — el sello (UPDATE … WHERE run_id IS NULL)
+        # lo ganó OTRA corrida entre la lectura de la fila y este UPDATE. La corrida recién encolada no debe correr (repetiría
+        # r2 sobre la misma copia del consejo): se cancela con autor y razón (queda como traza de la carrera, jamás se borra)
+        # y se responde 409 plan_already_used con el ganador. Preexistente @ 9d90c01 (el bool se descartaba).
+        ganador = (db.get_plan(body.plan_id) or {}).get("run_id")
+        db.request_cancel(run_id, by="server", reason=f"plan_already_used race: plan {body.plan_id} sealed by run {ganador}")
+        raise HTTPException(status_code=409, detail={
+            "state": "plan_already_used", "plan_id": body.plan_id, "run_id": ganador, "cancelled_run_id": run_id,
+            "note": "otra corrida selló este plan mientras ésta se encolaba (carrera resuelta en la BD); la corrida creada "
+                    "quedó 'cancelled' con razón"})
     return _con_comentarios([_run_view(db.get_run(run_id))])[0]
 
 
@@ -1000,19 +1428,32 @@ async def stream_events(run_id: str, after: int = 0, authorization: str = Header
     if db.get_run(run_id) is None:
         raise HTTPException(status_code=404, detail="no such run")
 
+    def _terminal():
+        st = db.get_run(run_id)["state"]
+        return st if st in ("awaiting_closure", "closed", "failed", "cancelled") else None
+
+    return _sse_response(lambda last: db.events_after(run_id, last), _terminal, after, end_key="state")
+
+
+def _sse_response(read_events, terminal_state, after, end_key):
+    """UN generador SSE para /runs/{id}/stream y /plans/{id}/stream (ADR-0082 E.3: 'el MISMO generador que
+    /runs/{id}/stream'): drena `read_events(last_seq)` cada 1 s emitiendo `data: <evento JSON>`, manda el comentario
+    keep-alive ': heartbeat' tras 15 s ociosos (que los proxies no corten el stream) y cierra con `event: end
+    {<end_key>: <estado>}` cuando `terminal_state()` devuelve un estado terminal Y el log ya drenó. Los bytes del stream
+    de corridas son los de siempre (end_key 'state'); el de planes usa 'council_state'."""
     async def _gen():
         import asyncio
         last = after
         idle = 0.0
         while True:
-            events = db.events_after(run_id, last)
+            events = read_events(last)
             for ev in events:
                 last = ev["seq"]
                 idle = 0.0
                 yield f"data: {json.dumps(ev, ensure_ascii=False, default=str)}\n\n"
-            run = db.get_run(run_id)
-            if run["state"] in ("awaiting_closure", "closed", "failed", "cancelled") and not events:
-                yield f"event: end\ndata: {json.dumps({'state': run['state']})}\n\n"
+            st = terminal_state()
+            if st is not None and not events:
+                yield f"event: end\ndata: {json.dumps({end_key: st})}\n\n"
                 return
             await asyncio.sleep(1.0)
             idle += 1.0
@@ -1022,6 +1463,369 @@ async def stream_events(run_id: str, after: int = 0, authorization: str = Header
 
     from fastapi.responses import StreamingResponse
     return StreamingResponse(_gen(), media_type="text/event-stream")
+
+
+# --- el plan como JOB del consejo (ADR-0082 E.3 / F.1 / F.2): /plans/* — no colisiona con /runs/plan ni /runs/{id} ---
+
+def _iso_or_none(v):
+    v = db._dt_utc(v) if isinstance(v, datetime.datetime) else v
+    return v.isoformat(timespec="seconds") if isinstance(v, datetime.datetime) else v
+
+
+def _plan_o_404(plan_id):
+    prow = db.get_plan(plan_id)
+    if prow is None:
+        raise HTTPException(status_code=404, detail={"state": "plan_not_found", "plan_id": plan_id})
+    return prow
+
+
+def _plan_view(prow):
+    """GET /plans/{id} (E.3): {plan_id, user_id, question, entities_csv, created_at, origin, run_id, plan, council_state,
+    council (r1 + agregación + requisitos, SIN decisiones), ledger, council_usage, council_error, approved_by,
+    approved_at, approved_by_is_author, council_claimed_by/at, council_started_at/finished_at/last_event_at,
+    heartbeat_age_s, heartbeat_stale (+_after_s), run_gate, poll/events/stream}. Columnas que la BD aún no tiene →
+    null declarado (la vista jamás rellena); origin ausente = plan anterior al ADR."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cs = _plan_council_state(prow)
+    lea = db._dt_utc(prow.get("council_last_event_at")) if prow.get("council_last_event_at") else None
+    hb = (now - lea).total_seconds() if lea else None
+    led = _plan_ledger(prow)
+    pid = prow["plan_id"]
+    return {"plan_id": pid, "user_id": prow.get("user_id"), "question": prow.get("question"),
+            "entities_csv": prow.get("entities_csv"), "created_at": _iso_or_none(prow.get("created_at")),
+            "origin": prow.get("origin"), "run_id": prow.get("run_id"),
+            "plan": _json_or_none(prow.get("plan_json")),
+            "council_state": cs,
+            "council": _plan_council_json(prow),
+            "ledger": led,
+            "council_usage": _json_or_none(prow.get("council_usage_json")),
+            "council_error": prow.get("council_error"),
+            "approved_by": prow.get("council_approved_by"),
+            "approved_at": _iso_or_none(prow.get("council_approved_at")),
+            "approved_by_is_author": (led or {}).get("approved_by_is_author"),
+            "council_claimed_by": prow.get("council_claimed_by"),
+            "council_claimed_at": _iso_or_none(prow.get("council_claimed_at")),
+            "council_started_at": _iso_or_none(prow.get("council_started_at")),
+            "council_finished_at": _iso_or_none(prow.get("council_finished_at")),
+            "council_last_event_at": _iso_or_none(lea),
+            "heartbeat_age_s": round(hb, 1) if hb is not None else None,
+            "heartbeat_stale": bool(hb is not None and hb > HEARTBEAT_STALE_S and cs in COUNCIL_PENDING_STATES),
+            "heartbeat_stale_after_s": HEARTBEAT_STALE_S,
+            "run_gate": _council_run_gate(prow),
+            "poll": f"/plans/{pid}", "events": f"/plans/{pid}/events", "stream": f"/plans/{pid}/stream"}
+
+
+@app.get("/plans/{plan_id}")
+def get_plan(plan_id: str, authorization: str = Header(None)):
+    """El plan declarado con el estado de su ronda 1 (E.3). 401 sin sesión; 404 plan_not_found; 200 con council_state
+    en cualquier estado (incluidos 'pre-adr-0082' y 'not-requested (council db unavailable)' — se sirve, no se oculta)."""
+    _user_of(authorization)
+    return _plan_view(_plan_o_404(plan_id))
+
+
+@app.get("/plans/{plan_id}/events")
+def get_plan_events(plan_id: str, after: int = 0, authorization: str = Header(None)):
+    """Replay y polling de la traza del PLAN — el MISMO log (plan_events) que el SSE lee. db.plan_events_after(plan_id,
+    after_seq) -> [{plan_id, seq, ts, type, agent, tool, level, payload}] (C4; forma de db.events_after)."""
+    _user_of(authorization)
+    prow = _plan_o_404(plan_id)
+    _need_council_db("plan_events_after")
+    return {"plan_id": plan_id, "council_state": _plan_council_state(prow),
+            "events": db.plan_events_after(plan_id, after)}
+
+
+@app.get("/plans/{plan_id}/stream")
+async def stream_plan_events(plan_id: str, after: int = 0, authorization: str = Header(None)):
+    """SSE de la traza del plan (E.3) con el MISMO generador que /runs/{id}/stream; cierra con `event: end
+    {council_state}` cuando la ronda 1 llega a un estado terminal (todo lo que no sea queued|running)."""
+    _user_of(authorization)
+    _plan_o_404(plan_id)
+    _need_council_db("plan_events_after")
+
+    def _terminal():
+        cs = _plan_council_state(db.get_plan(plan_id) or {})
+        return cs if cs not in COUNCIL_PENDING_STATES else None
+
+    return _sse_response(lambda last: db.plan_events_after(plan_id, last), _terminal, after,
+                         end_key="council_state")
+
+
+# --- el ledger humano (ADR-0082 F.1/F.2): el ÚNICO punto donde la prosa del consejo se vuelve gasto ----------------
+
+class LedgerDecisionBody(BaseModel):
+    requirement_id: str
+    decision: str                       # keep | discard | aporto
+    reason: str | None = None           # OBLIGATORIA con discard
+    attested_text: str | None = None    # OBLIGATORIO con aporto (≤ WITT_COUNCIL_ATTESTATION_CHARS); clase atestiguada
+
+
+class LedgerBody(BaseModel):
+    decisions: list[LedgerDecisionBody] = []
+    knowledge_now: str | None = None    # "qué sabes ahora" — clase atestiguada, jamás evidencia (F.5)
+    approve: bool = False
+
+
+class SkipBody(BaseModel):
+    reason: str = ""
+
+
+def _ledger_precondiciones(prow, plan_id):
+    """Las 409 comunes a ledger y skip: r1 en curso → council_not_terminal; plan sellado → plan_already_used; estado sin
+    requisitos que decidir (not-requested/disabled/errored/pre-adr/skipped/db ausente) → council_ledger_not_applicable
+    (literal ADITIVO de esta capa: el ADR sólo nombra los dos primeros; declarado en el contrato)."""
+    cs = _plan_council_state(prow)
+    if cs in COUNCIL_PENDING_STATES:
+        raise HTTPException(status_code=409, detail={
+            "state": "council_not_terminal", "plan_id": plan_id, "council_state": cs,
+            "note": "la ronda 1 sigue en curso; el ledger se decide cuando el job termine (SSE /plans/{id}/stream)"})
+    if prow.get("run_id"):
+        raise HTTPException(status_code=409, detail={
+            "state": "plan_already_used", "plan_id": plan_id, "run_id": prow["run_id"],
+            "note": "el plan ya respalda una corrida: su ledger quedó CONGELADO al encolar (F.4)"})
+    if cs not in COUNCIL_LEDGER_STATES:
+        raise HTTPException(status_code=409, detail={
+            "state": "council_ledger_not_applicable", "plan_id": plan_id, "council_state": cs,
+            "note": "sin requisitos que decidir en este estado: la corrida NO exige ledger (F.3)"})
+    return cs
+
+
+def _write_ledger(plan_id, ledger, approved_by, council_state=None):
+    """Persistencia del ledger, atómica contra el sello (rechaza si plans.run_id ya está puesto → False):
+    db.set_plan_ledger(plan_id, ledger_json, approved_by=<str|None>, council_state=<str|None>) -> bool (ADR E.1). Con
+    `council_state` (el skip: 'skipped-by-human') la columna se escribe en el MISMO UPDATE."""
+    ledger_json = json.dumps(ledger, ensure_ascii=False, default=str)
+    ok = db.set_plan_ledger(plan_id, ledger_json, approved_by, council_state=council_state)
+    if ok is False:
+        raise HTTPException(status_code=409, detail={
+            "state": "plan_already_used", "plan_id": plan_id,
+            "note": "el plan se selló mientras se escribía el ledger (carrera resuelta en la BD)"})
+    return ok
+
+
+def _plan_event(plan_id, type_, payload):
+    db.plan_add_event(plan_id, type_, payload=payload, agent="council")
+
+
+@app.post("/plans/{plan_id}/council/ledger")
+def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(None)):
+    """(F.1) La decisión HUMANA por requisito: keep | discard (razón OBLIGATORIA) | aporto (texto atestiguado OBLIGATORIO)
+    + "qué sabes ahora" + approve. 404 plan_not_found · 409 council_not_terminal {council_state} · 409 plan_already_used
+    {run_id} · 409 council_ledger_not_applicable · 400 unknown_requirement_id[ids] · 400 invalid_decision[ids] · 400
+    discard_without_reason[ids] · 400 aporto_without_text[ids] · 400 attested_text_too_long[ids] / knowledge_now_too_long
+    (el tope viaja en el 400) · **400 hard_rule_requirements_undecided[ids] si approve y algún requisito con hard_rule_gate
+    True sigue pending** (§7.1: la salida de causal-pruner exige decisión humana EXPLÍCITA sobre ESE requisito — ningún
+    default la toma). Al aprobar, los demás pending → keep con decided_by 'default-keep' (declarado: ningún requisito se
+    descarta solo). Un borrador (approve false) se guarda y se puede completar después; sus decisiones humanas se
+    conservan. Lo atestiguado viaja ÍNTEGRO aquí (el frozen lo recorta a 600) y JAMÁS es evidencia (F.5).
+    Devuelve {plan_id, council_state, ledger}."""
+    user = _user_of(authorization)
+    prow = _plan_o_404(plan_id)
+    _need_council_db("set_plan_ledger|set_council_ledger")
+    cs = _ledger_precondiciones(prow, plan_id)
+    reqs = _requirements_of(_plan_council_json(prow))
+    by_id = {r["requirement_id"]: r for r in reqs}
+    tope, tope_src = runs_mod._env_int_tolerante(COUNCIL_ATTESTATION_ENV, COUNCIL_ATTESTATION_DEFAULT)
+
+    def _400(state, ids=None, **extra):
+        raise HTTPException(status_code=400, detail={"state": state, "plan_id": plan_id,
+                                                     **({"ids": ids} if ids is not None else {}), **extra})
+
+    ids_in = [d.requirement_id for d in body.decisions]
+    unknown = [i for i in ids_in if i not in by_id]
+    if unknown:
+        _400("unknown_requirement_id", unknown, known=list(by_id))
+    duplicated = sorted({i for i in ids_in if ids_in.count(i) > 1})
+    if duplicated:
+        _400("duplicated_requirement_id", duplicated)
+    invalid = [d.requirement_id for d in body.decisions if d.decision not in LEDGER_DECISIONS]
+    if invalid:
+        _400("invalid_decision", invalid, allowed=list(LEDGER_DECISIONS))
+    sin_razon = [d.requirement_id for d in body.decisions
+                 if d.decision == "discard" and not (d.reason or "").strip()]
+    if sin_razon:
+        _400("discard_without_reason", sin_razon)
+    sin_texto = [d.requirement_id for d in body.decisions
+                 if d.decision == "aporto" and not (d.attested_text or "").strip()]
+    if sin_texto:
+        _400("aporto_without_text", sin_texto)
+    largos = [d.requirement_id for d in body.decisions
+              if d.decision == "aporto" and len(d.attested_text.strip()) > tope]
+    if largos:
+        _400("attested_text_too_long", largos, max_chars=tope, max_chars_source=tope_src)
+    know = body.knowledge_now.strip() if isinstance(body.knowledge_now, str) else None
+    if know is not None and len(know) > tope:
+        _400("knowledge_now_too_long", max_chars=tope, max_chars_source=tope_src)
+
+    now = _now_iso()
+    quien = f"human:{user['user_id']}"
+    prev = _plan_ledger(prow) or {}
+    # las decisiones HUMANAS del borrador anterior se conservan; las de este cuerpo mandan
+    decided = {d["requirement_id"]: d for d in (prev.get("decisions") or [])
+               if isinstance(d, dict) and str(d.get("decided_by") or "").startswith("human:")
+               and d.get("requirement_id") in by_id}
+    for d in body.decisions:
+        fila = {"requirement_id": d.requirement_id, "decision": d.decision, "decided_by": quien, "decided_at": now}
+        if d.decision == "discard":
+            fila["reason"] = d.reason.strip()
+        elif d.decision == "aporto":
+            texto = d.attested_text.strip()
+            fila["attested_text"] = texto
+            fila["attested_chars"] = len(texto)
+            fila["attested_class"] = KNOWLEDGE_NOW_CLASS
+        elif (d.reason or "").strip():
+            fila["reason"] = d.reason.strip()
+        decided[d.requirement_id] = fila
+    hard_pending = [r["requirement_id"] for r in reqs if r.get("hard_rule_gate") and r["requirement_id"] not in decided]
+    if body.approve and hard_pending:
+        _400("hard_rule_requirements_undecided", hard_pending,
+             rule="CLAUDE.md §7.1: causal-pruner outputs always require a human gate before downstream use — "
+                  "decide keep/discard/aporto sobre CADA uno; ningún default lo hace")
+    decisions = []
+    for r in reqs:
+        rid = r["requirement_id"]
+        if rid in decided:
+            fila = dict(decided[rid])
+        elif body.approve:
+            fila = {"requirement_id": rid, "decision": "keep", "decided_by": DECIDED_BY_DEFAULT_KEEP, "decided_at": now}
+        else:
+            fila = {"requirement_id": rid, "decision": "pending",
+                    "decided_by": DECIDED_BY_GATE_PENDING if r.get("hard_rule_gate") else None, "decided_at": None}
+        fila["hard_rule_gate"] = bool(r.get("hard_rule_gate"))
+        fila["priority"] = r.get("priority")
+        decisions.append(fila)
+    if know is None and isinstance(prev.get("knowledge_now"), dict):
+        knowledge_now = prev["knowledge_now"]           # no mandado = no se toca (PATCH-like); '' explícito lo vacía
+    elif know:
+        knowledge_now = {"text": know, "class": KNOWLEDGE_NOW_CLASS, "by": user["user_id"], "at": now,
+                         "chars": len(know), "truncated": False}
+    else:
+        knowledge_now = None
+    tally = {k: sum(1 for d in decisions if d["decision"] == k) for k in ("keep", "discard", "aporto", "pending")}
+    ledger = {"state": "approved" if body.approve else "draft", "plan_id": plan_id,
+              "council_state": cs, "decisions": decisions,
+              "n_requirements": len(reqs), "n_keep": tally["keep"], "n_discard": tally["discard"],
+              "n_aporto": tally["aporto"], "n_pending": tally["pending"],
+              "n_hard_rule": sum(1 for r in reqs if r.get("hard_rule_gate")), "n_hard_rule_pending": len(hard_pending),
+              "n_default_keep": sum(1 for d in decisions if d["decided_by"] == DECIDED_BY_DEFAULT_KEEP),
+              "knowledge_now": knowledge_now,
+              "approved_by": user["user_id"] if body.approve else None, "approved_at": now if body.approve else None,
+              "approved_by_is_author": (prow.get("user_id") == user["user_id"]) if body.approve else None,
+              "saved_by": user["user_id"], "saved_at": now, "n_saves": int(prev.get("n_saves") or 0) + 1,
+              "attestation_chars_max": tope, "attestation_chars_max_source": tope_src,
+              "permissions_rule": COUNCIL_PERMISSIONS_RULE,
+              "source": "POST /plans/{plan_id}/council/ledger (decisiones humanas; default-keep sólo al aprobar)"}
+    _write_ledger(plan_id, ledger, user["user_id"] if body.approve else None)
+    if body.approve:
+        _plan_event(plan_id, "council.ledger", {"approved_by": user["user_id"], "n_keep": tally["keep"],
+                                                "n_discard": tally["discard"], "n_aporto": tally["aporto"],
+                                                "n_default_keep": ledger["n_default_keep"],
+                                                "knowledge_now_present": knowledge_now is not None,
+                                                "approved_by_is_author": ledger["approved_by_is_author"]})
+    return {"plan_id": plan_id, "council_state": cs, "ledger": ledger}
+
+
+@app.post("/plans/{plan_id}/council/skip")
+def council_skip(plan_id: str, body: SkipBody = None, authorization: str = Header(None)):
+    """(F.2) Saltar el consejo CON razón → council_state 'skipped-by-human' con autor y hora; libera la corrida con un
+    ledger VACÍO declarado (decisions [], n_requirements medido). El sistema jamás salta solo. 400 skip_without_reason;
+    404/409 como el ledger."""
+    user = _user_of(authorization)
+    prow = _plan_o_404(plan_id)
+    _need_council_db("set_plan_ledger|set_council_ledger")
+    reason = ((body.reason if body else "") or "").strip()
+    if not reason:
+        raise HTTPException(status_code=400, detail={"state": "skip_without_reason", "plan_id": plan_id,
+                                                     "note": "saltar el consejo exige razón (queda en el registro)"})
+    cs = _ledger_precondiciones(prow, plan_id)
+    now = _now_iso()
+    reqs = _requirements_of(_plan_council_json(prow))
+    ledger = {"state": COUNCIL_STATE_SKIPPED, "plan_id": plan_id, "council_state_before": cs,
+              "decisions": [], "n_requirements": len(reqs), "n_keep": 0, "n_discard": 0, "n_aporto": 0,
+              "n_pending": 0, "n_hard_rule": sum(1 for r in reqs if r.get("hard_rule_gate")),
+              "knowledge_now": None, "skipped_by": user["user_id"], "skipped_at": now, "reason": reason,
+              "approved_by": None, "approved_at": None,
+              "approved_by_is_author": prow.get("user_id") == user["user_id"],
+              "permissions_rule": COUNCIL_PERMISSIONS_RULE,
+              "source": "POST /plans/{plan_id}/council/skip (ledger vacío declarado; nada se descarta ni se aprueba)"}
+    _write_ledger(plan_id, ledger, user["user_id"], council_state=COUNCIL_STATE_SKIPPED)
+    _plan_event(plan_id, "council.skip", {"by": user["user_id"], "reason": reason, "n_requirements": len(reqs)})
+    _plan_event(plan_id, "council.state", {"state": COUNCIL_STATE_SKIPPED, "plan_id": plan_id, "reason": reason,
+                                           "by": user["user_id"]})
+    return {"plan_id": plan_id, "council_state": COUNCIL_STATE_SKIPPED, "ledger": ledger}
+
+
+# --- /council/*: membresía (NO-SPEND, sin BD), búsqueda y demanda del índice (ADR-0082 I) --------------------------
+
+def _council_vocabulary():
+    """runs.council_vocabulary_full() — los vocabularios CONGELADOS que el gate de paridad (F) compara con types.ts: los de
+    lib.council + `competence_component_states` (corrector ADR-0082: la MISMA función que frozen.council.vocabulary)."""
+    return runs_mod.council_vocabulary_full()
+
+
+@app.get("/council/membership")
+def council_membership(authorization: str = Header(None)):
+    """(I) La membresía cm-1 como la sirve agent_matrix.membership_view(os.environ) + `vocabulary` (C2) — NO-SPEND, sin BD:
+    17 miembros con card_sha (la ficha VERBATIM que obedeció el agente), 8 not-applicable por categoría, 9 de sustrato con
+    estado real, filas sin ficha y fichas sin fila MEDIDAS; catalog_sha es el MISMO de plans.council_json y
+    frozen.council (M)."""
+    _user_of(authorization)
+    cache = catalog_cards.cache_config(os.environ)
+    return {**agent_matrix.membership_view(os.environ),
+            "vocabulary": _council_vocabulary(),
+            "council_version": council_mod.COUNCIL_VERSION,
+            "council_module_state": COUNCIL_MODULE_STATE,
+            "catalog_module_version": catalog_cards.MODULE_VERSION,
+            "rules_sha": catalog_cards.RULES_SHA, "shared_block_sha": catalog_cards.SHARED_BLOCK_SHA,
+            "cache": {"enabled": cache["enabled"], "ttl": cache["ttl_card"], "ttl_shared": cache["ttl_shared"],
+                      "min_cacheable_tokens": cache["min_cacheable_tokens"]},
+            "refreshed_at": _now_iso()}
+
+
+@app.get("/council/search")
+def council_search(q: str = None, k: int = 5, include_origins: str = None, kinds: str = None,
+                   authorization: str = Header(None)):
+    """(I) Búsqueda sobre el índice del consejo (council_index.search(q, k, filters) — C7; patrón precedent.search: letras,
+    admissible_as_evidence false en TODO ítem). 400 sin `q`, con `k < 1` o con `kinds` fuera del enum
+    (council_index.KINDS); 503 council-index-disabled con WITT_COUNCIL_INDEX=0; 503 council-index-unavailable sin el
+    módulo. `include_origins` como CSV (default del consumidor: production + NULL declarado)."""
+    _user_of(authorization)
+    if not q or not q.strip():
+        raise HTTPException(status_code=400, detail="q must be non-empty")
+    if k < 1:
+        raise HTTPException(status_code=400, detail="k debe ser >= 1")
+    enabled, src = models.env_value(COUNCIL_INDEX_ENV)   # kind bool de ENV_TABLE (1/true/yes/on · 0/false/no/off; basura → default)
+    if not enabled:
+        raise HTTPException(status_code=503, detail={"state": "council-index-disabled",
+                                                     "kill_switch": f"{COUNCIL_INDEX_ENV}=0", "source": src})
+    origins = _origins_param(include_origins)
+    kinds_list = [v.strip() for v in kinds.split(",") if v.strip()] if isinstance(kinds, str) else None
+    if kinds_list:
+        fuera = [v for v in kinds_list if v not in council_index_mod.KINDS]
+        if fuera:
+            raise HTTPException(status_code=400, detail={"state": "invalid-kind", "invalid": fuera,
+                                                         "allowed": list(council_index_mod.KINDS)})
+    # council_index.search(q, k=5, include_origins=None, kinds=None, filters=None, env=None); sus errores TIPADOS se
+    # traducen aquí: CouncilIndexDisabled → 503, CouncilIndexError/ValueError → 400 (jamás un 500)
+    try:
+        return council_index_mod.search(q.strip(), k, include_origins=origins, kinds=kinds_list)
+    except council_index_mod.CouncilIndexDisabled as e:
+        raise HTTPException(status_code=503, detail=(e.args[0] if e.args and isinstance(e.args[0], dict)
+                                                     else {"state": "council-index-disabled", "note": str(e)[:300]}))
+    except council_index_mod.CouncilIndexError as e:
+        raise HTTPException(status_code=400, detail=(e.args[0] if e.args and isinstance(e.args[0], dict)
+                                                     else {"state": "invalid-filter", "note": str(e)[:300]}))
+    except ValueError as e:   # el índice rechaza un filtro: 400 tipado, no 500
+        raise HTTPException(status_code=400, detail={"state": "invalid-filter", "note": str(e)[:300]})
+
+
+@app.get("/council/demand")
+def council_demand(include_origins: str = None, authorization: str = Header(None)):
+    """(I) La demanda MEDIDA del sidecar (ADR-0084/0085): requisitos unsatisfiable-by-harness por familia sobre
+    frozen.council + plans.council_json de los orígenes WITT_COUNCIL_INDEX_ORIGINS (o `include_origins` CSV) —
+    council_index.demand(include_origins=), código puro sobre registros congelados; independiente del kill-switch
+    del índice (es un conteo, `index_enabled` viaja declarado)."""
+    _user_of(authorization)
+    return council_index_mod.demand(include_origins=_origins_param(include_origins))
 
 
 class CancelBody(BaseModel):
@@ -1362,6 +2166,104 @@ class _StageAccumulator:
                 "n_with": self.n_with, "n_without": self.n_without, "n_mismatch": self.n_mismatch}
 
 
+PLANS_COUNCIL_RULE = ("tokens y USD SÓLO de planes con run_id NULL (rondas 1 que ninguna corrida consumió): el r1 de un "
+                      "plan corrido ya viaja en usage_json.by_stage.council_r1 de su corrida y sumarlo aquí lo contaría dos "
+                      "veces (LOTE-01·A4 aplicado al plan); n_plans / by_state cuentan TODOS los planes con council_state "
+                      "en el periodo")
+PLANS_COUNCIL_CLASS = "MEDICION (tokens; por-plan council_usage_json) · PROYECCION (USD con precios y multiplicadores de caché de hoy)"
+
+
+def _council_usage_cells(u):
+    """council_usage_json (C4, escrito por el worker tras cada future) → [(model, in, out, cache_creation, cache_read)] con
+    lectura TOLERANTE de llaves (in|input_tokens, out|output_tokens, cache_creation|cache_creation_input_tokens,
+    cache_read|cache_read_input_tokens); con `by_model {m: {...}}` una celda por modelo. Sólo enteros suman."""
+    def _cell(model, d):
+        def g(*ks):
+            for k in ks:
+                if _es_entero(d.get(k)):
+                    return d[k]
+            return 0
+        return (model, g("in", "input_tokens"), g("out", "output_tokens"),
+                g("cache_creation", "cache_creation_input_tokens"), g("cache_read", "cache_read_input_tokens"))
+    if not isinstance(u, dict):
+        return []
+    bm = u.get("by_model")
+    if isinstance(bm, dict) and bm:
+        return [_cell(str(m), d) for m, d in bm.items() if isinstance(d, dict)]
+    return [_cell(u.get("model") if isinstance(u.get("model"), str) else None, u)]
+
+
+def _plans_council_usage(frm, to):
+    """(H) `GET /usage.plans_council`: el gasto de rondas 1 de planes que NUNCA se corrieron — sin él M8 no cuadra.
+    db.plans_council_usage(frm, to, include_origins=None) -> [{plan_id, user_id, created_at, origin, council_state,
+    council_usage_json, run_id}] de los planes con council_state NOT NULL en el periodo. USD = in×p_in + out×p_out +
+    cache_creation×p_in×write_5m + cache_read×p_in×read con models.CACHE_MULTIPLIERS (D.2; la caché se cotiza con los
+    multiplicadores publicados, clase declarada en `cache.multipliers_source`)."""
+    rows = db.plans_council_usage(frm, to, None)
+    mult = models.CACHE_MULTIPLIERS
+    cache_priced = all(k in mult for k in ("write_5m", "read"))
+    precios = runs_mod.PRICES_PER_MTOK_USD
+    by_state, by_model = {}, {}
+    n_unconsumed = n_with_usage = 0
+    tot = {"in": 0, "out": 0, "cc": 0, "cr": 0}
+    missing_price = set()
+    for r in rows:
+        st = r.get("council_state") or COUNCIL_STATE_PRE_ADR
+        by_state[st] = by_state.get(st, 0) + 1
+        if r.get("run_id"):
+            continue                       # el r1 de un plan corrido ya está en su corrida (regla)
+        n_unconsumed += 1
+        u = _json_or_none(r.get("council_usage_json"))
+        if not u:
+            continue
+        n_with_usage += 1
+        for model, i, o, cc, cr in _council_usage_cells(u):
+            tot["in"] += i
+            tot["out"] += o
+            tot["cc"] += cc
+            tot["cr"] += cr
+            key = model or "_unattributed"
+            bm = by_model.setdefault(key, {"in": 0, "out": 0, "cache_creation": 0, "cache_read": 0,
+                                           "estimated_cost_usd": None, "price_state": None})
+            bm["in"] += i
+            bm["out"] += o
+            bm["cache_creation"] += cc
+            bm["cache_read"] += cr
+    total_usd, priced_all = 0.0, bool(by_model)
+    for model, bm in by_model.items():
+        if model not in precios:
+            missing_price.add(model)
+            bm["price_state"] = "missing" if model != "_unattributed" else "stage-without-model"
+            priced_all = False
+            continue
+        p_in, p_out = precios[model]
+        usd = (bm["in"] * p_in + bm["out"] * p_out) / 1e6
+        if cache_priced:
+            usd += (bm["cache_creation"] * p_in * float(mult["write_5m"]) + bm["cache_read"] * p_in * float(mult["read"])) / 1e6
+        bm["estimated_cost_usd"] = round(usd, 4)
+        bm["price_state"] = "priced" if cache_priced or not (bm["cache_creation"] or bm["cache_read"]) else "priced (cache not priced)"
+        total_usd += usd
+    if n_with_usage == 0:
+        price_state, cost = "not-measured", None
+    elif priced_all:
+        price_state, cost = "priced", round(total_usd, 4)
+    elif any(bm["price_state"] == "priced" for bm in by_model.values()):
+        price_state, cost = "mixed", None
+    else:
+        price_state, cost = "missing", None
+    return {"state": "measured", "n_plans": len(rows), "n_unconsumed": n_unconsumed,
+            "n_consumed": len(rows) - n_unconsumed, "n_unconsumed_with_usage": n_with_usage,
+            "input_tokens": tot["in"], "output_tokens": tot["out"],
+            "cache": {"creation_input_tokens": tot["cc"], "read_input_tokens": tot["cr"], "priced": cache_priced,
+                      "multipliers": ({"write_5m": mult["write_5m"], "read": mult["read"]} if cache_priced else None),
+                      "multipliers_source": (models.CACHE_MULTIPLIERS_SOURCE if cache_priced
+                                             else "not-available (models.CACHE_MULTIPLIERS without write_5m/read)")},
+            "estimated_cost_usd": cost, "price_state": price_state,
+            "missing_price_models": sorted(m for m in missing_price if m != "_unattributed"),
+            "by_state": by_state, "by_model": by_model,
+            "rule": PLANS_COUNCIL_RULE, "class": PLANS_COUNCIL_CLASS}
+
+
 @app.get("/usage")
 def usage(from_: str = Query(None, alias="from"), to: str = None,
           authorization: str = Header(None)):
@@ -1417,9 +2319,15 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
         bu["output_tokens"] += u.get("output_tokens", 0)
         bu["estimated_cost_usd"] = round(bu["estimated_cost_usd"] + cost, 4)
         for model, m in (u.get("by_model") or {}).items():
-            bm = by_model.setdefault(model, {"in": 0, "out": 0, "estimated_cost_usd": 0.0})
+            bm = by_model.setdefault(model, {"in": 0, "out": 0, "estimated_cost_usd": 0.0,
+                                             # ADR-0082 (H): tokens de caché por modelo (1.11: by_model[m] += cache_*);
+                                             # suma SÓLO enteros; un registro sin la llave no suma (ausencia ≠ 0)
+                                             "cache_creation": 0, "cache_read": 0})
             bm["in"] += m.get("in", 0)
             bm["out"] += m.get("out", 0)
+            for ck in ("cache_creation", "cache_read"):
+                if _es_entero(m.get(ck)):
+                    bm[ck] += m[ck]
             if model not in runs_mod.PRICES_PER_MTOK_USD:
                 missing_price.add(model)
                 bm["estimated_cost_usd"] = None   # sin precio: ausente-declarado, jamás 0.0
@@ -1466,6 +2374,9 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
             "n_runs_without_by_stage": stage_out["n_without"],
             "n_runs_by_stage_mismatch": stage_out["n_mismatch"],
             "by_stage_class": USAGE_BY_STAGE_CLASS,
+            # ADR-0082 (H): rondas 1 de planes que NUNCA se corrieron — gasto huérfano visible, aparte de totals
+            # (que sigue byte a byte: suma de usage_json congelado por corrida)
+            "plans_council": _plans_council_usage(frm, to_dt),
             "models_catalog": catalogo,
             "model_generation_current": models.resolve_generation()[0],
             # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la

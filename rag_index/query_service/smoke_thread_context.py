@@ -635,6 +635,49 @@ check("(corrector ADR-0080) turno hijo con WITT_COMPETENCE_GATE=1 (el camino de 
                   "gate_reasons": gated_frozen["deterministic_checks"]["reasons"],
                   "ledger": gated_frozen["search_ledger"]["state"]}))
 
+# ---- ADR-0082 (G.9): thread_context.council_summary — el resumen ESTRUCTURADO del consejo del padre (sin prosa) ----------------------
+check("ADR-0082 (G.9) el snapshot del hijo lleva council_summary: null cuando el padre no tiene ledger del consejo (raíz sin plan → "
+      "frozen.council {state 'not-applicable (no-ledger)', ledger null}) — la llave existe, no se rellena",
+      "council_summary" in snap and snap["council_summary"] is None
+      and json.loads(root_row["frozen_record_json"])["council"]["state"] == "not-applicable (no-ledger)"
+      and json.loads(root_row["frozen_record_json"])["council"]["ledger"] is None)
+_reqs30 = [{"requirement_id": f"req-{i:03d}", "gap": "x" * 250, "priority": "must" if i % 2 else "should",
+            "decision": "keep", "n_requested_by": 3, "query_en": "PROSA que NO debe viajar", "attested_text": "atestiguado privado"}
+           for i in range(30)]
+_frozen_council_parent = {
+    "render_contract_version": "1.11", "question": "padre con consejo", "question_matches_run": True,
+    "answer": {"direct_answer": "wt1a marks the pronephros."}, "audit": {"verdict": "APPROVE", "n_valid": 4, "approved": []},
+    "confidence": {"final": 0.8},
+    "council": {"state": "applicable",
+                "ledger": {"state": "approved", "requirements": _reqs30,
+                           "flags": [{"kind": "animal-work", "statement": "protocolo animal", "gate": "human", "emitted_by": ["regulatory-ethics-advisor"]}],
+                           "knowledge_now": {"present": True, "text": "sabemos X", "chars": 9, "truncated": False}},
+                "coverage": {"pre_search": {"state": "judged", "must_uncovered": 3,
+                                            "by_requirement": [{"requirement_id": f"req-{i:03d}", "coverage_final": "uncovered"} for i in range(30)]},
+                             "post_search": {"state": "judged", "must_uncovered": 1,
+                                             "by_requirement": [{"requirement_id": f"req-{i:03d}", "coverage_final": "covered" if i < 28 else "partial"}
+                                                                for i in range(30)]}}}}
+_parent_row = {"run_id": "p" * 32, "run_no": 99, "question": "padre con consejo", "entities_csv": "wt1a", "state": "closed",
+               "thread_id": "p" * 32, "frozen_record_json": json.dumps(_frozen_council_parent)}
+_env_cs = runs_mod.build_thread_context(_parent_row, [], db._now())
+_cs = _env_cs["snapshot"]["council_summary"]
+check("ADR-0082 (G.9) padre CON consejo: council_summary {requirements[] ≤ 24 con {requirement_id, gap ≤200, priority, coverage_final "
+      "(post-búsqueda), decision, n_requested_by}, flags[] {kind, statement}, knowledge_now_present True, must_uncovered_post 1, "
+      "coverage_source 'post_search', truncated True (30 > tope 24), n_total 30, cap 24} — council.summary_for_thread (cap 24)",
+      _cs is not None and len(_cs["requirements"]) == 24 and _cs["truncated"] is True and _cs["n_total"] == 30 and _cs["cap"] == 24
+      and all(len(r["gap"]) == 200 for r in _cs["requirements"])
+      and set(_cs["requirements"][0]) == {"requirement_id", "gap", "priority", "coverage_final", "decision", "n_requested_by"}
+      and _cs["requirements"][0]["coverage_final"] == "covered" and _cs["knowledge_now_present"] is True
+      and _cs["must_uncovered_post"] == 1 and _cs["coverage_source"] == "post_search"
+      and _cs["flags"] == [{"kind": "animal-work", "statement": "protocolo animal"}]
+      and _cs["source"].startswith("frozen.council of the parent run"),
+      json.dumps({k: _cs[k] for k in ("truncated", "n_total", "must_uncovered_post", "coverage_source")}) if _cs else "None")
+check("ADR-0082 (G.9) la PROSA del consejo NO viaja en el resumen: ni query_en ni attested_text ni knowledge_now.text — sólo gap "
+      "recortado y estados; el sobre sigue teniendo sus llaves de siempre (snapshot, skipped_reason, kill_switch, built_at)",
+      "PROSA" not in json.dumps(_cs) and "atestiguado privado" not in json.dumps(_cs) and "sabemos X" not in json.dumps(_cs)
+      and {"snapshot", "skipped_reason", "kill_switch", "built_at"} <= set(_env_cs)
+      and _env_cs["snapshot"]["previous_answer"]["direct_answer"] == "wt1a marks the pronephros.")
+
 # ---- lista y detalle: mismas columnas de investigación (T1) vistas desde runs.py ----------------------------------------------
 lst = {r["run_id"]: r for r in db.list_runs(limit=1000)}
 check("lista y detalle traen las MISMAS columnas de investigación para el hijo (thread_id, turn_no, turn_kind, "

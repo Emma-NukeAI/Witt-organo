@@ -788,7 +788,7 @@ pl = runs_mod.build_plan("¿osr1 es suficiente para inducir el pronefros ectopic
                          ["osr1"], planner=_fake_planner_ok, history_rows=HIST_OK)
 check("ADR-0066 (plan v3): data_landscape ESTRUCTURAL — preview DI sparse NO-SPEND + fuentes B por hechos "
       "(zfin aplica con entities; tooluniverse declarado hook)",
-      pl["plan_version"] == "3" and pl["data_landscape"]["class"] == "structural"
+      pl["plan_version"] == runs_mod.PLAN_VERSION == "4" and pl["data_landscape"]["class"] == "structural"
       and pl["data_landscape"]["di_preview"]["n_hits"] == 2
       and pl["data_landscape"]["di_preview"]["mode"] == "sparse-preview-no-spend"
       and "aplica: 1 símbolo" in pl["data_landscape"]["path_b_sources"]["zfin"]
@@ -831,10 +831,13 @@ check("plan: lo estructural viene del CODIGO (Ruta A siempre, B condicional con 
       and len(pl["route"]["path_b"]["deciders"]) == 2
       and pl["audit"]["required"] is True and len(pl["audit"]["panel"]) == 4)
 ags = {a["agent"]: a for a in pl["judgment"]["agents_applicable"]}
-check("plan: el modelo elige NOMBRES; el gate y la componentizacion los resuelve la TABLA "
-      "(causal-pruner=hard-rule sin componente; composite-auditor=componentizado)",
-      ags["causal-pruner"]["gate"] == "hard-rule" and ags["causal-pruner"]["componentized"] is False
-      and ags["causal-pruner"]["will_run"] == "skipped-ad-hoc"
+check("plan: el modelo elige NOMBRES; el gate y la componentizacion los resuelve la TABLA — ADR-0082 (B/G.7, plan v4): "
+      "causal-pruner es hard-rule Y miembro del consejo (componentized True, component 'lib/council.py', will_run "
+      "'council-member' — ya no 'skipped-ad-hoc'); hypothesis-generator idem; composite-auditor=componentizado de siempre",
+      ags["causal-pruner"]["gate"] == "hard-rule" and ags["causal-pruner"]["componentized"] is True
+      and ags["causal-pruner"]["component"] == agent_matrix.COUNCIL_COMPONENT[0] == "lib/council.py"
+      and ags["causal-pruner"]["will_run"] == "council-member"
+      and ags["hypothesis-generator"]["will_run"] == "council-member"
       and ags["composite-auditor"]["componentized"] is True
       and ags["composite-auditor"]["will_run"] == "runs-always-componentized")
 check("plan: nichos resueltos con nombre y fase (§3) + in_scope",
@@ -898,11 +901,20 @@ check("ADR-0066: el paisaje es ESTRUCTURAL — presente aunque el juicio del pla
       pl_err["data_landscape"]["di_preview"]["n_hits"] == 2)
 
 # --- el plan viaja: POST /runs/plan -> POST /runs {plan_id} -> stage.plan -> registro congelado --------
+# ADR-0082: este flujo LEGADO corre con WITT_COUNCIL=0 (kill-switch declarado, camino 9d90c01 — L.2). Con el consejo
+# encendido, app._council_state_for_new_plan (C6) emite 'not-requested (origin smoke not in WITT_COUNCIL_ORIGINS)' (56 chars)
+# y db.create_plan (C4) lo rechaza (VARCHAR(40)) — costura C6<->C4 que C9 debe cerrar (open question de C5); y con
+# WITT_COUNCIL_ORIGINS=smoke el plan nace 'queued' y POST /runs responde 409 hasta que el JOB r1 (council_jobs) termine —
+# eso lo mide smoke_council_http. La sección ADR-0082 (C5) de abajo mide el consejo ENCENDIDO con la copia F.4 directa.
+os.environ["WITT_COUNCIL"] = "0"
 runs_mod._default_planner_real = runs_mod._default_planner
 runs_mod._default_planner = _fake_planner_ok
 prv = app.create_plan(app.PlanBody(question="¿osr1 es suficiente para inducir el pronefros?",
                                    entities=["osr1"]), authorization=AUTH)
 runs_mod._default_planner = runs_mod._default_planner_real
+check("ADR-0082 (E.3/L.2): con WITT_COUNCIL=0 POST /runs/plan NO encola la ronda 1 — council.state 'disabled (kill-switch "
+      "WITT_COUNCIL=0)' y POST /runs no exige ledger",
+      prv.get("council", {}).get("state") == "disabled (kill-switch WITT_COUNCIL=0)", json.dumps(prv.get("council", {}).get("state")))
 check("POST /runs/plan: devuelve plan_id + plan con juicio declarado",
       bool(prv["plan_id"]) and prv["plan"]["judgment"]["state"] == "declared")
 rv_p = app.create_run(app.RunBody(question="¿osr1 es suficiente para inducir el pronefros?",
@@ -944,13 +956,19 @@ check("registro 1.4: el plan viaja CONGELADO + plan_question_matches_run=true",
       rec_p["plan_declared"] is True and rec_p["plan"]["judgment"]["state"] == "declared"
       and rec_p["plan_question_matches_run"] is True)
 ai_p = {a["agent"]: a for a in rec_p["agents_invoked"]}
-check("agents_invoked CON plan: los aplicables no-componentizados entran skipped-ad-hoc (literal §5 "
-      "de la matriz) con la razon del planner + fila agregada not-applicable — y NO hay not-assessed",
-      ai_p["causal-pruner"]["status"] == "skipped-ad-hoc"
-      and "planner (§11)" in ai_p["causal-pruner"]["reason"]
+check("agents_invoked CON plan bajo kill-switch WITT_COUNCIL=0 (ADR-0082 L.2 iii): los miembros del consejo que el planner "
+      "juzgó aplicables (causal-pruner, hypothesis-generator) NO aparecen (matriz v1.3: componentizados → el camino de 9d90c01 "
+      "los omite) y la fila agregada '(consejo de criterio — cm-1)' es not-applicable 'kill-switch WITT_COUNCIL=0'; sigue la fila "
+      "agregada 'resto del catálogo' — y NO hay not-assessed ni skipped-ad-hoc (los tres aplicables son componentizados)",
+      "causal-pruner" not in ai_p and "hypothesis-generator" not in ai_p
+      and ai_p[runs_mod.COUNCIL_AGENT_ROW]["status"] == "not-applicable"
+      and ai_p[runs_mod.COUNCIL_AGENT_ROW]["reason"] == "kill-switch WITT_COUNCIL=0"
       and any(a["status"] == "not-applicable" and "resto del catálogo" in a["agent"]
               for a in rec_p["agents_invoked"])
-      and not any(a["status"] == "not-assessed" for a in rec_p["agents_invoked"]))
+      and not any(a["status"] in ("not-assessed", "skipped-ad-hoc") for a in rec_p["agents_invoked"])
+      and rec_p["council"]["state"] == "disabled (kill-switch WITT_COUNCIL=0)"
+      and rec_p["plan"]["judgment"]["agents_applicable"][0]["will_run"] == "council-member",
+      json.dumps([(a["agent"], a["status"]) for a in rec_p["agents_invoked"]]))
 check("agents_invoked SIN plan (corridas previas de este gate): el hueco sigue not-assessed",
       any(a["status"] == "not-assessed" for a in rec["agents_invoked"])
       and rec["plan_declared"] is False and rec["plan"] is None)
@@ -958,6 +976,7 @@ check("matriz: derogaciones y suspensiones viajan en la tabla (html-report ADR-0
       "investor-relations ADR-0008)",
       "ADR-0046" in agent_matrix.AGENTS["html-report-emitter"]["note"]
       and "SUSPENDIDO" in agent_matrix.AGENTS["investor-relations-drafter"]["note"])
+os.environ.pop("WITT_COUNCIL", None)      # fin del flujo legado bajo kill-switch (ADR-0082)
 rag_backend.query_sparse = _orig_sparse   # fin de la seccion del planner (ADR-0066)
 
 # ---- 6. cierre explicito ------------------------------------------------------------------------------
@@ -1822,7 +1841,9 @@ check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.10' — 1
       "n_search_rounds}; 1.10 (ADR-0081) suma frozen.models, answer.{model_source, model_reported, relation}, audit.{families_valid…, "
       "quorum}, by_stage.panel.by_model, plan.judgment.planner.model_source, epistemic_summary.{model_generation, "
       "panel_n_families_valid} + eventos stage.models / run.state{queued}.root_run_no; la webapp los tipa `?` — eso ES la paridad",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.10")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+      runs_mod.RENDER_CONTRACT_VERSION == "1.11")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+                                                    # 1.11 = ADR-0082 (consejo de criterio): +council, deterministic_checks.council/
+                                                    # attestation_identifier_leak, token_usage.cache/council_r*, citations[].pertinent con razón
 check("ADR-0079 (D) synth_system SIN turno anterior es byte-idéntico al de antes (la medición de ab_trapped_scalar no "
       "cambia); CON turno gana THREAD_ANTI_LEAK_CLAUSE; SYNTH_TOOL.description lleva la frase anti-fuga SIEMPRE",
       runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False)
@@ -2538,7 +2559,14 @@ def _sources_empty():
 
 def _run80(question, entities=(), synth=None, panel=None, plan=False, env=None, worker="run-worker-adr0080"):
     """Una corrida por la PUERTA (app.create_run [+ app.create_plan con el planner stub]) ejecutada con el
-    sintetizador/panel inyectados bajo `env` (vars fijadas SOLO durante la corrida). Devuelve (run_id, frozen, events)."""
+    sintetizador/panel inyectados bajo `env` (vars fijadas SOLO durante la corrida). Devuelve (run_id, frozen, events).
+    ADR-0082: con plan=True el flujo corre bajo WITT_COUNCIL=0 salvo que `env` lo fije — el camino de 9d90c01 (L.2): con
+    el consejo encendido y origen smoke, app (C6) emite un literal de 56 chars que db.create_plan (C4) rechaza, o encola un
+    JOB r1 que nadie corre aquí (409 en POST /runs). El consejo ENCENDIDO se mide en la sección ADR-0082 (C5) con la copia
+    F.4 directa (runs.new_run(council_json=))."""
+    env = dict(env or {})
+    if plan:
+        env.setdefault("WITT_COUNCIL", "0")
     saved = {k: os.environ.get(k) for k in (env or {})}
     for k, v in (env or {}).items():
         if v is None:
@@ -2611,12 +2639,12 @@ check("ADR-0080 (A) el BLOQUE de la compuerta: stage.competence == frozen.compet
       "'code', module_version 'cg-3', self_report {stated_confidence 0.8, class 'model-judgment', nota que dice la VERDAD: "
       "'participa como componente conf1_ge_tau medido por CONF_TOOL (ADR-0065; …); la conjunción la decide código'}, componentes "
       "en orden canónico con value/reason, conjunction CON conf1_ge_tau primero (cg-3: el escalar elicitado gatea por default, "
-      "ADR-0051/0065) y SIN calibration_coverage (gating False por default); council_uncovered_must 'not-available (ADR-0082)' "
-      "gating False; "
-      "fb_meta.competence + trigger_vocabulary (runs.TRIGGER_VOCABULARY) + trigger_decided_by 'code (competence-gate)'; "
+      "ADR-0051/0065) y SIN calibration_coverage (gating False por default); council_uncovered_must (cg-4, ADR-0082 G.2) bajo "
+      "kill-switch WITT_COUNCIL=0 (este flujo legado): state 'kill-switch WITT_COUNCIL=0', value null, gating False, fuera de "
+      "conjunction; fb_meta.competence + trigger_vocabulary (runs.TRIGGER_VOCABULARY) + trigger_decided_by 'code (competence-gate)'; "
       "config con tau 0.5 (source 'caller' = runs.FALLBACK_CONF_TAU) y fb_meta.tau_source declarado",
       len(_comp_ev) == 1 and _comp_ev[0] == _rec_c["competence"]
-      and _rec_c["competence"]["decided_by"] == "code" and _rec_c["competence"]["module_version"] == "cg-3" == _cg.MODULE_VERSION
+      and _rec_c["competence"]["decided_by"] == "code" and _rec_c["competence"]["module_version"] == "cg-4" == _cg.MODULE_VERSION
       and _rec_c["competence"]["self_report"] == {"stated_confidence": 0.8, "class": "model-judgment",
                                                  "note": "participa como componente conf1_ge_tau medido por CONF_TOOL (ADR-0065; "
                                                          "gating true, WITT_CG_CONF_COMPONENT default 1, cg-3); la conjunción la "
@@ -2630,8 +2658,12 @@ check("ADR-0080 (A) el BLOQUE de la compuerta: stage.competence == frozen.compet
       and _rec_c["fallback"]["fb_meta"]["trigger_decided_by"] == "code (competence-gate)"
       and _rec_c["fallback"]["fb_meta"]["tau_source"] == runs_mod.FALLBACK_CONF_TAU_SOURCE
       and _rec_c["competence"]["components"]["calibration_coverage"]["gating"] is False
-      and _rec_c["competence"]["components"]["council_uncovered_must"] == {"value": None, "state": "not-available (ADR-0082)",
-                                                                          "gating": False}
+      and _rec_c["competence"]["components"]["council_uncovered_must"]["state"] == "kill-switch WITT_COUNCIL=0"
+      and _rec_c["competence"]["components"]["council_uncovered_must"]["value"] is None
+      and _rec_c["competence"]["components"]["council_uncovered_must"]["gating"] is False
+      and "council_uncovered_must" not in _rec_c["competence"]["conjunction"]
+      and _rec_c["competence"]["config"]["council_component_gating"] is True
+      and _rec_c["competence"]["config"]["council_enabled"] is False
       and _rec_c["competence"]["components"]["niches_nonempty"]["niches"] == ["N3", "N4"]
       and _rec_c["competence"]["config"]["tau"] == 0.5 and _rec_c["competence"]["config"]["tau_source"] == "caller"
       and _rec_c["competence"]["decision"]["decision_source"].startswith("competence-gate: competent")
@@ -2986,7 +3018,7 @@ check("ADR-0080 (A, cg-3) el escalar ELICITADO (CONF_TOOL, ADR-0065) gatea POR D
       and _rec_cc["competence"]["components"]["conf1_ge_tau"]["gating"] is True
       and _rec_cc["competence"]["conjunction"][0] == "conf1_ge_tau"
       and _rec_cc["competence"]["config"]["conf_component_gating"] is True
-      and _rec_cc["competence"]["module_version"] == "cg-3"
+      and _rec_cc["competence"]["module_version"] == _cg.MODULE_VERSION == "cg-4"
       and _rec_cc["fallback"]["trigger"] == "competence" and _rec_cc["confidence"]["pass2"] == 0.7
       and _rec_cc["fallback"]["fb_meta"]["trigger_legacy"] == "confidence"
       and _rec_cc["competence"]["self_report"]["note"].startswith("participa como componente conf1_ge_tau medido por CONF_TOOL")
@@ -3078,12 +3110,16 @@ _css = _rec_s["citations_support_summary"]
 check("ADR-0080 (E/G) support_state por cita, ADITIVO y sin saltar peldaños: la cita [1] al chunk de Ruta A resuelve "
       "(resolved True), tiene pasaje (passage_delivered True) y el juez evidence-grounding la marcó 'supported' -> "
       "support_state 'supported'; la cita [2] PMID:99999999 NO está en el bundle -> 'unresolved' AUNQUE el juez dijera "
-      "'supported' (su palabra se conserva en `supported`, no eleva); pertinent 'not-available (ADR-0082)' en ambas; "
+      "'supported' (su palabra se conserva en `supported`, no eleva); pertinent 'not-available (council disabled (kill-switch "
+      "WITT_COUNCIL=0))' en ambas (ADR-0082 L.2 iv: el literal lleva la razón; el viejo sigue en summary.pertinent.literal); "
       "citations_support_summary {n 2, by_state con los 5 peldaños, state 'checked', grounding_rows 2, ladder_rule}; forma BASE intacta",
       _cits_base(_rec_s["citations"]) == [{"n": 1, "kind": "di-chunk", "id": "CORPUS-2026-0003#c000", "note": ""},
                                           {"n": 2, "kind": "paper", "id": "PMID:99999999", "note": ""}]
       and _c1["resolved"] is True and _c1["passage_delivered"] is True and _c1["supported"] == "supported"
-      and _c1["support_state"] == "supported" and _c1["pertinent"] == "not-available (ADR-0082)"
+      and _c1["support_state"] == "supported"
+      and _c1["pertinent"] == _c2["pertinent"] == "not-available (council disabled (kill-switch WITT_COUNCIL=0))"
+      and _css["pertinent"]["literal"] == _vo.PERTINENT_NOT_AVAILABLE == "not-available (ADR-0082)"
+      and _css["pertinent"]["n_not_available"] == 2
       and _c2["resolved"] is False and _c2["passage_delivered"] is False and _c2["supported"] == "supported"
       and _c2["support_state"] == "unresolved"
       and _css["n"] == 2 and set(_css["by_state"]) == set(_vo.SUPPORT_LADDER)
@@ -3395,6 +3431,11 @@ _ADD_110 = {
                         "panel_incomplete_reasons"},
     "judge_payload": {"family", "api", "api_source", "reviewer_source"},
 }
+# ADR-0082 (1.11, L.2 i–iii): llaves ADITIVAS declaradas del consejo — se restan junto a las de 1.10 para comparar contra el
+# golden 1.9: frozen.council (top), epistemic_summary.council_* (G.8) y run.state{queued}.council (J)
+_ADD_110["top"] |= {"council"}
+_ADD_110["epistemic"] |= {"council_state", "council_n_valid", "council_n_members", "council_must_uncovered"}
+_ADD_110["queued_payload"] |= {"council"}
 
 
 def _mk_api_81(reported_suffix=None, reported_literal=None):
@@ -3459,6 +3500,11 @@ check("ADR-0081 (B) stage.models es el PRIMER evento tras run.state{running} y a
       and _sm_a81[0]["unknown_models"] == [],
       json.dumps({"first": _t_a81[:4], "warnings": _sm_a81[0]["warnings"][:3]}))
 _M_a = _rec_a81["models"]
+check("ADR-0082 (M, C9): frozen.models.roles.council == stage.models.roles.council (el MISMO RoleResolved del snapshot: modelo del rol "
+      "`council` de la tabla g2 con su fuente; viaja aunque el consejo no haya corrido en esta corrida — el rol está en la tabla)",
+      _M_a["roles"].get("council") == _sm_a81[0]["roles"]["council"] and _M_a["roles"]["council"]["model"] == models.GENERATIONS[_G2]["defaults"]["council"]
+      and _M_a["roles"]["council"]["source"].startswith("default:"),
+      json.dumps({"frozen": _M_a["roles"].get("council"), "stage": _sm_a81[0]["roles"].get("council")})[:300])
 check("ADR-0081 (B) frozen.models con sintetizador STUB: forma PROVENANCE_FIELDS; roles.synthesizer/elicitation == los resueltos "
       "en la llamada; question_agent null (no corrió); roles.planner COPIADO de plan_json.judgment.planner (provenance "
       "'plan_json'); ran.synthesize_pass1 {requested 'stub-synth', reported null, relation 'not-reported', thinking_state "
@@ -3816,7 +3862,7 @@ check("ADR-0081 (I/E) runs.snapshot_extra() cubre EXACTAMENTE models.EXTRA_FIELD
       "presente o no); SYNTH_MODEL es alias derivado == resolve_role('synthesizer').model y PRICES_PER_MTOK_USD == models.prices()",
       set(_extra) == set(models.EXTRA_FIELDS)
       and all(set(v) == {"value", "source"} for v in _extra.values())
-      and _extra["contract.render_contract_version"] == {"value": "1.10", "source": "runs.RENDER_CONTRACT_VERSION"}
+      and _extra["contract.render_contract_version"] == {"value": runs_mod.RENDER_CONTRACT_VERSION, "source": "runs.RENDER_CONTRACT_VERSION"}
       and all(_snap["fields"][f]["source"] != models.NOT_PROVIDED for f in models.EXTRA_FIELDS)
       and _snap["fields"]["contract.render_contract_version"]["value"] == runs_mod.RENDER_CONTRACT_VERSION
       and isinstance(runs_mod._config_ledger_observe(_snap), dict) and "state" in runs_mod._config_ledger_observe(_snap)
@@ -3845,6 +3891,835 @@ check(f"ADR-0081 (N) db._list_select.root_run_no (JOIN a la raíz, S4) == runs._
       f"en TODAS las corridas del gate ({len(_rows_all)}: raíces, hijos, hijos de raíz VIRTUAL y pre-ADR null == null); la llave "
       f"viaja en cada renglón de la lista",
       bool(_rows_all) and not _mism and all("root_run_no" in r for r in _rows_all), json.dumps(_mism[:5]))
+
+# =====================================================================================================
+# ADR-0082 (C5) — EL CONSEJO DE CRITERIO EN LA CORRIDA: 17 miembros FAKEADOS (válidos, duplicados, caídos, con ids
+# alucinados, fuera de vocabulario, con campos prohibidos, tool equivocado, not-applicable), ronda 1 + agregación por
+# código (council.run_round/aggregate_r1) → ledger humano (council.apply_ledger_decisions y la forma HTTP de app con
+# decisions[]) → copia F.4 (runs.new_run(council_json=)) → execute_run(council_caller=fake): r2 ANTES de la compuerta,
+# componente cg-4, directivas → familia directive-only ENTRA → r3 sobre dueños → cobertura post; kill-switch = forma 1.10 +
+# excepciones (L.2); aporto → covered-by-attestation y fuga → inadmisible; by_stage suma; agents_invoked council:17/17;
+# cancelación a media ronda. TODO dentro del bloque offline (urlopen bloqueado y contado; mcp_cache intacto).
+# =====================================================================================================
+import threading as _threading  # noqa: E402
+from lib import agent_matrix as _am, catalog_cards as _cc, council as _council  # noqa: E402
+import competence as _cg82  # noqa: E402
+
+_C_MEMBERS = _am.council_members({})
+_C_CALLS = []
+_C_R1_OUT = {
+    "cross-modality-integrator": {"applicable": True, "requirements": [
+        {"gap": "protein interaction partners of wt1a in the pronephros", "evidence_kind": "interaction",
+         "source_family": "string", "query_en": "wt1a protein interaction partners", "entities": ["wt1a"],
+         "acceptance_test": ">=1 STRING partner with score", "priority": "must"}]},
+    "literature-monitor": {"applicable": True, "requirements": [
+        {"gap": "podocyte-glomerulus expression of wt1a", "evidence_kind": "paper", "source_family": "pubmed",
+         "query_en": "wt1a podocyte glomerulus zebrafish", "entities": ["wt1a"],
+         "acceptance_test": ">=1 paper with in situ", "priority": "must"}]},
+    "causal-pruner": {"applicable": True, "requirements": [
+        {"gap": "loss-of-function pronephros phenotype of wt1a", "evidence_kind": "phenotype", "source_family": "zfin",
+         "query_en": "wt1a knockdown pronephros phenotype", "entities": ["wt1a"],
+         "acceptance_test": ">=1 ZFIN phenotype statement", "priority": "must"}]},
+    "cross-field-bridge-agent": {"applicable": True, "requirements": [
+        {"gap": "public datasets with wt1a expression", "evidence_kind": "dataset", "source_family": "geo",
+         "query_en": "wt1a zebrafish pronephros dataset", "entities": ["wt1a"],
+         "acceptance_test": ">=1 GEO series", "priority": "must"}]},      # exploratorio → must se degrada a should
+    "hypothesis-generator": {"applicable": True, "requirements": [
+        {"gap": "web grey literature", "evidence_kind": "web", "source_family": "web",
+         "query_en": "wt1a pronephros web", "entities": ["wt1a"], "acceptance_test": "any", "priority": "must"}]},  # unsatisfiable (E1)
+    "regulatory-ethics-advisor": {"applicable": True, "flags": [
+        {"kind": "animal-work", "statement": "zebrafish morpholino work needs the animal-work protocol on file"}]},
+    "scrna-seq-analyst": {"applicable": False, "not_applicable_reason": "no single-cell question here"},
+    # fuera de vocabulario / campos prohibidos / duplicado: la validación por CÓDIGO los descarta y cuenta
+    "spatial-omics-analyst": {"applicable": True, "direct_answer": "wt1a marks it", "confidence": 0.9, "requirements": [
+        {"gap": "off-vocabulary family", "evidence_kind": "paper", "source_family": "pubmed-central",
+         "query_en": "wt1a", "entities": ["wt1a"], "acceptance_test": "x", "priority": "must"},
+        {"gap": "literature on wt1a pronephros (dup)", "evidence_kind": "paper", "source_family": "europepmc",
+         "query_en": "wt1a pronephros zebrafish", "entities": ["wt1a"], "acceptance_test": ">=1 paper", "priority": "should"}]},
+}
+_C_R1_DEFAULT = {"applicable": True, "requirements": [
+    {"gap": "literature on wt1a pronephros", "evidence_kind": "paper", "source_family": "europepmc",
+     "query_en": "wt1a pronephros zebrafish", "entities": ["wt1a"], "acceptance_test": ">=1 paper", "priority": "should"}],
+    "notes_for_human": "shared literature requirement"}
+
+
+def _c_body(user_text):
+    head = user_text.split("\n\nEVIDENCE (", 1)[0]
+    return json.loads(head.split("\n\n", 1)[1])
+
+
+def _mk_council_caller(fail_r2=(), halluc_r2=(), uncovered_fams=(), cancel_after=None, run_box=None, wrong_tool_r1=()):
+    """caller(request) -> (tool_input, usage, meta) — 17 fakes deterministas, cero red. r1: la salida de _C_R1_OUT (o la
+    compartida); r2/r3: un juicio por requisito PROPIO (parseado del user_text) citando el primer evidence_id disponible;
+    `uncovered_fams` → 'uncovered' + search_directive en r2 (en r3 vuelve 'covered' citando el ítem nuevo); `halluc_r2` →
+    evidence_ids ['PMID:999'] (∉ bundle → voto ANULADO); `fail_r2` → CallerError http-529; `cancel_after` → request_cancel
+    en la k-ésima llamada. Caché: el primer despacho de cada ronda ESCRIBE 2400, los demás LEEN 2400 (usage medido)."""
+    seen_round = {}
+
+    def caller(request):
+        agent, rnd = request["agent"], request["round"]
+        _C_CALLS.append({"agent": agent, "round": rnd, "tool": request["tool"], "thread": _threading.get_ident(),
+                         "tools_sha": request["tools_sha"], "tool_choice": request["tool_choice"]["name"],
+                         "system_kind": type(request["system"]).__name__, "model": request["model"]})
+        if cancel_after is not None and run_box and len(_C_CALLS) >= cancel_after and not run_box.get("cancelled"):
+            run_box["cancelled"] = True          # one-shot: los fakes corren en hilos y len() no es atómico entre ellos
+            db.request_cancel(run_box["run_id"])
+        first = seen_round.setdefault(rnd, agent) == agent
+        usage = {"input_tokens": 1000, "output_tokens": 200,
+                 "cache_creation_input_tokens": 2400 if first else 0, "cache_read_input_tokens": 0 if first else 2400}
+        meta = {"model_reported": (request["model"] or "m") + "-20260915", "attempts": 1, "stop_reason": "tool_use", "api": "fake"}
+        if rnd == "r2" and agent in fail_r2:
+            raise composite_auditor.CallerError("http-529", "overloaded (simulated)", usage={"input_tokens": 1000, "output_tokens": 0})
+        if rnd == "r1":
+            if agent in wrong_tool_r1:
+                return {"judgments": []}, usage, meta        # tool equivocado para la ronda → fila errored wrong-tool
+            return json.loads(json.dumps(_C_R1_OUT.get(agent, _C_R1_DEFAULT))), usage, meta
+        body = _c_body(request["user_text"])
+        ids = list(body.get("evidence_ids_available") or [])
+        judg = []
+        for r in body.get("your_requirements") or []:
+            rid = r["requirement_id"]
+            if agent in halluc_r2:
+                judg.append({"requirement_id": rid, "coverage": "covered", "evidence_ids": ["PMID:999"], "rationale": "fake id"})
+            elif rnd == "r2" and r.get("source_family") in uncovered_fams:
+                judg.append({"requirement_id": rid, "coverage": "uncovered", "evidence_ids": [],
+                             "rationale": "no interaction evidence in the bundle",
+                             "search_directive": {"query_en": "wt1a STRING partners zebrafish", "entities": ["wt1a"]}})
+            elif rnd == "r3":
+                new = [i for i in ids if str(i).startswith("STRING") or "string" in str(i).lower()] or ids[-1:]
+                judg.append({"requirement_id": rid, "coverage": "covered", "evidence_ids": new[:1], "rationale": "directed search brought it"})
+            else:
+                judg.append({"requirement_id": rid, "coverage": "covered", "evidence_ids": ids[:1], "rationale": "DI chunk covers it"})
+        return {"judgments": judg}, usage, meta
+    return caller
+
+
+_C_CFG = _council.config()
+_c_ctx1 = {"question": "does wt1a mark the pronephros?", "entities": ["wt1a"],
+           "judgment": {"work_type": "QA", "route": "evidence-run", "niches": ["N3"], "state": "declared"}}
+_C_R1 = _council.run_round(_C_MEMBERS, "r1", _c_ctx1, caller=_mk_council_caller(wrong_tool_r1=("histology-reviewer",)),
+                           cfg=_C_CFG, phase="plan")
+_C_R1["prior_observations"] = {"n": 0, "kinds": [], "state": "empty-corpus"}
+_C_AGG = _council.aggregate_r1(_C_R1, members=_C_MEMBERS, cfg=_C_CFG)
+_c_by_fam = {}
+for _r in _C_AGG["requirements"]:
+    _c_by_fam.setdefault(_r["source_family"], _r)
+_c_rid = {f: _c_by_fam[f]["requirement_id"] for f in _c_by_fam}
+_c_hist = next(m for m in _C_R1["members"] if m["agent"] == "histology-reviewer")
+_c_spat = next(m for m in _C_R1["members"] if m["agent"] == "spatial-omics-analyst")
+check("ADR-0082 (C.3/C.4) ronda 1 FAKEADA (17, cero red): applicable con 16/17 válidos (histology-reviewer 'wrong-tool' → errored, "
+      "la ronda sigue); scrna-seq-analyst not-applicable CUENTA como válido; spatial-omics: 'pubmed-central' fuera de vocabulario "
+      "→ ítem descartado y crudo en off_vocabulary, direct_answer/confidence → dropped_fields (no viajan); agregación: la "
+      "literatura pedida por 9 miembros es UN requisito (n_requested_by 9, variants [] — misma query), string/pubmed/zfin must, "
+      "zfin hard_rule_gate (causal-pruner), geo exploratorio must→should con priority_downgraded_from, web unsatisfiable "
+      "(n_unsatisfiable 1), 1 bandera animal-work con gate humano; membros barajados → aggregation_sha idéntico",
+      _C_R1["state"] == "applicable" and _C_R1["n_valid"] == 16 and _C_R1["n_errored"] == 1
+      and _c_hist["status"] == "errored" and _c_hist["error_kind"] == "wrong-tool"
+      and _c_spat["status"] == "ok" and _c_spat["validation"]["off_vocabulary"][0]["value"] == "pubmed-central"
+      and set(_c_spat["validation"]["dropped_fields"]) >= {"direct_answer", "confidence"}
+      and set(_c_rid) == {"europepmc", "string", "pubmed", "zfin", "geo", "web"}
+      and _c_by_fam["europepmc"]["n_requested_by"] == 9 and _c_by_fam["europepmc"]["n_members"] == 17
+      and _c_by_fam["string"]["priority"] == "must" and _c_by_fam["zfin"]["hard_rule_gate"] is True
+      and _c_by_fam["geo"]["priority"] == "should" and _c_by_fam["geo"]["priority_downgraded_from"] == "must"
+      and _c_by_fam["web"]["harness_state"].startswith("unsatisfiable-by-harness") and _C_AGG["n_unsatisfiable"] == 1
+      and _C_AGG["n_hard_rule"] == 1 and _C_AGG["flags"][0]["kind"] == "animal-work" and _C_AGG["flags"][0]["gate"] == "human"
+      and _council.aggregate_r1({**_C_R1, "members": list(reversed(_C_R1["members"]))}, members=_C_MEMBERS,
+                                cfg=_C_CFG)["aggregation_sha"] == _C_AGG["aggregation_sha"]
+      and all(c["tools_sha"] == _council.TOOLS_SHA and c["system_kind"] == "list" for c in _C_CALLS),
+      json.dumps({"rids": _c_rid, "n_req": _C_AGG["n_requirements"], "hist": _c_hist["error_kind"],
+                  "spat": _c_spat["validation"]["dropped_fields"]}))
+
+_C_AT = "2026-09-15T20:00:00+00:00"
+_C_DECISIONS = [{"requirement_id": _c_rid["zfin"], "decision": "keep"},                      # hard-rule: decisión EXPLÍCITA
+                {"requirement_id": _c_rid["geo"], "decision": "discard", "reason": "datasets fuera del alcance del turno"},
+                {"requirement_id": _c_rid["pubmed"], "decision": "aporto",
+                 "attested_text": "Our lab confirmed podocyte wt1a expression in situ (notebook 2026-08, see PMID:31415926)."}]
+_C_LEDGER = _council.apply_ledger_decisions(_C_AGG, decisions=_C_DECISIONS, approve=True, decided_by="natalia",
+                                            decided_at=_C_AT, knowledge_now="We already know wt1a marks the pronephros.")
+_c_undecided = _council.apply_ledger_decisions(_C_AGG, decisions=[], approve=True, decided_by="natalia", decided_at=_C_AT)
+check("ADR-0082 (F.1/§7.1) ledger por CÓDIGO: approve con el must de causal-pruner (hard_rule) SIN decidir → state 'draft' + "
+      "errors.hard_rule_requirements_undecided [zfin] (ningún default lo toma); con keep explícito + 1 discard con razón + 1 "
+      "aporto atestiguado → 'approved', los pending restantes 'default-keep' (europepmc, string, web), n_kept 4 / n_discarded 1 / "
+      "n_attested 1, knowledge_now clase 'attested'",
+      _c_undecided["state"] == "draft" and _c_undecided["errors"]["hard_rule_requirements_undecided"] == [_c_rid["zfin"]]
+      and _C_LEDGER["state"] == "approved" and _C_LEDGER["n_kept"] == 4 and _C_LEDGER["n_discarded"] == 1
+      and _C_LEDGER["n_attested"] == 1 and _C_LEDGER["n_pending"] == 0
+      and next(r for r in _C_LEDGER["requirements"] if r["requirement_id"] == _c_rid["europepmc"])["decided_by"] == "default-keep"
+      and _C_LEDGER["knowledge_now"]["class"] == "attested",
+      json.dumps({k: _C_LEDGER[k] for k in ("state", "n_kept", "n_discarded", "n_attested", "n_pending")}))
+
+
+def _c_app_ledger(ledger):
+    """La forma HTTP del ledger que app (C6) persiste: decisions[] por requirement_id + knowledge_now + approved_by…"""
+    decs = []
+    for r in ledger["requirements"]:
+        d = {"requirement_id": r["requirement_id"], "decision": r["decision"], "decided_by": r["decided_by"],
+             "decided_at": r["decided_at"], "hard_rule_gate": bool(r.get("hard_rule_gate")), "priority": r.get("priority")}
+        if r.get("decision_reason"):
+            d["reason"] = r["decision_reason"]
+        if r.get("attested_text"):
+            d.update(attested_text=r["attested_text"], attested_chars=len(r["attested_text"]), attested_class="attested")
+        decs.append(d)
+    return {"state": ledger["state"], "plan_id": "plan-c5", "council_state": "applicable", "decisions": decs,
+            "n_requirements": len(decs), "knowledge_now": ledger["knowledge_now"], "approved_by": "natalia",
+            "approved_at": _C_AT, "approved_by_is_author": True, "source": "POST /plans/{plan_id}/council/ledger (fake)"}
+
+
+def _c_json(ledger, plan_id="plan-c5"):
+    r1 = {**_C_AGG, "rounds": [_C_R1], "members": list(_C_MEMBERS), "full_council": False, "catalog_sha": _cc.CATALOG_SHA,
+          "n_members": 17, "membership_version": _am.MEMBERSHIP_VERSION, "model": _C_R1["model"]}
+    return {"plan_id": plan_id, "r1_state": "applicable", "r1": r1, "ledger": ledger,
+            "membership_version": _am.MEMBERSHIP_VERSION, "n_members": 17, "members": list(_C_MEMBERS), "full_council": False,
+            "catalog_sha": _cc.CATALOG_SHA, "membership_source": "plan.council (frozen at r1)", "composed_at": _C_AT,
+            "source": "plans.council_json + plans.council_ledger_json (copied at enqueue)"}
+
+
+_C_SYNTH_SEEN = []
+
+
+def _mk_synth82(answer_text, conf_by_pass, cited):
+    """Sintetizador stub con la firma NUEVA (thread_context=, human_attestations=): registra qué llaves hermanas recibió."""
+    def _s(question, evidence, pass_label, thread_context=None, human_attestations=None):
+        _C_SYNTH_SEEN.append({"pass": pass_label, "human_attestations": human_attestations, "thread_context": thread_context,
+                              "evidence_has_attestations": "human_attestations" in (evidence or {})})
+        return _mk_synth(conf_by_pass, extra={"direct_answer": answer_text, "evidence_cited": cited})(question, evidence, pass_label)
+    return _s
+
+
+_C_CITED_OK = [{"kind": "di-chunk", "id": "CORPUS-2026-0003#c000"}, {"kind": "di-record", "id": "CORPUS-2026-0001"}]
+_C_ANSWER = "wt1a (ENSDARG00000031420) marks the zebrafish pronephros."
+_C_STRING_EL = {"partner": "wt1b", "score": 0.91, "evidence_id": "STRING:7955.wt1a-wt1b", "statement": "wt1a interacts with wt1b (STRING 0.91)",
+                "url": "https://string-db.org/", "identifier_provenance": "string-api"}
+
+
+def _run82(question, cj, synth=None, council_caller=None, env=None, plan=True, entities=("wt1a",), string_found=False,
+           cancel_after=None):
+    saved = {k: os.environ.get(k) for k in (env or {})}
+    for k, v in (env or {}).items():
+        os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+    try:
+        _sources_found()
+        if string_found:
+            _sh._TOOL_CACHE["string"] = (_fake_l0("string", "success", [_C_STRING_EL], list_key="partners"), "injected", None)
+        plan_obj = (runs_mod.build_plan(question, list(entities), planner=_fake_planner_ok, history_rows=HIST_OK) if plan else None)
+        box = {}
+        rid = runs_mod.new_run("natalia", question, list(entities),
+                               plan_json=json.dumps(plan_obj, default=str) if plan_obj else None,
+                               council_json=json.dumps(cj, ensure_ascii=False, default=str) if cj else None)
+        box["run_id"] = rid
+        caller = council_caller if council_caller is not None else _mk_council_caller()
+        if cancel_after is not None:
+            caller = _mk_council_caller(cancel_after=cancel_after, run_box=box)
+        claimed = db.claim_next_queued(worker_id="run-worker-adr0082")
+        assert claimed and claimed["run_id"] == rid, "FIFO: la corrida reclamada debe ser la esperada"
+        runs_mod.execute_run(claimed, synthesizer=synth or _mk_synth82(_C_ANSWER, {"pass1": 0.8, "pass2": 0.85}, _C_CITED_OK),
+                             panel_caller=_stub_caller_factory(ALL_A), council_caller=caller)
+    finally:
+        for k, v in saved.items():
+            os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+    row = db.get_run(rid)
+    frozen = json.loads(row["frozen_record_json"]) if row.get("frozen_record_json") else None
+    return rid, frozen, app.get_events(rid, after=0, authorization=AUTH)["events"], row
+
+
+# --- (a) consejo COMPLETO: 17 ok en r2, 0 must sin cubrir → competente, SIN ronda de búsqueda; ledger en forma HTTP (app) --
+_C_CALLS.clear(); _C_SYNTH_SEEN.clear()
+_rid_ca, _rec_ca, _ev_ca, _row_ca = _run82("ADR-0082 a: does wt1a mark the pronephros?", _c_json(_c_app_ledger(_C_LEDGER)))
+_t_ca = _ev_types(_ev_ca)
+_cn_a = _rec_ca["council"]
+_r2_a = next(r for r in _cn_a["rounds"] if r["round"] == "r2")
+_stages_ca = [t for t in _t_ca if t.startswith("stage.")]
+check("ADR-0082 (F.4) runs.new_run(council_json=) PERSISTE la copia (db.create_run council_json, C4) y run.state{queued}.council "
+      "{ledger_present True, n_kept 4, n_hard_rule 1, r1_state 'applicable', persisted True}; el ledger HTTP (decisions[]) se FUSIONA "
+      "con r1.requirements por requirement_id (council_ledger_from) → frozen.council.ledger con decisiones, decided_by y "
+      "attested_text (≤600), knowledge_now {present True}",
+      _row_ca.get("council_json") and json.loads(_row_ca["council_json"])["plan_id"] == "plan-c5"
+      and next(e for e in _ev_ca if e["type"] == "run.state" and e["payload"]["state"] == "queued")["payload"]["council"]
+          == {"ledger_present": True, "ledger_state": "approved", "n_kept": 4, "n_hard_rule": 1, "r1_state": "applicable",
+              "plan_id": "plan-c5", "n_members": 17, "persisted": True}
+      and _cn_a["ledger"]["state"] == "approved" and _cn_a["ledger"]["n_kept"] == 4 and _cn_a["ledger"]["n_attested"] == 1
+      and _cn_a["ledger"]["requirements_source"].startswith("r1.requirements ⨝ ledger.decisions")
+      and next(r for r in _cn_a["ledger"]["requirements"] if r["requirement_id"] == _c_rid["pubmed"])["attested_text"].startswith("Our lab")
+      and _cn_a["ledger"]["knowledge_now"]["present"] is True and _cn_a["ledger"]["approved_by_is_author"] is True,
+      json.dumps(next(e for e in _ev_ca if e["type"] == "run.state")["payload"].get("council")))
+check("ADR-0082 (G.1) orden de la traza: stage.models → stage.plan{council_state 'applicable'} → stage.council.ledger → … → "
+      "gate{pass1} → stage.council.round{r2, coverage, run} con 12 stage.council.member 'start' + 12 'done' (== n_invoked; "
+      "emitidos desde el hilo orquestador) → stage.council.coverage{pre-search} → stage.competence → NI search.plan NI pass2 "
+      "(competente); 12 llamadas al fake en r2 — SÓLO los miembros con ≥1 requisito kept propio (literature-monitor → aporto, "
+      "cross-field → discard, regulatory/scrna/histology sin requisitos → not-invoked, cero llamadas) — 0 en r1 (copiada del plan); "
+      "pass1 gate ANTES de r2",
+      _stages_ca[:3] == ["stage.models", "stage.plan", "stage.council.ledger"]
+      and _ev_payloads(_ev_ca, "stage.plan")[0]["council_state"] == "applicable"
+      and _t_ca.index("stage.deterministic_gate") < _t_ca.index("stage.council.round") < _t_ca.index("stage.council.coverage")
+      < _t_ca.index("stage.competence")
+      and sum(1 for e in _ev_ca if e["type"] == "stage.council.member" and e["payload"]["phase"] == "start") == _r2_a["n_invoked"]
+      and sum(1 for e in _ev_ca if e["type"] == "stage.council.member" and e["payload"]["phase"] == "done") == _r2_a["n_invoked"]
+      and all(e["agent"] == "council" for e in _ev_ca if e["type"].startswith("stage.council."))
+      and _r2_a["events"]["emitted_from"] == "orchestrator-thread"
+      and "stage.search.plan" not in _t_ca and "stage.synthesize.pass2" not in _t_ca
+      and [c["round"] for c in _C_CALLS] == ["r2"] * len(_C_CALLS) and len(_C_CALLS) == _r2_a["n_invoked"]
+      and all(c["tool_choice"] == "emit_coverage_judgment" for c in _C_CALLS),
+      json.dumps({"stages": _stages_ca[:8], "n_calls": len(_C_CALLS), "n_invoked": _r2_a["n_invoked"]}))
+_cov_a = _cn_a["coverage"]["pre_search"]
+_comp_a = _rec_ca["competence"]["components"]["council_uncovered_must"]
+check("ADR-0082 (C.5/G.2) cobertura pre-búsqueda JUZGADA: must_total 4 (string, pubmed, zfin, web) → must_attested 1 (pubmed "
+      "aporto → 'covered-by-attestation'), must_unsatisfiable 1 (web, NO gatea — E1), must_gateable 2 ambos 'covered' → "
+      "must_uncovered 0; geo discard → 'discarded'; componente cg-4 {state 'checked', value True, gating True} DENTRO de conjunction "
+      "→ competent True; frozen.council.state 'applicable', must_uncovered 0 (0 medido ≠ null); directives_state 'none (all must "
+      "covered)'; post_search 'not-run (search not triggered)'",
+      _cov_a["state"] == "judged" and _cov_a["must_total"] == 4 and _cov_a["must_attested"] == 1
+      and _cov_a["must_unsatisfiable"] == 1 and _cov_a["must_gateable"] == 2 and _cov_a["must_uncovered"] == 0
+      and {b["requirement_id"]: b["coverage_final"] for b in _cov_a["by_requirement"]}[_c_rid["pubmed"]] == "covered-by-attestation"
+      and {b["requirement_id"]: b["coverage_final"] for b in _cov_a["by_requirement"]}[_c_rid["geo"]] == "discarded"
+      and _comp_a["state"] == "checked" and _comp_a["value"] is True and _comp_a["gating"] is True
+      and _comp_a["must_uncovered"] == 0 and _comp_a["must_unsatisfiable"] == 1
+      and "council_uncovered_must" in _rec_ca["competence"]["conjunction"] and _rec_ca["competence"]["competent"] is True
+      and _rec_ca["competence"]["module_version"] == "cg-4"
+      and _cn_a["state"] == "applicable" and _cn_a["must_uncovered"] == 0
+      and _cn_a["directives_state"] == "none (all must covered)"
+      and _cn_a["coverage"]["post_search"]["state"] == "not-run (search not triggered)"
+      and _cn_a["coverage"]["after_search"]["state"] == "not-run (no search ledger)",
+      json.dumps({k: _cov_a[k] for k in ("must_total", "must_attested", "must_unsatisfiable", "must_gateable", "must_uncovered")}))
+check("ADR-0082 (J) frozen.council íntegro: module 'council-1', membership cm-1 CONGELADA del plan (n_members 17, members 17, "
+      "membership_source 'plan.council (frozen at r1)'), catalog_sha == catalog_cards.CATALOG_SHA == r1 → plan_catalog_matches_run "
+      "True, rules_sha/tools_sha, model {requested opus por tabla, effort 'medium' pinneado y ENVIADO (adaptive)}, rounds [r1 "
+      "COPIADA (copied_from_plan_id, phase plan, usage con caché) + r2 medida (17 miembros con usage/status/system_sha/card_sha)], "
+      "cache {enabled, ttl 5m, r2 creation 2400 read 26400 (1 escritura + 11 lecturas), hit_ratio_r2 medido}, vocabulary == council.council_vocabulary(), "
+      "decided_by 'code (council.aggregate_*)', kill_switch enabled True, index state declarado",
+      _cn_a["module_version"] == "council-1" and _cn_a["membership_version"] == "cm-1" and _cn_a["n_members"] == 17
+      and _cn_a["members"] == _C_MEMBERS and _cn_a["membership_source"] == "plan.council (frozen at r1)"
+      and _cn_a["catalog_sha"] == _cc.CATALOG_SHA == _cn_a["plan_catalog_sha"] and _cn_a["plan_catalog_matches_run"] is True
+      and _cn_a["rules_sha"] == _council.RULES_SHA and _cn_a["tools_sha"] == _council.TOOLS_SHA
+      and _cn_a["model"]["requested"] == models.resolve_role("council")["model"] and _cn_a["model"]["effort_pinned"] == "medium"
+      and _cn_a["model"]["effort"] == "medium"
+      and [r["round"] for r in _cn_a["rounds"]] == ["r1", "r2"] and _cn_a["rounds"][0]["copied_from_plan_id"] == "plan-c5"
+      and _cn_a["rounds"][0]["phase"] == "plan" and _r2_a["phase"] == "run" and len(_r2_a["members"]) == 17
+      and all(m["card_sha"] and m["system_sha"] for m in _r2_a["members"] if m["status"] == "ok")
+      and _cn_a["cache"]["enabled"] is True and _cn_a["cache"]["ttl"] == "5m"
+      and _cn_a["cache"]["r2"] == {"creation": 2400, "read": 2400 * 11} and _cn_a["cache"]["hit_ratio_r2"] == round(11 / 12, 4)
+      and _cn_a["vocabulary"] == runs_mod.council_vocabulary_full() and "competence_component_states" in _cn_a["vocabulary"]
+      and _cn_a["vocabulary"]["usage_stage_states"]["exact"] == list(runs_mod.COUNCIL_USAGE_STAGE_STATES_EXACT)
+      and _cn_a["decided_by"] == "code (council.aggregate_*)"
+      and _cn_a["kill_switch"]["enabled"] is True and "state" in _cn_a["index"]
+      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.11",
+      json.dumps({"cache": _cn_a["cache"], "model": _cn_a["model"]}, default=str)[:400])
+_tu_a = _rec_ca["token_usage"]
+_cm_a = _cn_a["model"]["requested"]
+_r1_usage = _C_R1["usage"]
+check("ADR-0082 (H) token_usage: by_stage.council_r1 COPIADA del plan (state 'copied-from-plan_json', in/out/cache == "
+      "runs.council_json.r1.rounds[0].usage, source 'plan_json (spent BEFORE enqueue; plan_id plan-c5)'), council_r2 'measured' "
+      "(12×1000 in, 12×200 out, cache creation 2400 / read 26400, n_invoked 12 de 17, n_calls 12), council_r3 'not-run (…)' in/out null; by_model[opus] "
+      "gana cache_creation/cache_read; _sum == by_model (by_stage_sum_matches_by_model) y cache_sum_matches_by_model True; "
+      "input_tokens_total = input + creation + read; USD > el mismo gasto sin caché (multiplicadores publicados aplicados, cache."
+      "priced True); council_judgment aparte con usd_projected",
+      _tu_a["by_stage"]["council_r1"]["state"] == "copied-from-plan_json"
+      and _tu_a["by_stage"]["council_r1"]["in"] == _r1_usage["in"] and _tu_a["by_stage"]["council_r1"]["cache_read"] == _r1_usage["cache_read"]
+      and _tu_a["by_stage"]["council_r1"]["source"] == "plan_json (spent BEFORE enqueue; plan_id plan-c5)"
+      and _tu_a["by_stage"]["council_r2"] == {"in": 12000, "out": 2400, "cache_creation": 2400, "cache_read": 26400,
+                                               "n_members": 17, "n_invoked": 12, "n_calls": 12, "model": _cm_a,
+                                               "model_source": _cn_a["model"]["source"], "state": "measured"}
+      and _tu_a["by_stage"]["council_r3"]["in"] is None and _tu_a["by_stage"]["council_r3"]["state"].startswith("not-run (")
+      and _tu_a["by_model"][_cm_a]["cache_creation"] == 2400 + _r1_usage["cache_creation"]
+      and _tu_a["by_model"][_cm_a]["cache_read"] == 26400 + _r1_usage["cache_read"]
+      and _tu_a["by_stage_sum_matches_by_model"] is True and _tu_a["cache_sum_matches_by_model"] is True
+      and _tu_a["input_tokens_total"] == _tu_a["input_tokens"] + _tu_a["cache"]["creation_input_tokens"] + _tu_a["cache"]["read_input_tokens"]
+      and _tu_a["cache"]["priced"] is True and _tu_a["cache"]["usd_projected"] > 0
+      and _tu_a["cache"]["multipliers"] == models.CACHE_MULTIPLIERS and _tu_a["cache"]["write_multiplier_key"] == "write_5m"
+      and _tu_a["estimated_cost_usd"] > sum((m["in"] * models.prices()[k][0] + m["out"] * models.prices()[k][1]) / 1e6
+                                            for k, m in _tu_a["by_model"].items() if k in models.prices())
+      and _tu_a["council_judgment"]["model"] == _cm_a and _tu_a["council_judgment"]["usd_projected"] > 0
+      and _tu_a["council_judgment"]["rounds"] == ["council_r1", "council_r2"] and "prompt-cache" in _tu_a["cost_class"],
+      json.dumps({"r1": _tu_a["by_stage"]["council_r1"], "r2": _tu_a["by_stage"]["council_r2"], "cache": _tu_a["cache"]}, default=str)[:600])
+_ai_a = {a["agent"]: a for a in _rec_ca["agents_invoked"]}
+_ops_row = _ai_a[runs_mod.COUNCIL_OPERATIVES_ROW]
+check("ADR-0082 (G.7) agents_invoked: fila agregada '(consejo de criterio — cm-1)' invoked 'council:12/17' con evidence r1:15/17 "
+      "(n_ok de r1: 15 ok + 1 not-applicable + 1 errored), r2:12/17, requirements:4, must_uncovered:0, catalog_sha:<16>; 17 filas por "
+      "miembro 'invoked' (los 17 fueron despachados en r1 — el JOB del plan; histology-reviewer TAMBIÉN: "
+      "'errored:wrong-tool (r1)' en su evidence; causal-pruner 'requirements:1'); los 8 operativos en UNA fila not-applicable por "
+      "categoría; sustrato en UNA fila con su estado real; ningún miembro 'skipped-ad-hoc'; hypothesis-generator/causal-pruner "
+      "(aplicables según el planner) son filas del consejo, no ad-hoc",
+      _ai_a[runs_mod.COUNCIL_AGENT_ROW]["status"] == "invoked" and _ai_a[runs_mod.COUNCIL_AGENT_ROW]["invocation_id"] == "council:12/17"
+      and {"r1:15/17", "r2:12/17", "requirements:4", "must_uncovered:0"} <= set(_ai_a[runs_mod.COUNCIL_AGENT_ROW]["evidence_generated"])
+      and _ai_a["literature-monitor"]["invocation_id"] == "council:literature-monitor:r1"
+      and any(e.startswith("not-invoked (r2)") for e in _ai_a["literature-monitor"]["evidence_generated"])
+      and all(_ai_a[m]["status"] == "invoked" for m in _C_MEMBERS)
+      and any(e.startswith("errored:wrong-tool") for e in _ai_a["histology-reviewer"]["evidence_generated"])
+      and "requirements:1" in _ai_a["causal-pruner"]["evidence_generated"]
+      and _ai_a["causal-pruner"]["invocation_id"] == "council:causal-pruner:r1+r2"
+      and _ops_row["status"] == "not-applicable" and len(_ops_row["evidence_generated"]) == 8
+      and _ai_a[runs_mod.COUNCIL_SUBSTRATE_ROW]["status"] == "not-applicable"
+      and not any(a["status"] == "skipped-ad-hoc" for a in _rec_ca["agents_invoked"]),
+      json.dumps([(a["agent"], a["status"]) for a in _rec_ca["agents_invoked"]][:6]))
+_cits_a = {c["id"]: c for c in _rec_ca["citations"]}
+check("ADR-0082 (G.4) citations[].pertinent deja de ser gris: la cita al chunk de Ruta A que los votos VÁLIDOS covered citaron → "
+      "pertinent true + pertinent_to (requirement_ids) + pertinent_source 'council.r2 (…)'; la cita a CORPUS-2026-0001 (∉ bundle, "
+      "nadie la nombró) → 'not-named-by-council (valid round; no vote cites this id)' (jamás false); summary.pertinent {state "
+      "'checked', n_true 1, n_not_named 1, literal viejo dentro}; deterministic_checks.council {state applicable, must_uncovered_pre 0, "
+      "post null, n_hallucinated_votes 0, n_directives 0, n_requirements_kept 4} y attestation_identifier_leak [] 'checked' (hubo "
+      "atestiguaciones sin fuga); epistemic_summary.{council_state, council_n_valid 12 (r2), council_n_members 17, council_must_uncovered 0}",
+      _cits_a["CORPUS-2026-0003#c000"]["pertinent"] is True and _c_rid["europepmc"] in _cits_a["CORPUS-2026-0003#c000"]["pertinent_to"]
+      and _cits_a["CORPUS-2026-0003#c000"]["pertinent_source"].startswith("council.r2")
+      and _cits_a["CORPUS-2026-0001"]["pertinent"] == _vo.PERTINENT_NOT_NAMED
+      and _rec_ca["citations_support_summary"]["pertinent"]["state"] == "checked"
+      and _rec_ca["citations_support_summary"]["pertinent"]["n_true"] == 1 and _rec_ca["citations_support_summary"]["pertinent"]["n_not_named"] == 1
+      and _rec_ca["citations_support_summary"]["pertinent"]["literal"] == "not-available (ADR-0082)"
+      and _rec_ca["deterministic_checks"]["council"] == {**_rec_ca["deterministic_checks"]["council"], "state": "applicable",
+                                                          "must_uncovered_pre": 0, "must_uncovered_post": None,
+                                                          "n_hallucinated_votes": 0, "n_directives": 0, "n_requirements_kept": 4}
+      and _rec_ca["deterministic_checks"]["attestation_identifier_leak"] == []
+      and _rec_ca["deterministic_checks"]["attestation_identifier_leak_state"] == "checked"
+      and json.loads(_row_ca["epistemic_summary_json"])["council_state"] == "applicable"
+      and json.loads(_row_ca["epistemic_summary_json"])["council_n_valid"] == 12
+      and json.loads(_row_ca["epistemic_summary_json"])["council_n_members"] == 17
+      and json.loads(_row_ca["epistemic_summary_json"])["council_must_uncovered"] == 0,
+      json.dumps({"cits": {k: (v.get("pertinent"), v.get("pertinent_to")) for k, v in _cits_a.items()},
+                  "dc": _rec_ca["deterministic_checks"]["council"]}, default=str))
+check("ADR-0082 (F.5/E5) el sintetizador recibió human_attestations como llave HERMANA (knowledge_now + 1 aporto) en pass1 y NO "
+      "dentro de evidence; NUNCA recibe criterios ni cobertura del consejo (ciego, E5); frozen.council.human_attestations {present, "
+      "n_attestations 1, knowledge_now_present True, delivery.synthesizer True}; el panel recibió deterministic_checks.council "
+      "(conteos) — la prosa atestiguada no viaja al panel: los jueces NO ven 'Our lab confirmed'",
+      len(_C_SYNTH_SEEN) == 1 and _C_SYNTH_SEEN[0]["human_attestations"]["n_attestations"] == 1
+      and _C_SYNTH_SEEN[0]["human_attestations"]["knowledge_now"]["text"].startswith("We already know")
+      and _C_SYNTH_SEEN[0]["evidence_has_attestations"] is False
+      and _cn_a["human_attestations"] == {**_cn_a["human_attestations"], "present": True, "n_attestations": 1,
+                                          "knowledge_now_present": True}
+      and _cn_a["human_attestations"]["delivery"]["synthesizer"] is True and _cn_a["human_attestations"]["delivery"]["panel"] is False,
+      json.dumps(_cn_a["human_attestations"]))
+
+# --- (b) must SIN cubrir → no competente → directivas → familia directive-only (string) ENTRA → r3 sobre el dueño → post ------
+_C_CALLS.clear()
+_rid_cb, _rec_cb, _ev_cb, _row_cb = _run82("ADR-0082 b: wt1a interaction partners?", _c_json(_C_LEDGER, "plan-c5-b"),
+                                            council_caller=_mk_council_caller(uncovered_fams=("string",)), string_found=True)
+_t_cb = _ev_types(_ev_cb)
+_cn_b = _rec_cb["council"]
+_sp_b = _ev_payloads(_ev_cb, "stage.search.plan")[0]
+_dir_ev = _ev_payloads(_ev_cb, "stage.council.directives")
+_cov_pre_b, _cov_post_b, _after_b = _cn_b["coverage"]["pre_search"], _cn_b["coverage"]["post_search"], _cn_b["coverage"]["after_search"]
+_r3_b = next(r for r in _cn_b["rounds"] if r["round"] == "r3")
+check("ADR-0082 (G.1/G.3) 1 must sin cubrir (string, uncovered por cross-modality-integrator): componente 'checked' value False → "
+      "competent False reasons ['council_uncovered_must'] → stage.council.directives {n 1, families ['string']} → stage.search.plan "
+      "families_source 'directives+default', n_directives 1, la familia directive-only 'string' ENTRA y las 5 auto SIGUEN → "
+      "path_b → r3 SÓLO sobre el dueño (n_invoked 1 < 17, kind recoverage) → coverage post-search must_uncovered 0 → pass2; "
+      "orden competence < directives < search.plan < path_b < council.round{r3} < coverage{post} < pass2",
+      _rec_cb["competence"]["competent"] is False and _rec_cb["competence"]["reasons"] == ["council_uncovered_must"]
+      and _rec_cb["competence"]["components"]["council_uncovered_must"]["value"] is False
+      and _rec_cb["competence"]["components"]["council_uncovered_must"]["must_uncovered"] == 1
+      and len(_dir_ev) == 1 and _dir_ev[0]["n"] == 1 and _dir_ev[0]["families"] == ["string"]
+      and _sp_b["families_source"] == "directives+default" and _sp_b["n_directives"] == 1
+      and "string" in _sp_b["families"] and set(_sh.DEFAULT_FAMILIES) <= set(_sp_b["families"])
+      and _r3_b["kind"] == "recoverage" and _r3_b["n_invoked"] == 1 and _r3_b["members_order"] == ["cross-modality-integrator"]
+      and _cov_pre_b["must_uncovered"] == 1 and _cov_post_b["state"] == "judged" and _cov_post_b["must_uncovered"] == 0
+      and _cov_post_b["rejudged_members"] == ["cross-modality-integrator"]
+      and _t_cb.index("stage.competence") < _t_cb.index("stage.council.directives") < _t_cb.index("stage.search.plan")
+      < _t_cb.index("stage.path_b") < [i for i, t in enumerate(_t_cb) if t == "stage.council.round"][1]
+      < [i for i, t in enumerate(_t_cb) if t == "stage.council.coverage"][1] < _t_cb.index("stage.synthesize.pass2")
+      and [c["round"] for c in _C_CALLS].count("r3") == 1 and _rec_cb["fallback"]["trigger"] == "competence",
+      json.dumps({"reasons": _rec_cb["competence"]["reasons"], "families": _sp_b["families"], "r3": _r3_b["members_order"],
+                  "post": _cov_post_b["must_uncovered"]}))
+_sl_b = _rec_cb["search_ledger"]
+_string_row = next((s for rd in _sl_b["rounds"] for s in rd["sources"] if s["family"] == "string"), None)
+_string_paper = next((p for p in json.loads(_row_cb["bundle_json"])["path_b"]["papers"] if p.get("source_family") == "string"), None)
+check("ADR-0082 (C.6/C.7) la directiva se compiló desde el REQUISITO (family string, symbols ['wt1a'] resueltos por resolve_id, "
+      "refined_by_members ['cross-modality-integrator'] por su search_directive) y viaja verbatim en search_ledger.plan.directives "
+      "(directives_state 'provided'); la fila de string lleva directive_requirement_ids [req string] y el ítem admitido también → "
+      "after_search: string 'retrieved-for' (1 ítem, medición estructural), europepmc 'covered-pre'; search_ledger.n_items_for_"
+      "directives {req: 1}; frozen.council.directives_state 'provided'; fb_meta.council.families_from_directives ['string']",
+      _cn_b["directives"][0]["family"] == "string" and _cn_b["directives"][0]["symbols"] == ["wt1a"]
+      and _cn_b["directives"][0]["refined_by_members"] == ["cross-modality-integrator"]
+      and _cn_b["directives"][0]["query_en"] == "wt1a STRING partners zebrafish" and "query_en_original" in _cn_b["directives"][0]
+      and _sl_b["plan"]["directives_state"] == "provided" and _sl_b["plan"]["directives"][0]["requirement_id"] == _c_rid["string"]
+      and _string_row is not None and _string_row["directive_requirement_ids"] == [_c_rid["string"]] and _string_row["status"] == "success"
+      and _string_paper is not None and _string_paper.get("directive_requirement_ids") == [_c_rid["string"]]
+      and {b["requirement_id"]: b["state"] for b in _after_b["by_requirement"]}[_c_rid["string"]] == "retrieved-for"
+      and {b["requirement_id"]: b["state"] for b in _after_b["by_requirement"]}[_c_rid["europepmc"]] == "covered-pre"
+      and _after_b["n_items_for_directives"] == {_c_rid["string"]: 1} and _sl_b["n_items_for_directives"] == {_c_rid["string"]: 1}
+      and _cn_b["directives_state"] == "provided"
+      and _rec_cb["fallback"]["fb_meta"]["council"]["families_from_directives"] == ["string"]
+      and _rec_cb["fallback"]["fb_meta"]["council"]["must_uncovered_pre"] == 1,
+      json.dumps({"dir": _cn_b["directives"][0], "after": _after_b["n_items_for_directives"],
+                  "row": (_string_row or {}).get("directive_requirement_ids")}, default=str)[:500])
+_tu_b = _rec_cb["token_usage"]
+_ai_b = {a["agent"]: a for a in _rec_cb["agents_invoked"]}
+check("ADR-0082 (H/G.7/G.8) con r3: by_stage.council_r3 'measured' (1 miembro, 1000/200), _sum == by_model, cache cuadra; "
+      "deterministic_checks.council {must_uncovered_pre 1, must_uncovered_post 0, n_directives 1}; epistemic council_must_uncovered 1 "
+      "(pre, frozen-counter); agents_invoked cross-modality-integrator 'council:cross-modality-integrator:r1+r2+r3' con "
+      "'coverage:1/0/0' (el voto r3 REEMPLAZA al r2 en la cobertura post); el sintetizador de pass2 sigue CIEGO al consejo",
+      _tu_b["by_stage"]["council_r3"]["state"] == "measured" and _tu_b["by_stage"]["council_r3"]["in"] == 1000
+      and _tu_b["by_stage"]["council_r3"]["n_invoked"] == 1
+      and _tu_b["by_stage_sum_matches_by_model"] is True and _tu_b["cache_sum_matches_by_model"] is True
+      and _rec_cb["deterministic_checks"]["council"]["must_uncovered_pre"] == 1
+      and _rec_cb["deterministic_checks"]["council"]["must_uncovered_post"] == 0
+      and _rec_cb["deterministic_checks"]["council"]["n_directives"] == 1
+      and json.loads(_row_cb["epistemic_summary_json"])["council_must_uncovered"] == 1
+      and _ai_b["cross-modality-integrator"]["invocation_id"] == "council:cross-modality-integrator:r1+r2+r3"
+      and "coverage:1/0/0" in _ai_b["cross-modality-integrator"]["evidence_generated"]
+      and _cn_b["r3"]["state"] == "judged" and _cn_b["r3"]["members"] == ["cross-modality-integrator"],
+      json.dumps({"r3": _tu_b["by_stage"]["council_r3"], "dc": _rec_cb["deterministic_checks"]["council"]}, default=str))
+
+# --- (c) ronda INCOMPLETA (8/17 caídos http-529) → False 'council-incomplete' — no competente, revisión NO disparada por eso ----
+_C_CALLS.clear()
+_fail8 = tuple(_C_MEMBERS[i] for i in range(0, 16, 2))
+_rid_cc2, _rec_cc2, _ev_cc2, _row_cc2 = _run82("ADR-0082 c: incomplete round", _c_json(_C_LEDGER, "plan-c5-c"),
+                                                council_caller=_mk_council_caller(fail_r2=_fail8))
+_cn_c = _rec_cc2["council"]
+_comp_c = _rec_cc2["competence"]["components"]["council_uncovered_must"]
+_r2_c = next(r for r in _cn_c["rounds"] if r["round"] == "r2")
+check("ADR-0082 (C.3/G.2) 8 miembros marcados para caer (CallerError http-529 con usage de intento cobrado), 5 de ellos con requisito "
+      "kept → r2 n_valid 7 (12 invocados − 5 caídos) < cuórum 8 = ceil(0.6·12 ELEGIBLES) (corrector: los 5 not-invoked no cuentan en el "
+      "denominador; required_full_membership 11) → round state 'incomplete' → frozen.council.state 'incomplete'; "
+      "componente {state 'incomplete (7/12 < quorum 8)', value False, gating True, reason 'council-incomplete (k/N < quorum)'} → "
+      "competent False reasons ['council_uncovered_must']; los 5 errored "
+      "llevan error_kind 'http-529' y usage MEDIDO (1000 in, cobrado); revision.performed False (el panel aprobó: la ronda "
+      "incompleta jamás dispara revisión); epistemic council_n_valid 9",
+      _r2_c["state"] == "incomplete" and _r2_c["n_valid"] == 7 and _r2_c["n_errored"] == 5
+      and _cn_c["state"] == "incomplete"
+      and _comp_c["state"] == "incomplete (7/12 < quorum 8)" and _comp_c["value"] is False and _comp_c["gating"] is True
+      and _r2_c["quorum"]["n_eligible"] == 12 and _r2_c["quorum"]["required"] == 8 and _r2_c["quorum"]["required_full_membership"] == 11
+      and _comp_c["round"]["n_eligible"] == 12 and _cn_c["coverage"]["pre_search"]["round_summary"]["quorum_required"] == 8
+      and _comp_c["reason"] == "council-incomplete (k/N < quorum)"
+      and _rec_cc2["competence"]["competent"] is False and _rec_cc2["competence"]["reasons"] == ["council_uncovered_must"]
+      and all(m["error_kind"] == "http-529" and m["usage"]["input_tokens"] == 1000 for m in _r2_c["members"] if m["status"] == "errored")
+      and _rec_cc2["revision"]["performed"] is False and _rec_cc2["audit"]["verdict"] == "APPROVE"
+      and json.loads(_row_cc2["epistemic_summary_json"])["council_n_valid"] == 7,
+      json.dumps({"comp": {k: _comp_c[k] for k in ("state", "value", "gating", "reason")}, "n_valid": _r2_c["n_valid"]}))
+
+# --- (l) corrector C.3/C.5: SÓLO 3 dueños de requisitos kept (europepmc — el requisito de 9 miembros — descartado con razón) --------
+_C_CALLS.clear()
+_L3_DECISIONS = _C_DECISIONS + [{"requirement_id": _c_rid["europepmc"], "decision": "discard",
+                                 "reason": "la literatura general ya está en la DI (turno acotado)"}]
+_C_LEDGER3 = _council.apply_ledger_decisions(_C_AGG, decisions=_L3_DECISIONS, approve=True, decided_by="natalia", decided_at=_C_AT)
+_rid_cl, _rec_cl, _ev_cl, _row_cl = _run82("ADR-0082 l: three owners", _c_json(_c_app_ledger(_C_LEDGER3), "plan-c5-l"))
+_cn_l = _rec_cl["council"]
+_r2_l = next(r for r in _cn_l["rounds"] if r["round"] == "r2")
+_comp_l = _rec_cl["competence"]["components"]["council_uncovered_must"]
+check("ADR-0082 (C.3/C.5) corrector: ledger con 3 kept (string, zfin, web) cuyos dueños son 3 miembros (14 not-invoked, 3 llamadas) que "
+      "votan covered con id válido → r2 'applicable' con quorum {n_eligible 3, required 2 = ceil(0.6·3), n_valid 3, met True, "
+      "required_full_membership 11} → componente 'checked' value True → competent True SIN ronda de búsqueda — ANTES: 3/17 < 11 → "
+      "'incomplete' por construcción → no competente → búsqueda + pass2 forzadas sin haber medido nada",
+      _r2_l["state"] == "applicable" and _r2_l["n_invoked"] == 3 and _r2_l["n_not_invoked"] == 14 and len(_C_CALLS) == 3
+      and _r2_l["quorum"] == {**_r2_l["quorum"], "n_eligible": 3, "required": 2, "n_valid": 3, "met": True, "n_members": 17,
+                              "required_full_membership": 11, "state": "met"}
+      and _cn_l["state"] == "applicable" and _cn_l["ledger"]["n_kept"] == 3 and _cn_l["ledger"]["n_discarded"] == 2
+      and _comp_l["state"] == "checked" and _comp_l["value"] is True and _comp_l["gating"] is True
+      and _comp_l["round"]["n_eligible"] == 3 and _comp_l["round"]["quorum_required"] == 2
+      and _rec_cl["competence"]["competent"] is True and "stage.search.plan" not in _ev_types(_ev_cl)
+      and _ev_payloads(_ev_cl, "stage.council.round")[0]["quorum"]["n_eligible"] == 3,
+      json.dumps({"quorum": _r2_l["quorum"], "comp": {k: _comp_l[k] for k in ("state", "value", "gating")},
+                  "competent": _rec_cl["competence"]["competent"]}))
+
+# --- (d) voto con evidence_id ALUCINADO → anulado → not-judged → must sin cubrir --------------------------------------------
+_C_CALLS.clear()
+_rid_cd, _rec_cd, _ev_cd, _row_cd = _run82("ADR-0082 d: hallucinated vote", _c_json(_C_LEDGER, "plan-c5-d"),
+                                            council_caller=_mk_council_caller(halluc_r2=("causal-pruner",)))
+_cov_d = _rec_cd["council"]["coverage"]["pre_search"]
+_zfin_d = next(b for b in _cov_d["by_requirement"] if b["requirement_id"] == _c_rid["zfin"])
+check("ADR-0082 (C.5) causal-pruner cita 'PMID:999' (∉ bundle) → voto ANULADO (annulled True, hallucinated_evidence_ids ['PMID:999']) "
+      "→ su must zfin sin votos válidos → 'not-judged' → cuenta como must SIN cubrir (must_not_judged 1, must_uncovered 1) → "
+      "not competent; coverage.hallucinated_evidence_ids lo lista, n_hallucinated_votes 1 en el frozen, en stage.council.coverage y "
+      "en deterministic_checks.council (el panel lo recibe como CONTEO)",
+      _zfin_d["coverage_final"] == "not-judged" and _zfin_d["votes"][0]["annulled"] is True
+      and _zfin_d["votes"][0]["hallucinated_evidence_ids"] == ["PMID:999"] and _zfin_d["n_valid_votes"] == 0
+      and _cov_d["must_not_judged"] == 1 and _cov_d["must_uncovered"] == 1 and _cov_d["n_hallucinated_votes"] == 1
+      and _cov_d["hallucinated_evidence_ids"] == [{"agent": "causal-pruner", "requirement_id": _c_rid["zfin"], "evidence_ids": ["PMID:999"]}]
+      and _ev_payloads(_ev_cd, "stage.council.coverage")[0]["n_hallucinated_votes"] == 1
+      and _rec_cd["deterministic_checks"]["council"]["n_hallucinated_votes"] >= 1
+      and _rec_cd["competence"]["competent"] is False,
+      json.dumps({"zfin": {k: _zfin_d[k] for k in ("coverage_final", "n_valid_votes")}, "halluc": _cov_d["hallucinated_evidence_ids"]}))
+
+# --- (e) KILL-SWITCH WITT_COUNCIL=0 con la MISMA copia: 0 llamadas, 0 stage.council.*, forma 1.10 + excepciones DECLARADAS (L.2) ----
+_C_CALLS.clear()
+_rid_ce, _rec_ce, _ev_ce, _row_ce = _run82("ADR-0082 e: kill-switch", _c_json(_c_app_ledger(_C_LEDGER), "plan-c5-e"),
+                                            env={"WITT_COUNCIL": "0"})
+_FROZEN_1_10_KEYS = {
+    "render_contract_version", "run_id", "user_id", "question", "measured_at", "store_at_retrieval", "retrieval_summary",
+    "decision_state", "fallback", "confidence", "audit", "audit_initial", "answer_initial", "revision", "answer", "models",
+    "alternatives_considered", "reasoning", "agents_invoked", "plan", "plan_declared", "plan_question_matches_run", "citations",
+    "citations_schema", "citations_support_summary", "evidence_cited_raw", "competence", "search_ledger", "deterministic_checks",
+    "token_usage", "usage_raw", "bundle_identity", "question_matches_run", "thread", "thread_context",
+    "thread_context_skipped_reason", "thread_parent_matches_run", "thread_parent_matches_run_state",
+    "thread_parent_matches_run_rule", "precedent_citations", "precedent_citations_state", "origin", "plan_parent_matches_run",
+    "plan_parent_matches_run_state", "plan_snapshot_matches_run", "plan_snapshot_matches_run_state", "episode_axes", "niches"}
+_TU_1_10_KEYS = {"input_tokens", "output_tokens", "by_model", "by_stage", "by_stage_sum_matches_by_model", "plan_judgment",
+                 "embedding", "estimated_cost_usd", "missing_price_models", "cost_projection_complete", "cost_class"}
+_dc_extra = set(_rec_ce["deterministic_checks"]) - set(_rec_ca["deterministic_checks"])
+check("ADR-0082 (L.2) kill-switch WITT_COUNCIL=0 con la misma copia F.4: CERO llamadas al fake, CERO eventos stage.council.*, ninguna "
+      "de las etapas del consejo; el frozen tiene EXACTAMENTE las 47 llaves de 1.10 + {council}; token_usage = llaves 1.10 + {cache, "
+      "input_tokens_total, council_judgment, cache_sum_matches_by_model}; by_stage.council_r2/r3 'kill-switch WITT_COUNCIL=0' in/out "
+      "null PERO council_r1 se COPIA igual del plan (el gasto ocurrió ANTES de encolar: apagar el consejo detiene llamadas, no "
+      "contabilidad — declarado) → cache = la de r1, input_tokens_total = input + caché de r1, council_judgment rounds ['council_r1']; "
+      "frozen.council.rounds == [r1 copiada] (sin r2/r3), ledger null; deterministic_checks gana SÓLO council{state disabled} + "
+      "attestation_identifier_leak 'no-attestations'; frozen.council {state 'disabled (kill-switch WITT_COUNCIL=0)', kill_switch.enabled False}; competencia "
+      "component 'kill-switch WITT_COUNCIL=0' fuera de conjunction (== cg-3); agents_invoked gana SÓLO la fila agregada "
+      "not-applicable 'kill-switch WITT_COUNCIL=0' (sin filas por miembro); citations[].pertinent 'not-available (council disabled (…))'; "
+      "panel_signature byte-igual a la corrida (a) con consejo; el sintetizador NO recibió human_attestations (ledger apagado)",
+      _C_CALLS == [] and not any(t.startswith("stage.council.") for t in _ev_types(_ev_ce))
+      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council"}
+      and set(_rec_ce["token_usage"]) == _TU_1_10_KEYS | {"cache", "input_tokens_total", "council_judgment", "cache_sum_matches_by_model"}
+      and _rec_ce["token_usage"]["cache"]["creation_input_tokens"] == _r1_usage["cache_creation"]
+      and _rec_ce["token_usage"]["cache"]["read_input_tokens"] == _r1_usage["cache_read"]
+      and _rec_ce["token_usage"]["council_judgment"]["rounds"] == ["council_r1"]
+      and "kill-switch" in _rec_ce["token_usage"]["cache"]["state"]
+      and _rec_ce["token_usage"]["by_stage"]["council_r1"]["state"] == "copied-from-plan_json"
+      and "council disabled at execution" in _rec_ce["token_usage"]["by_stage"]["council_r1"]["source"]
+      and all(_rec_ce["token_usage"]["by_stage"][s] == {"in": None, "out": None, "state": "kill-switch WITT_COUNCIL=0"}
+              for s in ("council_r2", "council_r3"))
+      and _rec_ce["token_usage"]["input_tokens_total"] == (_rec_ce["token_usage"]["input_tokens"] + _r1_usage["cache_creation"]
+                                                          + _r1_usage["cache_read"])
+      and _rec_ce["token_usage"]["by_stage_sum_matches_by_model"] is True and _rec_ce["token_usage"]["cache_sum_matches_by_model"] is True
+      and set(_rec_ce["deterministic_checks"]) - set(_rec_ca["deterministic_checks"]) == set()
+      and _rec_ce["deterministic_checks"]["council"]["state"] == "disabled (kill-switch WITT_COUNCIL=0)"
+      and _rec_ce["deterministic_checks"]["attestation_identifier_leak_state"] == "no-attestations"
+      and _rec_ce["council"]["state"] == "disabled (kill-switch WITT_COUNCIL=0)" and _rec_ce["council"]["kill_switch"]["enabled"] is False
+      and [r["round"] for r in _rec_ce["council"]["rounds"]] == ["r1"] and _rec_ce["council"]["rounds"][0]["copied_from_plan_id"] == "plan-c5-e"
+      and _rec_ce["council"]["ledger"] is None
+      and _rec_ce["competence"]["components"]["council_uncovered_must"]["state"] == "kill-switch WITT_COUNCIL=0"
+      and "council_uncovered_must" not in _rec_ce["competence"]["conjunction"]
+      and _rec_ce["competence"]["conjunction"] == _rec_c["competence"]["conjunction"]
+      and [a["agent"] for a in _rec_ce["agents_invoked"] if a["agent"] in _C_MEMBERS] == []
+      and next(a for a in _rec_ce["agents_invoked"] if a["agent"] == runs_mod.COUNCIL_AGENT_ROW)["reason"] == "kill-switch WITT_COUNCIL=0"
+      and runs_mod.COUNCIL_OPERATIVES_ROW not in {a["agent"] for a in _rec_ce["agents_invoked"]}
+      and all(c["pertinent"] == "not-available (council disabled (kill-switch WITT_COUNCIL=0))" for c in _rec_ce["citations"])
+      and _rec_ce["models"]["panel_signature"] == _rec_ca["models"]["panel_signature"]
+      and _C_SYNTH_SEEN[-1]["human_attestations"] is None,
+      json.dumps({"extra_frozen": sorted(set(_rec_ce) - _FROZEN_1_10_KEYS), "dc_extra": sorted(_dc_extra),
+                  "tu_extra": sorted(set(_rec_ce["token_usage"]) - _TU_1_10_KEYS)}))
+
+_DC_ADD_111 = {"council", "attestation_identifier_leak", "attestation_identifier_leak_state", "attestation_identifier_leak_rule"}
+_DC_1_10_BASE = {"pass", "admissible", "reasons", "identifier_report", "parent_identifier_leak", "parent_identifier_leak_state", "thread",
+                 "positive_claim_requires_citations", "positive_claim_requires_citations_state",   # runs._gate @ 9d90c01 (sin padre)
+                 "pass1_admissible", "competence_gate", "disjoint_series", "disjoint_series_state"}   # + lo que execute_run añade al congelar @ 9d90c01
+check("ADR-0082 (L.2 i) corrector: bajo kill-switch deterministic_checks = keyset 1.10 congelado @ 9d90c01 (runs._gate + pass1_admissible/competence_gate/disjoint_series*) + EXACTAMENTE las 4 llaves "
+      "aditivas DECLARADAS {council {state}, attestation_identifier_leak [], _state 'no-attestations', _rule} — el fragmento viaja al panel "
+      "con estado declarado (tres estados: el predicado corrió y no había atestiguaciones) y la excepción queda escrita en el ADR",
+      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111) - {"positive_claim_requires_citations_inputs",
+                                                            "positive_claim_requires_citations_evaluation"} == _DC_1_10_BASE
+      and _DC_ADD_111 <= set(_rec_ce["deterministic_checks"])
+      and _rec_ce["deterministic_checks"]["attestation_identifier_leak"] == []
+      and _rec_ce["deterministic_checks"]["attestation_identifier_leak_state"] == "no-attestations"
+      and _rec_ce["deterministic_checks"]["attestation_identifier_leak_rule"] == runs_mod.ATTESTATION_LEAK_RULE,
+      json.dumps(sorted(set(_rec_ce["deterministic_checks"]) - _DC_1_10_BASE)))
+
+# --- (f) aporto ATESTIGUADO con un PMID que la respuesta cita sin evidencia → attestation_identifier_leak → INADMISIBLE ------------
+_C_CALLS.clear(); _C_SYNTH_SEEN.clear()
+_rid_cf, _rec_cf, _ev_cf, _row_cf = _run82("ADR-0082 f: attestation leak", _c_json(_C_LEDGER, "plan-c5-f"),
+                                            synth=_mk_synth82("wt1a marks the pronephros (PMID:31415926).",
+                                                              {"pass1": 0.9, "pass2": 0.9}, _C_CITED_OK))
+_g1_f = _ev_payloads(_ev_cf, "stage.deterministic_gate")[0]
+check("ADR-0082 (F.5/R9) el humano aportó un texto con PMID:31415926; la respuesta lo cita y NO está en la evidencia → predicado DURO "
+      "attestation_identifier_leak ['PMID:31415926'] state 'checked' → pass1 INADMISIBLE ('hard predicate failed: "
+      "attestation_identifier_leak') → competent False ['admissible'] → ronda + pass2 (misma respuesta → inadmisible de nuevo); "
+      "parent_identifier_leak intacto ('no-parent'); el requisito aportado queda 'covered-by-attestation' (fuera del gating); el "
+      "sintetizador recibió human_attestations en pass1 Y pass2 y el system lleva ATTESTATION_ANTI_LEAK_CLAUSE sólo con ellas",
+      _g1_f["attestation_identifier_leak"] == ["PMID:31415926"] and _g1_f["attestation_identifier_leak_state"] == "checked"
+      and _g1_f["admissible"] is False and "hard predicate failed: attestation_identifier_leak" in _g1_f["reasons"]
+      and _g1_f["parent_identifier_leak_state"] == "no-parent"
+      and _rec_cf["competence"]["competent"] is False and "admissible" in _rec_cf["competence"]["reasons"]
+      and _rec_cf["deterministic_checks"]["attestation_identifier_leak"] == ["PMID:31415926"]
+      and _rec_cf["deterministic_checks"]["admissible"] is False and _rec_cf["deterministic_checks"]["pass"] == "pass2"
+      and {b["requirement_id"]: b["coverage_final"] for b in _rec_cf["council"]["coverage"]["pre_search"]["by_requirement"]}[_c_rid["pubmed"]]
+          == "covered-by-attestation"
+      and [s["pass"] for s in _C_SYNTH_SEEN] == ["pass1", "pass2"] and all(s["human_attestations"] for s in _C_SYNTH_SEEN)
+      and runs_mod.ATTESTATION_ANTI_LEAK_CLAUSE in runs_mod.synth_system("pass1", human_attestations=True)
+      and runs_mod.ATTESTATION_ANTI_LEAK_CLAUSE not in runs_mod.synth_system("pass1")
+      and runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False, human_attestations=False)
+      and "PRIOR ART attested by humans" in runs_mod.SYNTH_TOOL["description"],
+      json.dumps({"leak": _g1_f["attestation_identifier_leak"], "reasons": _g1_f["reasons"]}))
+
+# --- (g) WITT_COUNCIL_RECOVERAGE=0 con el fixture (b): sin r3, post_search 'not-run (kill-switch …)' --------------------------------
+_C_CALLS.clear()
+_rid_cg, _rec_cg, _ev_cg, _row_cg = _run82("ADR-0082 g: recoverage off", _c_json(_C_LEDGER, "plan-c5-g"),
+                                            council_caller=_mk_council_caller(uncovered_fams=("string",)), string_found=True,
+                                            env={"WITT_COUNCIL_RECOVERAGE": "0"})
+check("ADR-0082 (C.7/L) WITT_COUNCIL_RECOVERAGE=0: la búsqueda dirigida corre (string entra, after_search 'retrieved-for') pero NO hay "
+      "r3 — post_search.state 'not-run (kill-switch WITT_COUNCIL_RECOVERAGE=0)', rounds [r1, r2], by_stage.council_r3 not-run con la "
+      "razón, 0 llamadas r3; deterministic_checks.council.must_uncovered_post null",
+      _rec_cg["council"]["coverage"]["post_search"]["state"] == "not-run (kill-switch WITT_COUNCIL_RECOVERAGE=0)"
+      and [r["round"] for r in _rec_cg["council"]["rounds"]] == ["r1", "r2"]
+      and _rec_cg["token_usage"]["by_stage"]["council_r3"]["state"] == "not-run (kill-switch WITT_COUNCIL_RECOVERAGE=0)"
+      and not any(c["round"] == "r3" for c in _C_CALLS)
+      and {b["requirement_id"]: b["state"] for b in _rec_cg["council"]["coverage"]["after_search"]["by_requirement"]}[_c_rid["string"]] == "retrieved-for"
+      and _rec_cg["deterministic_checks"]["council"]["must_uncovered_post"] is None
+      and _rec_cg["council"]["config"]["recoverage"] is False,
+      _rec_cg["council"]["coverage"]["post_search"]["state"])
+
+# --- (h) membresía CONGELADA: WITT_COUNCIL_FULL=1 al ejecutar con un plan de 17 → N sigue 17 ------------------------------------
+_C_CALLS.clear()
+_rid_ch, _rec_ch, _ev_ch, _row_ch = _run82("ADR-0082 h: frozen membership", _c_json(_C_LEDGER, "plan-c5-h"), env={"WITT_COUNCIL_FULL": "1"})
+check("ADR-0082 (F.4) WITT_COUNCIL_FULL=1 en la CORRIDA con un plan congelado de 17: N sigue 17 (members del plan, membership_source "
+      "'plan.council (frozen at r1)', full_council False, quorum_required 11), 12 llamadas (los 12 con requisito kept) — el cuórum no se mueve en silencio",
+      _rec_ch["council"]["n_members"] == 17 and _rec_ch["council"]["full_council"] is False
+      and _rec_ch["council"]["membership_source"] == "plan.council (frozen at r1)" and _rec_ch["council"]["quorum_required"] == 11
+      and len(_C_CALLS) == 12 and next(r for r in _rec_ch["council"]["rounds"] if r["round"] == "r2")["n_members"] == 17,
+      json.dumps({"n": _rec_ch["council"]["n_members"], "calls": len(_C_CALLS)}))
+
+# --- (i) SIN plan → 'not-applicable (no-ledger)'; (k) ledger SALTADO por el humano → 'skipped-by-human' — cero llamadas ------------
+_C_CALLS.clear()
+_rid_ci, _rec_ci, _ev_ci, _row_ci = _run82("ADR-0082 i: no plan", None, plan=False)
+_skip_ledger = {"state": "skipped-by-human", "plan_id": "plan-c5-k", "council_state_before": "applicable", "decisions": [],
+                "n_requirements": _C_AGG["n_requirements"], "knowledge_now": None, "skipped_by": "natalia", "skipped_at": _C_AT,
+                "reason": "hoy no quiero consejo"}
+_rid_ck, _rec_ck, _ev_ck, _row_ck = _run82("ADR-0082 k: skipped ledger", _c_json(_skip_ledger, "plan-c5-k"))
+check("ADR-0082 (F.2/F.4) sin plan → frozen.council.state 'not-applicable (no-ledger)', componente 'not-applicable (no-ledger)' value "
+      "null gating False FUERA de conjunction, by_stage.council_r1 'plan-without-council', sin stage.council.*; ledger SALTADO por el "
+      "humano → state 'skipped-by-human' con skip_reason, ledger con 0 kept (los requisitos quedan pending), componente 'not-applicable "
+      "(skipped-by-human)', stage.council.ledger emitido con ledger_state 'skipped-by-human'; CERO llamadas al fake en ambas",
+      _C_CALLS == []
+      and _rec_ci["council"]["state"] == "not-applicable (no-ledger)"
+      and _rec_ci["competence"]["components"]["council_uncovered_must"]["state"] == "not-applicable (no-ledger)"
+      and _rec_ci["competence"]["components"]["council_uncovered_must"]["gating"] is False
+      and "council_uncovered_must" not in _rec_ci["competence"]["conjunction"]
+      and _rec_ci["token_usage"]["by_stage"]["council_r1"]["state"] == "plan-without-council"
+      and not any(t.startswith("stage.council.") for t in _ev_types(_ev_ci))
+      and _rec_ck["council"]["state"] == "skipped-by-human" and _rec_ck["council"]["state_reason"] == "hoy no quiero consejo"
+      and _rec_ck["council"]["ledger"]["state"] == "skipped-by-human" and _rec_ck["council"]["ledger"]["n_kept"] == 0
+      and _rec_ck["competence"]["components"]["council_uncovered_must"]["state"] == "not-applicable (skipped-by-human)"
+      and _ev_payloads(_ev_ck, "stage.council.ledger")[0]["ledger_state"] == "skipped-by-human"
+      and _rec_ck["council"]["rounds"][0]["round"] == "r1" and len(_rec_ck["council"]["rounds"]) == 1,
+      json.dumps({"i": _rec_ci["council"]["state"], "k": _rec_ck["council"]["state"]}))
+
+check("ADR-0082 (J/G.8) corrector: UNA verdad para N — sin copia del consejo (i) frozen.council {n_members null, members [], full_council "
+      "null, quorum_required null, membership_source 'not-available (no council copy: …)'} y epistemic council_n_members null; con copia "
+      "(a) ambos 17; bajo kill-switch CON copia (e) frozen 17 (hecho de la ronda 1 del plan) y epistemic copia ese 17 (antes null: dos "
+      "valores para un hecho)",
+      _rec_ci["council"]["n_members"] is None and _rec_ci["council"]["members"] == [] and _rec_ci["council"]["full_council"] is None
+      and _rec_ci["council"]["quorum_required"] is None
+      and _rec_ci["council"]["membership_source"].startswith("not-available (no council copy")
+      and json.loads(_row_ci["epistemic_summary_json"])["council_n_members"] is None
+      and _rec_ca["council"]["n_members"] == 17 == json.loads(_row_ca["epistemic_summary_json"])["council_n_members"]
+      and _rec_ce["council"]["n_members"] == 17 == json.loads(_row_ce["epistemic_summary_json"])["council_n_members"]
+      and _rec_ce["council"]["membership_source"] == "plan.council (frozen at r1)",
+      json.dumps({"i": {k: _rec_ci["council"][k] for k in ("n_members", "members", "membership_source")},
+                  "e_epistemic": json.loads(_row_ce["epistemic_summary_json"])["council_n_members"]}))
+
+# --- (j) CANCELACIÓN a media ronda 2: pendientes skipped-cancelled, usage parcial persiste, corrida cancelled ------------------------
+# El cancel lo pide el fake en su PRIMERA llamada (el miembro #1 va SOLO, C.3): así el orquestador está ocioso en wait() cuando el
+# hilo del fake escribe runs.cancel_requested. Con SQLite en el gate, un escritor en hilo de pool SE MUERE DE HAMBRE detrás de los
+# db.add_event continuos del orquestador (stage.council.member) y su UPDATE sólo entra cuando la ronda queda ociosa — R16 del ADR
+# (Postgres en prod no tiene el límite); medido aquí con cancel_after=3: los 12 despachados terminaron antes de verse el flag.
+_C_CALLS.clear()
+_rid_cj, _rec_cj, _ev_cj, _row_cj = _run82("ADR-0082 j: cancel mid r2", _c_json(_C_LEDGER, "plan-c5-j"), cancel_after=1)
+_v_cj = app.get_run(_rid_cj, authorization=AUTH)
+_rnd_cj = _ev_payloads(_ev_cj, "stage.council.round")[-1]
+check("ADR-0082 (C.3/LOTE-01·A4) cancel a media r2 (request_cancel durante la llamada del miembro #1): _check_cancel LANZA en la "
+      "compuerta previa al primer despacho de la oleada → los 11 pendientes quedan skipped-cancelled con CERO llamadas (1 llamada en "
+      "total), RunCancelled se relanza con el RoundResult PARCIAL adjunto → la corrida termina 'cancelled' (jamás failed), sin registro "
+      "congelado; usage_json.by_stage.council_r2 'measured (partial: round cancelled)' con el gasto del que SÍ terminó (in 1000, cache "
+      "creation 2400) — LOTE-01·A4 aplicado a la ronda; stage.council.round emitido con cancelled True, n_invoked 1, n_skipped_cancelled 11",
+      _row_cj["state"] == "cancelled" and _rec_cj is None
+      and _v_cj["token_usage"]["by_stage"]["council_r2"]["state"] == "measured (partial: round cancelled)"
+      and _v_cj["token_usage"]["by_stage"]["council_r2"]["in"] == 1000
+      and _v_cj["token_usage"]["by_stage"]["council_r2"]["cache_creation"] == 2400
+      and len(_C_CALLS) == 1
+      and _rnd_cj["cancelled"] is True and _rnd_cj["n_invoked"] == 1 and _rnd_cj["n_skipped_cancelled"] == 11
+      and "stage.competence" not in _ev_types(_ev_cj),
+      json.dumps({"state": _row_cj["state"], "calls": len(_C_CALLS), "round": {k: _rnd_cj.get(k) for k in ("n_invoked", "n_skipped_cancelled", "cancelled")},
+                  "r2": _v_cj["token_usage"]["by_stage"]["council_r2"]}, default=str))
+
+# --- (m) corrector E5/G.9/K.i: turno N+1 — el hijo de (a): el SINTETIZADOR no recibe council_summary; el planner y r1 SÍ ------------
+import council_jobs as _cj82  # noqa: E402
+_C_CALLS.clear(); _C_SYNTH_SEEN.clear()
+_sources_found()
+_rid_cm = runs_mod.new_run("natalia", "ADR-0082 m: and its partners?", ["wt1a"], parent_run_id=_rid_ca)
+_cl_cm = db.claim_next_queued(worker_id="run-worker-adr0082")
+assert _cl_cm and _cl_cm["run_id"] == _rid_cm
+runs_mod.execute_run(_cl_cm, synthesizer=_mk_synth82(_C_ANSWER, {"pass1": 0.8, "pass2": 0.85}, _C_CITED_OK),
+                     panel_caller=_stub_caller_factory(ALL_A), council_caller=_mk_council_caller())
+_row_cm = db.get_run(_rid_cm)
+_rec_cm = json.loads(_row_cm["frozen_record_json"])
+_env_cm = json.loads(_row_cm["thread_context_json"])["snapshot"]
+_plan_cm = runs_mod.plan_thread_context(_rid_ca)["snapshot"]
+_inh_cm, _inh_state = _cj82._inherited_criteria({"thread_parent_run_id": _rid_ca})
+_gap_a = next(r["gap"] for r in _rec_ca["council"]["ledger"]["requirements"] if r["requirement_id"] == _c_rid["string"])
+_synth_tc = [s["thread_context"] for s in _C_SYNTH_SEEN]
+check("ADR-0082 (E5/G.9/K.i) corrector: turno N+1 sobre el padre (a) CON consejo — el snapshot persistido al encolar y el que recibe el "
+      "PLANNER (runs.plan_thread_context) traen council_summary con requisitos (gap ≤200, coverage_final, decision) y la ronda 1 del hijo "
+      "lo heredaría (council_jobs._inherited_criteria 'delivered'); el SINTETIZADOR recibió thread_context (parent, previous_answer…) "
+      "SIN la llave council_summary en pass1 (ni el texto del gap del consejo en su user_text); frozen.thread_context conserva el snapshot "
+      "íntegro y frozen.thread.context_delivery.council_summary {present_in_snapshot True, delivered_to_synthesizer False, delivered_to "
+      "[planner, r1], rule} + prompt_components lo declaran",
+      _env_cm["council_summary"] is not None and len(_env_cm["council_summary"]["requirements"]) >= 3
+      and _plan_cm["council_summary"] is not None and len(_plan_cm["council_summary"]["requirements"]) >= 3
+      and _inh_state == "delivered" and len(_inh_cm["requirements"]) >= 3
+      and len(_synth_tc) >= 1 and all(tc is not None and "council_summary" not in tc for tc in _synth_tc)
+      and all("parent" in tc for tc in _synth_tc)
+      and _gap_a not in json.dumps(_synth_tc, ensure_ascii=False) and _gap_a in json.dumps(_env_cm, ensure_ascii=False)
+      and _rec_cm["thread_context"]["council_summary"] is not None
+      and _rec_cm["thread"]["context_delivery"]["council_summary"]["present_in_snapshot"] is True
+      and _rec_cm["thread"]["context_delivery"]["council_summary"]["delivered_to_synthesizer"] is False
+      and len(_rec_cm["thread"]["context_delivery"]["council_summary"]["delivered_to"]) == 2
+      and _rec_cm["thread"]["context_delivery"]["council_summary"]["rule"] == runs_mod.COUNCIL_SUMMARY_SYNTH_RULE
+      and "WITHOUT council_summary" in _rec_cm["thread"]["context_delivery"]["prompt_components"][0]
+      and _rec_cm["council"]["state"] == "not-applicable (no-ledger)" and _C_CALLS == [],
+      json.dumps({"synth_keys": sorted(_synth_tc[0]) if _synth_tc else None, "inherited": _inh_state,
+                  "n_req_env": len((_env_cm.get("council_summary") or {}).get("requirements") or [])}))
+
+# --- censo (gate F, corrector): TODO evento stage.council.* con llave `state` lleva un literal del vocabulario congelado -----------
+_c_evs = [e for _evl in (_ev_ca, _ev_cb, _ev_cc2, _ev_cd, _ev_cf, _ev_cg, _ev_ch, _ev_ck, _ev_cl) for e in _evl
+          if e["type"].startswith("stage.council.")]
+
+
+def _ev_state_ok(e):
+    p, t = e["payload"], e["type"]
+    if "state" not in p:
+        return True
+    if t == "stage.council.ledger":
+        return _council.council_state_in_vocabulary(p["state"])
+    if t == "stage.council.round":
+        return _council.aggregate_state_in_vocabulary(p["state"])
+    if t == "stage.council.directives":
+        return p["state"] in _council.DIRECTIVES_STATES
+    return False
+
+
+check("ADR-0082 (J / gate F) corrector: en las 9 corridas con consejo TODOS los eventos stage.council.* con llave `state` llevan un literal "
+      "del vocabulario congelado — ledger.state ∈ council_states (jamás el centinela interno 'pending-r2'/'r2-pending': mientras r2 decide "
+      "viaja el estado de r1 + r2_pending True), round.state ∈ aggregate_states, directives.state ∈ DIRECTIVES_STATES; ledger de (k) "
+      "'skipped-by-human' con r2_pending False",
+      len(_c_evs) > 40 and all(_ev_state_ok(e) for e in _c_evs)
+      and not any(e["payload"].get("state") in ("r2-pending", "pending-r2") for e in _c_evs)
+      and _ev_payloads(_ev_ca, "stage.council.ledger")[0]["state"] == "applicable"
+      and _ev_payloads(_ev_ca, "stage.council.ledger")[0]["r2_pending"] is True
+      and _ev_payloads(_ev_ck, "stage.council.ledger")[0]["state"] == "skipped-by-human"
+      and _ev_payloads(_ev_ck, "stage.council.ledger")[0]["r2_pending"] is False
+      and all("attempt" in e["payload"] for e in _c_evs if e["type"] == "stage.council.member"),
+      json.dumps({"n_events": len(_c_evs), "bad": [(e["type"], e["payload"].get("state")) for e in _c_evs if not _ev_state_ok(e)][:5]}))
+
+# --- vocabularios: todo literal de estado medido en esta sección está en el vocabulario congelado ---------------------------------
+_c_states = {r["council"]["state"] for r in (_rec_ca, _rec_cb, _rec_cc2, _rec_cd, _rec_ce, _rec_cf, _rec_cg, _rec_ch, _rec_ci, _rec_ck)}
+_c_comp_states = {r["competence"]["components"]["council_uncovered_must"]["state"]
+                  for r in (_rec_ca, _rec_cb, _rec_cc2, _rec_cd, _rec_ce, _rec_cf, _rec_cg, _rec_ch, _rec_ci, _rec_ck)}
+_c_member_states = {m["status"] for r in (_rec_ca, _rec_cb, _rec_cc2, _rec_cd) for rr in r["council"]["rounds"] for m in rr.get("members") or []}
+_c_cov_states = {b["coverage_final"] for r in (_rec_ca, _rec_cb, _rec_cd) for b in r["council"]["coverage"]["pre_search"]["by_requirement"]}
+check("ADR-0082 (C.8/F paridad) TODOS los literales medidos en esta sección están en los vocabularios congelados: council.state "
+      "(council_state_in_vocabulary), componente (competence.council_component_state_in_vocabulary), members[].status ⊆ MEMBER_STATES, "
+      "coverage_final ⊆ COVERAGE_STATES, post_search ∈ POST_SEARCH exact|prefix, directives_state ∈ DIRECTIVES_STATES, by_stage.council_* "
+      "state ∈ exact|prefix; stage.plan.council_state y stage.council.round.state también",
+      all(_council.council_state_in_vocabulary(s) for s in _c_states)
+      and all(_cg82.council_component_state_in_vocabulary(s) for s in _c_comp_states)
+      and _c_member_states <= set(_council.MEMBER_STATES) and _c_cov_states <= set(_council.COVERAGE_STATES)
+      and all(r["council"]["coverage"]["post_search"]["state"] in _council.POST_SEARCH_STATES_EXACT
+              or r["council"]["coverage"]["post_search"]["state"].startswith("not-run (")
+              for r in (_rec_ca, _rec_cb, _rec_cc2, _rec_cd, _rec_cf, _rec_cg, _rec_ch))
+      and all(r["council"]["directives_state"] in _council.DIRECTIVES_STATES for r in (_rec_ca, _rec_cb, _rec_cc2, _rec_ce, _rec_ci))
+      and all(v["state"] in runs_mod.COUNCIL_USAGE_STAGE_STATES_EXACT or v["state"].startswith(runs_mod.COUNCIL_USAGE_STAGE_STATE_PREFIXES)
+              for r in (_rec_ca, _rec_cb, _rec_ce, _rec_ci) for s, v in r["token_usage"]["by_stage"].items() if s in runs_mod.COUNCIL_STAGES)
+      and _council.council_state_in_vocabulary(_ev_payloads(_ev_ca, "stage.plan")[0]["council_state"]),
+      json.dumps({"council": sorted(_c_states), "component": sorted(_c_comp_states), "members": sorted(_c_member_states)}))
+
+# --- PDF: la sección CONSEJO DE CRITERIO nace con el bloque (tres estados) -----------------------------------------------------------
+import record_pdf as _pdf82  # noqa: E402
+_pdf_a = _pdf82.build_pdf(_rec_ca, compress=False)
+_pdf_e = _pdf82.build_pdf(_rec_ce, compress=False)
+_pdf_old = _pdf82.build_pdf({k: v for k, v in _rec_ca.items() if k != "council"}, compress=False)
+check("ADR-0082 (K.m) record_pdf: la sección 'CONSEJO DE CRITERIO' NACE con el bloque — con consejo imprime membresía cm-1, ledger con "
+      "decisiones y ATESTIGUADO, cobertura y rondas n/N; bajo kill-switch imprime el estado declarado; sin la llave (registro < 1.11) "
+      "imprime 'NO INSTRUMENTADO (contrato < 1.11)' — jamás rellena",
+      # fpdf escapa los paréntesis dentro del content stream ("\\(") — se buscan los fragmentos sin paréntesis
+      b"CONSEJO DE CRITERIO" in _pdf_a and b"LEDGER approved" in _pdf_a and b"ATESTIGUADO" in _pdf_a
+      and b"ronda r2" in _pdf_a and b"coverage, fase run" in _pdf_a and b"kill-switch" in _pdf_e
+      and b"NO INSTRUMENTADO" in _pdf_old and b"contrato < 1.11" in _pdf_old and b"CONSEJO DE CRITERIO" in _pdf_old,
+      f"len(a)={len(_pdf_a)} len(e)={len(_pdf_e)}")
+_sh._TOOL_CACHE.pop("string", None)
 
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()

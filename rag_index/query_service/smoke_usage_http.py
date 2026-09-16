@@ -20,6 +20,10 @@ Lo que FIJA (vía ASGI TestClient, el mismo camino que la webapp — lección AD
   · n_runs_with_by_stage / n_runs_without_by_stage / n_runs_by_stage_mismatch
   · by_model[m] += family (del SERVIDOR, regla D18) y known; models_catalog desde la tabla + ids observados;
     model_generation_current; by_stage_class
+  · ADR-0082 (H, rebanada C6): by_model[m] += cache_creation / cache_read (tokens; sólo enteros) y `plans_council` — las
+    rondas 1 de planes que NUNCA se corrieron (db.plans_council_usage sobre FILAS REALES de plans en la BD del gate — C9
+    retiró el fake): sólo los planes con run_id NULL suman; by_state; USD con models.CACHE_MULTIPLIERS; 0 medido ≠ null;
+    totals/by_user/most_expensive siguen byte-iguales al golden
 
 NO-SPEND: sin red, sin modelo; usage_json sembrado directo en la BD sqlite temporal (fuera del repo).
 Uso (máscara offline):
@@ -104,8 +108,9 @@ def _cero(**extra):
 # A · 1.10 — by_stage + panel.by_model. Σ by_stage == Σ by_model (2000 / 350).
 U_A = {
     "input_tokens": 2000, "output_tokens": 350,
-    "by_model": {OPUS5: {"in": 1000, "out": 200}, SON: {"in": 300, "out": 50}, HAI: {"in": 300, "out": 40},
-                 G4O: {"in": 400, "out": 60}},
+    # ADR-0082 (H): un registro 1.11 trae cache_creation / cache_read por modelo (la 1.9 U_B no los trae: ausencia ≠ 0)
+    "by_model": {OPUS5: {"in": 1000, "out": 200, "cache_creation": 300, "cache_read": 2400}, SON: {"in": 300, "out": 50},
+                 HAI: {"in": 300, "out": 40}, G4O: {"in": 400, "out": 60}},
     "by_stage": {
         "plan": {"in": 100, "out": 20, "model": OPUS5},
         "synthesize_pass1": {"in": 600, "out": 120, "model": OPUS5},
@@ -338,7 +343,76 @@ check("by_model_stage._unattributed.panel {in 940, out 134, n_runs 2}: los panel
 check("el id desconocido NO aparece en by_model_stage (su gasto 1.9 no trae etapa con modelo) pero SÍ en by_model y models_catalog",
       DESCONOCIDO not in bms and DESCONOCIDO in bm and DESCONOCIDO in cat)
 
-# ---- 7. cero red ------------------------------------------------------------------------------------
+# ---- 7. ADR-0082 (H): by_model += cache_creation / cache_read (tokens de caché, 1.11) ------------------------------
+# U_A lleva cache_* en by_model[opus-5] (fixture 1.11) y U_B no (1.9): la suma toma SÓLO enteros; un registro sin la
+# llave no suma (ausencia ≠ 0). totals/by_user/most_expensive siguen BYTE-IGUALES al golden (medido arriba).
+check("ADR-0082 (H): by_model[opus-5] += cache_creation 300 / cache_read 2400 (sólo la 1.11 los trae); opus-4-8 (1.9) 0/0 declarado;"
+      " estimated_cost_usd de by_model sigue la fórmula in/out de hoy (0.01)",
+      bm.get(OPUS5, {}).get("cache_creation") == 300 and bm.get(OPUS5, {}).get("cache_read") == 2400
+      and bm.get(OPUS48, {}).get("cache_creation") == 0 and bm.get(OPUS48, {}).get("cache_read") == 0
+      and bm.get(OPUS5, {}).get("estimated_cost_usd") == 0.01,
+      f"opus5={bm.get(OPUS5)} opus48={bm.get(OPUS48)}")
+
+# ---- 8. ADR-0082 (H): /usage.plans_council — rondas 1 de planes que NUNCA se corrieron -----------------------------
+# Filas REALES en `plans` de la BD del gate por la superficie E.1 (db.create_plan(origin=, council_state=) +
+# db.update_plan_council(council_usage_json=) + db.mark_plan_used): C9 retiró el FAKE en memoria de la ventana "C4
+# pendiente". Orden: primero los dos planes SIN usage (0 medido ≠ null no medido), luego los dos con usage — uno consumido
+# por la corrida u-a (su r1 viaja en by_stage.council_r1 de u-a y NO suma aquí: regla LOTE-01·A4 aplicada al plan).
+_USO_A = {"in": 68000, "out": 20000, "cache_creation": 2400, "cache_read": 36000, "model": OPUS5, "n_calls": 17}
+_USO_B = {"in": 50000, "out": 15000, "cache_creation": 2400, "cache_read": 30000, "model": OPUS5, "n_calls": 17}
+_PLAN_JSON_PC = json.dumps({"plan_version": "4", "entities": ["osr1"], "judgment": {"state": "declared"}})
+
+
+def _plan_pc(pid, uid, origin, state, usage=None, run_id=None):
+    db.create_plan(pid, uid, f"¿plan {pid}?", ["osr1"], _PLAN_JSON_PC, origin=origin, council_state=state)
+    if usage is not None:
+        db.update_plan_council(pid, council_usage_json=json.dumps(usage))
+    if run_id:
+        assert db.mark_plan_used(pid, run_id)
+
+
+check("superficie E.1 real: db.plans_council_usage / create_plan(origin=, council_state=) / update_plan_council existen y la BD del "
+      "gate está migrada (db.council_schema_state ready) — sin fake",
+      callable(getattr(db, "plans_council_usage", None)) and callable(getattr(db, "update_plan_council", None))
+      and db.council_schema_state()["ready"] is True)
+_plan_pc("pc-c", "emmanuel", "production", "queued")                                    # en cola: sin usage aún
+_plan_pc("pc-d", "emmanuel", "smoke", "not-requested (niches empty)")
+PC0 = client.get("/usage", headers=AUTH).json().get("plans_council") or {}
+check("plans_council sin ningún plan con usage: estimated_cost_usd null + price_state 'not-measured' (0 medido ≠ null no medido), "
+      "input_tokens 0 (suma vacía declarada), n_plans 2, by_state con los 2 literales",
+      PC0.get("estimated_cost_usd") is None and PC0.get("price_state") == "not-measured" and PC0.get("input_tokens") == 0
+      and PC0.get("n_plans") == 2 and PC0.get("by_state") == {"queued": 1, "not-requested (niches empty)": 1},
+      f"{ {k: PC0.get(k) for k in ('estimated_cost_usd', 'price_state', 'input_tokens', 'n_plans', 'by_state')} }")
+_plan_pc("pc-a", "natalia", "production", "applicable", usage=_USO_A)                    # NO consumido: SUMA
+_plan_pc("pc-b", "natalia", "production", "applicable", usage=_USO_B, run_id="u-a")      # consumido: su r1 viaja en la corrida
+U2 = client.get("/usage", headers=AUTH).json()
+PC = U2.get("plans_council") or {}
+check("plans_council viaja SIEMPRE con la forma cerrada {state, n_plans, n_unconsumed, n_consumed, n_unconsumed_with_usage, input_tokens,"
+      " output_tokens, cache, estimated_cost_usd, price_state, missing_price_models, by_state, by_model, rule, class} y state 'measured'",
+      PC.get("state") == "measured" and {"n_plans", "n_unconsumed", "n_consumed", "n_unconsumed_with_usage", "input_tokens",
+                                          "output_tokens", "cache", "estimated_cost_usd", "price_state", "missing_price_models",
+                                          "by_state", "by_model", "rule", "class"} <= set(PC)
+      and PC.get("rule") == app_mod.PLANS_COUNCIL_RULE and PC.get("class") == app_mod.PLANS_COUNCIL_CLASS, f"{sorted(PC)}")
+check("totals / by_user / most_expensive siguen BYTE-IGUALES al golden con plans_council presente (va APARTE, jamás dentro de totals)",
+      U2.get("totals") == G_TOTALS and U2.get("by_user") == G_BY_USER and U2.get("most_expensive") == G_MOST)
+mult = models.CACHE_MULTIPLIERS
+p_in, p_out = models.prices()[OPUS5]
+esperado = (68000 * p_in + 20000 * p_out + 2400 * p_in * mult["write_5m"] + 36000 * p_in * mult["read"]) / 1e6
+check("plans_council sobre 4 planes REALES: n_plans 4 · n_unconsumed 3 · n_consumed 1 · n_unconsumed_with_usage 1 · input 68000 / output "
+      "20000 / cache 2400·36000 SÓLO de pc-a (pc-b consumido NO suma: su r1 viaja en by_stage.council_r1 de u-a) · by_state con los 3 literales",
+      PC.get("n_plans") == 4 and PC.get("n_unconsumed") == 3 and PC.get("n_consumed") == 1 and PC.get("n_unconsumed_with_usage") == 1
+      and PC.get("input_tokens") == 68000 and PC.get("output_tokens") == 20000
+      and PC.get("cache", {}).get("creation_input_tokens") == 2400 and PC["cache"]["read_input_tokens"] == 36000
+      and PC.get("by_state") == {"applicable": 2, "queued": 1, "not-requested (niches empty)": 1},
+      f"{ {k: PC.get(k) for k in ('n_plans', 'n_unconsumed', 'n_consumed', 'input_tokens', 'output_tokens', 'cache', 'by_state')} }")
+check(f"plans_council USD [E] = in×p_in + out×p_out + caché × models.CACHE_MULTIPLIERS (write_5m {mult['write_5m']} · read {mult['read']}; "
+      f"cache.priced True, multipliers_source declarado) = {round(esperado, 4)} · price_state 'priced' · by_model[opus-5] con cache_creation/cache_read",
+      PC.get("estimated_cost_usd") == round(esperado, 4) and PC.get("price_state") == "priced"
+      and PC.get("cache", {}).get("priced") is True and PC["cache"]["multipliers_source"] == models.CACHE_MULTIPLIERS_SOURCE
+      and PC.get("by_model", {}).get(OPUS5, {}).get("cache_read") == 36000 and PC["by_model"][OPUS5]["estimated_cost_usd"] == round(esperado, 4),
+      f"usd={PC.get('estimated_cost_usd')} price_state={PC.get('price_state')} cache={PC.get('cache')}")
+
+# ---- 9. cero red ------------------------------------------------------------------------------------
 check("cero red: urllib.request.urlopen bloqueado y contado == 0", len(_URLOPEN_CALLS) == 0, f"{_URLOPEN_CALLS}")
 
 _fin()

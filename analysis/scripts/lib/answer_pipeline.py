@@ -1110,7 +1110,11 @@ def _path_b_harness(question, plan, n, full_text, retmax, excerpt_chars, ledger_
     papers = []
     for c in selected:
         item = _paper_item(c, full_text, terms, excerpt_chars)
-        for key in ("kind", "source_family", "label", "identifier_provenance", "url", "round"):
+        # ADR-0082 (C.7, C9): `directive_requirement_ids` viaja del candidato al paper — así
+        # council.coverage_after_search atribuye un paper de literatura a la directiva que lo pidió
+        # (antes se perdía aquí y runs lo declaraba 'not-attributable'); [] = nadie lo pidió.
+        for key in ("kind", "source_family", "label", "identifier_provenance", "url", "round",
+                    "directive_requirement_ids"):
             if key in c:
                 item[key] = c[key]
         papers.append(item)

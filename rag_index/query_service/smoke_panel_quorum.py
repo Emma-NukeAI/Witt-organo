@@ -59,6 +59,11 @@ _ADR81_ENVS = ("WITT_MODEL_GENERATION", "WITT_MODEL_SYNTH", "WITT_MODEL_PLANNER"
                "WITT_JUDGE_RETRIES")
 for _k in _ADR81_ENVS:
     os.environ.pop(_k, None)
+# ADR-0082 (D.1): las env del caller y del consejo tampoco entran al gate (defaults declarados medibles)
+for _k in list(os.environ):
+    if _k.startswith('WITT_COUNCIL') or _k in ('WITT_ANTHROPIC_MAX_INFLIGHT', 'WITT_ANTHROPIC_RETRY_AFTER_CAP_S', 'WITT_MODEL_COUNCIL',
+                                                'WITT_CG_COUNCIL_COMPONENT'):
+        os.environ.pop(_k, None)
 
 _NET_CALLS = []
 
@@ -384,13 +389,14 @@ else:
 # =====================================================================================================================
 check("contrato S2: audit(claim, evidence, deterministic_checks=None, required_because='', panel=None, caller=None, min_valid=3, "
       "judge_retries=None, min_families=None, min_lenses=None, directives=None); _default_caller(member, system, user_text, tool=None); "
-      "_anthropic_tool_call(..., max_tokens=1200, effort=None, return_meta=False)",
+      "_anthropic_tool_call(..., max_tokens=1200, effort=None, return_meta=False, tools=None) (ADR-0082 D.1: `tools=` aditivo al final)",
       list(inspect.signature(ca.audit).parameters) == ["claim", "evidence", "deterministic_checks", "required_because", "panel",
                                                         "caller", "min_valid", "judge_retries", "min_families", "min_lenses",
                                                         "directives"]
       and list(inspect.signature(ca._default_caller).parameters) == ["member", "system", "user_text", "tool"]
       and list(inspect.signature(ca._anthropic_tool_call).parameters) == ["model", "system", "user_text", "tool", "timeout", "retries",
-                                                                           "max_tokens", "effort", "return_meta"]
+                                                                           "max_tokens", "effort", "return_meta", "tools"]
+      and inspect.signature(ca._anthropic_tool_call).parameters["tools"].default is None
       and inspect.signature(ca._anthropic_tool_call).parameters["return_meta"].default is False
       and inspect.signature(ca._openai_responses_call).parameters["retries"].default == 1)
 check("docstring corregido: la promesa de ADR-0080 L41 ('families_valid / lenses_valid are NOT here') ya no está; el módulo declara "
@@ -399,6 +405,172 @@ check("docstring corregido: la promesa de ADR-0080 L41 ('families_valid / lenses
       and "Fable" in ca.__doc__ and "EXCLUDED" in ca.__doc__)
 check("(M.3) urllib.request.urlopen REAL bloqueado: 0 llamadas en todo el gate; 'openai' jamás importado aquí",
       _NET_CALLS == [] and "openai" not in sys.modules)
+
+# =====================================================================================================================
+# 6. ADR-0082 (D.1) — el caller: tools=, system lista, semáforo de PROCESO, Retry-After con tope, attempts/usage_prior_attempts
+#    (urlopen FAKE = transporte simulado, cero red; _backoff GRABADO, no se espera)
+# =====================================================================================================================
+import io as _io  # noqa: E402
+import threading as _threading  # noqa: E402
+import time as _time  # noqa: E402
+import urllib.error as _uerr  # noqa: E402
+
+_D1_CALLS = []
+_D1_WAITS = []
+_orig_backoff, _orig_inflight = ca._backoff, ca._INFLIGHT
+ca._backoff = lambda seconds: _D1_WAITS.append(seconds)
+
+
+class _D1Resp:
+    def __init__(self, payload):
+        self._p = payload
+
+    def read(self):
+        return json.dumps(self._p).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _d1_payload(tool_name, tool_input, usage=None):
+    return {"id": "msg_d1", "model": _MODEL_D1 + "-20260901", "stop_reason": "tool_use",
+            "content": [{"type": "tool_use", "id": "tu", "name": tool_name, "input": tool_input}],
+            "usage": usage or {"input_tokens": 10, "output_tokens": 5, "cache_creation_input_tokens": 700, "cache_read_input_tokens": 0}}
+
+
+def _d1_urlopen(script):
+    script = list(script)
+
+    def _fake(req, timeout=None):
+        _D1_CALLS.append({"body": json.loads(req.data.decode("utf-8")), "timeout": timeout})
+        nxt = script.pop(0)
+        if isinstance(nxt, BaseException):
+            raise nxt
+        return _D1Resp(nxt)
+    return _fake
+
+
+def _d1_http(code, headers=None, body=b"err"):
+    return _uerr.HTTPError(ca.ANTHROPIC_URL, code, "x", headers if headers is not None else {}, _io.BytesIO(body))
+
+
+def _d1_raises(fn):
+    try:
+        fn()
+    except Exception as e:  # noqa: BLE001
+        return e
+    return None
+
+
+_VOK = {"verdict": "APPROVE", "confidence": 0.9, "issues": [], "rationale": "ok"}
+_TOOL_B = {"name": "other_tool", "description": "b", "input_schema": {"type": "object", "properties": {"x": {"type": "string"}},
+                                                                     "required": ["x"]}}
+_MODEL_D1 = models.GENERATIONS["g2-2026-09"]["defaults"]["judge.correctness"]
+os.environ["ANTHROPIC_API_KEY"] = "smoke-fake-anthropic-key-not-a-secret"
+try:
+    urllib.request.urlopen = _d1_urlopen([_d1_payload(ca.VERDICT_TOOL["name"], _VOK)])
+    out, usage = ca._anthropic_tool_call(_MODEL_D1, "S", "U")
+    body_str = _D1_CALLS[-1]["body"]
+    check("(D.1) system str, sin tools= -> cuerpo BYTE A BYTE el de f57a3d3: {model, max_tokens 1200, system 'S', messages[1], tools [VERDICT_TOOL], "
+          "tool_choice forzado}, sin output_config; 2-tupla intacta con usage crudo (cache_* incluidos)",
+          body_str == {"model": _MODEL_D1, "max_tokens": 1200, "system": "S", "messages": [{"role": "user", "content": "U"}],
+                       "tools": [ca.VERDICT_TOOL], "tool_choice": {"type": "tool", "name": ca.VERDICT_TOOL["name"]}}
+          and out == _VOK and usage["cache_creation_input_tokens"] == 700, json.dumps(list(body_str)))
+    blocks = [{"type": "text", "text": "A", "cache_control": {"type": "ephemeral"}},
+              {"type": "text", "text": "B", "cache_control": {"type": "ephemeral", "ttl": "1h"}}]
+    urllib.request.urlopen = _d1_urlopen([_d1_payload(_TOOL_B["name"], {"x": "1"})])
+    out, usage, meta = ca._anthropic_tool_call(_MODEL_D1, blocks, "U", tool=_TOOL_B, tools=[ca.VERDICT_TOOL, _TOOL_B], max_tokens=4000,
+                                              effort="medium", return_meta=True, timeout=77)
+    body_l = _D1_CALLS[-1]["body"]
+    check("(D.1) system LISTA de bloques -> viaja tal cual (cache_control x2, ttl 1h en el 2o); tools= lista completa [VERDICT_TOOL, other_tool] "
+          "+ tool_choice forzado al `tool`; max_tokens 4000; output_config.effort medium; timeout al socket; meta {attempts 1, queue_wait_s, "
+          "model_reported}; usage numerico conserva cache_creation",
+          body_l["system"] == blocks and body_l["tools"] == [ca.VERDICT_TOOL, _TOOL_B] and body_l["tool_choice"] == {"type": "tool", "name": "other_tool"}
+          and body_l["max_tokens"] == 4000 and body_l["output_config"] == {"effort": "medium"} and _D1_CALLS[-1]["timeout"] == 77
+          and out == {"x": "1"} and meta["attempts"] == 1 and isinstance(meta["queue_wait_s"], float) and "usage_prior_attempts" not in meta
+          and usage["cache_creation_input_tokens"] == 700 and meta["model_reported"].startswith(_MODEL_D1))
+    e = _d1_raises(lambda: ca._anthropic_tool_call(_MODEL_D1, "S", "U", tool=_TOOL_B, tools=[ca.VERDICT_TOOL]))
+    check("(D.1) `tool` forzado que NO esta en tools= -> ValueError ANTES de cualquier llamada (cero red)",
+          isinstance(e, ValueError) and "not in tools" in str(e))
+    # Retry-After
+    n0, w0 = len(_D1_CALLS), len(_D1_WAITS)
+    urllib.request.urlopen = _d1_urlopen([_d1_http(429, {"Retry-After": "7"}), _d1_payload(ca.VERDICT_TOOL["name"], _VOK)])
+    out, usage, meta = ca._anthropic_tool_call(_MODEL_D1, "S", "U", return_meta=True)
+    check("(D.1) http-429 con Retry-After: 7 -> se espera 7 s (reloj grabado, no real), reintento OK: meta.retry_after_honored_s 7.0, attempts 2, "
+          "2 llamadas",
+          _D1_WAITS[w0:] == [7.0] and len(_D1_CALLS) - n0 == 2 and meta["retry_after_honored_s"] == 7.0 and meta["attempts"] == 2 and out == _VOK,
+          f"waits={_D1_WAITS[w0:]}")
+    n0, w0 = len(_D1_CALLS), len(_D1_WAITS)
+    urllib.request.urlopen = _d1_urlopen([_d1_http(529, {"Retry-After": "900"}), _d1_http(529, {"Retry-After": "900"})])
+    e = _d1_raises(lambda: ca._anthropic_tool_call(_MODEL_D1, "S", "U"))
+    check("(D.1) http-529 con Retry-After: 900 -> tope WITT_ANTHROPIC_RETRY_AFTER_CAP_S=30 (espera 30); 2o 529 -> CallerError kind http-529 con "
+          ".retry_after 900.0 (crudo) y meta.attempts 2",
+          _D1_WAITS[w0:] == [30.0] and isinstance(e, ca.CallerError) and e.kind == "http-529" and e.retry_after == 900.0
+          and e.meta["attempts"] == 2 and len(_D1_CALLS) - n0 == 2, f"waits={_D1_WAITS[w0:]}")
+    n0, w0 = len(_D1_CALLS), len(_D1_WAITS)
+    urllib.request.urlopen = _d1_urlopen([_d1_http(429), _d1_http(500, {"Retry-After": "5"})])
+    e = _d1_raises(lambda: ca._anthropic_tool_call(_MODEL_D1, "S", "U"))
+    check("(D.1) 429 SIN cabecera -> backoff de hoy 2*(0+1) = 2; el 500 final NO lee Retry-After (kind http-500, retry_after None); "
+          "retries=1 -> 2 llamadas",
+          _D1_WAITS[w0:] == [2] and isinstance(e, ca.CallerError) and e.kind == "http-500" and e.retry_after is None and len(_D1_CALLS) - n0 == 2)
+    n0, w0 = len(_D1_CALLS), len(_D1_WAITS)
+    urllib.request.urlopen = _d1_urlopen([_d1_http(429, {"Retry-After": "Thu, 01 Jan 2009 00:00:00 GMT"}), _d1_payload(ca.VERDICT_TOOL["name"], _VOK)])
+    ca._anthropic_tool_call(_MODEL_D1, "S", "U")
+    check("(D.1) Retry-After como HTTP-date en el pasado -> 0 s (nunca negativo); fecha ilegible -> None -> backoff de hoy; cabecera en minusculas tambien se lee",
+          _D1_WAITS[w0:] == [0.0] and ca._retry_after_seconds({"Retry-After": "not a date"}) is None
+          and ca._retry_after_seconds({}) is None and ca._retry_after_seconds({"retry-after": "3"}) == 3.0)
+    # attempts / usage_prior_attempts (contenido)
+    n0 = len(_D1_CALLS)
+    urllib.request.urlopen = _d1_urlopen([
+        {"id": "m", "model": _MODEL_D1, "stop_reason": "end_turn", "content": [{"type": "text", "text": "hola"}],
+         "usage": {"input_tokens": 100, "output_tokens": 20}},
+        _d1_payload(ca.VERDICT_TOOL["name"], _VOK, usage={"input_tokens": 100, "output_tokens": 30})])
+    out, usage, meta = ca._anthropic_tool_call(_MODEL_D1, "S", "U", return_meta=True)
+    check("(D.1) reintento de CONTENIDO (no-function-call -> ok): meta.attempts 2 y meta.usage_prior_attempts [{100, 20}] - lo que la API cobro "
+          "en el intento fallido viaja (el consejo lo suma); usage final 100/30",
+          meta["attempts"] == 2 and meta["usage_prior_attempts"] == [{"input_tokens": 100, "output_tokens": 20}]
+          and usage == {"input_tokens": 100, "output_tokens": 30} and len(_D1_CALLS) - n0 == 2)
+    # semaforo de proceso
+    _sem_state = {"cur": 0, "max": 0}
+    _sem_lock = _threading.Lock()
+
+    def _slow_urlopen(req, timeout=None):
+        with _sem_lock:
+            _sem_state["cur"] += 1
+            _sem_state["max"] = max(_sem_state["max"], _sem_state["cur"])
+        _time.sleep(0.05)
+        with _sem_lock:
+            _sem_state["cur"] -= 1
+        return _D1Resp(_d1_payload(ca.VERDICT_TOOL["name"], _VOK))
+    urllib.request.urlopen = _slow_urlopen
+    ca._INFLIGHT = _threading.BoundedSemaphore(2)
+    _metas = []
+    _ts = [_threading.Thread(target=lambda: _metas.append(ca._anthropic_tool_call(_MODEL_D1, "S", "U", return_meta=True)[2])) for _ in range(5)]
+    for t in _ts:
+        t.start()
+    for t in _ts:
+        t.join(10)
+    check("(D.1) semaforo de PROCESO: con _INFLIGHT=2 y 5 hilos, maximo 2 dentro de urlopen a la vez (contador medido); 5 respuestas; algun "
+          "meta.queue_wait_s > 0 (alguien espero)",
+          _sem_state["max"] == 2 and len(_metas) == 5 and any(m["queue_wait_s"] > 0 for m in _metas), str(_sem_state))
+    check("(D.1) _INFLIGHT por default: BoundedSemaphore(8) con fuente '...WITT_ANTHROPIC_MAX_INFLIGHT' y regla declarada; retry_after_cap() "
+          "default 30; inflight_limit tolerante a basura ('zz' -> 8) y a valor valido ('3' -> 3)",
+          ca._INFLIGHT_LIMIT == 8 and ca._INFLIGHT_SOURCE.endswith("WITT_ANTHROPIC_MAX_INFLIGHT") and "urlopen" in ca._INFLIGHT_RULE
+          and ca.retry_after_cap()[0] == 30 and ca.inflight_limit({"WITT_ANTHROPIC_MAX_INFLIGHT": "zz"})[0] == 8
+          and ca.inflight_limit({"WITT_ANTHROPIC_MAX_INFLIGHT": "3"})[0] == 3)
+finally:
+    os.environ["ANTHROPIC_API_KEY"] = ""
+    urllib.request.urlopen = _blocked_urlopen
+    ca._backoff, ca._INFLIGHT = _orig_backoff, _orig_inflight
+r_dir = _audit(ALL_A, directives=[{"family": "zfin", "requirement_id": "req-x"}])
+check("(K) audit(directives=[...]) sigue IGNORANDOLAS: panel_source.council_hook.state 'not-available (ADR-0082)' y directives_state "
+      "'empty-until-ADR-0082' (las lentes por nicho NO entran en ADR-0082; ADR propio)",
+      r_dir["panel_source"]["council_hook"]["state"] == "not-available (ADR-0082)"
+      and r_dir["panel_source"]["directives_state"] == "empty-until-ADR-0082" and r_dir["verdict"] == "APPROVE")
+check("(M.3 bis) tras la seccion D.1: urlopen REAL sigue bloqueado y con 0 llamadas", _NET_CALLS == [])
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))

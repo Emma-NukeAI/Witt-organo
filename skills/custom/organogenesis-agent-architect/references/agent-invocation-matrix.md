@@ -6,7 +6,7 @@
 >
 > **Authority:** per ADR-0006 (2026-05-14). Updated as new agents enter the catalog or new work-types emerge.
 >
-> **Last updated:** 2026-06-11 · v1.2 (GWT v1.1) — added the anti-fabrication verification-gate Hard Rule row + `hypothesis-generator` routing (ADR-0008); `investor-relations-drafter` suspended Phase I; `retrospector` slot reserved (ADR-0009). · v1.1 (2026-05-14) — added html-report-emitter Hard Rule row per ADR-0007.
+> **Last updated:** 2026-09-15 · **v1.3 (ADR-0082: consejo de criterio, membresía cm-1)** — added the 5 catalog cards that had no row in v1.2 (`bwh-coordinator`, `reagent-procurement`, `fitness-curator`, `squidiff-in-silico-gate`, `retrospector`) to §3 with a PROVISIONAL `recommended` gate (34 rows = 31 cards + 3 rows without card: `html-report-emitter`, `identifier-verification-gate`, `type-c-viz-emitter`); every row now carries a council `category` and a `card` state in its machine-readable face (`analysis/scripts/lib/agent_matrix.py` v1.3, `MEMBERSHIP_VERSION 'cm-1'`). The webapp run seats 17 rows as **council members** (`lib/council.py`, rounds r1–r3: information requirements → coverage judgment → re-coverage; they NEVER write the answer, a verdict, a ranking or a dispatch — CLAUDE.md §7) → 19/34 rows run as code (before: 2/29). See the note "ADR-0082: consejo de criterio" below §3. · v1.2 (2026-06-11, GWT v1.1) — added the anti-fabrication verification-gate Hard Rule row + `hypothesis-generator` routing (ADR-0008); `investor-relations-drafter` suspended Phase I; `retrospector` slot reserved (ADR-0009). · v1.1 (2026-05-14) — added html-report-emitter Hard Rule row per ADR-0007.
 
 ---
 
@@ -66,6 +66,37 @@ The matrix is consulted in CLAUDE.md §11 agent-invocation preflight. The output
 | Simulation orchestration (Runpod batches) | `sim-orchestrator` | Method 1 task |
 | Benchmark task design | `benchmark-designer` | Test 4 ground-truth source |
 | Domain-knowledge curation | `domain-knowledge-curator` | Test 3 substrate maintenance |
+| BWH Aquatics Facility relationship: scheduling, IACUC compliance, embryo production requests, microinjection slots, imaging support | `bwh-coordinator` | **v1.3 (ADR-0082)** — Operational; catalog section Wet-Lab (Category 2) but an OPERATIVE role per brief §5.1 → council category `operations-reporting` (`not-applicable-by-category` in cm-1; declared in `category_note`) |
+| Reagent / construct ordering, vendor lead times, reagent inventory, Phase I reagent budget | `reagent-procurement` | **v1.3 (ADR-0082)** — Operational; same category declaration as `bwh-coordinator` (Wet-Lab card, operative role → `operations-reporting`, `not-applicable-by-category`) |
+| Fitness-function library / ablation on fitness criteria / fitness-vs-phenotype calibration for organ-like order (cohesion, compartmentalization, lumenization) | `fitness-curator` | **v1.3 (ADR-0082)** — often a sub-skill of `benchmark-designer` in Phase I (catalog); council member (compute) |
+| Squidiff transcriptomic-prediction gate for in-silico hypothesis testing (PASS / PASS-DECOUPLE / MODERATE / FAIL, HUMAN GATE figures) | `squidiff-in-silico-gate` | **v1.3 (ADR-0082)** — predictor → HUMAN GATE 1/2 with figure; cross-verdict with Morpheus (Mode 3). The webapp run invokes no simulator today: as a council member it emits ONLY evidence requirements (criteria), never predictions |
+| Offline Reasoning-Improvement Loop cadence (RIL): post-run rubric scoring, self-critique record, governance proposals | `retrospector` | **v1.3 (ADR-0082)** — checkpoint-triggered batch (`tools/retrospect.py`), NOT a 24/7 server; agent-session only (ADR-0009); substrate row, not a council member |
+
+> **ADR-0082: consejo de criterio, membresía cm-1 (2026-09-15).** The five rows above enter with a PROVISIONAL `recommended` gate
+> (a Recommended → Required/Hard Rule change needs its own ADR, §7 below). The machine-readable face of this matrix
+> (`analysis/scripts/lib/agent_matrix.py` v1.3) now carries, per row, a council `category` (six, = the `## Category N:` sections
+> of `agent-catalog.md`; four operative rows whose card lives in another section declare the divergence in `category_note`),
+> a `card` state (`present` | `no-card-in-catalog`) and the seat: **17 council members** in FIXED order (the order is the
+> identity of the aggregation) — compute (5): `causal-pruner` (`requirements-human-gated`: every requirement it emits is born
+> `hard_rule_gate True` and the human ledger demands an EXPLICIT decision on it, §7.1), `sim-orchestrator`,
+> `benchmark-designer`, `fitness-curator`, `squidiff-in-silico-gate`; lab/reading (7): `experiment-designer`, `imaging-analyst`,
+> `marker-validator`, `scrna-seq-analyst`, `spatial-omics-analyst`, `histology-reviewer`, `cross-modality-integrator`;
+> knowledge (3): `literature-monitor`, `domain-knowledge-curator`, `hypothesis-generator`; cross-field (1):
+> `cross-field-bridge-agent` (`exploratory`: a `must` it emits is degraded to `should`, §7 Test 5); flags (1):
+> `regulatory-ethics-advisor` (`flags-only`: tool `emit_flags`, gate `human` set by CODE, §7) — **8 operatives**
+> `not-applicable-by-category` (`program-manager`, `budget-tracker`, `bwh-coordinator`, `reagent-procurement`,
+> `ip-patent-watcher`, `case-capture-elicitor`, `risk-register-agent`, `investor-relations-drafter`; seated only with
+> `WITT_COUNCIL_FULL=1`, N=25, to MEASURE that they do not contribute) — **9 substrate/covered rows** with their real state
+> (`composite-auditor`, `identifier-verification-gate` = `invoked (component)`; `accumulator` = `replaced-by-code
+> (council.aggregate_requirements)`; `reasoning-exposer` = `absorbed (SYNTH_TOOL framework_applied)`; `calibration-tracker`,
+> `evaluation-runner` = `tapón 4/5`; `html-report-emitter`, `type-c-viz-emitter` = `derogated (ADR-0046)`; `retrospector` =
+> `agent-session only (ADR-0009)`). The council emits information REQUIREMENTS (r1, before the run spends), COVERAGE judgments
+> of its own requirements (r2/r3) and compliance FLAGS with a human gate; it NEVER writes the answer, a verdict, a ranking or a
+> dispatch; the human ledger (keep / discard with reason / "I attest it") is the only place where its prose becomes spend. In
+> `agents_invoked` a member appears `invoked` with `invocation_id 'council:<agent>:r1[+r2[+r3]]'` (a fallen member is still
+> `invoked` — its `evidence` says so), plus one aggregated row `(consejo de criterio — cm-1)` `council:<n_valid>/<N>`;
+> operatives collapse into one `not-applicable` row unless full-council. `digest()` CHANGES by construction (34 names instead
+> of 29) → `PLAN_VERSION '4'` in `runs.py` — declared, not faked.
 
 ## §4 · Custom skills with role-equivalent behavior
 
@@ -146,6 +177,11 @@ Required invocations:
 - The matrix is **scope-bounded** to the project's six niches (per CLAUDE.md §3). Agents not relevant to the niches are not listed.
 - When a Hard Rule changes in CLAUDE.md §7, the matrix's §1 must be updated to reflect.
 - Backwards-incompatible changes to gate levels (e.g., Recommended → Hard Rule) require a new ADR.
+- **Since v1.3 (ADR-0082)** this file has a machine-readable face, `analysis/scripts/lib/agent_matrix.py` (`MATRIX_VERSION`), and the catalog has one too, `analysis/scripts/lib/catalog_cards.py` (`CATALOG_SHA` over the 31 verbatim cards). Adding a card to `agent-catalog.md` without a row here is MEASURED (`membership_view().cards_without_row`, golden `[]`); editing a card changes its `sha` and the run's `frozen.council.catalog_sha` — no record is rewritten (ADR-0074). The council membership (`COUNCIL_MEMBERSHIP`, `cm-1`) is a TABLE: seating or unseating an agent is a version bump of that table and an ADR, never a prompt.
+
+— v1.3 · ADR-0082 · 2026-09-15 —
+
+**v1.3 changes vs v1.2:** Added 5 `recommended` rows (§3) for the catalog cards without a row (`bwh-coordinator`, `reagent-procurement`, `fitness-curator`, `squidiff-in-silico-gate`, `retrospector`) + the "ADR-0082: consejo de criterio" note (category per row, `card` state, 17 members / 8 operatives / 9 substrate, 19/34 rows executable). Gate levels of the 29 existing rows UNCHANGED.
 
 — v1.1 · ADR-0006 + ADR-0007 · 2026-05-14 —
 

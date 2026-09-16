@@ -702,11 +702,13 @@ try:
     urllib.request.urlopen = _mk_urlopen([_payload(TOOL_USE)])
     out, usage, meta = ca._anthropic_tool_call(OPUS, "S", "U", max_tokens=4000, effort="low", return_meta=True)
     check("(B/C.4) return_meta=True: 3-tupla; usage NUMÉRICO con thinking_tokens APLANADO (50, ya dentro de output_tokens 80) y sin "
-          "service_tier/output_tokens_details; meta {model_reported, api 'anthropic-messages', stop_reason 'tool_use', response_id}; "
+          "service_tier/output_tokens_details; meta {model_reported, api 'anthropic-messages', stop_reason 'tool_use', response_id} + "
+          "ADR-0082 D.1 aditivo {attempts 1, queue_wait_s float} y SIN usage_prior_attempts/retry_after_honored_s cuando no aplican; "
           "cuerpo con max_tokens 4000 y output_config {effort low}",
           usage == {"input_tokens": 120, "output_tokens": 80, "cache_creation_input_tokens": 0, "thinking_tokens": 50}
-          and meta == {"model_reported": OPUS + "-20260901", "api": "anthropic-messages", "stop_reason": "tool_use",
-                       "response_id": "msg_1"}
+          and {k: v for k, v in meta.items() if k not in ("attempts", "queue_wait_s")} == {
+              "model_reported": OPUS + "-20260901", "api": "anthropic-messages", "stop_reason": "tool_use", "response_id": "msg_1"}
+          and meta["attempts"] == 1 and isinstance(meta["queue_wait_s"], float)
           and _ANT_CALLS[-1]["body"]["max_tokens"] == 4000 and _ANT_CALLS[-1]["body"]["output_config"] == {"effort": "low"},
           json.dumps([usage, meta]))
     urllib.request.urlopen = _mk_urlopen([_payload(TOOL_USE, usage={"input_tokens": 7, "output_tokens": 3})])

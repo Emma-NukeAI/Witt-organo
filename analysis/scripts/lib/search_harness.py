@@ -6,8 +6,17 @@ Por qué existe: hasta ADR-0078 la Ruta B era tres fuentes cableadas a mano dent
 (ortólogos, expresión, homología, proteína, asociaciones, rutas, interacciones, datasets, OA, OpenAlex) y a
 rondas con presupuesto, sin que ninguna decisión del lazo la tome texto del modelo: el plan lo construye código
 (build_search_plan), la ronda la ejecuta código (run_round) y la regla de "otra ronda" es un predicado declarado
-(should_run_next_round). Lo que el consejo (ADR-0082) aportará son DIRECTIVAS — aquí ya existe el hueco
-(`directives`, vacío hasta entonces) y la compuerta 'directive-only' por familia.
+(should_run_next_round). Las DIRECTIVAS del consejo (ADR-0082 (G.3), compiladas por CÓDIGO en council.compile_directives
+— forma C.6 {requirement_id, family, query_en, entities[], symbols[], evidence_kind, priority, requested_by[],
+refined_by_members[]}) entran a build_search_plan(directives=) con semántica de UNIÓN: las familias auto (o las de
+WITT_SEARCH_DEFAULT_FAMILIES) SIGUEN y las familias de las directivas se AÑADEN (`families_source
+'directives+default'`); las 'directive-only' entran SÓLO nombradas por directiva (o por la env); una familia que el
+harness no puede satisfacer (web/tooluniverse) queda excluida 'unsatisfiable-by-harness (…)'. La directiva mueve los
+INSUMOS de su familia: `query_en` sustituye la query libre (`query_source 'council-directive:<req ids>'`) o corre como
+UNA llamada EXTRA en literatura (`directive_queries[]`); `symbols[]` se AÑADEN (`symbols_from_directives[]`). Filas e
+ítems llevan `directive_requirement_ids[]` (atribución PRECISA: el insumo que la directiva añadió → sus ids; una
+familia que entró sólo por directiva → todos; un insumo base → []). Sin directivas el plan es byte-idéntico al de
+ADR-0080 (golden en smoke_search_harness) — el kill-switch WITT_COUNCIL=0 pasa directives=None.
 
 Doctrina heredada que este módulo aplica (constitución · CLAUDE.md §6/§7 · ADR-0043 · ADR-0078 · ADR-0079):
   * TRES estados, jamás un null ambiguo: cada fuente deja UNA fila con `status` ∈ SOURCE_STATES
@@ -282,18 +291,82 @@ def _free_query(symbols, qb, pass1_query_en):
     return " ".join(terms + ["zebrafish"]), "search_harness:v1:symbols+anatomy"
 
 
-def build_search_plan(question, entities, pass1_query_en, directives=None, families=None):
-    """El plan de búsqueda — construido por CÓDIGO, nunca por el modelo (ADR-0080 C).
+# ADR-0082 (G.3): vocabularios CERRADOS del plan con directivas (viajan congelados en search_ledger.plan).
+FAMILIES_SOURCES = ("default-families", "directives+default", "caller")
+DIRECTIVE_PLAN_STATES = ("applied", "excluded-unknown-family", "excluded-unsatisfiable",
+                         "not-requested (caller families)", "ignored (no family)")
+ENTERED_BY = ("directive", "default+directive", "caller+directive")
+QUERY_SOURCE_DIRECTIVE_PREFIX = "council-directive:"
 
-    families (explícitas del llamador) > directives (consejo, ADR-0082: cada directiva {family, ...}) >
-    WITT_SEARCH_DEFAULT_FAMILIES. Con 'default-families' las familias gate 'directive-only' NO corren aunque
-    estén en la env... salvo que la env las nombre explícitamente (eso ES la directiva del operador); las que
-    entran por DEFAULT_FAMILIES son todas gate 'auto'. Familias desconocidas se declaran ('unknown-family'), no
-    corren. Las queries por familia salen de search_queries.build_all (literatura + zfin) y de _free_query.
+
+def _directives_by_family(directives):
+    """ADR-0082 (G.3): agrupa las directivas del consejo (forma C.6, compiladas por council.compile_directives) por
+    familia en el orden en que llegaron. Devuelve (by_fam, rows): by_fam = {fam: {rids[], queries[{requirement_id,
+    query_en}], symbols[(rid, symbol)]}}; rows = UNA fila por directiva {requirement_id, family, state, applied_as[]}
+    para `directives_applied` (el state lo completa build_search_plan). Una directiva sin `requirement_id` (un
+    llamador viejo que pasa {'family': …}) recibe el id posicional 'directive:<i>' — declarado, no inventado."""
+    by_fam, rows = {}, []
+    for i, d in enumerate(directives):
+        if isinstance(d, dict):
+            fam = str(d.get("family") or "").strip().lower()
+            rid = d.get("requirement_id")
+            query_en = str(d.get("query_en") or "").strip() or None
+            symbols = [str(s).strip() for s in (d.get("symbols") or []) if s is not None and str(s).strip()]
+        else:
+            fam, rid, query_en, symbols = str(d or "").strip().lower(), None, None, []
+        rid = str(rid) if rid not in (None, "") else f"directive:{i}"
+        row = {"requirement_id": rid, "family": fam or None, "state": None, "applied_as": []}
+        rows.append(row)
+        if not fam:
+            row["state"] = "ignored (no family)"
+            continue
+        slot = by_fam.setdefault(fam, {"rids": [], "queries": [], "symbols": []})
+        if rid not in slot["rids"]:
+            slot["rids"].append(rid)
+        if query_en:
+            slot["queries"].append({"requirement_id": rid, "query_en": query_en})
+        for s in symbols:
+            slot["symbols"].append((rid, s))
+    return by_fam, rows
+
+
+def _rids_for(q, input_value):
+    """ADR-0082 (G.3): los requirement_id que un ÍTEM lleva — atribución PRECISA, nunca por contagio: el insumo
+    (símbolo o query) que la directiva AÑADIÓ o sustituyó → sus ids (`queries[fam].directive_inputs`); una familia
+    que entró SÓLO por directiva (`entered_by 'directive'`) → todos sus ids (corrió por ella); un insumo base de una
+    familia default/caller → [] (no se afirma que el consejo lo pidió). Es lo que coverage_after_search (C5) lee
+    como 'retrieved-for' — una MEDICIÓN estructural, distinta del juicio 'covered'."""
+    q = q or {}
+    d_inputs = q.get("directive_inputs") or {}
+    if input_value is not None and str(input_value) in d_inputs:
+        return list(d_inputs[str(input_value)])
+    if q.get("entered_by") == "directive":
+        return list(q.get("directive_requirement_ids") or [])
+    return []
+
+
+def build_search_plan(question, entities, pass1_query_en, directives=None, families=None):
+    """El plan de búsqueda — construido por CÓDIGO, nunca por el modelo (ADR-0080 C; ADR-0082 G.3).
+
+    families (explícitas del llamador, `families_source 'caller'`) > WITT_SEARCH_DEFAULT_FAMILIES ∪ familias de las
+    directivas del consejo (`'directives+default'`: las auto SIGUEN — antes una directiva REEMPLAZABA a las auto y
+    apagaba europepmc/pubmed/zfin, ADR-0082 Context 4) > WITT_SEARCH_DEFAULT_FAMILIES (`'default-families'`). Las
+    familias gate 'directive-only' entran SÓLO nombradas por directiva o por la env (eso ES la directiva del
+    operador); las que entran por DEFAULT_FAMILIES son todas gate 'auto'. Familias desconocidas se declaran
+    ('unknown-family'), no corren; una familia que entró SÓLO por directiva y el harness no puede satisfacer (web /
+    tooluniverse: sin tool ni adaptador) queda 'unsatisfiable-by-harness (<unavailable_reason>)'. Las queries por
+    familia salen de search_queries.build_all (literatura + zfin) y de _free_query; con directivas: `query_en`
+    sustituye la query libre (`query_source 'council-directive:<req ids>'`, la sustituida queda en `query_replaced`)
+    y todas las de la familia viajan en `directive_queries[]` (una llamada por insumo en Layer 0; UNA llamada EXTRA
+    por directiva en europepmc/pubmed); `symbols[]` se AÑADEN saneados (`symbols_from_directives[]`); cada
+    `queries[fam]` tocada declara `directive_requirement_ids[]`, `entered_by` y `directive_inputs {insumo: [ids]}`.
 
     Devuelve {plan_version, harness_version, rounds_cap(+_source), round_budget_s(+_source), families,
-    families_source, families_default, families_excluded[], directives[], directives_state, queries{family},
-    query_builder, question, question_en, question_en_source, symbols, symbols_dropped, cache_dir}."""
+    families_source, families_default, families_excluded[] {family, reason, requirement_ids?}, directives[]
+    (verbatim), directives_state 'empty-until-ADR-0082' | 'provided', queries{family}, query_builder, question,
+    question_en, question_en_source, symbols, symbols_dropped, symbols_sanitized, cache_dir} y, SÓLO con directivas
+    (byte-identidad sin ellas, golden), + {directives_applied[] {requirement_id, family, state ∈ DIRECTIVE_PLAN_STATES,
+    applied_as[], reason?}, families_from_directives[], n_directives_excluded}."""
     from lib import search_queries   # stdlib puro; import local para mantener este módulo liviano al cargar
     ents = [str(e).strip() for e in (entities or []) if e is not None and str(e).strip()]
     symbols, dropped, sanitized = search_queries.sanitize_symbols(ents)
@@ -309,14 +382,16 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
     budget, budget_src = _env_float_src("WITT_SEARCH_ROUND_BUDGET_S", ROUND_BUDGET_S_DEFAULT)
     default_fams, default_src = _env_families_src()
     directives = list(directives or [])
+    by_fam, d_rows = _directives_by_family(directives)
 
     if families is not None:
         requested, source = [str(f).strip().lower() for f in families if str(f).strip()], "caller"
     elif directives:
-        requested, source = [], "directives"
-        for d in directives:
-            fam = str((d or {}).get("family") or "").strip().lower() if isinstance(d, dict) else str(d).strip().lower()
-            if fam and fam not in requested:
+        # ADR-0082 (G.3): UNIÓN — las auto (o las de la env) primero y en su orden; después las familias de las
+        # directivas en el orden en que el consejo las pidió (una familia que consume insumos de otra va después)
+        requested, source = list(default_fams), "directives+default"
+        for fam in by_fam:
+            if fam not in requested:
                 requested.append(fam)
     else:
         requested, source = list(default_fams), "default-families"
@@ -324,12 +399,26 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
     chosen, excluded = [], []
     for fam in requested:
         spec = SEARCH_DISPATCH.get(fam)
+        via_directive = fam in by_fam
+        from_defaults = source != "caller" and fam in default_fams
         if spec is None:
-            excluded.append({"family": fam, "reason": "unknown-family"})
+            row = {"family": fam, "reason": "unknown-family"}
+            if via_directive:
+                row["requirement_ids"] = list(by_fam[fam]["rids"])
+            excluded.append(row)
             continue
-        if (source == "default-families" and spec["gate"] == "directive-only"
+        if (source != "caller" and from_defaults and not via_directive and spec["gate"] == "directive-only"
                 and default_src.startswith("default-unset")):
             excluded.append({"family": fam, "reason": "directive-only (no directive, not in WITT_SEARCH_DEFAULT_FAMILIES)"})
+            continue
+        if (via_directive and not from_defaults and source != "caller"
+                and spec.get("tool_module") is None and spec.get("adapter") is None):
+            # ADR-0082 (G.3 / C.4): la familia entró SÓLO por la directiva y el harness no la puede satisfacer
+            # (web → ADR-0084, tooluniverse → ADR-0085): se declara y se cuenta (GET /council/demand la lee); NO
+            # se despacha una llamada que nacería 'tool-unavailable'. Nombrada por la env sigue el camino de hoy.
+            excluded.append({"family": fam,
+                             "reason": f"unsatisfiable-by-harness ({spec.get('unavailable_reason') or 'no tool module declared'})",
+                             "requirement_ids": list(by_fam[fam]["rids"])})
             continue
         if fam not in chosen:
             chosen.append(fam)
@@ -357,7 +446,89 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
         else:
             queries[fam] = {"inputs": mode}
 
-    return {"plan_version": PLAN_VERSION, "harness_version": HARNESS_VERSION,
+    # ADR-0082 (G.3): las directivas mueven los INSUMOS de su familia. Sólo se tocan las familias nombradas — sin
+    # directivas este bloque no corre y el plan queda byte-idéntico al de ADR-0080.
+    families_from_directives = []
+    for fam in chosen:
+        info = by_fam.get(fam)
+        if info is None:
+            continue
+        q, mode = queries[fam], SEARCH_DISPATCH[fam]["inputs"]
+        entered_by = ("directive" if (source != "caller" and fam not in default_fams)
+                      else ("caller+directive" if source == "caller" else "default+directive"))
+        if entered_by == "directive":
+            families_from_directives.append(fam)
+        q["directive_requirement_ids"] = list(info["rids"])
+        q["entered_by"] = entered_by
+        d_inputs = {}
+        applied_by_rid = {rid: (["family-entry"] if entered_by == "directive" else []) for rid in info["rids"]}
+
+        def _mark_input(insumo, rid):
+            d_inputs.setdefault(insumo, [])
+            if rid not in d_inputs[insumo]:
+                d_inputs[insumo].append(rid)
+
+        if mode == "free-query" and info["queries"]:
+            # la query_en de la PRIMERA directiva sustituye a _free_query (las demás son insumos extra: una
+            # llamada por insumo en _run_workspace_family); la sustituida se conserva declarada
+            first = info["queries"][0]
+            q["query_replaced"] = {"query": q.get("query"), "query_source": q.get("query_source")}
+            q["query"] = first["query_en"]
+            first_rids = list(dict.fromkeys(d["requirement_id"] for d in info["queries"] if d["query_en"] == first["query_en"]))
+            q["query_source"] = QUERY_SOURCE_DIRECTIVE_PREFIX + ",".join(first_rids)
+            q["directive_queries"] = [dict(d) for d in info["queries"]]
+            for d in info["queries"]:
+                _mark_input(d["query_en"], d["requirement_id"])
+                applied_by_rid[d["requirement_id"]].append("free-query" if d["query_en"] == first["query_en"] else "free-query-extra")
+        elif mode == "literature-query" and info["queries"]:
+            # literatura: la query del constructor SIGUE; cada directiva corre como UNA llamada EXTRA dentro del
+            # presupuesto de la familia (_literature_directive_calls; `calls[]` lo muestra)
+            q["directive_queries"] = [dict(d) for d in info["queries"]]
+            for d in info["queries"]:
+                _mark_input(d["query_en"], d["requirement_id"])
+                applied_by_rid[d["requirement_id"]].append("literature-extra-query")
+        if mode == "symbols" and info["symbols"]:
+            # los `symbols` de la directiva (entities_resolved por resolve_id, C.4) se AÑADEN con el MISMO saneo
+            # que los símbolos de la corrida; uno ya presente no se duplica ni se atribuye
+            base = list(q.get("symbols") or [])
+            added, dropped_d = [], []
+            for rid, raw in info["symbols"]:
+                used, _dropped, _san = search_queries.sanitize_symbols([raw])
+                if not used:
+                    dropped_d.append(raw)
+                    continue
+                clean = used[0]
+                if clean in base:
+                    continue
+                if clean not in added:
+                    added.append(clean)
+                _mark_input(clean, rid)
+                applied_by_rid[rid].append(f"symbol:{clean}")
+            q["symbols"] = base + added
+            q["symbols_from_directives"] = added
+            if dropped_d:
+                q["symbols_from_directives_dropped"] = dropped_d
+        if d_inputs:
+            q["directive_inputs"] = d_inputs
+        for row in d_rows:
+            if row["family"] == fam:
+                row["state"] = "applied"
+                row["applied_as"] = list(applied_by_rid.get(row["requirement_id"]) or ["family-only"])
+    excluded_by_fam = {e["family"]: e["reason"] for e in excluded}
+    for row in d_rows:
+        if row["state"] is not None:
+            continue
+        reason = excluded_by_fam.get(row["family"])
+        if reason is None:
+            row["state"] = "not-requested (caller families)"   # families= del llamador manda; la directiva se declara
+        elif reason.startswith("unknown-family"):
+            row["state"], row["reason"] = "excluded-unknown-family", reason
+        elif reason.startswith("unsatisfiable-by-harness"):
+            row["state"], row["reason"] = "excluded-unsatisfiable", reason
+        else:
+            row["state"], row["reason"] = f"excluded ({reason})", reason
+
+    plan = {"plan_version": PLAN_VERSION, "harness_version": HARNESS_VERSION,
             "rounds_cap": cap, "rounds_cap_source": cap_src,
             "round_budget_s": budget, "round_budget_s_source": budget_src,
             "families": chosen, "families_source": source,
@@ -369,6 +540,12 @@ def build_search_plan(question, entities, pass1_query_en, directives=None, famil
             "question_en_source": "pass1_query_en" if q_en else None,
             "symbols": list(symbols), "symbols_dropped": list(dropped), "symbols_sanitized": sanitized,
             "cache_dir": str(os.environ.get("WITT_MCP_CACHE_DIR", "").strip() or CACHE)}
+    if directives:
+        # llaves ADITIVAS sólo con directivas (ADR-0082 G.3): sin ellas el plan es el de ADR-0080 byte a byte
+        plan["directives_applied"] = d_rows
+        plan["families_from_directives"] = families_from_directives
+        plan["n_directives_excluded"] = sum(1 for r in d_rows if str(r["state"]).startswith("excluded"))
+    return plan
 
 
 def plan_event_payload(plan):
@@ -459,11 +636,13 @@ def _derived_id(family, statement):
     return f"{family}:sha256:{hashlib.sha256((statement or '').encode('utf-8')).hexdigest()[:16]}"
 
 
-def normalize_item(family, element, spec=None, tool_result=None, input_value=None):
+def normalize_item(family, element, spec=None, tool_result=None, input_value=None, directive_requirement_ids=None):
     """Un elemento crudo del tool -> ítem normalizado (contrato del docstring del módulo). Nunca inventa un
     identificador: usa el del elemento (evidence_id | id | curie | accession | doi | ...) con la procedencia que
     el tool declare (o 'tool-payload'); si no hay ninguno, deriva '<family>:sha256:<16>' del statement y lo
-    declara (identifier_provenance 'derived:sha256-of-statement' + gap_flag)."""
+    declara (identifier_provenance 'derived:sha256-of-statement' + gap_flag). ADR-0082 (G.3):
+    `directive_requirement_ids[]` = los requisitos del consejo para los que este ítem se trajo (_rids_for; [] =
+    ninguno — la llave viaja SIEMPRE, ausente sólo en registros < 1.11)."""
     spec = spec or SEARCH_DISPATCH.get(family) or {}
     tool_result = tool_result or {}
     if not isinstance(element, dict):
@@ -509,6 +688,7 @@ def normalize_item(family, element, spec=None, tool_result=None, input_value=Non
             # si no, la referencia del resultado del tool (caché del día)
             "raw_ref": element.get("raw_ref") or tool_result.get("cache_ref") or tool_result.get("cache_path"),
             "input": input_value,
+            "directive_requirement_ids": list(directive_requirement_ids or []),   # ADR-0082 (G.3)
             "zfin_curie": str(zfin_curie) if zfin_curie else None,
             # compat con path_b / _compact_evidence / path_b_event_payload (leen source, search_rec, fetched)
             "source": family,
@@ -610,12 +790,46 @@ def _inputs_for(family, spec, plan, ctx):
     if mode == "symbols":
         return list(q.get("symbols") or plan.get("symbols") or []), mode
     if mode in ("free-query", "literature-query"):
-        return ([q.get("query")] if q.get("query") else []), mode
+        inputs = [q.get("query")] if q.get("query") else []
+        # ADR-0082 (G.3): las queries de las directivas del consejo son INSUMOS de la familia (una llamada por
+        # insumo en Layer 0; una llamada EXTRA por directiva en las legadas) — así inputs_used / inputs_signature /
+        # families_with_new_inputs las ven y "nada se re-ejecuta" sigue midiendo la firma completa
+        for dq in q.get("directive_queries") or []:
+            qe = (dq or {}).get("query_en")
+            if qe and qe not in inputs:
+                inputs.append(qe)
+        return inputs, mode
     if mode == "dois":
         return list(dict.fromkeys(ctx.get("dois") or [])), mode
     if mode == "zfin-curies":
         return list(dict.fromkeys(ctx.get("curies") or [])), mode
     return [], mode
+
+
+def _family_status(items, statuses):
+    """Agregación DECLARADA de las llamadas de una familia a UN estado (la regla de _run_workspace_family, ADR-0080;
+    ADR-0082 la reutiliza para las legadas con llamadas extra de directiva): >=1 ítem -> success; ninguna llamada
+    corrió y todas quedaron sin presupuesto -> skipped-budget; alguna llamada MIDIÓ 0 -> no-match (los errores de
+    las demás se declaran en partial_errors, no se esconden); todas 'tool-unavailable' | 'skipped-budget' |
+    'not-requested' -> ese literal heredado; si no, error."""
+    if items:
+        return "success"
+    if not statuses:
+        return "skipped-budget"
+    if any(s in RAN_STATES for s in statuses):
+        return "no-match"
+    if all(s == "tool-unavailable" for s in statuses):
+        # ADR-0080 C7 (costura C2<->C3/C5): las tools declaran 'tool-unavailable' (p. ej. unpaywall sin
+        # WITT_UNPAYWALL_EMAIL) y 'skipped-budget' (timeout<=0) en su raíz; si TODAS las llamadas lo dijeron,
+        # la familia hereda ese literal del vocabulario del ledger — no se degrada a 'error'
+        return "tool-unavailable"
+    if all(s == "skipped-budget" for s in statuses):
+        return "skipped-budget"
+    if all(s == "not-requested" for s in statuses):
+        # corrector ADR-0080: un "no se pidió" declarado por el tool en TODAS sus llamadas se hereda, no se
+        # degrada a fallo
+        return "not-requested"
+    return "error"
 
 
 def _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn_detail):
@@ -625,8 +839,9 @@ def _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn
     Reparto dentro de la familia: la PRIMERA llamada siempre corre (la admisión la decidió el reparto de la
     ronda) con timeout = max(MIN_CALL_TIMEOUT_S, restante / llamadas_restantes); las siguientes solo si queda
     al menos MIN_CALL_TIMEOUT_S — si no, 'skipped-budget' por llamada, declarado en calls[] y contado en
-    n_calls_skipped_budget."""
+    n_calls_skipped_budget. ADR-0082 (G.3): cada ítem lleva los requirement_id de su INSUMO (_rids_for)."""
     inputs, mode = _inputs_for(family, spec, plan, ctx)
+    q_fam = (plan.get("queries") or {}).get(family) or {}
     if not inputs:
         reason = {"symbols": "no symbols", "free-query": "no English query (nothing to search)",
                   "literature-query": "query builder produced no query", "dois": "no DOI inputs in the round",
@@ -671,8 +886,11 @@ def _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn
         elif st in RAN_STATES:
             elements, list_key = _result_list(res, spec)
             call["n_found"], call["list_key"] = len(elements), list_key
+            rids = _rids_for(q_fam, inp)
+            if rids:
+                call["directive_requirement_ids"] = rids   # ADR-0082 (G.3): la llamada que el consejo pidió
             for el in elements:
-                items.append(normalize_item(family, el, spec, res, input_value=inp))
+                items.append(normalize_item(family, el, spec, res, input_value=inp, directive_requirement_ids=rids))
         else:
             call["error"] = str(res.get("error", ""))[:200]
             if st not in SOURCE_STATES:
@@ -680,28 +898,7 @@ def _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn
         statuses.append(call["status"])
         calls.append(call)
     elapsed_total = round(_monotonic() - t0, 3)
-    # Agregación DECLARADA de las llamadas a UN estado de familia: >=1 ítem -> success; ninguna llamada
-    # corrió y todas quedaron sin presupuesto -> skipped-budget; alguna llamada MIDIÓ 0 -> no-match (los
-    # errores de las demás se declaran en partial_errors, no se esconden); si no, error.
-    if items:
-        status = "success"
-    elif not statuses:
-        status = "skipped-budget"
-    elif any(s in RAN_STATES for s in statuses):
-        status = "no-match"
-    elif all(s == "tool-unavailable" for s in statuses):
-        # ADR-0080 C7 (costura C2<->C3/C5): las tools declaran 'tool-unavailable' (p. ej. unpaywall sin
-        # WITT_UNPAYWALL_EMAIL) y 'skipped-budget' (timeout<=0) en su raíz; si TODAS las llamadas lo dijeron,
-        # la familia hereda ese literal del vocabulario del ledger — no se degrada a 'error'
-        status = "tool-unavailable"
-    elif all(s == "skipped-budget" for s in statuses):
-        status = "skipped-budget"
-    elif all(s == "not-requested" for s in statuses):
-        # corrector ADR-0080: un "no se pidió" declarado por el tool en TODAS sus llamadas se hereda, no se
-        # degrada a fallo
-        status = "not-requested"
-    else:
-        status = "error"
+    status = _family_status(items, statuses)   # la regla declarada (ver _family_status)
     n_err = sum(1 for s in statuses if s == "error")
     row = _row(family, spec, status, n_found=len(items) if status in RAN_STATES else None,
                elapsed_s=elapsed_total, budget_s=round(budget_s, 3), inputs_mode=mode, inputs_used=list(inputs),
@@ -734,9 +931,78 @@ def _legacy_status(led):
     return (status if status in SOURCE_STATES else "error"), None
 
 
+def _literature_directive_calls(row, items, q, budget_s, t0, base_status, base_led, base_query, timeout_cap,
+                                search, to_items):
+    """ADR-0082 (G.3): en europepmc/pubmed cada directiva del consejo con `query_en` corre como UNA llamada EXTRA
+    dentro del presupuesto de la familia (la del constructor SIGUE y va primero en `calls[]`; después una fila por
+    directiva con su requirement_id). Sin presupuesto (restante < MIN_CALL_TIMEOUT_S) la llamada queda
+    'skipped-budget' declarada y contada, SIN tocar la red. Los ítems de una llamada de directiva llevan
+    `directive_requirement_ids` = _rids_for(q, query_en); la fila re-agrega su estado con la MISMA regla de las
+    familias Layer 0 (_family_status) y recuenta n_found sobre las llamadas que MIDIERON. `row["ledger"]` sigue
+    siendo el ledger de la llamada BASE (path_b publica europepmc_searched / pubmed_searched byte-compatibles).
+    Muta `row` e `items`; sin `directive_queries` no hace nada (byte-identidad sin directivas)."""
+    dqs = [d for d in (q.get("directive_queries") or []) if isinstance(d, dict) and d.get("query_en")]
+    if not dqs:
+        return
+    calls = [{"input": base_query, "kind": "builder", "status": base_status,
+              "n_found": base_led.get("n_returned") if base_status in RAN_STATES else None,
+              "elapsed_s": base_led.get("elapsed_s"), "query_sent": base_led.get("query_sent"),
+              "directive_requirement_ids": _rids_for(q, base_query)}]
+    statuses, n_skipped = [base_status], 0
+    for dq in dqs:
+        rid, qe = dq.get("requirement_id"), dq["query_en"]
+        remaining = budget_s - (_monotonic() - t0)
+        if remaining < MIN_CALL_TIMEOUT_S:
+            n_skipped += 1
+            calls.append({"input": qe, "kind": "council-directive", "requirement_id": rid, "status": "skipped-budget",
+                          "detail": f"family budget {round(budget_s, 3)}s exhausted", "directive_requirement_ids": [rid]})
+            continue
+        timeout_s = round(max(MIN_CALL_TIMEOUT_S, min(float(timeout_cap), remaining)), 3)
+        c0 = _monotonic()
+        try:
+            found, led2 = search(qe, timeout_s)
+        except Exception as e:   # cinturón §6: una llamada de directiva que lanza degrada SU llamada, no la familia
+            found, led2 = [], {"status": "error", "error": f"{type(e).__name__}: {str(e)[:200]}", "query_sent": qe}
+        led2 = led2 if isinstance(led2, dict) else {}
+        st2, det2 = _legacy_status(led2)
+        call = {"input": qe, "kind": "council-directive", "requirement_id": rid, "status": st2,
+                "elapsed_s": round(_monotonic() - c0, 3), "timeout_s": timeout_s, "query_sent": led2.get("query_sent"),
+                "n_found": led2.get("n_returned") if st2 in RAN_STATES else None, "directive_requirement_ids": [rid]}
+        if st2 == "error":
+            call["error"] = led2.get("error") or led2.get("detail")
+        elif det2:
+            call["detail"] = det2
+        rids = _rids_for(q, qe) or [rid]
+        if st2 in RAN_STATES:
+            for it in to_items(found or [], rids):
+                items.append(it)
+        statuses.append(st2)
+        calls.append(call)
+    status = _family_status(items, statuses)
+    n_err = sum(1 for s in statuses if s == "error")
+    row["status"] = status
+    row["n_found"] = (sum(int(c.get("n_found") or 0) for c in calls if c.get("status") in RAN_STATES)
+                      if status in RAN_STATES else None)
+    row["n_new"] = None   # run_round lo mide sobre los ítems admitidos
+    row["elapsed_s"] = round(_monotonic() - t0, 3)
+    row["calls"] = calls
+    row["n_calls"], row["n_calls_error"], row["n_calls_skipped_budget"] = len(calls), n_err, n_skipped
+    row["directive_calls_rule"] = "one extra call per council directive within the family budget (ADR-0082 G.3)"
+    if status == "error":
+        row["error"] = (row.get("error") or next((c.get("error") for c in calls if c.get("error")), None)
+                        or "mixed call statuses: " + json.dumps(sorted(set(statuses))))
+    else:
+        # una familia que MIDIÓ no viaja con `error`: los fallos parciales se declaran, no se esconden
+        row.pop("error", None)
+        if n_err:
+            row["partial_errors"] = n_err
+
+
 def _run_legacy_family(family, spec, plan, ctx, budget_s):
     """Adaptadores de las tres fuentes que ya existían — llaman a answer_pipeline (import perezoso) y conservan
     el ledger de hoy en `ledger` para que path_b publique europepmc_searched / pubmed_searched / zfin_searched.
+    ADR-0082 (G.3): con `directive_queries` en queries[fam] la literatura corre una llamada EXTRA por directiva
+    (_literature_directive_calls); los ítems llevan `directive_requirement_ids` (_rids_for: ZFIN por símbolo).
 
     Corrector ADR-0080 (paridad webapp 2026-09-15): `inputs_used` de cada fila es EXACTAMENTE la firma que
     _inputs_for produce para la familia en este ctx (query None -> [], símbolos [] -> []). Antes la fila llevaba
@@ -756,24 +1022,35 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
             led.update(n_found_total=None, n_new=None, duplicates_of_europepmc=None)
         return _row(family, spec, "not-requested", detail=led["detail"], query_sent=led["query_sent"], ledger=led,
                     inputs_mode=inputs_mode, inputs_used=list(inputs)), []
+    q_fam = (plan.get("queries") or {}).get(family) or {}   # ADR-0082 (G.3): directive_inputs / entered_by
     if family == "europepmc":
+        base_query = (qb.get("europepmc") or {}).get("query")
         # corrector ADR-0080: el presupuesto de la familia ACOTA la llamada (timeout por GET = min(default del
         # módulo, presupuesto)); antes la fuente usaba HTTP_TIMEOUT_S fijo y podía rebasar la ronda entera
         fam_timeout = round(max(MIN_CALL_TIMEOUT_S, min(float(getattr(ap.fetch_paper, "HTTP_TIMEOUT_S", 30) or 30), budget_s)), 3)
-        if _accepts(ap._search_europepmc, "timeout"):
-            recs, led = ap._search_europepmc((qb.get("europepmc") or {}).get("query"), retmax, timeout=fam_timeout)
-            scope = f"per-call (timeout {fam_timeout}s = min(fetch_paper.HTTP_TIMEOUT_S, family budget))"
-        else:
-            recs, led = ap._search_europepmc((qb.get("europepmc") or {}).get("query"), retmax)
-            scope = "module-default (fetch_paper.HTTP_TIMEOUT_S)"
-        items = []
-        for rec in recs:
-            cand = ap._epmc_candidate(rec)
-            cand.update({"kind": "literature-candidate", "source_family": "europepmc", "label": None,
-                         "statement": None, "title": (cand.get("search_rec") or {}).get("title"),
-                         "url": f"https://europepmc.org/abstract/MED/{rec['pmid']}" if rec.get("pmid") else None,
-                         "identifier_provenance": "europepmc-api-live", "raw_ref": None, "text": None})
-            items.append(cand)
+        accepts_timeout = _accepts(ap._search_europepmc, "timeout")
+
+        def _epmc_search(query, timeout_s):
+            if accepts_timeout:
+                return ap._search_europepmc(query, retmax, timeout=timeout_s)
+            return ap._search_europepmc(query, retmax)
+
+        def _epmc_items(recs, rids):
+            out = []
+            for rec in recs:
+                cand = ap._epmc_candidate(rec)
+                cand.update({"kind": "literature-candidate", "source_family": "europepmc", "label": None,
+                             "statement": None, "title": (cand.get("search_rec") or {}).get("title"),
+                             "url": f"https://europepmc.org/abstract/MED/{rec['pmid']}" if rec.get("pmid") else None,
+                             "identifier_provenance": "europepmc-api-live", "raw_ref": None, "text": None,
+                             "directive_requirement_ids": list(rids)})
+                out.append(cand)
+            return out
+
+        recs, led = _epmc_search(base_query, fam_timeout)
+        scope = (f"per-call (timeout {fam_timeout}s = min(fetch_paper.HTTP_TIMEOUT_S, family budget))" if accepts_timeout
+                 else "module-default (fetch_paper.HTTP_TIMEOUT_S)")
+        items = _epmc_items(recs, _rids_for(q_fam, base_query))
         status, detail = _legacy_status(led)
         row = _row("europepmc", spec, status, n_found=led.get("n_returned") if status in RAN_STATES else None,
                    elapsed_s=led.get("elapsed_s", round(_monotonic() - t0, 3)), query_sent=led.get("query_sent"),
@@ -783,25 +1060,37 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
             row["error"] = led.get("error") or led.get("detail")
         elif detail:
             row["detail"] = detail
+        _literature_directive_calls(row, items, q_fam, budget_s, t0, status, led, base_query, fam_timeout,
+                                    _epmc_search, _epmc_items)
         return row, items
     if family == "pubmed":
+        base_query = (qb.get("pubmed") or {}).get("query")
         existing = ctx.get("pubmed_seen") or {}
         # corrector ADR-0080: mismo acotamiento que EPMC — timeout por GET = min(30 s del tool, presupuesto de la
         # familia); el reintento 429 (Retry-After ≤ 60 s) sigue siendo del tool y se declara en su ledger
         fam_timeout = round(max(MIN_CALL_TIMEOUT_S, min(30.0, budget_s)), 3)
-        if _accepts(ap._search_pubmed, "timeout"):
-            cands, led = ap._search_pubmed((qb.get("pubmed") or {}).get("query"), retmax, existing, timeout=fam_timeout)
-            scope = f"per-call (timeout {fam_timeout}s = min(30, family budget); 429 retry-after is the tool's, declared)"
-        else:
-            cands, led = ap._search_pubmed((qb.get("pubmed") or {}).get("query"), retmax, existing)
-            scope = "module-default (pubmed_literature)"
-        items = []
-        for cand in cands:
-            cand.update({"kind": "literature-candidate", "source_family": "pubmed", "label": None,
-                         "statement": None, "title": (cand.get("search_rec") or {}).get("title"),
-                         "url": f"https://pubmed.ncbi.nlm.nih.gov/{cand['search_rec']['pmid']}/" if cand["search_rec"].get("pmid") else None,
-                         "identifier_provenance": "ncbi-eutils-live", "raw_ref": None, "text": None})
-            items.append(cand)
+        accepts_timeout = _accepts(ap._search_pubmed, "timeout")
+
+        def _pubmed_search(query, timeout_s):
+            if accepts_timeout:
+                return ap._search_pubmed(query, retmax, existing, timeout=timeout_s)
+            return ap._search_pubmed(query, retmax, existing)
+
+        def _pubmed_items(cands, rids):
+            out = []
+            for cand in cands:
+                cand.update({"kind": "literature-candidate", "source_family": "pubmed", "label": None,
+                             "statement": None, "title": (cand.get("search_rec") or {}).get("title"),
+                             "url": f"https://pubmed.ncbi.nlm.nih.gov/{cand['search_rec']['pmid']}/" if cand["search_rec"].get("pmid") else None,
+                             "identifier_provenance": "ncbi-eutils-live", "raw_ref": None, "text": None,
+                             "directive_requirement_ids": list(rids)})
+                out.append(cand)
+            return out
+
+        cands, led = _pubmed_search(base_query, fam_timeout)
+        scope = (f"per-call (timeout {fam_timeout}s = min(30, family budget); 429 retry-after is the tool's, declared)"
+                 if accepts_timeout else "module-default (pubmed_literature)")
+        items = _pubmed_items(cands, _rids_for(q_fam, base_query))
         status, detail = _legacy_status(led)
         row = _row("pubmed", spec, status, n_found=led.get("n_returned") if status in RAN_STATES else None,
                    elapsed_s=round(_monotonic() - t0, 3), query_sent=led.get("query_sent"), cache_hit=None,
@@ -811,6 +1100,8 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
             row["error"] = led.get("detail") or led.get("error")
         elif detail:
             row["detail"] = detail
+        _literature_directive_calls(row, items, q_fam, budget_s, t0, status, led, base_query, fam_timeout,
+                                    _pubmed_search, _pubmed_items)
         return row, items
     if family == "zfin":
         symbols = list(inputs)   # la MISMA firma que _inputs_for (modo 'symbols'): queries.zfin.symbols | plan.symbols | []
@@ -824,7 +1115,9 @@ def _run_legacy_family(family, spec, plan, ctx, budget_s):
                        "text": None, "abstract": None,
                        "url": f"https://zfin.org/{z['curie'].split(':', 1)[1]}" if z.get("curie") and ":" in z["curie"] else None,
                        "identifier_provenance": z.get("identifier_provenance", "alliance-genome-api-live"),
-                       "raw_ref": ((it.get("fetched") or {}).get("raw_cached") or [None])[0]})
+                       "raw_ref": ((it.get("fetched") or {}).get("raw_cached") or [None])[0],
+                       # ADR-0082 (G.3): ZFIN se atribuye por SÍMBOLO (el ítem sabe cuál lo trajo: zfin.symbol)
+                       "directive_requirement_ids": _rids_for(q_fam, z.get("symbol"))})
         tallies = {}
         for r in ledger:
             tallies[r.get("status")] = tallies.get(r.get("status"), 0) + 1
@@ -856,20 +1149,27 @@ def run_source(family, plan, ctx, budget_s, tools=None):
     """(fila, ítems) de UNA familia dentro de su presupuesto. `tools` (dict family -> callable) inyecta fakes
     para las familias Layer 0 genéricas (los smokes); las tres legadas se parchean en answer_pipeline."""
     spec = SEARCH_DISPATCH.get(family)
+    # ADR-0082 (G.3): la fila SIEMPRE declara los requisitos del consejo que nombraron a la familia ([] = ninguno)
+    rids_fam = list(((plan.get("queries") or {}).get(family) or {}).get("directive_requirement_ids") or [])
     if spec is None:
-        return _row(family, {}, "error", error=f"unknown family {family!r}"), []
+        return _row(family, {}, "error", error=f"unknown family {family!r}", directive_requirement_ids=rids_fam), []
     if spec.get("adapter"):
         try:
-            return _run_legacy_family(family, spec, plan, ctx, budget_s)
+            row, items = _run_legacy_family(family, spec, plan, ctx, budget_s)
         except Exception as e:   # cinturón §6: un adaptador que lanza degrada SU familia, no la ronda
-            return _row(family, spec, "error", error=f"{type(e).__name__}: {str(e)[:200]}"), []
+            row, items = _row(family, spec, "error", error=f"{type(e).__name__}: {str(e)[:200]}"), []
+        row.setdefault("directive_requirement_ids", rids_fam)
+        return row, items
     if tools and family in tools:
         fn, fn_resolved, fn_detail = tools[family], "injected", None
     else:
         fn, fn_resolved, fn_detail = _load_tool(family, spec)
     if fn is None:
-        return _row(family, spec, "tool-unavailable", detail=fn_detail or spec.get("unavailable_reason")), []
-    return _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn_detail)
+        return _row(family, spec, "tool-unavailable", detail=fn_detail or spec.get("unavailable_reason"),
+                    directive_requirement_ids=rids_fam), []
+    row, items = _run_workspace_family(family, spec, plan, ctx, budget_s, fn, fn_resolved, fn_detail)
+    row.setdefault("directive_requirement_ids", rids_fam)
+    return row, items
 
 
 # --- una ronda -------------------------------------------------------------------------------------------
@@ -916,11 +1216,16 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
         remaining = budget_s - (_monotonic() - t0)
         left = len(families) - idx
         spec = SEARCH_DISPATCH.get(fam) or {}
+        # ADR-0082 (G.3): toda fila de la ronda declara los requisitos del consejo que nombraron a su familia
+        # ([] = ninguno — la llave viaja siempre, también en skipped-*; la Traza dice "lo pidió el consejo · req-…")
+        q_fam = (plan.get("queries") or {}).get(fam) or {}
+        rids_fam = list(q_fam.get("directive_requirement_ids") or [])
         if remaining < MIN_SOURCE_BUDGET_S:
             row = _row(fam, spec, "skipped-budget",
                        detail=f"round budget {round(budget_s, 3)}s exhausted (remaining {max(0.0, round(remaining, 3))}s < {MIN_SOURCE_BUDGET_S}s)",
                        budget_s=0.0)
             row["round"] = k
+            row["directive_requirement_ids"] = rids_fam
             sources.append(row)
             if on_source:
                 on_source(row)
@@ -931,6 +1236,7 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
                 row = _row(fam, spec, "skipped-cap", detail=NOT_REEXECUTED_DETAIL.format(k=k - 1),
                            inputs_mode=mode, inputs_used=None, budget_s=0.0)
                 row["round"] = k
+                row["directive_requirement_ids"] = rids_fam
                 n_not_reexecuted += 1
                 sources.append(row)
                 if on_source:
@@ -939,10 +1245,14 @@ def run_round(plan, k, budget_s, on_source=None, existing_ids=None, trigger=None
         fam_budget = min(float(spec.get("budget_s") or remaining), remaining / left)
         row, found = run_source(fam, plan, ctx, fam_budget, tools=tools)
         row["round"] = k
+        row["directive_requirement_ids"] = rids_fam
         row["over_budget"] = bool(row.get("elapsed_s") is not None and row["elapsed_s"] > fam_budget + 0.05)
         new_here = 0
         for it in found:
             eid = it.get("evidence_id")
+            if "directive_requirement_ids" not in it:
+                # adaptador que no atribuyó (p. ej. un fake inyectado): atribución por familia (_rids_for)
+                it["directive_requirement_ids"] = _rids_for(q_fam, it.get("input"))
             # los INSUMOS que el ítem resolvió (DOI, curie ZFIN) se cosechan ANTES del dedup: una resolución es un
             # hecho de la fuente aunque el ítem ya estuviera presente en la corrida (corrector ADR-0080)
             doi = (it.get("search_rec") or {}).get("doi")
@@ -1000,9 +1310,11 @@ def round_event_payload(rd):
 
 
 def source_event_payload(row):
-    """Payload del evento stage.search.source — la fila sin `ledger` ni `calls` (viven en el bundle)."""
+    """Payload del evento stage.search.source — la fila sin `ledger` ni `calls` (viven en el bundle).
+    ADR-0082 (G.3): + `directive_requirement_ids[]` (la Traza pinta "lo pidió el consejo · req-…"; [] = ninguno)."""
     out = {k: row.get(k) for k in ("round", "family", "status", "n_found", "n_new", "elapsed_s", "cache_hit",
                                    "query_sent", "budget_s", "gate", "label", "evidence_kind")}
+    out["directive_requirement_ids"] = list(row.get("directive_requirement_ids") or [])
     for k in ("error", "detail", "over_budget", "n_calls", "n_calls_error", "n_calls_skipped_budget", "fn_resolved"):
         if k in row and row[k] not in (None, False, 0):
             out[k] = row[k]

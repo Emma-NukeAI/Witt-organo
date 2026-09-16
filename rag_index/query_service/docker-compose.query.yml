@@ -125,6 +125,55 @@ services:
       - WITT_ANTHROPIC_EFFORT=${WITT_ANTHROPIC_EFFORT:-}             # output_config.effort (low|medium|high|xhigh|max) SÓLO a modelos thinking_default 'adaptive'; vacía = default de la API
       - WITT_ANTHROPIC_EFFORT_ELICIT=${WITT_ANTHROPIC_EFFORT_ELICIT:-}   # override sólo para CONF_TOOL (la mini-llamada de confianza); vacía = hereda WITT_ANTHROPIC_EFFORT
       - WITT_CONFIG_LEDGER=${WITT_CONFIG_LEDGER:-1}                  # 0 = cero escrituras en la tabla config_history (ledger_state lo dice); el archivo atestiguado no cambia
+      # ADR-0082 — el consejo de criterio ejecutable (17 fichas verbatim como código; la ronda 1 es un JOB del plan que un
+      # humano aprueba ANTES de gastar; la ronda 2 mide cobertura antes de la compuerta; el consejo JAMÁS escribe la
+      # respuesta). SÓLO placeholders: las 27 env viven DECLARADAS en analysis/scripts/lib/models.py (ENV_TABLE, ENV_ADR_0082)
+      # con lector tolerante en tiempo de llamada (vacía/basura = default declarado, jamás un crash) y el valor efectivo + su
+      # fuente viajan en frozen.council.{config,cache,model,kill_switch}, plans.council_json.budget, GET /runs/plan.council.gates,
+      # /config-history.current (role.council, council.enabled/full/effort/cache_ttl). TODA ENV IMPLICA REINICIO (ADR-0081
+      # Context 10 / ADR-0082 L.1): el os.environ del contenedor se fija al arrancar — cambiar un valor en Dokploy NO surte
+      # efecto hasta redeploy/restart; el ledger config_history registra el diff al arrancar. Kill-switch global:
+      # WITT_COUNCIL=0 devuelve el camino de 9d90c01 con las excepciones DECLARADAS en el ADR (L.2).
+      - WITT_COUNCIL=${WITT_COUNCIL:-1}                              # 0 = kill-switch: sin job en el plan, POST /runs sin 409, sin r2/r3, componente
+                                                                     # 'kill-switch WITT_COUNCIL=0' (gating false), build_search_plan(directives=None)
+      - WITT_COUNCIL_FULL=${WITT_COUNCIL_FULL:-0}                    # 1 = los 8 operativos también se sientan (N=25, cuórum 15) — E5: sólo A/B, 0 en prod;
+                                                                     # se lee al ENCOLAR r1 (la corrida usa la N congelada en el plan)
+      - WITT_MODEL_COUNCIL=${WITT_MODEL_COUNCIL:-}                   # modelo de los 17 miembros; vacía => claude-opus-5 (g2) / claude-opus-4-8 (g1);
+                                                                     # fable rechazado 'excluded-model'; tope max_tokens.council 4000/1200 (techo, no gasto)
+      - WITT_COUNCIL_EFFORT=${WITT_COUNCIL_EFFORT:-medium}           # output_config.effort FIJO por ruta para las 3 rondas (cambiarlo por petición invalida la
+                                                                     # caché); low|medium|high|xhigh|max | 'inherit' (= hereda WITT_ANTHROPIC_EFFORT); sólo a
+                                                                     # modelos thinking_default 'adaptive'; E2 (medium) se decide con thinking_tokens de LG1
+      - WITT_CG_COUNCIL_COMPONENT=${WITT_CG_COUNCIL_COMPONENT:-1}    # 1 = council_uncovered_must GATEA (state checked|vacuous|incomplete); 0 = informativo declarado
+      - WITT_COUNCIL_RECOVERAGE=${WITT_COUNCIL_RECOVERAGE:-1}        # 1 = ronda r3 de re-cobertura (sólo si la búsqueda admitió algo y sólo dueños de must sin
+                                                                     # cubrir); 0 = post_search.state 'not-run (kill-switch WITT_COUNCIL_RECOVERAGE=0)'
+      - WITT_COUNCIL_ORIGINS=${WITT_COUNCIL_ORIGINS:-production}     # orígenes del PROCESO que encolan r1 y que el council-worker RECLAMA (CSV; 'all' = sin
+                                                                     # filtro); smoke/fixture/dev-offline => 'not-requested (origin …)' — cero llamadas de opus-5
+      - WITT_COUNCIL_WORKERS=${WITT_COUNCIL_WORKERS:-1}              # hilos daemon council-worker-N que reclaman plans.council_state='queued' (0 = no arranca)
+      - WITT_COUNCIL_DEDUP_S=${WITT_COUNCIL_DEDUP_S:-600}            # ventana del dedup del doble clic (misma pregunta+entidades+padre, mismo usuario, r1
+                                                                     # queued|running => POST /runs/plan reutiliza el plan vivo: plan_response 'reused')
+      - WITT_COUNCIL_MAX_QUEUED_PER_USER=${WITT_COUNCIL_MAX_QUEUED_PER_USER:-3}   # tope de jobs r1 'queued' por usuario; el excedente nace
+                                                                     # 'not-requested (queue-cap per user)' (el plan sí se crea)
+      - WITT_COUNCIL_CONCURRENCY=${WITT_COUNCIL_CONCURRENCY:-6}      # max_workers del pool por ronda (clamp 1..25); el miembro #1 va SOLO y el resto tras su respuesta
+      - WITT_COUNCIL_MEMBER_TIMEOUT_S=${WITT_COUNCIL_MEMBER_TIMEOUT_S:-120}   # timeout por miembro; vencido => fila 'timeout' (abandonado y contado), la ronda sigue
+      - WITT_COUNCIL_ROUND_BUDGET_S=${WITT_COUNCIL_ROUND_BUDGET_S:-300}       # presupuesto de reloj por ronda; agotado => 'skipped-budget' (cero llamadas) y en vuelo
+                                                                     # abandonados/contados; regla 30 < 300 (vista) < 300 (ronda) <= WITT_REAP_STALE_S − 300
+      - WITT_COUNCIL_MEMBER_RETRIES=${WITT_COUNCIL_MEMBER_RETRIES:-1}         # intentos ADICIONALES por miembro (transporte con Retry-After; contenido); refusal/4xx nunca
+      - WITT_COUNCIL_QUORUM=${WITT_COUNCIL_QUORUM:-0.6}              # fracción de miembros válidos (ceil(q·N): 17 => 11, 25 => 15); fuera de (0,1] => 0.6 declarado
+      - WITT_COUNCIL_MAX_REQUIREMENTS=${WITT_COUNCIL_MAX_REQUIREMENTS:-24}    # tope del ledger agregado (truncated, n_truncated, truncated_ids declarados)
+      - WITT_COUNCIL_MAX_PER_MEMBER=${WITT_COUNCIL_MAX_PER_MEMBER:-5}         # requisitos por miembro que el CÓDIGO conserva (el schema fija maxItems 5: es identidad de la caché)
+      - WITT_COUNCIL_R2_EVIDENCE_CHARS=${WITT_COUNCIL_R2_EVIDENCE_CHARS:-24000}   # tope de la vista de evidencia por miembro en r2/r3 (payload_truncated declarado; acota tokens/min)
+      - WITT_COUNCIL_ATTESTATION_CHARS=${WITT_COUNCIL_ATTESTATION_CHARS:-4000}   # tope de knowledge_now y de cada attested_text en el ledger (600 en el frozen, truncated)
+      - WITT_COUNCIL_CACHE=${WITT_COUNCIL_CACHE:-1}                  # 1 = cache_control en los DOS bloques del system (prefijo compartido + ficha); 0 = string (A/B medible)
+      - WITT_COUNCIL_CACHE_TTL=${WITT_COUNCIL_CACHE_TTL:-5m}         # 5m (escritura 1.25×) | 1h (2×) para la ficha; con 1h el bloque A también va 1h (regla de la API:
+                                                                     # una entrada 1h precede a las de 5m); E3 tras medir hit_ratio_r2 en LG3
+      - WITT_COUNCIL_INDEX=${WITT_COUNCIL_INDEX:-1}                  # 0 = GET /council/search 503 declarado y prior_observations {state 'disabled'} (demand sigue contando)
+      - WITT_COUNCIL_PRIOR_K=${WITT_COUNCIL_PRIOR_K:-5}              # observaciones previas inyectadas en r1 como PRIOR ART (letras P-A…; clamp 0..12; 0 = ninguna)
+      - WITT_COUNCIL_PRIOR_KINDS=${WITT_COUNCIL_PRIOR_KINDS:-requirement,coverage,decision,gap_flag,panel_finding}   # kinds que ENTRAN al prompt de r1;
+                                                                     # 'comment' EXCLUIDO por default (mitigación de inyección, R8) — la búsqueda siempre puede pedirlo
+      - WITT_COUNCIL_INDEX_ORIGINS=${WITT_COUNCIL_INDEX_ORIGINS:-production}   # orígenes del corpus del índice y de /council/demand (NULL incluido y declarado, regla precedent)
+      - WITT_ANTHROPIC_MAX_INFLIGHT=${WITT_ANTHROPIC_MAX_INFLIGHT:-8}          # BoundedSemaphore de PROCESO alrededor de urlopen para TODA llamada Anthropic (consejo,
+                                                                     # síntesis, elicitación, planner, jueces); meta.queue_wait_s medido
+      - WITT_ANTHROPIC_RETRY_AFTER_CAP_S=${WITT_ANTHROPIC_RETRY_AFTER_CAP_S:-30}   # tope al Retry-After honrado en http-429/529; sin cabecera, el backoff de hoy
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

@@ -81,15 +81,121 @@ check("(A) conjunción completa → competent True, reasons [], decided_by 'code
       "la decide código) y calibration NO gatea por default (WITT_CG_REQUIRE_CALIBRATION=0); "
       "conjunction = conf1>=tau ∧ admissible ∧ route ∧ niches ∧ ¬structural",
       b["competent"] is True and b["reasons"] == [] and b["decided_by"] == "code"
-      and b["module_version"] == "cg-3" == competence.MODULE_VERSION and b["not_applicable"] is False
+      and b["module_version"] == "cg-4" == competence.MODULE_VERSION and b["not_applicable"] is False
       and b["self_report"] == {"stated_confidence": 0.8, "class": "model-judgment", "note": NOTE_GATING}
       and b["conjunction"] == ["conf1_ge_tau", "admissible", "route_evidence_run", "niches_nonempty", "structural_not_fired"]
       and b["components"]["conf1_ge_tau"]["gating"] is True and b["config"]["conf_component_gating"] is True
       and b["components"]["calibration_coverage"]["gating"] is False
       and b["components"]["calibration_coverage"]["sufficient"] is False
       and "calibration_coverage" not in b["conjunction"]
-      and b["components"]["council_uncovered_must"] == {"value": None, "state": "not-available (ADR-0082)", "gating": False},
+      # ADR-0082 (G.2, cg-4): sin council_coverage el componente es 'not-applicable (no-ledger)' — null declarado, fuera de conjunction
+      and b["components"]["council_uncovered_must"]["state"] == "not-applicable (no-ledger)"
+      and b["components"]["council_uncovered_must"]["value"] is None
+      and b["components"]["council_uncovered_must"]["gating"] is False
+      and "council_uncovered_must" not in b["conjunction"],
       json.dumps(b["reasons"]))
+
+# =====================================================================================================
+# (A, cg-4 — ADR-0082 G.2) council_uncovered_must INTERPRETADO: checked / vacuous / incomplete / no-ledger / kill-switch / errored
+# =====================================================================================================
+COV_OK = {"state": "judged", "must_total": 4, "must_gateable": 2, "must_covered": 2, "must_uncovered": 0,
+          "must_uncovered_strict": 0, "must_partial": 0, "must_not_judged": 0, "must_attested": 1, "must_discarded": 0,
+          "must_unsatisfiable": 1, "n_valid_votes": 5, "n_hallucinated_votes": 0, "n_requirements_kept": 4,
+          "round": {"state": "applicable", "n_valid": 15, "n_members": 17, "quorum_required": 11}}
+COV_UNC = {**COV_OK, "must_covered": 1, "must_uncovered": 1, "must_partial": 1}
+COV_INC = {**COV_UNC, "round": {"state": "incomplete", "n_valid": 9, "n_members": 17, "quorum_required": 11}}
+COV_VAC0 = {**COV_OK, "must_total": 0, "must_gateable": 0, "must_covered": 0, "must_attested": 0, "must_unsatisfiable": 0}
+COV_VACU = {**COV_OK, "must_total": 2, "must_gateable": 0, "must_covered": 0, "must_attested": 0, "must_unsatisfiable": 2}
+b_ok = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_OK, env=ENV0)
+b_unc = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_UNC, env=ENV0)
+b_inc = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_INC, env=ENV0)
+c_ok, c_unc, c_inc = (x["components"]["council_uncovered_must"] for x in (b_ok, b_unc, b_inc))
+check("(cg-4) cobertura JUZGADA con 0 must sin cubrir → componente {state 'checked', value True, gating True} DENTRO de conjunction "
+      "(6 componentes, council_uncovered_must último) → competent True; copia must_* y n_valid_votes; must atestiguado (1) y "
+      "unsatisfiable-by-harness (1) contados y FUERA del gating (E1: must_gateable 2 de must_total 4); class y rule declarados",
+      b_ok["competent"] is True and c_ok["state"] == "checked" and c_ok["value"] is True and c_ok["gating"] is True
+      and b_ok["conjunction"] == ["conf1_ge_tau", "admissible", "route_evidence_run", "niches_nonempty", "structural_not_fired",
+                                  "council_uncovered_must"]
+      and c_ok["must_total"] == 4 and c_ok["must_gateable"] == 2 and c_ok["must_attested"] == 1 and c_ok["must_unsatisfiable"] == 1
+      and c_ok["n_valid_votes"] == 5 and c_ok["class"] == competence.COUNCIL_COMPONENT_CLASS and c_ok["rule"] == competence.COUNCIL_COMPONENT_RULE
+      and c_ok["round"] == {"state": "applicable", "n_valid": 15, "n_members": 17, "quorum_required": 11,
+                            "n_eligible": None, "quorum_required_full_membership": None},
+      json.dumps({k: c_ok[k] for k in ("state", "value", "gating", "must_gateable")}))
+# corrector ADR-0082 (C.3/C.5): el cuórum de r2 se mide sobre los ELEGIBLES (dueños de un requisito kept) — el literal del
+# componente dice k / n_eligible; un insumo viejo sin n_eligible cae a n_members (el check de arriba lo mide: None declarado)
+COV_INC_ELIG = {**COV_UNC, "round": {"state": "incomplete", "n_valid": 7, "n_members": 17, "n_eligible": 12, "quorum_required": 8,
+                                     "quorum_required_full_membership": 11}}
+c_inc_e = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_INC_ELIG, env=ENV0)["components"]["council_uncovered_must"]
+check("(cg-4) corrector: ronda INCOMPLETA medida sobre ELEGIBLES (7/12 < cuórum 8; 17 miembros, 5 not-invoked) → state "
+      "'incomplete (7/12 < quorum 8)', value False, gating True, round copia n_eligible y quorum_required_full_membership 11",
+      c_inc_e["state"] == "incomplete (7/12 < quorum 8)" and c_inc_e["value"] is False and c_inc_e["gating"] is True
+      and c_inc_e["round"] == {"state": "incomplete", "n_valid": 7, "n_members": 17, "n_eligible": 12, "quorum_required": 8,
+                               "quorum_required_full_membership": 11}
+      and competence.council_component_state_in_vocabulary(c_inc_e["state"]), c_inc_e["state"])
+check("(cg-4) 1 must PARCIAL (cuenta como sin cubrir, lectura conservadora) → value False, reason con el desglose → competent False "
+      "reasons ['council_uncovered_must'] (los demás True)",
+      b_unc["competent"] is False and b_unc["reasons"] == ["council_uncovered_must"] and c_unc["value"] is False
+      and c_unc["state"] == "checked" and c_unc["reason"].startswith("1 kept must without coverage"),
+      json.dumps(c_unc["reason"]))
+check("(cg-4) ronda INCOMPLETA (9/17 < cuórum 11) → state 'incomplete (9/17 < quorum 11)', value False, gating True, reason "
+      "'council-incomplete (k/N < quorum)' → competent False (un insumo que se intentó y falló es ausente, no kill-switch)",
+      b_inc["competent"] is False and b_inc["reasons"] == ["council_uncovered_must"]
+      and c_inc["state"] == "incomplete (9/17 < quorum 11)" and c_inc["value"] is False and c_inc["gating"] is True
+      and c_inc["reason"] == competence.COUNCIL_INCOMPLETE_REASON == "council-incomplete (k/N < quorum)",
+      json.dumps({k: c_inc[k] for k in ("state", "value", "reason")}))
+b_v0 = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_VAC0, env=ENV0)
+b_vu = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_VACU, env=ENV0)
+check("(cg-4) VACUO: 0 must kept → 'vacuous (0 must kept)' value True (medición declarada, no un True vacío silencioso); 2 must todos "
+      "unsatisfiable-by-harness → 'vacuous (0 gateable must — 2 unsatisfiable-by-harness)' value True (E1: no gatean, se cuentan); "
+      "ambos gating True y competent True",
+      b_v0["components"]["council_uncovered_must"]["state"] == "vacuous (0 must kept)"
+      and b_v0["components"]["council_uncovered_must"]["value"] is True and b_v0["competent"] is True
+      and b_vu["components"]["council_uncovered_must"]["state"] == "vacuous (0 gateable must — 2 unsatisfiable-by-harness)"
+      and b_vu["components"]["council_uncovered_must"]["value"] is True and b_vu["competent"] is True
+      and b_vu["components"]["council_uncovered_must"]["must_unsatisfiable"] == 2,
+      json.dumps([b_v0["components"]["council_uncovered_must"]["state"], b_vu["components"]["council_uncovered_must"]["state"]]))
+b_ks = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_UNC, env={"WITT_COUNCIL": "0"})
+b_err = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage={"state": "errored (RuntimeError)"}, env=ENV0)
+b_skip = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage={"state": "skipped-by-human"}, env=ENV0)
+b_nr = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage={"state": "not-requested (origin smoke)"}, env=ENV0)
+check("(cg-4) kill-switch WITT_COUNCIL=0 MANDA aunque llegue cobertura juzgada: state 'kill-switch WITT_COUNCIL=0', value null, gating "
+      "False, fuera de conjunction (== cg-3), config.council_enabled False (source env); errored (…) → mismo literal, null, sin gatear; "
+      "'skipped-by-human' → 'not-applicable (skipped-by-human)'; 'not-requested (…)' → 'not-applicable (not-requested (…))' — "
+      "todos competent True porque el resto de la conjunción es True",
+      b_ks["components"]["council_uncovered_must"]["state"] == "kill-switch WITT_COUNCIL=0"
+      and b_ks["components"]["council_uncovered_must"]["value"] is None and b_ks["components"]["council_uncovered_must"]["gating"] is False
+      and "council_uncovered_must" not in b_ks["conjunction"] and b_ks["conjunction"] == b["conjunction"]
+      and b_ks["config"]["council_enabled"] is False and b_ks["config"]["council_enabled_source"] == "env:WITT_COUNCIL"
+      and b_err["components"]["council_uncovered_must"]["state"] == "errored (RuntimeError)"
+      and b_err["components"]["council_uncovered_must"]["value"] is None and b_err["components"]["council_uncovered_must"]["gating"] is False
+      and b_skip["components"]["council_uncovered_must"]["state"] == "not-applicable (skipped-by-human)"
+      and b_nr["components"]["council_uncovered_must"]["state"] == "not-applicable (not-requested (origin smoke))"
+      and all(x["competent"] is True for x in (b_ks, b_err, b_skip, b_nr)),
+      json.dumps([x["components"]["council_uncovered_must"]["state"] for x in (b_ks, b_err, b_skip, b_nr)]))
+b_off = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_UNC, env={"WITT_CG_COUNCIL_COMPONENT": "0"})
+b_bad = competence.evaluate(0.8, True, PLAN_OK, False, CAL_LOW, council_coverage=COV_UNC, env={"WITT_CG_COUNCIL_COMPONENT": "maybe"})
+check("(cg-4) WITT_CG_COUNCIL_COMPONENT=0 → INFORMATIVO declarado: value False (medido) pero gating False, reason_gating, fuera de "
+      "conjunction → la conjunción es EXACTAMENTE la de cg-3 y competent True; config.council_component_gating False (env); env basura "
+      "'maybe' → default True 'default-invalid-env:WITT_CG_COUNCIL_COMPONENT' (gatea)",
+      b_off["components"]["council_uncovered_must"]["value"] is False and b_off["components"]["council_uncovered_must"]["gating"] is False
+      and "reason_gating" in b_off["components"]["council_uncovered_must"]
+      and b_off["conjunction"] == b["conjunction"] and b_off["competent"] is True
+      and b_off["config"]["council_component_gating"] is False
+      and b_off["config"]["council_component_gating_source"] == "env:WITT_CG_COUNCIL_COMPONENT"
+      and b_bad["components"]["council_uncovered_must"]["gating"] is True and b_bad["competent"] is False
+      and b_bad["config"]["council_component_gating_source"] == "default-invalid-env:WITT_CG_COUNCIL_COMPONENT",
+      json.dumps(b_off["config"]))
+check("(cg-4) compact() copia el bool del componente (True/False/null) como los demás; el vocabulario del estado (exactos + prefijos "
+      "'incomplete (' | 'errored (' | 'not-applicable (' | 'vacuous (') valida TODOS los literales medidos aquí y rechaza basura",
+      competence.compact(b_ok)["components"]["council_uncovered_must"] is True
+      and competence.compact(b_unc)["components"]["council_uncovered_must"] is False
+      and competence.compact(b_ks)["components"]["council_uncovered_must"] is None
+      and all(competence.council_component_state_in_vocabulary(x["components"]["council_uncovered_must"]["state"])
+              for x in (b, b_ok, b_unc, b_inc, b_v0, b_vu, b_ks, b_err, b_skip, b_nr, b_off))
+      and not competence.council_component_state_in_vocabulary("incomplete (") and not competence.council_component_state_in_vocabulary("bogus")
+      and competence.COUNCIL_COMPONENT_STATES_EXACT == ("checked", "vacuous (0 must kept)", "kill-switch WITT_COUNCIL=0",
+                                                        "not-applicable (no-ledger)"),
+      json.dumps(sorted({x["components"]["council_uncovered_must"]["state"] for x in (b, b_ok, b_unc, b_inc, b_v0, b_vu, b_ks, b_err, b_skip, b_nr, b_off)})))
 
 b_low = competence.evaluate(0.3, True, PLAN_OK, False, CAL_OK, env=ENV0)
 b_abs = competence.evaluate(None, True, PLAN_OK, False, CAL_OK, env=ENV0)
@@ -403,7 +509,7 @@ check("(G) competente congelado: contrato == runs.RENDER_CONTRACT_VERSION (el li
       and rec["fallback"]["trigger"] is None and rec["fallback"]["fb_meta"]["trigger_legacy"] is None
       and rec["fallback"]["fb_meta"]["competence"]["competent"] is True
       and "competent" in rec["fallback"]["fb_meta"]["competence"]["decision_source"]
-      and rec["competence"]["competent"] is True and rec["competence"]["module_version"] == competence.MODULE_VERSION == "cg-3"
+      and rec["competence"]["competent"] is True and rec["competence"]["module_version"] == competence.MODULE_VERSION == "cg-4"
       and rec["competence"]["decision"]["trigger"] is None
       and rec["search_ledger"]["rounds"] == [] and rec["search_ledger"]["n_rounds"] == 0
       and rec["search_ledger"]["state"].startswith("not-requested")
@@ -437,11 +543,15 @@ check("(F) by_stage con stub SIN usage_elicitation: synthesize_pass1 = 100/50 (m
       json.dumps(tu["by_stage"], default=str)[:500])
 cits = rec["citations"]
 check("(E/G) support_state por cita (verify_output.support_state_for): la cita al hit de Ruta A con texto → "
-      "resolved True, passage_delivered True, pertinent 'not-available (ADR-0082)', supported 'not-evaluated' "
-      "(sin citation_support), support_state 'passage_delivered' — peldaños separados, jamás fundidos; "
-      "citations_support_summary {n 1, by_state con la escalera completa, state checked}",
+      "resolved True, passage_delivered True, pertinent 'not-available (council not-applicable (no-ledger))' (ADR-0082 G.4: la "
+      "corrida no trae ledger del consejo — el literal lleva la razón; el viejo sigue en summary.pertinent.literal), supported "
+      "'not-evaluated' (sin citation_support), support_state 'passage_delivered' — peldaños separados, jamás fundidos; "
+      "citations_support_summary {n 1, by_state con la escalera completa, state checked, pertinent objeto}",
       len(cits) == 1 and cits[0]["resolved"] is True and cits[0]["passage_delivered"] is True
-      and cits[0]["pertinent"] == "not-available (ADR-0082)" and cits[0]["supported"] == "not-evaluated"
+      and cits[0]["pertinent"] == "not-available (council not-applicable (no-ledger))" and cits[0]["supported"] == "not-evaluated"
+      and rec["citations_support_summary"]["pertinent"]["literal"] == "not-available (ADR-0082)"
+      and rec["citations_support_summary"]["pertinent"]["n_not_available"] == 1
+      and rec["council"]["state"] == "not-applicable (no-ledger)"
       and cits[0]["support_state"] == "passage_delivered"
       and rec["citations_support_summary"]["n"] == 1
       and rec["citations_support_summary"]["by_state"]["passage_delivered"] == 1

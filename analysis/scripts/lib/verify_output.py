@@ -266,6 +266,18 @@ PREDICATE_POSITIVE_CLAIM_REQUIRES_CITATIONS = "positive_claim_requires_citations
 SUPPORT_LADDER = ("unresolved", "resolved", "passage_delivered", "supported", "unsupported")
 SUPPORT_VERDICTS = ("supported", "unsupported", "not-assessable")
 PERTINENT_NOT_AVAILABLE = "not-available (ADR-0082)"
+# ADR-0082 (G.4): el peldaño `pertinent` deja de ser gris cuando el consejo juzgó cobertura. Tres literales/valores:
+#   True                       — algún voto VÁLIDO de r2/r3 con coverage ∈ {covered, partial} nombró el id (pertinent_to[]).
+#   PERTINENT_NOT_NAMED        — hubo ronda válida y ningún voto citó el id: un miembro sólo juzga SUS requisitos, así que
+#                                que nadie la nombrara NO niega su pertinencia (ausencia ≠ cero; jamás `false`).
+#   'not-available (council <state>)' — sin ronda válida (kill-switch, no-ledger, incomplete, errored…): la escalera no
+#                                cambia de peldaños; el literal viejo PERTINENT_NOT_AVAILABLE sigue válido en registros ≤ 1.10.
+PERTINENT_NOT_NAMED = "not-named-by-council (valid round; no vote cites this id)"
+PERTINENT_NOT_AVAILABLE_PREFIX = "not-available ("
+PERTINENT_RULE = ("pertinent: true when a VALID council vote (r2|r3, coverage covered|partial) cites this citation's "
+                  "resolved id (pertinent_to = requirement_ids); 'not-named-by-council (…)' when a valid round ran and no "
+                  "vote cites it (never false: members judge only their own requirements); 'not-available (council "
+                  "<state>)' without a valid round (ADR-0082 G.4)")
 SUPPORT_LADDER_RULE = ("support_state = highest rung REACHED, rungs are sequential: a judge verdict "
                        "(supported|unsupported) only lifts a citation whose passage was delivered; "
                        "'not-assessable' or 'not-evaluated' leave the state at the deterministic rung; "
@@ -461,15 +473,39 @@ def _grounding_by_n(grounding):
     return out, dropped
 
 
-def support_state_for(citations, bundle, grounding=None):
+def _pertinent_for(cit, resolved_to, council_pertinence):
+    """(pertinent, pertinent_to) de UNA cita contra el mapa {evidence_id: [requirement_id]} de votos VÁLIDOS del
+    consejo (ADR-0082 G.4). Se casan las variantes deterministas del id (_citation_keys) y el id canónico al que
+    resolvió; nada se infiere del texto de la nota."""
+    keys = set(_citation_keys(cit))
+    if resolved_to:
+        keys |= {str(resolved_to), str(resolved_to).upper()}
+    rids = []
+    for k in keys:
+        for rid in (council_pertinence.get(k) or []):
+            if rid not in rids:
+                rids.append(rid)
+    if rids:
+        return True, sorted(rids)
+    return PERTINENT_NOT_NAMED, []
+
+
+def support_state_for(citations, bundle, grounding=None, council_pertinence=None, council_state=None,
+                      council_source=None):
     """Escalera de soporte POR CITA (ADR-0080 §4 / hallazgo de la auditoría externa: 'citas explotadas').
 
     Por cada cita normalizada {n, kind, id, note} devuelve
-      {n, id, resolved: bool, resolved_to, passage_delivered: bool, pertinent: 'not-available (ADR-0082)',
+      {n, id, resolved: bool, resolved_to, passage_delivered: bool, pertinent: true | 'not-named-by-council (…)' |
+       'not-available (council <state>)' | 'not-available (ADR-0082)', pertinent_to?[], pertinent_source?,
        supported: 'supported'|'unsupported'|'not-assessable'|'not-evaluated', support_state, ladder_rule}
     - resolved: el id nombra un ítem del bundle (path_a hit / path_b paper / zfin) por clave determinista.
     - passage_delivered: ese ítem trae abstract | text_excerpt | statement (o ≥1 statement zfin) no vacío.
-    - pertinent: NO disponible hasta ADR-0082 (el consejo no juzga pertinencia todavía) — literal declarado.
+    - pertinent (ADR-0082 G.4): con `council_pertinence` = {evidence_id: [requirement_id…]} derivado SÓLO de
+      votos VÁLIDOS de r2/r3 con coverage ∈ {covered, partial}, la cita resuelta gana `pertinent: true` +
+      `pertinent_to[]` cuando su id (o su `resolved_to`) está en el mapa, y PERTINENT_NOT_NAMED cuando no —
+      jamás `false` (un miembro sólo juzga SUS requisitos: que nadie nombrara una cita no niega su pertinencia).
+      Sin mapa: 'not-available (council <council_state>)' cuando el llamador declara el estado del consejo,
+      o el literal viejo PERTINENT_NOT_AVAILABLE (registros/llamadores ≤ 1.10). La escalera NO cambia de peldaños.
     - supported: la palabra del juez evidence-grounding para ese n, o 'not-evaluated' (sin grounding /
       sin entrada para ese n). Jamás se fabrica.
     - support_state: el peldaño más alto ALCANZADO (SUPPORT_LADDER_RULE): un veredicto sólo eleva una cita
@@ -477,6 +513,9 @@ def support_state_for(citations, bundle, grounding=None):
     grounding: lista [{n, verdict}] (citation_support del panel) o dict {n: verdict}; None = no evaluado."""
     idx = _bundle_evidence_index(bundle)
     verdicts, _dropped = _grounding_by_n(grounding)
+    has_council = isinstance(council_pertinence, dict)
+    not_available = (f"{PERTINENT_NOT_AVAILABLE_PREFIX}council {council_state})" if council_state
+                     else PERTINENT_NOT_AVAILABLE)
     rows = []
     for c in (citations or []):
         cit = c if isinstance(c, dict) else {"id": c}
@@ -497,23 +536,48 @@ def support_state_for(citations, bundle, grounding=None):
             state = supported
         else:
             state = "passage_delivered"
-        rows.append({"n": n, "id": str(cit.get("id", "")), "resolved": resolved,
-                     "resolved_to": hit[0] if resolved else None,
-                     "passage_delivered": delivered, "pertinent": PERTINENT_NOT_AVAILABLE,
-                     "supported": supported, "support_state": state, "ladder_rule": SUPPORT_LADDER_RULE})
+        row = {"n": n, "id": str(cit.get("id", "")), "resolved": resolved,
+               "resolved_to": hit[0] if resolved else None,
+               "passage_delivered": delivered, "pertinent": not_available,
+               "supported": supported, "support_state": state, "ladder_rule": SUPPORT_LADDER_RULE}
+        if has_council:
+            pert, to = _pertinent_for(cit, hit[0] if resolved else None, council_pertinence)
+            row["pertinent"] = pert
+            row["pertinent_to"] = to
+            row["pertinent_source"] = council_source or "council (covered|partial votes)"
+        rows.append(row)
     return rows
 
 
 def support_summary(rows):
     """frozen.citations_support_summary (ADR-0080 §13): {n, by_state} con TODOS los peldaños presentes
-    (un 0 aquí es medido: la escalera se corrió sobre n citas; sin citas n=0 y todo 0)."""
+    (un 0 aquí es medido: la escalera se corrió sobre n citas; sin citas n=0 y todo 0).
+    ADR-0082 (G.4): `pertinent` pasa de literal a {state, n_true, n_not_named, n_not_available, literal} — aditivo:
+    el literal viejo (PERTINENT_NOT_AVAILABLE) sigue DENTRO (`literal`), `state` dice si el consejo juzgó ('checked')
+    o el literal not-available que las filas llevan."""
     by_state = {s: 0 for s in SUPPORT_LADDER}
+    n_true = n_named = n_na = 0
+    na_literal = None
     for r in (rows or []):
         s = r.get("support_state")
         if s in by_state:
             by_state[s] += 1
+        p = r.get("pertinent")
+        if p is True:
+            n_true += 1
+        elif p == PERTINENT_NOT_NAMED:
+            n_named += 1
+        else:
+            n_na += 1
+            if isinstance(p, str) and na_literal is None:
+                na_literal = p
+    if n_true or n_named:
+        p_state = "checked"
+    else:
+        p_state = na_literal or PERTINENT_NOT_AVAILABLE
     return {"n": len(rows or []), "by_state": by_state, "ladder": list(SUPPORT_LADDER),
-            "pertinent": PERTINENT_NOT_AVAILABLE}
+            "pertinent": {"state": p_state, "n_true": n_true, "n_not_named": n_named, "n_not_available": n_na,
+                          "literal": PERTINENT_NOT_AVAILABLE, "rule": PERTINENT_RULE}}
 
 
 def info_priority_order(candidates, store=None):
