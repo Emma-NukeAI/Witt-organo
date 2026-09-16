@@ -38,8 +38,9 @@ import config_ledger  # noqa: E402  — ADR-0081 (E/I): bitácora de configuraci
 import db  # noqa: E402
 import niche_catalog  # noqa: E402
 import precedent  # noqa: E402  — ADR-0079: la serie de letras del precedente la produce precedent.py, no runs.py
-from lib import (agent_matrix, answer_pipeline, catalog_cards, composite_auditor, council, models,  # noqa: E402
-                 reasoning_catalog, resolve_id, verify_output)   # ADR-0082: council (C2) y catalog_cards (C1) en DURO
+from lib import (agent_matrix, answer_pipeline, catalog_cards, composite_auditor, council, figures, models,  # noqa: E402
+                 reasoning_catalog, resolve_id, verify_output)   # ADR-0082: council (C2) y catalog_cards (C1) en DURO;
+                                                                 # ADR-0083 (F1): figures en DURO (stdlib puro)
 try:
     # ADR-0080 (C), rebanada C2: el harness de búsqueda. Import TOLERANTE — si la rebanada aún no aterrizó,
     # runs.py declara `search_ledger.state 'harness-unavailable'` y la Ruta B corre por el camino de hoy.
@@ -47,7 +48,27 @@ try:
 except ImportError:   # pragma: no cover — depende del árbol
     search_harness = None
 
-RENDER_CONTRACT_VERSION = "1.11"  # ADR-0082 (el consejo de criterio ejecutable): +council {state, module_version, membership_version,
+RENDER_CONTRACT_VERSION = "1.12"  # ADR-0083 (figuras como evidencia OBSERVADA): +figures {state, module_version 'fig-1', parser_version
+                                  # 'jats-fig-1', license_table_version 'lt-1', license_table, license_table_rule, license_table_env_ignored,
+                                  # mechanism 'supplementaryFiles-zip', cache {dir_source, dir_state, ttl_days, cache_max_mb, evicted_n},
+                                  # budget {total_s, used_s, over_budget}, caps {…{value, source}}, n_papers_eligible/selected/with_xml,
+                                  # n_figures, n_with_caption, n_fetched, n_verified, n_not_fetched, n_error (corrector), n_mismatch, n_embeddable, n_panel_view,
+                                  # n_unknown_license, n_cited, zfin_figures_state, selection {rule, n_sent_to_panel_by_lens}, vision {state,
+                                  # enabled, lenses, lenses_source, rule, openai_detail, sent, cost_projection, selection, delivery}, items
+                                  # [FigureItem SIN bytes: id '<PMCID>#<fig_id>', sha256, license, embeddable, panel_view, bytes_state,
+                                  # raw_ref (source-pointer), cited_by_answer, seen_by_lenses, delivered_to_synthesizer, class],
+                                  # vocabulary, kill_switch?} + citations[].kind gana el literal 'figure' + citations[].figure_verification
+                                  # {bytes, content, figure_id} (sólo kind figure) + citations_support_summary.figure_citations +
+                                  # deterministic_checks.figures (5 predicados de verify_output.figure_predicates — F2) + audit.panel[].
+                                  # saw_figures / figure_readings? / figure_readings_class? + audit.vision (composite_auditor — F3) +
+                                  # token_usage.by_stage.panel.by_model[*].vision (PROYECCIÓN por fórmula pública) + agents_invoked fila
+                                  # 'figures (lib/figures.py — …)' + epistemic_summary.{figures_state, figures_n_verified, figures_n_cited}.
+                                  # Eventos NUEVOS (agent 'figures'): stage.figures.{plan, paper{start|done}, figure, summary};
+                                  # stage.audit.judge += {figures_sent, figures_sha256}; stage.deterministic_gate += figures_state.
+                                  # El sintetizador ve caption + metadatos (PROMPT_FIGURE_KEYS) y JAMÁS bytes; lo que la imagen dice es
+                                  # JUICIO de dos lentes (figure_readings). TODO aditivo; kill-switch WITT_FIGURES=0 = frozen 1.11 salvo
+                                  # EXACTAMENTE {render_contract_version, figures{state, kill_switch}, deterministic_checks.figures{state}}.
+                                  # 1.11 = ADR-0082 (el consejo de criterio ejecutable): +council {state, module_version, membership_version,
                                   # membership_source, catalog_sha, plan_catalog_matches_run, rules_sha, tools_sha, model, full_council,
                                   # n_members, members[], quorum_rule, ledger (decisiones humanas + knowledge_now atestiguados,
                                   # texto ≤600), rounds[] (r1 COPIADA del plan + r2/r3 medidas: miembros/usage/estados),
@@ -138,7 +159,8 @@ STAGE_MODELS_PAYLOAD_KEYS = ("generation", "generation_source", "table_version",
 # Llaves que audit_initial COPIA del veredicto inicial: las de ADR-0067 + las del cuórum (ADR-0081 D) cuando audit() las trae.
 AUDIT_INITIAL_KEYS = ("panel", "tally", "verdict", "n_valid", "source_vocabulary")
 AUDIT_INITIAL_QUORUM_KEYS = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "quorum",
-                             "panel_incomplete", "panel_incomplete_reasons")
+                             "panel_incomplete", "panel_incomplete_reasons",
+                             "vision")     # corrector ADR-0083 (L/G.6): `audit += vision` TAMBIÉN en audit_initial (sólo si audit() la trae)
 
 
 def _max_tokens_for(role, role_name):
@@ -229,7 +251,12 @@ SYNTH_TOOL = {
                     "cite or reuse an identifier from it unless it appears in evidence. "
                     # ADR-0082 (F.5) — lo atestiguado por humanos es PRIOR ART, jamás evidencia
                     "Human attestations (human_attestations), when present, are PRIOR ART attested by humans, "
-                    "not evidence; never cite an identifier from them unless it appears in evidence."),
+                    "not evidence; never cite an identifier from them unless it appears in evidence. "
+                    # ADR-0083 (D.2) — la figura corrobora; el texto porta la evidencia. Excepción DECLARADA al byte a byte
+                    # del PROMPT (no del registro): la description cambia aunque WITT_FIGURES=0 (LG9 re-corre el held-out).
+                    "kind 'figure' = '<PMCID>#<fig_id>'. A figure citation supports ONLY what its caption text says and "
+                    "may only accompany a text citation of the same paper; you never see the image — never state a "
+                    "number or observation that exists only in an image. Cite inline as [n] in direct_answer."),
     "input_schema": {
         "type": "object",
         "properties": {
@@ -259,8 +286,9 @@ SYNTH_TOOL = {
                 "type": "array",
                 "items": {"type": "object", "properties": {
                     "kind": {"type": "string",
+                             # ADR-0083 (D.2): 'figure' = '<PMCID>#<fig_id>' — sostiene SÓLO su caption
                              "enum": ["di-chunk", "di-record", "di-database", "paper", "store-resolution",
-                                      "other"]},
+                                      "other", "figure"]},
                     "id": {"type": "string"},
                     "note": {"type": "string"}},
                     "required": ["kind", "id"]},
@@ -842,7 +870,26 @@ def _council_static_rows(full_council):
     return rows
 
 
-def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None):
+def _figures_agent_row(figures_block, lenses):
+    """ADR-0083 (L): la fila `agents_invoked` de las figuras, DERIVADA por código del bloque congelado (jamás self-report).
+    None bajo kill-switch (M.1: `agents_invoked` no gana fila; frozen.figures.state lo dice)."""
+    if not isinstance(figures_block, dict) or figures_block.get("state") == FIGURES_KILL_SWITCH_STATE:
+        return None
+    state = figures_block.get("state")
+    n_fig, n_ver = figures_block.get("n_figures") or 0, figures_block.get("n_verified") or 0
+    row = {"agent": FIGURES_AGENT_ROW, "status": "invoked" if state == "attached" else "not-applicable",
+           "invocation_id": f"figures:{n_ver}/{n_fig}",
+           "evidence_generated": [f"parsed:{n_fig}", f"verified:{n_ver}",
+                                  f"embeddable:{figures_block.get('n_embeddable') or 0}",
+                                  f"lenses:{','.join(lenses or [])}", "synthesizer:captions-only"]}
+    if state != "attached":
+        row["reason"] = ("no path_b" if state == "no-path-b"
+                         else "no full-text XML among selected papers" if state == "no-papers-with-xml"
+                         else str(state))
+    return row
+
+
+def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None, figures=None, figure_lenses=None):
     """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
     agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
 
@@ -873,6 +920,11 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None)
         "invocation_id": "deterministic_gate",
         "evidence_generated": [f"admissible:{deterministic_checks.get('admissible')}"],
     }]
+    # ADR-0083 (L): la fila de las figuras — código (lib/figures.py): parseó / verificó por sha / gateó licencia. Ausente
+    # bajo kill-switch WITT_FIGURES=0 (M.1). 'not-applicable' con razón cuando no hubo Ruta B o ningún XML de texto completo.
+    fig_row = _figures_agent_row(figures, figure_lenses)
+    if fig_row is not None:
+        out.append(fig_row)
     seated = set()
     council_rows = []
     if isinstance(council, dict):
@@ -953,17 +1005,24 @@ def _revision_enabled():
     return os.environ.get("WITT_REVISION_CYCLE", "1") == "1"
 
 
-def _panel_findings(audit_result):
+def _panel_findings(audit_result, figures_enabled=False):
     """Los hallazgos ACCIONABLES del panel para la pasada de revisión: qué atrapó cada juez y qué
     corrección propuso — lo que VB re-delega como prosa, aquí viaja como insumo tipado. Incluye
-    APPROVE_MINOR (catch real aunque no vete) además de REVISE."""
+    APPROVE_MINOR (catch real aunque no vete) además de REVISE.
+    ADR-0083 (D.4, el lazo): con figuras encendidas cada hallazgo gana `from_vision_lens` (= la fila trae saw_figures.n > 0:
+    ESA lente vio imágenes; lo que diga en caught/reasons puede describir píxeles = juicio). `figure_readings` JAMÁS entra
+    aquí (sólo caught/correction_applied/reasons, como siempre). Bajo kill-switch la forma es la de 1.11 byte a byte."""
     out = []
     for r in audit_result.get("panel", []):
         if r.get("verdict") in ("REVISE", "APPROVE_MINOR") and (r.get("caught") or r.get("reasons")):
-            out.append({"lens": r["lens"], "reviewer": r["reviewer"], "verdict": r["verdict"],
-                        "caught": r.get("caught", ""),
-                        "correction_applied": r.get("correction_applied", ""),
-                        "reasons": r.get("reasons", [])})
+            f = {"lens": r["lens"], "reviewer": r["reviewer"], "verdict": r["verdict"],
+                 "caught": r.get("caught", ""),
+                 "correction_applied": r.get("correction_applied", ""),
+                 "reasons": r.get("reasons", [])}
+            if figures_enabled:
+                saw = r.get("saw_figures") if isinstance(r.get("saw_figures"), dict) else {}
+                f["from_vision_lens"] = bool(isinstance(saw.get("n"), int) and saw.get("n") > 0)
+            out.append(f)
     return out
 
 
@@ -1188,8 +1247,15 @@ def build_thread_context(parent_run_row, comments_rows, now):
             "gap_flags": _gap_flags_tolerante(ans.get("gap_flags")),
             "confidence_by_subclaim": conf.get("by_subclaim"),
         }
+        # corrector ADR-0083 (D.4 entre turnos): los hallazgos del PADRE se etiquetan `from_vision_lens` desde SU registro (alguna fila
+        # trae saw_figures ⇒ el padre corrió con figuras), no desde la env de hoy; un padre 1.11/kill-switch NO gana la llave (M.1).
+        # `n_from_vision_lens` viaja en previous_audit y synth_system añade la cláusula de visión cuando es > 0.
+        parent_saw = any(isinstance(r.get("saw_figures"), dict) for r in (audit.get("panel") or []) if isinstance(r, dict))
+        prev_findings = _panel_findings(audit, figures_enabled=parent_saw)[:5]
         snap["previous_audit"] = {"verdict": audit.get("verdict"), "n_valid": audit.get("n_valid"),
-                                  "findings": _panel_findings(audit)[:5]}
+                                  "findings": prev_findings}
+        if parent_saw:
+            snap["previous_audit"]["n_from_vision_lens"] = sum(1 for f in prev_findings if f.get("from_vision_lens"))
     # ADR-0082 (G.9): el resumen del consejo del padre — requisitos (gap ≤200, estados, decisión), banderas, si hubo
     # "qué sabes ahora" y must sin cubrir tras la búsqueda — como llave hermana ESTRUCTURADA para el PLANNER
     # (plan_thread_context) y la RONDA 1 del turno N+1 (council_jobs._inherited_criteria: criterios heredados). El
@@ -1486,6 +1552,23 @@ _PROMPT_PAPER_KEYS = ("source", "evidence_id", "search_rec", "selection_rank", "
 _PROMPT_ZFIN_ITEM_KEYS = ("symbol", "curie", "status", "has_references", "anatomy_filter", "n_phenotypes_total",
                           "n_phenotypes_total_scope", "n_matched", "n_returned", "truncated", "phenotypes",
                           "identifier_provenance")
+# ADR-0083 (D.1): lo ÚNICO que el sintetizador/consejo/panel ven por figura — caption + metadatos; `license` como {id, source};
+# JAMÁS cache_path/raw_ref/b64/bytes. La lista vive en lib/figures (F1) y aquí se RE-EXPORTA para el gate estático del smoke
+# (_PROMPT_FIGURE_KEYS ∩ _FORBIDDEN_PROMPT_FIGURE_KEYS == ∅). Sólo ítems con caption 'present' (una figura sin caption no
+# puede sostener texto). Bajo kill-switch ningún paper trae `figures` → la proyección es la de 1.11 byte a byte.
+_PROMPT_FIGURE_KEYS = tuple(figures.PROMPT_FIGURE_KEYS)
+_FORBIDDEN_PROMPT_FIGURE_KEYS = tuple(figures.FORBIDDEN_PROMPT_KEYS)
+assert not set(_PROMPT_FIGURE_KEYS) & set(_FORBIDDEN_PROMPT_FIGURE_KEYS)
+_PROMPT_FIGURES_BLOCK_KEYS = ("state", "n")
+
+
+def _prompt_figures(block):
+    """Proyección del bloque paper['figures'] para el prompt (ADR-0083 D.1): {state, n, items[PROMPT_FIGURE_KEYS]} con
+    figures.project_for_prompt (sólo caption 'present'; license {id, source}). Conserva los tres estados de state/n."""
+    out = {k: block[k] for k in _PROMPT_FIGURES_BLOCK_KEYS if k in block}
+    out["items"] = figures.project_for_prompt(block.get("items") or [])
+    out["n_delivered"] = len(out["items"])
+    return out
 
 
 def _prompt_path_b(block):
@@ -1512,6 +1595,10 @@ def _prompt_path_b(block):
         if isinstance(it.get("zfin"), dict):
             z = it["zfin"]
             p["zfin"] = {k: z[k] for k in _PROMPT_ZFIN_ITEM_KEYS if k in z}
+        # ADR-0083 (D.1): figuras = caption + metadatos por lista blanca; ausente cuando el paper no ganó la llave
+        # (ZFIN, kill-switch, sin Ruta B) — jamás se rellena
+        if isinstance(it.get("figures"), dict):
+            p["figures"] = _prompt_figures(it["figures"])
         papers.append(p)
     if "papers" in block:
         out["papers"] = papers
@@ -1546,9 +1633,15 @@ def _evidence_ids(bundle):
     for p in bundle["path_b"].get("papers", []):
         if p.get("evidence_id"):
             ids.append(p["evidence_id"])
-            continue
-        rec = p.get("search_rec", {})
-        ids.append(f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi") or "paper"))
+        else:
+            rec = p.get("search_rec", {})
+            ids.append(f"PMID:{rec['pmid']}" if rec.get("pmid") else (rec.get("pmcid") or rec.get("doi") or "paper"))
+        # ADR-0083 (D.3): los ids de figura '<PMCID>#<fig_id>' son ítems de evidencia propios — un voto del panel/consejo que
+        # nombre una figura NO cae como hallucinated_evidence_id. Ausentes bajo kill-switch (el paper no gana `figures`).
+        figs = p.get("figures") if isinstance(p.get("figures"), dict) else None
+        for it in (figs or {}).get("items") or []:
+            if isinstance(it, dict) and it.get("id"):
+                ids.append(it["id"])
     return ids
 
 
@@ -1560,6 +1653,13 @@ THREAD_ANTI_LEAK_CLAUSE = ("The previous turn (thread_context) is PRIOR ART, not
                            "humans commented — then answer THIS question from THIS evidence.")
 
 
+# corrector ADR-0083 (D.4 entre turnos) — la cláusula de los hallazgos de VISIÓN del turno anterior (sólo cuando
+# thread_context.previous_audit.n_from_vision_lens > 0): lo que una lente con visión ESCRIBIÓ sobre una imagen es juicio.
+THREAD_VISION_FINDINGS_CLAUSE = ("In thread_context.previous_audit, findings marked from_vision_lens describe images a panel "
+                                 "lens saw in the previous turn: they are judgment, never evidence; never adopt a number or "
+                                 "observation from them unless it appears in a delivered TEXT passage of THIS evidence.")
+
+
 # ADR-0082 (F.5) — la cláusula anti-fuga de lo ATESTIGUADO: `aporto` y "qué sabes ahora" viajan como llave hermana
 # `human_attestations` FUERA de `evidence` (misma disciplina que thread_context); son PRIOR ART atestiguado, no evidencia.
 ATTESTATION_ANTI_LEAK_CLAUSE = ("Human attestations (human_attestations: knowledge_now and attested requirements) are "
@@ -1568,13 +1668,16 @@ ATTESTATION_ANTI_LEAK_CLAUSE = ("Human attestations (human_attestations: knowled
                                 "or supplied — then answer THIS question from THIS evidence.")
 
 
-def synth_system(pass_label, thread_context=False, human_attestations=False):
+def synth_system(pass_label, thread_context=False, human_attestations=False, vision_findings=False):
     """The EXACT production system prompt of a synthesis pass — factored out so diagnostics
     (evaluation/scripts/ab_trapped_scalar.py) measure against the real string, never a replica.
 
     ADR-0079: `thread_context=True` añade la cláusula anti-fuga (THREAD_ANTI_LEAK_CLAUSE). Sin turno
     anterior el string es EXACTAMENTE el de antes — la medición de ab_trapped_scalar no cambia.
-    ADR-0082 (F.5): `human_attestations=True` añade ATTESTATION_ANTI_LEAK_CLAUSE (sólo cuando viajan atestiguaciones)."""
+    ADR-0082 (F.5): `human_attestations=True` añade ATTESTATION_ANTI_LEAK_CLAUSE (sólo cuando viajan atestiguaciones).
+    corrector ADR-0083 (D.4 entre turnos): `vision_findings=True` (el snapshot del padre trae previous_audit.n_from_vision_lens > 0)
+    añade THREAD_VISION_FINDINGS_CLAUSE — la cláusula anti-fuga sólo hablaba de IDENTIFICADORES; una observación o cifra de imagen
+    escrita por una lente con visión en `caught` del turno N no debe dictarse al sintetizador del turno N+1."""
     return ("You answer zebrafish pronephros research questions for a medical team, from a curated "
             "evidence bundle (DATA INAMOVIBLE"
             + ("" if pass_label == "pass1" else " + externally fetched literature") + "). "
@@ -1584,6 +1687,7 @@ def synth_system(pass_label, thread_context=False, human_attestations=False):
             "declare absence_kind precisely. Technical identifiers stay in English; never assert an "
             "identifier that is not in the evidence."
             + (" " + THREAD_ANTI_LEAK_CLAUSE if thread_context else "")
+            + (" " + THREAD_VISION_FINDINGS_CLAUSE if (thread_context and vision_findings) else "")
             + (" " + ATTESTATION_ANTI_LEAK_CLAUSE if human_attestations else "") + "\n\n"
             # §4 exige citar la sección ESPECÍFICA del catálogo con su criterio. Un criterio no se
             # puede citar de un archivo que el modelo nunca vio: sin este digest, pedir la cita
@@ -1625,8 +1729,11 @@ def _default_synthesizer(question, evidence, pass_label, thread_context=None, hu
     igual — llave HERMANA `human_attestations`, jamás dentro de evidence — y el system gana
     ATTESTATION_ANTI_LEAK_CLAUSE. El sintetizador es CIEGO al consejo (E5): aquí sólo llega lo que el humano
     atestiguó, nunca los criterios ni la cobertura del consejo."""
+    prev_audit = (thread_context or {}).get("previous_audit") if isinstance(thread_context, dict) else None
+    n_vis = (prev_audit or {}).get("n_from_vision_lens") if isinstance(prev_audit, dict) else None
     system = synth_system(pass_label, thread_context=thread_context is not None,
-                          human_attestations=human_attestations is not None)
+                          human_attestations=human_attestations is not None,
+                          vision_findings=isinstance(n_vis, int) and n_vis > 0)     # corrector ADR-0083 (D.4 entre turnos)
     payload = {"question": question, "evidence": evidence}
     if thread_context is not None:
         payload["thread_context"] = thread_context
@@ -1956,7 +2063,79 @@ def _council_stages(council):
     return out
 
 
-def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None):
+def _openai_detail_for(model, openai_detail):
+    """corrector ADR-0083 (H): el `detail` SOLO aplica a la familia openai (Anthropic no lo tiene) — mismo criterio que
+    composite_auditor._figures_for_member (`api != 'anthropic-messages'`)."""
+    try:
+        fam = models.family_of(model)[0]
+    except Exception:
+        fam = None
+    return openai_detail if (openai_detail and fam == "openai") else None
+
+
+def _vision_tokens(model, dims, detail=None):
+    """ADR-0083 (H): tokens de visión PROYECTADOS por la fórmula pública del proveedor — la ÚNICA sede es
+    models.vision_tokens(model, w, h, detail) -> {tokens, formula, tier} | None (rebanada F3). Devuelve {tokens, formula, tier, state}
+    con state 'projected' | 'no-dims' | 'model-vision-unknown' | 'tool-unavailable (…)' — jamás se inventa un número.
+    corrector: `detail` (WITT_FIGURES_OPENAI_DETAIL) viaja a la fórmula — con 'low' el tier tile-512 cuesta 85 fijos por imagen; runs y
+    composite_auditor (saw_figures.visual_tokens_projected) proyectan la MISMA cifra para el mismo envío."""
+    fn = getattr(models, "vision_tokens", None)
+    if fn is None:
+        return {"tokens": None, "formula": None, "tier": None, "state": FIGURES_TOOL_UNAVAILABLE_TOKENS}
+    if not isinstance(dims, dict) or not dims.get("w") or not dims.get("h"):
+        return {"tokens": None, "formula": None, "tier": None, "state": "no-dims"}
+    try:
+        res = fn(model, int(dims["w"]), int(dims["h"]), detail) if detail else fn(model, int(dims["w"]), int(dims["h"]))
+    except Exception as e:   # la proyección jamás tumba la corrida
+        return {"tokens": None, "formula": None, "tier": None, "state": f"error: {type(e).__name__}: {str(e)[:120]}"}
+    if not isinstance(res, dict) or not isinstance(res.get("tokens"), (int, float)):
+        return {"tokens": None, "formula": None, "tier": (res or {}).get("tier") if isinstance(res, dict) else None,
+                "state": "model-vision-unknown"}
+    return {"tokens": int(res["tokens"]), "formula": res.get("formula"), "tier": res.get("tier"), "state": "projected"}
+
+
+def _vision_by_reviewer(rows, items, openai_detail=None):
+    """ADR-0083 (H): {reviewer: vision {…}} desde las filas del panel que traen saw_figures.n > 0 (lo ENTREGADO al caller,
+    medido por composite_auditor — F3) y las dims MEDIDAS de esas figuras (frozen.figures.items por sha256). Cada intento del
+    juez reenvía las imágenes (la API las factura): n_images/bytes/tokens se multiplican por len(attempts). Clase 'proyección';
+    los input_tokens medidos del juez YA incluyen las imágenes (nada se suma dos veces). Sin filas con imágenes → {}."""
+    by_sha = {it.get("sha256"): it for it in (items or []) if isinstance(it, dict) and it.get("sha256")}
+    out = {}
+    for row in rows or []:
+        saw = row.get("saw_figures") if isinstance(row.get("saw_figures"), dict) else None
+        if not saw or not isinstance(saw.get("n"), int) or saw["n"] <= 0:
+            continue
+        reviewer = row.get("reviewer") or "unknown-reviewer"
+        n_att = max(1, len(row.get("attempts") or []))
+        v = out.setdefault(reviewer, {"n_images": 0, "bytes_b64": 0, "visual_tokens_projected": 0, "formula": None,
+                                      "tier": None, "n_attempts_counted": 0, "n_rows": 0, "tokens_state": "projected"})
+        v["n_images"] += int(saw["n"]) * n_att
+        v["bytes_b64"] += int(saw.get("bytes_b64_total") or 0) * n_att
+        v["n_attempts_counted"] += n_att
+        v["n_rows"] += 1
+        det = _openai_detail_for(reviewer, openai_detail)     # corrector: la proyección honra WITT_FIGURES_OPENAI_DETAIL (OpenAI)
+        for sha in (saw.get("sha256s") or []):
+            it = by_sha.get(sha)
+            t = _vision_tokens(reviewer, (it or {}).get("dims_measured"), det)
+            if t["state"] != "projected":
+                v["visual_tokens_projected"] = None
+                v["tokens_state"] = t["state"]
+                if t.get("tier"):
+                    v["tier"] = t["tier"]
+                continue
+            if v["visual_tokens_projected"] is not None:
+                v["visual_tokens_projected"] += t["tokens"] * n_att
+            v["formula"], v["tier"] = t["formula"], t["tier"]
+    for reviewer, v in out.items():
+        v["class"] = "proyección"
+        v["formula_source"] = getattr(models, "VISION_FORMULA_SOURCE", None)
+        v["input_tokens_measured_includes_images"] = True
+        if models.family_of(reviewer)[0] == "openai" and openai_detail:
+            v["detail"] = openai_detail
+    return out
+
+
+def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None, figures=None):
     """ADR-0080 (F): reparto del gasto MEDIDO por etapa. Insumos: cada pasada trae `usage` (síntesis +
     elicitación fusionadas — M8) y, desde ADR-0080, `usage_elicitation` aparte: la etapa synthesize_* es la
     resta y elicit_* la parte. Un sintetizador que no separa (stub, firma vieja) deja elicit_* con in/out null
@@ -2027,6 +2206,13 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
             m = stages["panel"]["by_model"].setdefault(row.get("reviewer") or "unknown-reviewer", {"in": 0, "out": 0})
             m["in"] += i
             m["out"] += o
+    # ADR-0083 (H): visión PROYECTADA por reviewer (sólo con figuras encendidas y filas que vieron imágenes); los tokens
+    # medidos de arriba ya incluyen las imágenes — `vision` es un desglose declarado, jamás se suma a in/out ni a _sum.
+    if isinstance(figures, dict) and figures.get("enabled"):
+        vis = _vision_by_reviewer(audit_result.get("panel", []), figures.get("items"), figures.get("openai_detail"))
+        for reviewer, v in vis.items():
+            m = stages["panel"]["by_model"].setdefault(reviewer, {"in": 0, "out": 0})
+            m["vision"] = v
     stages["embed"] = {"tokens": embed_tokens, "unit": "embedding tokens (not chat tokens; excluded from _sum)"}
     stages["_sum"] = {"in": sum(v["in"] for k, v in stages.items() if k != "embed" and isinstance(v.get("in"), int)),
                       "out": sum(v["out"] for k, v in stages.items() if k != "embed" and isinstance(v.get("out"), int)),
@@ -2037,7 +2223,7 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     return stages
 
 
-def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None):
+def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, figures=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
     `passes` = [(label, answer_dict)] for the synthesis passes that ran.
 
@@ -2078,7 +2264,7 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None):
         if isinstance(row.get("usage"), dict) and row["usage"]:
             _add(row.get("reviewer") or "unknown-reviewer", row["usage"])
     by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
-                               plan_declared=plan is not None, council=council)
+                               plan_declared=plan is not None, council=council, figures=figures)
     # ADR-0082 (H): las etapas del consejo MEDIDAS (r2/r3) o COPIADAS (r1) entran a by_model bajo el modelo del consejo con
     # su caché; una etapa 'not-run'/'kill-switch' no aporta (in/out null, no 0)
     council_rows = []
@@ -2152,7 +2338,7 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None):
                             "cache_creation": stage_cc, "cache_read": stage_cr, "usd_projected": cj_usd,
                             "rounds": [s for s, _m, _st in council_rows],
                             "class": "PROJECTION (usd) over MEASURED tokens; council_r1 copied from plan_json"}
-    return {
+    out = {
         "input_tokens": total_in,
         "output_tokens": total_out,
         # ADR-0082 (H): input_tokens conserva la semántica de la API (remanente no cacheado); el total con caché va aparte
@@ -2196,6 +2382,23 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None):
                          f"; INCOMPLETE — sin precio para {missing}, excluidos")
                       + ("" if cache_priced else "; INCOMPLETE — cache tokens of an unpriced model excluded") + ")",
     }
+    # ADR-0083 (H) — F8 (integrador): usage_json ES este dict (runs.execute_run lo persiste tal cual), y GET /usage (F5) agrega
+    # `usage_json.figures` APARTE de totals; el espejo se escribe aquí desde frozen.figures — SOLO con WITT_FIGURES=1 (M.1:
+    # bajo kill-switch la llave no existe). Conteos y bytes son MEDICIÓN. corrector: `bytes_verified` = Σ bytes de las filas
+    # 'verified' (con o sin caché); `bytes_downloaded` = SOLO las 'verified' que NO fueron cache_hit (B.3: ledger fresco + sha igual
+    # = cero red — el nombre afirma una descarga que en esas corridas no ocurrió); `n_cache_hit` declara cuántas vinieron de caché.
+    if isinstance(figures, dict) and figures.get("enabled") and isinstance(figures.get("summary"), dict):
+        fs = figures["summary"]
+        rows = [i for i in (fs.get("items") or []) if isinstance(i, dict) and i.get("bytes_state") == "verified"]
+        out["figures"] = {"state": fs.get("state"), "n_figures": fs.get("n_figures"), "n_verified": fs.get("n_verified"),
+                          "n_cited": fs.get("n_cited"),
+                          "bytes_verified": sum(int(i.get("bytes") or 0) for i in rows),
+                          "bytes_downloaded": sum(int(i.get("bytes") or 0) for i in rows if i.get("cache_hit") is not True),
+                          "n_cache_hit": sum(1 for i in rows if i.get("cache_hit") is True),
+                          "class": ("MEASUREMENT (counts, bytes) — mirror of frozen.figures for GET /usage (ADR-0083 H); "
+                                    "bytes_downloaded = verified rows fetched from the source in THIS run (cache_hit false); "
+                                    "bytes_verified = all verified rows (cache hits included)")}
+    return out
 
 
 def _embed_usage_snapshot():
@@ -2356,7 +2559,39 @@ def _positive_claim_check(answer, n_citations_valid, identifier_report=None):
             [lambda _obj, _report: ("positive_claim_requires_citations", ok)])
 
 
-def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None):
+def _figure_checks(answer, bundle, cfg=None, cache_root=None):
+    """ADR-0083 (F): los CINCO predicados deterministas de las figuras viven en verify_output.figure_predicates(citations, bundle,
+    cache_dir, answer_text) -> (fragmento deterministic_checks.figures, extra_predicates[]) (rebanada F2). Aquí se CABLEA
+    tolerante: kill-switch → {state 'kill-switch WITT_FIGURES=0'} (una de las 3 excepciones declaradas, M.1); sin el helper
+    en el árbol → 'tool-unavailable (…)' declarado, jamás re-implementado en runs.py; un fallo del predicado no tumba la
+    corrida (§6). Devuelve ({'figures': fragmento}, predicados | None)."""
+    cfg = cfg or figures.env_config()
+    if not cfg["figures"]:
+        return {"figures": {"state": FIGURES_KILL_SWITCH_STATE}}, None
+    fn = getattr(verify_output, "figure_predicates", None)
+    if fn is None:
+        return {"figures": {"state": FIGURES_TOOL_UNAVAILABLE_GATE}}, None
+    if cache_root is None:
+        cache_root = figures.cache_dir()[0]
+    citations = _citations_of(answer)[0]
+    try:
+        # F8 (integrador, ADR-0083 F.3): se pasa el DICT del sintetizador — figure_predicates lee `direct_answer` Y
+        # `absence_kind`; con sólo el str la declinación que cita figuras quedaría "positiva" (declarado not-provided)
+        res = fn(citations, bundle, cache_root, answer if isinstance(answer, dict) else (answer or ""))
+    except Exception as e:
+        return {"figures": {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}}, None
+    if isinstance(res, tuple) and len(res) >= 2:
+        frag, preds = res[0], res[1]
+    else:
+        frag, preds = res, None
+    if not isinstance(frag, dict):
+        frag = {"state": f"error: figure_predicates returned {type(frag).__name__}, not dict"}
+        preds = None
+    preds = [p for p in (preds or []) if callable(p)] or None
+    return {"figures": frag}, preds
+
+
+def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figures_cfg=None, figures_cache_root=None):
     """El gate determinista (verify_output.admissible, clase Logic-LM) sobre UNA pasada: predicados duros
     de identificadores + parent_identifier_leak (ADR-0079) + attestation_identifier_leak (ADR-0082 F.5) +
     positive_claim_requires_citations (ADR-0080 E, si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre
@@ -2371,13 +2606,17 @@ def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None):
     # el informe de identificadores se mide UNA vez y alimenta también al predicado de citas (corrector ADR-0080)
     report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
     pc_frag, pc_preds = _positive_claim_check(answer, schema.get("n_valid"), identifier_report=report)
-    preds = list(leak_preds or []) + list(att_preds or []) + list(pc_preds or [])
+    # ADR-0083 (F): figure_id_resolves / figure_sha_matches / figure_only_not_asserted (DUROS) + numerals / license_known
+    # (informativos, gating False) — cableados desde verify_output (F2) con estado declarado; sin figuras en el bundle el
+    # fragmento dice 'no-figure-citations' y NINGÚN predicado entra a la conjunción (la admisibilidad de hoy).
+    fig_frag, fig_preds = _figure_checks(answer, bundle, cfg=figures_cfg, cache_root=figures_cache_root)
+    preds = list(leak_preds or []) + list(att_preds or []) + list(pc_preds or []) + list(fig_preds or [])
     adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
                                              "evidence_cited": answer.get("evidence_cited") or [],
                                              "absence_kind": answer.get("absence_kind")},
                                             extra_predicates=preds or None)
     return {"pass": pass_no, "admissible": adm, "reasons": reasons, "identifier_report": report,
-            **leak_frag, **att_frag, **pc_frag,
+            **leak_frag, **att_frag, **pc_frag, **fig_frag,
             # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
             "thread": _thread_checks_summary(run, thread_snapshot)}
 
@@ -2512,8 +2751,102 @@ def _search_ledger_of(block, search_plan, plan_state, harness_used, cfg):
     return out
 
 
+FIGURE_CITATION_KIND = "figure"
+FIGURE_VERIFICATION_NOT_A_FIGURE = "not-a-figure"
+FIGURE_CONTENT_STATES = ("panel-judgment", "not-evaluated")
+
+
+def _figure_items_index(figures_block):
+    """{id (tal cual y en minúsculas): FigureItem} del bloque congelado de figuras (F4 sólo casa por id exacto o
+    case-insensitive: los ids '<PMCID>#<fig_id>' son deterministas)."""
+    idx = {}
+    for it in ((figures_block or {}).get("items") or []):
+        if isinstance(it, dict) and it.get("id"):
+            idx.setdefault(str(it["id"]), it)
+            idx.setdefault(str(it["id"]).lower(), it)
+    return idx
+
+
+def _figure_item_for(cit, idx):
+    ident = str((cit or {}).get("id") or "").strip()
+    return idx.get(ident) or idx.get(ident.lower())
+
+
+def _figure_readings_ids(audit_result):
+    """Los ids COMPUESTOS '<PMCID>#<fig_id>' que alguna lente con visión LEYÓ (figure_readings, F3) — para `content
+    'panel-judgment'` (E). corrector: SOLO `id` (parse_figure_readings ya resolvió el fig_id al id compuesto de la figura
+    ENTREGADA); el fig_id desnudo era redundante y AMBIGUO — dos papers con el mismo fig_id ('F1', frecuente en JATS)
+    colisionaban y una figura que ninguna lente leyó ganaba 'panel-judgment'. Nada se infiere del texto de la lectura."""
+    out = set()
+    for row in (audit_result or {}).get("panel", []):
+        for r in (row.get("figure_readings") or []):
+            if isinstance(r, dict) and r.get("id"):
+                out.add(str(r["id"]))
+    return out
+
+
+_FIGURE_ID_SHAPE_RE = re.compile(r"^PMC\d+#\S+$", re.I)     # la forma '<PMCID>#<fig_id>' (L) — la misma que verify_output._FIGURE_ID_RE
+
+
+def _is_figure_citation(c, idx):
+    """corrector ADR-0083 (E/F): UN clasificador de «cita-figura» para runs = el SUPERSET conservador de verify_output.figure_predicates
+    (kind 'figure' ∨ id con forma '<PMCID>#<fig_id>' ∨ id que resuelve a un ítem figura del bloque). Antes (E) filtraba SOLO por kind y
+    (F) por el superset: una cita con id de figura etiquetada kind 'paper' quedaba gateada pero sin figure_verification, fuera de
+    figure_citations.n, de cited_by_answer/n_cited y de la prioridad «citadas primero» del panel — dos conteos del MISMO registro
+    discrepaban. La etiqueta que eligió el modelo se conserva en `kind_reported`."""
+    if not isinstance(c, dict):
+        return False
+    ident = str(c.get("id") or "").strip()
+    if not ident:
+        return False
+    if c.get("kind") == FIGURE_CITATION_KIND or _FIGURE_ID_SHAPE_RE.match(ident):
+        return True
+    return _figure_item_for(c, idx) is not None
+
+
+def _figure_verification(citations, figures_block, audit_result):
+    """ADR-0083 (E): `figure_verification {bytes, content, figure_id, kind_reported}` en toda cita-figura (superset: kind 'figure' ∨ id
+    con forma '<PMCID>#<fig_id>' ∨ id que resuelve a un ítem — corrector) + el resumen `figure_citations {n, n_verified_bytes,
+    n_not_fetched, n_error, n_mismatch, n_unresolved, n_other, n_figure_shaped_other_kind}`. bytes = el bytes_state del ítem
+    (vocabulario B.2 COMPLETO: 'verified' | 'not-fetched (…)' | 'error: …' | 'mismatch' | 'never (…)' | 'not-requested (…)') o
+    'not-a-figure' cuando el id no nombra una figura del bundle; content 'panel-judgment' ⇔ alguna lente con visión emitió
+    figure_readings para ESE id compuesto, si no 'not-evaluated'. corrector: n_not_fetched cuenta SOLO 'not-fetched (…)', los
+    'error: …' van a n_error y el resto ('never'/'not-requested') a n_other → n == Σ cubetas + n_unresolved. Ausente bajo
+    kill-switch (el llamador no llama)."""
+    idx = _figure_items_index(figures_block)
+    read = _figure_readings_ids(audit_result)
+    summ = {"n": 0, "n_verified_bytes": 0, "n_not_fetched": 0, "n_error": 0, "n_mismatch": 0, "n_unresolved": 0, "n_other": 0,
+            "n_figure_shaped_other_kind": 0}
+    for c in citations:
+        if not _is_figure_citation(c, idx):
+            continue
+        summ["n"] += 1
+        if c.get("kind") != FIGURE_CITATION_KIND:
+            summ["n_figure_shaped_other_kind"] += 1
+        it = _figure_item_for(c, idx)
+        if it is None:
+            c["figure_verification"] = {"bytes": FIGURE_VERIFICATION_NOT_A_FIGURE, "content": "not-evaluated", "figure_id": None,
+                                        "kind_reported": c.get("kind")}
+            summ["n_unresolved"] += 1
+            continue
+        bs = it.get("bytes_state")
+        content = "panel-judgment" if it.get("id") in read else "not-evaluated"
+        c["figure_verification"] = {"bytes": bs, "content": content, "figure_id": it.get("id"), "kind_reported": c.get("kind")}
+        if bs == "verified":
+            summ["n_verified_bytes"] += 1
+        elif bs == "mismatch":
+            summ["n_mismatch"] += 1
+        elif isinstance(bs, str) and bs.startswith("not-fetched ("):
+            summ["n_not_fetched"] += 1
+        elif isinstance(bs, str) and bs.startswith("error: "):
+            summ["n_error"] += 1
+        else:
+            summ["n_other"] += 1
+    return summ
+
+
 def _support_states(citations, bundle, audit_result, council_pertinence=None, council_state=None,
-                    council_source=None):
+                    council_source=None, figures_block=None):
     """(E/G) support_state por cita — verify_output.support_state_for (rebanada E) si está en el árbol; el
     grounding viene de la lente evidence-grounding (citation_support opcional en su fila). Devuelve
     (citations con support_state aditivo, citations_support_summary). Sin el helper: support_state None por
@@ -2587,6 +2920,10 @@ def _support_states(citations, bundle, audit_result, council_pertinence=None, co
     summary["state"] = "checked"
     summary["grounding_rows"] = len(grounding or [])
     summary["ladder_rule"] = getattr(verify_output, "SUPPORT_LADDER_RULE", None)
+    # ADR-0083 (E): figure_verification por cita kind 'figure' + figure_citations en el resumen — SÓLO con figuras encendidas
+    # (figures_block no-None y sin kill-switch); la escalera NO cambia de peldaños (el caption es el pasaje: F2 la indexa).
+    if isinstance(figures_block, dict) and figures_block.get("state") != FIGURES_KILL_SWITCH_STATE:
+        summary["figure_citations"] = _figure_verification(citations, figures_block, audit_result)
     return citations, summary
 
 
@@ -2600,6 +2937,8 @@ def snapshot_extra():
     # misma regla de fuente que config_ledger.default_extra (S5): la env PRESENTE (aunque vacía) es 'env:' — así el
     # boot y la corrida escriben la misma fuente y el runtime-diff no inventa cambios
     rev_present = "WITT_REVISION_CYCLE" in os.environ
+    # ADR-0083 (O.5): figures.enabled / figures.vision NO van aquí — models.snapshot los deriva de su propia ENV_TABLE (F3,
+    # SNAPSHOT_FIELDS += figures.*; models.py es la verdad de sus campos y rechaza duplicados desde fuera en extra_ignored).
     return {
         "contract.render_contract_version": {"value": RENDER_CONTRACT_VERSION, "source": "runs.RENDER_CONTRACT_VERSION"},
         "competence.gate": {"value": cg["gate_enabled"],
@@ -2659,6 +2998,329 @@ def _verdict_payload(a, revision_round):
             "families_valid": a.get("families_valid"), "n_families_valid": a.get("n_families_valid"),
             "lenses_valid": a.get("lenses_valid"), "n_lenses_valid": a.get("n_lenses_valid"),
             "panel_incomplete": bool(a.get("panel_incomplete")), "panel_incomplete_reasons": reasons}
+
+
+# --- ADR-0083: FIGURAS como evidencia OBSERVADA en la corrida (C etapa propia · D.1 proyección · E citas · G.2 panel · H gasto ·
+# L frozen.figures · M kill-switches). La figura es MEDICIÓN sólo cuando código verifica identidad (fig_id del JATS), bytes
+# (sha256 recalculado al gatear/servir/embeber) y licencia (tabla cerrada) — lib/figures.py (F1); lo que la imagen DICE es
+# JUICIO de dos lentes (composite_auditor.audit figures=, F3); los predicados viven en verify_output.figure_predicates (F2).
+# Aquí SÓLO se cablea, se congela con su clase y se MIDE lo que se entregó al panel. Nada binario en el blob (ADR-0074). ----------
+FIGURES_AGENT = "figures"                                      # `agent` de todo evento stage.figures.*
+FIGURES_AGENT_ROW = "figures (lib/figures.py — JATS parser + fetch by sha + license gate)"
+FIGURES_KILL_SWITCH_STATE = "kill-switch WITT_FIGURES=0"
+VISION_KILL_SWITCH_STATE = "kill-switch WITT_FIGURES_VISION=0"
+FIGURES_DECLARED_EXCEPTIONS = ("render_contract_version", "figures", "deterministic_checks.figures")   # M.1: EXACTAMENTE 3
+FIGURES_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.figure_predicates not in tree — ADR-0083)"
+FIGURES_TOOL_UNAVAILABLE_PANEL = "tool-unavailable (composite_auditor.audit without figures= — ADR-0083 F3)"
+FIGURES_TOOL_UNAVAILABLE_TOKENS = "tool-unavailable (models.vision_tokens not in tree — ADR-0083 F3)"
+FIGURES_TOOL_UNAVAILABLE_RULE = "tool-unavailable (composite_auditor.FIGURE_READING_RULE not in tree — ADR-0083 F3)"
+VISION_STATES_EXACT = ("sent", VISION_KILL_SWITCH_STATE, "no-eligible-figures")
+VISION_STATES_PREFIXES = ("tool-unavailable (", "error: ")
+VISION_LENS_FINDINGS_CLAUSE = ("findings marked from_vision_lens describe images: they are judgment; never adopt a number "
+                               "or observation from them unless it appears in a delivered TEXT passage")
+FIGURES_STAGE_RULE = ("stage.figures runs AFTER path_b (both trigger sites: structural inside retrieve, competence-gated in "
+                      "runs) and BEFORE council r3 / pass2; per selected paper ONE zip GET inside WITT_FIGURES_BUDGET_S; a "
+                      "figure that does not download leaves a declared row and the run continues (§6); the synthesizer "
+                      "receives caption + metadata (PROMPT_FIGURE_KEYS), never bytes; no Ruta B → state 'no-path-b' and no "
+                      "stage.figures.* event; WITT_FIGURES=0 → ONE stage.figures.summary and nothing else")
+VISION_SENT_RULE = ("measured in runs.panel_caller from member['figures'] handed to the caller (F3): n_panels = audit() calls "
+                    "that received >=1 selected figure; n_attempts_with_images = caller invocations with >=1 figure (each "
+                    "attempt re-sends and is billed); bytes_b64_sent_total = sum(len(b64)); visual_tokens_projected_total = "
+                    "sum(models.vision_tokens) — PROJECTION; input_tokens measured per judge already include the images")
+N_SENT_BY_LENS_RULE = "distinct sha256 delivered to that lens across ALL panels (audit.panel[].saw_figures.sha256s, F3)"
+VISION_CLASS = "model-judgment (figure_readings) — bytes never in the record; tokens PROJECTED; counts/bytes MEASURED"
+
+
+def _figures_vision_lenses(cfg):
+    """(lenses, source) — composite_auditor.vision_lenses(env) (rebanada F3: CSV validado contra models.LENSES) cuando existe;
+    si no, la MISMA validación aquí: WITT_FIGURES_VISION_LENSES tokenizada por figures.env_config, un token fuera de
+    models.LENSES → default declarado con source 'default-invalid-env:WITT_FIGURES_VISION_LENSES'. Orden = el del CSV."""
+    fn = getattr(composite_auditor, "vision_lenses", None)
+    if callable(fn):
+        try:
+            res = fn(os.environ)
+            if isinstance(res, tuple) and len(res) >= 2:
+                return list(res[0]), str(res[1])
+            if isinstance(res, dict):
+                return (list(res.get("lenses") or []),
+                        str(res.get("lenses_source") or res.get("source") or "composite_auditor.vision_lenses"))
+            if isinstance(res, (list, tuple)):
+                return list(res), "composite_auditor.vision_lenses"
+        except Exception:
+            pass   # cae a la validación local, declarada abajo por `source`
+    toks = []
+    for t in (cfg.get("vision_lenses") or []):
+        if t not in toks:
+            toks.append(t)
+    src = (cfg.get("sources") or {}).get("vision_lenses", "default-unset:WITT_FIGURES_VISION_LENSES")
+    if not toks or any(t not in models.LENSES for t in toks):
+        default = next(s[2] for s in figures.ENV_SPECS if s[0] == "vision_lenses").split(",")
+        return default, "default-invalid-env:WITT_FIGURES_VISION_LENSES"
+    return toks, src
+
+
+def _figures_preview(bundle, cfg, root=None):
+    """(n_papers_eligible, n_papers_selected) SIN mutar — espejo de la selección determinista de figures.attach (C) para que
+    stage.figures.plan diga qué va a bajar ANTES de bajarlo: papers source ∈ FIGURE_SOURCES con PMCID, fetched.full_text True
+    y XML de texto completo en raw_cached (figures.locate_xml); primeros max_papers por selection_rank."""
+    papers = ((bundle or {}).get("path_b") or {}).get("papers") or []
+    n = 0
+    for p in papers:
+        if not isinstance(p, dict) or p.get("source") not in figures.FIGURE_SOURCES:
+            continue
+        sr = p.get("search_rec") or {}
+        pmcid = sr.get("pmcid") or (p.get("record") or {}).get("pmcid")
+        fetched = p.get("fetched") or {}
+        if pmcid and fetched.get("full_text") and figures.locate_xml(fetched.get("raw_cached"), root) is not None:
+            n += 1
+    return n, min(n, int(cfg["max_papers"]))
+
+
+def _figures_summary_payload(summary):
+    """stage.figures.summary (C): estado + conteos + presupuesto + caché — sin ítems (los ítems van al frozen)."""
+    cache = summary.get("cache") or {}
+    budget = summary.get("budget") or {}
+    return {"state": summary.get("state"),
+            **{k: summary.get(k) for k in ("n_papers_eligible", "n_papers_selected", "n_papers_with_xml", "n_figures",
+                                           "n_with_caption", "n_fetched", "n_verified", "n_not_fetched", "n_error", "n_mismatch",
+                                           "n_embeddable", "n_panel_view", "n_unknown_license")},
+            "budget": budget, "over_budget": bool(budget.get("over_budget")),
+            "evicted_n": cache.get("evicted_n"), "cache": cache,
+            "kill_switch": summary.get("kill_switch")}
+
+
+FIGURES_EVENT_TYPES = ("stage.figures.plan", "stage.figures.paper", "stage.figures.figure", "stage.figures.summary")  # (C) — vocabulario
+
+
+def _figures_stage(bundle, run_id, cfg=None, cache_root=None, root=None, cancel_check=None):
+    """ADR-0083 (C): la etapa PROPIA `stage.figures` — corre tras la Ruta B (cualquiera de los dos disparadores) y antes de la
+    ronda 3 del consejo y de pass2. Selección determinista por código (figures.attach): papers europepmc|pubmed con PMCID,
+    texto completo y XML cacheado, en orden selection_rank, primeros max_papers; figuras en orden de documento con los topes
+    por paper / por corrida; UN zip por paper dentro de WITT_FIGURES_BUDGET_S; filas declaradas cuando algo no baja (§6).
+    Eventos (agent 'figures'): stage.figures.plan (una vez, ANTES de bajar) · stage.figures.paper {phase start} ANTES de cada
+    descarga (latido: acota el hueco a UNA descarga <= 45 s) y {phase done} después · stage.figures.figure por figura verified ·
+    stage.figures.summary. Con WITT_FIGURES=0: UN summary {state 'kill-switch …'} y nada más; sin Ruta B: sin eventos y
+    state 'no-path-b'. Devuelve el resumen (→ frozen.figures; F4 completa n_cited/cited_by_answer/seen_by_lenses/vision al
+    congelar) y deja bundle['figures_ledger'] (salvo kill-switch: el bundle es el de 1.11). `cancel_check` corre tras cada
+    evento de paper/figura → una cancelación a media etapa deja las filas ya declaradas y la corrida queda `cancelled`.
+    F8 (integrador): los CUATRO tipos (FIGURES_EVENT_TYPES) se escriben con db.add_event y el tipo como LITERAL — el gate de
+    paridad de la webapp (tools/parity_check.py, superficie (C) ETAPAS) lee esa forma; un emisor indirecto los volvía invisibles."""
+    cfg = cfg or figures.env_config()
+    if not cfg["figures"]:
+        summary = figures.attach(bundle, cfg=cfg)            # kill-switch: no parsea, no baja, no toca ningún paper
+        summary.pop("papers", None)
+        db.add_event(run_id, "stage.figures.summary", payload=_figures_summary_payload(summary), agent=FIGURES_AGENT)
+        return summary
+    papers = ((bundle or {}).get("path_b") or {}).get("papers") or []
+    if cache_root is None:
+        cache_root, _src = figures.cache_dir()
+    if not papers:
+        summary = figures.attach(bundle, cfg=cfg, cache_root=cache_root, root=root)    # → 'no-path-b', cero eventos
+        summary.pop("papers", None)
+        bundle["figures_ledger"] = summary
+        return summary
+    n_elig, n_sel = _figures_preview(bundle, cfg, root)
+    lenses, lenses_src = _figures_vision_lenses(cfg)
+    db.add_event(run_id, "stage.figures.plan", agent=FIGURES_AGENT, payload={
+        "n_papers_eligible": n_elig, "n_papers_selected": n_sel, "caps": cfg["caps"], "budget_s": cfg["budget_s"],
+        # F8: el dir se CREA sólo si hay algo que bajar (n_sel > 0); si no, se mide sin tocar el disco (mcp_cache intacto)
+        "cache_dir_state": figures.cache_dir_state(cache_root, create=n_sel > 0), "cache_dir_source": figures.cache_dir()[1],
+        "ttl_days": cfg["ttl_days"], "cache_max_mb": cfg["cache_max_mb"],
+        "vision": {"enabled": bool(cfg["vision"]), "lenses": lenses, "lenses_source": lenses_src,
+                   "max_per_lens": cfg["max_per_lens"], "detail": cfg["openai_detail"]},
+        "module_version": figures.MODULE_VERSION, "parser_version": figures.PARSER_VERSION,
+        "license_table_version": figures.LICENSE_TABLE_VERSION, "mechanism": figures.MECHANISM, "rule": FIGURES_STAGE_RULE})
+    if cancel_check:
+        cancel_check()
+
+    def _on_event(kind, payload):
+        if kind == "paper":
+            db.add_event(run_id, "stage.figures.paper", payload=payload, agent=FIGURES_AGENT,
+                         level="warning" if (payload.get("phase") == "done" and payload.get("error")) else "info")
+        elif kind == "figure":
+            db.add_event(run_id, "stage.figures.figure", payload=payload, agent=FIGURES_AGENT)
+        if cancel_check:
+            cancel_check()
+
+    try:
+        summary = figures.attach(bundle, cfg=cfg, cache_root=cache_root, root=root, on_event=_on_event)
+    except RunCancelled:
+        raise
+    except Exception as e:   # §6 no-hang: la etapa jamás tumba la corrida — el estado se declara con su tipo
+        summary = figures.attach({"path_b": {"papers": []}}, cfg=cfg, cache_root=cache_root, root=root)
+        summary["state"] = f"error: {type(e).__name__}: {str(e)[:120]}"
+        summary["error"] = f"{type(e).__name__}: {str(e)[:200]}"
+    summary.pop("papers", None)
+    bundle["figures_ledger"] = summary
+    level = "warning" if (summary.get("budget") or {}).get("over_budget") or str(summary.get("state")).startswith("error") else "info"
+    db.add_event(run_id, "stage.figures.summary", payload=_figures_summary_payload(summary), agent=FIGURES_AGENT, level=level)
+    return summary
+
+
+def _figure_citation_ns(citations, figures_block):
+    """{item_id: [n…]} — qué figuras cita la respuesta y con qué marcadores (E/G.2: citadas primero). corrector: el MISMO
+    clasificador superset que _figure_verification y verify_output (kind 'figure' ∨ forma '<PMCID>#<fig_id>' ∨ id que resuelve)."""
+    idx = _figure_items_index(figures_block)
+    out = {}
+    for c in citations or []:
+        if not _is_figure_citation(c, idx):
+            continue
+        it = _figure_item_for(c, idx)
+        if it is not None and isinstance(c.get("n"), int):
+            out.setdefault(it["id"], []).append(c["n"])
+    return out
+
+
+def _figures_for_panel(bundle, answer, cfg, cache_root):
+    """ADR-0083 (G.2): lo que UNA lente con visión puede ver en ESTE panel — figures.select_for_panel sobre los ítems del
+    bundle (panel_view ∧ verified ∧ caption present; citadas por la respuesta primero, luego rank, luego orden de documento;
+    topes por lente / por imagen / por petición; el sha se RECALCULA al leer). Devuelve {figures [PANEL_FIGURE_KEYS con b64],
+    state, selection, cited_ns}. Con WITT_FIGURES_VISION=0 no se lee ni un byte."""
+    summary = (bundle or {}).get("figures_ledger") or {}
+    items = summary.get("items") or []
+    out = {"figures": [], "state": None, "selection": None,
+           "cited_ns": _figure_citation_ns(_citations_of(answer)[0], summary)}
+    if not cfg["vision"]:
+        out["state"] = VISION_KILL_SWITCH_STATE
+        return out
+    if not items:
+        out["state"] = "no-eligible-figures"
+        return out
+    try:
+        sel = figures.select_for_panel(items, cache_root, cfg=cfg, cited_ns=out["cited_ns"])
+    except Exception as e:   # §6: la selección jamás tumba la corrida — el panel corre sin imágenes, declarado
+        out["state"] = f"error: {type(e).__name__}: {str(e)[:120]}"
+        return out
+    out["selection"] = {k: sel.get(k) for k in ("n_eligible", "n_selected", "n_dropped_by_request_cap", "n_excluded",
+                                                 "bytes_b64_total", "rule")}
+    out["figures"] = sel.get("figures") or []
+    out["state"] = "sent" if out["figures"] else "no-eligible-figures"
+    return out
+
+
+def _audit_accepts_figures():
+    """(accepts_figures, accepts_vision_lenses) — la firma de composite_auditor.audit del árbol (F3: figures=, vision_lenses=);
+    un árbol anterior sigue válido y el registro DECLARA que no se entregó (jamás se finge)."""
+    try:
+        params = inspect.signature(composite_auditor.audit).parameters
+    except (TypeError, ValueError):
+        return False, False
+    varkw = any(p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values())
+    return ("figures" in params or varkw), ("vision_lenses" in params or varkw)
+
+
+def _figures_panel_kwargs(bundle, answer, cfg, cache_root, lenses, enabled, vision_sent, panel_selections):
+    """kwargs ADITIVOS para composite_auditor.audit (G.2) — {} bajo kill-switch (la llamada es EXACTAMENTE la de 1.11) o
+    cuando la firma del árbol no los acepta. Registra la selección de ESTE panel en `panel_selections` y suma n_panels."""
+    if not enabled:
+        return {}
+    pf = _figures_for_panel(bundle, answer, cfg, cache_root)
+    acc_f, acc_l = _audit_accepts_figures()
+    pf["delivered"] = bool(pf["figures"]) and acc_f
+    panel_selections.append({k: pf[k] for k in ("state", "selection", "delivered")}
+                            | {"n_figures": len(pf["figures"]), "sha256s": [f.get("sha256") for f in pf["figures"]]})
+    kw = {}
+    if acc_f:
+        kw["figures"] = pf["figures"]
+    if acc_l:
+        kw["vision_lenses"] = list(lenses)
+    if pf["delivered"]:
+        vision_sent["n_panels"] += 1
+    return kw
+
+
+def _figures_fill(summary, answer, panel_rows_all, cfg, lenses, lenses_src, vision_sent, panel_selections):
+    """ADR-0083 (L): completa el bloque congelado con lo que SÓLO la corrida sabe — cited_by_answer (citas kind 'figure' de la
+    respuesta FINAL), seen_by_lenses / selection.n_sent_to_panel_by_lens (audit.panel[].saw_figures, F3), n_cited y el bloque
+    `vision` {state, lenses, rule, sent MEDIDO, cost_projection PROYECTADA}. Muta EN SITIO antes del re-sellado de identidad."""
+    items = summary.get("items") or []
+    cited = _figure_citation_ns(_citations_of(answer)[0], summary)
+    for it in items:
+        it["cited_by_answer"] = sorted(set(cited.get(it["id"], [])))
+        it["seen_by_lenses"] = []
+    summary["n_cited"] = sum(1 for it in items if it["cited_by_answer"])
+    by_sha = {it.get("sha256"): it for it in items if it.get("sha256")}
+    shas_by_lens = {}
+    for row in panel_rows_all or []:
+        saw = row.get("saw_figures") if isinstance(row.get("saw_figures"), dict) else None
+        if not saw:
+            continue
+        lens = row.get("lens")
+        for sha in (saw.get("sha256s") or []):
+            if not isinstance(sha, str):
+                continue
+            shas_by_lens.setdefault(lens, set()).add(sha)
+            it = by_sha.get(sha)
+            if it is not None and lens not in it["seen_by_lenses"]:
+                it["seen_by_lenses"].append(lens)
+    summary.setdefault("selection", {"rule": figures.SELECTION_RULE})
+    summary["selection"]["n_sent_to_panel_by_lens"] = {lens: len(s) for lens, s in shas_by_lens.items()}
+    summary["selection"]["n_sent_by_lens_rule"] = N_SENT_BY_LENS_RULE
+    summary["vision"] = _figures_vision_block(cfg, lenses, lenses_src, vision_sent, panel_selections, panel_rows_all, items)
+    return summary
+
+
+def _figures_vision_block(cfg, lenses, lenses_src, vision_sent, panel_selections, panel_rows_all, items):
+    """frozen.figures.vision (L/H): estado, lentes, regla (FIGURE_READING_RULE verbatim de composite_auditor, F3),
+    `sent` MEDIDO en panel_caller, `cost_projection` por lente (models.vision_tokens × models.prices, clase proyección),
+    la selección por panel y qué aceptó la firma del árbol."""
+    acc_f, acc_l = _audit_accepts_figures()
+    if not cfg["vision"]:
+        state = VISION_KILL_SWITCH_STATE
+    elif not acc_f:
+        state = FIGURES_TOOL_UNAVAILABLE_PANEL
+    elif any(s.get("delivered") for s in panel_selections):
+        state = "sent"
+    else:
+        state = "no-eligible-figures"
+    rule = getattr(composite_auditor, "FIGURE_READING_RULE", None)
+    by_rev = _vision_by_reviewer(panel_rows_all, items, cfg["openai_detail"])
+    per_lens, total = [], 0.0
+    priced = True
+    lens_of = {}
+    for row in panel_rows_all or []:
+        if isinstance(row.get("saw_figures"), dict) and row.get("reviewer"):
+            lens_of.setdefault(row["reviewer"], row.get("lens"))
+    for reviewer, v in by_rev.items():
+        toks = v.get("visual_tokens_projected")
+        usd = None
+        if isinstance(toks, int) and reviewer in PRICES_PER_MTOK_USD:
+            usd = round(toks * PRICES_PER_MTOK_USD[reviewer][0] / 1e6, 6)
+            total += usd
+        else:
+            priced = False
+        per_lens.append({"lens": lens_of.get(reviewer), "reviewer": reviewer, "model": reviewer, "tier": v.get("tier"),
+                         "n_images": v["n_images"], "visual_tokens_projected": toks, "usd_projected": usd,
+                         "tokens_state": v.get("tokens_state")})
+    sent = dict(vision_sent)
+    return {"state": state, "enabled": bool(cfg["vision"]), "lenses": list(lenses), "lenses_source": lenses_src,
+            "rule": rule, "rule_state": "declared (composite_auditor.FIGURE_READING_RULE)" if rule else FIGURES_TOOL_UNAVAILABLE_RULE,
+            "openai_detail": cfg["openai_detail"], "openai_chat_form_state": figures.OPENAI_CHAT_FORM_STATE,
+            "max_per_lens": cfg["max_per_lens"], "max_image_mb": cfg["max_image_mb"], "request_b64_mb": figures.REQUEST_B64_MB,
+            "sent": sent,
+            "cost_projection": {"per_lens": per_lens,
+                                "total_usd_projected": round(total, 6) if (per_lens and priced) else None,
+                                "prices_source": "models.prices() (ADR-0081)", "class": "proyección",
+                                "complete": bool(per_lens) and priced},
+            "panels": panel_selections,
+            "delivery": {"audit_accepts_figures": acc_f, "audit_accepts_vision_lenses": acc_l},
+            "vocabulary": {"states_exact": list(VISION_STATES_EXACT), "states_prefixes": list(VISION_STATES_PREFIXES),
+                           "vision_lenses": list(getattr(composite_auditor, "VISION_LENSES", ()) or ()),
+                           "saw_figures_details": list(getattr(composite_auditor, "SAW_FIGURES_DETAILS", ()) or ())},
+            "class": VISION_CLASS}
+
+
+def _figures_usage_ctx(enabled, summary, cfg):
+    """El insumo de _token_usage(figures=): {enabled, items, openai_detail} — None bajo kill-switch (by_model[*] no gana vision)."""
+    if not enabled:
+        return None
+    return {"enabled": True, "items": (summary or {}).get("items") or [], "openai_detail": cfg["openai_detail"],
+            "summary": summary if isinstance(summary, dict) else None}
+
+
+def _gate_event_payload(checks):
+    """stage.deterministic_gate += figures_state (L) — el evento, no el frozen (el fragmento íntegro va en checks['figures'])."""
+    return dict(checks, figures_state=(checks.get("figures") or {}).get("state"))
 
 
 # --- ADR-0082: el CONSEJO DE CRITERIO en la corrida (F.4 copia congelada · F.5 atestiguado ≠ evidencia · G orden de
@@ -3104,19 +3766,46 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
     # tolerante); audit() se llama aquí sin judge_retries=, así que el tope efectivo es exactamente este
     judge_retries_cfg, judge_retries_src = composite_auditor.resolve_judge_retries()
     judge_max_attempts = 1 + int(judge_retries_cfg)
+    # ADR-0083 (M.4): la configuración de figuras se lee EN LA LLAMADA; el holder del bloque viaja a _usage_now (failed/cancelled)
+    fig_cfg = figures.env_config()
+    fig_enabled = bool(fig_cfg["figures"])
+    fig_cache_root = figures.cache_dir()[0]
+    fig_lenses, fig_lenses_src = _figures_vision_lenses(fig_cfg)
+    figures_holder = {"summary": None}
+    # (H) reenvío MEDIDO: cada intento de cada lente con visión reenvía las imágenes — se cuenta desde lo ENTREGADO al caller
+    vision_sent = {"n_panels": 0, "n_attempts_with_images": 0, "bytes_b64_sent_total": 0,
+                   "visual_tokens_projected_total": 0, "tokens_state": "projected", "rule": VISION_SENT_RULE}
+    panel_selections = []
 
     def panel_caller(member, system, user_text):   # noqa: F811 — envuelve al inyectado
         key = (member.get("reviewer"), member.get("lens"))
         judge_attempts[key] = judge_attempts.get(key, 0) + 1
         # composite_auditor (E) entrega `attempt` en el member; si un caller viejo no lo trae, se cuenta aquí
         attempt = member.get("attempt") if isinstance(member.get("attempt"), int) else judge_attempts[key]
+        # ADR-0083 (G.2/H/L): lo que ESTA llamada lleva en imágenes — medido del member (composite_auditor las pone SÓLO en
+        # las lentes con visión, F3); la b64 jamás sale de aquí (sólo conteo, sha y bytes)
+        figs_sent = [f for f in (member.get("figures") or []) if isinstance(f, dict)] if isinstance(member.get("figures"), list) else []
+        if figs_sent:
+            vision_sent["n_attempts_with_images"] += 1
+            vision_sent["bytes_b64_sent_total"] += sum(len(f.get("b64") or "") for f in figs_sent)
+            _det = _openai_detail_for(member.get("reviewer"), fig_cfg.get("openai_detail"))   # corrector: misma cifra que saw_figures
+            for f in figs_sent:
+                t = _vision_tokens(member.get("reviewer"), f.get("dims_measured"), _det)
+                if t["state"] == "projected" and vision_sent["visual_tokens_projected_total"] is not None:
+                    vision_sent["visual_tokens_projected_total"] += t["tokens"]
+                elif t["state"] != "projected":
+                    vision_sent["visual_tokens_projected_total"] = None
+                    vision_sent["tokens_state"] = t["state"]
         db.add_event(run_id, "stage.audit.judge", agent="composite-auditor",
                      payload={"reviewer": member.get("reviewer"), "lens": member.get("lens"),
                               "phase": "start", "heartbeat": True,
                               "attempt": attempt, "retries_judge": max(0, attempt - 1),
                               "max_attempts": judge_max_attempts, "max_attempts_source": judge_retries_src,
                               # ADR-0081 (B): la Traza dice "intento N de M · <api> · <family>"
-                              **_judge_identity(member)})
+                              **_judge_identity(member),
+                              # ADR-0083 (L): "+ N imágenes" en la Traza; 0 y [] medidos cuando no viajó ninguna
+                              "figures_sent": len(figs_sent),
+                              "figures_sha256": [f.get("sha256") for f in figs_sent]})
         return inner_caller(member, system, user_text)
 
     # partial-spend tracking (LOTE-01·A4): what a run spent BEFORE dying must survive on failed and
@@ -3138,7 +3827,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
     def _usage_now():
         return _token_usage(passes, {"panel": panel_rows_all},
                             max(0, _embed_usage_snapshot() - embed_t0),
-                            plan=plan_holder.get("plan"), council=council_holder)
+                            plan=plan_holder.get("plan"), council=council_holder,
+                            figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg))
 
     def _council_event(etype, payload):
         """TODOS los eventos stage.council.* salen del HILO ORQUESTADOR (council.run_round los emite al recoger
@@ -3234,9 +3924,12 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                 "delivered_to": ["planner (runs.plan_thread_context at POST /runs/plan)",
                                  "council round 1 of turn N+1 (council_jobs._inherited_criteria)"],
                 "rule": COUNCIL_SUMMARY_SYNTH_RULE}
+            _pa = thread_snapshot.get("previous_audit") if isinstance(thread_snapshot.get("previous_audit"), dict) else {}
             thread_delivery["prompt_components"] = ["user_text.thread_context (sibling of evidence) WITHOUT council_summary "
                                                     "(E5: synthesizer blind to the council — corrector ADR-0082)",
                                                     "synth_system: THREAD_ANTI_LEAK_CLAUSE",
+                                                    *(["synth_system: THREAD_VISION_FINDINGS_CLAUSE (previous_audit.n_from_vision_lens > 0 — corrector ADR-0083 D.4)"]
+                                                      if isinstance(_pa.get("n_from_vision_lens"), int) and _pa["n_from_vision_lens"] > 0 else []),
                                                     "SYNTH_TOOL.description: anti-leak sentence"]
             hc = thread_snapshot.get("human_comments") or {}
             db.add_event(run_id, "stage.thread_context", agent="runs",
@@ -3313,9 +4006,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
 
         # 2b) ADR-0080 (B): el gate determinista ADELANTADO sobre pass1 — su admisibilidad es un componente
         # de la compuerta (una pasada inadmisible no puede ser candidata por competente que se declare).
-        checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1", attestations=c_attest)
+        checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1", attestations=c_attest,
+                        figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
-                     payload=checks1, level="info" if checks1["admissible"] else "warning")
+                     payload=_gate_event_payload(checks1), level="info" if checks1["admissible"] else "warning")
         _check_cancel()
 
         # 2c) ADR-0082 (G.1 / C.5): la RONDA 2 del consejo — cada miembro juzga la COBERTURA de SUS requisitos kept
@@ -3546,6 +4240,14 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         bundle["search_ledger"] = _search_ledger_of(bundle["path_b"], search_plan, search_plan_state,
                                                     harness_used, search_cfg)
 
+        # 3a') ADR-0083 (C): la etapa PROPIA `stage.figures` — tras la Ruta B (estructural dentro de retrieve o por la
+        # compuerta), ANTES de la ronda 3 del consejo (O.3: el consejo ve la MISMA proyección sin bytes) y de pass2. Los papers
+        # seleccionados ganan paper['figures'] (caption + sha + licencia por código); el sintetizador verá caption + metadatos por
+        # _prompt_path_b (D.1), JAMÁS bytes. Sin Ruta B: 'no-path-b' y cero eventos; WITT_FIGURES=0: UN summary y el bundle de 1.11.
+        figures_holder["summary"] = _figures_stage(bundle, run_id, cfg=fig_cfg, cache_root=fig_cache_root,
+                                                   cancel_check=_check_cancel)
+        _check_cancel()
+
         # 3b) ADR-0082 (C.7): re-cobertura ESTRUCTURAL (código, corre siempre que hubo cobertura pre) y la RONDA 3 de
         # MODELO (re-juicio) SÓLO si WITT_COUNCIL_RECOVERAGE=1 ∧ el harness admitió algo ∧ quedan must kept sin cubrir,
         # y SÓLO sobre los dueños de esos must (subconjunto). r3 es INFORMATIVA: jamás re-gatea ni abre otra ronda.
@@ -3686,9 +4388,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # ADR-0080: sobre pass1 YA corrió (checks1, evento pass:1); competente → la candidata ES pass1 y sus
         # checks son los del gate adelantado (no se re-mide lo mismo dos veces); con pass2 → gate{pass:2}.
         if trigger:
-            checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2", attestations=c_attest)
+            checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2", attestations=c_attest,
+                           figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
-                         payload=checks, level="info" if checks["admissible"] else "warning")
+                         payload=_gate_event_payload(checks), level="info" if checks["admissible"] else "warning")
         else:
             checks = dict(checks1)
         checks["pass1_admissible"] = checks1["admissible"]
@@ -3699,11 +4402,16 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
 
         # 6) composite audit — 100% of runs (ADR-0049), the terminal transition
         db.add_event(run_id, "stage.audit.start", agent="composite-auditor")
+        # ADR-0083 (G.2): las imágenes viajan DENTRO del member de las dos lentes con visión (composite_auditor, F3) — aquí
+        # se seleccionan por código (citadas por la respuesta primero; sha recalculado al leer) y la llamada es EXACTAMENTE
+        # la de 1.11 bajo kill-switch o cuando la firma del árbol aún no acepta figures=/vision_lenses= (declarado).
+        fig_kw = _figures_panel_kwargs(bundle, answer, fig_cfg, fig_cache_root, fig_lenses, fig_enabled,
+                                       vision_sent, panel_selections)
         audit_result = composite_auditor.audit(
             claim={"direct_answer": answer["direct_answer"],
                    "stated_confidence": answer.get("stated_confidence")},
             evidence=_compact_evidence(bundle), deterministic_checks=checks,
-            required_because=bundle["decision_state"]["state"], caller=panel_caller)
+            required_because=bundle["decision_state"]["state"], caller=panel_caller, **fig_kw)
         panel_rows_all.extend(audit_result.get("panel", []))
         db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
                      payload=_verdict_payload(audit_result, 0),   # ADR-0081 (D): + familias/lentes/panel_incomplete
@@ -3727,9 +4435,14 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                                           "sobre la respuesta; la revisión no aplica")
         elif audit_result["verdict"] == "REVISE":
             _check_cancel()
-            findings = _panel_findings(audit_result)
+            # ADR-0083 (D.4, el lazo): con figuras encendidas cada hallazgo dice si vino de una lente que VIO imágenes y la
+            # instrucción de la revisión cierra el lazo (una lectura de imagen es juicio, jamás dicta un número al sintetizador);
+            # figure_readings JAMÁS entra a los hallazgos. Bajo kill-switch la revisión es la de 1.11 byte a byte.
+            findings = _panel_findings(audit_result, figures_enabled=fig_enabled)
             db.add_event(run_id, "stage.revision.start", agent="composite-auditor",
-                         payload={"n_findings": len(findings), "cap": REVISION_CAP}, level="warning")
+                         payload={"n_findings": len(findings), "cap": REVISION_CAP,
+                                  "n_from_vision_lens": sum(1 for f in findings if f.get("from_vision_lens"))},
+                         level="warning")
             rev_evidence = {**_compact_evidence(bundle), "revision_input": {
                 "previous_answer": {"direct_answer": answer["direct_answer"],
                                     "stated_confidence": answer.get("stated_confidence"),
@@ -3738,7 +4451,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                 "instruction": ("REVISE the previous answer to resolve the panel's findings USING ONLY "
                                 "the evidence shown — fixing a finding never licenses new claims or new "
                                 "identifiers; if a finding cannot be resolved from this evidence, say so "
-                                "explicitly (honest-decline doctrine, ADR-0058)")}}
+                                "explicitly (honest-decline doctrine, ADR-0058)"
+                                + ("; " + VISION_LENS_FINDINGS_CLAUSE if fig_enabled else ""))}}
             answer_rev = _synth(rev_evidence, "revision")
             passes.append(("revision", answer_rev))
             conf_rev, conf_rev_source = _resolve_confidence(answer_rev)
@@ -3748,21 +4462,25 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             _check_cancel()
             # ADR-0080: el MISMO gate (_gate) que corrió sobre pass1/pass2 — predicados de identificadores +
             # fuga del padre + positive_claim_requires_citations; conserva pass1_admissible y competence_gate.
-            checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision", attestations=c_attest)
+            checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision", attestations=c_attest,
+                            figures_cfg=fig_cfg, figures_cache_root=fig_cache_root)
             checks2["pass1_admissible"] = checks1["admissible"]
             checks2["competence_gate"] = competence.compact(comp)
             checks2["council"] = checks["council"]   # ADR-0082 (G.6): los mismos conteos (r3 no se repite en revisión)
             adm2 = checks2["admissible"]
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
-                         payload=checks2, level="info" if adm2 else "warning")
+                         payload=_gate_event_payload(checks2), level="info" if adm2 else "warning")
             _check_cancel()
             db.add_event(run_id, "stage.audit.start", agent="composite-auditor",
                          payload={"revision_round": 1})
+            # ADR-0083 (H): el segundo panel REENVÍA las imágenes (la revisión pudo cambiar qué figuras cita → se reselecciona)
+            fig_kw2 = _figures_panel_kwargs(bundle, answer_rev, fig_cfg, fig_cache_root, fig_lenses, fig_enabled,
+                                            vision_sent, panel_selections)
             audit2 = composite_auditor.audit(
                 claim={"direct_answer": answer_rev["direct_answer"],
                        "stated_confidence": answer_rev.get("stated_confidence")},
                 evidence=_compact_evidence(bundle), deterministic_checks=checks2,
-                required_because=bundle["decision_state"]["state"], caller=panel_caller)
+                required_because=bundle["decision_state"]["state"], caller=panel_caller, **fig_kw2)
             panel_rows_all.extend(audit2.get("panel", []))
             db.add_event(run_id, "stage.audit.verdict", agent="composite-auditor",
                          payload=_verdict_payload(audit2, 1),
@@ -3782,13 +4500,20 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             answer, checks = answer_rev, checks2
             final_conf, final_source = conf_rev, conf_rev_source
             audit_result = audit2
+        # ADR-0083 (L): el bloque de figuras se COMPLETA con lo que sólo la corrida sabe (citas de la respuesta FINAL, lentes que
+        # vieron cada sha, reenvío medido, proyección de visión) ANTES del re-sellado de identidad del bundle (ADR-0044) — el
+        # frozen.figures y el bundle.figures_ledger son el MISMO objeto. Nada bajo kill-switch.
+        if fig_enabled and isinstance(figures_holder["summary"], dict):
+            _figures_fill(figures_holder["summary"], answer, panel_rows_all, fig_cfg, fig_lenses, fig_lenses_src,
+                          vision_sent, panel_selections)
         bundle = composite_auditor.apply_to_bundle(bundle, audit_result, _evidence_ids(bundle))
 
         # 7) frozen record (backend-persisted; the webapp only reads — ADR-0047 d.2).
         # El usage cuenta TODOS los paneles (con revisión hay dos — ADR-0067).
         embed_tokens = max(0, _embed_usage_snapshot() - embed_t0)
         council_holder["state"] = c_state
-        token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan, council=council_holder)
+        token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan, council=council_holder,
+                                   figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg))
         # ADR-0078 corrector: UNA sola sede de re-parseo. Si evidence_cited LLEGÓ como string (el wrapper
         # real lo guarda en evidence_cited_raw; un sintetizador stub puede dejarlo en evidence_cited),
         # _normalize_citations recibe ESE string y declara 'string-reparsed' | 'string-unparseable'; si
@@ -3808,7 +4533,9 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             c_pert, c_pert_src = None, None
         citations, citations_support_summary = _support_states(citations, bundle, audit_result,
                                                                council_pertinence=c_pert, council_state=c_state,
-                                                               council_source=c_pert_src)
+                                                               council_source=c_pert_src,
+                                                               # ADR-0083 (E): figure_verification + figure_citations (no bajo kill-switch)
+                                                               figures_block=figures_holder["summary"] if fig_enabled else None)
         # --- ADR-0082 (J): frozen.council — el consejo congelado: estado, membresía y N congeladas, ledger atestiguado
         # (texto ≤600), rondas (r1 COPIADA del plan + r2/r3 medidas con miembros/usage/estados), cobertura pre/after/post,
         # directivas, índice, caché medida, vocabularios. decided_by 'code (council.aggregate_*)'.
@@ -3941,9 +4668,14 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                 # y el contrapeso honesto: lo que el PIPELINE aplica, pase lo que pase con la etiqueta
                 "structural_frameworks": reasoning_catalog.structural_frameworks(),
             },
-            "agents_invoked": _agents_invoked(audit_result, checks, plan, council=frozen_council),
+            "agents_invoked": _agents_invoked(audit_result, checks, plan, council=frozen_council,
+                                              figures=figures_holder["summary"], figure_lenses=fig_lenses),
             # --- ADR-0082 (J): el consejo de criterio congelado (ver arriba) ------------------------------------
             "council": frozen_council,
+            # --- ADR-0083 (L): las figuras OBSERVADAS congeladas — SIEMPRE presente en >= 1.12: state ∈ FIGURES_STATES, ítems
+            # sin bytes (sha256 + source-pointer + licencia por código), vision (juicio, medido lo enviado, proyectado el
+            # costo), vocabularios; bajo kill-switch {state, kill_switch} y la forma base (excepción declarada M.1) -----------
+            "figures": figures_holder["summary"],
             # --- tapón 3 (ADR-0061): el plan declarado viaja congelado; su ausencia se DECLARA -----
             "plan": plan,
             "plan_declared": plan is not None,
@@ -4118,7 +4850,12 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                                                  ((_council_r1_view(cj) or {}).get("n_valid") if cj else None)),
                              # corrector ADR-0082 (G.8): UNA verdad — el N que congela frozen.council (null sin copia)
                              "council_n_members": frozen_council["n_members"],
-                             "council_must_uncovered": frozen_council["must_uncovered"]}
+                             "council_must_uncovered": frozen_council["must_uncovered"],
+                             # ADR-0083 (L, vista): estado de las figuras y conteos MEDIDOS (0 = medido; null = kill-switch:
+                             # nada se contó) — la Lista/Banco pinta 'N figuras verificadas · K citadas' sin re-derivar
+                             "figures_state": (figures_holder["summary"] or {}).get("state"),
+                             "figures_n_verified": ((figures_holder["summary"] or {}).get("n_verified") if fig_enabled else None),
+                             "figures_n_cited": ((figures_holder["summary"] or {}).get("n_cited") if fig_enabled else None)}
         frozen["niches"] = nichos
         _finish(run_id, "awaiting_closure", {"verdict": audit_result["verdict"]},
                 bundle_json=json.dumps(bundle, ensure_ascii=False, default=str),

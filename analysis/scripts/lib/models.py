@@ -26,6 +26,15 @@ CACHE_MULTIPLIERS / cache_prices() para cotizar la caché de prompt (clase deriv
 las 27 env del consejo (ENV_ADR_0082) con lectores tolerantes (kinds nuevos `bool` y `float`); SNAPSHOT_FIELDS
 += role.council, council.enabled, council.full, council.effort, council.cache_ttl (una fila `new-field` en
 config_history al arrancar: excepción DECLARADA del kill-switch, ADR-0082 (L.2)(ii)).
+
+ADR-0083 (G.4 / H / M.4 / O.5) — figuras como evidencia observada, rebanada F3: la tabla gana las columnas
+`vision_tier` (∈ VISION_TIERS: high-res-2576 · standard-1568 · tile-512 · patch-32 · none · unknown),
+`vision_multiplier` (float|null: sólo modelos por parches) y `vision_verified` (False en TODAS hasta LG3/LG4: ninguna
+imagen se ha mandado a un modelo desde este código); `vision_tokens(model, w, h, detail)` es la ÚNICA sede de las fórmulas
+PÚBLICAS de tokens de visión (clase PROYECCIÓN: ninguna de las dos APIs desglosa tokens de imagen en `usage`); ENV_TABLE
+gana las 20 env de figuras (ENV_ADR_0083; el lector EFECTIVO es `figures.env_config()` — aquí viven para el snapshot, el
+ledger y el gate compose ∩ README de smoke_models); SNAPSHOT_FIELDS += figures.enabled, figures.vision (fila
+`first-boot-snapshot`/`new-field` en config_history al arrancar: excepción DECLARADA del kill-switch, patrón 0082 L.2 ii).
 """
 import datetime as _dt
 import hashlib
@@ -48,8 +57,13 @@ TOOL_CALL_APIS = ("anthropic-messages", "openai-responses", "openai-chat-complet
 APIS = TOOL_CALL_APIS + ("openai-embeddings",)   # + el transporte de la fila `embed` (no es modelo de herramientas)
 STATUSES = ("active", "retiring", "bridge", "candidate", "excluded", "not-adopted", "previous-generation", "embed")
 THINKING_DEFAULTS = ("adaptive", "off", "n/a")
+# ADR-0083 (G.4): capacidad de visión POR TABLA. `vision_tier` gobierna si composite_auditor.audit() manda bloques de imagen
+# a un asiento (none|unknown → 0 bloques, saw_figures.detail 'model-vision-unknown') y qué fórmula pública proyecta sus
+# tokens (H, vision_tokens). Un id que la tabla no conoce es 'unknown' (no se afirma que vea).
+VISION_TIERS = ("high-res-2576", "standard-1568", "tile-512", "patch-32", "none", "unknown")
 MODEL_ROW_FIELDS = ("family", "api", "api_verified", "status", "thinking_default", "reasoning", "retire_not_before",
-                    "successor", "price_in", "price_out", "verified_on", "source", "note")
+                    "successor", "price_in", "price_out", "verified_on", "source", "note",
+                    "vision_tier", "vision_multiplier", "vision_verified")   # ADR-0083 (G.4): 3 columnas aditivas al final
 
 _PRICE_SRC = ("ADR-0081 (A); precio verificado 2026-09-08 (runs.PRICES_AS_OF @ f57a3d3): "
               "platform.claude.com/docs/en/about-claude/pricing")
@@ -58,14 +72,18 @@ _PRICE_SRC_OAI = ("ADR-0081 (A); precio verificado 2026-09-08 (runs.PRICES_AS_OF
 
 
 def _row(family, api, api_verified, status, thinking_default, reasoning, price_in, price_out, source, note,
-         retire_not_before=None, successor=None, verified_on=MODEL_TABLE_AS_OF):
+         retire_not_before=None, successor=None, verified_on=MODEL_TABLE_AS_OF,
+         vision_tier="unknown", vision_multiplier=None, vision_verified=False):
     """Una fila con TODAS las llaves (forma cerrada: retire_not_before/successor son null declarado cuando no
-    aplican, jamás llaves ausentes)."""
+    aplican, jamás llaves ausentes). ADR-0083 (G.4): `vision_tier` ∈ VISION_TIERS (default 'unknown' = no se afirma que
+    vea), `vision_multiplier` float|None (sólo modelos por parches), `vision_verified` False hasta que LG3/LG4 lo MIDAN."""
     assert family in FAMILIES and api in APIS and status in STATUSES and thinking_default in THINKING_DEFAULTS
+    assert vision_tier in VISION_TIERS
     return {"family": family, "api": api, "api_verified": bool(api_verified), "status": status,
             "thinking_default": thinking_default, "reasoning": bool(reasoning),
             "retire_not_before": retire_not_before, "successor": successor,
-            "price_in": price_in, "price_out": price_out, "verified_on": verified_on, "source": source, "note": note}
+            "price_in": price_in, "price_out": price_out, "verified_on": verified_on, "source": source, "note": note,
+            "vision_tier": vision_tier, "vision_multiplier": vision_multiplier, "vision_verified": bool(vision_verified)}
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -77,40 +95,49 @@ MODELS = {
         "anthropic", "anthropic-messages", False, "active", "adaptive", False, 5.0, 25.0, _PRICE_SRC,
         "Sintetizador/planner/elicitación/agente de preguntas y juez correctness en g2 (decisión de Emmanuel). "
         "PIENSA por default (thinking adaptativo; max_tokens acota pensamiento + respuesta — topes g2). "
-        "api_verified False: forced tool_use bajo los schemas REALES y topes g2 lo mide LG1 (Emmanuel)."),
+        "api_verified False: forced tool_use bajo los schemas REALES y topes g2 lo mide LG1 (Emmanuel).",
+        vision_tier="high-res-2576"),
     "claude-sonnet-5": _row(
         "anthropic", "anthropic-messages", True, "active", "adaptive", False, 2.0, 10.0, _PRICE_SRC,
-        "Juez overclaim (producción desde ADR-0047); sucesor declarado de haiku-4-5 en evidence-grounding (E)."),
+        "Juez overclaim (producción desde ADR-0047); sucesor declarado de haiku-4-5 en evidence-grounding (E).",
+        vision_tier="high-res-2576"),
     "claude-haiku-4-5-20251001": _row(
         "anthropic", "anthropic-messages", True, "retiring", "off", False, 1.0, 5.0, _PRICE_SRC,
         "Juez evidence-grounding. Se retira >= 2026-10-15 (decisión de Emmanuel): la tabla declara el sucesor "
         "(DATO), la env lo ejecuta (ACTO) — ver retirement_due()/WITT_PANEL_AUTO_RETIRE.",
-        retire_not_before="2026-10-15", successor={"reviewer": "claude-sonnet-5", "lens": "evidence-grounding"}),
+        retire_not_before="2026-10-15", successor={"reviewer": "claude-sonnet-5", "lens": "evidence-grounding"},
+        vision_tier="standard-1568"),
     "claude-opus-4-8": _row(
         "anthropic", "anthropic-messages", True, "previous-generation", "off", False, 5.0, 25.0, _PRICE_SRC,
         "El modelo de g1 (f57a3d3) en síntesis/planner/elicitación/preguntas/correctness; sigue cotizado para "
-        "que /usage recotice registros históricos sin missing_price."),
+        "que /usage recotice registros históricos sin missing_price.",
+        vision_tier="high-res-2576"),
     "claude-fable-5-1": _row(
         "anthropic", "anthropic-messages", False, "excluded", "adaptive", False, 10.0, 50.0, _PRICE_SRC,
         "EXCLUIDO (decisión de Emmanuel): 400 en tool_choice forzado observado (la guía de migración de Fable 5.1 "
         "lo documenta: tool_choice type 'tool'/'any' no soportados); retención 30 días obligatoria. Supersede la "
-        "cláusula '>= 1 Fable en el panel' de ADR-0031. Cotizado por si aparece en un registro."),
+        "cláusula '>= 1 Fable en el panel' de ADR-0031. Cotizado por si aparece en un registro.",
+        vision_tier="unknown"),   # ADR-0083 (G.4): excluido igual; no se afirma su tier de visión
     "gpt-4o": _row(
         "openai", "openai-chat-completions", True, "bridge", "n/a", False, 2.5, 10.0, _PRICE_SRC_OAI,
         "Juez reproducibility HOY (el camino probado en vivo por chat.completions). Puente hasta que LG3 pase con "
-        "Astra y Emmanuel confirme acceso (E1). Nota ATESTIGUADA del brief v3: su snapshot se apaga 2026-10-23."),
+        "Astra y Emmanuel confirme acceso (E1). Nota ATESTIGUADA del brief v3: su snapshot se apaga 2026-10-23.",
+        vision_tier="tile-512"),
     "gpt-6-astra": _row(
         "openai", "openai-responses", False, "candidate", "n/a", True, 10.0, 50.0, _PRICE_SRC_OAI,
         "ÚNICO juez OpenAI decidido por Emmanuel. Exige la Responses API (verificado en vivo por Emmanuel: "
         "chat.completions no sirve). api_verified False: el caller Responses de ESTE código lo mide LG2/LG3. "
-        "reasoning True: WITT_OPENAI_REASONING_EFFORT se envía sólo a modelos con este flag."),
+        "reasoning True: WITT_OPENAI_REASONING_EFFORT se envía sólo a modelos con este flag.",
+        vision_tier="patch-32", vision_multiplier=1.2),
     "gpt-5.6-sol": _row(
         "openai", "openai-responses", False, "not-adopted", "n/a", True, 4.0, 20.0, _PRICE_SRC_OAI,
-        "Sin puente, decisión de Emmanuel (plan v3). Cotizado por si aparece en un registro."),
+        "Sin puente, decisión de Emmanuel (plan v3). Cotizado por si aparece en un registro.",
+        vision_tier="patch-32", vision_multiplier=1.2),
     "text-embedding-3-small": _row(
         "openai", "openai-embeddings", True, "embed", "n/a", False, 0.02, 0.0, _PRICE_SRC_OAI,
         "Embeddings del índice de la DATA INAMOVIBLE (1536-dim). No es modelo de herramientas: en un asiento de "
-        "rol se rechaza como excluded-model."),
+        "rol se rechaza como excluded-model.",
+        vision_tier="none"),
 }
 
 # Precios: EXACTAMENTE el dict runs.PRICES_PER_MTOK_USD de f57a3d3 (golden en smoke_models.py).
@@ -306,10 +333,38 @@ ENV_TABLE = {
     "WITT_COUNCIL_INDEX_ORIGINS":   {"default": "production", "kind": "str", "reader": "council_index · /council/demand", "effect": "orígenes del corpus (NULL incluido y declarado, regla de precedent)", "adr": "0082"},
     "WITT_ANTHROPIC_MAX_INFLIGHT":  {"default": "8", "kind": "int", "minimum": 1, "reader": "composite_auditor._anthropic_tool_call", "effect": "BoundedSemaphore de PROCESO alrededor de urlopen para TODA llamada Anthropic; meta.queue_wait_s", "adr": "0082"},
     "WITT_ANTHROPIC_RETRY_AFTER_CAP_S": {"default": "30", "kind": "int", "minimum": 0, "reader": "composite_auditor._anthropic_tool_call", "effect": "tope al Retry-After honrado en http-429/529; sin cabecera, backoff de hoy", "adr": "0082"},
+    # ---- ADR-0083 (M.4): las 20 env de figuras (tabla de env del ADR; toda env = reinicio). El lector EFECTIVO es
+    # figures.env_config() (tolerante, clamps M.8); aquí viven con los MISMOS defaults (paridad medida en smoke_models) para el
+    # snapshot (figures.enabled / figures.vision), el ledger config_history y el gate compose ∩ README. WITT_MCP_CACHE_DIR ya
+    # existía (compose :88) y NO es de esta tabla. Kinds: bool = los MISMOS literales que figures._parse_env_value (1/true/yes/on ·
+    # 0/false/no/off); int/float con `maximum` inclusivo = el clamp de figures.ENV_SPECS; csv/licencias viajan como str.
+    "WITT_FIGURES":                 {"default": "1", "kind": "bool", "reader": "runs._figures_stage · composite_auditor.audit · app", "effect": "kill-switch maestro; 0 = frozen 1.11 byte a byte salvo 3 excepciones declaradas (M.1)", "adr": "0083"},
+    "WITT_FIGURES_VISION":          {"default": "1", "kind": "bool", "reader": "composite_auditor.audit", "effect": "0 = ninguna lente recibe imágenes; captions/sha/licencia siguen (M.2)", "adr": "0083"},
+    "WITT_FIGURES_VISION_LENSES":   {"default": "evidence-grounding,reproducibility", "kind": "str", "reader": "composite_auditor.vision_lenses", "effect": "CSV de <= 2 lentes validado contra models.LENSES; fuera de vocabulario o > 2 lentes → default declarado (lenses_source 'default-invalid-env…'; VISION_LENSES_MAX = 2, CLAUDE.md §7 — corrector)", "adr": "0083"},
+    "WITT_FIGURES_MAX_PAPERS":      {"default": "3", "kind": "int", "minimum": 1, "maximum": 50, "reader": "runs._figures_stage · figures.attach", "effect": "papers (con PMCID + XML) de los que se parsean/bajan figuras; resto not-fetched (paper-cap)", "adr": "0083"},
+    "WITT_FIGURES_MAX_PER_PAPER":   {"default": "9", "kind": "int", "minimum": 1, "maximum": 30, "reader": "figures.attach", "effect": "figuras por paper en orden de documento (clamp 1..30)", "adr": "0083"},
+    "WITT_FIGURES_MAX_PER_RUN":     {"default": "12", "kind": "int", "minimum": 1, "maximum": 200, "reader": "figures.attach", "effect": "tope de figuras bajadas por corrida; resto not-fetched (run-cap)", "adr": "0083"},
+    "WITT_FIGURES_MAX_PER_LENS":    {"default": "12", "kind": "int", "minimum": 0, "maximum": 20, "reader": "figures.select_for_panel · composite_auditor.audit", "effect": "imágenes por petición de juez (clamp 0..20: ≤ 20 evita «many-image requests»)", "adr": "0083"},
+    "WITT_FIGURES_MAX_IMAGE_MB":    {"default": "5", "kind": "float", "minimum": 0.0, "maximum": 7.0, "reader": "figures.select_for_panel · record_pdf", "effect": "bytes crudos por imagen para panel/miniatura (clamp ≤ 7: 9.3 MB b64 < 10 MB API)", "adr": "0083"},
+    "WITT_FIGURES_ZIP_MAX_MB":      {"default": "40", "kind": "float", "minimum": 0.0, "maximum": 1024.0, "reader": "figures.fetch_figures", "effect": "precheck Content-Length y tope de streaming → not-fetched (zip-over-max) sin escribir", "adr": "0083"},
+    "WITT_FIGURES_BUDGET_S":        {"default": "90", "kind": "float", "minimum": 0.0, "maximum": 3600.0, "reader": "figures.attach", "effect": "reloj TOTAL de la etapa, fuera de la ronda de búsqueda; por paper min(45, restante) (constante)", "adr": "0083"},
+    "WITT_FIGURES_TTL_DAYS":        {"default": "30", "kind": "float", "reader": "figures.fetch_figures", "effect": "frescura del ledger por PMCID; fresco + sha iguales → cache_hit, cero red; ≤ 0 = nunca confiar", "adr": "0083"},
+    "WITT_FIGURES_CACHE_MAX_MB":    {"default": "512", "kind": "float", "reader": "figures.fetch_figures", "effect": "tope de figures/; evicción LRU por mtime al escribir, evicted_n; 0 = sin tope declarado", "adr": "0083"},
+    "WITT_FIGURES_CAPTION_CHARS":   {"default": "2000", "kind": "int", "minimum": 100, "maximum": 20000, "reader": "figures.parse_jats", "effect": "tope del caption que viaja (caption_truncated); medido: media 1 030, máx 3 087", "adr": "0083"},
+    "WITT_FIGURES_EMBED_LICENSES":  {"default": "cc-by,cc0,cc-by-sa", "kind": "str", "reader": "figures.license_table", "effect": "sólo RESTRINGE la tabla cerrada; gobierna GET 200/403, miniatura Hoja y PDF; id fuera de tabla → env_ignored", "adr": "0083"},
+    "WITT_FIGURES_PANEL_LICENSES":  {"default": "cc-by,cc0,cc-by-sa,cc-by-nc,cc-by-nd,cc-by-nc-sa,cc-by-nc-nd,cc-by-prose-unconfirmed", "kind": "str", "reader": "figures.license_table", "effect": "licencias cuyos bytes ven las lentes (E2); unknown/zfin nunca", "adr": "0083"},
+    "WITT_FIGURES_PROSE_LICENSE":   {"default": "1", "kind": "bool", "reader": "figures.parse_license", "effect": "prosa 'Creative Commons Attribution' sin URL → cc-by (license-p-prose); 0 → cc-by-prose-unconfirmed (E3)", "adr": "0083"},
+    "WITT_FIGURES_OPENAI_DETAIL":   {"default": "high", "kind": "choice", "choices": ("low", "high", "auto", "original"), "casefold": True, "reader": "composite_auditor._default_caller → figures.openai_responses_parts / openai_chat_parts", "effect": "detail del input_image/image_url; a ≤ 840 px high = 2–4 tiles en el puente", "adr": "0083"},
+    "WITT_FIGURES_REFETCH_ON_GET":  {"default": "0", "kind": "bool", "reader": "app.get_figure_bytes", "effect": "1 = ante bytes-not-in-cache UNA GET y servir SOLO si sha == congelado (409 si no)", "adr": "0083"},
+    "WITT_FIGURES_PDF_THUMBS":      {"default": "1", "kind": "bool", "reader": "record_pdf.build_pdf", "effect": "0 = palabras + enlace aunque la licencia permita", "adr": "0083"},
+    "WITT_FIGURES_COUNT_TOKENS":    {"default": "0", "kind": "bool", "reader": "composite_auditor.audit (lentes Anthropic)", "effect": "1 = saw_figures.tokens_measured por count_tokens de la MISMA petición sin imágenes (una llamada gratuita por lente)", "adr": "0083"},
 }
 # Las env que ADR-0082 añade (27): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide
 # que compose ∩ README las declaran (C8). Vocabulario cerrado de kinds de ENV_TABLE (env_value los gobierna).
 ENV_ADR_0082 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0082")
+# Las env que ADR-0083 añade (20): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide que compose ∩
+# README las declaran (dueño de compose/README: F7) y que sus defaults == figures.ENV_SPECS (una sola verdad, dos sedes medidas).
+ENV_ADR_0083 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0083")
 ENV_KINDS = ("str", "int", "float", "bool01", "bool", "choice", "effort")
 _BOOL_TRUTHY = ("1", "true", "yes", "on")
 _BOOL_FALSEY = ("0", "false", "no", "off")
@@ -332,8 +387,13 @@ SNAPSHOT_FIELDS = (
     # ADR-0082 (D.2): el consejo entra al snapshot (una fila `new-field` en config_history al arrancar tras el
     # redeploy — excepción DECLARADA del kill-switch, (L.2)(ii)); role.council va aquí y NO en panel_signature
     "role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl",
+    # ADR-0083 (O.5): los kill-switches de figuras entran al snapshot (fila `first-boot-snapshot`/`new-field` en
+    # config_history al arrancar tras el redeploy — excepción DECLARADA del kill-switch, patrón 0082 L.2 ii); FUERA de
+    # panel_signature (la firma no cambia con figuras encendidas o apagadas — medido en smoke_models)
+    "figures.enabled", "figures.vision",
 )
 COUNCIL_SNAPSHOT_FIELDS = ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
+FIGURES_SNAPSHOT_FIELDS = ("figures.enabled", "figures.vision")
 # Campos que models.py NO puede derivar (viven en runs/competence): el llamador (app.config_ledger_boot) los
 # pasa en `extra={campo: {value, source}}`; ausentes → {value: None, source: 'not-provided-by-caller'} (null
 # declarado, jamás un default duplicado de otro módulo).
@@ -391,13 +451,16 @@ def env_value(name, env=None):
     def _typed(s):
         if kind == "int":
             v = int(s)
-            if v < spec.get("minimum", 0):
+            # ADR-0083: `maximum` INCLUSIVO opcional (= el clamp de figures.ENV_SPECS, p. ej. MAX_PER_LENS 0..20)
+            if v < spec.get("minimum", 0) or v > spec.get("maximum", float("inf")):
                 raise ValueError(s)
             return v
         if kind == "float":
-            # ADR-0082: fracciones con rango declarado (WITT_COUNCIL_QUORUM ∈ (0, 1]); nan/inf caen fuera del rango
+            # ADR-0082: fracciones con rango declarado (WITT_COUNCIL_QUORUM ∈ (0, 1]); nan/inf caen fuera del rango.
+            # ADR-0083: `minimum` INCLUSIVO opcional (MAX_IMAGE_MB ∈ [0, 7]); `min_exclusive` sigue para el cuórum.
             v = float(s)
-            if not (v > spec.get("min_exclusive", float("-inf"))) or v > spec.get("maximum", float("inf")):
+            if (not (v > spec.get("min_exclusive", float("-inf"))) or v < spec.get("minimum", float("-inf"))
+                    or v > spec.get("maximum", float("inf"))):
                 raise ValueError(s)
             return v
         if kind == "bool01":
@@ -843,6 +906,10 @@ def snapshot(env=None, today=None, extra=None):
         f[field] = {"value": v, "source": s}
     ce, ce_src = council_effort(env)
     f["council.effort"] = {"value": ce, "source": ce_src}
+    # ADR-0083 (O.5): kill-switches de figuras con fuente (mismos literales bool que figures.env_config — paridad medida)
+    for field, var in (("figures.enabled", "WITT_FIGURES"), ("figures.vision", "WITT_FIGURES_VISION")):
+        v, s = env_value(var, env)
+        f[field] = {"value": v, "source": s}
     ignored = []
     for field in EXTRA_FIELDS:
         given = extra.get(field)
@@ -970,3 +1037,125 @@ def provenance_block(roles, passes, planner_meta, panel_rows, question_meta=None
                 "panel": panel_ran},
         "rule": PROVENANCE_RULE,
     }
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# 9. ADR-0083 (G.4 / H): capacidad de visión por tabla y la ÚNICA sede de las fórmulas PÚBLICAS de tokens de imagen
+#    (clase PROYECCIÓN — ninguna de las dos APIs desglosa tokens de imagen en `usage`; LG3/LG4 las calibran y marcan
+#    `vision_verified True` fila por fila). Verificadas por WebFetch el 2026-09-15 (ADR-0083 Context 8).
+# ---------------------------------------------------------------------------------------------------------------
+VISION_CLASS = "proyección"
+VISION_FORMULA_SOURCE = {
+    "anthropic": "platform.claude.com/docs/en/build-with-claude/vision (2026-09-15)",
+    "openai": "developers.openai.com/api/docs/guides/images-vision (2026-09-15)",
+}
+VISION_FORMULAS = {
+    "anthropic": "anthropic: Σ⌈w/28⌉×⌈h/28⌉ (tier cap)",
+    "openai-tile": "openai-tile: 85+170×tiles (fit 2048 → shortest 768 → 512-px tiles)",
+    "openai-patch": "openai-patch: Σ⌈w/32⌉×⌈h/32⌉ × {mult} (cap 2500)",
+}
+# Tiers Anthropic (Context 8): la API reescala a lado largo ≤ max_side y área ≤ max_area ANTES de contar; max_tokens = el tope
+# publicado. max_area: 1092² en el tier estándar (la fila 1:1 de la tabla pública; 16:9 → 1456×819 → 1560 tokens; 1:2 →
+# 772×1544 → 1568 = el tope) y 1932² en el alto (= 2576×1449, la fila 16:9 a lado largo 2576 → 92×52 = 4784 = el tope).
+# El reescalado se redondea a píxel ENTERO (lo que hace un redimensionador real; evita que 1456.0000001/28 suba a 53).
+VISION_TIER_LIMITS = {
+    "high-res-2576": {"max_side": 2576, "max_area": 1932 * 1932, "max_tokens": 4784, "px_per_token_side": 28},
+    "standard-1568": {"max_side": 1568, "max_area": 1092 * 1092, "max_tokens": 1568, "px_per_token_side": 28},
+}
+# Modelos OpenAI por TILES (el puente chat.completions y sus contemporáneos): encajar en 2048², lado corto a 768, tiles de
+# 512 px, 85 + 170 × tiles; `low` = 85 fijos. Modelos por PARCHES (el candidato Responses y sol): ⌈w/32⌉×⌈h/32⌉, tope 2 500
+# parches a `high` (se reescala), × multiplicador de la fila; `original` = sin tope (Responses).
+VISION_TILE = {"fit": 2048, "shortest": 768, "tile_px": 512, "base": 85, "per_tile": 170, "low": 85}
+VISION_PATCH = {"px": 32, "cap_high": 2500}
+VISION_TOKENS_RULE = ("vision_tokens(model, w, h, detail) proyecta por la fórmula PÚBLICA del proveedor para el vision_tier de "
+                      "la fila: anthropic Σ⌈w/28⌉×⌈h/28⌉ tras reescalar a los límites del tier (área y lado largo; tope de "
+                      "tokens publicado); openai-tile 85+170×tiles (low = 85); openai-patch ⌈Σ⌈w/32⌉×⌈h/32⌉ × mult⌉ con tope "
+                      "2500 parches salvo detail 'original'. detail None|auto proyecta como 'high' (declarado en "
+                      "detail_effective). Clase PROYECCIÓN: los input_tokens medidos del juez YA incluyen la imagen; nada se "
+                      "suma dos veces. tier none|unknown o dims inválidas → None (no se proyecta lo que no se sabe).")
+
+
+def vision_tier_of(model):
+    """(vision_tier, vision_multiplier, vision_verified, source) — source 'table' | 'unknown-to-table' (tier 'unknown':
+    un id que la tabla no conoce NO recibe imágenes; no se afirma que vea)."""
+    row = MODELS.get(model)
+    if not row:
+        return "unknown", None, False, "unknown-to-table"
+    return row["vision_tier"], row["vision_multiplier"], row["vision_verified"], "table"
+
+
+def _ceil_div(a, b):
+    return -(-int(a) // int(b))
+
+
+def _fit_dims(w, h, max_area=None, max_side=None):
+    """(w', h', escalado: bool) — reescala HACIA ABAJO (jamás arriba) para que w'×h' ≤ max_area y max(w', h') ≤ max_side,
+    conservando la razón; redondeo a píxel entero."""
+    s = 1.0
+    if max_area is not None and w * h > max_area:
+        s = min(s, (max_area / float(w * h)) ** 0.5)
+    if max_side is not None and max(w, h) * s > max_side:
+        s = min(s, max_side / float(max(w, h)))
+    if s >= 1.0:
+        return int(w), int(h), False
+    return max(1, int(round(w * s))), max(1, int(round(h * s))), True
+
+
+def _valid_dim(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and v == int(v) and v > 0
+
+
+def vision_tokens(model, w, h, detail=None):
+    """PROYECCIÓN pública de tokens de imagen para `model` con una imagen w×h (ADR-0083 H). Devuelve
+    {tokens, formula, tier, family, detail, detail_effective, scaled {w, h}, scaled_applied, tiles? | patches?, multiplier,
+    cap_applied, source, class 'proyección', rule} o None cuando la tabla no lo conoce, el tier es none|unknown o las dims no
+    son enteros positivos (ausencia ≠ cero: no se proyecta lo que no se sabe)."""
+    tier, mult, _verified, _src = vision_tier_of(model)
+    if tier in ("none", "unknown") or not (_valid_dim(w) and _valid_dim(h)):
+        return None
+    w, h = int(w), int(h)
+    fam = MODELS[model]["family"]
+    d = str(detail).lower() if detail else "auto"
+    eff = "low" if d == "low" else "high"
+    base = {"tier": tier, "family": fam, "detail": detail if detail else None, "detail_effective": eff,
+            "multiplier": mult, "class": VISION_CLASS, "rule": VISION_TOKENS_RULE}
+    if tier in VISION_TIER_LIMITS:
+        lim = VISION_TIER_LIMITS[tier]
+        sw, sh, scaled = _fit_dims(w, h, lim["max_area"], lim["max_side"])
+        px = lim["px_per_token_side"]
+        raw = _ceil_div(sw, px) * _ceil_div(sh, px)
+        tokens = min(raw, lim["max_tokens"])
+        return {"tokens": tokens, "formula": VISION_FORMULAS["anthropic"], **base, "detail": None, "detail_effective": None,
+                "scaled": {"w": sw, "h": sh}, "scaled_applied": scaled, "cap_applied": raw > lim["max_tokens"],
+                "source": VISION_FORMULA_SOURCE["anthropic"]}
+    if tier == "tile-512":
+        T = VISION_TILE
+        if eff == "low":
+            return {"tokens": T["low"], "formula": VISION_FORMULAS["openai-tile"], **base, "scaled": None,
+                    "scaled_applied": False, "tiles": 0, "cap_applied": False, "source": VISION_FORMULA_SOURCE["openai"]}
+        sw, sh, scaled = _fit_dims(w, h, None, T["fit"])
+        if min(sw, sh) > T["shortest"]:
+            s = T["shortest"] / float(min(sw, sh))
+            sw, sh, scaled = max(1, int(round(sw * s))), max(1, int(round(sh * s))), True
+        tiles = _ceil_div(sw, T["tile_px"]) * _ceil_div(sh, T["tile_px"])
+        return {"tokens": T["base"] + T["per_tile"] * tiles, "formula": VISION_FORMULAS["openai-tile"], **base,
+                "scaled": {"w": sw, "h": sh}, "scaled_applied": scaled, "tiles": tiles, "cap_applied": False,
+                "source": VISION_FORMULA_SOURCE["openai"]}
+    # patch-32
+    P_ = VISION_PATCH
+    sw, sh, scaled, capped = w, h, False, False
+    patches = _ceil_div(sw, P_["px"]) * _ceil_div(sh, P_["px"])
+    if d != "original" and patches > P_["cap_high"]:
+        capped = True
+        s = (P_["cap_high"] / float(patches)) ** 0.5
+        sw, sh = max(1, int(round(w * s))), max(1, int(round(h * s)))
+        patches = _ceil_div(sw, P_["px"]) * _ceil_div(sh, P_["px"])
+        while patches > P_["cap_high"] and min(sw, sh) > 1:      # el redondeo puede dejar 1–2 parches de más: se acota
+            sw, sh = max(1, int(sw * 0.99)), max(1, int(sh * 0.99))
+            patches = _ceil_div(sw, P_["px"]) * _ceil_div(sh, P_["px"])
+        scaled = True
+    m = float(mult) if mult else 1.0
+    tokens = int(-(-(patches * m) // 1))
+    return {"tokens": tokens, "formula": VISION_FORMULAS["openai-patch"].replace("{mult}", str(mult if mult else 1)), **base,
+            "scaled": {"w": sw, "h": sh}, "scaled_applied": scaled, "patches": patches, "cap_applied": capped,
+            "source": VISION_FORMULA_SOURCE["openai"]}

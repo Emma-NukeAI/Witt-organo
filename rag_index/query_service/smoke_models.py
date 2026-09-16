@@ -20,12 +20,18 @@ en voz alta ante una familia desconocida; ab_trapped_scalar.py sigue leyendo el 
 (16) ADR-0082 (D.2, rebanada C3): rol `council` FUERA de PIPELINE_ROLES — `resolve_role('council')` g2 opus-5 / g1
 opus-4-8 (declarado) con fuente, `WITT_MODEL_COUNCIL` respetado, fable → excluded-model, gpt-* → wrong-family-for-role,
 tope `max_tokens.council` 4000/1200; `panel_signature` byte-IGUAL al GOLDEN @ 9d90c01 con y sin el rol (y con
-WITT_MODEL_COUNCIL pineado / WITT_COUNCIL=0); `snapshot().fields` 33 con `role.council` y `council.*` sin secretos;
+WITT_MODEL_COUNCIL pineado / WITT_COUNCIL=0); `snapshot().fields` 35 con `role.council` y `council.*` sin secretos;
 `council_effort()` (default medium, `inherit` declarado); kinds `bool`/`float` tolerantes y PARIDAD de literales con
 agent_matrix.council_full y catalog_cards.cache_config (C1); `CACHE_MULTIPLIERS` con fuente/fecha y `cache_prices()` =
-1.25×/2×/0.1× de `prices()`; ENV_TABLE 48 = 21 (ADR-0081) + 27 (ENV_ADR_0082); compose ∩ README ⊇ ENV_TABLE en DOS
-checks: las 21 de ADR-0081 (PASS hoy) y las 27 de ADR-0082 (FALLA hasta que C8 entregue compose/README — esperado y
-declarado, patrón del gate M.4).
+1.25×/2×/0.1× de `prices()`; ENV_TABLE 68 = 21 (ADR-0081) + 27 (ENV_ADR_0082) + 20 (ENV_ADR_0083); compose ∩ README ⊇
+ENV_TABLE en TRES checks: las 21 de ADR-0081 y las 27 de ADR-0082 (PASS hoy) y las 20 de ADR-0083 (FALLA hasta que F7 entregue
+compose/README — esperado y declarado, patrón del gate M.4);
+(17) ADR-0083 (G.4 / H / M.4 / O.5, rebanada F3): columnas `vision_tier` ∈ VISION_TIERS / `vision_multiplier` / `vision_verified`
+(False en TODAS) por fila y coherentes con la familia; `vision_tokens` == los ejemplos PÚBLICOS del ADR (1000² → 1296 en ambos
+tiers; 1920×1080 → 1560 estándar / 2691 alto; 2000×1500 → 1564/3888; 3840×2160 → 4784 = tope; puente 750×417 → 425 y 738×840 →
+765; candidato 750×417 → ⌈336×1.2⌉ = 404; low → 85; embed/desconocido → None); `panel_signature` INTACTA (golden 9d90c01) con
+WITT_FIGURES=0/1; `snapshot().fields` += figures.enabled/figures.vision con fuente; ENV_ADR_0083 (20) con los MISMOS defaults
+que figures.ENV_SPECS (paridad medida); clamps `maximum`/`minimum` de env_value.
 
 100% offline: ninguna llamada de modelo, ninguna mutación de la DATA INAMOVIBLE ni de mcp_cache. Las envs de la
 tabla se QUITAN del proceso al arrancar (el gate mide con env inyectada, nunca con la del operador). Exit 0 = todo PASS.
@@ -113,7 +119,8 @@ EXPECTED_STATUS = {
 check("tabla: 9 filas con los ids de (A) y el status de cada una",
       set(m.MODELS) == set(EXPECTED_STATUS) and all(m.MODELS[k]["status"] == v for k, v in EXPECTED_STATUS.items()),
       f"ids={sorted(m.MODELS)}")
-check("tabla: forma CERRADA por fila (MODEL_ROW_FIELDS, 13 llaves, retire_not_before/successor siempre presentes) y "
+check("tabla: forma CERRADA por fila (MODEL_ROW_FIELDS, 16 llaves = 13 de ADR-0081 + vision_tier/vision_multiplier/vision_verified "
+      "de ADR-0083, retire_not_before/successor siempre presentes) y "
       "vocabularios (family/api/status/thinking_default) válidos",
       all(tuple(r) == m.MODEL_ROW_FIELDS for r in m.MODELS.values())
       and all(r["family"] in m.FAMILIES and r["api"] in m.APIS and r["status"] in m.STATUSES
@@ -211,16 +218,25 @@ ENV_ADR_0082 = ("WITT_COUNCIL", "WITT_COUNCIL_FULL", "WITT_MODEL_COUNCIL", "WITT
                 "WITT_COUNCIL_ATTESTATION_CHARS", "WITT_COUNCIL_CACHE", "WITT_COUNCIL_CACHE_TTL", "WITT_COUNCIL_INDEX",
                 "WITT_COUNCIL_PRIOR_K", "WITT_COUNCIL_PRIOR_KINDS", "WITT_COUNCIL_INDEX_ORIGINS",
                 "WITT_ANTHROPIC_MAX_INFLIGHT", "WITT_ANTHROPIC_RETRY_AFTER_CAP_S")
+# ADR-0083 tabla de env: las 20 nuevas de figuras (WITT_MCP_CACHE_DIR ya existía y NO es de models.ENV_TABLE), en el orden del ADR
+ENV_ADR_0083 = ("WITT_FIGURES", "WITT_FIGURES_VISION", "WITT_FIGURES_VISION_LENSES", "WITT_FIGURES_MAX_PAPERS",
+                "WITT_FIGURES_MAX_PER_PAPER", "WITT_FIGURES_MAX_PER_RUN", "WITT_FIGURES_MAX_PER_LENS", "WITT_FIGURES_MAX_IMAGE_MB",
+                "WITT_FIGURES_ZIP_MAX_MB", "WITT_FIGURES_BUDGET_S", "WITT_FIGURES_TTL_DAYS", "WITT_FIGURES_CACHE_MAX_MB",
+                "WITT_FIGURES_CAPTION_CHARS", "WITT_FIGURES_EMBED_LICENSES", "WITT_FIGURES_PANEL_LICENSES",
+                "WITT_FIGURES_PROSE_LICENSE", "WITT_FIGURES_OPENAI_DETAIL", "WITT_FIGURES_REFETCH_ON_GET", "WITT_FIGURES_PDF_THUMBS",
+                "WITT_FIGURES_COUNT_TOKENS")
 check("ROLE_ENVS exacto (9 roles: 8 de ADR-0081 + council→WITT_MODEL_COUNCIL; OPENAI_JUDGE_MODEL conserva su nombre) y ENV_TABLE "
-      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 (models.ENV_ADR_0082 == la lista exacta de la tabla del ADR, en su orden), "
-      "cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS",
+      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 + 20 de ADR-0083 (models.ENV_ADR_0082/ENV_ADR_0083 == las listas exactas de las "
+      "tablas de los ADR, en su orden), cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS",
       m.ROLE_ENVS == {"synthesizer": "WITT_MODEL_SYNTH", "planner": "WITT_MODEL_PLANNER", "elicitation": "WITT_MODEL_ELICIT",
                       "question_agent": "WITT_MODEL_QUESTION", "judge.correctness": "WITT_JUDGE_CORRECTNESS",
                       "judge.overclaim": "WITT_JUDGE_OVERCLAIM", "judge.evidence-grounding": "WITT_JUDGE_GROUNDING",
                       "judge.reproducibility": "OPENAI_JUDGE_MODEL", "council": "WITT_MODEL_COUNCIL"}
-      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) and len(m.ENV_TABLE) == 48
+      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) | set(ENV_ADR_0083) and len(m.ENV_TABLE) == 68
       and m.ENV_ADR_0082 == ENV_ADR_0082 and len(m.ENV_ADR_0082) == 27
+      and m.ENV_ADR_0083 == ENV_ADR_0083 and len(m.ENV_ADR_0083) == 20
       and all(m.ENV_TABLE[k].get("adr") == "0082" for k in ENV_ADR_0082) and not any(m.ENV_TABLE[k].get("adr") for k in ENV_ADR_0081)
+      and all(m.ENV_TABLE[k].get("adr") == "0083" for k in ENV_ADR_0083)
       and all("default" in v and "kind" in v and "reader" in v and "effect" in v and v["kind"] in m.ENV_KINDS for v in m.ENV_TABLE.values()),
       f"envs={sorted(m.ENV_TABLE)}")
 
@@ -444,10 +460,11 @@ check("thinking_state por tabla (C.4): opus-5 'adaptive-by-api-default (tokens d
 # 9. snapshot (I)
 # =====================================================================================================
 S = m.snapshot(env={}, today=T)
-check("snapshot: fields == SNAPSHOT_FIELDS (33 = 28 de ADR-0081 + 5 de ADR-0082 al final, cerrada, en orden) y cada campo es "
-      "exactamente {value, source}",
-      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 33
-      and m.SNAPSHOT_FIELDS[28:] == m.COUNCIL_SNAPSHOT_FIELDS == ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
+check("snapshot: fields == SNAPSHOT_FIELDS (35 = 28 de ADR-0081 + 5 de ADR-0082 + 2 de ADR-0083 al final, cerrada, en orden) y cada "
+      "campo es exactamente {value, source}",
+      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 35
+      and m.SNAPSHOT_FIELDS[28:33] == m.COUNCIL_SNAPSHOT_FIELDS == ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
+      and m.SNAPSHOT_FIELDS[33:] == m.FIGURES_SNAPSHOT_FIELDS == ("figures.enabled", "figures.vision")
       and all(set(c) == {"value", "source"} for c in S["fields"].values()))
 F = S["fields"]
 check("snapshot env vacía: defaults TIPADOS con fuente 'default-unset:' — min_families 2 · min_lenses 3 · auto_retire False · openai.api "
@@ -877,18 +894,133 @@ check("CACHE_MULTIPLIERS {write_5m 1.25, write_1h 2.0, read 0.1} con fuente (pla
                                        "source": m.CACHE_MULTIPLIERS_SOURCE, "as_of": m.CACHE_AS_OF}
               for mid, p in m.prices().items())
       and m.cache_prices("llama-9") is None and m.prices() == GOLDEN_PRICES, f"{m.cache_prices('claude-opus-5')}")
-# --- compose ∩ README ⊇ ENV_TABLE (C8 es dueño de compose/README: el segundo check FALLA hasta que entregue — esperado) ---
+# =====================================================================================================
+# 17. ADR-0083 (G.4 / H / M.4 / O.5, rebanada F3): visión por tabla · vision_tokens · env de figuras · snapshot
+# =====================================================================================================
+_G2 = m.GENERATIONS["g2-2026-09"]["defaults"]
+_HAIKU, _OPUS, _BRIDGE = _G2["judge.evidence-grounding"], _G2["synthesizer"], _G2["judge.reproducibility"]
+_ASTRA = next(k for k, r_ in m.MODELS.items() if r_["status"] == "candidate")
+_EMBED = next(k for k, r_ in m.MODELS.items() if r_["status"] == "embed")
+_EXCL = next(k for k, r_ in m.MODELS.items() if r_["status"] == "excluded")
+check("ADR-0083 (G.4): VISION_TIERS cerrado (6); vision_tier por fila ∈ VISION_TIERS y COHERENTE con la familia — anthropic ∈ {high-res-2576, "
+      "standard-1568, unknown}, openai de herramientas ∈ {tile-512, patch-32}, embed 'none'; grounding g2 standard · sintetizador/overclaim/"
+      "g1 high-res · fable 'unknown' · puente tile · candidato y sol patch-32 ×1.2; vision_multiplier float sólo en patch-32; "
+      "vision_verified False en las 9 (nada medido en vivo: LG3/LG4)",
+      m.VISION_TIERS == ("high-res-2576", "standard-1568", "tile-512", "patch-32", "none", "unknown")
+      and all(r_["vision_tier"] in m.VISION_TIERS for r_ in m.MODELS.values())
+      and all(r_["vision_tier"] in ("high-res-2576", "standard-1568", "unknown") for r_ in m.MODELS.values() if r_["family"] == "anthropic")
+      and all(r_["vision_tier"] in ("tile-512", "patch-32") for r_ in m.MODELS.values() if r_["family"] == "openai" and r_["api"] != "openai-embeddings")
+      and m.MODELS[_EMBED]["vision_tier"] == "none" and m.MODELS[_HAIKU]["vision_tier"] == "standard-1568"
+      and m.MODELS[_OPUS]["vision_tier"] == m.MODELS[_G2["judge.overclaim"]]["vision_tier"] == m.MODELS["claude-opus-4-8"]["vision_tier"] == "high-res-2576"
+      and m.MODELS[_EXCL]["vision_tier"] == "unknown" and m.MODELS[_BRIDGE]["vision_tier"] == "tile-512"
+      and m.MODELS[_ASTRA]["vision_tier"] == m.MODELS["gpt-5.6-sol"]["vision_tier"] == "patch-32"
+      and m.MODELS[_ASTRA]["vision_multiplier"] == m.MODELS["gpt-5.6-sol"]["vision_multiplier"] == 1.2
+      and all((r_["vision_multiplier"] is None) == (r_["vision_tier"] != "patch-32") for r_ in m.MODELS.values())
+      and not any(r_["vision_verified"] for r_ in m.MODELS.values()),
+      json.dumps({k: (r_["vision_tier"], r_["vision_multiplier"]) for k, r_ in m.MODELS.items()}))
+_VT = [(_OPUS, 1000, 1000, 1296), (_HAIKU, 1000, 1000, 1296), (_HAIKU, 1920, 1080, 1560), (_OPUS, 1920, 1080, 2691),
+       (_HAIKU, 2000, 1500, 1564), (_OPUS, 2000, 1500, 3888), (_OPUS, 3840, 2160, 4784), (_BRIDGE, 750, 417, 425),
+       (_BRIDGE, 738, 840, 765), (_ASTRA, 750, 417, 404)]
+_got = [(mdl, w, h, m.vision_tokens(mdl, w, h)["tokens"]) for mdl, w, h, _e in _VT]
+check("ADR-0083 (H): vision_tokens == la tabla PÚBLICA del ADR — 1000² → 1296 (alto y estándar); 1920×1080 → 1560 estándar (1456×819) / 2691 "
+      "alto (sin reescalar); 2000×1500 → 1564 / 3888; 3840×2160 alto → 4784 (= tope publicado, 2576×1449); puente 750×417 → 85+2×170 = 425, "
+      "738×840 → 85+4×170 = 765; candidato 750×417 → ⌈336×1.2⌉ = 404",
+      _got == list(_VT), json.dumps(_got))
+_vh = m.vision_tokens(_HAIKU, 1920, 1080)
+_vg = m.vision_tokens(_BRIDGE, 738, 840)
+_va = m.vision_tokens(_ASTRA, 750, 417)
+check("ADR-0083 (H): forma de vision_tokens — {tokens, formula, tier, family, detail, detail_effective, scaled, scaled_applied, multiplier, "
+      "cap_applied, source, class 'proyección', rule} (+tiles | +patches); formulas literales; anthropic scaled 1456×819 (aplicado); "
+      "tile 4 tiles sin reescalar; patch 336 parches ×1.2; detail None → 'auto' proyecta como high (declarado)",
+      _vh["formula"] == m.VISION_FORMULAS["anthropic"] == "anthropic: Σ⌈w/28⌉×⌈h/28⌉ (tier cap)" and _vh["scaled"] == {"w": 1456, "h": 819}
+      and _vh["scaled_applied"] is True and _vh["cap_applied"] is False and _vh["class"] == "proyección" == m.VISION_CLASS
+      and _vh["source"] == m.VISION_FORMULA_SOURCE["anthropic"] and _vh["rule"] == m.VISION_TOKENS_RULE
+      and _vg["formula"] == "openai-tile: 85+170×tiles (fit 2048 → shortest 768 → 512-px tiles)" and _vg["tiles"] == 4
+      and _vg["scaled_applied"] is False and _vg["detail"] is None and _vg["detail_effective"] == "high"
+      and _va["formula"] == "openai-patch: Σ⌈w/32⌉×⌈h/32⌉ × 1.2 (cap 2500)" and _va["patches"] == 336 and _va["multiplier"] == 1.2
+      and set(_vh) == {"tokens", "formula", "tier", "family", "detail", "detail_effective", "scaled", "scaled_applied", "multiplier",
+                       "cap_applied", "source", "class", "rule"})
+check("ADR-0083 (H): límites — puente detail 'low' → 85 fijos (0 tiles); 4000×3000 en el puente → encaja en 2048, lado corto a 768 → 1024×768 "
+      "= 2×2 tiles → 765; candidato 6000×4000 (23 437 parches) → reescalado a ≤ 2500 parches (cap_applied), 'original' → sin tope; "
+      "3000×3000 alto → 1932² → 69² = 4761 ≤ 4784; embed / id desconocido / dims inválidas → None (no se proyecta lo que no se sabe)",
+      m.vision_tokens(_BRIDGE, 750, 417, "low")["tokens"] == 85 and m.vision_tokens(_BRIDGE, 750, 417, "low")["tiles"] == 0
+      and m.vision_tokens(_BRIDGE, 4000, 3000)["tokens"] == 765 and m.vision_tokens(_BRIDGE, 4000, 3000)["scaled"] == {"w": 1024, "h": 768}
+      and m.vision_tokens(_ASTRA, 6000, 4000)["patches"] <= 2500 and m.vision_tokens(_ASTRA, 6000, 4000)["cap_applied"] is True
+      and m.vision_tokens(_ASTRA, 6000, 4000, "original")["patches"] == 188 * 125 and m.vision_tokens(_ASTRA, 6000, 4000, "original")["cap_applied"] is False
+      and m.vision_tokens(_OPUS, 3000, 3000)["tokens"] == 4761 and m.vision_tokens(_OPUS, 3000, 3000)["scaled"] == {"w": 1932, "h": 1932}
+      and m.vision_tokens(_EMBED, 100, 100) is None and m.vision_tokens("llama-9", 100, 100) is None
+      and m.vision_tokens(_OPUS, 0, 100) is None and m.vision_tokens(_OPUS, None, 100) is None and m.vision_tokens(_OPUS, 10.5, 100) is None)
+check("ADR-0083 (G.4): vision_tier_of — (tier, multiplier, verified, 'table') por fila; id desconocido → ('unknown', None, False, 'unknown-to-table')",
+      m.vision_tier_of(_HAIKU) == ("standard-1568", None, False, "table") and m.vision_tier_of(_ASTRA) == ("patch-32", 1.2, False, "table")
+      and m.vision_tier_of("llama-9") == ("unknown", None, False, "unknown-to-table"))
+_SF = m.snapshot(env={}, today=T)["fields"]
+_SF0 = m.snapshot(env={"WITT_FIGURES": "0", "WITT_FIGURES_VISION": "off"}, today=T)["fields"]
+_SFb = m.snapshot(env={"WITT_FIGURES": "maybe"}, today=T)["fields"]
+check("ADR-0083 (O.5): snapshot.fields figures.enabled {True, 'default-unset:WITT_FIGURES'} y figures.vision {True, 'default-unset:…'}; "
+      "WITT_FIGURES=0 → {False, env}; WITT_FIGURES_VISION=off → False (mismos literales bool que figures.env_config); 'maybe' → default con "
+      "'default-invalid-env'; panel_signature INTACTA (== golden 9d90c01) con figuras encendidas o apagadas — FUERA de la firma",
+      _SF["figures.enabled"] == {"value": True, "source": "default-unset:WITT_FIGURES"}
+      and _SF["figures.vision"] == {"value": True, "source": "default-unset:WITT_FIGURES_VISION"}
+      and _SF0["figures.enabled"] == {"value": False, "source": "env:WITT_FIGURES"} and _SF0["figures.vision"] == {"value": False, "source": "env:WITT_FIGURES_VISION"}
+      and _SFb["figures.enabled"] == {"value": True, "source": "default-invalid-env:WITT_FIGURES"}
+      and m.snapshot(env={"WITT_FIGURES": "0"}, today=T)["panel_signature"] == PANEL_SIGNATURE_GOLDEN_9D90C01 == _SF["panel_signature"]["value"])
+try:
+    from lib import figures as _fig  # noqa: E402
+    _specs = {s[1]: s for s in _fig.ENV_SPECS if s[1] != "WITT_MCP_CACHE_DIR"}
+    _KIND_MAP = {"bool": "bool", "int": "int", "float": "float", "csv": "str", "licenses": "str", "choice": "choice"}
+    _cfg0 = _fig.env_config({})
+    _by_var = {s[1]: s[0] for s in _fig.ENV_SPECS}
+
+    def _typed_default_equal(var):
+        v_m, _s = m.env_value(var, {})
+        v_f = _cfg0[_by_var[var]]
+        kind = _specs[var][3]
+        if kind in ("csv", "licenses"):
+            return [t for t in v_m.split(",")] == list(v_f) or tuple(v_m.split(",")) == tuple(v_f)
+        return v_m == v_f
+    _bad_default = [v for v in ENV_ADR_0083 if m.ENV_TABLE[v]["default"] != _specs[v][2]]
+    _bad_kind = [v for v in ENV_ADR_0083 if m.ENV_TABLE[v]["kind"] != _KIND_MAP[_specs[v][3]]]
+    _bad_typed = [v for v in ENV_ADR_0083 if v in ("WITT_FIGURES_EMBED_LICENSES", "WITT_FIGURES_PANEL_LICENSES") and False or not _typed_default_equal(v)]
+    _bad_clamp = [v for v in ENV_ADR_0083 if _specs[v][3] in ("int", "float") and _specs[v][4]
+                  and (m.ENV_TABLE[v].get("minimum") != _specs[v][4][0] or m.ENV_TABLE[v].get("maximum") != _specs[v][4][1])]
+    check("ADR-0083 (M.4) PARIDAD de literales: set(ENV_ADR_0083) == figures.ENV_VARS − {WITT_MCP_CACHE_DIR}; default de cada fila de "
+          "models.ENV_TABLE == el de figures.ENV_SPECS (string); kind mapeado (bool/int/float/choice; csv y licencias → str); default TIPADO "
+          "de env_value == figures.env_config({}) (bools, ints, floats, choice, CSV); clamps int/float de figures == minimum/maximum",
+          set(ENV_ADR_0083) == set(_fig.ENV_VARS) - {"WITT_MCP_CACHE_DIR"} and not _bad_default and not _bad_kind and not _bad_typed
+          and not _bad_clamp and m.ENV_TABLE["WITT_FIGURES_OPENAI_DETAIL"]["choices"] == tuple(_fig.OPENAI_DETAILS),
+          f"default={_bad_default} kind={_bad_kind} typed={_bad_typed} clamp={_bad_clamp}")
+    check("ADR-0083 (M.4) env_value con clamps: MAX_PER_LENS 25 → default 12 'default-invalid-env' (máximo 20); MAX_IMAGE_MB '0' → 0.0 env "
+          "(mínimo INCLUSIVO); '7.5' → default 5.0 invalid; OPENAI_DETAIL 'HIGH' → 'high' (casefold); 'ultra' → default 'high' invalid; "
+          "WITT_COUNCIL_QUORUM '0' sigue rechazado (min_exclusive intacto); figures.env_config lee lo mismo",
+          m.env_value("WITT_FIGURES_MAX_PER_LENS", {"WITT_FIGURES_MAX_PER_LENS": "25"}) == (12, "default-invalid-env:WITT_FIGURES_MAX_PER_LENS")
+          and m.env_value("WITT_FIGURES_MAX_IMAGE_MB", {"WITT_FIGURES_MAX_IMAGE_MB": "0"}) == (0.0, "env:WITT_FIGURES_MAX_IMAGE_MB")
+          and m.env_value("WITT_FIGURES_MAX_IMAGE_MB", {"WITT_FIGURES_MAX_IMAGE_MB": "7.5"}) == (5.0, "default-invalid-env:WITT_FIGURES_MAX_IMAGE_MB")
+          and m.env_value("WITT_FIGURES_OPENAI_DETAIL", {"WITT_FIGURES_OPENAI_DETAIL": "HIGH"}) == ("high", "env:WITT_FIGURES_OPENAI_DETAIL")
+          and m.env_value("WITT_FIGURES_OPENAI_DETAIL", {"WITT_FIGURES_OPENAI_DETAIL": "ultra"}) == ("high", "default-invalid-env:WITT_FIGURES_OPENAI_DETAIL")
+          and m.env_value("WITT_COUNCIL_QUORUM", {"WITT_COUNCIL_QUORUM": "0"})[1].startswith("default-invalid-env")
+          and _fig.env_config({"WITT_FIGURES_MAX_PER_LENS": "25"})["max_per_lens"] == 12
+          and _fig.env_config({"WITT_FIGURES_MAX_PER_LENS": "25"})["sources"]["max_per_lens"] == "default-invalid-env:WITT_FIGURES_MAX_PER_LENS")
+except Exception as e:  # pragma: no cover — F1 es dueño de figures.py; si no importa, se declara
+    check(f"ADR-0083: lib.figures importable para la paridad de env ({type(e).__name__}: {str(e)[:100]})", False)
+    check("ADR-0083: paridad env (no medida)", False)
+
+# --- compose ∩ README ⊇ ENV_TABLE (C8 entregó las 27 de 0082; F7 es dueño de las 20 de 0083: ese check FALLA hasta que entregue) ---
 _compose = (HERE / "docker-compose.query.yml").read_text(encoding="utf-8")
 _readme = (HERE / "README.md").read_text(encoding="utf-8")
 _compose_vars = set(re.findall(r"^\s*-\s*([A-Z][A-Z0-9_]+)=", _compose, re.M))
 _missing_81 = sorted(v for v in ENV_ADR_0081 if v not in _compose_vars or f"`{v}`" not in _readme)
 _missing_82 = sorted(v for v in ENV_ADR_0082 if v not in _compose_vars or f"`{v}`" not in _readme)
+_missing_83 = sorted(v for v in ENV_ADR_0083 if v not in _compose_vars or f"`{v}`" not in _readme)
 check("ENV_TABLE ⊆ compose ∩ README — las 21 env de ADR-0081 declaradas en docker-compose.query.yml (- VAR=${VAR:-…}) y en README.md (`VAR`)",
       not _missing_81, f"faltan={_missing_81}")
 check("ENV_TABLE ⊆ compose ∩ README — las 27 env de ADR-0082 (ENV_ADR_0082) declaradas en compose (bloque ADR-0082 tras WITT_CONFIG_LEDGER, "
       "27 placeholders ${VAR:-default}) y en README (tabla de env). Dueño: C8. Hasta que aterrice este check FALLA y ES lo esperado "
       "(patrón del gate M.4 de ADR-0081); la lista de faltantes se imprime",
       not _missing_82, f"{len(_missing_82)} faltan: {_missing_82}")
+check("ENV_TABLE ⊆ compose ∩ README — las 20 env de ADR-0083 (ENV_ADR_0083) declaradas en compose (bloque ADR-0083 tras el bloque 0082, "
+      "20 placeholders ${VAR:-default}) y en README (tabla de env). Dueño: F7. Hasta que aterrice este check FALLA y ES lo esperado "
+      "(patrón del gate M.4 de ADR-0081 / C8 de ADR-0082); la lista de faltantes se imprime",
+      not _missing_83, f"{len(_missing_83)} faltan: {_missing_83}")
 
 # =====================================================================================================
 # 15. Cero red · sys.modules sin openai

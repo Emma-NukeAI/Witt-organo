@@ -1841,9 +1841,12 @@ check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.10' — 1
       "n_search_rounds}; 1.10 (ADR-0081) suma frozen.models, answer.{model_source, model_reported, relation}, audit.{families_valid…, "
       "quorum}, by_stage.panel.by_model, plan.judgment.planner.model_source, epistemic_summary.{model_generation, "
       "panel_n_families_valid} + eventos stage.models / run.state{queued}.root_run_no; la webapp los tipa `?` — eso ES la paridad",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.11")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+      runs_mod.RENDER_CONTRACT_VERSION == "1.12")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
                                                     # 1.11 = ADR-0082 (consejo de criterio): +council, deterministic_checks.council/
                                                     # attestation_identifier_leak, token_usage.cache/council_r*, citations[].pertinent con razón
+                                                    # 1.12 = ADR-0083 (figuras como evidencia observada): +figures, citations[].kind 'figure' +
+                                                    # figure_verification, citations_support_summary.figure_citations, deterministic_checks.figures,
+                                                    # audit.panel[].saw_figures/audit.vision (F3), by_model[*].vision, agents_invoked fila figures
 check("ADR-0079 (D) synth_system SIN turno anterior es byte-idéntico al de antes (la medición de ab_trapped_scalar no "
       "cambia); CON turno gana THREAD_ANTI_LEAK_CLAUSE; SYNTH_TOOL.description lleva la frase anti-fuga SIEMPRE",
       runs_mod.synth_system("pass1") == runs_mod.synth_system("pass1", thread_context=False)
@@ -3436,6 +3439,15 @@ _ADD_110 = {
 _ADD_110["top"] |= {"council"}
 _ADD_110["epistemic"] |= {"council_state", "council_n_valid", "council_n_members", "council_must_uncovered"}
 _ADD_110["queued_payload"] |= {"council"}
+# ADR-0083 (1.12, L): llaves ADITIVAS declaradas de las figuras — frozen.figures (top, SIEMPRE presente en >= 1.12),
+# epistemic_summary.figures_* y stage.audit.judge.{figures_sent, figures_sha256} (medidos: 0 y [] cuando no viajó ninguna)
+_ADD_110["top"] |= {"figures"}
+_ADD_110["epistemic"] |= {"figures_state", "figures_n_verified", "figures_n_cited"}
+_ADD_110["judge_payload"] |= {"figures_sent", "figures_sha256"}
+# ADR-0083 (G.6, F3): con WITT_FIGURES=1 CADA fila del panel gana saw_figures (MEDIDO: n 0 + detail cuando no hubo figuras) y
+# audit gana vision — llaves aditivas declaradas; bajo WITT_FIGURES=0 no se emiten (M.1, medido en la sección ADR-0083)
+_ADD_110["audit"] |= {"vision"}
+_ADD_110["audit_row"] |= {"saw_figures"}
 
 
 def _mk_api_81(reported_suffix=None, reported_literal=None):
@@ -4201,7 +4213,7 @@ check("ADR-0082 (J) frozen.council íntegro: module 'council-1', membership cm-1
       and _cn_a["vocabulary"]["usage_stage_states"]["exact"] == list(runs_mod.COUNCIL_USAGE_STAGE_STATES_EXACT)
       and _cn_a["decided_by"] == "code (council.aggregate_*)"
       and _cn_a["kill_switch"]["enabled"] is True and "state" in _cn_a["index"]
-      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.11",
+      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.12",   # ADR-0083: 1.12 apila sobre 1.11
       json.dumps({"cache": _cn_a["cache"], "model": _cn_a["model"]}, default=str)[:400])
 _tu_a = _rec_ca["token_usage"]
 _cm_a = _cn_a["model"]["requested"]
@@ -4453,8 +4465,9 @@ check("ADR-0082 (L.2) kill-switch WITT_COUNCIL=0 con la misma copia F.4: CERO ll
       "not-applicable 'kill-switch WITT_COUNCIL=0' (sin filas por miembro); citations[].pertinent 'not-available (council disabled (…))'; "
       "panel_signature byte-igual a la corrida (a) con consejo; el sintetizador NO recibió human_attestations (ledger apagado)",
       _C_CALLS == [] and not any(t.startswith("stage.council.") for t in _ev_types(_ev_ce))
-      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council"}
-      and set(_rec_ce["token_usage"]) == _TU_1_10_KEYS | {"cache", "input_tokens_total", "council_judgment", "cache_sum_matches_by_model"}
+      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council", "figures"}   # ADR-0083: frozen.figures SIEMPRE presente en >= 1.12
+      and set(_rec_ce["token_usage"]) == _TU_1_10_KEYS | {"cache", "input_tokens_total", "council_judgment", "cache_sum_matches_by_model",
+                                                            "figures"}   # F8 ADR-0083 (H): usage_json.figures espejo (WITT_FIGURES=1 default)
       and _rec_ce["token_usage"]["cache"]["creation_input_tokens"] == _r1_usage["cache_creation"]
       and _rec_ce["token_usage"]["cache"]["read_input_tokens"] == _r1_usage["cache_read"]
       and _rec_ce["token_usage"]["council_judgment"]["rounds"] == ["council_r1"]
@@ -4491,8 +4504,9 @@ _DC_1_10_BASE = {"pass", "admissible", "reasons", "identifier_report", "parent_i
 check("ADR-0082 (L.2 i) corrector: bajo kill-switch deterministic_checks = keyset 1.10 congelado @ 9d90c01 (runs._gate + pass1_admissible/competence_gate/disjoint_series*) + EXACTAMENTE las 4 llaves "
       "aditivas DECLARADAS {council {state}, attestation_identifier_leak [], _state 'no-attestations', _rule} — el fragmento viaja al panel "
       "con estado declarado (tres estados: el predicado corrió y no había atestiguaciones) y la excepción queda escrita en el ADR",
-      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111) - {"positive_claim_requires_citations_inputs",
-                                                            "positive_claim_requires_citations_evaluation"} == _DC_1_10_BASE
+      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111 - {"figures"}) - {"positive_claim_requires_citations_inputs",
+                                                                          "positive_claim_requires_citations_evaluation"} == _DC_1_10_BASE
+      # ADR-0083 (F/L): deterministic_checks.figures NACE en 1.12 (SIEMPRE presente; su keyset se mide en la sección ADR-0083)
       and _DC_ADD_111 <= set(_rec_ce["deterministic_checks"])
       and _rec_ce["deterministic_checks"]["attestation_identifier_leak"] == []
       and _rec_ce["deterministic_checks"]["attestation_identifier_leak_state"] == "no-attestations"
@@ -4721,12 +4735,1080 @@ check("ADR-0082 (K.m) record_pdf: la sección 'CONSEJO DE CRITERIO' NACE con el 
       f"len(a)={len(_pdf_a)} len(e)={len(_pdf_e)}")
 _sh._TOOL_CACHE.pop("string", None)
 
+# =====================================================================================================================
+# ADR-0083 (F4) — FIGURAS como evidencia OBSERVADA en la corrida (contrato 1.12): etapa PROPIA stage.figures tras la Ruta B,
+# proyección caption+meta al sintetizador (JAMÁS bytes), citas kind 'figure' con figure_verification, panel con visión (F3:
+# imágenes SÓLO en dos lentes), predicados deterministas (F2), frozen.figures, kill-switches byte a byte. 100% offline con los
+# fixtures de F1 (2 XML golden + zip CC BY real reducido + zip NC SINTÉTICO), _get_bytes FALSO (0 red), caché de figuras en TMP.
+# Los checks marcados [F2] / [F3] miden contratos DECLARADOS de rebanadas paralelas: rojos LITERALES hasta que aterricen.
+# =====================================================================================================================
+print("\n== ADR-0083 (F4) figuras en la corrida ==")
+import base64 as _b64  # noqa: E402
+import io as _io  # noqa: E402
+import zipfile as _zipfile  # noqa: E402
+from lib import figures as _fig  # noqa: E402
+
+_FX83 = Path(__file__).resolve().parent / "fixtures" / "figures"
+_MAN83 = json.loads((_FX83 / "MANIFEST.json").read_text(encoding="utf-8"))
+_XML_BY83 = _FX83 / "epmc_fulltext_PMC11379296_20260613.xml"
+_XML_NC83 = _FX83 / "epmc_fulltext_PMC11647118_20260613.xml"
+_ZIP_BY83 = (_FX83 / "PMC11379296-figures.zip").read_bytes()
+_ZIP_NC83 = (_FX83 / "PMC11647118-figures-SYNTHETIC.zip").read_bytes()
+_MAN_BY83 = {e["href"]: e for e in _MAN83["zips"]["PMC11379296"]["entries"]}
+_ZF_BY83 = _zipfile.ZipFile(_io.BytesIO(_ZIP_BY83))
+_B64_BY83 = {n: _b64.b64encode(_ZF_BY83.read(n)).decode("ascii") for n in _ZF_BY83.namelist()}
+_G001_HREF = "pone.0307390.g001.jpg"
+_G001_B64 = _B64_BY83[_G001_HREF]
+_G001_ID = "PMC11379296#pone.0307390.g001"
+_FIG_IDS83 = [f"PMC11379296#pone.0307390.g00{i}" for i in range(1, 10)]
+_LENSES_V83 = ["evidence-grounding", "reproducibility"]
+# la caché de figuras del gate vive en un TMP propio (WITT_MCP_CACHE_DIR): mcp_cache del repo byte-idéntico (snapshot final)
+_FIG_CACHE83 = TMP / "mcp_cache_figs"
+_MCP_ENV_SAVED83 = os.environ.get("WITT_MCP_CACHE_DIR")
+os.environ["WITT_MCP_CACHE_DIR"] = str(_FIG_CACHE83)
+_CR83 = _FIG_CACHE83 / "figures"
+# la costura de red de figures quedó ligada al urlopen REAL al importar (antes del bloqueador): se bloquea y cuenta aquí también
+_FIG_URLOPEN_SAVED83 = _fig._urlopen
+_fig._urlopen = _urlopen_blocked
+_net_before83 = len(_NET_CALLS)
+
+# XML SINTÉTICO sin <permissions> → licencia 'unknown' (declarado: el gate mide licencia y sha, no contenido); su zip lleva el PNG
+# 1×1 del fixture NC bajo el href u1.jpg (media_type por magic ≠ mime por extensión)
+_XML_UNK83 = TMP / "epmc_fulltext_PMC90000001_synthetic_fulltext.xml"
+_XML_UNK83.write_text(
+    '<article xml:lang="en" xmlns:xlink="http://www.w3.org/1999/xlink"><front><article-meta>'
+    '<article-id pub-id-type="pmcid">PMC90000001</article-id></article-meta></front><body>'
+    '<fig id="u1"><label>Fig 1</label><caption><p>Synthetic figure whose article carries no permissions block.</p></caption>'
+    '<graphic xlink:href="u1.jpg"/></fig></body></article>', encoding="utf-8")
+_PNG1x1 = _zipfile.ZipFile(_io.BytesIO(_ZIP_NC83)).read("gr1.jpg")
+_bufu = _io.BytesIO()
+with _zipfile.ZipFile(_bufu, "w") as _zu:
+    _zu.writestr("u1.jpg", _PNG1x1)
+_ZIP_UNK83 = _bufu.getvalue()
+_ZIPS83 = {"PMC11379296": _ZIP_BY83, "PMC11647118": _ZIP_NC83, "PMC90000001": _ZIP_UNK83}
+_XMLS83 = {"PMC11379296": _XML_BY83, "PMC11647118": _XML_NC83, "PMC90000001": _XML_UNK83}
+_RECS83 = {
+    "PMC11379296": {"epmc_id": "83a", "source": "MED", "pmid": "39230001", "pmcid": "PMC11379296",
+                    "doi": "10.1371/journal.pone.0307390", "title": _MAN83["attribution"]["PMC11379296"]["title"],
+                    "year": "2024", "journal": "PLoS One", "is_oa": True, "abstract": "wt1a pronephros abstract (CC BY fixture).",
+                    "cited_by": 1, "license": "cc by"},
+    "PMC11647118": {"epmc_id": "83b", "source": "MED", "pmid": "39230002", "pmcid": "PMC11647118", "doi": None,
+                    "title": _MAN83["attribution"]["PMC11647118"]["title"], "year": "2024", "journal": "J", "is_oa": True,
+                    "abstract": "wt1a pronephros abstract (CC BY-NC fixture).", "cited_by": 0, "license": "cc by-nc"},
+    "PMC90000001": {"epmc_id": "83c", "source": "MED", "pmid": "39230003", "pmcid": "PMC90000001", "doi": None,
+                    "title": "synthetic unknown-license paper", "year": "2024", "journal": "J", "is_oa": True,
+                    "abstract": "wt1a pronephros abstract (unknown license, synthetic).", "cited_by": 0, "license": None},
+}
+_PMID2PMC83 = {r["pmid"]: pm for pm, r in _RECS83.items()}
+_GET83 = []
+_REAL_GET83 = _fig._get_bytes
+
+
+def _mk_get83(zips=None, raise_exc=None, hook=None):
+    """_get_bytes FALSO con la MISMA firma (url, timeout, max_bytes, dest=None): escribe el zip fixture en `dest` (0 red)."""
+    zips = _ZIPS83 if zips is None else zips
+
+    def _fake(url, timeout, max_bytes, dest=None):
+        _GET83.append({"url": url, "timeout": timeout, "max_bytes": max_bytes, "dest": str(dest)})
+        if hook is not None:
+            hook(url)
+        if raise_exc is not None:
+            raise raise_exc
+        zb = zips[url.rsplit("/", 2)[-2]]
+        Path(dest).write_bytes(zb)
+        return {"status": "ok", "http_status": 200, "content_length": len(zb), "content_type": "application/zip",
+                "bytes": len(zb), "elapsed_s": 0.02, "url": url, "path": str(dest)}
+    return _fake
+
+
+def _sources83(pmcids, with_xml=True):
+    """Fuentes fake de la Ruta B: EPMC devuelve los recs pedidos; fetch_external deja .txt (excerpt) + el XML fixture en raw_cached
+    (rutas ABSOLUTAS → figures.locate_xml); PubMed vacío, ZFIN de siempre, Layer 0 no-match."""
+    recs = [_RECS83[p] for p in pmcids]
+
+    def _epmc(query, n=5, sort=None, synonym=True):
+        return list(recs), {"source": "europepmc", "status": "success", "query_sent": query, "n_found": len(recs),
+                            "n_returned": len(recs), "elapsed_s": 0.01, "sort": "RELEVANCE", "synonym": True,
+                            "throttle": "net_throttle", "throttle_slept_s": 0.0, "contact": "unset"}
+
+    def _fetch(ident, want_full_text=True):
+        pmcid = _PMID2PMC83.get(str(ident).replace("PMID:", ""))
+        if pmcid is None:
+            return {"found": False, "fetch_error": "not in ADR-0083 fixture"}
+        txt = TMP / f"raw_paper_{pmcid}_20260613.txt"
+        txt.write_text(_FULLTEXT, encoding="utf-8")
+        cached = [str(txt)] + ([str(_XMLS83[pmcid])] if with_xml else [])
+        return {"found": True, "full_text": True, "n_chunks": 4, "raw_cached": cached, "raw_ref": None,
+                "record": {"abstract": _RECS83[pmcid]["abstract"]}, "cache_hit": True, "cached_at": "2026-06-13T00:00:00Z",
+                "cached_at_source": "fetched_at", "cache_age_days": 95.0}
+    answer_pipeline.fetch_paper.search_europepmc_ledger = _epmc
+    answer_pipeline.fetch_paper.fetch_external = _fetch
+    answer_pipeline._WS_CACHE[("pubmed_literature.py", "query_pubmed")] = _fake_pubmed_empty
+    answer_pipeline._WS_CACHE[("zfin_zebrafish.py", "query_zfin")] = _fake_zfin
+    _inject_l0("no-match")
+
+
+_PANEL83 = []     # lo que recibió CADA llamada al caller del panel: lente, figuras en el member, regla en el system, b64 en el texto
+_SYNTH83 = []     # lo que recibió CADA pasada del sintetizador: la evidencia (dict + json) — el sintetizador JAMÁS ve bytes
+
+
+def _panel83(verdicts, readings=False, cs=None, rounds=None):
+    """Caller del panel que REGISTRA member['figures'] (F3 las pone SÓLO en las lentes con visión), si el system lleva
+    FIGURE_READING_RULE y si la b64 del fixture se coló en user_text. `readings=True` → las lentes con figuras emiten
+    figure_readings (juicio); `rounds` = [verdicts_panel1, verdicts_panel2] para forzar REVISE y luego APPROVE.
+    `evidence_has_figures_key` mira SÓLO la evidencia del user_text (el panel SÍ recibe deterministic_checks.figures {state}:
+    una de las 3 excepciones declaradas bajo kill-switch)."""
+    calls = {}
+
+    def _caller(member, system, user_text):
+        figs = [f for f in member.get("figures") or []] if isinstance(member.get("figures"), list) else []
+        rule = getattr(composite_auditor, "FIGURE_READING_RULE", None)
+        try:
+            ev_json = json.dumps(json.loads(user_text).get("evidence"), ensure_ascii=False)
+        except Exception:
+            ev_json = user_text
+        _PANEL83.append({"lens": member["lens"], "reviewer": member["reviewer"], "n_figures": len(figs),
+                         "shas": [f.get("sha256") for f in figs], "b64_in_user_text": _G001_B64 in user_text,
+                         "rule_in_system": bool(rule) and rule in system, "attempt": member.get("attempt"),
+                         "evidence_has_figures_key": '"figures"' in ev_json})
+        calls[member["lens"]] = calls.get(member["lens"], 0) + 1
+        vtab = rounds[min(calls[member["lens"]], len(rounds)) - 1] if rounds else verdicts
+        v = vtab[member["lens"]]
+        if isinstance(v, Exception):
+            raise v
+        out = {"verdict": v, "caught": f"({member['lens']}) finding" if v != "APPROVE" else "", "correction_applied": "",
+               "confidence": 0.9, "reasons": [f"{member['lens']} reason"] if v != "APPROVE" else []}
+        if member["lens"] == "evidence-grounding" and cs is not None:
+            out["citation_support"] = list(cs)
+        if readings and figs:
+            out["figure_readings"] = [{"fig_id": f["fig_id"], "reading": "panel judgment: image consistent with its caption",
+                                       "consistent_with_caption": True} for f in figs[:2]]
+        return out, {"input_tokens": 10, "output_tokens": 5}
+    return _caller
+
+
+_CIT_PASS1_83 = [{"kind": "di-record", "id": "CORPUS-2026-0001"}]   # pass1 es DI-only: una figura citada ahí sería alucinada (F.1)
+
+
+def _synth83(answer_text, cited, conf=None, absence_kind="not-applicable", rev_text=None):
+    """Sintetizador stub con la firma NUEVA: pass1 cita SÓLO la DI (no ha visto figuras — citar una en pass1 es un id no resuelto y
+    F2 lo hace inadmisible, con razón); pass2/revisión citan `cited` (papers + figuras de la Ruta B)."""
+    conf = conf or {"pass1": 0.8, "pass2": 0.85, "revision": 0.85}
+
+    def _s(question, evidence, pass_label, thread_context=None, human_attestations=None):
+        _SYNTH83.append({"pass": pass_label, "evidence": evidence, "json": json.dumps(evidence, ensure_ascii=False, default=str)})
+        out = _mk_synth(conf)(question, evidence, pass_label)
+        out["direct_answer"] = (rev_text or answer_text) if pass_label == "revision" else answer_text
+        out["evidence_cited"] = json.loads(json.dumps(_CIT_PASS1_83 if pass_label == "pass1" else cited))
+        out["absence_kind"] = absence_kind
+        return out
+    return _s
+
+
+def _run83(question, synth, panel=None, env=None, pmcids=("PMC11379296",), with_xml=True, get=None, before=None):
+    """Corrida por la PUERTA sin plan (no competente por ruta → harness → Ruta B) con las fuentes fake de figuras y _get_bytes
+    falso; `env` sólo durante la corrida. Devuelve (run_id, frozen|None, events, row)."""
+    env = dict(env or {})
+    saved = {k: os.environ.get(k) for k in env}
+    for k, v in env.items():
+        os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+    _fig._get_bytes = get or _mk_get83()
+    _GET83.clear(); _PANEL83.clear(); _SYNTH83.clear()
+    try:
+        _sources83(pmcids, with_xml=with_xml)
+        rv = app.create_run(app.RunBody(question=question, entities=["wt1a"]), authorization=AUTH)
+        rid = rv["run_id"]
+        if before is not None:
+            before(rid)
+        claimed = db.claim_next_queued(worker_id="run-worker-adr0083")
+        assert claimed and claimed["run_id"] == rid, "FIFO: la corrida reclamada debe ser la esperada"
+        runs_mod.execute_run(claimed, synthesizer=synth, panel_caller=panel or _panel83(ALL_A))
+    finally:
+        for k, v in saved.items():
+            os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
+        _fig._get_bytes = _REAL_GET83
+    row = db.get_run(rid)
+    frozen = json.loads(row["frozen_record_json"]) if row.get("frozen_record_json") else None
+    return rid, frozen, app.get_events(rid, after=0, authorization=AUTH)["events"], row
+
+
+def _walk_keys83(obj, acc=None):
+    acc = set() if acc is None else acc
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            acc.add(k)
+            _walk_keys83(v, acc)
+    elif isinstance(obj, list):
+        for v in obj:
+            _walk_keys83(v, acc)
+    return acc
+
+
+def _walk_types83(obj, key, acc=None):
+    """Tipos (nombre) de TODOS los valores bajo la llave `key`, a cualquier profundidad."""
+    acc = [] if acc is None else acc
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            if k == key:
+                acc.append(type(v).__name__)
+            _walk_types83(v, key, acc)
+    elif isinstance(obj, list):
+        for v in obj:
+            _walk_types83(v, key, acc)
+    return acc
+
+
+def _diff83(a, b, prefix=""):
+    """Rutas (dotted) donde dos registros difieren — llaves ausentes de un lado incluidas."""
+    out = set()
+    if isinstance(a, dict) and isinstance(b, dict):
+        for k in set(a) | set(b):
+            if k not in a or k not in b:
+                out.add(f"{prefix}{k}")
+            else:
+                out |= _diff83(a[k], b[k], f"{prefix}{k}.")
+    elif isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            out.add(prefix.rstrip(".") + "[len]")
+        for i, (x, y) in enumerate(zip(a, b)):
+            out |= _diff83(x, y, f"{prefix.rstrip('.')}[{i}].")
+    elif a != b:
+        out.add(prefix.rstrip("."))
+    return out
+
+
+_ADDITIVE_112_KEYS = {"saw_figures", "figure_readings", "figure_readings_class", "figure_readings_dropped", "vision",
+                      "figure_verification", "figure_citations", "from_vision_lens",
+                      "citation_support_vision_informed"}     # corrector: la fila con citation_support declara si vio imágenes (M.1: ausente bajo kill-switch)
+_IDENTITY_KEYS83 = ("run_id", "measured_at", "bundle_identity", "thread")   # difieren entre DOS corridas del mismo fixture
+
+
+def _drop_key83(obj, key):
+    """Quita `key` en CUALQUIER profundidad (thread_id = run_id de la raíz: identidad de corrida, viaja anidado en
+    deterministic_checks.thread y episode_axes.provenance.turn)."""
+    if isinstance(obj, dict):
+        obj.pop(key, None)
+        for v in obj.values():
+            _drop_key83(v, key)
+    elif isinstance(obj, list):
+        for v in obj:
+            _drop_key83(v, key)
+    return obj
+
+
+def _strip83(rec):
+    """El registro SIN las llaves aditivas 1.12 ni las de identidad de corrida — para medir que el kill-switch no cambia NADA más."""
+    r = json.loads(json.dumps(rec))
+    for k in _IDENTITY_KEYS83 + ("figures",):
+        r.pop(k, None)
+    _drop_key83(r, "thread_id")
+    r["deterministic_checks"].pop("figures", None)
+    r["agents_invoked"] = [a for a in r["agents_invoked"] if a["agent"] != runs_mod.FIGURES_AGENT_ROW]
+    for k in ("approved", "rejected"):
+        r["audit"][k] = [x for x in r["audit"][k] if "#" not in str(x)]   # D.3: los ids de figura entran a evidence_ids
+    # D.3 (misma consecuencia): record_audit escribe los ids aprobados en la PROSA de decision_state.required_next_action
+    import re as _re83
+    r["decision_state"]["required_next_action"] = _re83.sub(r"'PMC\d+#[^']*', ?", "", r["decision_state"]["required_next_action"])
+    r["audit"].pop("vision", None)
+    for row in r["audit"]["panel"]:
+        for k in ("saw_figures", "figure_readings", "figure_readings_class", "figure_readings_dropped",
+                  "citation_support_vision_informed"):      # corrector: declara si la fila con citation_support vio imágenes (ausente bajo kill-switch)
+            row.pop(k, None)
+    for c in r["citations"]:
+        for k in ("figure_verification", "resolved", "resolved_to", "passage_delivered", "supported", "support_state"):
+            c.pop(k, None)   # la escalera de la cita kind figure cambia de peldaño con figuras (F2 la indexa): consecuencia, no fuga
+    r["citations_support_summary"].pop("figure_citations", None)
+    r["citations_support_summary"].pop("by_state", None)
+    for m in r["token_usage"]["by_stage"]["panel"]["by_model"].values():
+        m.pop("vision", None)
+    r["token_usage"].pop("figures", None)   # F8 (H): usage_json.figures = espejo de frozen.figures (aditiva 1.12; ausente bajo kill-switch)
+    return r
+
+
+_ANS_A83 = "wt1a marks the zebrafish pronephros [1]; Fig 1 illustrates the expression domain described in its caption [2]."
+_CIT_A83 = [{"kind": "paper", "id": "PMID:39230001"}, {"kind": "figure", "id": _G001_ID}]
+_CS_A83 = [{"n": 1, "verdict": "supported"}, {"n": 2, "verdict": "supported"}]
+_Q_A83 = "ADR-0083 a: does wt1a mark the pronephros (figures CC BY)?"
+
+# --- estático: contrato, tool del sintetizador, gate de llaves de prompt, snapshot ------------------------------------------------
+check("ADR-0083 (L) RENDER_CONTRACT_VERSION == '1.12' apilado sobre 1.11; FIGURES_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1)",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.12"
+      and runs_mod.FIGURES_DECLARED_EXCEPTIONS == ("render_contract_version", "figures", "deterministic_checks.figures"))
+check("ADR-0083 (D.2) SYNTH_TOOL: evidence_cited.items.kind.enum gana 'figure' y la description exige marcadores [n] y prohíbe afirmar "
+      "lo que sólo existe en la imagen (literal); synth_system NO cambia (la serie ab_trapped_scalar sigue comparable)",
+      "figure" in runs_mod.SYNTH_TOOL["input_schema"]["properties"]["evidence_cited"]["items"]["properties"]["kind"]["enum"]
+      and "kind 'figure' = '<PMCID>#<fig_id>'" in runs_mod.SYNTH_TOOL["description"]
+      and "never state a number or observation that exists only in an image" in runs_mod.SYNTH_TOOL["description"]
+      and "Cite inline as [n] in direct_answer" in runs_mod.SYNTH_TOOL["description"]
+      and "figure" not in runs_mod.synth_system("pass2"))
+check("ADR-0083 (D.1) gate ESTÁTICO independiente de fixtures: _PROMPT_FIGURE_KEYS == figures.PROMPT_FIGURE_KEYS (11) y ∩ "
+      "{cache_path, cache_path_rel, raw_ref, b64, data, bytes_b64} == ∅",
+      runs_mod._PROMPT_FIGURE_KEYS == _fig.PROMPT_FIGURE_KEYS and len(runs_mod._PROMPT_FIGURE_KEYS) == 11
+      and not set(runs_mod._PROMPT_FIGURE_KEYS) & {"cache_path", "cache_path_rel", "raw_ref", "b64", "data", "bytes_b64"}
+      and runs_mod._FORBIDDEN_PROMPT_FIGURE_KEYS == _fig.FORBIDDEN_PROMPT_KEYS)
+_snap83 = models.snapshot(extra=runs_mod.snapshot_extra())
+check("ADR-0083 (O.5) el snapshot de configuración trae figures.enabled / figures.vision {value True, source default-unset:WITT_FIGURES[_VISION]} "
+      "DERIVADOS por models (F3: SNAPSHOT_FIELDS += figures.*); runs.snapshot_extra() sigue cubriendo EXACTAMENTE models.EXTRA_FIELDS "
+      "(no duplica campos que models deriva: extra_ignored [])",
+      _snap83["fields"]["figures.enabled"] == {"value": True, "source": "default-unset:WITT_FIGURES"}
+      and _snap83["fields"]["figures.vision"] == {"value": True, "source": "default-unset:WITT_FIGURES_VISION"}
+      and set(runs_mod.snapshot_extra()) == set(models.EXTRA_FIELDS) and _snap83.get("extra_ignored") == [],
+      json.dumps({k: _snap83["fields"].get(k) for k in ("figures.enabled", "figures.vision")}))
+
+# --- (a) corrida con figuras CC BY: 9 parseadas, 9 verificadas, 9 embebibles; cita kind figure + cita paper -------------------------
+_rid_fa, _rec_fa, _ev_fa, _row_fa = _run83(_Q_A83, _synth83(_ANS_A83, _CIT_A83), panel=_panel83(ALL_A, readings=True, cs=_CS_A83))
+_fg_a = _rec_fa["figures"]
+_t_fa = _ev_types(_ev_fa)
+_fig_ev_a = [e for e in _ev_fa if e["type"].startswith("stage.figures.")]
+_plan_ev_a = _ev_payloads(_ev_fa, "stage.figures.plan")
+_paper_ev_a = _ev_payloads(_ev_fa, "stage.figures.paper")
+_figure_ev_a = _ev_payloads(_ev_fa, "stage.figures.figure")
+_sum_ev_a = _ev_payloads(_ev_fa, "stage.figures.summary")
+_items_a = _fg_a["items"]
+check("ADR-0083 (L) contrato '1.12' en el registro; keyset top-level == 1.11 (47 + council) + {figures}; deterministic_checks gana "
+      "`figures`; la corrida cerró awaiting_closure con Ruta B por la compuerta (no competente sin plan)",
+      _rec_fa["render_contract_version"] == "1.12" and set(_rec_fa) == _FROZEN_1_10_KEYS | {"council", "figures"}
+      and "figures" in _rec_fa["deterministic_checks"] and _row_fa["state"] == "awaiting_closure"
+      and _rec_fa["fallback"]["trigger"] == "competence",
+      json.dumps({"extra": sorted(set(_rec_fa) - _FROZEN_1_10_KEYS - {"council", "figures"}), "state": _row_fa["state"]}))
+check("ADR-0083 (C) ORDEN de la Traza: stage.path_b < stage.figures.plan < paper{start} < paper{done} < figure×9 < stage.figures.summary "
+      "< stage.synthesize.pass2; todos los stage.figures.* con agent 'figures'; 1 plan · 2 paper · 9 figure · 1 summary",
+      _t_fa.index("stage.path_b") < _t_fa.index("stage.figures.plan") < _t_fa.index("stage.figures.paper")
+      < max(i for i, t in enumerate(_t_fa) if t == "stage.figures.paper") < _t_fa.index("stage.figures.summary")
+      < _t_fa.index("stage.synthesize.pass2")
+      and all(_t_fa.index("stage.figures.paper") < i < _t_fa.index("stage.figures.summary")
+              for i, t in enumerate(_t_fa) if t == "stage.figures.figure")
+      and all(e["agent"] == "figures" for e in _fig_ev_a)
+      and [len(_plan_ev_a), len(_paper_ev_a), len(_figure_ev_a), len(_sum_ev_a)] == [1, 2, 9, 1],
+      json.dumps([t for t in _t_fa if t.startswith(("stage.path_b", "stage.figures", "stage.synthesize.pass2"))]))
+check("ADR-0083 (C) stage.figures.plan ANTES de bajar: n_papers_eligible 1 / n_papers_selected 1, caps (8 con {value, source}), "
+      "budget_s 90, cache_dir_state 'writable' + cache_dir_source 'env', vision {enabled, lenses [grounding, reproducibility], "
+      "lenses_source default-unset, max_per_lens 12, detail 'high'}, versiones y mecanismo declarados",
+      _plan_ev_a[0]["n_papers_eligible"] == 1 and _plan_ev_a[0]["n_papers_selected"] == 1
+      and set(_plan_ev_a[0]["caps"]) == {"max_papers", "max_per_paper", "max_per_run", "max_per_lens", "max_image_mb",
+                                          "request_b64_mb", "zip_max_mb", "caption_chars"}
+      and all(set(v) == {"value", "source"} for v in _plan_ev_a[0]["caps"].values())
+      and _plan_ev_a[0]["budget_s"] == 90.0 and _plan_ev_a[0]["cache_dir_state"] == "writable"
+      and _plan_ev_a[0]["cache_dir_source"] == "env"
+      and _plan_ev_a[0]["vision"] == {"enabled": True, "lenses": _LENSES_V83, "lenses_source": "default-unset:WITT_FIGURES_VISION_LENSES",
+                                       "max_per_lens": 12, "detail": "high"}
+      and _plan_ev_a[0]["module_version"] == "fig-1" and _plan_ev_a[0]["parser_version"] == "jats-fig-1"
+      and _plan_ev_a[0]["license_table_version"] == "lt-1" and _plan_ev_a[0]["mechanism"] == "supplementaryFiles-zip",
+      json.dumps({k: _plan_ev_a[0][k] for k in ("n_papers_eligible", "n_papers_selected", "cache_dir_state", "vision")}))
+check("ADR-0083 (C) stage.figures.paper: {phase 'start', heartbeat True, pmcid, evidence_id 'PMID:39230001', n_figs_in_xml 9, n_selected 9} "
+      "ANTES de la descarga y {phase 'done', license {cc-by, ext-link}, mechanism, http_status 200, zip_bytes == len(zip), n_extracted 9, "
+      "n_missing 0, status 'success', cache_hit False, elapsed_s} después; UNA GET a figures._zip_url(PMC11379296)",
+      _paper_ev_a[0]["phase"] == "start" and _paper_ev_a[0]["heartbeat"] is True and _paper_ev_a[0]["pmcid"] == "PMC11379296"
+      and _paper_ev_a[0]["evidence_id"] == "PMID:39230001" and _paper_ev_a[0]["n_figs_in_xml"] == 9 and _paper_ev_a[0]["n_selected"] == 9
+      and _paper_ev_a[1]["phase"] == "done" and _paper_ev_a[1]["license"] == {"id": "cc-by", "source": "ext-link"}
+      and _paper_ev_a[1]["mechanism"] == "supplementaryFiles-zip" and _paper_ev_a[1]["http_status"] == 200
+      and _paper_ev_a[1]["zip_bytes"] == len(_ZIP_BY83) and _paper_ev_a[1]["n_extracted"] == 9 and _paper_ev_a[1]["n_missing"] == 0
+      and _paper_ev_a[1]["status"] == "success" and _paper_ev_a[1]["cache_hit"] is False and "elapsed_s" in _paper_ev_a[1]
+      and len(_GET83) == 1 and _GET83[0]["url"] == _fig._zip_url("PMC11379296"),
+      json.dumps({"start": _paper_ev_a[0], "get": _GET83}, default=str)[:400])
+check("ADR-0083 (C) 9 eventos stage.figures.figure {id, sha256 == MANIFEST, media_type image/jpeg, bytes, dims_measured == scaled "
+      "(dims_match True), bytes_state 'verified', embeddable True, panel_view True, heartbeat True} y stage.figures.summary "
+      "{state 'attached', n_figures 9, n_verified 9, n_embeddable 9, n_not_fetched 0, n_unknown_license 0, budget, evicted_n 0}",
+      [e["id"] for e in _figure_ev_a] == _FIG_IDS83
+      and all(e["sha256"] == _MAN_BY83[e["id"].split("#")[1] + ".jpg"]["sha256"] for e in _figure_ev_a)
+      and all(e["media_type"] == "image/jpeg" and e["dims_match"] is True and e["bytes_state"] == "verified"
+              and e["embeddable"] is True and e["panel_view"] is True and e["heartbeat"] is True for e in _figure_ev_a)
+      and all(e["dims_measured"] == _MAN_BY83[e["id"].split("#")[1] + ".jpg"]["dims"] for e in _figure_ev_a)
+      and _sum_ev_a[0]["state"] == "attached" and _sum_ev_a[0]["n_figures"] == 9 and _sum_ev_a[0]["n_verified"] == 9
+      and _sum_ev_a[0]["n_embeddable"] == 9 and _sum_ev_a[0]["n_not_fetched"] == 0 and _sum_ev_a[0]["n_unknown_license"] == 0
+      and _sum_ev_a[0]["evicted_n"] == 0 and _sum_ev_a[0]["over_budget"] is False and "budget" in _sum_ev_a[0],
+      json.dumps(_sum_ev_a[0], default=str)[:300])
+check("ADR-0083 (L) frozen.figures cabecera: state 'attached', fig-1 / jats-fig-1 / lt-1, mechanism, cache {dir_source 'env', dir_state "
+      "'writable', ttl_days 30, cache_max_mb 512, evicted_n 0}, budget {total_s 90, used_s >= 0, over_budget False}, caps == los del plan, "
+      "1/1/1 papers, n_figures 9, n_with_caption 9, n_fetched 9, n_verified 9, n_not_fetched 0, n_mismatch 0, n_embeddable 9, "
+      "n_panel_view 9, n_unknown_license 0, n_cited 1, zfin_figures_state literal, selection.rule literal, SIN `papers`",
+      _fg_a["state"] == "attached" and _fg_a["module_version"] == "fig-1" and _fg_a["parser_version"] == "jats-fig-1"
+      and _fg_a["license_table_version"] == "lt-1" and _fg_a["mechanism"] == "supplementaryFiles-zip"
+      and _fg_a["cache"] == {"dir_source": "env", "dir_state": "writable", "ttl_days": 30.0, "cache_max_mb": 512.0, "evicted_n": 0}
+      and _fg_a["budget"]["total_s"] == 90.0 and _fg_a["budget"]["used_s"] >= 0 and _fg_a["budget"]["over_budget"] is False
+      and _fg_a["caps"] == _plan_ev_a[0]["caps"]
+      and (_fg_a["n_papers_eligible"], _fg_a["n_papers_selected"], _fg_a["n_papers_with_xml"]) == (1, 1, 1)
+      and (_fg_a["n_figures"], _fg_a["n_with_caption"], _fg_a["n_fetched"], _fg_a["n_verified"]) == (9, 9, 9, 9)
+      and (_fg_a["n_not_fetched"], _fg_a["n_mismatch"], _fg_a["n_embeddable"], _fg_a["n_panel_view"]) == (0, 0, 9, 9)
+      and _fg_a["n_unknown_license"] == 0 and _fg_a["n_cited"] == 1
+      and _fg_a["zfin_figures_state"] == _fig.ZFIN_FIGURES_STATE == "not-available (zfin_zebrafish payload carries no ZDB-FIG ids at 9d90c01)"
+      and _fg_a["selection"]["rule"] == _fig.SELECTION_RULE and "papers" not in _fg_a
+      and _fig.figures_state_in_vocabulary(_fg_a["state"]),
+      json.dumps({k: _fg_a[k] for k in ("state", "n_figures", "n_verified", "n_embeddable", "n_panel_view", "n_cited", "cache")}))
+check("ADR-0083 (L/A.3) frozen.figures.license_table EFECTIVA (cc-by embed True; cc-by-nc embed False panel_view True; unknown embed False "
+      "panel_view False fetch_bytes True; zfin todo False), license_table_rule literal, env_ignored [], vocabulary == figures.VOCABULARY (17)",
+      _fg_a["license_table"]["cc-by"]["embed"] is True and _fg_a["license_table"]["cc-by-nc"] ["embed"] is False
+      and _fg_a["license_table"]["cc-by-nc"]["panel_view"] is True and _fg_a["license_table"]["unknown"]["embed"] is False
+      and _fg_a["license_table"]["unknown"]["panel_view"] is False and _fg_a["license_table"]["unknown"]["fetch_bytes"] is True
+      and _fg_a["license_table"]["zfin-display-only"]["fetch_bytes"] is False
+      and _fg_a["license_table_rule"] == _fig.LICENSE_TABLE_RULE and _fg_a["license_table_env_ignored"] == []
+      and _fg_a["vocabulary"] == json.loads(json.dumps(_fig.VOCABULARY)) and len(_fg_a["vocabulary"]) == 17)
+check("ADR-0083 (L) items[]: 9 FigureItem con las 33 llaves en el ORDEN exacto de figures.FIGURE_ITEM_KEYS; ids g001..g009; sha256 == MANIFEST; "
+      "media_type image/jpeg == mime_from_extension; dims_match True; license {cc-by, ext-link, rule_no 2, article-level}; embeddable y "
+      "panel_view True; bytes_state 'verified' (vocabulario); raw_ref = source-pointer con source_url; cache_path_rel 'PMC11379296/<href>'; "
+      "cache_hit False; delivered_to_synthesizer True; caption_in_excerpt bool; class literal; cited_by_answer g001 == [2], resto []",
+      len(_items_a) == 9 and all(tuple(it) == _fig.FIGURE_ITEM_KEYS for it in _items_a)
+      and [it["id"] for it in _items_a] == _FIG_IDS83
+      and all(it["sha256"] == _MAN_BY83[it["graphic_href"]]["sha256"] and it["sha256_short"] == it["sha256"][:12] for it in _items_a)
+      and all(it["media_type"] == "image/jpeg" == it["mime_from_extension"] and it["dims_match"] is True for it in _items_a)
+      and all(it["license"]["id"] == "cc-by" and it["license"]["source"] == "ext-link" and it["license"]["rule_no"] == 2
+              and it["license"]["scope"] == "article-level" for it in _items_a)
+      and all(it["embeddable"] is True and it["panel_view"] is True and it["bytes_state"] == "verified" for it in _items_a)
+      and all(_fig.bytes_state_in_vocabulary(it["bytes_state"]) for it in _items_a)
+      and all(isinstance(it["raw_ref"], dict) and it["raw_ref"].get("source_url") == it["source_url"] for it in _items_a)
+      and all(it["cache_path_rel"] == f"PMC11379296/{it['graphic_href']}" and it["cache_hit"] is False for it in _items_a)
+      and all(it["delivered_to_synthesizer"] is True and isinstance(it["caption_in_excerpt"], bool) for it in _items_a)
+      and all(it["class"] == _fig.FIGURE_CLASS for it in _items_a)
+      and _items_a[0]["cited_by_answer"] == [2] and all(it["cited_by_answer"] == [] for it in _items_a[1:]),
+      json.dumps({"keys_ok": all(tuple(it) == _fig.FIGURE_ITEM_KEYS for it in _items_a), "cited": [it["cited_by_answer"] for it in _items_a]}))
+_frozen_json_a = json.dumps(_rec_fa, ensure_ascii=False)
+_bundle_json_a = _row_fa["bundle_json"]
+_bin83 = {"frozen_b64": any(b in _frozen_json_a for b in _B64_BY83.values()),
+          "bundle_b64": any(b in _bundle_json_a for b in _B64_BY83.values()),
+          "data_image": ("data:image" in _frozen_json_a) or ("data:image" in _bundle_json_a),
+          "synth_b64": any(any(b in s["json"] for b in _B64_BY83.values()) or "data:image" in s["json"] for s in _SYNTH83),
+          "forbidden_keys": sorted(_walk_keys83(_rec_fa) & {"b64", "cache_path"}),
+          # `bytes_b64` es el CONTADOR entero de (H) (by_model[*].vision.bytes_b64), jamás contenido: se mide que sea int
+          "bytes_b64_non_int": [t for t in _walk_types83(_rec_fa, "bytes_b64") if t != "int"],
+          "panel_b64": any(p["b64_in_user_text"] for p in _PANEL83)}
+check("ADR-0083 (D.1/M.6) NADA BINARIO: ninguna b64 de las 9 figuras ni 'data:image' en frozen_record_json, en bundle_json ni en el user_text "
+      "de NINGUNA pasada del sintetizador; ninguna llave b64/cache_path en el frozen (cache_path_rel SÍ viaja: es ruta, no bytes; bytes_b64 es "
+      "el contador int de (H)); panel: la b64 jamás en user_text (F3 la manda en bloques, no en el texto)",
+      not _bin83["frozen_b64"] and not _bin83["bundle_b64"] and not _bin83["data_image"] and not _bin83["synth_b64"]
+      and _bin83["forbidden_keys"] == [] and _bin83["bytes_b64_non_int"] == [] and not _bin83["panel_b64"],
+      json.dumps(_bin83))
+_ev_p1 = next(s for s in _SYNTH83 if s["pass"] == "pass1")["evidence"]
+_ev_p2 = next(s for s in _SYNTH83 if s["pass"] == "pass2")["evidence"]
+_p2_paper = next(p for p in _ev_p2["path_b"]["papers"] if p.get("source") == "europepmc")
+check("ADR-0083 (D.1) pass1 es DI-only (path_b.included False, sin figuras); pass2 recibe papers[].figures {state 'attached', n 9, "
+      "n_delivered 9, items 9 × EXACTAMENTE PROMPT_FIGURE_KEYS} con license {id, source} y caption íntegro — sin cache_path_rel/raw_ref/b64; "
+      "el paper ZFIN no gana `figures`",
+      _ev_p1["path_b"].get("included") is False and '"figures"' not in json.dumps(_ev_p1)
+      and _p2_paper["figures"]["state"] == "attached" and _p2_paper["figures"]["n"] == 9 and _p2_paper["figures"]["n_delivered"] == 9
+      and len(_p2_paper["figures"]["items"]) == 9
+      and all(set(it) == set(_fig.PROMPT_FIGURE_KEYS) for it in _p2_paper["figures"]["items"])
+      and all(set(it["license"]) == {"id", "source"} and it["license"]["id"] == "cc-by" for it in _p2_paper["figures"]["items"])
+      and _p2_paper["figures"]["items"][0]["caption"] == _items_a[0]["caption"]
+      and not any(p.get("source") == "zfin" and "figures" in p for p in _ev_p2["path_b"]["papers"]),
+      json.dumps(sorted(_p2_paper["figures"]["items"][0])))
+_cit_a = _rec_fa["citations"]
+_fc_a = _rec_fa["citations_support_summary"].get("figure_citations")
+check("ADR-0083 (E) la cita [2] kind 'figure' gana figure_verification {bytes 'verified', content ∈ vocabulario, figure_id '<PMCID>#<fig_id>'}; "
+      "la cita paper NO la gana; citations_support_summary.figure_citations {n 1, n_verified_bytes 1, n_not_fetched 0, n_mismatch 0, n_unresolved 0}",
+      _cit_a[1]["kind"] == "figure" and _cit_a[1]["id"] == _G001_ID
+      and _cit_a[1]["figure_verification"]["bytes"] == "verified" and _cit_a[1]["figure_verification"]["figure_id"] == _G001_ID
+      and _cit_a[1]["figure_verification"]["content"] in runs_mod.FIGURE_CONTENT_STATES
+      and "figure_verification" not in _cit_a[0]
+      and _cit_a[1]["figure_verification"]["kind_reported"] == "figure"
+      and _fc_a == {"n": 1, "n_verified_bytes": 1, "n_not_fetched": 0, "n_error": 0, "n_mismatch": 0, "n_unresolved": 0, "n_other": 0,
+                    "n_figure_shaped_other_kind": 0},
+      json.dumps({"fv": _cit_a[1].get("figure_verification"), "fc": _fc_a}))
+check("[F3] ADR-0083 (E) content 'panel-judgment' ⇔ una lente con visión emitió figure_readings para g001 (el fake las emite cuando recibe "
+      "figuras) — hasta que F3 aterrice el fake no recibe figuras y el contenido queda 'not-evaluated'",
+      _cit_a[1]["figure_verification"]["content"] == "panel-judgment",
+      _cit_a[1]["figure_verification"]["content"])
+check("[F2] ADR-0083 (E) la cita kind figure sube la escalera de ADR-0080 sin peldaños nuevos: resolved True (verify_output indexa cada "
+      "papers[].figures.items[] como ítem propio) y support_state ∈ {passage_delivered, supported} (caption entregado; grounding 'supported')",
+      _cit_a[1].get("resolved") is True and _cit_a[1].get("support_state") in ("passage_delivered", "supported"),
+      json.dumps({k: _cit_a[1].get(k) for k in ("resolved", "passage_delivered", "support_state")}))
+_dcf_a = _rec_fa["deterministic_checks"]["figures"]
+check("[F2] ADR-0083 (F) deterministic_checks.figures: state 'checked' con los 5 predicados {figure_id_resolves, figure_sha_matches, "
+      "figure_only_not_asserted, figure_numerals_grounded, figure_license_known}, rules (5) y decided_by 'code'; la corrida (a) es admisible "
+      "(figura + paper del mismo artículo, sha cuadra) — hasta F2 el fragmento dice 'tool-unavailable (verify_output.figure_predicates …)'",
+      _dcf_a.get("state") == "checked" and _dcf_a.get("decided_by") == "code"
+      and {"figure_id_resolves", "figure_sha_matches", "figure_only_not_asserted", "figure_numerals_grounded",
+           "figure_license_known", "rules"} <= set(_dcf_a) and _rec_fa["deterministic_checks"]["admissible"] is True,
+      json.dumps(_dcf_a)[:300])
+check("ADR-0083 (F, cableado tolerante) deterministic_checks.figures SIEMPRE trae `state` (string, vocabulario declarado: 'checked' | "
+      "'no-figure-citations' | 'kill-switch WITT_FIGURES=0' | 'tool-unavailable (…)' | 'error: …'); el evento stage.deterministic_gate "
+      "gana figures_state == state; la conjunción de hoy sigue admisible (ningún predicado inventado)",
+      isinstance(_dcf_a.get("state"), str)
+      and (_dcf_a["state"] in ("checked", "no-figure-citations", "kill-switch WITT_FIGURES=0")
+           or _dcf_a["state"].startswith(("tool-unavailable (", "error: ")))
+      and all(p.get("figures_state") == p["figures"]["state"] for p in _ev_payloads(_ev_fa, "stage.deterministic_gate"))
+      and _rec_fa["deterministic_checks"]["admissible"] is True,
+      _dcf_a["state"])
+_ag_a = _rec_fa["agents_invoked"]
+_ag_fig_a = next((a for a in _ag_a if a["agent"] == runs_mod.FIGURES_AGENT_ROW), None)
+check("ADR-0083 (L) agents_invoked fila 'figures (lib/figures.py — JATS parser + fetch by sha + license gate)' DERIVADA por código: status "
+      "'invoked', invocation_id 'figures:9/9', evidence_generated [parsed:9, verified:9, embeddable:9, lenses:evidence-grounding,"
+      "reproducibility, synthesizer:captions-only]; tercera fila (tras composite-auditor y verify_output)",
+      _ag_fig_a is not None and _ag_fig_a["status"] == "invoked" and _ag_fig_a["invocation_id"] == "figures:9/9"
+      and _ag_fig_a["evidence_generated"] == ["parsed:9", "verified:9", "embeddable:9", "lenses:evidence-grounding,reproducibility",
+                                              "synthesizer:captions-only"]
+      and _ag_a[2] is _ag_fig_a and "reason" not in _ag_fig_a,
+      json.dumps(_ag_fig_a))
+_view_fa = app.get_run(_rid_fa, authorization=AUTH)
+check("ADR-0083 (L, vista) epistemic_summary += figures_state 'attached', figures_n_verified 9, figures_n_cited 1 (derivados AL CONGELAR; "
+      "la lista no re-deriva) == frozen.figures.{state, n_verified, n_cited}",
+      _view_fa["epistemic_summary"]["figures_state"] == "attached" == _fg_a["state"]
+      and _view_fa["epistemic_summary"]["figures_n_verified"] == 9 == _fg_a["n_verified"]
+      and _view_fa["epistemic_summary"]["figures_n_cited"] == 1 == _fg_a["n_cited"],
+      json.dumps({k: _view_fa["epistemic_summary"].get(k) for k in ("figures_state", "figures_n_verified", "figures_n_cited")}))
+_judge_a = _ev_payloads(_ev_fa, "stage.audit.judge")
+check("ADR-0083 (L) stage.audit.judge += figures_sent (int) y figures_sha256 (lista) en las 4 filas, MEDIDOS del member entregado al caller",
+      len(_judge_a) == 4 and all(isinstance(p["figures_sent"], int) and isinstance(p["figures_sha256"], list) for p in _judge_a)
+      and all(len(p["figures_sha256"]) == p["figures_sent"] for p in _judge_a),
+      json.dumps([(p["lens"], p["figures_sent"]) for p in _judge_a]))
+_by_lens_a = {p["lens"]: p for p in _PANEL83}
+check("[F3] ADR-0083 (G.2) caller espía: SOLO evidence-grounding y reproducibility reciben member['figures'] (9, sha == frozen), correctness "
+      "y overclaim 0; su system lleva FIGURE_READING_RULE y los otros dos NO; stage.audit.judge.figures_sent coincide 9/9/0/0",
+      {l: p["n_figures"] for l, p in _by_lens_a.items()} == {"correctness": 0, "overclaim": 0, "evidence-grounding": 9, "reproducibility": 9}
+      and all(set(_by_lens_a[l]["shas"]) == {it["sha256"] for it in _items_a} for l in _LENSES_V83)
+      and {l: p["rule_in_system"] for l, p in _by_lens_a.items()} == {"correctness": False, "overclaim": False,
+                                                                       "evidence-grounding": True, "reproducibility": True}
+      and {p["lens"]: p["figures_sent"] for p in _judge_a} == {"correctness": 0, "overclaim": 0, "evidence-grounding": 9, "reproducibility": 9},
+      json.dumps({l: (p["n_figures"], p["rule_in_system"]) for l, p in _by_lens_a.items()}))
+_rows_a = {r["lens"]: r for r in _rec_fa["audit"]["panel"]}
+check("[F3] ADR-0083 (G.6/L) audit.panel[].saw_figures {n 9 en grounding y reproducibility, 0 en las otras, detail vocabulario}; audit.vision "
+      "{enabled, lenses, …}; items[].seen_by_lenses == [grounding, reproducibility] para las 9; selection.n_sent_to_panel_by_lens {9, 9}; "
+      "figure_readings en las dos lentes con figure_readings_class 'model-judgment'",
+      {l: (r.get("saw_figures") or {}).get("n") for l, r in _rows_a.items()} == {"correctness": 0, "overclaim": 0,
+                                                                                 "evidence-grounding": 9, "reproducibility": 9}
+      and isinstance(_rec_fa["audit"].get("vision"), dict)
+      and all(it["seen_by_lenses"] == _LENSES_V83 for it in _items_a)
+      and _fg_a["selection"]["n_sent_to_panel_by_lens"] == {"evidence-grounding": 9, "reproducibility": 9}
+      and all(isinstance(_rows_a[l].get("figure_readings"), list) and _rows_a[l].get("figure_readings_class") == "model-judgment"
+              for l in _LENSES_V83),
+      json.dumps({l: r.get("saw_figures") for l, r in _rows_a.items()}, default=str)[:400])
+_vis_a = _fg_a["vision"]
+check("ADR-0083 (L/H) frozen.figures.vision: forma {state, enabled, lenses, lenses_source, rule, rule_state, openai_detail 'high', "
+      "openai_chat_form_state literal, max_per_lens 12, max_image_mb 5, request_b64_mb 8, sent {n_panels, n_attempts_with_images, "
+      "bytes_b64_sent_total, visual_tokens_projected_total, tokens_state, rule}, cost_projection {per_lens, total_usd_projected, "
+      "prices_source, class 'proyección', complete}, panels [1 con selection {n_eligible 9, n_selected 9, n_dropped 0, n_excluded, rule}], "
+      "delivery {audit_accepts_*}, vocabulary, class}; state ∈ vocabulario; lenses == default con fuente",
+      {"state", "enabled", "lenses", "lenses_source", "rule", "rule_state", "openai_detail", "openai_chat_form_state", "max_per_lens",
+       "max_image_mb", "request_b64_mb", "sent", "cost_projection", "panels", "delivery", "vocabulary", "class"} <= set(_vis_a)
+      and _vis_a["enabled"] is True and _vis_a["lenses"] == _LENSES_V83
+      and _vis_a["lenses_source"] == "default-unset:WITT_FIGURES_VISION_LENSES" and _vis_a["openai_detail"] == "high"
+      and _vis_a["openai_chat_form_state"] == _fig.OPENAI_CHAT_FORM_STATE and _vis_a["request_b64_mb"] == 8
+      and set(_vis_a["sent"]) == {"n_panels", "n_attempts_with_images", "bytes_b64_sent_total", "visual_tokens_projected_total",
+                                  "tokens_state", "rule"}
+      and _vis_a["cost_projection"]["class"] == "proyección" and _vis_a["cost_projection"]["prices_source"] == "models.prices() (ADR-0081)"
+      and len(_vis_a["panels"]) == 1 and _vis_a["panels"][0]["selection"]["n_eligible"] == 9
+      and _vis_a["panels"][0]["selection"]["n_selected"] == 9 and _vis_a["panels"][0]["selection"]["n_dropped_by_request_cap"] == 0
+      and _vis_a["panels"][0]["selection"]["rule"] == _fig.SELECTION_RULE
+      and (_vis_a["state"] in runs_mod.VISION_STATES_EXACT or _vis_a["state"].startswith(runs_mod.VISION_STATES_PREFIXES))
+      and isinstance(_vis_a["delivery"]["audit_accepts_figures"], bool),
+      json.dumps({k: _vis_a[k] for k in ("state", "lenses", "sent", "delivery")}, default=str)[:400])
+check("[F3] ADR-0083 (G.3/H) vision.state 'sent', rule == composite_auditor.FIGURE_READING_RULE (verbatim, con 'never derive'), sent "
+      "{n_panels 1, n_attempts_with_images 2, bytes_b64_sent_total == 2 × Σ b64 de las 9}; by_stage.panel.by_model[haiku].vision "
+      "{n_images 9, visual_tokens_projected 5037 (Σ ⌈w/28⌉×⌈h/28⌉), class 'proyección'}, [gpt-4o].vision {…5525 (tiles)…}; "  # models-literal-doc
+      "_sum == by_model (la visión NO se suma dos veces); cost_projection.per_lens 2 con usd_projected",
+      _vis_a["state"] == "sent" and isinstance(_vis_a["rule"], str) and "never" in _vis_a["rule"].lower()
+      and _vis_a["sent"]["n_panels"] == 1 and _vis_a["sent"]["n_attempts_with_images"] == 2
+      and _vis_a["sent"]["bytes_b64_sent_total"] == 2 * sum(len(b) for b in _B64_BY83.values())
+      and _rec_fa["token_usage"]["by_stage"]["panel"]["by_model"][_rows_a["evidence-grounding"]["reviewer"]]["vision"]["n_images"] == 9
+      and _rec_fa["token_usage"]["by_stage"]["panel"]["by_model"][_rows_a["evidence-grounding"]["reviewer"]]["vision"]["visual_tokens_projected"] == 5037
+      and _rec_fa["token_usage"]["by_stage"]["panel"]["by_model"][_rows_a["reproducibility"]["reviewer"]]["vision"]["visual_tokens_projected"] == 5525
+      and _rec_fa["token_usage"]["by_stage_sum_matches_by_model"] is True
+      and len(_vis_a["cost_projection"]["per_lens"]) == 2 and _vis_a["cost_projection"]["complete"] is True,
+      json.dumps({"state": _vis_a["state"], "sent": _vis_a["sent"],
+                  "by_model": {k: v.get("vision") for k, v in _rec_fa["token_usage"]["by_stage"]["panel"]["by_model"].items()}}, default=str)[:500])
+check("ADR-0083 (H) sin filas con imágenes NADA gana `vision` en by_model y _sum == by_model total; con figuras encendidas y kill-switch de visión "
+      "idem — la proyección jamás altera el gasto MEDIDO",
+      _rec_fa["token_usage"]["by_stage_sum_matches_by_model"] is True
+      and _rec_fa["token_usage"]["by_stage"]["_sum"]["in"] == _rec_fa["token_usage"]["input_tokens"]
+      and all("vision" not in m or m["vision"]["n_images"] > 0 for m in _rec_fa["token_usage"]["by_stage"]["panel"]["by_model"].values()))
+_bundle_a = json.loads(_bundle_json_a)
+_bpaper_a = next(p for p in _bundle_a["path_b"]["papers"] if p.get("source") == "europepmc")
+_ident_a = answer_pipeline._identity({k: v for k, v in _bundle_a.items() if k != "bundle_identity"})
+check("ADR-0083 (L/ADR-0044) bundle.path_b.papers[].figures {state, n, items, ledger {mechanism, status, http_status, zip_bytes, elapsed_s, "
+      "n_entries, n_extracted, n_missing, …}}; bundle.figures_ledger.items[].sha256 == frozen.figures.items[].sha256 (MISMO objeto); "
+      "cited_by_answer/seen_by_lenses se llenaron ANTES del re-sellado: bundle_identity.sha256 == sha256(bundle_json sin identidad)",
+      _bpaper_a["figures"]["state"] == "attached" and _bpaper_a["figures"]["n"] == 9
+      and {"mechanism", "status", "http_status", "zip_bytes", "elapsed_s", "n_entries", "n_extracted", "n_missing"} <= set(_bpaper_a["figures"]["ledger"])
+      and [it["sha256"] for it in _bundle_a["figures_ledger"]["items"]] == [it["sha256"] for it in _items_a]
+      and [it["cited_by_answer"] for it in _bundle_a["figures_ledger"]["items"]] == [it["cited_by_answer"] for it in _items_a]
+      and _rec_fa["bundle_identity"]["sha256"] == _ident_a["sha256"],
+      json.dumps({"ledger": _bpaper_a["figures"]["ledger"], "identity_ok": _rec_fa["bundle_identity"]["sha256"] == _ident_a["sha256"]}, default=str)[:300])
+check("ADR-0083 (D.3) _evidence_ids(bundle) += los 9 ids '<PMCID>#<fig_id>' → audit.approved los trae (APPROVE) junto al paper y el chunk",
+      set(_FIG_IDS83) <= set(_rec_fa["audit"]["approved"]) and "PMID:39230001" in _rec_fa["audit"]["approved"]
+      and set(_FIG_IDS83) <= set(runs_mod._evidence_ids(_bundle_a)),
+      json.dumps(sorted(_rec_fa["audit"]["approved"]))[:300])
+check("ADR-0083 (B.3) caché de figuras en el TMP de WITT_MCP_CACHE_DIR: figures/PMC11379296/<9 jpg> + _figures_<YYYYMMDD>.json, el zip NO se conserva",
+      sorted(p.name for p in (_CR83 / "PMC11379296").glob("*.jpg")) == sorted(_MAN_BY83)
+      and len(list((_CR83 / "PMC11379296").glob("_figures_*.json"))) == 1
+      and not list((_CR83 / "PMC11379296").glob("*.zip")) and not list((_CR83 / "PMC11379296").glob("*.part")))
+
+# --- (b) CC BY-NC: panel_view True, embeddable False; undfig1 sin caption no se baja ni se entrega -----------------------------------
+_rid_fb, _rec_fb, _ev_fb, _row_fb = _run83("ADR-0083 b: figures CC BY-NC", _synth83("wt1a marks the pronephros [1].",
+                                                                                     [{"kind": "paper", "id": "PMID:39230002"}]),
+                                           pmcids=("PMC11647118",))
+_fg_b = _rec_fb["figures"]
+_items_b = _fg_b["items"]
+_p2_b = next(p for p in next(s for s in _SYNTH83 if s["pass"] == "pass2")["evidence"]["path_b"]["papers"] if p.get("source") == "europepmc")
+check("ADR-0083 (A.3/E2) NC: n_figures 6, n_with_caption 5, n_verified 5, n_not_fetched 1, n_embeddable 0, n_panel_view 5, n_unknown_license 0; "
+      "undfig1 {label None, caption_state 'absent', bytes_state 'not-fetched (no-caption)', delivered_to_synthesizer False}; fig1 {license "
+      "cc-by-nc / license-p-url / rule_no 3, embeddable False, panel_view True, bytes_state 'verified', media_type image/png ≠ mime_from_extension "
+      "image/jpeg (SINTÉTICO por magic), dims_match False}; pass2 entrega 5 (undfig1 fuera); agents 'figures:5/6'; epistemic 5/0",
+      (_fg_b["n_figures"], _fg_b["n_with_caption"], _fg_b["n_verified"], _fg_b["n_not_fetched"]) == (6, 5, 5, 1)
+      and (_fg_b["n_embeddable"], _fg_b["n_panel_view"], _fg_b["n_unknown_license"]) == (0, 5, 0)
+      and _items_b[0]["fig_id"] == "undfig1" and _items_b[0]["label"] is None and _items_b[0]["caption_state"] == "absent"
+      and _items_b[0]["bytes_state"] == "not-fetched (no-caption)" and _items_b[0]["delivered_to_synthesizer"] is False
+      and _items_b[1]["license"]["id"] == "cc-by-nc" and _items_b[1]["license"]["source"] == "license-p-url"
+      and _items_b[1]["license"]["rule_no"] == 3 and _items_b[1]["embeddable"] is False and _items_b[1]["panel_view"] is True
+      and _items_b[1]["bytes_state"] == "verified" and _items_b[1]["media_type"] == "image/png"
+      and _items_b[1]["mime_from_extension"] == "image/jpeg" and _items_b[1]["dims_match"] is False
+      and _p2_b["figures"]["n"] == 6 and _p2_b["figures"]["n_delivered"] == 5 and len(_p2_b["figures"]["items"]) == 5
+      and next(a for a in _rec_fb["agents_invoked"] if a["agent"] == runs_mod.FIGURES_AGENT_ROW)["invocation_id"] == "figures:5/6"
+      and app.get_run(_rid_fb, authorization=AUTH)["epistemic_summary"]["figures_n_verified"] == 5
+      and app.get_run(_rid_fb, authorization=AUTH)["epistemic_summary"]["figures_n_cited"] == 0,
+      json.dumps({k: _fg_b[k] for k in ("n_figures", "n_with_caption", "n_verified", "n_embeddable", "n_panel_view")}))
+check("ADR-0083 (G.2/E2) NC: la selección para el panel toma las 5 con caption (panel_view True aunque NO embebibles: leer para juzgar no es "
+      "redistribuir; embeber sigue prohibido) — vision.panels[0].selection {n_eligible 5, n_selected 5}; figure_citations {n 0} sin citas figure",
+      _fg_b["vision"]["panels"][0]["selection"]["n_eligible"] == 5 and _fg_b["vision"]["panels"][0]["selection"]["n_selected"] == 5
+      and _rec_fb["citations_support_summary"]["figure_citations"]["n"] == 0,
+      json.dumps(_fg_b["vision"]["panels"][0]["selection"]))
+check("[F3] ADR-0083 (E2) NC: las dos lentes con visión reciben las 5 figuras NC (bytes al panel, jamás al PDF/GET)",
+      {p["lens"]: p["n_figures"] for p in _PANEL83} == {"correctness": 0, "overclaim": 0, "evidence-grounding": 5, "reproducibility": 5},
+      json.dumps({p["lens"]: p["n_figures"] for p in _PANEL83}))
+
+# --- (c) licencia DESCONOCIDA (XML sintético sin <permissions>): se baja y verifica por sha, pero NO viaja a nadie -----------------------
+_rid_fc, _rec_fc, _ev_fc, _row_fc = _run83("ADR-0083 c: unknown license", _synth83("wt1a marks the pronephros [1] [2].",
+                                                                                   [{"kind": "paper", "id": "PMID:39230003"},
+                                                                                    {"kind": "figure", "id": "PMC90000001#u1"}]),
+                                           pmcids=("PMC90000001",))
+_fg_c = _rec_fc["figures"]
+check("ADR-0083 (A.3) unknown: license {id 'unknown', source 'none', rule_no 7}, embeddable False, panel_view False, bytes_state 'verified' "
+      "(fetch_bytes True: se baja y verifica; lo que no viaja son sus bytes a terceros), n_unknown_license 1, n_panel_view 0, n_embeddable 0; "
+      "vision.state 'no-eligible-figures' (0 elegibles); caller sin figuras en ninguna lente; el caption SÍ viaja al sintetizador",
+      _fg_c["n_figures"] == 1 and _fg_c["items"][0]["license"]["id"] == "unknown" and _fg_c["items"][0]["license"]["source"] == "none"
+      and _fg_c["items"][0]["license"]["rule_no"] == 7 and _fg_c["items"][0]["embeddable"] is False
+      and _fg_c["items"][0]["panel_view"] is False and _fg_c["items"][0]["bytes_state"] == "verified"
+      and (_fg_c["n_unknown_license"], _fg_c["n_panel_view"], _fg_c["n_embeddable"], _fg_c["n_verified"]) == (1, 0, 0, 1)
+      and _fg_c["vision"]["state"] == "no-eligible-figures" and _fg_c["vision"]["panels"][0]["selection"]["n_eligible"] == 0
+      and all(p["n_figures"] == 0 for p in _PANEL83)
+      and next(p for p in next(s for s in _SYNTH83 if s["pass"] == "pass2")["evidence"]["path_b"]["papers"]
+               if p.get("source") == "europepmc")["figures"]["n_delivered"] == 1
+      and _rec_fc["citations"][1]["figure_verification"] == {"bytes": "verified", "content": "not-evaluated", "figure_id": "PMC90000001#u1",
+                                                              "kind_reported": "figure"},
+      json.dumps({"license": _fg_c["items"][0]["license"], "vision": _fg_c["vision"]["state"]}))
+check("[F2] ADR-0083 (F.5) figure_license_known INFORMATIVO: unknown ['PMC90000001#u1'] → ok False con gating False; admissible sigue True",
+      _rec_fc["deterministic_checks"]["figures"].get("figure_license_known", {}).get("ok") is False
+      and _rec_fc["deterministic_checks"]["figures"]["figure_license_known"].get("gating") is False
+      and _rec_fc["deterministic_checks"]["admissible"] is True,
+      json.dumps(_rec_fc["deterministic_checks"]["figures"].get("figure_license_known")))
+
+# --- (d) sha ALTERADO entre attach y gate: inadmisible (F2) y excluida del panel por sha recalculado (select_for_panel) -----------------
+_real_stage83 = runs_mod._figures_stage
+
+
+def _stage_then_tamper83(*a, **kw):
+    s = _real_stage83(*a, **kw)
+    p = _CR83 / "PMC11379296" / _G001_HREF
+    p.write_bytes(p.read_bytes()[:-1] + b"\x00")
+    return s
+
+
+runs_mod._figures_stage = _stage_then_tamper83
+try:
+    _rid_fd, _rec_fd, _ev_fd, _row_fd = _run83("ADR-0083 d: tampered bytes", _synth83(_ANS_A83, _CIT_A83),
+                                               panel=_panel83(ALL_A, readings=True, cs=_CS_A83))
+finally:
+    runs_mod._figures_stage = _real_stage83
+_fg_d = _rec_fd["figures"]
+check("ADR-0083 (B.3) segunda corrida BY: la caché de figuras cumple TTL (ledger fresco + archivos + sha recalculado igual) → cache_hit True en "
+      "las 9, ledger.status 'cache-hit', CERO GET; el frozen sigue 9 verified (la alteración ocurrió DESPUÉS del attach)",
+      _GET83 == [] and all(it["cache_hit"] is True for it in _fg_d["items"]) and _fg_d["n_verified"] == 9
+      and next(p for p in json.loads(_row_fd["bundle_json"])["path_b"]["papers"] if p.get("source") == "europepmc")["figures"]["ledger"]["status"] == "cache-hit",
+      json.dumps({"gets": len(_GET83), "status": _fg_d["state"]}))
+check("ADR-0083 (G.2/ADR-0077) sha ALTERADO en caché → select_for_panel RECALCULA y EXCLUYE g001 ('mismatch' declarado): panels[0].selection "
+      "{n_eligible 9, n_selected 8, n_excluded.mismatch 1} — jamás se envía un byte que no cuadre",
+      _fg_d["vision"]["panels"][0]["selection"]["n_eligible"] == 9 and _fg_d["vision"]["panels"][0]["selection"]["n_selected"] == 8
+      and _fg_d["vision"]["panels"][0]["selection"]["n_excluded"]["mismatch"] == 1,
+      json.dumps(_fg_d["vision"]["panels"][0]["selection"]))
+check("[F2] ADR-0083 (F.2) figure_sha_matches DURO en MISMATCH: pass2 INADMISIBLE con 'hard predicate failed: figure_sha_matches', "
+      "mismatches [{id g001, expected, actual}] congelado",
+      _rec_fd["deterministic_checks"]["admissible"] is False
+      and "hard predicate failed: figure_sha_matches" in _rec_fd["deterministic_checks"]["reasons"]
+      and [m.get("id") for m in _rec_fd["deterministic_checks"]["figures"].get("figure_sha_matches", {}).get("mismatches", [])] == [_G001_ID],
+      json.dumps({"adm": _rec_fd["deterministic_checks"]["admissible"], "reasons": _rec_fd["deterministic_checks"]["reasons"]}))
+check("[F3] ADR-0083 (G.2) con el sha alterado las dos lentes reciben 8 (g001 excluida) y saw_figures.n 8",
+      {p["lens"]: p["n_figures"] for p in _PANEL83}.get("evidence-grounding") == 8
+      and (next(r for r in _rec_fd["audit"]["panel"] if r["lens"] == "reproducibility").get("saw_figures") or {}).get("n") == 8,
+      json.dumps({p["lens"]: p["n_figures"] for p in _PANEL83}))
+import shutil as _shutil  # noqa: E402
+_shutil.rmtree(_CR83 / "PMC11379296", ignore_errors=True)   # la caché alterada no contamina las corridas siguientes (re-descarga medida abajo)
+
+# --- (e) afirmación positiva con SOLO citas figure → inadmisible (F2, §7 figure-only NOT asserted) ---------------------------------------
+_rid_fe, _rec_fe, _ev_fe, _row_fe = _run83("ADR-0083 e: figure-only claim", _synth83("Fig 1 shows wt1a in the pronephros [1].",
+                                                                                     [{"kind": "figure", "id": _G001_ID}]))
+check("[F2] ADR-0083 (F.3) figure_only_not_asserted DURO: afirmación positiva cuyas citas válidas son TODAS kind figure → INADMISIBLE "
+      "('hard predicate failed: figure_only_not_asserted'; n_figure_citations 1, n_non_figure_citations 0)",
+      _rec_fe["deterministic_checks"]["admissible"] is False
+      and "hard predicate failed: figure_only_not_asserted" in _rec_fe["deterministic_checks"]["reasons"]
+      and _rec_fe["deterministic_checks"]["figures"].get("figure_only_not_asserted", {}).get("n_figure_citations") == 1,
+      json.dumps({"adm": _rec_fe["deterministic_checks"]["admissible"], "reasons": _rec_fe["deterministic_checks"]["reasons"]}))
+check("ADR-0083 (B.3) tras borrar la caché la corrida (e) RE-DESCARGA: UNA GET, cache_hit False, 9 verified — la ausencia de bytes no es un error",
+      len(_GET83) == 1 and _rec_fe["figures"]["n_verified"] == 9 and all(it["cache_hit"] is False for it in _rec_fe["figures"]["items"]))
+
+# --- (f) id de figura INVENTADO → inadmisible (F2) y figure_verification 'not-a-figure' (F4) -------------------------------------------
+_rid_ff, _rec_ff, _ev_ff, _row_ff = _run83("ADR-0083 f: invented figure id", _synth83(_ANS_A83, [
+    {"kind": "paper", "id": "PMID:39230001"}, {"kind": "figure", "id": "PMC11379296#pone.0307390.g099"}]))
+check("ADR-0083 (E) id de figura que NO nombra un ítem del bundle → figure_verification {bytes 'not-a-figure', content 'not-evaluated', "
+      "figure_id null} y figure_citations {n 1, n_unresolved 1}; los 9 ítems siguen verified (la cita inventada no toca la medición)",
+      _rec_ff["citations"][1]["figure_verification"] == {"bytes": "not-a-figure", "content": "not-evaluated", "figure_id": None, "kind_reported": "figure"}
+      and _rec_ff["citations_support_summary"]["figure_citations"] == {"n": 1, "n_verified_bytes": 0, "n_not_fetched": 0, "n_error": 0, "n_mismatch": 0,
+                                                                         "n_unresolved": 1, "n_other": 0, "n_figure_shaped_other_kind": 0}
+      and _rec_ff["figures"]["n_verified"] == 9 and _rec_ff["figures"]["n_cited"] == 0,
+      json.dumps(_rec_ff["citations"][1].get("figure_verification")))
+check("[F2] ADR-0083 (F.1) figure_id_resolves DURO: id inventado → INADMISIBLE ('hard predicate failed: figure_id_resolves'), unresolved_ids [id]",
+      _rec_ff["deterministic_checks"]["admissible"] is False
+      and "hard predicate failed: figure_id_resolves" in _rec_ff["deterministic_checks"]["reasons"]
+      and _rec_ff["deterministic_checks"]["figures"].get("figure_id_resolves", {}).get("unresolved_ids") == ["PMC11379296#pone.0307390.g099"],
+      json.dumps(_rec_ff["deterministic_checks"]["reasons"]))
+
+# --- (g) SIN XML de texto completo en raw_cached → 'no-papers-with-xml' declarado ----------------------------------------------------
+_rid_fg, _rec_fg, _ev_fg, _row_fg = _run83("ADR-0083 g: no fulltext xml", _synth83("wt1a [1].", [{"kind": "paper", "id": "PMID:39230001"}]),
+                                           with_xml=False)
+_fg_g = _rec_fg["figures"]
+_p2_g = next(p for p in next(s for s in _SYNTH83 if s["pass"] == "pass2")["evidence"]["path_b"]["papers"] if p.get("source") == "europepmc")
+check("ADR-0083 (C/L) sin *fulltext*.xml en raw_cached: frozen.figures.state 'no-papers-with-xml', n_papers_eligible 0, items []; papers[0].figures "
+      "{state 'no-fulltext-xml', n 0, items [], ledger null} (también en el prompt de pass2 con n_delivered 0); eventos: plan {n_papers_eligible 0} + "
+      "summary, SIN paper/figure; CERO GET; agents fila 'not-applicable' reason 'no full-text XML among selected papers' 'figures:0/0'; "
+      "epistemic {figures_state 'no-papers-with-xml', figures_n_verified 0 (MEDIDO), figures_n_cited 0}; figure_citations n 0; vision 'no-eligible-figures'",
+      _fg_g["state"] == "no-papers-with-xml" and _fg_g["n_papers_eligible"] == 0 and _fg_g["items"] == []
+      and next(p for p in json.loads(_row_fg["bundle_json"])["path_b"]["papers"] if p.get("source") == "europepmc")["figures"]
+          == {"state": "no-fulltext-xml", "n": 0, "items": [], "ledger": None}
+      and _p2_g["figures"] == {"state": "no-fulltext-xml", "n": 0, "items": [], "n_delivered": 0}
+      and [e["type"] for e in _ev_fg if e["type"].startswith("stage.figures.")] == ["stage.figures.plan", "stage.figures.summary"]
+      and _ev_payloads(_ev_fg, "stage.figures.plan")[0]["n_papers_eligible"] == 0 and _GET83 == []
+      and next(a for a in _rec_fg["agents_invoked"] if a["agent"] == runs_mod.FIGURES_AGENT_ROW)
+          == {"agent": runs_mod.FIGURES_AGENT_ROW, "status": "not-applicable", "invocation_id": "figures:0/0",
+              "evidence_generated": ["parsed:0", "verified:0", "embeddable:0", "lenses:evidence-grounding,reproducibility", "synthesizer:captions-only"],
+              "reason": "no full-text XML among selected papers"}
+      and app.get_run(_rid_fg, authorization=AUTH)["epistemic_summary"]["figures_state"] == "no-papers-with-xml"
+      and app.get_run(_rid_fg, authorization=AUTH)["epistemic_summary"]["figures_n_verified"] == 0
+      and _rec_fg["citations_support_summary"]["figure_citations"]["n"] == 0 and _fg_g["vision"]["state"] == "no-eligible-figures",
+      json.dumps({"state": _fg_g["state"], "events": [e["type"] for e in _ev_fg if e["type"].startswith("stage.figures.")]}))
+
+# --- (h) PRESUPUESTO agotado (WITT_FIGURES_BUDGET_S=0.5 < 5 s mínimos): filas declaradas sin red, la corrida cierra ---------------------
+_shutil.rmtree(_CR83 / "PMC11379296", ignore_errors=True)   # sin caché: la única vía a los bytes es la red, y el presupuesto la veta
+_rid_fh, _rec_fh, _ev_fh, _row_fh = _run83("ADR-0083 h: budget exhausted", _synth83(_ANS_A83, _CIT_A83), env={"WITT_FIGURES_BUDGET_S": "0.5"})
+_fg_h = _rec_fh["figures"]
+_bledger_h = next(p for p in json.loads(_row_fh["bundle_json"])["path_b"]["papers"] if p.get("source") == "europepmc")["figures"]["ledger"]
+check("ADR-0083 (B.4/§6) WITT_FIGURES_BUDGET_S=0.5: restante < 5 s → las 9 filas 'not-fetched (budget-exhausted)' SIN red (0 GET), n_verified 0, "
+      "n_not_fetched 9, caption intacto, budget.total_s 0.5 (source 'env:WITT_FIGURES_BUDGET_S' en caps? no: budget), ledger {status 'skipped-budget', "
+      "error_kind 'budget-exhausted'}, paper{done} con error; la corrida CIERRA awaiting_closure; figure_verification.bytes = la fila declarada",
+      _GET83 == [] and all(it["bytes_state"] == "not-fetched (budget-exhausted)" for it in _fg_h["items"])
+      and (_fg_h["n_verified"], _fg_h["n_not_fetched"], _fg_h["n_figures"]) == (0, 9, 9)
+      and all(it["caption_state"] == "present" and it["caption"] for it in _fg_h["items"])
+      and _fg_h["budget"]["total_s"] == 0.5 and _bledger_h["status"] == "skipped-budget" and _bledger_h["error_kind"] == "budget-exhausted"
+      and "error" in _ev_payloads(_ev_fh, "stage.figures.paper")[1] and _row_fh["state"] == "awaiting_closure"
+      and _rec_fh["citations"][1]["figure_verification"]["bytes"] == "not-fetched (budget-exhausted)"
+      and _rec_fh["citations_support_summary"]["figure_citations"]["n_not_fetched"] == 1
+      and _fg_h["vision"]["state"] == "no-eligible-figures",
+      json.dumps({"budget": _fg_h["budget"], "ledger": _bledger_h}, default=str)[:300])
+check("[F2] ADR-0083 (F.2) figura NO bajada ≠ alterada: figure_sha_matches n_not_verifiable 1 y ok (la cita sostiene sólo su caption); admisible",
+      _rec_fh["deterministic_checks"]["figures"].get("figure_sha_matches", {}).get("n_not_verifiable") == 1
+      and _rec_fh["deterministic_checks"]["admissible"] is True,
+      json.dumps(_rec_fh["deterministic_checks"]["figures"].get("figure_sha_matches")))
+
+# --- (i) _get_bytes que LANZA → filas 'error: RuntimeError: …', la corrida sigue -------------------------------------------------------
+_shutil.rmtree(_CR83 / "PMC11379296", ignore_errors=True)   # (h) no escribió nada; se garantiza igual: la GET DEBE ocurrir
+_rid_fi, _rec_fi, _ev_fi, _row_fi = _run83("ADR-0083 i: get_bytes raises", _synth83(_ANS_A83, _CIT_A83),
+                                           get=_mk_get83(raise_exc=RuntimeError("caller exploded")))
+check("ADR-0083 (§6) un _get_bytes que LANZA → 9 filas 'error: RuntimeError: caller exploded' (vocabulario prefijo 'error: '), n_error 9 y "
+      "n_not_fetched 0 (corrector: cubetas separadas — frozen.figures y stage.figures.summary llevan n_error; la cita figure gana figure_verification.bytes "
+      "'error: …' y figure_citations.n_error 1), ledger.error_kind 'error: RuntimeError', paper{done} level warning con error; la corrida SIGUE y cierra awaiting_closure",
+      all(it["bytes_state"] == "error: RuntimeError: caller exploded" for it in _rec_fi["figures"]["items"])
+      and all(_fig.bytes_state_in_vocabulary(it["bytes_state"]) for it in _rec_fi["figures"]["items"])
+      and _rec_fi["figures"]["n_error"] == 9 and _rec_fi["figures"]["n_not_fetched"] == 0 and _rec_fi["figures"]["n_verified"] == 0
+      and _ev_payloads(_ev_fi, "stage.figures.summary")[0]["n_error"] == 9
+      and _rec_fi["citations"][1]["figure_verification"]["bytes"] == "error: RuntimeError: caller exploded"
+      and _rec_fi["citations_support_summary"]["figure_citations"]["n_error"] == 1
+      and _rec_fi["citations_support_summary"]["figure_citations"]["n_not_fetched"] == 0
+      and next(p for p in json.loads(_row_fi["bundle_json"])["path_b"]["papers"] if p.get("source") == "europepmc")["figures"]["ledger"]["error_kind"]
+          == "error: RuntimeError"
+      and next(e for e in _ev_fi if e["type"] == "stage.figures.paper" and e["payload"]["phase"] == "done")["level"] == "warning"
+      and _row_fi["state"] == "awaiting_closure",
+      json.dumps({"state": _row_fi["state"], "bytes_state": _rec_fi["figures"]["items"][0]["bytes_state"]}))
+
+# --- (j) KILL-SWITCH WITT_FIGURES=0: el frozen de 1.11 salvo EXACTAMENTE 3 excepciones ----------------------------------------------------
+_rid_fj, _rec_fj, _ev_fj, _row_fj = _run83(_Q_A83, _synth83(_ANS_A83, _CIT_A83), panel=_panel83(ALL_A, readings=True, cs=_CS_A83),
+                                           env={"WITT_FIGURES": "0"})
+_fg_j = _rec_fj["figures"]
+_fig_ev_j = [e for e in _ev_fj if e["type"].startswith("stage.figures.")]
+_diff_j = _diff83(_strip83(_rec_fa), _strip83(_rec_fj))
+check("ADR-0083 (M.1) KILL-SWITCH WITT_FIGURES=0: frozen keyset == 1.11 (47 + council) + {figures}; figures {state 'kill-switch WITT_FIGURES=0', "
+      "kill_switch {WITT_FIGURES '0', declared_exceptions [render_contract_version, figures, deterministic_checks.figures]}, items [], n_figures 0, "
+      "SIN vision}; deterministic_checks.figures == {state 'kill-switch WITT_FIGURES=0'} y su keyset == el de la corrida (a); render_contract_version "
+      "'1.12' — las TRES excepciones declaradas y ninguna más",
+      set(_rec_fj) == _FROZEN_1_10_KEYS | {"council", "figures"}
+      and _fg_j["state"] == "kill-switch WITT_FIGURES=0"
+      and _fg_j["kill_switch"] == {"WITT_FIGURES": "0", "declared_exceptions": ["render_contract_version", "figures", "deterministic_checks.figures"]}
+      and _fg_j["items"] == [] and _fg_j["n_figures"] == 0 and "vision" not in _fg_j
+      and _rec_fj["deterministic_checks"]["figures"] == {"state": "kill-switch WITT_FIGURES=0"}
+      and set(_rec_fj["deterministic_checks"]) == set(_rec_fa["deterministic_checks"])
+      and _rec_fj["render_contract_version"] == "1.12",
+      json.dumps({"figures": {k: _fg_j[k] for k in ("state", "kill_switch")}, "dc": _rec_fj["deterministic_checks"]["figures"]}))
+check("ADR-0083 (M.1) KILL-SWITCH: los papers NO ganan `figures` ni el bundle `figures_ledger`; el user_text del sintetizador (pass1 Y pass2) no "
+      "trae la llave 'figures' (byte a byte el de 1.11); el panel no recibe imágenes ni la llave; ninguna llave aditiva 1.12 en el frozen "
+      "(saw_figures, vision, figure_readings*, figure_verification, figure_citations, from_vision_lens); agents_invoked SIN fila figures; "
+      "by_model[*] sin vision; CERO GET; UN solo evento stage.figures.* == summary {state kill-switch}; judge.figures_sent 0 en las 4",
+      not any("figures" in p for p in json.loads(_row_fj["bundle_json"])["path_b"]["papers"])
+      and "figures_ledger" not in json.loads(_row_fj["bundle_json"])
+      and not any('"figures"' in s["json"] for s in _SYNTH83) and not any(p["evidence_has_figures_key"] for p in _PANEL83)
+      and all(p["n_figures"] == 0 for p in _PANEL83)
+      and not _walk_keys83({k: v for k, v in _rec_fj.items() if k != "figures"}) & _ADDITIVE_112_KEYS
+      and not any(a["agent"] == runs_mod.FIGURES_AGENT_ROW for a in _rec_fj["agents_invoked"])
+      and not any("vision" in m for m in _rec_fj["token_usage"]["by_stage"]["panel"]["by_model"].values())
+      and _GET83 == [] and [e["type"] for e in _fig_ev_j] == ["stage.figures.summary"]
+      and _fig_ev_j[0]["payload"]["state"] == "kill-switch WITT_FIGURES=0"
+      and all(p["figures_sent"] == 0 and p["figures_sha256"] == [] for p in _ev_payloads(_ev_fj, "stage.audit.judge")),
+      json.dumps({"fig_events": [e["type"] for e in _fig_ev_j], "additive_leak": sorted(_walk_keys83({k: v for k, v in _rec_fj.items() if k != "figures"}) & _ADDITIVE_112_KEYS)}))
+check("ADR-0083 (M.1) KILL-SWITCH byte a byte contra la corrida (a) del MISMO fixture y la MISMA pregunta: quitadas las llaves ADITIVAS 1.12 "
+      "(figures, deterministic_checks.figures, fila figures de agents, ids de figura en audit.approved (D.3), saw_figures/vision/figure_readings, "
+      "figure_verification/escalera de la cita figure, by_model.vision) y las de identidad de corrida (run_id, measured_at, bundle_identity, thread), "
+      "los dos registros son IDÉNTICOS (json sort_keys, keyset Y valores) — cualquier otra diferencia falla listando el path",
+      _diff_j == set(), json.dumps(sorted(_diff_j))[:600])
+check("ADR-0083 (M.1, vista) KILL-SWITCH epistemic_summary: figures_state 'kill-switch WITT_FIGURES=0', figures_n_verified null y figures_n_cited null "
+      "(nada se contó: null ≠ 0 medido)",
+      app.get_run(_rid_fj, authorization=AUTH)["epistemic_summary"]["figures_state"] == "kill-switch WITT_FIGURES=0"
+      and app.get_run(_rid_fj, authorization=AUTH)["epistemic_summary"]["figures_n_verified"] is None
+      and app.get_run(_rid_fj, authorization=AUTH)["epistemic_summary"]["figures_n_cited"] is None)
+
+# --- (k) WITT_FIGURES_VISION=0: figuras OBSERVADAS (captions, sha, licencia) pero NINGUNA lente recibe imágenes ---------------------------
+_rid_fk, _rec_fk, _ev_fk, _row_fk = _run83("ADR-0083 k: vision off", _synth83(_ANS_A83, _CIT_A83), panel=_panel83(ALL_A, readings=True, cs=_CS_A83),
+                                           env={"WITT_FIGURES_VISION": "0"})
+_fg_k = _rec_fk["figures"]
+check("ADR-0083 (M.2) WITT_FIGURES_VISION=0: n_verified 9, captions al sintetizador (pass2 n_delivered 9), figure_verification.bytes 'verified', "
+      "GET/predicados iguales; vision {state 'kill-switch WITT_FIGURES_VISION=0', enabled False, sent {n_panels 0, n_attempts_with_images 0, "
+      "bytes 0}, panels[0].selection null (no se leyó un byte)}; caller sin figuras en las 4 lentes; judge.figures_sent 0; by_model sin vision; "
+      "plan.vision.enabled False",
+      _fg_k["n_verified"] == 9
+      and next(p for p in next(s for s in _SYNTH83 if s["pass"] == "pass2")["evidence"]["path_b"]["papers"] if p.get("source") == "europepmc")["figures"]["n_delivered"] == 9
+      and _rec_fk["citations"][1]["figure_verification"]["bytes"] == "verified"
+      and _fg_k["vision"]["state"] == "kill-switch WITT_FIGURES_VISION=0" and _fg_k["vision"]["enabled"] is False
+      and _fg_k["vision"]["sent"]["n_panels"] == 0 and _fg_k["vision"]["sent"]["n_attempts_with_images"] == 0
+      and _fg_k["vision"]["sent"]["bytes_b64_sent_total"] == 0 and _fg_k["vision"]["panels"][0]["selection"] is None
+      and all(p["n_figures"] == 0 for p in _PANEL83)
+      and all(p["figures_sent"] == 0 for p in _ev_payloads(_ev_fk, "stage.audit.judge"))
+      and not any("vision" in m for m in _rec_fk["token_usage"]["by_stage"]["panel"]["by_model"].values())
+      and _ev_payloads(_ev_fk, "stage.figures.plan")[0]["vision"]["enabled"] is False,
+      json.dumps(_fg_k["vision"]["sent"]))
+check("[F3] ADR-0083 (M.2) con visión apagada cada fila del panel declara saw_figures {n 0, detail 'kill-switch WITT_FIGURES_VISION=0'} y "
+      "items[].seen_by_lenses == []",
+      all((r.get("saw_figures") or {}).get("detail") == "kill-switch WITT_FIGURES_VISION=0" for r in _rec_fk["audit"]["panel"])
+      and all(it["seen_by_lenses"] == [] for it in _fg_k["items"]),
+      json.dumps([r.get("saw_figures") for r in _rec_fk["audit"]["panel"]], default=str)[:300])
+
+# --- (l) REVISE forzado: dos paneles → reenvío MEDIDO; el lazo D.4 (from_vision_lens + la frase) -------------------------------------------
+_ROUND1_83 = {"correctness": "REVISE", "overclaim": "APPROVE", "evidence-grounding": "REVISE", "reproducibility": "APPROVE"}
+_rid_fl, _rec_fl, _ev_fl, _row_fl = _run83("ADR-0083 l: forced revise", _synth83(_ANS_A83, _CIT_A83, rev_text=_ANS_A83 + " (revised)"),
+                                           panel=_panel83(ALL_A, readings=True, cs=_CS_A83, rounds=[_ROUND1_83, ALL_A]))
+_fg_l = _rec_fl["figures"]
+_rev_ev_l = next(s for s in _SYNTH83 if s["pass"] == "revision")["evidence"]
+_findings_l = _rec_fl["revision"]["findings_used"]
+check("ADR-0083 (D.4, el lazo) revisión: findings_used[] gana `from_vision_lens` (bool) y NADA más (lens, reviewer, verdict, caught, "
+      "correction_applied, reasons — figure_readings JAMÁS entra); la instruction de la revisión lleva la frase VISION_LENS_FINDINGS_CLAUSE "
+      "('never adopt a number or observation from them unless it appears in a delivered TEXT passage'); stage.revision.start += n_from_vision_lens; "
+      "vision.panels 2 (la revisión re-selecciona); revision.performed True",
+      _rec_fl["revision"]["performed"] is True and len(_findings_l) == 2
+      and all(set(f) == {"lens", "reviewer", "verdict", "caught", "correction_applied", "reasons", "from_vision_lens"} for f in _findings_l)
+      and all(isinstance(f["from_vision_lens"], bool) for f in _findings_l)
+      and runs_mod.VISION_LENS_FINDINGS_CLAUSE in _rev_ev_l["revision_input"]["instruction"]
+      and "never adopt a number or observation from them unless it appears in a delivered TEXT passage" in _rev_ev_l["revision_input"]["instruction"]
+      and _rev_ev_l["revision_input"]["panel_findings"] == _findings_l
+      and "n_from_vision_lens" in _ev_payloads(_ev_fl, "stage.revision.start")[0]
+      and len(_fg_l["vision"]["panels"]) == 2,
+      json.dumps(_findings_l))
+check("[F3] ADR-0083 (D.4/H) from_vision_lens True SÓLO en el hallazgo de evidence-grounding (vio 9), False en correctness; sent {n_panels 2, "
+      "n_attempts_with_images 4, bytes ×2 del panel único} — cada panel reenvía las imágenes y la API las factura",
+      {f["lens"]: f["from_vision_lens"] for f in _findings_l} == {"correctness": False, "evidence-grounding": True}
+      and _fg_l["vision"]["sent"]["n_panels"] == 2 and _fg_l["vision"]["sent"]["n_attempts_with_images"] == 4
+      and _fg_l["vision"]["sent"]["bytes_b64_sent_total"] == 2 * _fg_a["vision"]["sent"]["bytes_b64_sent_total"]
+      and _ev_payloads(_ev_fl, "stage.revision.start")[0]["n_from_vision_lens"] == 1,
+      json.dumps({"findings": {f["lens"]: f["from_vision_lens"] for f in _findings_l}, "sent": _fg_l["vision"]["sent"]}))
+
+check("ADR-0083 (L/G.6, corrector) con revisión `audit += vision` TAMBIÉN en audit_initial: audit_initial.vision presente, state 'sent', mismo keyset que "
+      "audit.vision (el ADR (L) lo prometía; AUDIT_INITIAL_QUORUM_KEYS lo copia sólo si audit() la trae → bajo kill-switch (j) audit_initial no existe "
+      "o no la lleva)",
+      isinstance(_rec_fl.get("audit_initial"), dict) and isinstance(_rec_fl["audit_initial"].get("vision"), dict)
+      and _rec_fl["audit_initial"]["vision"]["state"] == "sent" and set(_rec_fl["audit_initial"]["vision"]) == set(_rec_fl["audit"]["vision"])
+      and "vision" in runs_mod.AUDIT_INITIAL_QUORUM_KEYS
+      and not (isinstance(_rec_fj.get("audit_initial"), dict) and "vision" in _rec_fj["audit_initial"]),
+      json.dumps(sorted(_rec_fl["audit_initial"].get("vision") or {})))
+# --- (corrector) unidades: _figure_readings_ids sin colisión de fig_id; clasificador SUPERSET; proyección con detail -------------------
+_blk_two = {"items": [{"id": "PMC1#F1", "pmcid": "PMC1", "fig_id": "F1", "bytes_state": "verified", "sha256": "1" * 64},
+                      {"id": "PMC2#F1", "pmcid": "PMC2", "fig_id": "F1", "bytes_state": "verified", "sha256": "2" * 64}]}
+_aud_two = {"panel": [{"lens": "evidence-grounding", "saw_figures": {"n": 1}, "figure_readings": [{"fig_id": "F1", "id": "PMC1#F1", "reading": "x"}]}]}
+_cits_two = [{"n": 1, "kind": "figure", "id": "PMC1#F1"}, {"n": 2, "kind": "figure", "id": "PMC2#F1"}]
+_fc_two = runs_mod._figure_verification(_cits_two, _blk_two, _aud_two)
+check("ADR-0083 (E, corrector) dos papers con el MISMO fig_id ('F1'): sólo la figura LEÍDA (PMC1#F1) gana content 'panel-judgment'; PMC2#F1 queda "
+      "'not-evaluated' (antes el fig_id desnudo colisionaba y atribuía juicio a una imagen que ninguna lente leyó); _figure_readings_ids sólo ids compuestos",
+      _cits_two[0]["figure_verification"]["content"] == "panel-judgment" and _cits_two[1]["figure_verification"]["content"] == "not-evaluated"
+      and runs_mod._figure_readings_ids(_aud_two) == {"PMC1#F1"} and _fc_two["n"] == 2 and _fc_two["n_verified_bytes"] == 2,
+      json.dumps([c["figure_verification"] for c in _cits_two]))
+_cits_kind = [{"n": 1, "kind": "paper", "id": "PMC11379296#pone.0307390.g001"}, {"n": 2, "kind": "paper", "id": "PMID:39230001"}]
+_fc_kind = runs_mod._figure_verification(_cits_kind, _fg_a, _rec_fa["audit"])
+_ns_kind = runs_mod._figure_citation_ns(_cits_kind, _fg_a)
+check("ADR-0083 (E/F, corrector) UN clasificador de cita-figura en runs == el SUPERSET de verify_output: una cita con id de figura pero kind 'paper' gana "
+      "figure_verification {bytes 'verified', kind_reported 'paper'}, cuenta en figure_citations.n 1 y n_figure_shaped_other_kind 1, y entra a "
+      "cited_ns (citadas primero / n_cited); la cita PMID no; runs._is_figure_citation acepta kind 'figure', forma 'PMC…#…' o id que resuelve",
+      "figure_verification" in _cits_kind[0] and _cits_kind[0]["figure_verification"]["bytes"] == "verified"
+      and _cits_kind[0]["figure_verification"]["kind_reported"] == "paper" and "figure_verification" not in _cits_kind[1]
+      and _fc_kind["n"] == 1 and _fc_kind["n_figure_shaped_other_kind"] == 1 and _ns_kind == {_G001_ID: [1]}
+      and runs_mod._is_figure_citation({"kind": "figure", "id": "x"}, {}) and runs_mod._is_figure_citation({"kind": "other", "id": "PMC9#f1"}, {})
+      and not runs_mod._is_figure_citation({"kind": "paper", "id": "PMID:1"}, {}),
+      json.dumps({"fv": _cits_kind[0].get("figure_verification"), "fc": _fc_kind, "ns": _ns_kind}))
+_g4o83 = next(r["reviewer"] for r in _rec_fa["audit"]["panel"] if r["lens"] == "reproducibility")   # el reviewer OpenAI del registro (tile-512)
+_t_hi = runs_mod._vision_tokens(_g4o83, {"w": 750, "h": 417})
+_t_lo = runs_mod._vision_tokens(_g4o83, {"w": 750, "h": 417}, "low")
+_hk83 = next(r["reviewer"] for r in _rec_fa["audit"]["panel"] if r["lens"] == "evidence-grounding")
+_t_an = runs_mod._vision_tokens(_hk83, {"w": 750, "h": 417}, "low")
+_rows_lo = [{"reviewer": _g4o83, "lens": "reproducibility", "saw_figures": {"n": 2, "sha256s": ["s1", "s2"], "bytes_b64_total": 10}, "attempts": [{}]}]
+_items_lo = [{"sha256": "s1", "dims_measured": {"w": 750, "h": 417}}, {"sha256": "s2", "dims_measured": {"w": 738, "h": 840}}]
+_bv_lo = runs_mod._vision_by_reviewer(_rows_lo, _items_lo, "low")
+_bv_hi = runs_mod._vision_by_reviewer(_rows_lo, _items_lo, "high")
+check("ADR-0083 (H, corrector) la proyección de runs honra WITT_FIGURES_OPENAI_DETAIL como composite_auditor: reviewer OpenAI tile-512 750×417 'high' 425 vs 'low' 85; "
+      "_vision_by_reviewer(…, 'low') → 2×85 = 170 con detail 'low' (antes runs proyectaba SIEMPRE la fórmula 'high' y el frozen congelaba dos cifras "
+      "distintas para el mismo envío); 'high' → 425 + 765 = 1190; Anthropic ignora el detail (_openai_detail_for → None); el id OpenAI se LEE del registro (a)",
+      _t_hi["tokens"] == 425 and _t_lo["tokens"] == 85 and _bv_lo[_g4o83]["visual_tokens_projected"] == 170 and _bv_lo[_g4o83]["detail"] == "low"
+      and _bv_hi[_g4o83]["visual_tokens_projected"] == 1190 and runs_mod._openai_detail_for(_hk83, "low") is None
+      and runs_mod._openai_detail_for(_g4o83, "low") == "low" and _t_an["tokens"] == 405 and models.vision_tier_of(_g4o83)[0] == "tile-512",
+      json.dumps({"hi": _t_hi["tokens"], "lo": _t_lo["tokens"], "bv_lo": _bv_lo[_g4o83]["visual_tokens_projected"]}))
+
+# --- (m) CANCELACIÓN durante stage.figures → cancelled con lo declarado hasta ahí ----------------------------------------------------------
+_shutil.rmtree(_CR83 / "PMC11379296", ignore_errors=True)   # sin caché → la descarga ocurre y el hook cancela DURANTE la etapa
+_box83 = {}
+_rid_fm, _rec_fm, _ev_fm, _row_fm = _run83("ADR-0083 m: cancel during figures", _synth83(_ANS_A83, _CIT_A83),
+                                           before=lambda rid: _box83.__setitem__("rid", rid),
+                                           get=_mk_get83(hook=lambda url: db.request_cancel(_box83["rid"], by="natalia",
+                                                                                              reason="smoke: cancel during stage.figures")))
+check("ADR-0083 (C/LOTE-01·A3) cancelación pedida DURANTE la descarga: la etapa la ve tras el evento del paper → la corrida queda `cancelled` "
+      "(no failed, no disfrazada), sin frozen, con usage_json (gasto previo persistido); la Traza trae stage.figures.plan + paper{start} y "
+      "run.state cancelled; la GET ocurrió (1) y ningún stage.synthesize.pass2",
+      _row_fm["state"] == "cancelled" and _rec_fm is None and _row_fm.get("usage_json")
+      and "stage.figures.plan" in _ev_types(_ev_fm) and "stage.figures.paper" in _ev_types(_ev_fm)
+      and "stage.synthesize.pass2" not in _ev_types(_ev_fm) and len(_GET83) == 1
+      and _ev_types(_ev_fm)[-1] == "run.state" and _ev_fm[-1]["payload"]["state"] == "cancelled",
+      json.dumps({"state": _row_fm["state"], "tail": _ev_types(_ev_fm)[-4:]}))
+
+# --- F8 (integrador) — COSTURAS (O) medidas sobre la corrida (a) y la kill-switch (j); assert GLOBAL anti-binario sobre la BD -------------
+_fa_sha_items = {i["sha256"] for i in _items_a if i["bytes_state"] == "verified"}
+_fa_bundle = json.loads(_row_fa["bundle_json"])
+_fa_sha_bundle = {i["sha256"] for p in _fa_bundle["path_b"]["papers"] for i in ((p.get("figures") or {}).get("items") or [])
+                  if i.get("bytes_state") == "verified"}
+_fa_sha_ledger = {i["sha256"] for i in (_fa_bundle.get("figures_ledger") or {}).get("items") or [] if i.get("bytes_state") == "verified"}
+_fa_panels = _fg_a["vision"]["panels"]
+_fa_sha_panels = {s for pnl in _fa_panels for s in (pnl.get("sha256s") or [])}
+_fa_rows = list(_rec_fa["audit"]["panel"]) + list((_rec_fa.get("audit_initial") or {}).get("panel") or [])
+_fa_saw = {(r["reviewer"], r["lens"]): r["saw_figures"] for r in _fa_rows if isinstance(r.get("saw_figures"), dict)}
+_fa_sha_saw = {s for sf in _fa_saw.values() for s in (sf.get("sha256s") or [])}
+check("F8 (O) costura sha: frozen.figures.items[verified].sha256 == bundle.path_b.papers[].figures.items == bundle.figures_ledger.items == "
+      "vision.panels[].sha256s (lo que _figures_for_panel seleccionó, sha RECALCULADO) == ⋃ audit.panel[].saw_figures.sha256s — las 9 del "
+      "MANIFEST, un solo sha por figura (el del original); audit.panel[].saw_figures.sha256s ⊆ frozen.figures.items[].sha256",
+      len(_fa_sha_items) == 9 and _fa_sha_items == _fa_sha_bundle == _fa_sha_ledger == _fa_sha_panels == _fa_sha_saw
+      == {e["sha256"] for e in _MAN_BY83.values()}
+      and all(set(sf.get("sha256s") or []) <= _fa_sha_items for sf in _fa_saw.values()),
+      json.dumps({"items": len(_fa_sha_items), "bundle": len(_fa_sha_bundle), "ledger": len(_fa_sha_ledger), "panels": len(_fa_sha_panels),
+                  "saw": len(_fa_sha_saw)}))
+_fa_judge = _ev_payloads(_ev_fa, "stage.audit.judge")
+check("F8 (O) costura judge: stage.audit.judge.figures_sent == audit.panel[].saw_figures.n por (reviewer, lens) en TODOS los intentos, y "
+      "figures_sha256 del evento == saw_figures.sha256s (mismo orden); 9 en grounding y reproducibility, 0 en correctness y overclaim",
+      len(_fa_judge) >= 4 and all(_fa_saw.get((p["reviewer"], p["lens"]), {}).get("n") == p["figures_sent"]
+                                  and (_fa_saw.get((p["reviewer"], p["lens"]), {}).get("sha256s") or []) == p["figures_sha256"]
+                                  for p in _fa_judge)
+      and sorted(p["figures_sent"] for p in _fa_judge) == [0, 0, 9, 9],
+      json.dumps([(p["lens"], p["figures_sent"]) for p in _fa_judge]))
+_fa_epi = json.loads(_row_fa["epistemic_summary_json"])
+_fa_view = app.get_run(_rid_fa, authorization=AUTH)["epistemic_summary"]
+check("F8 (O) costura vista: epistemic_summary.figures_n_verified == frozen.figures.n_verified (9), figures_n_cited == n_cited (1), figures_state "
+      "== state ('attached') — en el blob persistido Y en la vista GET /runs/{id} (sin re-derivar)",
+      _fa_epi["figures_n_verified"] == _fg_a["n_verified"] == 9 and _fa_epi["figures_n_cited"] == _fg_a["n_cited"] == 1
+      and _fa_epi["figures_state"] == _fg_a["state"] == "attached"
+      and {k: _fa_view[k] for k in ("figures_state", "figures_n_verified", "figures_n_cited")}
+      == {k: _fa_epi[k] for k in ("figures_state", "figures_n_verified", "figures_n_cited")},
+      json.dumps({k: _fa_epi.get(k) for k in ("figures_state", "figures_n_verified", "figures_n_cited")}))
+_cov_a = _pdf82.pdf_sections_cover(set(_rec_fa))
+check("F8 (O/K) costura PDF: record_pdf.pdf_sections_cover(frozen REAL de la corrida (a), 1.12, awaiting_closure) == {missing [], extra "
+      "[closed_by, frozen_at]} (las dos nacen al CERRAR: ADR-0073); ninguna llave de servicio (consensus/ratings*) viaja en el frozen; "
+      "build_pdf del registro con figuras → 200 bytes %PDF- y 0 red",
+      _cov_a["missing"] == [] and sorted(_cov_a["extra"]) == ["closed_by", "frozen_at"]
+      and not (set(_rec_fa) & set(_pdf82.SERVICE_KEYS))
+      and _pdf82.build_pdf(_rec_fa, compress=False, cache_dir=str(_CR83), thumbs=False)[:5] == b"%PDF-",
+      json.dumps(_cov_a))
+_fa_tu = _rec_fa["token_usage"].get("figures")
+_fa_usage = json.loads(_row_fa["usage_json"])
+check("F8 (H) usage_json.figures (contrato F5→F4 cosido): token_usage.figures == espejo de frozen.figures {state, n_figures, n_verified, n_cited} "
+      "+ bytes_downloaded == Σ bytes MANIFEST de las 9 verified + class MEASUREMENT; usage_json persistido == frozen.token_usage; bajo "
+      "kill-switch (j) la llave NO existe (M.1)",
+      isinstance(_fa_tu, dict)
+      and {k: _fa_tu[k] for k in ("state", "n_figures", "n_verified", "n_cited")}
+      == {k: _fg_a[k] for k in ("state", "n_figures", "n_verified", "n_cited")}
+      and _fa_tu["bytes_downloaded"] == sum(e["bytes"] for e in _MAN_BY83.values())
+      == sum(i["bytes"] for i in _items_a if i["bytes_state"] == "verified") == _fa_tu["bytes_verified"]
+      and _fa_tu["n_cache_hit"] == 0 and all(i["cache_hit"] is False for i in _items_a if i["bytes_state"] == "verified")
+      and _fa_tu["class"].startswith("MEASUREMENT") and _fa_usage.get("figures") == _fa_tu
+      and "figures" not in _rec_fj["token_usage"] and "figures" not in json.loads(_row_fj["usage_json"]),
+      json.dumps(_fa_tu))
+_tu_k, _it_k = _rec_fk["token_usage"]["figures"], _rec_fk["figures"]["items"]
+_hits_k = [i for i in _it_k if i["bytes_state"] == "verified" and i["cache_hit"] is True]
+check("ADR-0083 (H, corrector) token_usage.figures distingue bytes_verified (Σ verified, caché incluida) de bytes_downloaded (SOLO verified con cache_hit "
+      "False = red REAL de la corrida) y declara n_cache_hit — invariante medido sobre la corrida (k) (misma caché que (a): "
+      f"{len(_hits_k)} cache hits): bytes_downloaded == Σ verified¬hit, bytes_verified == Σ verified, n_cache_hit == hits; class lo dice",
+      _tu_k["bytes_verified"] == sum(i["bytes"] for i in _it_k if i["bytes_state"] == "verified")
+      and _tu_k["bytes_downloaded"] == sum(i["bytes"] for i in _it_k if i["bytes_state"] == "verified" and i["cache_hit"] is not True)
+      and _tu_k["n_cache_hit"] == len(_hits_k) and (_tu_k["bytes_downloaded"] == 0) == (len(_hits_k) == 9)
+      and "cache_hit false" in _tu_k["class"],
+      json.dumps({k: _tu_k[k] for k in ("bytes_verified", "bytes_downloaded", "n_cache_hit")}))
+_fa_dcf = _rec_fa["deterministic_checks"]["figures"]
+check("F8 (F.3) costura gate: runs._figure_checks pasa el DICT del sintetizador → figure_only_not_asserted.absence_kind_state 'declared' "
+      "(absence_kind 'not-applicable' del stub llegó; NO 'not-provided by caller'), positive_claim True, ok True (1 paper + 1 figure)",
+      _fa_dcf["state"] == "checked" and _fa_dcf["figure_only_not_asserted"]["absence_kind_state"] == "declared"
+      and _fa_dcf["figure_only_not_asserted"]["absence_kind"] == "not-applicable"
+      and _fa_dcf["figure_only_not_asserted"]["positive_claim"] is True and _fa_dcf["figure_only_not_asserted"]["ok"] is True,
+      json.dumps({k: _fa_dcf["figure_only_not_asserted"].get(k) for k in ("absence_kind_state", "absence_kind", "ok")}))
+_never = TMP / "figcache_never_created"
+_b_nox = {"path_b": {"papers": [{"source": "europepmc", "evidence_id": "e1", "search_rec": {"pmcid": "PMC11379296"},
+                                 "selection_rank": 1, "fetched": {"found": True, "full_text": True, "raw_cached": []}}]}}
+_s_nox = _fig.attach(_b_nox, cfg=_fig.env_config(), cache_root=_never)
+check("F8 (B.3) caché perezosa: attach con papers SIN XML de texto completo → 'no-papers-with-xml' con cache.dir_state 'missing' MEDIDO y el "
+      "directorio NO se crea (un gate sin WITT_MCP_CACHE_DIR ya no deja <repo>/mcp_cache/figures vacío); con papers seleccionados el dir sí "
+      "se crea (la corrida (a) lo midió 'writable')",
+      _s_nox["state"] == "no-papers-with-xml" and _s_nox["cache"]["dir_state"] == "missing" and not _never.exists()
+      and _plan_ev_a[0]["cache_dir_state"] == "writable" and _fg_a["cache"]["dir_state"] == "writable",
+      json.dumps(_s_nox["cache"]))
+import re as _re_f8  # noqa: E402
+import sqlalchemy as _sa_f8  # noqa: E402
+_B64_RE_F8 = _re_f8.compile(r"[A-Za-z0-9+/]{300,}={0,2}")
+_B64_PREFIXES_F8 = [b[:80] for b in _B64_BY83.values()]
+with db.engine().begin() as _cx:
+    _all_rows = _cx.execute(_sa_f8.select(db.runs.c.run_id, db.runs.c.frozen_record_json, db.runs.c.bundle_json,
+                                          db.runs.c.usage_json, db.runs.c.epistemic_summary_json)).all()
+_bin_hits = []
+for _r in _all_rows:
+    for _col in ("frozen_record_json", "bundle_json", "usage_json", "epistemic_summary_json"):
+        _blob = _r._mapping[_col] or ""
+        if "data:image" in _blob or any(pfx in _blob for pfx in _B64_PREFIXES_F8) or _B64_RE_F8.search(_blob):
+            _bin_hits.append(f"{_r._mapping['run_id']}:{_col}")
+check("F8 (D.1/M.6) assert GLOBAL anti-binario sobre TODA la BD del gate: ningún frozen_record_json / bundle_json / usage_json / "
+      f"epistemic_summary_json de las {len(_all_rows)} corridas contiene 'data:image', la b64 de las 9 figuras del fixture (prefijos de 80) "
+      "ni una cadena base64 ≥ 300 chars — nada binario en el blob (ADR-0074)",
+      len(_all_rows) >= 60 and _bin_hits == [], json.dumps({"runs": len(_all_rows), "hits": _bin_hits[:10]}))
+
+# --- cero red en la sección + restauración --------------------------------------------------------------------------------------------
+check("ADR-0083 (M.5) la sección corrió 100% OFFLINE: figures._urlopen fue el bloqueador contado durante toda la sección y el contador global "
+      "NO se movió (0 llamadas); la caché de figuras vivió en TMP (WITT_MCP_CACHE_DIR), jamás en mcp_cache del repo",
+      _fig._urlopen is _urlopen_blocked and len(_NET_CALLS) == _net_before83
+      and _CR83.exists() and not (answer_pipeline.CACHE / "figures" / "PMC11379296").exists(),
+      json.dumps({"net_calls_delta": len(_NET_CALLS) - _net_before83}))
+_fig._urlopen = _FIG_URLOPEN_SAVED83
+_fig._get_bytes = _REAL_GET83
+if _MCP_ENV_SAVED83 is None:
+    os.environ.pop("WITT_MCP_CACHE_DIR", None)
+else:
+    os.environ["WITT_MCP_CACHE_DIR"] = _MCP_ENV_SAVED83
+_sources_found()
+
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()
-check("ADR-0080 (H) / ADR-0081 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y contado "
-      "durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 (0 llamadas), mcp_cache byte-idéntico antes/después (la "
-      "caché por día de ZFIN neutralizada desde el gate), las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las "
-      "tools reales resuelven",
+check("ADR-0080 (H) / ADR-0081 / ADR-0083 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y "
+      "contado durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 + las de ADR-0082 y ADR-0083 (0 llamadas), mcp_cache "
+      "byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate; la caché de figuras vive en un TMP propio), "
+      "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
       _NET_CALLS == [] and _mcp_before == _mcp_after,
       json.dumps({"net_calls": _NET_CALLS[:3], "mcp_changed": [x for x in _mcp_after if x not in _mcp_before][:3]}))
 _urlreq.urlopen = _urlopen_real

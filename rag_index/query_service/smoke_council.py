@@ -855,10 +855,12 @@ check("contrato C2: run_round(members, round_, ctx, caller=None, budget_s=None, 
       and list(inspect.signature(council.summary_for_thread).parameters) == ["council", "cap"]
       and council.aggregate_requirements is council.aggregate_r1 and council.aggregate_coverage is council.judge_coverage
       and council.compile_directives is council.directives_from)
-check("(D.1) contrato del caller: _anthropic_tool_call(..., return_meta=False, tools=None); CallerError(kind, message, legacy_type_name=None, "
+check("(D.1) contrato del caller: _anthropic_tool_call(..., return_meta=False, tools=None, user_content=None) — `user_content` se APILA "
+      "tras `tools` (ADR-0083 G.3, F3; None → content: user_text byte a byte); CallerError(kind, message, legacy_type_name=None, "
       "usage=None, meta=None, retry_after=None); _INFLIGHT BoundedSemaphore con límite/fuente declarados; default_caller usa tools=TOOLS",
       list(inspect.signature(ca._anthropic_tool_call).parameters) == ["model", "system", "user_text", "tool", "timeout", "retries",
-                                                                       "max_tokens", "effort", "return_meta", "tools"]
+                                                                       "max_tokens", "effort", "return_meta", "tools", "user_content"]
+      and inspect.signature(ca._anthropic_tool_call).parameters["user_content"].default is None
       and list(inspect.signature(ca.CallerError.__init__).parameters)[1:] == ["kind", "message", "legacy_type_name", "usage", "meta", "retry_after"]
       and isinstance(ca._INFLIGHT, type(threading.BoundedSemaphore())) and ca._INFLIGHT_LIMIT == 8 and "default-unset" in ca._INFLIGHT_SOURCE
       and "tools=request[\"tools\"]" in inspect.getsource(council.default_caller))

@@ -79,6 +79,28 @@ ADR-0082 (D.1 — el caller, aditivo; el consejo de criterio vive en lib/council
     `_backoff(2·(intento+1))` de hoy; `CallerError.retry_after` y `meta.retry_after_honored_s`.
   - `meta.attempts` (intentos HECHOS) y `meta.usage_prior_attempts` (lo que la API cobró en intentos fallidos) para que
     el consejo sume TODO gasto de todo intento (C.3). La 2-tupla `return_meta=False` sigue byte a byte.
+
+ADR-0083 (G — panel con visión; rebanada F3):
+  - (G.1) VISION_LENSES = ('evidence-grounding', 'reproducibility'); `vision_lenses(env)` valida WITT_FIGURES_VISION_LENSES
+    contra models.LENSES (fuera de vocabulario → default DECLARADO). (G.2) `audit(..., figures=None, vision_lenses=None)`:
+    las figuras (figures.select_for_panel: panel_view ∧ verified ∧ caption present, b64 ya leída de la caché con el sha
+    RECALCULADO) viajan DENTRO del `member` que recibe el caller — la firma caller(member, system, user_text) y todos los
+    fakes/llamadores de hoy se conservan; la fila copia sólo reviewer/family/lens/seat → la b64 JAMÁS fuga al frozen.
+  - (G.3) tres transportes: `_anthropic_tool_call(..., user_content=None)` (None → "content": user_text BYTE A BYTE),
+    `_responses_kwargs/_openai_responses_call(..., user_content=None)` (None → "input": user_text) y `_openai_chat_call(...,
+    user_content=None)` (None → content: user_text) — `_default_caller` arma los bloques con figures.anthropic_blocks /
+    openai_responses_parts / openai_chat_parts (imágenes ANTES del texto, rotuladas) y sólo pasa el kwarg cuando hay
+    figuras. El puente chat.completions ES la lente reproducibility de hoy: sin él "dos lentes" sería UNA en producción
+    (forma declarada figures.OPENAI_CHAT_FORM_STATE; LG4 la mide). FIGURE_READING_RULE (literal) entra al system SOLO cuando
+    de veras viajan imágenes.
+  - (G.4) models.vision_tier_of / vision_tokens deciden si el asiento ve (none|unknown → 0 bloques, saw_figures.detail
+    'model-vision-unknown') y PROYECTAN tokens de visión (clase proyección: ninguna API los separa en usage). (G.5)
+    VERDICT_TOOL.figure_readings OPCIONAL — JUICIO ('model-judgment'); parse_figure_readings descarta y CUENTA ids no
+    entregados y formas fuera de vocabulario; figure_readings_from_panel alimenta verify_output (content 'panel-judgment').
+    (G.6) cada fila (también errored) gana `saw_figures` MEDIDO desde lo entregado al caller; `audit.vision` resume y
+    apply_to_bundle lo copia. (H) WITT_FIGURES_COUNT_TOKENS=1 → saw_figures.tokens_measured = input_tokens medidos −
+    count_tokens de la MISMA petición sin imágenes (medición derivada). Kill-switch WITT_FIGURES=0 (M.1): NINGUNA llave nueva
+    se emite; member, system y cuerpos son los de 1.11 byte a byte. panel_signature no cambia con o sin figuras.
 """
 import email.utils
 import json
@@ -92,6 +114,9 @@ import urllib.request
 # ADR-0081 (A): la tabla de modelos se importa EN DURO — sin fallback literal. Si falta, el módulo no
 # importa y el smoke lo dice a gritos (mejor que un panel fantasma con literales desincronizados).
 from lib import models
+# ADR-0083 (G): la librería de figuras se importa EN DURO (bloques por transporte, env tolerante, vocabularios). Si falta,
+# el módulo no importa y el smoke lo dice a gritos — mejor que un panel que "ve" a ciegas.
+from lib import figures as _figures
 
 # ADR-0058 (decisión de Emmanuel, 2026-08-16): APPROVE_DECLINE distingue la DECLINACIÓN CORRECTA del
 # claim rechazado. Las dos únicas corridas reales terminaron AUDIT_REJECTED por decir la verdad sobre
@@ -115,6 +140,55 @@ ANTHROPIC_VERSION = "2023-06-01"
 # duplica como literal para que este módulo siga sin importar lib.verify_output; el smoke los compara).
 CITATION_SUPPORT_VERDICTS = ("supported", "unsupported", "not-assessable")
 CITATION_SUPPORT_LENS = "evidence-grounding"
+
+# ---------------------------------------------------------------------------------------------------------------
+# ADR-0083 (G): panel con visión — DOS lentes ven las figuras (JUICIO etiquetado); el resto y el sintetizador jamás bytes
+# ---------------------------------------------------------------------------------------------------------------
+VISION_LENSES = ("evidence-grounding", "reproducibility")     # (G.1) default declarado (= figures._DEFAULT_LENSES, paridad medida)
+VISION_LENSES_ENV = "WITT_FIGURES_VISION_LENSES"
+# corrector (ADR-0083 G.1 / CLAUDE.md §7 «at most two panel lenses» / (N)(h)): la doctrina la HACE CUMPLIR el código — un CSV o
+# un llamador con > 2 lentes cae al default DECLARADO (patrón M.8: fuera de rango → default con fuente), jamás se amplía en silencio.
+VISION_LENSES_MAX = 2
+VISION_LENSES_MAX_RULE = ("at most VISION_LENSES_MAX (2) panel lenses may receive images (CLAUDE.md §7, ADR-0083 N.h); a CSV or "
+                          "caller list with more falls back to VISION_LENSES with lenses_source '... (>2 lenses)'")
+# (G.6) `saw_figures.detail`, MEDIDO desde lo que se le entregó al caller — vocabulario CERRADO (viaja al gate de paridad)
+SAW_FIGURES_DETAILS = ("sent", "lens-not-in-vision-lenses", "kill-switch WITT_FIGURES_VISION=0", "no-eligible-figures",
+                       "model-vision-unknown", "api-form-not-verified")
+VISION_STATES = ("sent", "kill-switch WITT_FIGURES_VISION=0", "no-eligible-figures")      # audit.vision.state (L)
+API_FORM_VERIFIED = "verified by doc (2026-09-15)"      # Anthropic Messages y OpenAI Responses (ADR-0083 Context 8); chat: figures.OPENAI_CHAT_FORM_STATE
+# (G.3) LA REGLA, literal: va al system de las lentes que reciben imágenes y congelada en frozen.figures.vision.rule (F4).
+FIGURE_READING_RULE = ("You may be shown figure images from the cited papers. Use them ONLY to judge whether the claim "
+                       "misrepresents what the figure shows. NEVER derive, read off or estimate numbers, counts, sizes or "
+                       "statistics from an image — numbers must come from text. Never put figure-derived numbers or "
+                       "observations in `caught`, `reasons` or `correction_applied`; report anything you conclude from an "
+                       "image ONLY in `figure_readings` — it is model judgment, never a measurement. For `citation_support` "
+                       "on a kind 'figure' citation judge the CAPTION text delivered in `evidence` only — the image never "
+                       "decides support.")
+FIGURE_READING_RULE_SHORT = "never derive numbers from the image"    # la forma corta de la doctrina §7 (D.5); vive en el tool
+FIGURE_READINGS_CLASS = "model-judgment"
+FIGURE_READING_MAX_CHARS = 400
+# (H) estados de saw_figures.tokens_measured_state (exactos + prefijo 'error: <kind>')
+TOKENS_MEASURED_STATES = ("measured (input_tokens - count_tokens text-only; last attempt)",
+                          "not-requested (WITT_FIGURES_COUNT_TOKENS=0)",
+                          "not-available (provider does not separate image tokens)", "no-images", "no-usage")
+TOKENS_MEASURED_PREFIXES = ("error: ",)
+_NUMERAL_RE = re.compile(r"\d")
+
+
+def vision_lenses(env=None):
+    """(lentes, fuente) — (G.1) WITT_FIGURES_VISION_LENSES (CSV) validado contra models.LENSES: vacía → VISION_LENSES con
+    'default-unset:…'; algún token fuera del vocabulario, o CSV vacío/basura → VISION_LENSES con 'default-invalid-env:…'
+    (declarado, jamás corregido en silencio); válida → los tokens DISTINTOS en su orden con 'env:…'."""
+    cfg = _figures.env_config(env)
+    toks = list(dict.fromkeys(str(t).strip() for t in cfg["vision_lenses"] if str(t).strip()))
+    src = cfg["sources"]["vision_lenses"]
+    if not toks or any(t not in models.LENSES for t in toks):
+        return tuple(VISION_LENSES), f"default-invalid-env:{VISION_LENSES_ENV}"
+    if len(toks) > VISION_LENSES_MAX:      # corrector: > 2 lentes con visión contradice §7 — default declarado, no se amplía
+        return tuple(VISION_LENSES), f"default-invalid-env:{VISION_LENSES_ENV} (>{VISION_LENSES_MAX} lenses)"
+    if src.startswith("default-"):
+        return tuple(VISION_LENSES), src
+    return tuple(toks), src
 
 # ADR-0080 (E): UN reintento adicional por juez caído/ilegible antes de excluirlo. Lector: audit().
 # Vacío o basura en la env → default DECLARADO (patrón _env_int_tolerante de ADR-0078), nunca tumba el import.
@@ -360,6 +434,76 @@ def citation_support_from_panel(rows):
             return r["citation_support"]
     return None
 
+
+def _delivered_index(delivered):
+    """{id compuesto → (id, fig_id, sha256)} y {fig_id pelón → …} (este último SÓLO cuando el fig_id es único entre lo
+    entregado: dos papers con 'fig1' no se adivinan)."""
+    by_id, by_fig, dup = {}, {}, set()
+    for f in delivered or []:
+        if not isinstance(f, dict) or not f.get("id"):
+            continue
+        rec = (f["id"], f.get("fig_id"), f.get("sha256"))
+        by_id[f["id"]] = rec
+        fid = f.get("fig_id")
+        if fid:
+            if fid in by_fig:
+                dup.add(fid)
+            by_fig[fid] = rec
+    for fid in dup:
+        by_fig.pop(fid, None)
+    return by_id, by_fig
+
+
+def parse_figure_readings(raw, delivered):
+    """(válidas, n_dropped) — parseo DETERMINISTA de `figure_readings` tal como lo emitió el juez (ADR-0083 G.5).
+    `delivered` = las figuras que ESA lente recibió (PANEL_FIGURE_KEYS: id, fig_id, sha256, …). Válida = dict cuyo fig_id
+    resuelve a una figura ENTREGADA (por id compuesto '<PMCID>#<fig_id>', o por fig_id pelón cuando es único) con `reading`
+    str no vacío; la primera lectura por figura gana. Se DESCARTAN y CUENTAN: ids no entregados, duplicados, formas fuera de
+    vocabulario (consistent_with_caption ∉ {true, false, null}) e ítems que no son dict. `reading` se corta a 400 chars
+    (reading_truncated declarado) y se MIDE `numerals_present` (hay un dígito: un juez que ignoró la regla queda VISIBLE, no
+    corregido — jamás sube la escalera). raw que no es lista (el juez emitió un string) → ([], 1): emitió algo fuera de forma,
+    que no es lo mismo que no emitir (el caller decide `emitted` por la presencia de la llave)."""
+    if not isinstance(raw, list):
+        return [], 1
+    by_id, by_fig = _delivered_index(delivered)
+    out, seen, dropped = [], set(), 0
+    for item in raw:
+        if not isinstance(item, dict):
+            dropped += 1
+            continue
+        fid, reading, cwc = item.get("fig_id"), item.get("reading"), item.get("consistent_with_caption", None)
+        rec = by_id.get(fid) if isinstance(fid, str) else None
+        if rec is None and isinstance(fid, str):
+            rec = by_fig.get(fid)
+        if (rec is None or not isinstance(reading, str) or not reading.strip() or rec[0] in seen
+                or not (cwc is None or isinstance(cwc, bool))):
+            dropped += 1
+            continue
+        seen.add(rec[0])
+        text = reading.strip()
+        out.append({"fig_id": rec[1], "id": rec[0], "sha256": rec[2], "reading": text[:FIGURE_READING_MAX_CHARS],
+                    "reading_truncated": len(text) > FIGURE_READING_MAX_CHARS, "consistent_with_caption": cwc,
+                    "numerals_present": bool(_NUMERAL_RE.search(text))})
+    return out, dropped
+
+
+def figure_readings_from_panel(rows):
+    """{'<PMCID>#<fig_id>': [{lens, reviewer, sha256, reading, consistent_with_caption, numerals_present}]} — las lecturas
+    de imagen de TODAS las filas VÁLIDAS que las emitieron (ADR-0083 E: `figure_verification.content 'panel-judgment'` ⇔ el
+    id está aquí; ausente → 'not-evaluated', declarado). Clase FIGURE_READINGS_CLASS: jamás entra a _panel_findings ni a la
+    escalera de soporte (D.4)."""
+    out = {}
+    for r in (rows or []):
+        if "verdict" not in r or not isinstance(r.get("figure_readings"), list):
+            continue
+        for fr in r["figure_readings"]:
+            out.setdefault(fr["id"], []).append({"lens": r.get("lens"), "reviewer": r.get("reviewer"),
+                                                 "sha256": fr.get("sha256"), "reading": fr.get("reading"),
+                                                 "consistent_with_caption": fr.get("consistent_with_caption"),
+                                                 "numerals_present": fr.get("numerals_present")})
+    return out
+
+
 VERDICT_TOOL = {
     "name": "emit_audit_verdict",
     "description": ("Emit your adversarial audit verdict for the claim under your assigned lens. "
@@ -413,6 +557,25 @@ VERDICT_TOOL = {
                                 "'supported' | 'unsupported' | 'not-assessable' (no passage shown for it, "
                                 "or the claim sentence cannot be located). Judge ONLY citations whose "
                                 "passage you were shown; never assert support from memory."),
+            },
+            # ADR-0083 (G.5): lecturas de imagen — SÓLO las lentes con visión (las que recibieron bloques de imagen) lo
+            # emiten; es JUICIO del modelo (figure_readings_class 'model-judgment'), jamás medición: nunca sube la escalera
+            # de soporte ni entra a la revisión (D.4). parse_figure_readings descarta y CUENTA ids no entregados y formas
+            # fuera de vocabulario; no emitir ≠ emitir []. OPCIONAL en `required`.
+            "figure_readings": {
+                "type": "array",
+                "items": {"type": "object",
+                          "properties": {"fig_id": {"type": "string"},
+                                         "reading": {"type": "string", "maxLength": FIGURE_READING_MAX_CHARS},
+                                         "consistent_with_caption": {"type": ["boolean", "null"]}},
+                          "required": ["fig_id", "reading"]},
+                "description": ("vision lenses ONLY (other lenses: omit) — and only when figure images were shown to you. "
+                                "For EACH figure image you were shown, emit {fig_id (exactly as labelled: "
+                                "'<PMCID>#<fig_id>'), reading (<= 400 chars: does the image support, contradict or not "
+                                "bear on what the claim says about it?), consistent_with_caption (true | false | null = "
+                                "cannot tell)}. This is your JUDGMENT, never a measurement: " + FIGURE_READING_RULE_SHORT +
+                                " — never numbers read off the image, no counts, sizes or statistics; numbers must come "
+                                "from text. Never repeat these readings in `caught`, `reasons` or `correction_applied`."),
             },
         },
         "required": ["verdict", "confidence"],
@@ -581,7 +744,7 @@ def _anthropic_content_kind(stop_reason, bad_verdict):
 
 
 def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retries=1, max_tokens=1200,
-                         effort=None, return_meta=False, tools=None):
+                         effort=None, return_meta=False, tools=None, user_content=None):
     """Forced-tool Messages call (urllib; the run_held_out.py pattern). Returns (tool_input, usage) — la 2-tupla de
     f57a3d3, INTACTA para todos los llamadores y fakes de hoy — o, con `return_meta=True` (ADR-0081 B),
     (tool_input, usage, meta) con meta = {model_reported: payload['model'], api: 'anthropic-messages', stop_reason,
@@ -597,7 +760,10 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
     byte a byte el de hoy; `system` puede ser `str` (hoy) o `list[block]` (bloques `{type:'text', text, cache_control}`
     tal cual — el JSON los serializa igual); el semáforo de PROCESO `_INFLIGHT` se adquiere alrededor de urlopen;
     `Retry-After` se honra en http-429/529 con tope WITT_ANTHROPIC_RETRY_AFTER_CAP_S (sin cabecera, el backoff de hoy).
-    Fallos → CallerError con kind (C.2) y los MISMOS mensajes de f57a3d3; refusal y http-4xx no se reintentan."""
+    Fallos → CallerError con kind (C.2) y los MISMOS mensajes de f57a3d3; refusal y http-4xx no se reintentan.
+    ADR-0083 (G.3), aditivo: `user_content=` None → "content": user_text BYTE A BYTE (el cuerpo de 1.11); lista de bloques →
+    "content": user_content tal cual (figures.anthropic_blocks: rótulo + imagen base64 × N + texto; imágenes ANTES del texto).
+    SOLO _default_caller la pasa, y sólo a una lente con visión con figuras entregadas."""
     tool = tool or VERDICT_TOOL
     key = os.environ.get("ANTHROPIC_API_KEY")
     if not key:
@@ -608,7 +774,7 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
         if tool["name"] not in {t.get("name") for t in tools}:
             raise ValueError(f"forced tool {tool['name']!r} is not in tools= {[t.get('name') for t in tools]}")
     body = {"model": model, "max_tokens": max_tokens, "system": system,
-            "messages": [{"role": "user", "content": user_text}],
+            "messages": [{"role": "user", "content": user_text if user_content is None else user_content}],
             "tools": tools if tools is not None else [tool], "tool_choice": {"type": "tool", "name": tool["name"]}}
     if effort:
         body["output_config"] = {"effort": effort}
@@ -699,6 +865,42 @@ def _anthropic_tool_call(model, system, user_text, tool=None, timeout=120, retri
     raise last  # pragma: no cover
 
 
+ANTHROPIC_COUNT_TOKENS_URL = "https://api.anthropic.com/v1/messages/count_tokens"
+
+
+def _anthropic_count_tokens(model, system, user_text, tool=None, tools=None, timeout=60, user_content=None):
+    """ADR-0083 (H): los `input_tokens` que la API CUENTA para la MISMA petición del juez SIN imágenes (system, texto, tools,
+    tool_choice). Una llamada gratuita por lente, sólo con WITT_FIGURES_COUNT_TOKENS=1; audit() deriva
+    `saw_figures.tokens_measured = input_tokens medidos del intento − este conteo` (clase medición DERIVADA). Sin reintentos;
+    fallos → CallerError con kind (C.2) que el llamador DECLARA en tokens_measured_state, jamás inventa. Cero llamadas sin
+    llave. Costura de red: urllib.request.urlopen (los smokes la bloquean y falsean esta función).
+    corrector: `user_content` (lista de bloques) = la MISMA petición del juez MENOS los bloques `image` — los rótulos de texto
+    'Figure k — …: <caption>' que viajan junto a cada imagen SÍ se cuentan (antes se atribuían a visión: sesgo al alza por
+    construcción); None → sólo `user_text` (llamador de 1.11)."""
+    tool = tool or VERDICT_TOOL
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise CallerError("no-api-key", "ANTHROPIC_API_KEY not set — count_tokens skipped (never git).")
+    content = user_content if isinstance(user_content, list) else user_text
+    body = {"model": model, "system": system, "messages": [{"role": "user", "content": content}],
+            "tools": list(tools) if tools is not None else [tool], "tool_choice": {"type": "tool", "name": tool["name"]}}
+    headers = {"x-api-key": key, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json"}
+    req = urllib.request.Request(ANTHROPIC_COUNT_TOKENS_URL, data=json.dumps(body).encode("utf-8"), headers=headers,
+                                 method="POST")
+    try:
+        with _INFLIGHT:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raise CallerError(f"http-{e.code}", f"count_tokens HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:200]}") from e
+    except (urllib.error.URLError, TimeoutError, OSError) as e:
+        raise CallerError("network", f"count_tokens network error: {e}") from e
+    n = payload.get("input_tokens") if isinstance(payload, dict) else None
+    if not isinstance(n, int) or isinstance(n, bool):
+        raise CallerError("unclassified", f"count_tokens: payload without integer input_tokens ({str(payload)[:120]})")
+    return n
+
+
 # ---------------------------------------------------------------------------------------------------------------
 # ADR-0081 (C.1): el juez OpenAI por la Responses API (el candidato de la tabla la EXIGE; verificado en vivo por Emmanuel)
 # ---------------------------------------------------------------------------------------------------------------
@@ -728,17 +930,19 @@ def _reasoning_effort_for(model, env=None):
     return effort if (effort and row and row["reasoning"]) else None
 
 
-def _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort=None):
+def _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort=None, user_content=None):
     """UNA función PURA que arma los kwargs de `client.responses.create` — la comparten el caller y
     analysis/scripts/smoke_live_models.py (S6), así no divergen. `strict: False` FIJO: `strict: true` exige todas
     las propiedades en `required` y rompería el tres-estados de `domain_niches`/`citation_support` (WITT_OPENAI_STRICT
     NO existe: una env que se sabe rompe el schema no se declara). `parallel_tool_calls: False` (un solo function_call).
     `store` (WITT_OPENAI_STORE, default 0: el default de la API es retención 30 días del lado OpenAI — se apaga y se
-    declara, sin afirmar ZDR). `reasoning` sólo cuando `reasoning_effort` viene (ver _reasoning_effort_for)."""
+    declara, sin afirmar ZDR). `reasoning` sólo cuando `reasoning_effort` viene (ver _reasoning_effort_for).
+    ADR-0083 (G.3), aditivo: `user_content` None → "input": user_text (byte a byte); lista de partes → "input": [{role user,
+    content: partes}] (figures.openai_responses_parts: input_text + input_image data URL × N + input_text)."""
     kwargs = {
         "model": model,
         "instructions": system,
-        "input": user_text,
+        "input": user_text if user_content is None else [{"role": "user", "content": user_content}],
         "tools": [{"type": "function", "name": tool["name"], "description": tool.get("description", ""),
                    "parameters": tool["input_schema"], "strict": False}],
         "tool_choice": {"type": "function", "name": tool["name"]},
@@ -795,7 +999,7 @@ def _responses_refusal(items):
 
 
 def _openai_responses_call(model, system, user_text, tool=None, timeout=None, retries=1, max_output_tokens=None,
-                           client=None, store=None, reasoning_effort=None):
+                           client=None, store=None, reasoning_effort=None, user_content=None):
     """Juez OpenAI por la Responses API. Devuelve SIEMPRE (tool_input, usage, meta) con meta = {model_reported:
     resp.model, api: 'openai-responses', response_id, status, incomplete_reason, max_output_tokens (el tope EFECTIVO
     enviado — corrector)}. Lee el ÚNICO ítem `output[].type == 'function_call'` con `name == tool['name']` (los ítems
@@ -817,7 +1021,8 @@ def _openai_responses_call(model, system, user_text, tool=None, timeout=None, re
         store, _ = models.env_value("WITT_OPENAI_STORE")
     if reasoning_effort is None:
         reasoning_effort = _reasoning_effort_for(model)
-    kwargs = _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort)
+    kwargs = _responses_kwargs(model, system, user_text, tool, max_output_tokens, store, reasoning_effort,
+                               user_content=user_content)    # ADR-0083 (G.3): None → byte a byte
     if client is None:
         client = _openai_client(timeout)
     responses = getattr(client, "responses", None)
@@ -915,13 +1120,18 @@ def _openai_responses_call(model, system, user_text, tool=None, timeout=None, re
     raise last  # pragma: no cover
 
 
-def _openai_chat_call(model, system, user_text, timeout=None, tool=None, client=None):
+def _openai_chat_call(model, system, user_text, timeout=None, tool=None, client=None, user_content=None):
     """Cross-provider judge por chat.completions = el `_openai_tool_call` de f57a3d3 BYTE A BYTE en la petición
     (`max_tokens 1200`, tools/tool_choice function, messages system+user) + `max_retries=0` (vía _openai_client) +
     meta. Kill-switch declarado: WITT_OPENAI_API=chat-completions. Devuelve (verdict, usage, meta) con usage =
     `resp.usage.model_dump()` (como hoy) y meta = {model_reported: resp.model, api: 'openai-chat-completions',
     response_id, finish_reason, max_tokens (OPENAI_CHAT_MAX_TOKENS: el tope EFECTIVO — corrector)}. `tool` (ADR-0081 L.n: run_held_out delega aquí con SU tool) — la validación de
-    `verdict` sólo aplica a VERDICT_TOOL. Sin reintentos propios (como hoy): audit() reintenta por WITT_JUDGE_RETRIES."""
+    `verdict` sólo aplica a VERDICT_TOOL. Sin reintentos propios (como hoy): audit() reintenta por WITT_JUDGE_RETRIES.
+    ADR-0083 (G.3), aditivo — OBLIGATORIO por los dos jueces del ADR: el puente chat.completions ES la lente reproducibility de
+    hoy; `user_content` None → content: user_text (byte a byte); lista → messages[1].content = partes
+    (figures.openai_chat_parts: text + image_url {url data:…, detail} × N + text). Forma declarada
+    figures.OPENAI_CHAT_FORM_STATE ('public form; not re-verified by doc in this work'); LG4 la mide; un http-400 cae en el
+    vocabulario de fallos (C.2) y la corrida sigue."""
     tool = tool or VERDICT_TOOL
     if timeout is None:
         timeout, _ = models.env_value("WITT_OPENAI_TIMEOUT_S")
@@ -933,7 +1143,8 @@ def _openai_chat_call(model, system, user_text, timeout=None, tool=None, client=
     try:
         resp = client.chat.completions.create(
             model=model, max_tokens=OPENAI_CHAT_MAX_TOKENS, timeout=timeout,
-            messages=[{"role": "system", "content": system}, {"role": "user", "content": user_text}],
+            messages=[{"role": "system", "content": system},
+                      {"role": "user", "content": user_text if user_content is None else user_content}],
             tools=[fn], tool_choice={"type": "function", "function": {"name": tool["name"]}})
     except CallerError:
         raise
@@ -994,18 +1205,28 @@ def _default_caller(member, system, user_text, tool=None):
     _anthropic_tool_call(max_tokens=member['max_tokens'] (tope de la generación; 1200 si el member no lo trae),
     effort por WITT_ANTHROPIC_EFFORT + tabla, return_meta=True) · familia desconocida → CallerError('unknown-family')
     SIN llamar a nada (fail-loud, no el `else: anthropic` de f57a3d3). Devuelve SIEMPRE (out, usage, meta).
-    `tool` (ADR-0081 L.n): run_held_out.openai_verdict delega aquí con su propio tool."""
+    `tool` (ADR-0081 L.n): run_held_out.openai_verdict delega aquí con su propio tool.
+    ADR-0083 (G.3): si el member trae `figures` (lista PANEL_FIGURE_KEYS con b64 — SOLO audit() la pone, y sólo a una lente
+    con visión), el contenido de usuario se arma POR TRANSPORTE con figures.anthropic_blocks / openai_responses_parts /
+    openai_chat_parts (imágenes ANTES del texto, cada una rotulada; `detail` de WITT_FIGURES_OPENAI_DETAIL) y viaja como
+    `user_content=`; sin `figures` el kwarg NO se pasa → fakes de 3 argumentos y cuerpos de 1.11 quedan byte a byte."""
     api, _api_source = _member_api(member)
     reviewer = member.get("reviewer")
+    figs = member.get("figures")
+    figs = list(figs) if isinstance(figs, list) and figs else None
+    detail = _figures.env_config()["openai_detail"] if figs else None
     if api == "openai-responses":
-        return _openai_responses_call(reviewer, system, user_text, tool=tool)
+        kw = {"user_content": _figures.openai_responses_parts(figs, user_text, detail)} if figs else {}
+        return _openai_responses_call(reviewer, system, user_text, tool=tool, **kw)
     if api == "openai-chat-completions":
-        return _openai_chat_call(reviewer, system, user_text, tool=tool)
+        kw = {"user_content": _figures.openai_chat_parts(figs, user_text, detail)} if figs else {}
+        return _openai_chat_call(reviewer, system, user_text, tool=tool, **kw)
     if api == "anthropic-messages":
         mt = member.get("max_tokens")
         max_tokens = mt if isinstance(mt, int) and not isinstance(mt, bool) and mt > 0 else ANTHROPIC_JUDGE_MAX_TOKENS_LEGACY
+        kw = {"user_content": _figures.anthropic_blocks(figs, user_text)} if figs else {}
         return _anthropic_tool_call(reviewer, system, user_text, tool=tool, max_tokens=max_tokens,
-                                    effort=_anthropic_effort_for(reviewer), return_meta=True)
+                                    effort=_anthropic_effort_for(reviewer), return_meta=True, **kw)
     raise CallerError("unknown-family",
                       f"unknown-family: reviewer {reviewer!r} (family={member.get('family')!r}, api={api!r}) — "
                       f"la tabla no lo conoce y el prefijo no casa; se erra en voz alta, no se asume anthropic (ADR-0081 A)")
@@ -1048,8 +1269,183 @@ def _resolve_min(name, value):
     return max(0, int(value)), "caller"
 
 
+# ---------------------------------------------------------------------------------------------------------------
+# ADR-0083 (G.2 / G.6 / H): el plan de visión de UNA llamada a audit(), lo que ve CADA asiento y el resumen audit.vision
+# ---------------------------------------------------------------------------------------------------------------
+def _vision_plan(fcfg, figures, lenses_arg):
+    """{figures_on, vision_on, lenses, lenses_source, openai_detail, count_tokens, count_tokens_source, max_per_lens,
+    candidates}. `lenses_arg` del llamador (validado contra models.LENSES; inválido → default con 'default-invalid-caller')
+    o vision_lenses(env). Con WITT_FIGURES=0 → figures_on False: audit() no emite ninguna llave nueva (M.1)."""
+    plan = {"figures_on": bool(fcfg["figures"]), "vision_on": bool(fcfg["vision"]), "openai_detail": fcfg["openai_detail"],
+            "count_tokens": bool(fcfg["count_tokens"]), "count_tokens_source": fcfg["sources"]["count_tokens"],
+            "max_per_lens": int(fcfg["max_per_lens"]),
+            "candidates": [f for f in (figures or []) if isinstance(f, dict)]}
+    if lenses_arg is not None:
+        toks = tuple(dict.fromkeys(str(t) for t in lenses_arg))
+        if toks and all(t in models.LENSES for t in toks) and len(toks) <= VISION_LENSES_MAX:
+            plan["lenses"], plan["lenses_source"] = toks, "caller"
+        elif toks and all(t in models.LENSES for t in toks):     # corrector: el llamador tampoco puede pasar de 2 (§7)
+            plan["lenses"], plan["lenses_source"] = tuple(VISION_LENSES), f"default-invalid-caller (>{VISION_LENSES_MAX} lenses)"
+        else:
+            plan["lenses"], plan["lenses_source"] = tuple(VISION_LENSES), "default-invalid-caller"
+    else:
+        plan["lenses"], plan["lenses_source"] = vision_lenses()
+    return plan
+
+
+def _figures_for_member(member, api, vis):
+    """(saw_figures, figuras a entregar | None) para UN asiento — MEDIDO desde lo que se le entrega al caller (G.6).
+    Orden de decisión del `detail`: kill-switch WITT_FIGURES_VISION=0 · lente ∉ vision_lenses · sin candidatas
+    ('no-eligible-figures') · vision_tier none|unknown por tabla ('model-vision-unknown', G.4: un id fuera de tabla o la fila embed
+    no reciben imágenes) · api sin forma de bloques conocida ('api-form-not-verified': un member con `api` explícita fuera de
+    models.TOOL_CALL_APIS) · selección con topes (max_per_lens; b64 acumulada ≤ figures.REQUEST_B64_MB por petición; forma
+    válida: b64 str, sha256, id, media_type ∈ MEDIA_TYPES) → 'sent' si quedó ≥ 1, si no 'no-eligible-figures' con n_dropped
+    declarado. Bajo WITT_FIGURES=0 → (None, None): nada se emite. La proyección de tokens es models.vision_tokens (clase
+    proyección; ausente = None cuando una imagen no trae dims)."""
+    if not vis["figures_on"]:
+        return None, None
+    reviewer, lens = member.get("reviewer"), member.get("lens")
+    tier, _mult, _ver, _src = models.vision_tier_of(reviewer)
+    saw = {"n": 0, "sha256s": [], "bytes_b64_total": 0, "detail": None, "attempts_with_images": 0,
+           "n_dropped": {"lens_cap": 0, "request_cap": 0, "invalid": 0}, "tier": tier, "api_form_state": None,
+           "openai_detail": None, "visual_tokens_projected": None, "n_images_unprojected": 0, "formula": None,
+           "projection_class": models.VISION_CLASS, "tokens_measured": None, "tokens_measured_state": "no-images"}
+    if not vis["vision_on"]:
+        saw["detail"] = "kill-switch WITT_FIGURES_VISION=0"
+        return saw, None
+    if lens not in vis["lenses"]:
+        saw["detail"] = "lens-not-in-vision-lenses"
+        return saw, None
+    if not vis["candidates"]:
+        saw["detail"] = "no-eligible-figures"
+        return saw, None
+    if tier in ("none", "unknown"):
+        saw["detail"] = "model-vision-unknown"
+        return saw, None
+    if api not in models.TOOL_CALL_APIS:
+        saw["detail"] = "api-form-not-verified"
+        return saw, None
+    cap = int(vis["max_per_lens"])
+    req_cap = int(float(_figures.REQUEST_B64_MB) * 1024 * 1024)    # leído EN LA LLAMADA (los smokes lo parchean)
+    sel, total = [], 0
+    for f in vis["candidates"]:
+        b64 = f.get("b64")
+        if not (isinstance(b64, str) and b64 and f.get("sha256") and f.get("id")
+                and f.get("media_type") in _figures.MEDIA_TYPES):
+            saw["n_dropped"]["invalid"] += 1
+            continue
+        if len(sel) >= cap:
+            saw["n_dropped"]["lens_cap"] += 1
+            continue
+        if total + len(b64) > req_cap:
+            saw["n_dropped"]["request_cap"] += 1
+            continue
+        sel.append(f)
+        total += len(b64)
+    if not sel:
+        saw["detail"] = "no-eligible-figures"
+        return saw, None
+    detail = vis["openai_detail"] if api != "anthropic-messages" else None
+    proj, unproj, formula = 0, 0, None
+    for f in sel:
+        dm = f.get("dims_measured") or {}
+        vt = models.vision_tokens(reviewer, dm.get("w"), dm.get("h"), detail)
+        if vt is None:
+            unproj += 1
+        else:
+            proj += vt["tokens"]
+            formula = vt["formula"]
+    if not vis["count_tokens"]:
+        tm_state = "not-requested (WITT_FIGURES_COUNT_TOKENS=0)"
+    elif api != "anthropic-messages":
+        tm_state = "not-available (provider does not separate image tokens)"
+    else:
+        tm_state = "pending"      # _tokens_measured_into lo resuelve tras los intentos
+    saw.update({"n": len(sel), "sha256s": [f["sha256"] for f in sel], "bytes_b64_total": total, "detail": "sent",
+                "api_form_state": _figures.OPENAI_CHAT_FORM_STATE if api == "openai-chat-completions" else API_FORM_VERIFIED,
+                "openai_detail": detail, "visual_tokens_projected": proj if unproj < len(sel) else None,
+                "n_images_unprojected": unproj, "formula": formula, "tokens_measured_state": tm_state})
+    return saw, sel
+
+
+def _tokens_measured_into(saw, attempts, reviewer, system, user_text, figs=None):
+    """(H) saw_figures.tokens_measured — SÓLO con WITT_FIGURES_COUNT_TOKENS=1, lente Anthropic e imágenes enviadas (estado
+    'pending'): input_tokens MEDIDOS del ÚLTIMO intento con usage − count_tokens de la MISMA petición SIN imágenes (clase
+    medición derivada). Sin usage → 'no-usage'; fallo del conteo → None + 'error: <kind>' (declarado, jamás relanza).
+    corrector: la petición contada = figures.anthropic_blocks(figs, user_text) MENOS los bloques `image` (los rótulos de
+    texto por figura se cuentan como texto, no como visión); `tokens_measured_counted_blocks` declara cuántos bloques de
+    texto entraron al conteo."""
+    if saw.get("tokens_measured_state") != "pending":
+        return
+    last_in = None
+    for a in reversed(attempts):
+        u = a.get("usage") if isinstance(a, dict) else None
+        v = u.get("input_tokens") if isinstance(u, dict) else None
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            last_in = v
+            break
+    if last_in is None:
+        saw["tokens_measured_state"] = "no-usage"
+        return
+    blocks = [b for b in _figures.anthropic_blocks(figs, user_text) if b.get("type") != "image"] if figs else None
+    try:
+        text_only = _anthropic_count_tokens(reviewer, system, user_text, user_content=blocks)
+    except Exception as e:  # noqa: BLE001 — el conteo es opcional y gratuito: se declara, nunca tumba el panel
+        saw["tokens_measured_state"] = f"error: {failure_kind_of(e)}"
+        return
+    saw["tokens_measured"] = int(last_in) - int(text_only)
+    saw["tokens_measured_text_only"] = int(text_only)
+    saw["tokens_measured_counted_blocks"] = len(blocks) if blocks is not None else 1
+    saw["tokens_measured_state"] = TOKENS_MEASURED_STATES[0]
+
+
+def _vision_summary(vis, rows):
+    """audit.vision (G.6 / L): {state ∈ VISION_STATES, enabled, lenses, lenses_source, rule, openai_detail, n_candidates,
+    n_images_by_lens {lens: n}, n_attempts_with_images, bytes_b64_sent_total (reenvío MEDIDO: bytes × intentos con imágenes),
+    visual_tokens_projected_by_lens {lens: int|None} (sólo lentes que vieron), visual_tokens_projected_total (una petición),
+    visual_tokens_projected_sent_total (× intentos), projection_class, formula_source, count_tokens {requested, source},
+    readings {n_rows, n_readings, n_dropped, class}, saw_figures_details (vocabulario)}. Clase: conteos y bytes MEDIDOS;
+    tokens PROYECTADOS (los input_tokens medidos del juez ya los incluyen — nada se suma dos veces, ADR-0083 H)."""
+    n_by, tok_by = {}, {}
+    n_att, b64_sent, tok_req, tok_sent = 0, 0, 0, 0
+    n_rows_r, n_read, n_drop = 0, 0, 0
+    for r in rows:
+        s = r.get("saw_figures")
+        if not isinstance(s, dict):
+            continue
+        lens, n = r.get("lens"), int(s.get("n") or 0)
+        n_by[lens] = n_by.get(lens, 0) + n
+        att = int(s.get("attempts_with_images") or 0)
+        n_att += att
+        b64_sent += int(s.get("bytes_b64_total") or 0) * att
+        if n > 0:
+            vt = s.get("visual_tokens_projected")
+            if isinstance(vt, int):
+                tok_by[lens] = (tok_by.get(lens) or 0) + vt
+                tok_req += vt
+                tok_sent += vt * att
+            else:
+                tok_by.setdefault(lens, None)
+        if isinstance(r.get("figure_readings"), list):
+            n_rows_r += 1
+            n_read += len(r["figure_readings"])
+            n_drop += int(r.get("figure_readings_dropped") or 0)
+    any_sent = any(n > 0 for n in n_by.values())
+    state = "sent" if any_sent else ("kill-switch WITT_FIGURES_VISION=0" if not vis["vision_on"] else "no-eligible-figures")
+    return {"state": state, "enabled": bool(vis["vision_on"]), "lenses": list(vis["lenses"]),
+            "lenses_source": vis["lenses_source"], "rule": FIGURE_READING_RULE, "openai_detail": vis["openai_detail"],
+            "n_candidates": len(vis["candidates"]), "n_images_by_lens": n_by, "n_attempts_with_images": n_att,
+            "bytes_b64_sent_total": b64_sent, "visual_tokens_projected_by_lens": tok_by,
+            "visual_tokens_projected_total": tok_req, "visual_tokens_projected_sent_total": tok_sent,
+            "projection_class": models.VISION_CLASS, "formula_source": dict(models.VISION_FORMULA_SOURCE),
+            "count_tokens": {"requested": bool(vis["count_tokens"]), "source": vis["count_tokens_source"]},
+            "readings": {"n_rows": n_rows_r, "n_readings": n_read, "n_dropped": n_drop, "class": FIGURE_READINGS_CLASS},
+            "saw_figures_details": list(SAW_FIGURES_DETAILS)}
+
+
 def audit(claim, evidence, deterministic_checks=None, required_because="", panel=None,
-          caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None):
+          caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None,
+          figures=None, vision_lenses=None):
     """Run the Mode 1 split-and-vote panel over (claim, evidence). Returns the audit object the §5
     contract and the frozen record carry VISIBLY:
 
@@ -1082,6 +1478,21 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     ¬ok → 'REVISE' + panel_incomplete True + panel_incomplete_reasons = quorum.failed (códigos cerrados: 'min_valid' |
     'families' | 'lenses', orden fijo); ok → worst-of-N intacto (APPROVE_DECLINE ADR-0058 se preserva). (C.2)
     attempts[].error conserva el string de f57a3d3 y gana error_kind (vocabulario en failure_kinds_vocabulary).
+
+    ADR-0083 (G): `figures` = la lista que runs arma con figures.select_for_panel (PANEL_FIGURE_KEYS: id, fig_id, label,
+    caption, license {id}, sha256, media_type, b64, dims_measured — panel_view ∧ verified ∧ caption present, ya ordenada:
+    citadas primero, luego rank, luego documento); `vision_lenses` = las lentes que las VEN (None → vision_lenses(env):
+    WITT_FIGURES_VISION_LENSES validada contra models.LENSES, default evidence-grounding + reproducibility). Para un member
+    cuya lente ∈ vision_lenses — con WITT_FIGURES_VISION=1, api con forma de bloques conocida y vision_tier ≠ none|unknown en
+    la tabla — el caller recibe `dict(member, attempt=k, figures=[…])` (topes: max_per_lens y b64 ≤ REQUEST_B64_MB por
+    petición, n_dropped declarado): la firma caller(member, system, user_text) NO cambia y la fila copia sólo
+    reviewer/family/lens/seat, así la b64 jamás fuga al frozen; su system gana FIGURE_READING_RULE. Cada fila (también
+    errored) gana `saw_figures` {n, sha256s, bytes_b64_total, detail ∈ SAW_FIGURES_DETAILS, attempts_with_images, n_dropped,
+    tier, api_form_state, openai_detail, visual_tokens_projected, n_images_unprojected, formula, projection_class,
+    tokens_measured, tokens_measured_state} MEDIDO desde lo entregado al caller; una fila válida que emitió `figure_readings`
+    gana figure_readings (parseadas contra lo entregado) + figure_readings_class 'model-judgment' + figure_readings_dropped.
+    `out['vision']` = el resumen (_vision_summary). Kill-switch WITT_FIGURES=0 (M.1): NINGUNA de estas llaves se emite y
+    member, system y cuerpos son los de 1.11 byte a byte (aunque el llamador pase `figures`).
     """
     # ADR-0081 (A)/(K): el panel se resuelve EN LA LLAMADA (env y fecha reales); `directives` (ADR-0082) se acepta,
     # se ignora y se declara en panel_source. Con panel del llamador, panel_source describe la tabla de ESTA
@@ -1099,6 +1510,9 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     # ADR-0081 (D): mínimos del cuórum — env de la tabla (tolerante, default declarado) o llamador
     min_families, min_families_source = _resolve_min("WITT_PANEL_MIN_FAMILIES", min_families)
     min_lenses, min_lenses_source = _resolve_min("WITT_PANEL_MIN_LENSES", min_lenses)
+    # ADR-0083 (G): configuración de figuras EN LA LLAMADA (figures.env_config tolerante) y plan de visión de este panel
+    fcfg = _figures.env_config()
+    vis = _vision_plan(fcfg, figures, vision_lenses)
     user_text = json.dumps({
         "claim": claim,
         "evidence": evidence,
@@ -1126,6 +1540,10 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
         seat = {"family_source": family_source, "api": api, "api_source": api_source,
                 "reviewer_source": member.get("reviewer_source") or "caller",
                 "max_tokens": member.get("max_tokens")}
+        # ADR-0083 (G.2/G.6): qué figuras ve ESTE asiento — (None, None) bajo WITT_FIGURES=0: nada cambia (M.1)
+        saw, figs_for_member = _figures_for_member(member, api, vis)
+        if figs_for_member:
+            system = system + "\n\n" + FIGURE_READING_RULE      # (G.3) la regla viaja SOLO cuando de veras viajan imágenes
         # ADR-0080 (E): hasta 1 + judge_retries intentos por juez; cada intento queda en `attempts`.
         # El gasto MEDIDO de cada intento que devolvió usage (incluido un intento ILEGIBLE: la API cobró
         # esos tokens aunque el veredicto se descarte) se conserva por intento y se SUMA en la fila
@@ -1140,7 +1558,10 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
         for attempt in range(1, judge_retries + 2):
             entry = {"attempt": attempt}
             try:
-                out_v, usage, meta = _unpack_caller_result(caller(dict(member, attempt=attempt), system, user_text))
+                m_call = dict(member, attempt=attempt)
+                if figs_for_member:
+                    m_call["figures"] = figs_for_member     # (G.2) DENTRO del member; la fila no lo copia (b64 no fuga)
+                out_v, usage, meta = _unpack_caller_result(caller(m_call, system, user_text))
                 if isinstance(usage, dict) and usage:
                     entry["usage"] = usage
                     _acc(judge_usage, usage)
@@ -1166,6 +1587,10 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                 verdict = None
         retries_used = len(attempts) - 1
         usage = judge_usage
+        if saw is not None:
+            # (H) reenvío MEDIDO: cada intento que llevó imágenes las reenvió y la API las facturó
+            saw["attempts_with_images"] = len(attempts) if saw["n"] > 0 else 0
+            _tokens_measured_into(saw, attempts, member.get("reviewer"), system, user_text, figs=figs_for_member)
         if verdict is not None:
             row = {"reviewer": member["reviewer"], "family": family, "lens": member["lens"],
                    "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
@@ -1185,6 +1610,21 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                 parsed, dropped = parse_citation_support(verdict["citation_support"])
                 row["citation_support"] = parsed
                 row["citation_support_dropped"] = dropped
+                # corrector (ADR-0083 E/G, límite declarado): la lente evidence-grounding es a la vez lente con VISIÓN y la
+                # única que emite citation_support — se DECLARA si el veredicto de soporte pudo estar informado por píxeles
+                # (la fila vio imágenes); el registro no puede distinguir un 'supported' de caption de uno de imagen. La
+                # instrucción «judge the CAPTION only» vive en FIGURE_READING_RULE (system, sólo cuando viajan imágenes): la
+                # description de `citation_support` NO cambia — VERDICT_TOOL sin figure_readings sigue byte a byte el de 1.11.
+                if saw is not None:
+                    row["citation_support_vision_informed"] = bool(saw.get("n"))
+            # ADR-0083 (G.6): lo que el juez VIO (medido) y lo que LEYÓ en las imágenes (juicio etiquetado; sólo si emitió)
+            if saw is not None:
+                row["saw_figures"] = saw
+                if verdict.get("figure_readings") is not None:
+                    fr, fr_dropped = parse_figure_readings(verdict["figure_readings"], figs_for_member or [])
+                    row["figure_readings"] = fr
+                    row["figure_readings_class"] = FIGURE_READINGS_CLASS
+                    row["figure_readings_dropped"] = fr_dropped
             rows.append(row)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):
@@ -1196,6 +1636,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
             if judge_usage:   # un intento ilegible que SÍ cobró tokens: gasto medido, declarado aquí también
                 row["usage"] = judge_usage
                 _acc(usage_total, judge_usage)
+            if saw is not None:   # ADR-0083 (G.6): también la fila errored declara lo que se le entregó (y reenvió)
+                row["saw_figures"] = saw
             rows.append(row)
 
     valid = [r for r in rows if "verdict" in r]
@@ -1243,6 +1685,9 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
            "panel_source": panel_source,
            # ADR-0081 (C.2): el vocabulario de error_kind viaja congelado junto al dato
            "failure_kinds_vocabulary": failure_kinds_vocabulary()}
+    if vis["figures_on"]:
+        # ADR-0083 (G.6): el resumen de visión del panel (ausente bajo WITT_FIGURES=0: tres estados, M.1)
+        out["vision"] = _vision_summary(vis, rows)
     if failed:
         # a thin panel — or one without cross-family / cross-lens independence — can NEVER approve:
         # REVISE ESTRUCTURAL (jueces caídos o sin diversidad, no un hallazgo sobre la respuesta — ADR-0067 la
@@ -1259,6 +1704,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
 _BUNDLE_AUDIT_KEYS_1_10 = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid",
                            "panel_single_family", "quorum", "panel_incomplete_reasons", "panel_duplicate_models",
                            "panel_origin", "panel_source", "failure_kinds_vocabulary")
+# ADR-0083 (G.6): audit.vision viaja al bundle cuando el audit_result lo trae (ausente bajo WITT_FIGURES=0 — tres estados).
+_BUNDLE_AUDIT_KEYS_1_12 = ("vision",)
 
 
 def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=None):
@@ -1289,7 +1736,7 @@ def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=N
         bundle["audit"]["panel_incomplete"] = True
     # ADR-0081 (D)/(K)/(C.2): el cuórum, su regla, el hueco del consejo y el vocabulario de fallos viajan al registro
     # congelado junto a las filas (presentes sólo si el audit_result los trae: un resultado 1.9 no gana llaves)
-    for k in _BUNDLE_AUDIT_KEYS_1_10:
+    for k in _BUNDLE_AUDIT_KEYS_1_10 + _BUNDLE_AUDIT_KEYS_1_12:
         if k in audit_result:
             bundle["audit"][k] = audit_result[k]
     bundle["bundle_identity"] = answer_pipeline_module._identity(bundle)

@@ -216,6 +216,26 @@ check(f"ADR-0082: corrida con plan → plan_council_state == el council.state de
       and RC.get("plan_council_state") == det_c.get("plan_council_state") == lst4.get(RC["run_id"], {}).get("plan_council_state") == PC_STATE,
       f"post={RC.get('plan_council_state')!r} det={det_c.get('plan_council_state')!r} lista={lst4.get(RC.get('run_id'), {}).get('plan_council_state')!r}")
 
+# ---- ADR-0083 (L, vista; rebanada F5): epistemic_summary.figures_state / figures_n_verified / figures_n_cited — lista == detalle -----
+# El resumen epistémico es passthrough del blob congelado al freeze (LOTE-02·3): las tres llaves nacen en runs (F4) y fluyen por
+# _run_view SIN código nuevo. Se mide: (a) un resumen pre-1.12 (el de r1 arriba) NO gana las llaves en lista ni detalle (ausencia
+# declarada, jamás rellenada con null); (b) sembradas, lista == detalle valor a valor; (c) r2 sin resumen sigue null.
+_pre = det.get("epistemic_summary") or {}
+with db.engine().begin() as cx:
+    cx.execute(text("UPDATE runs SET epistemic_summary_json = :s WHERE run_id = 'r1'"),
+               {"s": json.dumps({"retrieval_mode": "graph", "verdict": "APPROVE", "confidence_state": "value", "panel_n_valid": 4,
+                                 "figures_state": "attached", "figures_n_verified": 9, "figures_n_cited": 2})})
+det_f = client.get("/runs/r1", headers=AUTH).json()
+lst5 = {row["run_id"]: row for row in client.get("/runs", headers=AUTH).json()["runs"]}
+_es_f, _el_f = det_f.get("epistemic_summary") or {}, lst5.get("r1", {}).get("epistemic_summary") or {}
+check("ADR-0083: epistemic_summary.figures_state/figures_n_verified/figures_n_cited — resumen pre-1.12: las llaves AUSENTES en lista y detalle "
+      "(no se rellenan); sembradas ('attached', 9, 2): lista == detalle valor a valor; r2 sin resumen sigue null",
+      all(k not in _pre and k not in (f1.get("epistemic_summary") or {}) for k in ("figures_state", "figures_n_verified", "figures_n_cited"))
+      and _es_f.get("figures_state") == "attached" and _es_f.get("figures_n_verified") == 9 and _es_f.get("figures_n_cited") == 2
+      and all(_es_f.get(k) == _el_f.get(k) for k in ("figures_state", "figures_n_verified", "figures_n_cited"))
+      and _es_f == _el_f and lst5.get("r2", {}).get("epistemic_summary") is None,
+      f"det={ {k: _es_f.get(k) for k in ('figures_state', 'figures_n_verified', 'figures_n_cited')} } lista={ {k: _el_f.get(k) for k in ('figures_state', 'figures_n_verified', 'figures_n_cited')} }")
+
 n_pass = sum(CHECKS)
 print(f"\n{n_pass}/{len(CHECKS)} PASS")
 sys.exit(0 if n_pass == len(CHECKS) else 1)

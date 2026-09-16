@@ -175,6 +175,7 @@ def _normalize_hit(r):
         "year": r.get("pubYear"), "journal": ((r.get("journalInfo", {}) or {}).get("journal", {}) or {}).get("title"),
         "is_oa": r.get("isOpenAccess") == "Y", "abstract": r.get("abstractText"),
         "cited_by": r.get("citedByCount"),
+        "license": r.get("license"),   # ADR-0083 (A.2): 'cc by' | 'cc by-nc-nd' | … tal como lo manda EPMC; None si no viene
     }
 
 

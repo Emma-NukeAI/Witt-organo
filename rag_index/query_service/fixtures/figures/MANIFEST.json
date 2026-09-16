@@ -1,0 +1,308 @@
+{
+ "contract": "1.12",
+ "adr": "ADR-0083",
+ "slice": "F1",
+ "generated_at": "2026-09-16T04:33:13Z",
+ "note": "Fixtures 100% offline para smoke_figures/smoke_run_pipeline/smoke_record_pdf/smoke_figures_http. 'real': true = bytes tal como los entregó la fuente (sha256 medido); false = SINTÉTICO declarado.",
+ "xml": {
+  "PMC11379296": {
+   "file": "epmc_fulltext_PMC11379296_20260613.xml",
+   "copied_from": "mcp_cache/raw_paper_PMC11379296_20260613_fulltext.xml",
+   "bytes": 127065,
+   "sha256": "7db7342d36d495f3a46919606b01cf4234c0f36462fbc81384f59c4369c6c5dc",
+   "real": true,
+   "n_fig": 9,
+   "fig_ids": [
+    "pone.0307390.g001",
+    "pone.0307390.g002",
+    "pone.0307390.g003",
+    "pone.0307390.g004",
+    "pone.0307390.g005",
+    "pone.0307390.g006",
+    "pone.0307390.g007",
+    "pone.0307390.g008",
+    "pone.0307390.g009"
+   ],
+   "hrefs": [
+    "pone.0307390.g001.jpg",
+    "pone.0307390.g002.jpg",
+    "pone.0307390.g003.jpg",
+    "pone.0307390.g004.jpg",
+    "pone.0307390.g005.jpg",
+    "pone.0307390.g006.jpg",
+    "pone.0307390.g007.jpg",
+    "pone.0307390.g008.jpg",
+    "pone.0307390.g009.jpg"
+   ],
+   "license": {
+    "id": "cc-by",
+    "source": "ext-link",
+    "rule_no": 2,
+    "url": "https://creativecommons.org/licenses/by/4.0/",
+    "version": "4.0"
+   }
+  },
+  "PMC11647118": {
+   "file": "epmc_fulltext_PMC11647118_20260613.xml",
+   "copied_from": "mcp_cache/raw_paper_PMC11647118_20260613_fulltext.xml",
+   "bytes": 214974,
+   "sha256": "b68f011983e2e46c80c8837ef6d7748f96bc043fa1fa0c21c94bbf102c983a5f",
+   "real": true,
+   "n_fig": 6,
+   "fig_ids": [
+    "undfig1",
+    "fig1",
+    "fig2",
+    "fig3",
+    "fig4",
+    "fig5"
+   ],
+   "hrefs": [
+    "fx1.jpg",
+    "gr1.jpg",
+    "gr2.jpg",
+    "gr3.jpg",
+    "gr4.jpg",
+    "gr5.jpg"
+   ],
+   "license": {
+    "id": "cc-by-nc",
+    "source": "license-p-url",
+    "rule_no": 3,
+    "url": "http://creativecommons.org/licenses/by-nc/4.0",
+    "version": "4.0"
+   }
+  }
+ },
+ "zips": {
+  "PMC11379296": {
+   "file": "PMC11379296-figures.zip",
+   "bytes": 1270115,
+   "sha256": "9102fc2d5be4b4f21f861858f3e73f981c191654da7629e714af9f3bc3797de8",
+   "real": true,
+   "source_zip": {
+    "name": "webfetch-1788917902535-6u9l6n.zip",
+    "bytes": 8638262,
+    "n_entries": 27,
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC11379296/supplementaryFiles",
+    "downloaded": "2026-09-08",
+    "sha256": "5a8b70e12e8bc9b39aacf7b76a96ef673fd3519e67946337abd85047e9f70926"
+   },
+   "reduction": "SOLO los 9 g00N.jpg (sin .gif thumb, sin s00N.pdf/.xlsx); ZIP_STORED, fecha fija",
+   "entries": [
+    {
+     "href": "pone.0307390.g001.jpg",
+     "bytes": 189021,
+     "sha256": "40877777ed8233af4bccc5d0c1d91aa3307208ceb1441691f44ac22e6e7d05ee",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 417
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g002.jpg",
+     "bytes": 154092,
+     "sha256": "78040d4deba41bd3b33fab5f7e208adbe173f0f9170df66612c365fb1a6386b2",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 738,
+      "h": 840
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g003.jpg",
+     "bytes": 185231,
+     "sha256": "8ddfb311f2bcacc4684a514f0369c2c228b0c78e378b110502f3f88c16409884",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 715,
+      "h": 839
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g004.jpg",
+     "bytes": 155456,
+     "sha256": "059e4bb82a7c97e011257b04549d2bd1546ede8f043ae96390e8c457ba9c1635",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 725
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g005.jpg",
+     "bytes": 88842,
+     "sha256": "5b7d75e858d42bfdb31e857e15b93e136f9c5f30326ecad632f6b46b1ac4f4ec",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 474
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g006.jpg",
+     "bytes": 149238,
+     "sha256": "4a9e17b4b66166f4051bf937e52f99c1244a48bb87741aea264378a91627a0d8",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 655
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g007.jpg",
+     "bytes": 224199,
+     "sha256": "6e875992fe37fd76577c04e14124f4cb5aa89899e334cbfb6ffa78eaf11858d3",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 674,
+      "h": 501
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g008.jpg",
+     "bytes": 61866,
+     "sha256": "412965019bb5dd99fc267afda06958b1a12a2410e92b1ab34848604b45a8b674",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 251
+     },
+     "real": true
+    },
+    {
+     "href": "pone.0307390.g009.jpg",
+     "bytes": 61086,
+     "sha256": "58d57b703b16ddc1aa20ae91686ca3abe71c819a8f4336fd40158698aafa9758",
+     "media_type": "image/jpeg",
+     "dims": {
+      "w": 750,
+      "h": 556
+     },
+     "real": true
+    }
+   ]
+  },
+  "PMC11647118": {
+   "file": "PMC11647118-figures-SYNTHETIC.zip",
+   "bytes": 1095,
+   "sha256": "16e73343b9ded887b7ec71a8e85008222483e9906abc77aab021ce71d7f13a54",
+   "real": false,
+   "why_synthetic": "licencia CC BY-NC (license-p-url): el repo NO redistribuye los bytes reales; el gate mide licencia y sha, no contenido",
+   "entries": [
+    {
+     "href": "fx1.jpg",
+     "bytes": 69,
+     "sha256": "30c0b69d7dfdb7fe660167bbf7d9b50c5c59302e71e2c407136ccee4cf6a789c",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr1.jpg",
+     "bytes": 69,
+     "sha256": "a07275e0e387960d99b4f296d6e91d8015a164f293638738b78c39113d1a1100",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr2.jpg",
+     "bytes": 69,
+     "sha256": "4ac53625acd04fc2ffecf2514499d9697b6371f7d7843a674c96e7586dc117d3",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr3.jpg",
+     "bytes": 69,
+     "sha256": "3e2e0aae181925d95f27a5e8b802fbae7c50f6e0ec36bc6f3b0689789b9ba381",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr4.jpg",
+     "bytes": 69,
+     "sha256": "340303e4cf055fd7dd1de37a3df36bd8bd096b1a0a0dc2734dcb77e4ba45739e",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr5.jpg",
+     "bytes": 69,
+     "sha256": "7ee1b5bd2db6040e360974a2e5c9641d534fd04448cafdd5d1b6a0fad371d08f",
+     "media_type": "image/png",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "PNG 1x1 SINTÉTICO bajo nombre .jpg: mime por magic = image/png ≠ mime_from_extension; dims 1x1 ≠ scaled → dims_match False"
+    },
+    {
+     "href": "gr9.gif",
+     "bytes": 29,
+     "sha256": "1f117ab884befddb6b06149ee2aa019d76d02b8635c49d734031d69d2d0d7f93",
+     "media_type": "image/gif",
+     "dims": {
+      "w": 1,
+      "h": 1
+     },
+     "real": false,
+     "note": "thumb sintético SIN su .jpg: prueba 'not-fetched (href-not-in-zip; thumb-available)'"
+    }
+   ]
+  }
+ },
+ "attribution": {
+  "PMC11379296": {
+   "title": "Fibronectin and Hand2 influence tubulogenesis during pronephros development and mesonephros regeneration in zebrafish (Danio rerio).",
+   "doi": "10.1371/journal.pone.0307390",
+   "pmid": "39240899",
+   "journal": "PloS one",
+   "year": "2024",
+   "source": "mcp_cache/raw_paper_PMC11379296_20260613.json (title/doi leídos, no tecleados)",
+   "license_words": "cc-by 4.0 (leída del XML: ext-link)"
+  },
+  "PMC11647118": {
+   "title": "Emx2 is an essential regulator of ciliated cell development across embryonic tissues.",
+   "doi": "10.1016/j.isci.2024.111271",
+   "pmid": "39687012",
+   "journal": "iScience",
+   "year": "2024",
+   "source": "mcp_cache/raw_paper_PMC11647118_20260613.json (title/doi leídos, no tecleados)",
+   "license_words": "cc-by-nc 4.0 (leída del XML: license-p-url)"
+  }
+ }
+}

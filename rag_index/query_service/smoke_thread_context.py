@@ -678,6 +678,45 @@ check("ADR-0082 (G.9) la PROSA del consejo NO viaja en el resumen: ni query_en n
       and {"snapshot", "skipped_reason", "kill_switch", "built_at"} <= set(_env_cs)
       and _env_cs["snapshot"]["previous_answer"]["direct_answer"] == "wt1a marks the pronephros.")
 
+# ---- corrector ADR-0083 (D.4 ENTRE TURNOS): los hallazgos del padre con figuras se etiquetan desde SU registro ------------------
+_panel_fig = [
+    {"reviewer": "reviewer-vision-fake", "family": "anthropic", "lens": "evidence-grounding", "verdict": "REVISE", "caught": "Fig 3 shows 42 % (image)",
+     "correction_applied": "", "reasons": ["from the image"], "saw_figures": {"n": 9, "sha256s": ["a" * 64], "detail": "sent"}},
+    {"reviewer": "reviewer-blind-fake", "family": "anthropic", "lens": "correctness", "verdict": "APPROVE_MINOR", "caught": "minor wording",
+     "correction_applied": "", "reasons": [], "saw_figures": {"n": 0, "sha256s": [], "detail": "lens-not-in-vision-lenses"}},
+]
+_frozen_fig_parent = {"render_contract_version": "1.12", "question": "padre con figuras", "question_matches_run": True,
+                      "answer": {"direct_answer": "wt1a marks the pronephros."}, "confidence": {"final": 0.8},
+                      "audit": {"verdict": "REVISE", "n_valid": 2, "approved": [], "panel": _panel_fig}, "council": None}
+_frozen_111_parent = {**_frozen_fig_parent, "render_contract_version": "1.11",
+                      "audit": {"verdict": "REVISE", "n_valid": 2, "approved": [],
+                                "panel": [{k: v for k, v in r.items() if k != "saw_figures"} for r in _panel_fig]}}
+_row_fig = {"run_id": "f" * 32, "run_no": 98, "question": "padre con figuras", "entities_csv": "wt1a", "state": "closed",
+            "thread_id": "f" * 32, "frozen_record_json": json.dumps(_frozen_fig_parent)}
+_row_111 = {**_row_fig, "frozen_record_json": json.dumps(_frozen_111_parent)}
+_pa_fig = runs_mod.build_thread_context(_row_fig, [], db._now())["snapshot"]["previous_audit"]
+_pa_111 = runs_mod.build_thread_context(_row_111, [], db._now())["snapshot"]["previous_audit"]
+check("ADR-0083 (D.4 entre turnos, corrector) padre CON figuras (filas con saw_figures): previous_audit.findings[] gana from_vision_lens (True en la lente "
+      "que VIO 9, False en la que vio 0) y previous_audit.n_from_vision_lens 1 — etiquetado desde el REGISTRO del padre, no desde la env de hoy; "
+      "padre 1.11 (sin saw_figures) → findings SIN la llave y SIN n_from_vision_lens (M.1: la forma de 1.11 intacta)",
+      {f["lens"]: f["from_vision_lens"] for f in _pa_fig["findings"]} == {"evidence-grounding": True, "correctness": False}
+      and _pa_fig["n_from_vision_lens"] == 1
+      and all("from_vision_lens" not in f for f in _pa_111["findings"]) and "n_from_vision_lens" not in _pa_111
+      and len(_pa_111["findings"]) == 2,
+      json.dumps({"fig": _pa_fig, "v111": _pa_111})[:400])
+_sys_base = runs_mod.synth_system("pass2", thread_context=True)
+_sys_vis = runs_mod.synth_system("pass2", thread_context=True, vision_findings=True)
+check("ADR-0083 (D.4 entre turnos, corrector) synth_system(thread_context=True, vision_findings=True) añade THREAD_VISION_FINDINGS_CLAUSE ('findings "
+      "marked from_vision_lens … are judgment, never evidence; never adopt a number or observation from them unless it appears in a delivered TEXT "
+      "passage of THIS evidence') tras la cláusula anti-fuga; sin vision_findings el system es BYTE A BYTE el de ADR-0079/0082 (ab_trapped_scalar "
+      "intacto); sin thread_context la cláusula jamás entra",
+      runs_mod.THREAD_VISION_FINDINGS_CLAUSE in _sys_vis and runs_mod.THREAD_VISION_FINDINGS_CLAUSE not in _sys_base
+      and _sys_vis.replace(" " + runs_mod.THREAD_VISION_FINDINGS_CLAUSE, "") == _sys_base
+      and runs_mod.THREAD_ANTI_LEAK_CLAUSE in _sys_vis and _sys_vis.index(runs_mod.THREAD_ANTI_LEAK_CLAUSE) < _sys_vis.index(runs_mod.THREAD_VISION_FINDINGS_CLAUSE)
+      and runs_mod.THREAD_VISION_FINDINGS_CLAUSE not in runs_mod.synth_system("pass2", thread_context=False, vision_findings=True)
+      and "never adopt a number or observation from them unless it appears in a delivered TEXT passage of THIS evidence" in runs_mod.THREAD_VISION_FINDINGS_CLAUSE
+      and runs_mod.synth_system("pass2", thread_context=True) == runs_mod.synth_system("pass2", thread_context=True, vision_findings=False))
+
 # ---- lista y detalle: mismas columnas de investigación (T1) vistas desde runs.py ----------------------------------------------
 lst = {r["run_id"]: r for r in db.list_runs(limit=1000)}
 check("lista y detalle traen las MISMAS columnas de investigación para el hijo (thread_id, turn_no, turn_kind, "

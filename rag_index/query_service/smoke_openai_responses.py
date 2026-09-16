@@ -25,6 +25,8 @@ Qué MIDE (todo offline; el SDK openai se importa UNA vez para comparar firmas y
     return_meta=True → meta + thinking_tokens aplanado; output_config sólo con effort; refusal SIN reintento;
     stop_reason max_tokens → incomplete:max_output_tokens; HTTP 4xx sin reintento; 529/URLError con reintento.
   - urllib.request.urlopen REAL bloqueado y contado = 0; sys.modules sin 'openai' al terminar.
+  - ADR-0083 (G.3, +2): `user_content=None` en _responses_kwargs / _openai_chat_call → kwargs y cuerpo BYTE A BYTE los de hoy (nada
+    cambia para los llamadores de 1.11); con una lista de partes → input [{user, content}] / messages[1].content = partes.
 
 100% offline: cero red, cero gasto de modelo, cero BD, cero mutación de la DATA INAMOVIBLE. Exit 0 = todo PASS.
 Ningún id de modelo se escribe aquí como literal: todos salen de models.py (gate estático M.4).
@@ -60,6 +62,8 @@ _ADR81_ENVS = ("WITT_MODEL_GENERATION", "WITT_MODEL_SYNTH", "WITT_MODEL_PLANNER"
                "WITT_OPENAI_TIMEOUT_S", "WITT_ANTHROPIC_EFFORT", "WITT_ANTHROPIC_EFFORT_ELICIT", "WITT_CONFIG_LEDGER",
                "WITT_JUDGE_RETRIES")
 for _k in _ADR81_ENVS:
+    os.environ.pop(_k, None)
+for _k in [k for k in os.environ if k.startswith("WITT_FIGURES")]:   # ADR-0083: defaults declarados, no la env del operador
     os.environ.pop(_k, None)
 
 # --- red BLOQUEADA y contada: la función real jamás se alcanza (= 0 al final) ----------------------------------------
@@ -208,6 +212,18 @@ check("(C.1) _responses_kwargs EXACTOS: {model, instructions=system, input=user_
                         "parameters": ca.VERDICT_TOOL["input_schema"], "strict": False}],
              "tool_choice": {"type": "function", "name": ca.VERDICT_TOOL["name"]},
              "parallel_tool_calls": False, "max_output_tokens": 4000, "store": False}, json.dumps(kw)[:300])
+_parts = [{"type": "input_text", "text": "Figure 1 — X#f1 (Fig 1): c"},
+          {"type": "input_image", "image_url": "data:image/jpeg;base64,/9j/4AAQ", "detail": "high"},
+          {"type": "input_text", "text": "USER"}]
+_kw_uc = ca._responses_kwargs(ASTRA, "SYS", "USER", ca.VERDICT_TOOL, 4000, False, None, user_content=_parts)
+check("ADR-0083 (G.3): _responses_kwargs(..., user_content=None) == los kwargs de HOY byte a byte (json sort_keys); con una lista de partes "
+      "→ 'input' == [{role user, content: partes}] y TODO lo demás idéntico; `user_content` es el ÚLTIMO parámetro con default None",
+      json.dumps(ca._responses_kwargs(ASTRA, "SYS", "USER", ca.VERDICT_TOOL, 4000, False, None, user_content=None), sort_keys=True)
+      == json.dumps(kw, sort_keys=True)
+      and _kw_uc["input"] == [{"role": "user", "content": _parts}]
+      and {k: v for k, v in _kw_uc.items() if k != "input"} == {k: v for k, v in kw.items() if k != "input"}
+      and list(inspect.signature(ca._responses_kwargs).parameters)[-1] == "user_content"
+      and inspect.signature(ca._responses_kwargs).parameters["user_content"].default is None)
 check("(C.1) con reasoning_effort='medium' → kwargs['reasoning'] == {'effort': 'medium'}; store=True viaja como bool",
       ca._responses_kwargs(ASTRA, "S", "U", ca.VERDICT_TOOL, 8000, True, "medium")["reasoning"] == {"effort": "medium"}
       and ca._responses_kwargs(ASTRA, "S", "U", ca.VERDICT_TOOL, 8000, True, "medium")["store"] is True)
@@ -466,6 +482,17 @@ check("(C.1) chat byte a byte: kwargs {model, max_tokens 1200, timeout 120, mess
       and out == VERDICT_OK and usage == {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70}
       and meta == {"model_reported": BRIDGE_REPORTED, "api": "openai-chat-completions", "response_id": "chatcmpl_1",
                    "finish_reason": "tool_calls", "max_tokens": 1200}, json.dumps(fk.chat.completions.calls[0])[:200])
+_cparts = [{"type": "text", "text": "Figure 1 — X#f1 (Fig 1): c"},
+           {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/4AAQ", "detail": "high"}},
+           {"type": "text", "text": "USER"}]
+fk_uc = _FakeClient(chat=[_chat_resp(), _chat_resp()])
+ca._openai_chat_call(GPT_BRIDGE, "SYS", "USER", client=fk_uc, user_content=None)
+ca._openai_chat_call(GPT_BRIDGE, "SYS", "USER", client=fk_uc, user_content=_cparts)
+check("ADR-0083 (G.3): _openai_chat_call(..., user_content=None) → la MISMA petición de f57a3d3 byte a byte (messages[1].content 'USER'); con "
+      "partes → messages[1].content == partes, messages[0] y el resto de kwargs idénticos (el puente chat ES la lente reproducibility de hoy)",
+      fk_uc.chat.completions.calls[0] == fk.chat.completions.calls[0]
+      and fk_uc.chat.completions.calls[1]["messages"] == [{"role": "system", "content": "SYS"}, {"role": "user", "content": _cparts}]
+      and {k: v for k, v in fk_uc.chat.completions.calls[1].items() if k != "messages"} == {k: v for k, v in fk.chat.completions.calls[0].items() if k != "messages"})
 fk = _FakeClient(chat=[_chat_resp(finish="length", with_tool_call=False)] * 2)
 e = _raises(lambda: ca._openai_chat_call(GPT_BRIDGE, "S", "U", client=fk))
 check("(C.2) chat sin tool_call (finish_reason length) → 'incomplete:max_output_tokens'; mensaje 'openai: no tool_call "

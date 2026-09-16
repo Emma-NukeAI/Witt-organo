@@ -18,6 +18,9 @@ Qué MIDE (todo offline, caller inyectado por lente):
     panel=None resuelve models.panel() EN LA LLAMADA (env del proceso, sin reimportar); DEFAULT_PANEL = snapshot documental.
   - apply_to_bundle copia las llaves 1.10 al bundle['audit'] y re-sella bundle_identity (answer_pipeline REAL).
   - firmas del contrato S2 (audit, _default_caller) y docstring corregido (L41 de f57a3d3).
+  - ADR-0083 (G, +2): las llaves ADITIVAS de 1.12 (fila `saw_figures`, top `vision`) se quitan del subconjunto 1.9 como las de 1.10 (el
+    GOLDEN sigue midiendo lo mismo); con WITT_FIGURES=0 (M.1) NO existen y el audit == el de figuras encendidas menos esas llaves
+    (kill-switch byte a byte a nivel audit()); con el default existen y están DECLARADAS (detail por vocabulario, vision.state).
 
 100% offline: cero red (urlopen bloqueado y contado = 0), cero gasto de modelo, cero BD, cero mutación de la DATA INAMOVIBLE.
 Exit 0 = todo PASS. Ningún id de modelo se escribe aquí como literal: el GOLDEN lleva tokens @@judge.<lente>@@ que se rellenan
@@ -64,6 +67,9 @@ for _k in list(os.environ):
     if _k.startswith('WITT_COUNCIL') or _k in ('WITT_ANTHROPIC_MAX_INFLIGHT', 'WITT_ANTHROPIC_RETRY_AFTER_CAP_S', 'WITT_MODEL_COUNCIL',
                                                 'WITT_CG_COUNCIL_COMPONENT'):
         os.environ.pop(_k, None)
+# ADR-0083: las env de figuras tampoco (el gate mide los defaults declarados: WITT_FIGURES=1 → saw_figures/vision presentes)
+for _k in [k for k in os.environ if k.startswith('WITT_FIGURES')]:
+    os.environ.pop(_k, None)
 
 _NET_CALLS = []
 
@@ -154,15 +160,19 @@ NEW_TOP = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid
            "panel_incomplete_reasons", "panel_duplicate_models", "panel_origin", "panel_source", "failure_kinds_vocabulary")
 NEW_ROW = ("family_source", "api", "api_source", "reviewer_source", "max_tokens")
 NEW_ATTEMPT = ("error_kind", "model_reported", "api")
+# ADR-0083 (G.6): llaves ADITIVAS de 1.12 — presentes con WITT_FIGURES=1 (default), AUSENTES con el kill-switch (M.1)
+NEW_TOP_1_12 = ("vision",)
+NEW_ROW_1_12 = ("saw_figures", "figure_readings", "figure_readings_class", "figure_readings_dropped")
 
 
 def strip_1_10(r):
-    """El subconjunto 1.9: quita SÓLO las llaves aditivas de ADR-0081 (top, fila, intento)."""
+    """El subconjunto 1.9: quita SÓLO las llaves aditivas de ADR-0081 (top, fila, intento) y de ADR-0083 (top `vision`, fila
+    `saw_figures`/`figure_readings*`)."""
     r = json.loads(json.dumps(r))
-    for k in NEW_TOP:
+    for k in NEW_TOP + NEW_TOP_1_12:
         r.pop(k, None)
     for row in r["panel"]:
-        for k in NEW_ROW:
+        for k in NEW_ROW + NEW_ROW_1_12:
             row.pop(k, None)
         for a in row.get("attempts", []):
             for k in NEW_ATTEMPT:
@@ -387,16 +397,20 @@ else:
 # =====================================================================================================================
 # 5. Contrato S2 (firmas) y docstring corregido
 # =====================================================================================================================
-check("contrato S2: audit(claim, evidence, deterministic_checks=None, required_because='', panel=None, caller=None, min_valid=3, "
-      "judge_retries=None, min_families=None, min_lenses=None, directives=None); _default_caller(member, system, user_text, tool=None); "
-      "_anthropic_tool_call(..., max_tokens=1200, effort=None, return_meta=False, tools=None) (ADR-0082 D.1: `tools=` aditivo al final)",
+check("contrato S2 (+ADR-0083 F3 aditivo al final): audit(claim, evidence, deterministic_checks=None, required_because='', panel=None, "
+      "caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None, figures=None, vision_lenses=None); "
+      "_default_caller(member, system, user_text, tool=None) SIN cambio; _anthropic_tool_call(..., max_tokens=1200, effort=None, "
+      "return_meta=False, tools=None, user_content=None) (ADR-0082 D.1 `tools=` y ADR-0083 G.3 `user_content=` aditivos al final)",
       list(inspect.signature(ca.audit).parameters) == ["claim", "evidence", "deterministic_checks", "required_because", "panel",
                                                         "caller", "min_valid", "judge_retries", "min_families", "min_lenses",
-                                                        "directives"]
+                                                        "directives", "figures", "vision_lenses"]
+      and inspect.signature(ca.audit).parameters["figures"].default is None
+      and inspect.signature(ca.audit).parameters["vision_lenses"].default is None
       and list(inspect.signature(ca._default_caller).parameters) == ["member", "system", "user_text", "tool"]
       and list(inspect.signature(ca._anthropic_tool_call).parameters) == ["model", "system", "user_text", "tool", "timeout", "retries",
-                                                                           "max_tokens", "effort", "return_meta", "tools"]
+                                                                           "max_tokens", "effort", "return_meta", "tools", "user_content"]
       and inspect.signature(ca._anthropic_tool_call).parameters["tools"].default is None
+      and inspect.signature(ca._anthropic_tool_call).parameters["user_content"].default is None
       and inspect.signature(ca._anthropic_tool_call).parameters["return_meta"].default is False
       and inspect.signature(ca._openai_responses_call).parameters["retries"].default == 1)
 check("docstring corregido: la promesa de ADR-0080 L41 ('families_valid / lenses_valid are NOT here') ya no está; el módulo declara "
@@ -405,6 +419,35 @@ check("docstring corregido: la promesa de ADR-0080 L41 ('families_valid / lenses
       and "Fable" in ca.__doc__ and "EXCLUDED" in ca.__doc__)
 check("(M.3) urllib.request.urlopen REAL bloqueado: 0 llamadas en todo el gate; 'openai' jamás importado aquí",
       _NET_CALLS == [] and "openai" not in sys.modules)
+# --- ADR-0083 (G.6 / M.1): las llaves 1.12 existen DECLARADAS con el default y NO existen con el kill-switch --------------------
+_r_on = _audit(ALL_A, panel=LEGACY_PANEL)
+os.environ["WITT_FIGURES"] = "0"
+_r_off = _audit(ALL_A, panel=LEGACY_PANEL)
+os.environ.pop("WITT_FIGURES", None)
+
+
+def _strip_1_12(r):
+    r = json.loads(json.dumps(r))
+    for k in NEW_TOP_1_12:
+        r.pop(k, None)
+    for row in r["panel"]:
+        for k in NEW_ROW_1_12:
+            row.pop(k, None)
+    return r
+check("ADR-0083 (M.1) kill-switch WITT_FIGURES=0 a nivel audit(): NINGUNA fila trae saw_figures/figure_readings* y el audit no trae `vision`; "
+      "el JSON completo == el audit con figuras encendidas MENOS exactamente esas llaves (nada más cambia: cuerpo, cuórum, usage, attempts)",
+      "vision" not in _r_off and not any(set(NEW_ROW_1_12) & set(row) for row in _r_off["panel"])
+      and dumps(_r_off) == dumps(_strip_1_12(_r_on)) and "vision" in _r_on)
+check("ADR-0083 (G.6) con el default (WITT_FIGURES=1, sin figures=): cada fila trae `saw_figures` DECLARADA {n 0, detail ∈ SAW_FIGURES_DETAILS: "
+      "'no-eligible-figures' en las lentes con visión (evidence-grounding, reproducibility), 'lens-not-in-vision-lenses' en las demás}; "
+      "vision {state 'no-eligible-figures', lenses default, lenses_source 'default-unset:WITT_FIGURES_VISION_LENSES', rule literal}; el "
+      "GOLDEN 1.9 sigue vacuo-libre (strip quita también estas llaves)",
+      all(row["saw_figures"]["n"] == 0 and row["saw_figures"]["detail"] in ca.SAW_FIGURES_DETAILS for row in _r_on["panel"])
+      and [row["saw_figures"]["detail"] for row in _r_on["panel"]] == ["lens-not-in-vision-lenses", "lens-not-in-vision-lenses",
+                                                                        "no-eligible-figures", "no-eligible-figures"]
+      and _r_on["vision"]["state"] == "no-eligible-figures" and _r_on["vision"]["lenses"] == list(ca.VISION_LENSES)
+      and _r_on["vision"]["lenses_source"] == "default-unset:WITT_FIGURES_VISION_LENSES" and _r_on["vision"]["rule"] == ca.FIGURE_READING_RULE
+      and dumps(strip_1_10(_r_on)) == GOLDEN_1_9["all_a"])
 
 # =====================================================================================================================
 # 6. ADR-0082 (D.1) — el caller: tools=, system lista, semáforo de PROCESO, Retry-After con tope, attempts/usage_prior_attempts

@@ -25,6 +25,7 @@ Run (single process — in-process caches and the block-5 write queue assume ONE
 """
 import datetime
 import hashlib
+import inspect
 import json
 import math
 import os
@@ -35,7 +36,7 @@ import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -55,6 +56,7 @@ import record_pdf as record_pdf_mod  # noqa: E402
 import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import models  # noqa: E402  (ADR-0081 (A): la tabla de modelos — resolución EN LA LLAMADA)
+from lib import figures as figures_mod  # noqa: E402  (ADR-0083 (I): índice y bytes de figuras; env leída EN LA LLAMADA)
 from lib import rag_backend  # noqa: E402
 from lib import agent_matrix, catalog_cards  # noqa: E402  (ADR-0082 (A)/(B): membresía cm-1 + fichas verbatim — C1)
 
@@ -116,11 +118,18 @@ async def lifespan(_app):
 app = FastAPI(title="Witt DATA INAMOVIBLE query service (read-only)", version=SERVICE_VERSION,
               lifespan=lifespan)
 
+# ADR-0083 (I): cabeceras que la webapp debe poder LEER en un fetch() cross-origin de GET /runs/{id}/figures/{sha256}
+# (sin expose_headers el navegador las oculta aunque viajen — hallazgo del juez 1). Lista FIJA (constante declarada);
+# X-Witt-Figure-Refetch es aditiva: sólo viaja cuando WITT_FIGURES_REFETCH_ON_GET=1 rebajó y verificó.
+FIGURE_EXPOSE_HEADERS = ("ETag", "X-Witt-Figure-License", "X-Witt-Figure-Sha256", "X-Witt-Figure-Refetch",
+                         "Content-Disposition")
+
 _cors = [o.strip() for o in os.environ.get("WITT_CORS_ORIGINS", "").split(",") if o.strip()]
 if _cors:
     from fastapi.middleware.cors import CORSMiddleware
     app.add_middleware(CORSMiddleware, allow_origins=_cors, allow_credentials=True,
-                       allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"])
+                       allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"],
+                       expose_headers=list(FIGURE_EXPOSE_HEADERS))
 
 
 # --- auth ------------------------------------------------------------------------------------------
@@ -1403,12 +1412,221 @@ def get_record_pdf(run_id: str, authorization: str = Header(None)):
     rec = json.loads(run["frozen_record_json"])
     rec.update(_ratings_view(run, user["user_id"]))
     try:
-        pdf_bytes = record_pdf_mod.build_pdf(rec)
+        # ADR-0083 (J.4) — F8 retiró la costura inspect.signature de F5: la firma de F6 está en el árbol. cache_dir = la
+        # caché de figuras que la env manda EN LA LLAMADA (M.4); thumbs=None → record_pdf lee WITT_FIGURES_PDF_THUMBS y
+        # DECLARA su fuente en el texto (miniatura sólo si embeddable ∧ archivo en caché ∧ sha recalculado == congelado).
+        pdf_bytes = record_pdf_mod.build_pdf(rec, cache_dir=str(figures_mod.cache_dir()[0]), thumbs=None)
     except ValueError as e:
         raise HTTPException(status_code=409, detail={"state": "identity-mismatch", "note": str(e)})
     from fastapi.responses import Response
     return Response(content=pdf_bytes, media_type="application/pdf",
                     headers={"Content-Disposition": f'attachment; filename="registro_{run_id}.pdf"'})
+
+
+# --- figuras (ADR-0083 (I)): índice + bytes por sha256 — DECLARADAS ANTES de /runs/{run_id}/events ------------------
+# Patrón get_record_pdf / artifact_report: membresía (401) antes del filesystem; identidad rota (question_matches_run
+# false) ⇒ 409 como la hoja y el PDF (ADR-0044: ni hoja, ni PDF, ni bytes). Toda env se lee EN LA LLAMADA por
+# figures.env_config() (M.4). El sha256 se RECALCULA sobre los bytes que se sirven (ADR-0077): un archivo alterado en la
+# caché jamás sale por esta puerta (409). Ninguna GET toca la red salvo el refetch declarado (WITT_FIGURES_REFETCH_ON_GET=1).
+FIGURES_NOT_INSTRUMENTED = "not-instrumented (contrato < 1.12)"
+FIGURES_KILL_SWITCH = "kill-switch WITT_FIGURES=0"
+FIGURE_SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+FIGURE_REFETCH_TIMEOUT_S = 20.0            # (I): UNA GET de 20 s cuando el refetch está encendido
+FIGURE_CACHE_CONTROL = "private, max-age=86400"
+FIGURE_SERVABLE_RULE = ("medido al pedir: kill-switch → licencia efectiva (tabla ∧ env de HOY) → sha congelado → archivo en "
+                        "caché → sha256 recalculado (figures.verify_cached); 'yes' sólo si todo cuadra")
+_FIGURE_EXT = {"image/jpeg": "jpg", "image/png": "png", "image/gif": "gif", "image/webp": "webp"}
+
+
+def _frozen_o_409(run_id):
+    """(run, registro congelado) o 404 / 409 con el MISMO sobre que /record y /record.pdf."""
+    run = db.get_run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="no such run")
+    if not run.get("frozen_record_json"):
+        raise HTTPException(status_code=409, detail={"state": run["state"],
+                                                     "note": "no frozen record yet (run not finished)"})
+    return run, json.loads(run["frozen_record_json"])
+
+
+def _identidad_o_409(rec):
+    if rec.get("question_matches_run") is False:
+        raise HTTPException(status_code=409, detail={
+            "state": "identity-mismatch",
+            "note": "identidad rota: el registro no corresponde a la pregunta de la corrida (question_matches_run=false) — "
+                    "ni hoja, ni PDF, ni figuras (ADR-0044 / ADR-0083 (I))"})
+
+
+def _figure_items(fig_block):
+    items = fig_block.get("items") if isinstance(fig_block, dict) else None
+    return [it for it in (items or []) if isinstance(it, dict)]
+
+
+def _license_words(fig_block, license_id):
+    """words_es de la tabla CONGELADA con la corrida (la que gobernó); si el registro no la trae, la tabla del módulo."""
+    table = (fig_block or {}).get("license_table") if isinstance(fig_block, dict) else None
+    row = (table or {}).get(license_id) if isinstance(table, dict) else None
+    row = row if isinstance(row, dict) else figures_mod.LICENSE_TABLE.get(license_id) or figures_mod.LICENSE_TABLE["unknown"]
+    return row.get("words_es")
+
+
+def _embeddable_now(item, cfg):
+    """embeddable EFECTIVO al servir = el congelado ∧ la tabla restringida por la env de HOY (WITT_FIGURES_EMBED_LICENSES
+    'gobierna GET 200/403': una restricción posterior a la corrida también acota esta puerta; jamás amplía)."""
+    lic_id = (item.get("license") or {}).get("id")
+    return bool(item.get("embeddable")) and figures_mod.license_flags(lic_id, cfg)[0]
+
+
+def _figure_index_row(item, run_id, cache_root, cfg):
+    """FigureItem público (sin b64 ni cache_path) + servable {state, …} medido al pedir + url relativa."""
+    row = figures_mod.public_item(item)
+    probe = dict(item, embeddable=_embeddable_now(item, cfg))
+    state = figures_mod.servable_state(probe, cache_root, cfg)
+    serv = {"state": state}
+    if state == "forbidden-by-license" and item.get("embeddable"):
+        serv["reason"] = "restricted-by-env-now (WITT_FIGURES_EMBED_LICENSES)"
+    if state == "bytes-mismatch":
+        serv["sha256_actual"] = figures_mod.verify_cached(cache_root, item)["sha256_actual"]
+    row["servable"] = serv
+    row["url"] = f"/runs/{run_id}/figures/{item['sha256']}" if item.get("sha256") else None
+    return row
+
+
+@app.get("/runs/{run_id}/figures")
+def get_run_figures(run_id: str, authorization: str = Header(None)):
+    """ADR-0083 (I): el ÍNDICE de figuras del registro congelado — por figura id, sha corto, licencia, embeddable y
+    `servable {state}` MEDIDO al pedir (existencia del archivo en caché + sha256 recalculado con figures.verify_cached;
+    'bytes-not-in-cache' se declara, no se rellena: la caché de Dokploy es efímera, Context 10). Registro < 1.12 (llave
+    `figures` AUSENTE) ⇒ state 'not-instrumented (contrato < 1.12)', items [] — ausencia ≠ 0 figuras. Kill-switch de HOY
+    ⇒ state 'kill-switch WITT_FIGURES=0' y todo servable 'kill-switch' (los ítems congelados siguen: son medición)."""
+    _user_of(authorization)
+    run, rec = _frozen_o_409(run_id)
+    _identidad_o_409(rec)
+    cfg = figures_mod.env_config()
+    cache_root, dir_source = figures_mod.cache_dir()
+    fig = rec.get("figures")
+    out = {"run_id": run_id, "run_no": run.get("run_no"), "render_contract_version": rec.get("render_contract_version"),
+           "state": None, "frozen_state": None, "n": 0, "n_verified": None, "n_embeddable": None, "n_servable": 0,
+           "servable_counts": {}, "license_table_version": None,
+           # corrector (B.3 caché perezosa): el índice es LECTURA — se MIDE sin crear el directorio (create=False; 'missing' es un
+           # estado declarado del vocabulario CACHE_DIR_STATES); un despliegue sin WITT_MCP_CACHE_DIR ya no gana <repo>/mcp_cache/figures
+           # vacío al primer GET
+           "cache": {"dir_source": dir_source, "dir_state": figures_mod.cache_dir_state(cache_root, create=False) if fig else None},
+           "items": [], "class": figures_mod.FIGURE_CLASS, "servable_rule": FIGURE_SERVABLE_RULE,
+           "vocabulary": {"SERVABLE_STATES": list(figures_mod.SERVABLE_STATES)}}
+    if not isinstance(fig, dict):
+        out["state"] = FIGURES_NOT_INSTRUMENTED
+        return out
+    out["frozen_state"] = fig.get("state")
+    out["state"] = FIGURES_KILL_SWITCH if not cfg["figures"] else fig.get("state")
+    out["license_table_version"] = fig.get("license_table_version")
+    out["n_verified"], out["n_embeddable"] = fig.get("n_verified"), fig.get("n_embeddable")
+    if isinstance(fig.get("kill_switch"), dict):
+        out["kill_switch"] = fig["kill_switch"]
+    rows = [_figure_index_row(it, run_id, cache_root, cfg) for it in _figure_items(fig)]
+    out["items"] = rows
+    out["n"] = len(rows)
+    for r in rows:
+        s = r["servable"]["state"]
+        out["servable_counts"][s] = out["servable_counts"].get(s, 0) + 1
+    out["n_servable"] = out["servable_counts"].get("yes", 0)
+    return out
+
+
+def _refetch_figure(item, cache_root, cfg):
+    """(I) WITT_FIGURES_REFETCH_ON_GET=1: UNA GET (20 s) del zip del paper vía figures.fetch_figures — la MISMA costura de
+    red (_get_bytes), el mismo layout de caché y el mismo ledger raw que la etapa. Devuelve (estado, sha_actual|None):
+    'verified' (sha recalculado == congelado → se sirve) · 'mismatch' (≠ → 409, jamás se sirve) · razón declarada
+    ('not-fetched (…)' | 'error: …') → 404 bytes-not-in-cache con `refetch 'attempted: <estado>'`."""
+    href = item.get("graphic_href")
+    if not href or not item.get("pmcid"):
+        return "not-fetched (no-graphic)", None
+    fig = {"fig_id": item.get("fig_id"), "graphic_href": href, "caption_state": "present", "label": item.get("label"),
+           "caption": item.get("caption"), "dims_declared": item.get("dims_declared")}
+    try:
+        got = figures_mod.fetch_figures(item["pmcid"], [fig], cfg=cfg, cache_root=cache_root,
+                                        deadline=time.monotonic() + FIGURE_REFETCH_TIMEOUT_S)
+    except Exception as e:  # la costura JAMÁS relanza; si algo escapa, se declara y la puerta responde 404 tipado
+        return f"error: {type(e).__name__}: {str(e)[:120]}", None
+    row = (got.get("by_href") or {}).get(os.path.basename(str(href)).lower()) or {}
+    state = row.get("bytes_state")
+    if state == "verified":
+        return ("verified" if row.get("sha256") == item.get("sha256") else "mismatch"), row.get("sha256")
+    return state or f"error: {(got.get('ledger') or {}).get('error_kind') or 'unknown'}", None
+
+
+@app.get("/runs/{run_id}/figures/{sha256}")
+def get_figure_bytes(run_id: str, sha256: str, request: Request, authorization: str = Header(None)):
+    """ADR-0083 (I): los bytes ORIGINALES de UNA figura del registro, por su sha256 congelado. 400 sha malformado ·
+    401 sin sesión · 404 corrida / registro < 1.12 / kill-switch / sha ∉ registro / bytes no en caché (refetch declarado)
+    · 403 licencia que no permite redistribuir (sobre tipado: error 'not-embeddable', license {id, words_es, source},
+    reason, source_url; ZFIN incluido) · 409 identidad rota o sha RECALCULADO ≠ congelado (jamás se sirve) · 200 bytes con
+    Content-Type = media_type medido, ETag "<sha256>", Cache-Control, X-Witt-Figure-License, X-Witt-Figure-Sha256,
+    Content-Disposition inline. If-None-Match == ETag ⇒ 304 (el sha ES la identidad de los bytes)."""
+    _user_of(authorization)
+    if not FIGURE_SHA_RE.match(sha256 or ""):
+        raise HTTPException(status_code=400, detail={"state": "bad-sha256", "sha256": sha256,
+                                                     "note": "sha256 must match ^[0-9a-f]{64}$ (lowercase hex)"})
+    run, rec = _frozen_o_409(run_id)
+    _identidad_o_409(rec)
+    fig = rec.get("figures")
+    if not isinstance(fig, dict):
+        raise HTTPException(status_code=404, detail={"state": FIGURES_NOT_INSTRUMENTED, "sha256": sha256,
+                                                     "render_contract_version": rec.get("render_contract_version")})
+    cfg = figures_mod.env_config()
+    if not cfg["figures"]:
+        raise HTTPException(status_code=404, detail={"state": FIGURES_KILL_SWITCH, "sha256": sha256})
+    item = next((it for it in _figure_items(fig) if it.get("sha256") == sha256), None)
+    if item is None:
+        raise HTTPException(status_code=404, detail={"state": "no such figure in this record", "sha256": sha256})
+    lic = item.get("license") or {}
+    if not _embeddable_now(item, cfg):
+        raise HTTPException(status_code=403, detail={
+            "error": "not-embeddable", "state": "forbidden-by-license",
+            "license": {"id": lic.get("id"), "words_es": _license_words(fig, lic.get("id")), "source": lic.get("source")},
+            "reason": _license_words(fig, lic.get("id")), "source_url": item.get("source_url"), "sha256": sha256,
+            "id": item.get("id"), "license_table_version": fig.get("license_table_version")})
+    cache_root, _src = figures_mod.cache_dir()
+    rel = item.get("cache_path_rel") or (figures_mod.cache_path_rel_of(item.get("pmcid"), item.get("graphic_href"))
+                                         if item.get("pmcid") and item.get("graphic_href") else None)
+    chk = figures_mod.verify_cached(cache_root, rel, sha256) if rel else {"state": "missing", "sha256_actual": None, "path": None}
+    refetch_note = None
+    if chk["state"] == "missing":
+        not_in_cache = {"state": "bytes-not-in-cache", "sha256": sha256, "id": item.get("id"),
+                        "source_url": item.get("source_url"), "cache_dir_source": _src}
+        if not cfg["refetch_on_get"]:
+            not_in_cache["refetch"] = "disabled (WITT_FIGURES_REFETCH_ON_GET=0)"
+            raise HTTPException(status_code=404, detail=not_in_cache)
+        state, actual = _refetch_figure(item, cache_root, cfg)
+        if state == "mismatch":
+            raise HTTPException(status_code=409, detail={"state": "figure-bytes-mismatch", "expected": sha256,
+                                                         "actual": actual, "refetch": "attempted: mismatch",
+                                                         "id": item.get("id")})
+        if state != "verified":
+            not_in_cache["refetch"] = f"attempted: {state}"
+            raise HTTPException(status_code=404, detail=not_in_cache)
+        refetch_note = "attempted: verified"
+        chk = figures_mod.verify_cached(cache_root, rel, sha256)
+    if chk["state"] != "verified":
+        raise HTTPException(status_code=409, detail={"state": "figure-bytes-mismatch", "expected": sha256,
+                                                     "actual": chk.get("sha256_actual"), "id": item.get("id")})
+    data = Path(chk["path"]).read_bytes()
+    if figures_mod.sha256_bytes(data) != sha256:   # el sha se recalcula sobre LOS BYTES QUE SALEN, no sobre un stat previo
+        raise HTTPException(status_code=409, detail={"state": "figure-bytes-mismatch", "expected": sha256,
+                                                     "actual": figures_mod.sha256_bytes(data), "id": item.get("id")})
+    media = item.get("media_type") or figures_mod.sniff_mime(data) or "application/octet-stream"
+    ext = _FIGURE_EXT.get(media) or "bin"
+    safe_fig = re.sub(r"[^A-Za-z0-9._-]", "_", str(item.get("fig_id") or "figure"))
+    etag = f'"{sha256}"'
+    headers = {"ETag": etag, "Cache-Control": FIGURE_CACHE_CONTROL,
+               "X-Witt-Figure-License": str(lic.get("id") or "unknown"), "X-Witt-Figure-Sha256": sha256,
+               "Content-Disposition": f'inline; filename="{item.get("pmcid")}_{safe_fig}.{ext}"'}
+    if refetch_note:
+        headers["X-Witt-Figure-Refetch"] = refetch_note
+    from fastapi.responses import Response
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=data, media_type=media, headers=headers)
 
 
 @app.get("/runs/{run_id}/events")
@@ -2044,9 +2262,84 @@ USAGE_STAGE_ABSENT = "absent-in-record"        # la etapa no viene en by_stage d
 # jamás 0.0 'priced' (0 medido ≠ null no medido — §7).
 USAGE_PRICE_STATES = ("priced", "missing", "mixed", "stage-without-model", "not-measured")
 
+# ADR-0083 (H): /usage.figures — conteos y bytes son MEDICIÓN (copiados de frozen.figures al usage_json de la corrida por
+# runs, contrato F4); los tokens de visión son PROYECCIÓN por fórmula pública (by_stage.panel.by_model[*].vision) y YA
+# están dentro de los input_tokens medidos de cada lente (la API no los separa): jamás se suman a totals.
+USAGE_FIGURES_CLASS = "PROJECTION (tokens) / MEASUREMENT (counts, bytes)"
+USAGE_FIGURES_SOURCE = ("usage_json.figures {state, n_figures, n_verified, n_cited, bytes_downloaded, bytes_verified, n_cache_hit} (espejo de frozen.figures, "
+                        "escrito por runs al congelar — ADR-0083 (H)) + usage_json.by_stage.panel.by_model[<reviewer>].vision"
+                        ".visual_tokens_projected / .n_images")
+USAGE_FIGURES_RULE = ("los tokens de visión son proyección y ya viven DENTRO de los input_tokens medidos del juez: aquí se "
+                      "muestran APARTE y jamás se suman a totals; una corrida sin usage_json.figures (registro < 1.12 o "
+                      "kill-switch WITT_FIGURES=0) se CUENTA en n_runs_without_figures_usage — ausencia ≠ 0 figuras")
+USAGE_FIGURES_STATES = ("measured", "not-measured")
+
 
 def _es_entero(v):
     return isinstance(v, int) and not isinstance(v, bool)
+
+
+class _FiguresUsageAccumulator:
+    """ADR-0083 (H): agrega usage_json.figures y by_stage.panel.by_model[*].vision de N corridas, APARTE del bucle de
+    totals (que sigue byte a byte). Suma SÓLO enteros; n_runs_without_figures_usage cuenta las corridas sin la llave
+    (pre-1.12 o kill-switch) — nunca se les inventa 0. Con 0 corridas declaradas los conteos van null + state
+    'not-measured' (0 medido ≠ null no medido)."""
+
+    def __init__(self):
+        self.n_declared = self.n_without = self.n_with_figures = self.n_with_vision = 0
+        # corrector (H): bytes_downloaded = verified ∧ NO cache_hit (red REAL de la corrida); bytes_verified = Σ verified (caché incluida)
+        self.sums = {"n_figures": 0, "n_verified": 0, "n_cited": 0, "bytes_downloaded": 0, "bytes_verified": 0, "n_cache_hit": 0}
+        self.by_state = {}
+        self.vision_tokens = {}
+        self.vision_images = {}
+
+    def add(self, u):
+        fg = u.get("figures")
+        if isinstance(fg, dict):
+            self.n_declared += 1
+            st = fg.get("state")
+            if isinstance(st, str) and st:
+                self.by_state[st] = self.by_state.get(st, 0) + 1
+            if _es_entero(fg.get("n_figures")) and fg["n_figures"] > 0:
+                self.n_with_figures += 1
+            for k in self.sums:
+                if _es_entero(fg.get(k)):
+                    self.sums[k] += fg[k]
+        else:
+            self.n_without += 1
+        bm = ((u.get("by_stage") or {}).get("panel") or {}).get("by_model") if isinstance(u.get("by_stage"), dict) else None
+        seen_vision = False
+        for reviewer, mm in (bm or {}).items() if isinstance(bm, dict) else []:
+            v = mm.get("vision") if isinstance(mm, dict) else None
+            if not isinstance(v, dict):
+                continue
+            t, n = v.get("visual_tokens_projected"), v.get("n_images")
+            if _es_entero(t):
+                self.vision_tokens[str(reviewer)] = self.vision_tokens.get(str(reviewer), 0) + t
+                seen_vision = True
+            if _es_entero(n):
+                self.vision_images[str(reviewer)] = self.vision_images.get(str(reviewer), 0) + n
+        if seen_vision:
+            self.n_with_vision += 1
+
+    def result(self):
+        measured = self.n_declared > 0
+        return {"state": "measured" if measured else "not-measured",
+                "n_runs_with_figures": self.n_with_figures,
+                "n_runs_figures_declared": self.n_declared,
+                "n_runs_without_figures_usage": self.n_without,
+                "by_state": self.by_state,
+                "n_figures": self.sums["n_figures"] if measured else None,
+                "n_figures_verified": self.sums["n_verified"] if measured else None,
+                "n_figures_cited": self.sums["n_cited"] if measured else None,
+                "bytes_downloaded": self.sums["bytes_downloaded"] if measured else None,
+                "bytes_verified": self.sums["bytes_verified"] if measured else None,
+                "n_figures_cache_hit": self.sums["n_cache_hit"] if measured else None,
+                "vision_tokens_projected_by_model": self.vision_tokens,
+                "vision_tokens_projected_total": sum(self.vision_tokens.values()) if self.vision_tokens else None,
+                "vision_images_by_model": self.vision_images,
+                "n_runs_with_vision": self.n_with_vision,
+                "class": USAGE_FIGURES_CLASS, "source": USAGE_FIGURES_SOURCE, "rule": USAGE_FIGURES_RULE}
 
 
 class _StageAccumulator:
@@ -2297,12 +2590,14 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     n_incomplete = 0    # corridas que al congelarse declararon cost_projection_complete=False
     n_unknown = 0       # corridas anteriores a la llave: no declararon; no se les inventa un estado
     stage_acc = _StageAccumulator()   # ADR-0081 (H): por ETAPA y MODELO×ETAPA, acumulación APARTE del bucle de hoy
+    figs_acc = _FiguresUsageAccumulator()   # ADR-0083 (H): figuras (conteos/bytes medidos · visión proyectada), APARTE
     for r in rows:
         u = json.loads(r["usage_json"]) if r.get("usage_json") else None
         if not u:
             continue
         n_with += 1
         stage_acc.add(u)
+        figs_acc.add(u)
         cost = float(u.get("estimated_cost_usd") or 0.0)
         if u.get("cost_projection_complete") is False:
             n_incomplete += 1
@@ -2377,6 +2672,10 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
             # ADR-0082 (H): rondas 1 de planes que NUNCA se corrieron — gasto huérfano visible, aparte de totals
             # (que sigue byte a byte: suma de usage_json congelado por corrida)
             "plans_council": _plans_council_usage(frm, to_dt),
+            # ADR-0083 (H): figuras — conteos/bytes MEDIDOS (usage_json.figures, espejo de frozen.figures) y tokens de
+            # visión PROYECTADOS por modelo (by_stage.panel.by_model[*].vision), APARTE de totals (jamás sumados: ya
+            # están dentro de los input_tokens medidos). M8 lo lee del servidor (HANDOFF §17.3).
+            "figures": figs_acc.result(),
             "models_catalog": catalogo,
             "model_generation_current": models.resolve_generation()[0],
             # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la

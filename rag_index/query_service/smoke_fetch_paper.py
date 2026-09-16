@@ -130,6 +130,11 @@ check("exito: status 'success', 2 items, n_found=137 (hitCount, medicion) y n_re
 check("items normalizados (pmid/pmcid/doi/title/year/journal/is_oa/abstract/cited_by)",
       items[0]["pmid"] == "24496627" and items[0]["journal"] == "Development" and items[0]["is_oa"] is False
       and items[0]["cited_by"] == 42 and items[1]["pmcid"] is None)
+# ---- 3b. ADR-0083 (A.2): `license` del search de EPMC se CONSERVA en _normalize_hit (segunda fuente de licencia) ----
+check("ADR-0083: _normalize_hit conserva `license` tal cual ('cc by-nc-nd' → 'cc by-nc-nd', sin normalizar aquí)",
+      fetch_paper._normalize_hit(dict(REC_A, license="cc by-nc-nd"))["license"] == "cc by-nc-nd")
+check("ADR-0083: sin campo `license` en el hit → None DECLARADO (la llave existe; jamás se inventa 'cc by')",
+      "license" in items[0] and items[0]["license"] is None and items[1]["license"] is None)
 check("ledger declara query_sent, sort='CITED', synonym=False, throttle, contact ('unset' = estado, no correo)",
       ledger["query_sent"] == "osr1 pronephros" and ledger["sort"] == "CITED" and ledger["synonym"] is False
       and ledger["throttle"] and ledger["contact"] == "unset",
@@ -254,11 +259,15 @@ os.environ.pop("WITT_CACHE_TTL_DAYS", None)
 CACHE3 = TMP / "mcp_cache_legacy"
 CACHE3.mkdir()
 legacy_p = CACHE3 / "raw_paper_28409341_20260613.json"
-legacy_p.write_text(json.dumps(fetch_paper._normalize_hit(REC_B)), encoding="utf-8")   # formato pre-ADR-0078
+legacy_p.write_text(json.dumps({k: v for k, v in fetch_paper._normalize_hit(REC_B).items() if k != "license"}),
+                    encoding="utf-8")   # formato pre-ADR-0078 y pre-ADR-0083 (sin `license`, como los 15 raw_paper_* del repo)
 fetch_paper._get = _mk_get(exc=RuntimeError("no red"))
 got4 = fetch_paper.fetch_external("PMID:28409341", want_full_text=False, cache_dir=CACHE3)
 check("legado flat recien escrito (mtime fresco): hit con cached_at_source='mtime' DECLARADO",
       got4["cache_hit"] is True and got4["cached_at_source"] == "mtime")
+check("ADR-0083: cache LEGADA (raw_paper_*.json viejo sin `license`): el record servido NO trae la llave y .get('license') "
+      "es None declarado — figures.parse_license lo lee como search_license None (los 15 raw_paper_* del repo son asi)",
+      "license" not in json.loads(legacy_p.read_text(encoding="utf-8")) and got4["record"].get("license") is None)
 old_ts = (datetime.now(timezone.utc) - timedelta(days=90)).timestamp()
 os.utime(legacy_p, (old_ts, old_ts))
 CALLS.clear()

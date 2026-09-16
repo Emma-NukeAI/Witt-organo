@@ -24,6 +24,14 @@ from typing import List
 
 from . import resolve_id
 
+# ADR-0083 (F): los predicados de figuras recalculan el sha256 al gatear con lib/figures.verify_cached (F1, stdlib puro).
+# Import TOLERANTE: un árbol sin figures.py declara 'tool-unavailable (…)' en deterministic_checks.figures — jamás se
+# re-implementa aquí ni se rellena (§6 no-hang; mismo patrón que runs._positive_claim_check para este módulo).
+try:
+    from . import figures as _figures
+except Exception:  # pragma: no cover — sólo en un árbol parcial
+    _figures = None
+
 # N2 (ADR-0027 close): the extractor is TOLERANT — case-insensitive, optional separator, optional version
 # suffix — so a reformatted id ('Ensdarg00000054611', 'ENSDARG_00000054611', 'ENSDARG00000054611.1') is
 # still extracted, then CANONICALIZED to 'ENSDARG<11 digits>' before resolving. Without this, a fabricated
@@ -407,10 +415,34 @@ def _citation_keys(cit):
     return keys
 
 
+def _figure_items(bundle):
+    """Los FigureItem del bundle en orden paper → documento (ADR-0083 (C)/(E)): `path_b.papers[].figures.items[]`
+    (la mutación en sitio de figures.attach); si ningún paper los trae, `bundle.figures_ledger.items[]` (F4 puede
+    pop('papers') del resumen; los ítems quedan). Dedupe por `id`; nada se infiere de otra parte."""
+    b = bundle or {}
+    out, seen = [], set()
+
+    def _take(items):
+        for it in items or []:
+            if isinstance(it, dict) and it.get("id") and it["id"] not in seen:
+                seen.add(it["id"])
+                out.append(it)
+
+    for p in ((b.get("path_b") or {}).get("papers") or []):
+        if isinstance(p, dict) and isinstance(p.get("figures"), dict):
+            _take(p["figures"].get("items"))
+    if not out and isinstance(b.get("figures_ledger"), dict):
+        _take(b["figures_ledger"].get("items"))
+    return out
+
+
 def _bundle_evidence_index(bundle):
     """{clave normalizada -> (evidence_id canónico, passage_delivered: bool)} para todo ítem del bundle:
     path_a.hits (doc_id; texto = `text`), path_b.papers (evidence_id + pmid/pmcid/doi del search_rec;
-    texto = abstract | text_excerpt | statement; para zfin ≥1 `phenotypes[].statement`)."""
+    texto = abstract | text_excerpt | statement; para zfin ≥1 `phenotypes[].statement`).
+    ADR-0083 (E): cada figura `papers[].figures.items[]` es un ítem PROPIO bajo su id '<PMCID>#<fig_id>' con
+    `delivered` = el caption se entregó (caption_state 'present'). Una figura SIN caption no se entrega al sintetizador
+    ni a las lentes (A.1: no puede sostener texto) → NO se indexa: citarla es citar algo no entregado (unresolved)."""
     idx = {}
     b = bundle or {}
 
@@ -444,6 +476,9 @@ def _bundle_evidence_index(bundle):
             _put(rec["pmcid"], ident, delivered)
         if rec.get("doi"):
             _put(str(rec["doi"]).lower().replace("https://doi.org/", ""), ident, delivered)
+    for it in _figure_items(b):   # ADR-0083 (E): la figura como ítem propio; sólo con caption entregado
+        if it.get("caption_state") == "present":
+            _put(it["id"], it["id"], True)
     return idx
 
 
@@ -578,6 +613,447 @@ def support_summary(rows):
     return {"n": len(rows or []), "by_state": by_state, "ladder": list(SUPPORT_LADDER),
             "pertinent": {"state": p_state, "n_true": n_true, "n_not_named": n_named, "n_not_available": n_na,
                           "literal": PERTINENT_NOT_AVAILABLE, "rule": PERTINENT_RULE}}
+
+
+# --- ADR-0083 (F): CINCO predicados DETERMINISTAS sobre citas kind 'figure' (clase Logic-LM, ciegos a píxeles) ----------
+# Una figura es MEDICIÓN sólo cuando el código verifica identidad (fig_id del JATS), bytes (sha256 recalculado al gatear)
+# y licencia (tabla cerrada, F1). Lo que la imagen DICE es JUICIO de dos lentes del panel y jamás entra aquí: estos
+# predicados leen el bundle (ítems FigureItem con caption/sha/licencia), la caché (bytes) y el TEXTO de la respuesta —
+# nunca un píxel. Tres son DUROS (entran a la conjunción H(c) de admissible()); dos son INFORMATIVOS (gating False:
+# se congelan, jamás tumban). El sintetizador sólo vio caption + metadatos (D.1), así que la doctrina §7 «figure-only
+# NOT asserted» se hace mecánica en figure_only_not_asserted: la figura CORROBORA; el TEXTO porta la evidencia.
+FIGURE_PREDICATES_VERSION = "figpred-1"
+PREDICATE_FIGURE_ID_RESOLVES = "figure_id_resolves"
+PREDICATE_FIGURE_SHA_MATCHES = "figure_sha_matches"
+PREDICATE_FIGURE_ONLY_NOT_ASSERTED = "figure_only_not_asserted"
+PREDICATE_FIGURE_NUMERALS_GROUNDED = "figure_numerals_grounded"
+PREDICATE_FIGURE_LICENSE_KNOWN = "figure_license_known"
+FIGURE_PREDICATES = (PREDICATE_FIGURE_ID_RESOLVES, PREDICATE_FIGURE_SHA_MATCHES, PREDICATE_FIGURE_ONLY_NOT_ASSERTED,
+                     PREDICATE_FIGURE_NUMERALS_GROUNDED, PREDICATE_FIGURE_LICENSE_KNOWN)
+# gating por predicado (F): DURO = entra a la conjunción; INFORMATIVO = se congela y no gatea (LG3 decide si sube, 0083.1)
+FIGURE_GATING = {PREDICATE_FIGURE_ID_RESOLVES: True, PREDICATE_FIGURE_SHA_MATCHES: True,
+                 PREDICATE_FIGURE_ONLY_NOT_ASSERTED: True, PREDICATE_FIGURE_NUMERALS_GROUNDED: False,
+                 PREDICATE_FIGURE_LICENSE_KNOWN: False}
+FIGURE_CHECK_STATE_KILL_SWITCH = "kill-switch WITT_FIGURES=0"
+FIGURE_CHECK_STATES_EXACT = ("checked", "no-figure-citations", FIGURE_CHECK_STATE_KILL_SWITCH)
+FIGURE_CHECK_STATES_PREFIXES = ("tool-unavailable (", "error: ")
+FIGURE_CHECK_STATE_TOOL_UNAVAILABLE = "tool-unavailable (lib/figures.py not importable — ADR-0083 F1)"
+FIGURE_NUMERALS_STATES = ("checked", "no-markers: whole-answer fallback",
+                          "partial-markers: whole-answer fallback for unmarked", "no-figure-citations")
+# Los CINCO literales congelados en deterministic_checks.figures.rules (F): qué mide cada uno y qué NO.
+FIGURE_RULES = {
+    PREDICATE_FIGURE_ID_RESOLVES: (
+        "HARD. Every figure citation (kind 'figure', or an id shaped '<PMCID>#<fig_id>', or an id that names a figure "
+        "item — the conservative superset: the label the model chose never rescues a figure-shaped id) must resolve to a "
+        "figure item of the bundle whose caption was DELIVERED (caption_state 'present'); a figure without caption was never "
+        "delivered to the synthesizer and cannot be cited. Unresolved -> inadmissible ('hard predicate failed: "
+        "figure_id_resolves'), same discipline as an unresolved ENSDARG. ADR-0083 F.1"),
+    PREDICATE_FIGURE_SHA_MATCHES: (
+        "HARD only on MISMATCH. For each cited figure whose item is bytes_state 'verified', the sha256 of the cached file is "
+        "RECOMPUTED at gate time (figures.verify_cached, ADR-0077) and must equal the bundle sha256; any inequality -> "
+        "inadmissible with mismatches[{id, expected, actual}]. An item not-fetched/mismatch, a missing file or no cache_dir "
+        "is n_not_verifiable (declared, the citation still supports only its caption) and does NOT fail: absence is not "
+        "alteration (§6). ok null = nothing was checkable. ADR-0083 F.2"),
+    PREDICATE_FIGURE_ONLY_NOT_ASSERTED: (
+        "HARD (CLAUDE.md §7 'figure-only NOT asserted', by kinds). A POSITIVE claim (absence_kind 'not-applicable' or "
+        "absent/not provided — the conservative reading of POSITIVE_CLAIM_RULE) with >= 1 figure citation and NO non-figure "
+        "citation whose id RESOLVES to a bundle item with a DELIVERED text passage is inadmissible: a figure corroborates, "
+        "the TEXT carries the evidence — and only text that was actually delivered can carry it (corrector: a hallucinated "
+        "or unresolved text id beside the figure does NOT rescue the claim; counted in n_non_figure_citations_unresolved). "
+        "A declination (absence_kind declared != 'not-applicable') may rest on figures alone. With 0 valid citations this "
+        "predicate is vacuously ok (positive_claim_requires_citations decides). Measured, not gated (D.2 'may only accompany "
+        "a text citation of the same paper'): same_paper_text_citation per figure citation. Declared limit: a QUALITATIVE "
+        "figure-only assertion with one DELIVERED text citation beside it is not caught here (vision lenses judge it; F.4 "
+        "only measures). ADR-0083 F.3"),
+    PREDICATE_FIGURE_NUMERALS_GROUNDED: (
+        "INFORMATIVE (gating false; LG3 measures its false-positive rate before 0083.1 may promote it). For each figure "
+        "citation with an inline marker [n] in direct_answer, its sentence is taken and every numeral (\\d+(?:[.,]\\d+)?\\s*%?, "
+        "markers stripped) must occur in that figure's caption or in a DELIVERED text passage (abstract | text_excerpt | "
+        "statement | zfin statements | another cited figure's caption) of another citation in the SAME sentence; without a "
+        "marker for that citation the WHOLE answer is checked against the union of the cited figures' captions and the "
+        "non-figure citations' passages ('no-marker: whole-answer fallback') and n_marker_absent counts it as a measured "
+        "limit — never a silent ok. Numerals match as substrings not embedded in a longer number; separators ('0,5' vs '0.5') "
+        "are NOT normalized; years and sample sizes count. ADR-0083 F.4"),
+    PREDICATE_FIGURE_LICENSE_KNOWN: (
+        "INFORMATIVE (gating false). license.id != 'unknown' for every cited figure that resolves; unknown[] frozen. The "
+        "license gates EMBEDDING (GET /figures, panel bytes, PDF thumbnails), never the truth of the citation. ADR-0083 F.5"),
+}
+_FIGURE_ID_RE = re.compile(r"^PMC\d+#\S+$", re.I)          # forma '<PMCID>#<fig_id>' (L)
+_MARKER_RE = re.compile(r"\[(\d+)\]")                        # marcador inline [n] (D.2)
+_NUMERAL_RE = re.compile(r"\d+(?:[.,]\d+)?\s*%?")            # el numeral del ADR (F.4), tal cual
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+")
+_MARKERS_ONLY_RE = re.compile(r"^\s*(?:\[\d+\]\s*)+[.!?]?\s*$")
+
+
+def _is_figure_citation(cit, fig_index):
+    """Superset conservador (F.1): kind 'figure' ∨ id con forma '<PMCID>#<fig_id>' ∨ id que nombra un ítem figura."""
+    if not isinstance(cit, dict):
+        return False
+    ident = str(cit.get("id") or "").strip()
+    if not ident:
+        return False
+    if cit.get("kind") == "figure" or _FIGURE_ID_RE.match(ident):
+        return True
+    return any(k in fig_index for k in _citation_keys(cit))
+
+
+def _resolve_figure(cit, fig_index):
+    """El FigureItem al que la cita resuelve (por las variantes deterministas de _citation_keys) o None."""
+    for k in _citation_keys(cit):
+        if k in fig_index:
+            return fig_index[k]
+    return None
+
+
+def _bundle_passages(bundle):
+    """{clave normalizada -> texto ENTREGADO} para F.4: path_a hits (text), papers (abstract + text_excerpt + statement +
+    zfin statements) bajo evidence_id/PMID/PMCID/DOI, y cada figura con caption 'present' bajo su id (el caption ES el
+    pasaje entregado de una figura). Sólo texto que el bundle entregó; nada se infiere."""
+    out = {}
+    b = bundle or {}
+
+    def _put(key, text):
+        k = str(key or "").strip()
+        if k and text:
+            for var in (k, k.upper()):
+                out.setdefault(var, text)
+
+    for h in ((b.get("path_a") or {}).get("hits") or []):
+        if isinstance(h, dict):
+            _put(h.get("doc_id"), str(h.get("text") or ""))
+    for p in ((b.get("path_b") or {}).get("papers") or []):
+        if not isinstance(p, dict):
+            continue
+        parts = [str(p.get(k) or "") for k in ("abstract", "text_excerpt", "statement")]
+        z = p.get("zfin")
+        if isinstance(z, dict):
+            parts.extend(str((ph or {}).get("statement") or "") for ph in (z.get("phenotypes") or []) if isinstance(ph, dict))
+        text = " ".join(t for t in parts if t.strip())
+        if not text:
+            continue
+        _put(p.get("evidence_id"), text)
+        rec = p.get("search_rec") or {}
+        if rec.get("pmid"):
+            _put(f"PMID:{rec['pmid']}", text)
+            _put(str(rec["pmid"]), text)
+        if rec.get("pmcid"):
+            _put(rec["pmcid"], text)
+        if rec.get("doi"):
+            _put(str(rec["doi"]).lower().replace("https://doi.org/", ""), text)
+    for it in _figure_items(b):
+        if it.get("caption_state") == "present" and str(it.get("caption") or "").strip():
+            _put(it["id"], str(it["caption"]))
+    return out
+
+
+def _passage_of(cit, passages):
+    for k in _citation_keys(cit):
+        if k in passages:
+            return passages[k]
+    return None
+
+
+def _norm_numeral(s):
+    return re.sub(r"\s+", "", str(s))
+
+
+def _numeral_in(numeral, text):
+    """El numeral (normalizado sin espacios) consta en `text` como substring NO incrustado en un número más largo
+    ('12' no casa en '2012' ni en '12.5'; '42%' casa en '42 %'). Separadores decimales NO se normalizan (declarado)."""
+    if not text:
+        return False
+    src = re.sub(r"(\d)\s+%", r"\1%", str(text))
+    num = _norm_numeral(numeral)
+    core = num[:-1] if num.endswith("%") else num
+    pat = r"(?<![\d.,])" + re.escape(core) + (r"\s*%" if num.endswith("%") else r"(?![\d.,]?\d)")
+    return re.search(pat, src) is not None
+
+
+def _sentences_with_markers(text):
+    """[(oración, {n…})] — oraciones por puntuación terminal; un fragmento que sólo trae marcadores ('[3][5].') se
+    funde con la oración anterior (el marcador cierra la oración que lo precede)."""
+    out = []
+    for frag in _SENTENCE_SPLIT_RE.split(str(text or "")):
+        if not frag.strip():
+            continue
+        if out and _MARKERS_ONLY_RE.match(frag):
+            prev_s, prev_ns = out[-1]
+            out[-1] = (prev_s + " " + frag, prev_ns | {int(m) for m in _MARKER_RE.findall(frag)})
+            continue
+        out.append((frag, {int(m) for m in _MARKER_RE.findall(frag)}))
+    return out
+
+
+def _numerals_of(text):
+    """Numerales (F.4) del texto con los marcadores [n] QUITADOS antes (el n de una cita no es una cifra del texto);
+    orden de aparición, sin duplicados, normalizados sin espacios internos ('42 %' -> '42%')."""
+    stripped = _MARKER_RE.sub(" ", str(text or ""))
+    seen, out = set(), []
+    for m in _NUMERAL_RE.findall(stripped):
+        n = _norm_numeral(m)
+        if n and n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
+
+
+def _block(name, ok, reason, **fields):
+    """Bloque por predicado (F): {ok, gating, reason, rule: <name>, …medidas}. `ok` es el valor (bool | null = no medido)."""
+    d = {"ok": ok, "gating": FIGURE_GATING[name], "reason": reason, "rule": name}
+    d.update(fields)
+    return d
+
+
+def _mk_pred(name, ok, block):
+    """Closure (text_or_obj, report) -> (name, ok) para admissible(extra_predicates); recibe NINGUNA confianza (R2)."""
+    def _pred(_text_or_obj, _report):
+        return name, ok
+    _pred.evaluation = block
+    _pred.__name__ = name
+    return _pred
+
+
+_UNSET = object()
+ABSENCE_KIND_NOT_PROVIDED_STATE = ("not-provided by caller (answer_text is a str and no absence_kind= was passed) -> "
+                                   "treated-as-positive (ADR-0080 conservative default)")
+
+
+def figure_predicates(citations, bundle, cache_dir, answer_text, absence_kind=_UNSET, cfg=None):
+    """(fragmento deterministic_checks.figures, extra_predicates[]) — ADR-0083 (F), clase Logic-LM, ciego a píxeles.
+
+    citations: citas NORMALIZADAS ({n, kind, id, note}, runs._normalize_citations) o ids crudos. bundle: el bundle con
+    `path_b.papers[].figures.items[]` (figures.attach). cache_dir: raíz de la caché de figuras (Path|str) o None (nada
+    verificable → declarado). answer_text: el DICT del sintetizador (preferido: se leen `direct_answer` y `absence_kind`)
+    o sólo el `direct_answer` (str). `absence_kind=` explícito gana. Si el llamador pasó SÓLO texto y ningún absence_kind,
+    F.3 no puede distinguir declinación de afirmación: se aplica la lectura CONSERVADORA (positiva) y el bloque lo DECLARA
+    con `absence_kind_state` = ABSENCE_KIND_NOT_PROVIDED_STATE (distinto del 'absent -> …' del campo omitido por el
+    sintetizador) — el registro nombra la causa, nada se disfraza. cfg: figures.env_config() inyectable (smokes); default se
+    lee EN LA LLAMADA (M.4).
+
+    Estados del fragmento: 'checked' (≥1 cita figura: los 3 DUROS entran a la conjunción, los 2 informativos se congelan) |
+    'no-figure-citations' (los 5 bloques se miden — ceros medidos — pero NINGÚN predicado entra: admisibilidad de hoy) |
+    'kill-switch WITT_FIGURES=0' (fragmento EXACTAMENTE {state}, M.1: una de las 3 excepciones declaradas del frozen 1.11) |
+    'tool-unavailable (…)' (lib/figures.py no importable). Jamás relanza: un error interno se declara en `state`."""
+    if isinstance(answer_text, dict):
+        text = str(answer_text.get("direct_answer") or "")
+        if absence_kind is _UNSET:
+            absence_kind = answer_text.get("absence_kind")
+        absence_provided = True
+    else:
+        text = str(answer_text or "")
+        absence_provided = absence_kind is not _UNSET
+        if not absence_provided:
+            absence_kind = None
+    if _figures is None:
+        return {"state": FIGURE_CHECK_STATE_TOOL_UNAVAILABLE}, []
+    try:
+        cfg = cfg or _figures.env_config()
+    except Exception as e:  # el lector es tolerante; esto sólo ocurre en un árbol roto — se declara
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}, []
+    ledger_state = ((bundle or {}).get("figures_ledger") or {}).get("state") if isinstance(bundle, dict) else None
+    if not cfg.get("figures", True) or ledger_state == FIGURE_CHECK_STATE_KILL_SWITCH:
+        return {"state": FIGURE_CHECK_STATE_KILL_SWITCH}, []
+
+    items = _figure_items(bundle)
+    fig_index = {}
+    for it in items:
+        if it.get("caption_state") == "present":
+            for var in (str(it["id"]), str(it["id"]).upper()):
+                fig_index.setdefault(var, it)
+    absent_ids = {str(it["id"]).upper() for it in items if it.get("caption_state") != "present"}
+
+    cits = [c if isinstance(c, dict) else {"id": c} for c in (citations or []) if c is not None]
+    valid = [c for c in cits if str(c.get("id") or "").strip()]
+    fig_cits = [c for c in valid if _is_figure_citation(c, fig_index)]
+    fig_kind = sum(1 for c in fig_cits if c.get("kind") == "figure")
+    non_fig = [c for c in valid if not _is_figure_citation(c, fig_index)]
+    n_non_fig = len(non_fig)
+    resolved = [(c, _resolve_figure(c, fig_index)) for c in fig_cits]
+    # corrector (F.3): una cita de TEXTO sólo porta evidencia si RESUELVE a un ítem del bundle con pasaje ENTREGADO
+    # (_bundle_evidence_index: (evidence_id, passage_delivered)); un id inventado o sin pasaje no rescata la afirmación.
+    ev_idx = _bundle_evidence_index(bundle)
+
+    def _ev_hit(c):
+        return next((ev_idx[k] for k in _citation_keys(c) if k in ev_idx), None)
+
+    non_fig_hits = [(c, _ev_hit(c)) for c in non_fig]
+    non_fig_resolved = [(c, h) for c, h in non_fig_hits if h is not None]
+    non_fig_delivered = [(c, h) for c, h in non_fig_resolved if h[1]]
+    n_non_fig_unresolved = len(non_fig) - len(non_fig_resolved)
+
+    # --- F.1 figure_id_resolves (DURO) -----------------------------------------------------------------------------
+    unresolved, detail = [], []
+    for c, it in resolved:
+        if it is None:
+            ident = str(c.get("id"))
+            unresolved.append(ident)
+            detail.append({"id": ident, "reason": ("caption-absent (never delivered)" if ident.strip().upper() in absent_ids
+                                                   else "not-in-bundle")})
+    b_res = _block(PREDICATE_FIGURE_ID_RESOLVES, not unresolved,
+                   (f"{len(fig_cits)} figure citation(s), all resolve to delivered figure items" if not unresolved
+                    else f"{len(unresolved)} of {len(fig_cits)} figure citation(s) do not resolve: {unresolved}"),
+                   n_checked=len(fig_cits), unresolved_ids=unresolved, unresolved_detail=detail)
+
+    # --- F.2 figure_sha_matches (DURO sólo en MISMATCH; ausencia ≠ alteración) ---------------------------------------
+    checked_ids, mismatches, not_verifiable, seen = [], [], [], set()
+    for c, it in resolved:
+        if it is None or str(it["id"]).upper() in seen:
+            continue
+        seen.add(str(it["id"]).upper())
+        bstate = it.get("bytes_state")
+        if bstate != "verified":
+            not_verifiable.append({"id": it["id"], "reason": f"bytes-state: {bstate}"})
+            continue
+        if cache_dir is None:
+            not_verifiable.append({"id": it["id"], "reason": "no-cache-dir"})
+            continue
+        try:
+            vc = _figures.verify_cached(cache_dir, it)
+        except Exception as e:  # jamás tumba la corrida: se declara como no verificable
+            not_verifiable.append({"id": it["id"], "reason": f"error: {type(e).__name__}: {str(e)[:120]}"})
+            continue
+        if vc.get("state") == "verified":
+            checked_ids.append(it["id"])
+        elif vc.get("state") == "mismatch":
+            mismatches.append({"id": it["id"], "expected": vc.get("sha256_expected"), "actual": vc.get("sha256_actual")})
+        else:
+            not_verifiable.append({"id": it["id"], "reason": "file-missing"})
+    sha_ok = False if mismatches else (True if checked_ids else None)
+    b_sha = _block(PREDICATE_FIGURE_SHA_MATCHES, sha_ok,
+                   (f"{len(mismatches)} cited figure(s) with ALTERED bytes (sha256 recomputed != bundle)" if mismatches
+                    else f"{len(checked_ids)} cited figure(s) re-hashed and equal; {len(not_verifiable)} not verifiable (declared)"
+                    if checked_ids else f"nothing checkable: {len(not_verifiable)} not verifiable (declared), none altered"),
+                   n_checked=len(checked_ids), n_not_verifiable=len(not_verifiable), mismatches=mismatches,
+                   not_verifiable=not_verifiable, checked_ids=checked_ids,
+                   cache_dir_state="provided" if cache_dir is not None else "not-provided",
+                   sha_source="sha256 recomputed at gate time (figures.verify_cached, ADR-0077)")
+
+    # --- F.3 figure_only_not_asserted (DURO, por kinds) ----------------------------------------------------------------
+    positive = absence_kind is None or absence_kind == POSITIVE_CLAIM_ABSENCE_KIND
+    if not absence_provided:
+        kind_state = ABSENCE_KIND_NOT_PROVIDED_STATE            # el llamador no pasó el dict ni absence_kind= (declarado)
+    elif absence_kind is None:
+        kind_state = "absent -> treated-as-positive (ADR-0080 conservative default)"   # el sintetizador omitió el campo
+    else:
+        kind_state = "declared"
+    figure_only = positive and len(fig_cits) > 0 and len(non_fig_delivered) == 0
+    # D.2 «may only accompany a text citation of the same paper» — MEDIDO por cita figure (informativo, no gatea):
+    # ¿alguna cita de texto RESUELTA nombra el mismo paper (evidence_id del ítem figura)?
+    same_paper = []
+    for c, it in resolved:
+        if it is None:
+            continue
+        pid = it.get("evidence_id")
+        same_paper.append({"id": it["id"], "same_paper_text_citation": bool(pid) and any(h[0] == pid for _c, h in non_fig_resolved)})
+    b_only = _block(PREDICATE_FIGURE_ONLY_NOT_ASSERTED, not figure_only,
+                    ("positive claim sustained ONLY by figure citations — the figure corroborates, the text carries the "
+                     "evidence (§7 figure-only NOT asserted)" + (f"; {n_non_fig} non-figure citation(s) beside it do NOT resolve "
+                     "to a delivered passage (hallucinated or undelivered text does not rescue the claim)" if n_non_fig else "")
+                     if figure_only
+                     else "declination may rest on figures" if not positive
+                     else f"positive claim with {len(non_fig_delivered)} delivered non-figure and {len(fig_cits)} figure citation(s)"),
+                    positive_claim=positive, absence_kind=absence_kind, absence_kind_state=kind_state,
+                    n_figure_citations=len(fig_cits), n_figure_citations_kind_figure=fig_kind,
+                    n_non_figure_citations=n_non_fig, n_non_figure_citations_resolved=len(non_fig_resolved),
+                    n_non_figure_citations_delivered=len(non_fig_delivered),
+                    n_non_figure_citations_unresolved=n_non_fig_unresolved,
+                    figure_citations_same_paper=same_paper,
+                    n_figure_citations_without_same_paper_text=sum(1 for x in same_paper if not x["same_paper_text_citation"]),
+                    n_citations_valid=len(valid))
+
+    # --- F.4 figure_numerals_grounded (INFORMATIVO): el proxy numérico, medido, jamás gatea -----------------------------
+    passages = _bundle_passages(bundle)
+    sentences = _sentences_with_markers(text)
+    by_n = {}
+    for c in valid:
+        try:
+            by_n.setdefault(int(c.get("n")), c)
+        except (TypeError, ValueError):
+            pass
+    fig_ids_upper = {str(it["id"]).upper() for _c, it in resolved if it is not None}
+    non_fig_passages = [(str(c.get("id")), _passage_of(c, passages)) for c in valid if not _is_figure_citation(c, fig_index)]
+    evaluations, n_marker_absent = [], 0
+    for c, it in resolved:
+        try:
+            n = int(c.get("n"))
+        except (TypeError, ValueError):
+            n = None
+        caption = it.get("caption") if (it is not None and it.get("caption_state") == "present") else None
+        own = [(f"caption:{it['id']}", caption)] if caption else []
+        marked = [(s, ns) for s, ns in sentences if n is not None and n in ns]
+        if marked:
+            state = "marker-sentence"
+            numerals, sources = [], []
+            for s, ns in marked:
+                others = own + [(f"passage:{by_n[m].get('id')}", _passage_of(by_n[m], passages))
+                                for m in sorted(ns) if m != n and m in by_n]
+                for num in _numerals_of(s):
+                    if num not in numerals:
+                        numerals.append(num)
+                sources.append(others)
+        else:
+            state = "no-marker: whole-answer fallback"
+            n_marker_absent += 1
+            numerals = _numerals_of(text)
+            union = own + [(f"caption:{it2['id']}", it2.get("caption")) for _c2, it2 in resolved
+                           if it2 is not None and it2 is not it and it2.get("caption_state") == "present"]
+            union += [(f"passage:{cid}", ptxt) for cid, ptxt in non_fig_passages if ptxt]
+            sources = [union]
+        unsupported, supporting = [], []
+        for num in numerals:
+            hit = False
+            for group in sources:
+                for label, src in group:
+                    if src and _numeral_in(num, src):
+                        hit = True
+                        if label not in supporting:
+                            supporting.append(label)
+            if not hit and num not in unsupported:
+                unsupported.append(num)
+        evaluations.append({"n": n, "id": str(c.get("id")), "state": state, "numerals": numerals,
+                            "numerals_unsupported": unsupported, "supporting_sources": supporting})
+    if not fig_cits:
+        num_state, num_ok = "no-figure-citations", None
+    elif n_marker_absent == 0:
+        num_state, num_ok = "checked", all(not e["numerals_unsupported"] for e in evaluations)
+    elif n_marker_absent == len(evaluations):
+        num_state, num_ok = "no-markers: whole-answer fallback", all(not e["numerals_unsupported"] for e in evaluations)
+    else:
+        num_state = "partial-markers: whole-answer fallback for unmarked"
+        num_ok = all(not e["numerals_unsupported"] for e in evaluations)
+    n_unsup = sum(len(e["numerals_unsupported"]) for e in evaluations)
+    b_num = _block(PREDICATE_FIGURE_NUMERALS_GROUNDED, num_ok,
+                   ("no figure citations: nothing to measure" if not fig_cits
+                    else f"{n_unsup} numeral(s) without caption/text backing across {len(evaluations)} figure citation(s); "
+                         f"{n_marker_absent} without inline marker (measured limit)"),
+                   state=num_state, n_marker_absent=n_marker_absent, n_numerals_unsupported=n_unsup, evaluations=evaluations)
+
+    # --- F.5 figure_license_known (INFORMATIVO) --------------------------------------------------------------------------
+    unknown = sorted({str(it["id"]) for _c, it in resolved if it is not None and (it.get("license") or {}).get("id") == "unknown"})
+    n_lic = len({str(it["id"]) for _c, it in resolved if it is not None})
+    b_lic = _block(PREDICATE_FIGURE_LICENSE_KNOWN, (None if n_lic == 0 else not unknown),
+                   ("no resolved figure citation: nothing to measure" if n_lic == 0
+                    else f"{len(unknown)} of {n_lic} cited figure(s) with license 'unknown' (gates embedding, not truth)"),
+                   n_checked=n_lic, unknown=unknown)
+
+    state = "checked" if fig_cits else "no-figure-citations"
+    frag = {"state": state, "n_figure_citations": len(fig_cits), "n_figures_in_bundle": len(items),
+            "n_figures_delivered": sum(1 for it in items if it.get("caption_state") == "present"),
+            PREDICATE_FIGURE_ID_RESOLVES: b_res, PREDICATE_FIGURE_SHA_MATCHES: b_sha,
+            PREDICATE_FIGURE_ONLY_NOT_ASSERTED: b_only, PREDICATE_FIGURE_NUMERALS_GROUNDED: b_num,
+            PREDICATE_FIGURE_LICENSE_KNOWN: b_lic, "gating": dict(FIGURE_GATING), "rules": dict(FIGURE_RULES),
+            "predicates_version": FIGURE_PREDICATES_VERSION, "decided_by": "code"}
+    if state != "checked":   # sin citas figura NINGÚN predicado entra a la conjunción: admisibilidad de hoy (F)
+        return frag, []
+    preds = [_mk_pred(PREDICATE_FIGURE_ID_RESOLVES, b_res["ok"], b_res),
+             _mk_pred(PREDICATE_FIGURE_SHA_MATCHES, not mismatches, b_sha),      # null (nada verificable) NO falla
+             _mk_pred(PREDICATE_FIGURE_ONLY_NOT_ASSERTED, b_only["ok"], b_only)]
+    return frag, preds
+
+
+def figure_check_state_in_vocabulary(s):
+    """True si `s` es un estado válido de deterministic_checks.figures.state (patrón plan_state_in_vocabulary)."""
+    return s in FIGURE_CHECK_STATES_EXACT or (isinstance(s, str) and s.startswith(FIGURE_CHECK_STATES_PREFIXES))
 
 
 def info_priority_order(candidates, store=None):

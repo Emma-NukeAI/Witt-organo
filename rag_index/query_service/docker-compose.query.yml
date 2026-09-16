@@ -174,6 +174,43 @@ services:
       - WITT_ANTHROPIC_MAX_INFLIGHT=${WITT_ANTHROPIC_MAX_INFLIGHT:-8}          # BoundedSemaphore de PROCESO alrededor de urlopen para TODA llamada Anthropic (consejo,
                                                                      # síntesis, elicitación, planner, jueces); meta.queue_wait_s medido
       - WITT_ANTHROPIC_RETRY_AFTER_CAP_S=${WITT_ANTHROPIC_RETRY_AFTER_CAP_S:-30}   # tope al Retry-After honrado en http-429/529; sin cabecera, el backoff de hoy
+      # ADR-0083 — figuras de papers como evidencia OBSERVADA (source-pointer: fig_id del JATS + sha256 recalculado al
+      # gatear/servir/embeber + licencia por tabla CERRADA), su lectura como JUICIO en dos lentes del panel, y el PDF de
+      # servidor COMPLETO (contrato 1.12). SÓLO placeholders: las 20 env viven DECLARADAS en analysis/scripts/lib/figures.py
+      # (ENV_SPECS / env_config(), lector tolerante EN LA LLAMADA: vacía/basura/fuera de clamp = default declarado con fuente
+      # 'default-unset:…' | 'default-invalid-env:…', jamás un crash) y el valor efectivo + su fuente viajan en
+      # frozen.figures.{caps,cache,budget,license_table_env_ignored,vision}. WITT_MCP_CACHE_DIR (arriba, ADR-0080) es la 21ª:
+      # las figuras la HONRAN (<dir>/figures/) — sin volumen la caché de bytes es EFÍMERA (E4, declarado: dir_state + 404
+      # bytes-not-in-cache; el registro sha/dims/licencia sigue íntegro). TODA ENV IMPLICA REINICIO (ADR-0081 Context 10 /
+      # ADR-0083 M.4): el os.environ del contenedor se fija al arrancar — cambiar un valor en Dokploy NO surte efecto hasta
+      # redeploy/restart. Kill-switch maestro: WITT_FIGURES=0 = frozen 1.11 byte a byte salvo EXACTAMENTE 3 excepciones
+      # declaradas (render_contract_version, figures{state,kill_switch}, deterministic_checks.figures{state}) — ADR-0083 (M.1).
+      - WITT_FIGURES=${WITT_FIGURES:-1}                              # kill-switch maestro (M.1); 0 = no se parsea ni baja nada, el panel no ve imágenes,
+                                                                     # GET /runs/{id}/figures/{sha} 404 'kill-switch WITT_FIGURES=0'
+      - WITT_FIGURES_VISION=${WITT_FIGURES_VISION:-1}                # 0 = NINGUNA lente recibe imágenes; captions/sha/licencia/GET siguen (M.2)
+      - WITT_FIGURES_VISION_LENSES=${WITT_FIGURES_VISION_LENSES:-evidence-grounding,reproducibility}   # CSV de <= 2 lentes validado contra models.LENSES;
+                                                                     # fuera de vocabulario o > 2 lentes => default declarado (lenses_source 'default-invalid-env…'; corrector)
+      - WITT_FIGURES_MAX_PAPERS=${WITT_FIGURES_MAX_PAPERS:-3}        # papers (con PMCID + XML) de los que se parsean/bajan figuras (clamp 1..50); resto paper-cap
+      - WITT_FIGURES_MAX_PER_PAPER=${WITT_FIGURES_MAX_PER_PAPER:-9}  # figuras por paper en orden de documento (clamp 1..30)
+      - WITT_FIGURES_MAX_PER_RUN=${WITT_FIGURES_MAX_PER_RUN:-12}     # tope de figuras bajadas por corrida (clamp 1..200); resto not-fetched (run-cap)
+      - WITT_FIGURES_MAX_PER_LENS=${WITT_FIGURES_MAX_PER_LENS:-12}   # imágenes por petición de juez (clamp 0..20: <= 20 evita «many-image requests»)
+      - WITT_FIGURES_MAX_IMAGE_MB=${WITT_FIGURES_MAX_IMAGE_MB:-5}    # bytes CRUDOS por imagen para panel/miniatura (clamp <= 7: 9.3 MB b64 < 10 MB de la API)
+      - WITT_FIGURES_ZIP_MAX_MB=${WITT_FIGURES_ZIP_MAX_MB:-40}       # precheck Content-Length + tope de streaming del zip => not-fetched (zip-over-max), 0 bytes escritos
+      - WITT_FIGURES_BUDGET_S=${WITT_FIGURES_BUDGET_S:-90}           # reloj TOTAL de stage.figures (fuera de la ronda de búsqueda); por paper min(45, restante) (constante)
+      - WITT_FIGURES_TTL_DAYS=${WITT_FIGURES_TTL_DAYS:-30}           # frescura del ledger por PMCID; fresco + sha iguales => cache_hit, cero red; <=0 = nunca confiar
+      - WITT_FIGURES_CACHE_MAX_MB=${WITT_FIGURES_CACHE_MAX_MB:-512}  # tope de <cache>/figures/; evicción LRU por mtime al escribir (evicted_n); 0 = sin tope declarado
+      - WITT_FIGURES_CAPTION_CHARS=${WITT_FIGURES_CAPTION_CHARS:-2000}   # tope del caption que viaja (caption_truncated; clamp 100..20000); medido: media 1 030, máx 3 087
+      - WITT_FIGURES_EMBED_LICENSES=${WITT_FIGURES_EMBED_LICENSES:-cc-by,cc0,cc-by-sa}   # sólo RESTRINGE la tabla lt-1 (ids fuera => license_table_env_ignored);
+                                                                     # gobierna GET 200/403, miniatura de la Hoja y del PDF
+      - WITT_FIGURES_PANEL_LICENSES=${WITT_FIGURES_PANEL_LICENSES:-cc-by,cc0,cc-by-sa,cc-by-nc,cc-by-nd,cc-by-nc-sa,cc-by-nc-nd,cc-by-prose-unconfirmed}
+                                                                     # licencias cuyos bytes ven las lentes (E2: NC/ND SÍ — leer para juzgar no es redistribuir);
+                                                                     # unknown y zfin-display-only NUNCA (no es env: tabla)
+      - WITT_FIGURES_PROSE_LICENSE=${WITT_FIGURES_PROSE_LICENSE:-1}  # prosa «Creative Commons Attribution» sin URL => cc-by (source license-p-prose, visible);
+                                                                     # 0 => cc-by-prose-unconfirmed (no embebible, panel sí) (E3)
+      - WITT_FIGURES_OPENAI_DETAIL=${WITT_FIGURES_OPENAI_DETAIL:-high}    # detail del input_image (Responses) / image_url (chat): low|high|auto|original; a <= 840 px high = 2-4 tiles
+      - WITT_FIGURES_REFETCH_ON_GET=${WITT_FIGURES_REFETCH_ON_GET:-0}    # 1 = ante bytes-not-in-cache UNA GET (20 s) y servir SOLO si sha == congelado (409 si no); default 0 (E4)
+      - WITT_FIGURES_PDF_THUMBS=${WITT_FIGURES_PDF_THUMBS:-1}        # 0 = el PDF imprime palabras + enlace aunque la licencia permita la miniatura (M.3)
+      - WITT_FIGURES_COUNT_TOKENS=${WITT_FIGURES_COUNT_TOKENS:-0}    # 1 = vision.tokens_measured por count_tokens SIN imágenes (una llamada gratuita por lente Anthropic)
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s

@@ -119,8 +119,12 @@ U_A = {
         "synthesize_pass2": _cero(),
         "elicit_pass2": {"in": None, "out": None, "state": "not-run"},
         "panel": {"in": 1250, "out": 200,
+                  # ADR-0083 (H): las dos lentes con visión traen `vision` PROYECTADA (ya dentro de in/out medidos)
                   "by_model": {OPUS5: {"in": 250, "out": 50}, SON: {"in": 300, "out": 50},
-                               HAI: {"in": 300, "out": 40}, G4O: {"in": 400, "out": 60}}},
+                               HAI: {"in": 300, "out": 40,
+                                     "vision": {"n_images": 9, "visual_tokens_projected": 5037, "class": "proyección"}},
+                               G4O: {"in": 400, "out": 60,
+                                     "vision": {"n_images": 9, "visual_tokens_projected": 5525, "class": "proyección"}}}},
         "revision": _cero(),
         "embed": {"tokens": 120, "unit": "embedding tokens (not chat tokens; excluded from _sum)"},
         "_sum": {"in": 2000, "out": 350, "rule": "sum over model stages (embed excluded); must equal by_model totals"},
@@ -128,7 +132,10 @@ U_A = {
     "by_stage_sum_matches_by_model": True,
     "embedding": {"model": EMBED, "total_tokens": 120},
     "estimated_cost_usd": 0.0132, "missing_price_models": [], "cost_projection_complete": True,
+    # ADR-0083 (H), contrato F4: espejo de frozen.figures en el usage_json de la corrida (conteos y bytes = MEDICIÓN)
+    "figures": {"state": "attached", "n_figures": 9, "n_verified": 9, "n_cited": 2, "bytes_downloaded": 1269031},
 }
+U_A_PANEL_IN_OUT = {m: {"in": v["in"], "out": v["out"]} for m, v in U_A["by_stage"]["panel"]["by_model"].items()}
 # B · 1.9 — by_stage SIN panel.by_model (panel 900/130 sin reviewer → _unattributed).
 U_B = {
     "input_tokens": 1500, "output_tokens": 250,
@@ -288,7 +295,7 @@ check("by_stage: las 8 etapas de modelo de TOKEN_STAGES + embed + _sum, cada eta
 check("panel: in 2190 · out 334 (Σ de los tres registros con by_stage) · n_runs_measured 3 · model_split = el by_model de la "
       "1.10 (4 reviewers) · price_state 'stage-without-model' (940/134 sin reviewer) · estimated_cost_usd null (nunca 0)",
       bs.get("panel", {}).get("in") == 2190 and bs["panel"]["out"] == 334 and bs["panel"]["n_runs_measured"] == 3
-      and bs["panel"]["model_split"] == U_A["by_stage"]["panel"]["by_model"]
+      and bs["panel"]["model_split"] == U_A_PANEL_IN_OUT   # ADR-0083: model_split sigue siendo SÓLO in/out (vision va aparte)
       and bs["panel"]["price_state"] == "stage-without-model" and bs["panel"]["estimated_cost_usd"] is None,
       f"{bs.get('panel')}")
 check("synthesize_pass1: in 1200 · out 230 · model_split {opus-5 600/120, opus-4-8 500/100} · la 1.9 con tokens SIN modelo → "
@@ -411,6 +418,39 @@ check(f"plans_council USD [E] = in×p_in + out×p_out + caché × models.CACHE_M
       and PC.get("cache", {}).get("priced") is True and PC["cache"]["multipliers_source"] == models.CACHE_MULTIPLIERS_SOURCE
       and PC.get("by_model", {}).get(OPUS5, {}).get("cache_read") == 36000 and PC["by_model"][OPUS5]["estimated_cost_usd"] == round(esperado, 4),
       f"usd={PC.get('estimated_cost_usd')} price_state={PC.get('price_state')} cache={PC.get('cache')}")
+
+# ---- 8b. ADR-0083 (H), rebanada F5: /usage.figures — conteos/bytes MEDIDOS (usage_json.figures) y visión PROYECTADA ------
+# Sólo U_A (1.12) trae usage_json.figures y by_model[*].vision; U_B/U_C/U_D (pre-1.12) NO → se CUENTAN en
+# n_runs_without_figures_usage (ausencia ≠ 0 figuras). Los tokens de visión ya están DENTRO de los input_tokens medidos:
+# viajan APARTE y totals/by_user/most_expensive/by_model/model_split siguen BYTE-IGUALES al golden (medido abajo).
+FGU = U2.get("figures") or {}
+check("/usage.figures: forma cerrada {state, n_runs_with_figures, n_runs_figures_declared, n_runs_without_figures_usage, by_state, n_figures, "
+      "n_figures_verified, n_figures_cited, bytes_downloaded, vision_tokens_projected_by_model, vision_tokens_projected_total, "
+      "vision_images_by_model, n_runs_with_vision, class, source, rule} · state 'measured' · 1 corrida con figuras · 3 sin la llave (pre-1.12) · "
+      f"9 verificadas · 2 citadas · 1269031 B · visión {{{HAI}: 5037, {G4O}: 5525}} total 10562 · n_runs_with_vision 1 · class literal",
+      set(FGU) == {"state", "n_runs_with_figures", "n_runs_figures_declared", "n_runs_without_figures_usage", "by_state", "n_figures",
+                   "n_figures_verified", "n_figures_cited", "bytes_downloaded", "bytes_verified", "n_figures_cache_hit",
+                   "vision_tokens_projected_by_model",
+                   "vision_tokens_projected_total", "vision_images_by_model", "n_runs_with_vision", "class", "source", "rule"}
+      and FGU.get("state") == "measured" and FGU.get("n_runs_with_figures") == 1 and FGU.get("n_runs_figures_declared") == 1
+      and FGU.get("n_runs_without_figures_usage") == 3 and FGU.get("by_state") == {"attached": 1} and FGU.get("n_figures") == 9
+      and FGU.get("n_figures_verified") == 9 and FGU.get("n_figures_cited") == 2 and FGU.get("bytes_downloaded") == 1269031
+      and FGU.get("vision_tokens_projected_by_model") == {HAI: 5037, G4O: 5525} and FGU.get("vision_tokens_projected_total") == 10562
+      and FGU.get("vision_images_by_model") == {HAI: 9, G4O: 9} and FGU.get("n_runs_with_vision") == 1
+      and FGU.get("class") == app_mod.USAGE_FIGURES_CLASS == "PROJECTION (tokens) / MEASUREMENT (counts, bytes)"
+      and FGU.get("state") in app_mod.USAGE_FIGURES_STATES,
+      f"{ {k: FGU.get(k) for k in ('state', 'n_runs_with_figures', 'n_runs_without_figures_usage', 'n_figures_verified', 'bytes_downloaded', 'vision_tokens_projected_by_model')} } keys={sorted(FGU)}")
+bm2, bs2 = U2.get("by_model") or {}, U2.get("by_stage") or {}
+_bm_in = {m: sum((u.get("by_model") or {}).get(m, {}).get("in", 0) for _r, _u, u in FIXTURES) for m in (HAI, G4O)}
+check("la visión va APARTE y jamás dentro del gasto medido: totals / by_user / most_expensive BYTE-IGUALES al golden con `figures` presente · "
+      f"by_model[haiku].in == Σ fixtures ({_bm_in[HAI]}) y by_model[gpt-4o].in == Σ fixtures ({_bm_in[G4O]}) sin la visión sumada · "  # models-literal-doc
+      "panel.model_split SÓLO in/out (sin la llave vision) · by_stage._sum {3640, 614} intacto",
+      U2.get("totals") == G_TOTALS and U2.get("by_user") == G_BY_USER and U2.get("most_expensive") == G_MOST
+      and bm2.get(HAI, {}).get("in") == _bm_in[HAI] == 500 and bm2.get(G4O, {}).get("in") == _bm_in[G4O] == 800
+      and bs2.get("panel", {}).get("model_split") == U_A_PANEL_IN_OUT
+      and all("vision" not in v for v in bs2.get("panel", {}).get("model_split", {}).values())
+      and bs2.get("_sum") == {"in": 3640, "out": 614},
+      f"totals={U2.get('totals')} model_split={bs2.get('panel', {}).get('model_split')}")
 
 # ---- 9. cero red ------------------------------------------------------------------------------------
 check("cero red: urllib.request.urlopen bloqueado y contado == 0", len(_URLOPEN_CALLS) == 0, f"{_URLOPEN_CALLS}")

@@ -41,13 +41,15 @@ expuesta (ADR-0047, decisión 5).
 | GET | `/threads/{thread_id}` | ✓ | **la investigación T-<run_no raíz> como UNA unidad** (ADR-0079): `turns[]` en orden con veredicto/decision_state/origin/costo por turno, `gap_flags_union` (conteos con igualdad normalizada, jamás prosa nueva), `total_cost_usd` PROYECCIÓN con `complete`, `pivot_suggested` (regla `WITT_PIVOT_TURNS` declarada), `origins`, `authors`, `root_pre_adr_0079` (raíz virtual anterior al contrato); 404 `thread_not_found` |
 | GET | `/threads?mine=&limit=&after=` | ✓ | **el índice de investigaciones** (ADR-0081 (G); declarada ANTES de `/threads/{thread_id}`): UNA consulta `GROUP BY thread_id` con la raíz por JOIN — `label 'T-<n>'`, `root_run_no`, `n_turns` (IGUAL al de `/threads/{id}`: la raíz virtual cuenta +1, `root_counted` lo declara), `n_closed`, `n_with_record`, `last_turn`, `authors`, `origins`, `states`, `root_pre_adr_0079`; orden `root_run_no DESC NULLS LAST`, cursor `after` = `root_run_no` EXCLUSIVO, `has_more` MEDIDO (`limit+1`), `limit_cap` 50, `mine` (≥ 1 turno del usuario; `mine_rule`), `n_threads_total`, `n_runs_without_thread` del SERVIDOR; sin costo agregado (`costs 'not-aggregated (GET /threads/{id})'`); `limit < 1` → 400 |
 | GET | `/runs/{id}/record` | ✓ | el **registro congelado** que la UI renderiza (una fuente, tres lectores) |
-| GET | `/runs/{id}/record.pdf` | ✓ | **el PDF de servidor** (M4, ADR-0073): generado DEL JSON congelado con plantilla propia — jamás "imprimir la página"; bandas con palabras completas, procedencia del escalar en palabras, ambas rondas de la revisión, identidad rota = 409; el ÚNICO canal autorizado de exportación |
+| GET | `/runs/{id}/record.pdf` | ✓ | **el PDF de servidor** (M4, ADR-0073): generado DEL JSON congelado con plantilla propia — jamás "imprimir la página"; bandas con palabras completas, procedencia del escalar en palabras, ambas rondas de la revisión, identidad rota = 409; el ÚNICO canal autorizado de exportación. **ADR-0083 (J)**: RE-ESTRUCTURADO por TABLA (`record_pdf.SECCIONES` + `KEY_BORN`): CADA llave top-level del registro tiene sección espejo con TRES estados y el contrato de nacimiento CALCULADO (`NO INSTRUMENTADO (contrato < 1.10)` para `models` en un 1.9 — hoy imprimía `< 1.8`, falso — · `null declarado — razón: <state>` · valor), las 23 líneas `[pdf]` de la paridad (models, audit.quorum, by_stage.panel.by_model, search_ledger por fuente, los 5 literales de `citations_schema.source` en 5 frases DISTINTAS, deterministic_checks, agents_invoked, …) se saldan, la regla del sha del padre se LEE de `thread_parent_matches_run_rule` (no prosa fija), sección FIGURAS (1.12) con MINIATURA sólo si `embeddable` (congelado ∧ permitido por `WITT_FIGURES_EMBED_LICENSES` de HOY — la misma puerta que el 403 del GET, *corrector*) ∧ bytes en caché ∧ sha recalculado == sha ∧ `WITT_FIGURES_PDF_THUMBS=1` (≤ 60 mm, ≤ 12 por PDF, PDF ≤ 8 MB — degradación declarada), y un gate de COBERTURA (`smoke_record_pdf.py`, `pdf_sections_cover`) que FALLA si una llave del frozen real no tiene sección. El PDF jamás toca la red |
+| GET | `/runs/{id}/figures` | ✓ | **el índice de FIGURAS del registro** (ADR-0083 (I); declarada ANTES de `/runs/{run_id}/events`, patrón `record.pdf`: membresía antes del filesystem — F5 la implementó; F8 la midió el 2026-09-16: `smoke_figures_http.py` 42/42): 401 · 404 corrida · 409 `{state, note 'no frozen record yet'}` · 409 identidad (`question_matches_run false`, misma regla que `record.pdf`) · 200 `{run_id, run_no, render_contract_version, state, frozen_state, n, n_verified, n_embeddable, n_servable, servable_counts, license_table_version, cache {dir_source, dir_state}, items[], class, servable_rule, vocabulary {SERVABLE_STATES}, kill_switch?}` *(corrector: la forma REAL de `app.get_run_figures`; `cache.dir_state` se MIDE sin crear el directorio — una GET jamás escribe, 'missing' es estado declarado)* — cada ítem = `FigureItem` SIN `b64` NI `cache_path` + `servable` como OBJETO `{state ∈ yes \| forbidden-by-license \| bytes-not-in-cache \| bytes-mismatch \| kill-switch \| no-bytes, reason?, sha256_actual?}` (MEDIDO al pedir: existencia + sha RECALCULADO; `reason 'restricted-by-env-now (WITT_FIGURES_EMBED_LICENSES)'` cuando la env de HOY restringe una licencia congelada embebible) + `url '/runs/{run_id}/figures/{sha256}'`; registro < 1.12 → `{state 'not-instrumented (contrato < 1.12)', items []}`; `WITT_FIGURES=0` → `state 'kill-switch WITT_FIGURES=0'`. Ninguna GET toca la red |
+| GET | `/runs/{id}/figures/{sha256}` | ✓ | **los bytes ORIGINALES de UNA figura, fuera del registro** (ADR-0083 (I), ADR-0074): `{sha256}` validado `^[0-9a-f]{64}$` (400) → se busca en `frozen.figures.items` → 404 `{state 'no such figure in this record'}` · 403 `{state 'forbidden-by-license', license {id, words_es, source}, source_url}` si `embeddable False` (NC/ND, `unknown`, ZFIN) · 404 `{state 'bytes-not-in-cache', source_url, sha256, refetch 'disabled (WITT_FIGURES_REFETCH_ON_GET=0)' \| 'attempted: <estado>'}` (caché EFÍMERA sin volumen — E4; con `REFETCH_ON_GET=1` UNA GET y se sirve SOLO si sha == congelado, si no 409) · 409 `{state 'figure-bytes-mismatch', expected, actual}` si el sha recalculado del archivo ≠ (JAMÁS se sirve) · 200 bytes con `Content-Type` = `media_type` medido, `ETag "<sha256>"`, `Cache-Control: private, max-age=86400`, `X-Witt-Figure-License`, `X-Witt-Figure-Sha256`, `Content-Disposition: inline; filename="<PMCID>_<fig_id>.<ext>"`; kill-switch → 404 `{state 'kill-switch WITT_FIGURES=0'}`. **CORS**: `expose_headers` = las 5 de `app.FIGURE_EXPOSE_HEADERS` — `ETag`, `X-Witt-Figure-License`, `X-Witt-Figure-Sha256`, `X-Witt-Figure-Refetch` (aditiva: sólo viaja tras un refetch verificado) y `Content-Disposition` *(corrector: forma real)* (sin ello la webapp no lee los headers); la webapp baja por `fetch` con bearer → blob (`URL.revokeObjectURL` al desmontar), JAMÁS `<img src="/runs/…">` directo (no manda `Authorization`) |
 | GET · POST | `/runs/{id}/comments` | ✓ | **los COMENTARIOS de la corrida** (ADR-0077): la conversación del equipo sobre la pregunta — anexo append-only y público (toda sesión lee y escribe; sin PATCH ni DELETE), fuera del registro congelado, de M5 y de los apuntes; autor y hora los pone el servidor; `body_max` declarado (4000); `n_comments` viaja en toda vista de corrida |
 | GET | `/runs/{id}/events?after=` | ✓ | **replay** — las mismas filas que el stream (una bitácora) |
 | GET | `/runs/{id}/stream` | ✓ | traza viva SSE (keep-alive; cierra al drenar un estado terminal) |
 | POST | `/runs/{id}/cancel` | ✓ | body `{reason}`; registra `cancelled_by` (sesión) + `cancel_reason` — una cancelación sin autor es un hueco en el registro (ADR-0055). Queued: inmediato; running: frontera de etapa |
 | POST | `/runs/{id}/close` | ✓ | cierre explícito: congela el registro (`frozen_at`) — requisito para precedente |
-| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio. **ADR-0082 (H)**: `by_stage` gana `council_r1/r2/r3` iterando `TOKEN_STAGES` (sin código nuevo), `by_model[m] += cache_creation, cache_read` (tokens) y **`plans_council`** = el gasto de rondas 1 de planes que NUNCA se corrieron (`n_plans`, `n_unconsumed`, tokens, `cache {creation, read, multipliers}`, `estimated_cost_usd` [E] con `price_state`, `by_state {<council_state>: n}`, `by_model`) — sin él M8 no cuadra |
+| GET | `/usage?from=&to=` | ✓ | agregados M8 en el SERVIDOR: totals/by_user/by_model/most_expensive; tokens [M], costo PROYECCIÓN con `cost_class`; `rack_embeddings` aparte con su caveat (ADR-0056). **ADR-0081 (H)**: `by_stage` (tokens por etapa — `n_runs_measured`/`n_runs_null`, `states`, `model_split`, USD SÓLO cuando todos los tokens tienen precio; si no `null` + `price_state ∈ priced | missing | mixed | stage-without-model | not-measured` — `not-measured` = etapa sin ninguna corrida medida en el periodo, USD null jamás 0.0 (corrector)), `by_model_stage` (+ `_unattributed.panel` de registros 1.9, jamás repartido), `by_model_stage_coverage`, `n_runs_without_by_stage` (pre-1.9 ≠ gasto cero), `models_catalog`, `by_model[].family/known`, `model_generation_current`; `totals/by_user/most_expensive` sin cambio. **ADR-0082 (H)**: `by_stage` gana `council_r1/r2/r3` iterando `TOKEN_STAGES` (sin código nuevo), `by_model[m] += cache_creation, cache_read` (tokens) y **`plans_council`** = el gasto de rondas 1 de planes que NUNCA se corrieron (`n_plans`, `n_unconsumed`, tokens, `cache {creation, read, multipliers}`, `estimated_cost_usd` [E] con `price_state`, `by_state {<council_state>: n}`, `by_model`) — sin él M8 no cuadra. **ADR-0083 (H)**: `figures {n_runs_with_figures, n_figures_verified, n_figures_cited, bytes_downloaded, vision_tokens_projected_by_model {model: n}, class 'PROJECTION (tokens) / MEASUREMENT (counts, bytes)'}` — bloque APARTE del medido (M8 lo pinta aparte; cierra el hueco HANDOFF §17.3) |
 | GET | `/config-history` | ✓ | historial de config verbatim + procedencia; históricos de usuarios/store DECLARADOS (ADR-0056). **ADR-0081 (I)**: `entries` (archivo, clase ATESTIGUADA — incluida `budget_approval`) + `ledger[]` (tabla `config_history`: MEDICIÓN del diff de configuración al arrancar, `changed_by 'system:boot-diff'` / `'system:runtime-diff'`, `actor_state` declarado) + `ledger_state ∈ ok | kill-switch WITT_CONFIG_LEDGER=0 | table-missing | error: <tipo> | not-booted (lifespan no corrió: config_ledger.boot() no se ha llamado)` (el quinto = antes del lifespan; un TestClient sin lifespan lo ve — corrector) + `ledger_writer` / `ledger_encoding` / `ledger_scope_rule` + `current {fields {value, source}, warnings, unknown_models}` + `provenance.db` |
 | GET | `/consulta-sistema?q=` | ✓ | **la consulta abierta** (ADR-0070): la pregunta META respondida — inventario por secciones con fuente declarada (store/índice/corpus/taxonomía/corridas/config/cuarentena) + `resumen` en lenguaje natural compuesto por CÓDIGO; `model_consulted: false` estructural; ruteo por palabras clave con no-match declarado; NO-SPEND |
 | GET | `/rack/node/{id}` | ✓ | **el browse del grafo** (ADR-0071, Rack fase 2): documento/entidad/nicho/base con sus aristas (MENTIONS lleva `verified_tier_weight` por arista) + **ejes POR ENTIDAD derivados** (la puerta que /resolve declara nunca servir); `browse_mode` in-band (graph \| files-fallback declarado, §6); NOT_FOUND = 200 found:false; el embedding jamás se serializa; NO-SPEND |
@@ -126,7 +128,15 @@ quedan CONTADAS fuera). Los de ADR-0080 — `smoke_competence.py` (27/27, la com
 `smoke_tools_c.py` (45/45 · 69/69 · 68/68, las 10 tools Layer 0 sobre sus fixtures REALES del 2026-09-15 con `_get`
 monkeypatcheada; transversal: CERO correos en `fixtures/`), `smoke_gate_citations.py` (48/48, predicado + escalera + reintento) — y la sección ADR-0080 de
 `smoke_run_pipeline.py` (238/238), que además MIDE que la sección no toca la red (urlopen bloqueado y contado) ni
-`mcp_cache`.
+`mcp_cache`. Los de ADR-0083 — `smoke_figures.py` (NUEVO: parser JATS golden, licencia por reglas, fetch con el zip
+fixture y `_get_bytes` falseada, caché TTL/LRU, selección para el panel, bloques por transporte), `smoke_panel_vision.py`
+(NUEVO), `smoke_figures_http.py` (NUEVO), `smoke_record_pdf.py` (NUEVO — el gate de COBERTURA del PDF) — y los tocados
+(`smoke_gate_citations.py`, `smoke_run_pipeline.py`, `smoke_models.py`, `smoke_openai_responses.py`, `smoke_panel_quorum.py`,
+`smoke_usage_http.py`, `smoke_fetch_paper.py`) añaden a la máscara **`WITT_MCP_CACHE_DIR=<tmp>`**: los bytes de figura de
+los gates van a una caché TEMPORAL, `mcp_cache/` real queda byte-idéntico y `urlopen` = 0 (sección ADR-0083 más abajo). **F8 (2026-09-16): los 41 `smoke_*.py` del directorio
+corren exit 0 con la máscara — UNA `.db` y un `WITT_MCP_CACHE_DIR` temporal NUEVO por smoke —; `figures.attach` mide el dir de caché sin
+crearlo cuando no hay nada que bajar (caché perezosa), así que un gate sin la variable tampoco deja `<repo>/mcp_cache/figures/`; `mcp_cache/`
+byte-idéntico antes/después (372 archivos, `*.log` excluidos).**
 
 ## Corridas (bloque 3, ADR-0049/0050)
 
@@ -831,6 +841,166 @@ muestra sin red (el único modo que corre C9). Python: `dev/.venvs/witt-query-se
 **Decisiones abiertas (E1–E6, defaults aplicados; el ADR las lista):** E1 must `unsatisfiable-by-harness` NO gatea (se cuenta) ·
 E2 `WITT_COUNCIL_EFFORT=medium` · E3 TTL `5m` · E4 409 hasta aprobar/saltar · E5 sintetizador ciego y `WITT_COUNCIL_FULL=0` en
 prod · E6 texto de `budget_approval` `<pendiente E6>`.
+
+### Figuras de papers como evidencia OBSERVADA, dos lentes con visión y el PDF completo (ADR-0083, 2026-09-15 — **Proposed**; conteos de gates MEDIDOS por F8 el 2026-09-16: 41/41 smokes exit 0 (tabla en el ADR))
+
+**Qué es.** Hasta `ca9a03d` (contrato 1.11) el XML JATS de cada paper OA ya estaba en disco (`fetch_paper.fetch_external`
+cachea `raw_paper_<cid>_<stamp>_fulltext.xml`, ADR-0078) y el parser lo tiraba: `_xml_to_text` borra `<graphic>` y reduce
+`<fig>` a texto — el `xlink:href` y el `@id`, la única vía determinista de bajar y nombrar una figura, se perdían (MEDIDO:
+12 XML JATS en `mcp_cache`, 60 `<fig>`, 2 sin `<caption>`). Desde ADR-0083 **`analysis/scripts/lib/figures.py`** (stdlib puro,
+`MODULE_VERSION 'fig-1'`, `PARSER_VERSION 'jats-fig-1'`, `LICENSE_TABLE_VERSION 'lt-1'`) parsea los `<fig>` (matcher `<fig\b(?!-)`:
+la trampa `<fig-count>` tiene golden), lee la **licencia por REGLAS ORDENADAS sobre `<permissions>`** con dos fuentes (XML >
+`license` del search de EPMC, `conflict` declarado; 9 formas medidas en los 12 XML) y baja **UN zip por paper**
+(`GET {EPMC}/{PMCID}/supplementaryFiles`, verificado 200) del que extrae SOLO las entradas cuyo basename == `graphic_href` (jamás
+`s00N.pdf/.xlsx`, jamás el `.gif` thumb). **Una figura es MEDICIÓN sólo como source-pointer**: identidad (`fig_id` del JATS) +
+bytes (`sha256` de los bytes ORIGINALES, recalculado al gatear, al servir y al embeber — ADR-0077) + licencia (tabla CERRADA:
+`cc-by`/`cc0`/`cc-by-sa` embebibles; `cc-by-nc`/`nd`/`nc-sa`/`nc-nd` y `cc-by-prose-unconfirmed` NO embebibles pero visibles al
+panel (E2); `unknown` se baja y verifica pero NUNCA se embebe ni viaja a un tercero; `zfin-display-only` jamás bytes). **Lo que la
+imagen DICE es JUICIO** de exactamente dos lentes del panel (`WITT_FIGURES_VISION_LENSES=evidence-grounding,reproducibility`) que
+lo reportan SOLO en `figure_readings` (`figure_readings_class 'model-judgment'`; regla literal `FIGURE_READING_RULE`: «NEVER derive,
+read off or estimate numbers … from an image»); **el sintetizador recibe caption + metadatos (`_PROMPT_FIGURE_KEYS`) y JAMÁS bytes**
+(assert: ninguna b64 ni `data:image` en `frozen_record_json`, `bundle_json` ni en el `user_text`); el lazo panel → revisión se cierra
+(`_panel_findings[].from_vision_lens` + frase en la `instruction`). Los bytes viven FUERA del registro (ADR-0074) en
+`<WITT_MCP_CACHE_DIR or mcp_cache>/figures/<PMCID>/<href>` con ledger raw por PMCID, TTL + evicción LRU con tope, y se sirven por
+`GET /runs/{id}/figures/{sha256}` (403 por licencia, 409 si el sha no cuadra: JAMÁS se sirve un byte que no cuadre). §7 gana la regla
+que no existía — **«figure-only NOT asserted»** (CLAUDE.md §7; `verify_output.figure_only_not_asserted`).
+
+**La corrida.** Etapa PROPIA `stage.figures` en `runs.execute_run` tras `stage.path_b` y antes de pass2 (SOLO si hubo Ruta B;
+`answer_pipeline.py` no se toca): selección DETERMINISTA — papers `europepmc|pubmed` con PMCID + XML en `raw_cached`, orden
+`selection_rank`, primeros `WITT_FIGURES_MAX_PAPERS`; figuras en orden de documento, primeras `MAX_PER_PAPER`, tope `MAX_PER_RUN`; el
+resto `not-fetched (paper-cap | run-cap)` con caption parseado — presupuesto propio (`WITT_FIGURES_BUDGET_S`, por paper `min(45,
+restante)`, socket `min(30, restante)`), latido `stage.figures.paper {phase 'start'}` ANTES de cada descarga (hueco ≤ 45 s < 300 s
+del watchdog) y `{phase 'done'}` después, `stage.figures.figure` por figura verificada, `stage.figures.summary`. Una figura que no
+baja deja fila declarada (`not-fetched (<razón cerrada>)` / `error: <Tipo>: <msg>`) y la corrida sigue (§6). Citas `kind 'figure'`
+(`'<PMCID>#<fig_id>'`; el caption es el pasaje) suben la MISMA escalera de ADR-0080 sin peldaños nuevos y ganan `figure_verification
+{bytes, content, figure_id}`; **cinco predicados DETERMINISTAS** en `verify_output` (`deterministic_checks.figures`): `figure_id_resolves`
+(DURO), `figure_sha_matches` (DURO sólo en MISMATCH: sha alterado = inadmisible; no bajada = `n_not_verifiable`, ausencia ≠ alteración),
+`figure_only_not_asserted` (DURO: una afirmación POSITIVA cuyas citas válidas son TODAS figuras es inadmisible), `figure_numerals_grounded`
+e `figure_license_known` (INFORMATIVOS, `gating false`, congelados). Sin figuras en el bundle → `state 'no-figure-citations'` y la
+conjunción de hoy. `models.MODELS` gana `vision_tier` y `models.vision_tokens()` es la ÚNICA sede de la fórmula pública de tokens de
+visión: `by_stage.panel.by_model[*].vision {…, class 'proyección'}` (los `input_tokens` medidos YA incluyen las imágenes: nada se suma
+dos veces; el reenvío por intento/ronda se MIDE en `figures.vision.sent`).
+
+**Registro congelado 1.12** (aditivo): `frozen.figures {state ∈ attached | no-path-b | no-papers-with-xml | kill-switch WITT_FIGURES=0 |
+error: …, module_version, parser_version, license_table_version, license_table (efectiva), license_table_rule,
+license_table_env_ignored, mechanism, cache {dir_source, dir_state, ttl_days, cache_max_mb, evicted_n}, budget {total_s, used_s,
+over_budget}, caps {… cada uno {value, source}}, n_papers_eligible … n_unknown_license, n_cited, zfin_figures_state, selection, vision
+{state, lenses, lenses_source, rule, openai_detail, sent, cost_projection}, items [FigureItem], vocabulary, kill_switch?}`;
+`citations[].kind += 'figure'` + `figure_verification`; `citations_support_summary.figure_citations`; `deterministic_checks.figures`;
+`audit.panel[] += saw_figures {n, sha256s[], bytes_b64_total, detail}`, `figure_readings?`, `figure_readings_class?`,
+`figure_readings_dropped?`; `audit.vision`; `token_usage.by_stage.panel.by_model[*].vision`; `agents_invoked` fila `figures`;
+`epistemic_summary.figures_state / figures_n_verified / figures_n_cited` (null = < 1.12 o kill-switch; 0 = medido). **Históricos: NADA se
+recalcula ni se backfillea** — registros < 1.12 no ganan `figures`; la webapp y el PDF los leen 'NO INSTRUMENTADO (contrato < 1.12)'.
+**La webapp debe tipar (`?`) y pintar** — la lista completa está en *Consequences* del ADR; el gate (F) de paridad compara
+`frozen.figures.vocabulary` (`figures.LICENSES`, `LICENSE_TABLE`, `BYTES_STATES_*`, `FIGURES_STATES_*`, `SERVABLE_STATES`,
+`VISION_LENSES`, `SAW_FIGURES_DETAILS`) con los unions de `types.ts` y con TODOS los fixtures; el gate (D) del PDF exige 0 huecos.
+
+**Kill-switches (cada uno con default declarado):** `WITT_FIGURES=0` → no se parsea ni baja nada, los papers NO ganan `figures`, el
+`user_text` del sintetizador es el de 1.11 BYTE A BYTE, el panel no recibe imágenes ni `saw_figures`/`audit.vision`, `GET
+/figures/{sha}` 404; **el frozen es igual al 1.11 del MISMO fixture salvo EXACTAMENTE `{render_contract_version, figures {state,
+kill_switch}, deterministic_checks.figures {state}}`** (lo mide `smoke_run_pipeline.py` listando cualquier otro path). `WITT_FIGURES_VISION=0`
+→ figuras observadas siguen (captions, bytes, GET, escalera, predicados) pero NINGUNA lente recibe imágenes (`saw_figures.detail
+'kill-switch WITT_FIGURES_VISION=0'`). `WITT_FIGURES_PDF_THUMBS=0` → palabras + enlace aunque la licencia permita.
+
+**Caché y Dokploy (E4).** `figures.cache_dir()` honra `WITT_MCP_CACHE_DIR` como las tools Layer 0 (`frozen.figures.cache.dir_source ∈
+env | default`, `dir_state ∈ writable | read-only | missing` medido al inicio de la etapa; read-only → filas `not-fetched (cache-read-only)`).
+Sin volumen, tras cada redeploy `GET /figures/{sha}` → 404 `bytes-not-in-cache` declarado y el PDF/Hoja pasan a 'enlace + sha' (honesto,
+no roto); el registro (sha, dims, licencia) sigue íntegro. Recomendación operativa: montar volumen para `WITT_MCP_CACHE_DIR` antes de
+LG3 (también beneficia al TSV de ZFIN y al caché de papers); LG6 mide.
+
+**Variables de entorno nuevas (ADR-0083; 20 + `WITT_MCP_CACHE_DIR` = `figures.ENV_VARS`, 21)** — default declarado en
+`figures.ENV_SPECS`; lector tolerante EN LA LLAMADA (`figures.env_config()`: vacía/basura/fuera de clamp → default con fuente
+`default-unset:<VAR>` | `default-invalid-env:<VAR>`); el valor efectivo y su fuente viajan en `frozen.figures.caps/cache/budget`;
+`models.ENV_TABLE` gana las mismas filas (F3) y `smoke_models` mide `ENV_TABLE ⊆ compose ∩ README`; **toda env implica reinicio** (el
+compose lo dice en su bloque ADR-0083):
+
+| Variable | Default | Lector | Efecto / fuente declarada |
+|---|---|---|---|
+| `WITT_FIGURES` | `1` | `runs._figures_stage` · `audit()` · `app` | kill-switch maestro; `0` = frozen 1.11 byte a byte salvo las 3 excepciones (M.1) |
+| `WITT_FIGURES_VISION` | `1` | `audit()` | `0` = ninguna lente recibe imágenes; captions/sha/licencia siguen (M.2) |
+| `WITT_FIGURES_VISION_LENSES` | `evidence-grounding,reproducibility` | `composite_auditor.vision_lenses` | CSV de **≤ 2** lentes validado contra `models.LENSES`; inválido → default declarado (`lenses_source 'default-invalid-env'`); > 2 lentes → default declarado `'default-invalid-env:… (>2 lenses)'` (`VISION_LENSES_MAX = 2`, CLAUDE.md §7 «at most two panel lenses» — *corrector*) |
+| `WITT_FIGURES_MAX_PAPERS` | `3` | `runs._figures_stage` · `figures.attach` | papers (con PMCID + XML) de los que se parsean/bajan figuras, orden `selection_rank` (clamp 1..50); resto `not-fetched (paper-cap)` |
+| `WITT_FIGURES_MAX_PER_PAPER` | `9` | `figures.attach` | figuras por paper en orden de documento (clamp 1..30) |
+| `WITT_FIGURES_MAX_PER_RUN` | `12` | `figures.attach` | tope de figuras bajadas por corrida (clamp 1..200); resto `not-fetched (run-cap)` |
+| `WITT_FIGURES_MAX_PER_LENS` | `12` | `figures.select_for_panel` | imágenes por petición de juez (clamp 0..20: ≤ 20 evita «many-image requests») |
+| `WITT_FIGURES_MAX_IMAGE_MB` | `5` | `figures.select_for_panel` · PDF | bytes CRUDOS por imagen para panel/miniatura (clamp ≤ 7: 9.3 MB b64 < 10 MB de la API) |
+| `WITT_FIGURES_ZIP_MAX_MB` | `40` | `figures.fetch_figures` | precheck `Content-Length` y tope de streaming → `not-fetched (zip-over-max)` sin escribir |
+| `WITT_FIGURES_BUDGET_S` | `90` | `figures.attach` | reloj TOTAL de la etapa, fuera de la ronda de búsqueda; por paper `min(45, restante)` (constante declarada) |
+| `WITT_FIGURES_TTL_DAYS` | `30` | `figures.fetch_figures` | frescura del ledger por PMCID; fresco + sha iguales → `cache_hit`, cero red; `≤0` = nunca confiar |
+| `WITT_FIGURES_CACHE_MAX_MB` | `512` | `figures.fetch_figures` | tope de `figures/`; evicción LRU por mtime al escribir, `evicted_n`; `0` = sin tope declarado |
+| `WITT_FIGURES_CAPTION_CHARS` | `2000` | `figures.parse_jats` | tope del caption que viaja (`caption_truncated`; clamp 100..20000); medido: media 1 030, máx 3 087 |
+| `WITT_FIGURES_EMBED_LICENSES` | `cc-by,cc0,cc-by-sa` | `figures.LICENSE_TABLE` (vía `license_table(cfg)`) | sólo RESTRINGE la tabla `lt-1` (un id fuera → `license_table_env_ignored`); gobierna GET 200/403, miniatura Hoja y PDF |
+| `WITT_FIGURES_PANEL_LICENSES` | `cc-by,cc0,cc-by-sa,cc-by-nc,cc-by-nd,cc-by-nc-sa,cc-by-nc-nd,cc-by-prose-unconfirmed` | `figures.LICENSE_TABLE` (idem) | licencias cuyos bytes ven las lentes (E2); `unknown`/`zfin-display-only` nunca (tabla, no env) |
+| `WITT_FIGURES_PROSE_LICENSE` | `1` | `figures.parse_license` | prosa «Creative Commons Attribution» sin URL → `cc-by` (`license-p-prose`, visible en Hoja/PDF); `0` → `cc-by-prose-unconfirmed` (E3) |
+| `WITT_FIGURES_OPENAI_DETAIL` | `high` | `_responses_kwargs` · `_openai_chat_call` (vía `figures.openai_*_parts`) | `detail` del `input_image`/`image_url` (`low\|high\|auto\|original`); a ≤ 840 px `high` = 2–4 tiles en gpt-4o |
+| `WITT_FIGURES_REFETCH_ON_GET` | `0` | `app.get_figure_bytes` | `1` = ante `bytes-not-in-cache` UNA GET (20 s) y servir SOLO si sha == congelado (409 si no) |
+| `WITT_FIGURES_PDF_THUMBS` | `1` | `record_pdf.build_pdf` | `0` = palabras + enlace aunque la licencia permita (M.3) |
+| `WITT_FIGURES_COUNT_TOKENS` | `0` | `audit()` (lentes Anthropic) | `1` = `vision.tokens_measured` por `count_tokens` SIN imágenes (una llamada gratuita por lente) |
+| `WITT_MCP_CACHE_DIR` | (ya existe, ADR-0080; vacía = `<repo>/mcp_cache`) | `figures.cache_dir` | las figuras la HONRAN (`<dir>/figures/`); `frozen.figures.cache.dir_source/dir_state`; sin volumen = efímera (E4) |
+
+Constantes declaradas (viajan en `caps`/`constants` con `source 'constant (ADR-0083)'`): presupuesto por paper `min(45, restante)`;
+socket `min(30, restante)`; restante `< 5 s` → `budget-exhausted` sin red; b64 por petición 8 MB; guardia 40 MP; miniatura ≤ 60 mm; ≤ 12
+miniaturas por PDF; PDF ≤ 8 MB; `expose_headers` fijos.
+
+**Gates NO-SPEND (máscara de siempre + `WITT_RUN_ORIGIN=smoke` + `WITT_MCP_CACHE_DIR=<tmp>`; UNA `.db` por smoke; conteos MEDIDOS por F8 el 2026-09-16 —
+la tabla completa vive en el ADR):** NUEVOS `smoke_figures.py` (141/141 — corrector 2026-09-16; 135 F8: GOLDEN del parser sobre los 2 XML fixture y los 12 del `mcp_cache`
+cuando existen — 'NO MEDIDO (mcp_cache ausente)' declarado si faltan —, licencia en sus 9 formas + `conflict`, fetch con el zip fixture
+y fallos declarados, presupuesto con reloj falso, caché TTL/LRU/read-only, `select_for_panel`, bloques por transporte, `_xml_to_text`
+byte-idéntico, `_normalize_hit.license`) · `smoke_panel_vision.py` (60/60 — corrector; 55 F8: cuerpos sin `user_content` byte-idénticos a los de 9d90c01; con
+imágenes la forma exacta por transporte; `member['figures']` SOLO en las dos lentes; `saw_figures` 9/9/0/0; `figure_readings` →
+`model-judgment`, string → `dropped`; `panel_signature` idéntico) · `smoke_figures_http.py` (43/43 — corrector; 42 F8: TestClient + frozen 1.12 sembrado + caché
+TMP: 401/404/409, índice `servable`, bytes 200 con headers y body sha == path, NC 403, sha malformado 400, archivo borrado 404,
+alterado 409, kill-switch, frozen 1.10 `not-instrumented`, `expose_headers` en el preflight) · `smoke_record_pdf.py` (56/56 — corrector; 54 F8: el gate de
+COBERTURA (K): regex de la webapp copiada → 0 huecos, anidadas en bytes, born correcto 1.8/1.9/1.10/1.11/1.12, 5 frases de
+`citations_schema`, regla del sha leída, miniaturas sólo BY+verified, determinismo, `urlopen` 0); TOCADOS `smoke_gate_citations.py`
+(80/80 — corrector +3: cita paper alucinada o sin pasaje NO rescata la afirmación figure-only; 77 F8, +25: escalera con `kind 'figure'`, los 5 predicados), `smoke_run_pipeline.py` (372/372 — corrector +5: `audit_initial.vision`, colisión de `fig_id`, clasificador superset, `detail` en la proyección, `bytes_verified`; 367 F8, +65: contrato '1.12', orden de la Traza, pass1 sin
+`figures`, sin b64 en ningún string, `frozen.figures` completo, **kill-switch keyset+valores 1.11 salvo EXACTAMENTE 3 excepciones**,
+budget agotado, `_get_bytes` que lanza, cancelación; F8 +8 costuras (O) y assert GLOBAL anti-binario sobre la BD), `smoke_models.py` (96/96: `vision_tier`/`vision_tokens`, `ENV_TABLE (+20) ⊆ compose ∩
+README`, `panel_signature` golden), `smoke_openai_responses.py` · `smoke_panel_quorum.py` (81/81 · 42/42, +2 c/u), `smoke_usage_http.py` (34/34, +2),
+`smoke_fetch_paper.py` (44/44, +3: `license`), `smoke_council.py` (70/70: D.1 amplía la firma de `_anthropic_tool_call` con `user_content=None`). Estático (MEDIDO por F7 el 2026-09-16 con la máscara): **`smoke_live_figures.py --dry-run` exit 0**
+— 4 filas (`pmcid` PMC11379296 con XML de fixtures y `_get_bytes` falseada con el zip fixture → `fetch_figures` REAL: 9 `verified`, sha ==
+MANIFEST 9/9, dims == `scaled` 9/9, `dims_match` 9, licencia `cc-by (ext-link)`; bloques de los TRES transportes con 9 imágenes ANTES del
+texto y la b64 decodificando al sha original: Anthropic `[text, image]×9 + text`, Responses `[input_text, input_image]×9 + input_text`,
+Chat `[text, image_url]×9 + text`; con F3 aterrizado los TRES callers reales CAPTURADOS con `user_content=` (`content_equals_blocks True` ×3, `urlopen` bloqueado y cliente OpenAI falso; re-medido por F8 el 2026-09-16) — nada se llamó);
+`urlopen` reales 0; `figures._zip_url` == `{EPMC}/{PMCID}/supplementaryFiles`; ningún módulo de BD importado; nada escrito.
+
+**Gates EN VIVO (los corre Emmanuel; cada uno gasta lo que dice; ningún smoke del CI gasta; el resultado se anota en el ADR como
+MEDICIÓN con fecha).** El instrumento es `analysis/scripts/smoke_live_figures.py`: usa el código REAL (`figures.fetch_figures` — la única
+costura de red —, `figures.select_for_panel` con sha recalculado, `figures.anthropic_blocks / openai_responses_parts / openai_chat_parts` y
+los callers `composite_auditor._anthropic_tool_call / _openai_responses_call / _openai_chat_call` con `user_content=`), imprime fila · `kind`
+· `usage` · latencia, escribe `analysis/outputs/live_figures_<fecha>.json` SIN secretos ni b64 (cinturones anti-secreto y anti-binario),
+rehúsa correr sin llave (`no-api-key`, exit 2), jamás toca la BD (`db_imported false` medido en cada salida); `--dry-run` construye sin
+red (el único modo que corre F8). Python: `dev/.venvs/witt-query-service` con la llave en el entorno del proceso.
+
+1. **LG1 · Bytes reales (red a www.ebi.ac.uk, 0 modelo):** `python analysis/scripts/smoke_live_figures.py --pmcid PMC11379296 --href-direct`
+   → HTTP 200 `application/zip` (~8.6 MB), 27 entradas, 9 jpg con sha256 == MANIFEST del fixture y dims == `scaled`; `elapsed_s` y MB/s
+   desde el VPS (calibra `WITT_FIGURES_BUDGET_S`); repetir con `PMC11647118` (NC) → 6 `verified`, `embeddable False`; un PMCID no-OA
+   → `not-fetched (http-4xx)` declarado. `--href-direct` mide `europepmc.org/articles/{PMCID}/bin/{href}` (NO verificado): si 200 y sha ==
+   miembro del zip → un 0083.1 aditivo lo declara como respaldo; si no, queda 'no verificado'.
+2. **LG2 · `license` del search (1 GET):** `…/search?query=PMCID:PMC11379296&resultType=core&format=json` → `license: "cc by"` esperado.
+3. **LG3 · UNA corrida real con `WITT_FIGURES=1`** (≈ 0.25–0.45 USD [E]): Traza `stage.figures.plan → paper(start/done) → figure×n →
+   summary`, hueco de latido < 300 s; `frozen.figures.n_verified ≥ 1`; `saw_figures.n > 0` EXACTAMENTE en evidence-grounding y
+   reproducibility; `attempts[].error_kind` sin `http-400`; `figure_readings` etiquetado; `deterministic_checks.figures.state 'checked'` y
+   `n_marker_absent`; Δ `input_tokens` vs la misma corrida con `WITT_FIGURES_VISION=0`; tasa de falsos positivos de `figure_numerals_grounded`
+   (decide 0083.1 → gating); con `WITT_FIGURES_COUNT_TOKENS=1` → `vision.tokens_measured` (calibra la fórmula, `vision_verified True`).
+4. **LG4 · Formas de imagen por transporte (≤ 3 llamadas, ≤ 0.05 USD):** `--pmcid PMC11379296 --judge gpt-4o --api chat-completions
+   --image 40877777ed82` → verdict ∈ VOCABULARY (la forma Chat Completions queda MEDIDA); `--judge gpt-6-astra --api responses --image <sha>`
+   → verdict + `usage.input_tokens`; `--judge claude-haiku-4-5-20251001 --api anthropic --count-tokens` → Δ con/sin bloque = MEDICIÓN.
+5. **LG5 · Puertas en prod:** `GET /runs/{id}/figures` → índice; `/figures/{sha}` cc-by → 200 image/jpeg con headers (y la webapp los LEE:
+   CORS); cc-by-nc → 403 con license; sha inventado → 404; la Hoja muestra miniatura BY y placa NC.
+6. **LG6 · Dokploy (E4):** `cache.dir_state 'writable'` en el registro; tras redeploy `GET …/figures/{sha}` → 200 (con volumen) o 404
+   `bytes-not-in-cache` (sin volumen) — MEDICIÓN que decide E4; `/config-history` ganó `figures.enabled/figures.vision`.
+7. **LG7 · `GET /runs/{id}/record.pdf` de LG3:** 52 secciones, miniaturas SOLO en CC BY, NC en palabras, 'CUORUM', 'MODELOS', 'ESQUEMA DE
+   CITAS' con el literal correcto, 'vista por 2 lentes: JUICIO'; un 1.9 histórico → 'NO INSTRUMENTADO (contrato < 1.10)' para models.
+8. **LG8 · webapp:** `python tools/parity_check.py` contra `contract-1.12-frozen` → (D) 0 huecos, 23 líneas `[pdf]` SALDADAS y retiradas,
+   (F) vocabularios OK, EXIT 0; `gen_fixtures.py` regenera 1.12; vitest verde.
+9. **LG9 · Held-out ADR-0072** tras el cambio de `SYNTH_TOOL.description` (E5): la serie `ab_trapped_scalar` sigue comparable; anotar Δ.
+10. **LG10 · Presupuesto (3 corridas con figuras):** `figures.budget.used_s` p95 y `stage.figures.paper.elapsed_s`; p95 > 45 s → ajustar
+    `WITT_FIGURES_BUDGET_S`/`MAX_PAPERS` en compose (declarado).
+
+**Decisiones abiertas (E1–E5, defaults aplicados; el ADR las lista):** E1 `WITT_FIGURES=1` y `WITT_FIGURES_VISION=1` · E2 las dos lentes SÍ
+ven bytes NC/ND (embeber sigue prohibido) · E3 prosa CC BY = `cc-by` con `source 'license-p-prose'` visible · E4 sin volumen, declarado
+(`REFETCH_ON_GET=0`) · E5 texto de la aprobación presupuestal `<pendiente E5>`.
 
 ## Pendiente
 
