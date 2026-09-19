@@ -382,6 +382,23 @@ ENV_TABLE = {
     "WITT_ANTHROPIC_WEB_SEARCH_MAX_USES": {"default": "1", "kind": "int", "minimum": 1, "maximum": 5, "reader": "web_locator._anthropic_web_search", "effect": "max_uses del server-tool (una directiva = una búsqueda); max_uses_exceeded declarado como error no facturado", "adr": "0084"},
     "WITT_WEB_ANTHROPIC_TOOL_TYPE": {"default": "web_search_20250305", "kind": "choice", "choices": ("web_search_20250305",), "reader": "web_locator._anthropic_web_search", "effect": "literal del type del server-tool — VOCABULARIO CERRADO (sólo web_search_20250305, sin dynamic filtering): otro literal = default + default-invalid-env y se declara en cost.provider_detail (corrector ADR-0084)", "adr": "0084"},
     "WITT_WEB_LOCATOR_MODEL":       {"default": "", "kind": "str", "reader": "web_locator._anthropic_web_search (anthropic_model)", "effect": "modelo del despachador; validado contra models.MODELS por web_locator.env_config (fuera de tabla → default-invalid-env); vacía = models.resolve_role('elicitation'); FUERA de PIPELINE_ROLES (la firma no cambia)", "adr": "0084"},
+    # ADR-0086 (tabla de env): las 15 WITT_ATTESTED_* que SÍ se registran. FUERA quedan WITT_ATTESTED_DIR y las dos
+    # llaves de MinIO: la tabla no guarda rutas de la máquina ni secretos — de esas sólo viaja su PRESENCIA (env_config).
+    "WITT_ATTESTED_IMAGES":                  {"default": "1", "kind": "bool", "reader": "app \u00b7 runs \u00b7 audit()", "effect": "kill-switch maestro (N.1): 0 = frozen 1.13 byte a byte salvo ATTESTED_DECLARED_EXCEPTIONS (3); subida/inherit 409, ledger con images[] 400, GET \u00edndices 'kill-switch', bytes 404; with...", "adr": "0086"},
+    "WITT_ATTESTED_VISION":                  {"default": "1", "kind": "bool", "reader": "audit()", "effect": "0 = ninguna lente recibe bytes atestiguados; captions al sintetizador y al consejo siguen (N.2)", "adr": "0086"},
+    "WITT_ATTESTED_BACKEND":                 {"default": "local", "kind": "choice", "choices": ("local", "minio"), "reader": "attestations.storage_backend", "effect": "local | minio; fuera de vocabulario \u2192 local con source 'default-invalid-env:\u2026'; minio sin MINIO_* \u2192 503, JAM\u00c1S cae a local", "adr": "0086"},
+    "WITT_ATTESTED_MINIO_BUCKET":            {"default": "witt-attested-private", "kind": "str", "reader": "attestations.MinioStorage", "effect": "bucket PRIVADO dedicado (\u2260 data-inamovible-raw); bucket_exists/make_bucket en probe(); versioning OFF; jam\u00e1s presigned", "adr": "0086"},
+    "WITT_ATTESTED_MAX_IMAGE_MB":            {"default": "5", "kind": "float", "minimum": 0.1, "maximum": 7.0, "reader": "app (C.2) \u00b7 validate_bytes \u00b7 select_for_panel", "effect": "bytes CRUDOS por imagen; 413 por Content-Length sin leer y por stream con tope (clamp 0.1..7)", "adr": "0086"},
+    "WITT_ATTESTED_MAX_PER_PLAN":            {"default": "8", "kind": "int", "minimum": 1, "maximum": 24, "reader": "app \u00b7 ledger", "effect": "filas VIVAS (no retiradas) por plan \u2192 409 attestations_cap_reached {scope 'plan'}; al aprobar 400 too_many_attested_images", "adr": "0086"},
+    "WITT_ATTESTED_MAX_TOTAL_MB":            {"default": "24", "kind": "float", "minimum": 1.0, "maximum": 168.0, "reader": "app", "effect": "suma de bytes vivos por plan \u2192 409 attestations_cap_reached {scope 'total_mb'}", "adr": "0086"},
+    "WITT_ATTESTED_MAX_PER_LENS":            {"default": "4", "kind": "int", "minimum": 0, "maximum": 8, "reader": "attestations.select_for_panel", "effect": "im\u00e1genes atestiguadas por petici\u00f3n de lente, APARTE de WITT_FIGURES_MAX_PER_LENS; figures + attested \u2264 20", "adr": "0086"},
+    "WITT_ATTESTED_MAX_PER_USER_PER_DAY":    {"default": "30", "kind": "int", "minimum": 1, "maximum": 500, "reader": "app (db.count_attested_uploads_today)", "effect": "rate limit de subida por cuenta (UTC) \u2192 429 upload-rate-limited {n_today, cap, resets_at}", "adr": "0086"},
+    "WITT_ATTESTED_CAPTION_CHARS":           {"default": "1000", "kind": "int", "minimum": 100, "maximum": 4000, "reader": "attestations.validate_form", "effect": "tope del caption OBLIGATORIO (\u2265 10; 400 caption-too-long); \u2264 600 en el frozen; \u2264 200 en parent_attested_images", "adr": "0086"},
+    "WITT_ATTESTED_ALLOWED_MEDIA":           {"default": "image/jpeg,image/png,image/webp", "kind": "str", "reader": "attestations.validate_bytes", "effect": "CSV acotado a figures.MEDIA_TYPES (GIF habilitable; fuera de tabla se ignora \u2192 allowed_media_env_ignored[]); PDF/TIFF/HEIC/SVG/DICOM \u2192 415", "adr": "0086"},
+    "WITT_ATTESTED_EXIF":                    {"default": "strip", "kind": "choice", "choices": ("strip", "declare"), "reader": "attestations.strip_metadata", "effect": "strip = quitar metadatos ANTES de hashear/almacenar (fallo \u2192 422, nada se guarda); declare = tal cual con exif_present medido", "adr": "0086"},
+    "WITT_ATTESTED_TEAM_VIEW":               {"default": "1", "kind": "bool", "reader": "app.view_rule", "effect": "1 = honrar share_scope 'team' declarado por quien sube; 0 = author-only para todos; material de paciente author-only SIEMPRE", "adr": "0086"},
+    "WITT_ATTESTED_WITHDRAW":                {"default": "uploader", "kind": "choice", "choices": ("uploader", "team"), "reader": "app withdraw", "effect": "qui\u00e9n retira: uploader | team (403 withdraw-not-uploader con la regla)", "adr": "0086"},
+    "WITT_ATTESTED_PATIENT_MATERIAL":        {"default": "0", "kind": "bool", "reader": "attestations.validate_form", "effect": "1 = material de paciente permitido con consentimiento + desidentificaci\u00f3n + acuse al aprobar; 0 = 400 patient_material_not_allowed (OE4)", "adr": "0086"},
 }
 # Las env que ADR-0082 añade (27): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide
 # que compose ∩ README las declaran (C8). Vocabulario cerrado de kinds de ENV_TABLE (env_value los gobierna).
@@ -392,6 +409,10 @@ ENV_ADR_0083 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0083")
 # Las env que ADR-0084 añade (17): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide que compose ∩
 # README las declaran (dueño de compose/README: W7) y que sus defaults == web_locator.ENV_SPECS (una sola verdad, dos sedes medidas).
 ENV_ADR_0084 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0084")
+# Las env que ADR-0086 añade (15 de las 18 de attestations.ENV_SPECS: la ruta local y las dos llaves de MinIO NO entran
+# a la tabla): gen_fixtures las quita del proceso (patrón ENV_ADR_0081) y smoke_models mide que compose ∩ README las
+# declaran (dueño: F8) y que sus defaults == attestations.ENV_SPECS (una sola verdad, dos sedes medidas).
+ENV_ADR_0086 = tuple(k for k, v in ENV_TABLE.items() if v.get("adr") == "0086")
 ENV_KINDS = ("str", "int", "float", "bool01", "bool", "choice", "effort")
 _BOOL_TRUTHY = ("1", "true", "yes", "on")
 _BOOL_FALSEY = ("0", "false", "no", "off")
@@ -423,10 +444,15 @@ SNAPSHOT_FIELDS = (
     # ('' = derivar) y web.provider = el proveedor EFECTIVO de web_locator.provider_state (brave | anthropic | off) con su
     # fuente; FUERA de panel_signature (la firma no cambia con el localizador encendido o apagado — medido en smoke_models)
     "web.locator", "web.provider",
+    # ADR-0086 (N.1): los interruptores de las imágenes atestiguadas entran al snapshot (fila `new-field` en
+    # config_history al arrancar tras el redeploy — excepción DECLARADA del kill-switch, patrón 0082 L.2 ii / 0083 O.5 /
+    # 0084); FUERA de panel_signature: la firma no cambia porque haya o no imágenes aportadas (medido en smoke_models)
+    "attested.enabled", "attested.vision", "attested.backend", "attested.team_view",
 )
 COUNCIL_SNAPSHOT_FIELDS = ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
 FIGURES_SNAPSHOT_FIELDS = ("figures.enabled", "figures.vision")
 WEB_SNAPSHOT_FIELDS = ("web.locator", "web.provider")
+ATTESTED_SNAPSHOT_FIELDS = ("attested.enabled", "attested.vision", "attested.backend", "attested.team_view")
 # Campos que models.py NO puede derivar (viven en runs/competence): el llamador (app.config_ledger_boot) los
 # pasa en `extra={campo: {value, source}}`; ausentes → {value: None, source: 'not-provided-by-caller'} (null
 # declarado, jamás un default duplicado de otro módulo).
@@ -969,6 +995,13 @@ def snapshot(env=None, today=None, extra=None):
     v, s = env_value("WITT_WEB_LOCATOR", env)
     f["web.locator"] = {"value": v, "source": s}
     f["web.provider"] = _web_provider_field(env)
+    # ADR-0086 (N.1): los interruptores de las imágenes atestiguadas. Ni la ruta del almacén ni las llaves de MinIO entran
+    # aquí (la tabla no guarda rutas ni secretos): `attested.backend` es el backend PEDIDO, y si no hay credenciales el
+    # servicio responde 503 declarado — eso vive en el registro de la corrida, no en el snapshot de configuración.
+    for field, var in (("attested.enabled", "WITT_ATTESTED_IMAGES"), ("attested.vision", "WITT_ATTESTED_VISION"),
+                       ("attested.backend", "WITT_ATTESTED_BACKEND"), ("attested.team_view", "WITT_ATTESTED_TEAM_VIEW")):
+        v, s = env_value(var, env)
+        f[field] = {"value": v, "source": s}
     ignored = []
     for field in EXTRA_FIELDS:
         given = extra.get(field)

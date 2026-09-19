@@ -230,20 +230,32 @@ ENV_ADR_0084 = ("WITT_WEB_LOCATOR", "WITT_WEB_MAX_RESULTS", "WITT_WEB_MAX_QUERIE
                 "WITT_WEB_BUDGET_S", "WITT_WEB_MIN_INTERVAL_S", "WITT_WEB_COUNTRY", "WITT_WEB_LANG", "WITT_WEB_FRESHNESS",
                 "WITT_WEB_ALLOWED_HOSTS", "WITT_WEB_GENERIC_DOI_RULE", "WITT_WEB_MONTHLY_CAP", "WITT_WEB_TEST_QUERY",
                 "WITT_ANTHROPIC_WEB_SEARCH_MAX_USES", "WITT_WEB_ANTHROPIC_TOOL_TYPE", "WITT_WEB_LOCATOR_MODEL")
+# ADR-0086 (F3): las 15 WITT_ATTESTED_* que SÍ entran a la tabla; la ruta local y las dos llaves de MinIO quedan fuera
+ENV_ADR_0086 = ("WITT_ATTESTED_IMAGES", "WITT_ATTESTED_VISION", "WITT_ATTESTED_BACKEND", "WITT_ATTESTED_MINIO_BUCKET",
+                "WITT_ATTESTED_MAX_IMAGE_MB", "WITT_ATTESTED_MAX_PER_PLAN", "WITT_ATTESTED_MAX_TOTAL_MB",
+                "WITT_ATTESTED_MAX_PER_LENS", "WITT_ATTESTED_MAX_PER_USER_PER_DAY", "WITT_ATTESTED_CAPTION_CHARS",
+                "WITT_ATTESTED_ALLOWED_MEDIA", "WITT_ATTESTED_EXIF", "WITT_ATTESTED_TEAM_VIEW", "WITT_ATTESTED_WITHDRAW",
+                "WITT_ATTESTED_PATIENT_MATERIAL")
+
 check("ROLE_ENVS exacto (9 roles: 8 de ADR-0081 + council→WITT_MODEL_COUNCIL; OPENAI_JUDGE_MODEL conserva su nombre) y ENV_TABLE "
-      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 + 20 de ADR-0083 + 17 de ADR-0084 (models.ENV_ADR_0082/0083/0084 == las listas exactas "
+      "cerrada: 21 envs de ADR-0081 + 27 de ADR-0082 + 20 de ADR-0083 + 17 de ADR-0084 + 15 de ADR-0086 (models.ENV_ADR_0082/0083/0084/0086 == las listas exactas "
       "de las tablas de los ADR, en su orden), cada fila con default/kind/reader/effect y kind ∈ ENV_KINDS; BRAVE_API_KEY NO está en la tabla",
       m.ROLE_ENVS == {"synthesizer": "WITT_MODEL_SYNTH", "planner": "WITT_MODEL_PLANNER", "elicitation": "WITT_MODEL_ELICIT",
                       "question_agent": "WITT_MODEL_QUESTION", "judge.correctness": "WITT_JUDGE_CORRECTNESS",
                       "judge.overclaim": "WITT_JUDGE_OVERCLAIM", "judge.evidence-grounding": "WITT_JUDGE_GROUNDING",
                       "judge.reproducibility": "OPENAI_JUDGE_MODEL", "council": "WITT_MODEL_COUNCIL"}
-      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) | set(ENV_ADR_0083) | set(ENV_ADR_0084) and len(m.ENV_TABLE) == 85
+      and set(m.ENV_TABLE) == ENV_ADR_0081 | set(ENV_ADR_0082) | set(ENV_ADR_0083) | set(ENV_ADR_0084) | set(ENV_ADR_0086)
+      and len(m.ENV_TABLE) == 100
       and m.ENV_ADR_0082 == ENV_ADR_0082 and len(m.ENV_ADR_0082) == 27
       and m.ENV_ADR_0083 == ENV_ADR_0083 and len(m.ENV_ADR_0083) == 20
       and m.ENV_ADR_0084 == ENV_ADR_0084 and len(m.ENV_ADR_0084) == 17 and "BRAVE_API_KEY" not in m.ENV_TABLE
+      and m.ENV_ADR_0086 == ENV_ADR_0086 and len(m.ENV_ADR_0086) == 15
       and all(m.ENV_TABLE[k].get("adr") == "0082" for k in ENV_ADR_0082) and not any(m.ENV_TABLE[k].get("adr") for k in ENV_ADR_0081)
       and all(m.ENV_TABLE[k].get("adr") == "0083" for k in ENV_ADR_0083)
       and all(m.ENV_TABLE[k].get("adr") == "0084" for k in ENV_ADR_0084)
+      and all(m.ENV_TABLE[k].get("adr") == "0086" for k in ENV_ADR_0086)
+      # ADR-0086: ni la ruta del almacén ni las llaves de MinIO entran a la tabla (ni rutas de máquina ni secretos)
+      and not ({"WITT_ATTESTED_DIR", "WITT_ATTESTED_MINIO_ACCESS_KEY", "WITT_ATTESTED_MINIO_SECRET_KEY"} & set(m.ENV_TABLE))
       and all("default" in v and "kind" in v and "reader" in v and "effect" in v and v["kind"] in m.ENV_KINDS for v in m.ENV_TABLE.values()),
       f"envs={sorted(m.ENV_TABLE)}")
 
@@ -467,12 +479,17 @@ check("thinking_state por tabla (C.4): opus-5 'adaptive-by-api-default (tokens d
 # 9. snapshot (I)
 # =====================================================================================================
 S = m.snapshot(env={}, today=T)
-check("snapshot: fields == SNAPSHOT_FIELDS (37 = 28 de ADR-0081 + 5 de ADR-0082 + 2 de ADR-0083 + 2 de ADR-0084 al final, cerrada, en orden) y cada "
-      "campo es exactamente {value, source}",
-      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 37
+check("snapshot: fields == SNAPSHOT_FIELDS (41 = 28 de ADR-0081 + 5 de ADR-0082 + 2 de ADR-0083 + 2 de ADR-0084 + 4 de ADR-0086 al final, "
+      "cerrada, en orden) y cada campo es exactamente {value, source}",
+      tuple(S["fields"]) == m.SNAPSHOT_FIELDS and len(m.SNAPSHOT_FIELDS) == 41
       and m.SNAPSHOT_FIELDS[28:33] == m.COUNCIL_SNAPSHOT_FIELDS == ("role.council", "council.enabled", "council.full", "council.effort", "council.cache_ttl")
       and m.SNAPSHOT_FIELDS[33:35] == m.FIGURES_SNAPSHOT_FIELDS == ("figures.enabled", "figures.vision")
-      and m.SNAPSHOT_FIELDS[35:] == m.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider")
+      and m.SNAPSHOT_FIELDS[35:37] == m.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider")
+      and m.SNAPSHOT_FIELDS[37:] == m.ATTESTED_SNAPSHOT_FIELDS == ("attested.enabled", "attested.vision",
+                                                                   "attested.backend", "attested.team_view")
+      # ADR-0086 (F3): los interruptores de lo atestiguado quedan FUERA de panel_signature — la firma del panel no cambia
+      # porque haya o no imágenes aportadas (si cambiara, toda corrida anterior parecería de otra configuración)
+      and not any(f in str(S["fields"]["panel_signature"]["value"]) for f in m.ATTESTED_SNAPSHOT_FIELDS)
       and all(set(c) == {"value", "source"} for c in S["fields"].values()))
 F = S["fields"]
 check("snapshot env vacía: defaults TIPADOS con fuente 'default-unset:' — min_families 2 · min_lenses 3 · auto_retire False · openai.api "
