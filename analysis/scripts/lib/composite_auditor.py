@@ -117,6 +117,10 @@ from lib import models
 # ADR-0083 (G): la librería de figuras se importa EN DURO (bloques por transporte, env tolerante, vocabularios). Si falta,
 # el módulo no importa y el smoke lo dice a gritos — mejor que un panel que "ve" a ciegas.
 from lib import figures as _figures
+try:                                    # ADR-0086 (F3): un árbol sin la biblioteca sigue corriendo y lo DECLARA
+    from lib import attestations as _attested
+except Exception:                       # pragma: no cover
+    _attested = None
 
 # ADR-0058 (decisión de Emmanuel, 2026-08-16): APPROVE_DECLINE distingue la DECLINACIÓN CORRECTA del
 # claim rechazado. Las dos únicas corridas reales terminaron AUDIT_REJECTED por decir la verdad sobre
@@ -155,6 +159,13 @@ VISION_LENSES_MAX_RULE = ("at most VISION_LENSES_MAX (2) panel lenses may receiv
 SAW_FIGURES_DETAILS = ("sent", "lens-not-in-vision-lenses", "kill-switch WITT_FIGURES_VISION=0", "no-eligible-figures",
                        "model-vision-unknown", "api-form-not-verified")
 VISION_STATES = ("sent", "kill-switch WITT_FIGURES_VISION=0", "no-eligible-figures")      # audit.vision.state (L)
+# ADR-0086 (F3) · `saw_attested.detail`, MEDIDO desde lo que se le entregó al caller — vocabulario CERRADO (va al gate)
+SAW_ATTESTED_DETAILS = ("sent", "lens-not-in-vision-lenses", "kill-switch WITT_ATTESTED_VISION=0",
+                        "kill-switch WITT_ATTESTED_IMAGES=0", "no-eligible-attested", "model-vision-unknown",
+                        "api-form-not-verified", "tool-unavailable (lib/attestations.py not importable)")
+ATTESTED_VISION_STATES = ("sent", "kill-switch WITT_ATTESTED_VISION=0", "kill-switch WITT_ATTESTED_IMAGES=0",
+                          "no-eligible-attested", "tool-unavailable (lib/attestations.py not importable)")
+ATTESTED_READINGS_CLASS = "model-judgment"      # lo que una lente dice de una imagen APORTADA es juicio, jamás medición
 API_FORM_VERIFIED = "verified by doc (2026-09-15)"      # Anthropic Messages y OpenAI Responses (ADR-0083 Context 8); chat: figures.OPENAI_CHAT_FORM_STATE
 # (G.3) LA REGLA, literal: va al system de las lentes que reciben imágenes y congelada en frozen.figures.vision.rule (F4).
 FIGURE_READING_RULE = ("You may be shown figure images from the cited papers. Use them ONLY to judge whether the claim "
@@ -1214,17 +1225,26 @@ def _default_caller(member, system, user_text, tool=None):
     reviewer = member.get("reviewer")
     figs = member.get("figures")
     figs = list(figs) if isinstance(figs, list) and figs else None
-    detail = _figures.env_config()["openai_detail"] if figs else None
+    # ADR-0086 (F3): las imágenes ATESTIGUADAS viajan en el MISMO contenido, detrás de su separador y después de las
+    # figuras — nunca mezcladas con ellas. Sólo audit() las pone en el member, y sólo a una lente con visión.
+    att = member.get("attested")
+    att = list(att) if isinstance(att, list) and att else None
+    detail = _figures.env_config()["openai_detail"] if (figs or att) else None
     if api == "openai-responses":
-        kw = {"user_content": _figures.openai_responses_parts(figs, user_text, detail)} if figs else {}
+        ab = _attested.openai_responses_attested_parts(att, detail) if (att and _attested is not None) else None
+        kw = ({"user_content": _figures.openai_responses_parts(figs, user_text, detail, attested_parts=ab)}
+              if (figs or ab) else {})
         return _openai_responses_call(reviewer, system, user_text, tool=tool, **kw)
     if api == "openai-chat-completions":
-        kw = {"user_content": _figures.openai_chat_parts(figs, user_text, detail)} if figs else {}
+        ab = _attested.openai_chat_attested_parts(att, detail) if (att and _attested is not None) else None
+        kw = ({"user_content": _figures.openai_chat_parts(figs, user_text, detail, attested_parts=ab)}
+              if (figs or ab) else {})
         return _openai_chat_call(reviewer, system, user_text, tool=tool, **kw)
     if api == "anthropic-messages":
         mt = member.get("max_tokens")
         max_tokens = mt if isinstance(mt, int) and not isinstance(mt, bool) and mt > 0 else ANTHROPIC_JUDGE_MAX_TOKENS_LEGACY
-        kw = {"user_content": _figures.anthropic_blocks(figs, user_text)} if figs else {}
+        ab = _attested.anthropic_attested_blocks(att) if (att and _attested is not None) else None
+        kw = ({"user_content": _figures.anthropic_blocks(figs, user_text, attested_blocks=ab)} if (figs or ab) else {})
         return _anthropic_tool_call(reviewer, system, user_text, tool=tool, max_tokens=max_tokens,
                                     effort=_anthropic_effort_for(reviewer), return_meta=True, **kw)
     raise CallerError("unknown-family",
@@ -1291,6 +1311,107 @@ def _vision_plan(fcfg, figures, lenses_arg):
     else:
         plan["lenses"], plan["lenses_source"] = vision_lenses()
     return plan
+
+
+def _attested_plan(attested, vis):
+    """{on, vision_on, lenses, max_per_lens, candidates, state_reason} — ADR-0086 (F3). Las lentes son las MISMAS que ven
+    figuras (VISION_LENSES: a lo sumo dos, §7); los topes salen de attestations.env_config() EN LA LLAMADA. Con
+    WITT_ATTESTED_IMAGES=0 o WITT_ATTESTED_VISION=0 no viaja ni un byte y el estado lo dice."""
+    if _attested is None:
+        return {"on": False, "vision_on": False, "lenses": tuple(vis["lenses"]), "max_per_lens": 0, "candidates": [],
+                "state_reason": "tool-unavailable (lib/attestations.py not importable)"}
+    try:
+        cfg = _attested.env_config()
+    except Exception as e:                                  # el lector es tolerante; un árbol roto se declara
+        return {"on": False, "vision_on": False, "lenses": tuple(vis["lenses"]), "max_per_lens": 0, "candidates": [],
+                "state_reason": f"error: {type(e).__name__}"}
+    enabled, vision = bool(cfg.get("enabled", True)), bool(cfg.get("vision", True))
+    return {"on": enabled, "vision_on": vision, "lenses": tuple(vis["lenses"]),
+            "max_per_lens": int(cfg.get("max_per_lens") or 0),
+            "candidates": [a for a in (attested or []) if isinstance(a, dict)],
+            "state_reason": None if (enabled and vision) else (
+                "kill-switch WITT_ATTESTED_IMAGES=0" if not enabled else "kill-switch WITT_ATTESTED_VISION=0")}
+
+
+def _attested_for_member(member, api, ap, figs_bytes=0):
+    """(saw_attested, imágenes a entregar | None) para UN asiento — MEDIDO desde lo que se le entrega al caller.
+    Mismo orden de decisión que las figuras y una regla más: el presupuesto b64 de la petición es COMPARTIDO y las
+    figuras van primero (`figs_bytes` ya consumido). Bajo el kill-switch maestro devuelve (None, None): nada se emite."""
+    # Sin imágenes aportadas (o con el kill-switch maestro) NO nace ninguna llave: una corrida sin ellas es byte a byte
+    # la de 1.13 (M.1 de la casa). Que no haya ninguna lo DECLARA el registro (frozen.attested_images.state), no el panel.
+    if not ap["candidates"] or (not ap["on"] and ap["state_reason"] in (None, "kill-switch WITT_ATTESTED_IMAGES=0")):
+        return None, None
+    lens = member.get("lens")
+    tier, _m, _v, _s = models.vision_tier_of(member.get("reviewer"))
+    saw = {"n": 0, "sha256s": [], "bytes_b64_total": 0, "detail": None, "attempts_with_images": 0,
+           "n_dropped": {"lens_cap": 0, "request_cap": 0, "invalid": 0}, "tier": tier,
+           "class": ATTESTED_READINGS_CLASS}
+    if ap["state_reason"]:
+        saw["detail"] = ap["state_reason"]
+        return saw, None
+    if lens not in ap["lenses"]:
+        saw["detail"] = "lens-not-in-vision-lenses"
+        return saw, None
+    if not ap["candidates"]:
+        saw["detail"] = "no-eligible-attested"
+        return saw, None
+    if tier in ("none", "unknown"):
+        saw["detail"] = "model-vision-unknown"
+        return saw, None
+    if api not in models.TOOL_CALL_APIS:
+        saw["detail"] = "api-form-not-verified"
+        return saw, None
+    cap = int(ap["max_per_lens"])
+    req_cap = int(float(_figures.REQUEST_B64_MB) * 1024 * 1024)
+    sel, total = [], int(figs_bytes or 0)
+    for a in ap["candidates"]:
+        b64 = a.get("b64")
+        if not (isinstance(b64, str) and b64 and a.get("sha256") and a.get("id")
+                and a.get("media_type") in _figures.MEDIA_TYPES):
+            saw["n_dropped"]["invalid"] += 1
+            continue
+        if len(sel) >= cap:
+            saw["n_dropped"]["lens_cap"] += 1
+            continue
+        if total + len(b64) > req_cap:
+            saw["n_dropped"]["request_cap"] += 1
+            continue
+        sel.append(a)
+        total += len(b64)
+    if not sel:
+        saw["detail"] = "no-eligible-attested"
+        return saw, None
+    saw.update({"n": len(sel), "sha256s": [a["sha256"] for a in sel],
+                "bytes_b64_total": total - int(figs_bytes or 0), "detail": "sent"})
+    return saw, sel
+
+
+def _attested_summary(rows, ap):
+    """{state, enabled, lenses, rule, n_candidates, n_images_by_lens, n_attempts_with_images, bytes_b64_sent_total,
+    readings {n_rows, n_readings, class}, saw_attested_details} — el resumen de QUIÉN vio bytes aportados por una persona.
+    Ningún caption ni byte viaja aquí: shas y conteos."""
+    n_by, n_att, b64 = {}, 0, 0
+    n_rows_r, n_read = 0, 0
+    for r in rows:
+        s = r.get("saw_attested")
+        if not isinstance(s, dict):
+            continue
+        n = int(s.get("n") or 0)
+        n_by[r.get("lens")] = n_by.get(r.get("lens"), 0) + n
+        att = int(s.get("attempts_with_images") or 0)
+        n_att += att
+        b64 += int(s.get("bytes_b64_total") or 0) * att
+        if isinstance(r.get("attested_readings"), list):
+            n_rows_r += 1
+            n_read += len(r["attested_readings"])
+    any_sent = any(n > 0 for n in n_by.values())
+    state = "sent" if any_sent else (ap["state_reason"] or "no-eligible-attested")
+    return {"state": state, "enabled": bool(ap["on"] and ap["vision_on"]), "lenses": list(ap["lenses"]),
+            "rule": (_attested.ATTESTED_READING_RULE if _attested is not None else None),
+            "n_candidates": len(ap["candidates"]), "n_images_by_lens": n_by, "n_attempts_with_images": n_att,
+            "bytes_b64_sent_total": b64,
+            "readings": {"n_rows": n_rows_r, "n_readings": n_read, "class": ATTESTED_READINGS_CLASS},
+            "saw_attested_details": list(SAW_ATTESTED_DETAILS)}
 
 
 def _figures_for_member(member, api, vis):
@@ -1445,7 +1566,7 @@ def _vision_summary(vis, rows):
 
 def audit(claim, evidence, deterministic_checks=None, required_because="", panel=None,
           caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None,
-          figures=None, vision_lenses=None):
+          figures=None, vision_lenses=None, attested=None):
     """Run the Mode 1 split-and-vote panel over (claim, evidence). Returns the audit object the §5
     contract and the frozen record carry VISIBLY:
 
@@ -1513,6 +1634,9 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     # ADR-0083 (G): configuración de figuras EN LA LLAMADA (figures.env_config tolerante) y plan de visión de este panel
     fcfg = _figures.env_config()
     vis = _vision_plan(fcfg, figures, vision_lenses)
+    # ADR-0086 (F3): plan de las imágenes ATESTIGUADAS — mismas lentes (a lo sumo dos), tope propio, presupuesto b64
+    # compartido con las figuras (las figuras van primero). Con el kill-switch maestro no se emite ninguna llave nueva.
+    ap = _attested_plan(attested, vis)
     user_text = json.dumps({
         "claim": claim,
         "evidence": evidence,
@@ -1544,6 +1668,10 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
         saw, figs_for_member = _figures_for_member(member, api, vis)
         if figs_for_member:
             system = system + "\n\n" + FIGURE_READING_RULE      # (G.3) la regla viaja SOLO cuando de veras viajan imágenes
+        saw_att, att_for_member = _attested_for_member(member, api, ap, int((saw or {}).get("bytes_b64_total") or 0))
+        if att_for_member and _attested is not None:
+            # la regla de lo ATESTIGUADO viaja SÓLO cuando de veras viajan imágenes aportadas por una persona
+            system = system + "\n\n" + _attested.ATTESTED_READING_RULE
         # ADR-0080 (E): hasta 1 + judge_retries intentos por juez; cada intento queda en `attempts`.
         # El gasto MEDIDO de cada intento que devolvió usage (incluido un intento ILEGIBLE: la API cobró
         # esos tokens aunque el veredicto se descarte) se conserva por intento y se SUMA en la fila
@@ -1561,6 +1689,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                 m_call = dict(member, attempt=attempt)
                 if figs_for_member:
                     m_call["figures"] = figs_for_member     # (G.2) DENTRO del member; la fila no lo copia (b64 no fuga)
+                if att_for_member:
+                    m_call["attested"] = att_for_member     # idem: los bytes aportados no tocan la fila ni el registro
                 out_v, usage, meta = _unpack_caller_result(caller(m_call, system, user_text))
                 if isinstance(usage, dict) and usage:
                     entry["usage"] = usage
@@ -1625,6 +1755,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                     row["figure_readings"] = fr
                     row["figure_readings_class"] = FIGURE_READINGS_CLASS
                     row["figure_readings_dropped"] = fr_dropped
+            if saw_att is not None:                      # ADR-0086 (F3): qué imágenes APORTADAS vio este asiento
+                row["saw_attested"] = saw_att
             rows.append(row)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):
@@ -1638,6 +1770,8 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                 _acc(usage_total, judge_usage)
             if saw is not None:   # ADR-0083 (G.6): también la fila errored declara lo que se le entregó (y reenvió)
                 row["saw_figures"] = saw
+            if saw_att is not None:                      # ADR-0086 (F3): qué imágenes APORTADAS vio este asiento
+                row["saw_attested"] = saw_att
             rows.append(row)
 
     valid = [r for r in rows if "verdict" in r]
@@ -1688,6 +1822,15 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
     if vis["figures_on"]:
         # ADR-0083 (G.6): el resumen de visión del panel (ausente bajo WITT_FIGURES=0: tres estados, M.1)
         out["vision"] = _vision_summary(vis, rows)
+    # ADR-0086 (F3): el resumen de lo ATESTIGUADO — quién vio bytes aportados por una persona y qué dijo de ellos.
+    # Vive junto al de visión cuando las figuras están encendidas, y solo cuando no (el kill-switch de figuras no debe
+    # esconder que alguien aportó imágenes). Ausente bajo WITT_ATTESTED_IMAGES=0: ninguna llave nueva (M.1).
+    if ap["candidates"] and (ap["on"] or ap["state_reason"] not in (None, "kill-switch WITT_ATTESTED_IMAGES=0")):
+        resumen_att = _attested_summary(rows, ap)
+        if isinstance(out.get("vision"), dict):
+            out["vision"]["attested"] = resumen_att
+        else:
+            out["attested_vision"] = resumen_att
     if failed:
         # a thin panel — or one without cross-family / cross-lens independence — can NEVER approve:
         # REVISE ESTRUCTURAL (jueces caídos o sin diversidad, no un hallazgo sobre la respuesta — ADR-0067 la

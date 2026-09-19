@@ -398,12 +398,13 @@ else:
 # 5. Contrato S2 (firmas) y docstring corregido
 # =====================================================================================================================
 check("contrato S2 (+ADR-0083 F3 aditivo al final): audit(claim, evidence, deterministic_checks=None, required_because='', panel=None, "
-      "caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None, figures=None, vision_lenses=None); "
+      "caller=None, min_valid=3, judge_retries=None, min_families=None, min_lenses=None, directives=None, figures=None, "
+      "vision_lenses=None, attested=None [ADR-0086 F3]); "
       "_default_caller(member, system, user_text, tool=None) SIN cambio; _anthropic_tool_call(..., max_tokens=1200, effort=None, "
       "return_meta=False, tools=None, user_content=None) (ADR-0082 D.1 `tools=` y ADR-0083 G.3 `user_content=` aditivos al final)",
       list(inspect.signature(ca.audit).parameters) == ["claim", "evidence", "deterministic_checks", "required_because", "panel",
                                                         "caller", "min_valid", "judge_retries", "min_families", "min_lenses",
-                                                        "directives", "figures", "vision_lenses"]
+                                                        "directives", "figures", "vision_lenses", "attested"]
       and inspect.signature(ca.audit).parameters["figures"].default is None
       and inspect.signature(ca.audit).parameters["vision_lenses"].default is None
       and list(inspect.signature(ca._default_caller).parameters) == ["member", "system", "user_text", "tool"]

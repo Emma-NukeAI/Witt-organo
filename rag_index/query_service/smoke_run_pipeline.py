@@ -6055,7 +6055,9 @@ check("ADR-0084 (tabla de env) el snapshot de configuración trae web.locator {'
       _snap84["fields"]["web.locator"] == {"value": "", "source": "default-unset:WITT_WEB_LOCATOR"}
       and _snap84["fields"]["web.provider"] == {"value": "off", "source": "default-derived:BRAVE_API_KEY absent"}
       and set(runs_mod.snapshot_extra()) == set(models.EXTRA_FIELDS) and _snap84.get("extra_ignored") == []
-      and models.SNAPSHOT_FIELDS[-2:] == models.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider"),
+      and models.SNAPSHOT_FIELDS[-6:-4] == models.WEB_SNAPSHOT_FIELDS == ("web.locator", "web.provider")
+      # ADR-0086 (F3a): los 4 interruptores de lo atestiguado cierran la lista, FUERA de panel_signature
+      and models.SNAPSHOT_FIELDS[-4:] == models.ATTESTED_SNAPSHOT_FIELDS,
       json.dumps({k: _snap84["fields"].get(k) for k in ("web.locator", "web.provider")}))
 
 # --- (q) CUOTA primero (tabla limpia): WITT_WEB_MONTHLY_CAP=1 → 1ª corrida granted, 2ª skipped-cap con detail, CERO GETs -----------

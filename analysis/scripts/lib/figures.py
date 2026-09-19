@@ -1481,18 +1481,24 @@ def figure_text_label(k, fig):
     return f"Figure {k} — {fig['id']} ({label}): {fig.get('caption') or ''}"
 
 
-def anthropic_blocks(figures, user_text):
+def anthropic_blocks(figures, user_text, attested_blocks=None):
     """Anthropic Messages `content` (forma verificada en el ADR, Context 8): imágenes ANTES del texto, cada una con su
-    rótulo → [{type text}, {type image, source {type base64, media_type, data}}] × N + [{type text, text: user_text}]."""
+    rótulo → [{type text}, {type image, source {type base64, media_type, data}}] × N + [{type text, text: user_text}].
+
+    ADR-0086 (F3): `attested_blocks` (ya construidos por attestations.anthropic_attested_blocks — este módulo NO importa
+    attestations) se INSERTA entre las figuras y el texto, detrás de su propio separador: las imágenes que aportó una
+    persona nunca se mezclan con las figuras de los papers ni se confunden con evidencia. Sin ellos, la forma es byte a
+    byte la de 1.12."""
     blocks = []
     for k, f in enumerate(figures or [], start=1):
         blocks.append({"type": "text", "text": figure_text_label(k, f)})
         blocks.append({"type": "image", "source": {"type": "base64", "media_type": f["media_type"], "data": f["b64"]}})
+    blocks.extend(attested_blocks or [])
     blocks.append({"type": "text", "text": user_text})
     return blocks
 
 
-def openai_responses_parts(figures, user_text, detail=None):
+def openai_responses_parts(figures, user_text, detail=None, attested_parts=None):
     """OpenAI Responses `input[0].content` (forma verificada): [{input_text}, {input_image, image_url data:…, detail}] × N
     + [{input_text: user_text}]."""
     detail = detail or env_config()["openai_detail"]
@@ -1500,11 +1506,12 @@ def openai_responses_parts(figures, user_text, detail=None):
     for k, f in enumerate(figures or [], start=1):
         parts.append({"type": "input_text", "text": figure_text_label(k, f)})
         parts.append({"type": "input_image", "image_url": f"data:{f['media_type']};base64,{f['b64']}", "detail": detail})
+    parts.extend(attested_parts or [])      # ADR-0086 (F3): lo atestiguado va tras las figuras y antes del texto
     parts.append({"type": "input_text", "text": user_text})
     return parts
 
 
-def openai_chat_parts(figures, user_text, detail=None):
+def openai_chat_parts(figures, user_text, detail=None, attested_parts=None):
     """OpenAI Chat Completions `messages[1].content` — forma pública conocida, declarada 'public form; not re-verified by
     doc in this work' (Context 8; LG4 la mide): [{text}, {image_url {url data:…, detail}}] × N + [{text: user_text}]."""
     detail = detail or env_config()["openai_detail"]
@@ -1512,6 +1519,7 @@ def openai_chat_parts(figures, user_text, detail=None):
     for k, f in enumerate(figures or [], start=1):
         parts.append({"type": "text", "text": figure_text_label(k, f)})
         parts.append({"type": "image_url", "image_url": {"url": f"data:{f['media_type']};base64,{f['b64']}", "detail": detail}})
+    parts.extend(attested_parts or [])      # ADR-0086 (F3): lo atestiguado va tras las figuras y antes del texto
     parts.append({"type": "text", "text": user_text})
     return parts
 

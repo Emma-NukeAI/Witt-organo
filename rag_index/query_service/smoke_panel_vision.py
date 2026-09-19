@@ -810,12 +810,14 @@ try:
           and "vision" not in b0["audit"] and b["bundle_identity"]["sha256"] != b0["bundle_identity"]["sha256"])
 except Exception as e:  # pragma: no cover
     check(f"apply_to_bundle: answer_pipeline importable ({type(e).__name__}: {str(e)[:80]})", False)
-check("contrato F3 (firmas): audit(..., directives=None, figures=None, vision_lenses=None); _anthropic_tool_call(..., tools=None, "
+check("contrato F3 (firmas, +ADR-0086 attested=None aditivo al final): audit(..., directives=None, figures=None, "
+      "vision_lenses=None, attested=None); _anthropic_tool_call(..., tools=None, "
       "user_content=None); _responses_kwargs(..., reasoning_effort=None, user_content=None); _openai_responses_call(..., user_content=None); "
       "_openai_chat_call(model, system, user_text, timeout=None, tool=None, client=None, user_content=None); _default_caller SIN cambio; "
       "parse_figure_readings(raw, delivered); figure_readings_from_panel(rows); vision_lenses(env=None)",
-      list(inspect.signature(ca.audit).parameters)[-3:] == ["directives", "figures", "vision_lenses"]
+      list(inspect.signature(ca.audit).parameters)[-4:] == ["directives", "figures", "vision_lenses", "attested"]
       and inspect.signature(ca.audit).parameters["figures"].default is None
+      and inspect.signature(ca.audit).parameters["attested"].default is None
       and list(inspect.signature(ca._anthropic_tool_call).parameters)[-2:] == ["tools", "user_content"]
       and list(inspect.signature(ca._responses_kwargs).parameters)[-2:] == ["reasoning_effort", "user_content"]
       and list(inspect.signature(ca._openai_responses_call).parameters)[-1] == "user_content"
@@ -855,6 +857,130 @@ check("docstring: el módulo declara ADR-0083 (G), user_content, saw_figures, FI
       all(s in ca.__doc__ for s in ("ADR-0083", "user_content", "saw_figures", "FIGURE_READING_RULE", "WITT_FIGURES=0")))
 check("(M.5) urllib.request.urlopen REAL bloqueado y contado: 0 llamadas en todo el gate; 'openai' jamás importado aquí",
       _NET_CALLS == [] and "openai" not in sys.modules, str(_NET_CALLS[:3]))
+
+# =====================================================================================================================
+# ADR-0086 (F3) · IMÁGENES ATESTIGUADAS AL PANEL — bytes sólo a las lentes con visión, rotulados y aparte de las figuras
+# =====================================================================================================================
+from lib import attestations as AT  # noqa: E402
+
+_B64_A = base64.b64encode(b"imagen-atestiguada-A" * 8).decode()
+_B64_B = base64.b64encode(b"imagen-atestiguada-B" * 8).decode()
+ATT_A = {"id": "attested:" + "a" * 12, "sha256": "a" * 64, "media_type": "image/png", "b64": _B64_A,
+         "caption": "micrografía de pronefros aportada por natalia", "dims": {"w": 64, "h": 48}}
+ATT_B = {"id": "attested:" + "b" * 12, "sha256": "b" * 64, "media_type": "image/png", "b64": _B64_B,
+         "caption": "corte histológico aportado por natalia", "dims": {"w": 64, "h": 48}}
+PANEL_4 = [{"reviewer": OPUS, "family": "anthropic", "lens": l}   # OPUS sale de la tabla: cero literales de modelo aquí
+           for l in ("correctness", "overclaim", "evidence-grounding", "reproducibility")]
+
+
+def _mk_caller_att(registro):
+    """Caller falso que APUNTA lo que recibió cada asiento (member y system) y devuelve un veredicto válido."""
+    def _c(member, system, user_text):
+        registro[member["lens"]] = {
+            "n_attested": len(member.get("attested") or []),
+            "n_figures": len(member.get("figures") or []),
+            "regla_attested": AT.ATTESTED_READING_RULE in system,
+            "regla_figuras": ca.FIGURE_READING_RULE in system,
+        }
+        return ({"verdict": "approve", "caught": "", "correction_applied": "", "reasons": [], "citation_support": []},
+                {"input_tokens": 10, "output_tokens": 2}, {})
+    return _c
+
+
+_reg = {}
+_a_att = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att(_reg), min_valid=1, attested=[ATT_A])
+check("(0086 F3) sólo las DOS lentes con visión reciben bytes atestiguados; las otras no reciben ninguno y su fila lo "
+      "declara con el vocabulario cerrado",
+      _reg["evidence-grounding"]["n_attested"] == 1 and _reg["reproducibility"]["n_attested"] == 1
+      and _reg["correctness"]["n_attested"] == 0 and _reg["overclaim"]["n_attested"] == 0
+      and {r["lens"]: r["saw_attested"]["detail"] for r in _a_att["panel"]} == {
+          "evidence-grounding": "sent", "reproducibility": "sent",
+          "correctness": "lens-not-in-vision-lenses", "overclaim": "lens-not-in-vision-lenses"}
+      and all(r["saw_attested"]["detail"] in ca.SAW_ATTESTED_DETAILS for r in _a_att["panel"]),
+      json.dumps({r["lens"]: r["saw_attested"]["detail"] for r in _a_att["panel"]}))
+check("(0086 F3) la regla de lo atestiguado entra al system SÓLO de quien recibe imágenes aportadas; el resto ve el "
+      "system de siempre",
+      _reg["evidence-grounding"]["regla_attested"] and _reg["reproducibility"]["regla_attested"]
+      and not _reg["correctness"]["regla_attested"] and not _reg["overclaim"]["regla_attested"])
+check("(0086 F3) la fila declara lo entregado (n y shas) y su CLASE: lo que una lente diga de una imagen aportada es "
+      "JUICIO, jamás medición",
+      [r for r in _a_att["panel"] if r["lens"] == "evidence-grounding"][0]["saw_attested"]["sha256s"] == ["a" * 64]
+      and [r for r in _a_att["panel"] if r["lens"] == "evidence-grounding"][0]["saw_attested"]["class"] == "model-judgment"
+      and ca.ATTESTED_READINGS_CLASS == "model-judgment")
+_res_att = (_a_att.get("vision") or {}).get("attested") or _a_att.get("attested_vision")
+check("(0086 F3) el resumen dice el estado, las lentes, cuántas vio cada una, la regla literal y su clase — sin un solo "
+      "byte ni caption",
+      _res_att["state"] == "sent" and _res_att["enabled"] is True
+      and _res_att["n_images_by_lens"]["evidence-grounding"] == 1 and _res_att["n_candidates"] == 1
+      and _res_att["rule"] == AT.ATTESTED_READING_RULE and _res_att["readings"]["class"] == "model-judgment"
+      and _B64_A not in json.dumps(_res_att) and "micrografía" not in json.dumps(_res_att, ensure_ascii=False))
+check("(0086 F3) NINGÚN byte atestiguado entra al objeto audit (los b64 viven en el member, que la fila no copia)",
+      _B64_A not in json.dumps(_a_att, default=str) and "micrografía" not in json.dumps(_a_att, ensure_ascii=False, default=str))
+
+_reg0 = {}
+_a_sin = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att(_reg0), min_valid=1)
+check("(0086 M.1) una corrida SIN imágenes aportadas es byte a byte la de 1.13: ninguna fila trae saw_attested, el audit "
+      "no trae el resumen y el member no trae `attested`",
+      not any("saw_attested" in r for r in _a_sin["panel"])
+      and "attested" not in json.dumps(_a_sin.get("vision") or {}) and "attested_vision" not in _a_sin
+      and all(v["n_attested"] == 0 and not v["regla_attested"] for v in _reg0.values()))
+
+_reg_ks = {}
+os.environ["WITT_ATTESTED_IMAGES"] = "0"
+_a_ks = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att(_reg_ks), min_valid=1, attested=[ATT_A])
+os.environ.pop("WITT_ATTESTED_IMAGES", None)
+check("(0086 M.1) KILL-SWITCH WITT_ATTESTED_IMAGES=0 aunque el llamador pase imágenes: ninguna fila trae saw_attested, "
+      "el audit no trae resumen, el member no recibe nada y la regla no entra al system",
+      not any("saw_attested" in r for r in _a_ks["panel"])
+      and "attested" not in json.dumps(_a_ks.get("vision") or {}) and "attested_vision" not in _a_ks
+      and all(v["n_attested"] == 0 and not v["regla_attested"] for v in _reg_ks.values()))
+
+_reg_v0 = {}
+os.environ["WITT_ATTESTED_VISION"] = "0"
+_a_v0 = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att(_reg_v0), min_valid=1, attested=[ATT_A])
+os.environ.pop("WITT_ATTESTED_VISION", None)
+check("(0086 N.2) VISIÓN APAGADA (WITT_ATTESTED_VISION=0): ninguna lente recibe bytes, pero el registro lo DECLARA con "
+      "su estado — apagar no es 'no había imágenes'",
+      all(v["n_attested"] == 0 for v in _reg_v0.values())
+      and all(r["saw_attested"]["detail"] == "kill-switch WITT_ATTESTED_VISION=0" for r in _a_v0["panel"])
+      and ((_a_v0.get("vision") or {}).get("attested") or {}).get("state") == "kill-switch WITT_ATTESTED_VISION=0",
+      json.dumps([r.get("saw_attested", {}).get("detail") for r in _a_v0["panel"]]))
+
+_reg_cap = {}
+os.environ["WITT_ATTESTED_MAX_PER_LENS"] = "1"
+_a_cap = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att(_reg_cap), min_valid=1, attested=[ATT_A, ATT_B])
+os.environ.pop("WITT_ATTESTED_MAX_PER_LENS", None)
+_eg_cap = [r for r in _a_cap["panel"] if r["lens"] == "evidence-grounding"][0]["saw_attested"]
+check("(0086 F3) el tope por lente se respeta y lo que se quedó fuera se CUENTA (no desaparece en silencio)",
+      _reg_cap["evidence-grounding"]["n_attested"] == 1 and _eg_cap["n"] == 1
+      and _eg_cap["n_dropped"]["lens_cap"] == 1, json.dumps(_eg_cap["n_dropped"]))
+
+_mala = {"id": "attested:mala", "sha256": "c" * 64, "media_type": "application/pdf", "b64": _B64_A}
+_a_mala = ca.audit("claim", "evidence", panel=PANEL_4, caller=_mk_caller_att({}), min_valid=1, attested=[_mala])
+_eg_mala = [r for r in _a_mala["panel"] if r["lens"] == "evidence-grounding"][0]["saw_attested"]
+check("(0086 F3) una imagen con forma inválida (tipo fuera de vocabulario) no se entrega y se cuenta como descartada",
+      _eg_mala["detail"] == "no-eligible-attested" and _eg_mala["n_dropped"]["invalid"] == 1)
+
+# --- la FORMA del contenido: figuras primero, lo atestiguado detrás de su separador, el texto al final ---------------
+_blocks = F.anthropic_blocks([FIGS[0]] if FIGS else [], "TEXTO-DEL-USUARIO",
+                             attested_blocks=AT.anthropic_attested_blocks([ATT_A]))
+_tipos = [b.get("type") for b in _blocks]
+check("(0086 F3) Anthropic: [figuras…] + [separador ATESTIGUADO + rótulo + imagen] + [texto] — las imágenes aportadas "
+      "van DESPUÉS de las figuras y ANTES del texto, nunca mezcladas",
+      _tipos[-1] == "text" and _blocks[-1]["text"] == "TEXTO-DEL-USUARIO"
+      and AT.ATTESTED_SEPARATOR_TEXT in json.dumps(_blocks, ensure_ascii=False)
+      and _tipos.index("image") < len(_tipos) - 1,
+      json.dumps(_tipos))
+check("(0086 F3) el separador dice, con todas sus letras, que lo que sigue es PRIOR ART de una persona y NUNCA evidencia",
+      "prior art" in AT.ATTESTED_SEPARATOR_TEXT.lower() and "never evidence" in AT.ATTESTED_SEPARATOR_TEXT.lower())
+check("(0086 F3) sin bloques atestiguados el contenido es BYTE A BYTE el de 1.12 (el parámetro es aditivo)",
+      F.anthropic_blocks([FIGS[0]] if FIGS else [], "T") == F.anthropic_blocks([FIGS[0]] if FIGS else [], "T", attested_blocks=None)
+      and F.openai_responses_parts([], "T") == F.openai_responses_parts([], "T", attested_parts=None)
+      and F.openai_chat_parts([], "T") == F.openai_chat_parts([], "T", attested_parts=None))
+check("(0086 F3) el módulo declara en su docstring la entrega de lo atestiguado y su vocabulario",
+      "ADR-0086" in ca.__doc__ or "attested" in ca.__doc__.lower()
+      or all(hasattr(ca, n) for n in ("SAW_ATTESTED_DETAILS", "ATTESTED_READINGS_CLASS", "_attested_for_member")))
+
 
 npass = sum(CHECKS)
 print("\n== %d/%d PASS ==" % (npass, len(CHECKS)))
