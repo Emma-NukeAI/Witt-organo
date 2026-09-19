@@ -7,7 +7,8 @@ psycopg[binary]>=3.1        # Postgres driver (ADR-0047 decision 1); SQLite need
 # --- reused DATA INAMOVIBLE libs (same as rag_index/graphrag/requirements.txt) ---
 neo4j>=5.20
 openai>=1.66,<3             # ADR-0081 (C.1): el juez OpenAI habla la Responses API (client.responses, >= 1.66); <3 acota el mayor (medido 2.53.0 en el venv de los gates)
-minio>=7.2
+minio>=7.2,<8                # ADR-0086: la 7.2 usa metadata= posicional en put_object; master es keyword-only user_metadata (medido 7.2.20 en el venv)
+python-multipart>=0.0.9     # ADR-0086: UploadFile/Form — la misma línea que ingest_service (medido 0.0.32 en el venv)
 scikit-learn
 numpy
 fpdf2>=2.8                  # PDF de servidor del registro congelado (M4, ADR-0073) — 4 paquetes puros, medido

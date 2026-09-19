@@ -1,0 +1,232 @@
+{
+  "contract": "1.14",
+  "adr": "ADR-0086",
+  "slice": "F1",
+  "generated_by": "attestations.synthetic_fixtures()",
+  "module_version": "att-1",
+  "note": "Fixtures 100% SINTÉTICOS generados por código (struct/zlib) — cero binarios en git, cero material real; los metadatos (Exif/GPS/fecha/comentarios) son FICTICIOS. sha256_received = bytes generados; strip.sha256 = bytes ALMACENADOS (post-strip), la identidad canónica. | regenerado por smoke_attestations (F1): los bytes los produce attestations.synthetic_fixtures(); este archivo es DERIVADO.",
+  "fixtures": {
+    "gif_comment.gif": {
+      "synthetic": true,
+      "bytes": 84,
+      "sha256_received": "9d2e9ebf5d2897b4f307a2da1cdca6784b0e35ddf518087b075844f43466455d",
+      "media_type_sniffed": "image/gif",
+      "dims": {
+        "w": 1,
+        "h": 1
+      },
+      "strip": {
+        "exif_state": "stripped (Comment)",
+        "removed": [
+          "Comment"
+        ],
+        "sha256": "1ba65896cef367e638a3f2c83d2ac7aa0775e1e7b1221eea3988c9fe76b3fcb9",
+        "bytes": 54,
+        "sha_changed": true
+      },
+      "expected": {
+        "validate_bytes_status": 415,
+        "validate_bytes_state": "unsupported-media-type",
+        "exif_state": "stripped (Comment)"
+      }
+    },
+    "jpeg_exif_mpf_com.jpg": {
+      "synthetic": true,
+      "bytes": 461,
+      "sha256_received": "7cc70123f2077be3ee9c183012d0f4689be597903492b1427dacfbafe6c773fb",
+      "media_type_sniffed": "image/jpeg",
+      "dims": {
+        "w": 80,
+        "h": 60
+      },
+      "strip": {
+        "exif_state": "stripped (APP1, APP2:MPF, COM)",
+        "removed": [
+          "APP1",
+          "APP2:MPF",
+          "COM"
+        ],
+        "sha256": "9d9a2d89e962351bd8880c7f71ad5e30d336abf245b009e565649cd09d49d9df",
+        "bytes": 236,
+        "sha_changed": true
+      },
+      "expected": {
+        "validate_bytes_status": null,
+        "validate_bytes_state": null,
+        "exif_state": "stripped (APP1, APP2:MPF, COM)"
+      }
+    },
+    "jpeg_truncated_after_app1.jpg": {
+      "synthetic": true,
+      "bytes": 126,
+      "sha256_received": "05a6a19a6fd5454c86a11c2969b75840ff05b15e62838c0e24f051641cdc1e6f",
+      "media_type_sniffed": "image/jpeg",
+      "dims": {
+        "w": 80,
+        "h": 60
+      },
+      "strip": {
+        "state": "strip-failed",
+        "detail": "segment 0xE1 truncated (declared 200, available 22)"
+      },
+      "expected": {
+        "validate_bytes_status": null,
+        "validate_bytes_state": null,
+        "exif_state": "strip-failed"
+      }
+    },
+    "not_image.pdf": {
+      "synthetic": true,
+      "bytes": 51,
+      "sha256_received": "4579fbf2740104b473bd355e10bad2bc7534f0496119a9390915199f1db01180",
+      "media_type_sniffed": null,
+      "dims": null,
+      "strip": null,
+      "expected": {
+        "validate_bytes_status": 415,
+        "validate_bytes_state": "unsupported-media-type",
+        "exif_state": null
+      }
+    },
+    "png_64mp.png": {
+      "synthetic": true,
+      "bytes": 68,
+      "sha256_received": "0624524855afaed05dba8db741629537d37e3fb7ae2fc10aff46a8e61494fd1c",
+      "media_type_sniffed": "image/png",
+      "dims": {
+        "w": 8000,
+        "h": 8000
+      },
+      "strip": {
+        "exif_state": "none-found",
+        "removed": [],
+        "sha256": "0624524855afaed05dba8db741629537d37e3fb7ae2fc10aff46a8e61494fd1c",
+        "bytes": 68,
+        "sha_changed": false
+      },
+      "expected": {
+        "validate_bytes_status": 422,
+        "validate_bytes_state": "image-too-many-pixels",
+        "exif_state": "none-found"
+      }
+    },
+    "png_clean_64x48.png": {
+      "synthetic": true,
+      "bytes": 639,
+      "sha256_received": "824cc401e0c57438addb54aef8f01b99ed9484a5838938938779fea186a63d21",
+      "media_type_sniffed": "image/png",
+      "dims": {
+        "w": 64,
+        "h": 48
+      },
+      "strip": {
+        "exif_state": "none-found",
+        "removed": [],
+        "sha256": "824cc401e0c57438addb54aef8f01b99ed9484a5838938938779fea186a63d21",
+        "bytes": 639,
+        "sha_changed": false
+      },
+      "expected": {
+        "validate_bytes_status": null,
+        "validate_bytes_state": null,
+        "exif_state": "none-found"
+      }
+    },
+    "png_over_cap.png": {
+      "synthetic": true,
+      "bytes": 5243349,
+      "sha256_received": "7fd5b848829b43ebe38e8c95ff067fa099e35c237c8972fe30e3758d80c20833",
+      "media_type_sniffed": "image/png",
+      "dims": {
+        "w": 64,
+        "h": 48
+      },
+      "strip": {
+        "exif_state": "none-found",
+        "removed": [],
+        "sha256": "7fd5b848829b43ebe38e8c95ff067fa099e35c237c8972fe30e3758d80c20833",
+        "bytes": 5243349,
+        "sha_changed": false
+      },
+      "expected": {
+        "validate_bytes_status": 413,
+        "validate_bytes_state": "attested_image_too_large",
+        "exif_state": "none-found"
+      }
+    },
+    "png_text.png": {
+      "synthetic": true,
+      "bytes": 675,
+      "sha256_received": "d824c126016af4788858ced900f6783b042651f4fb01223aeb5f58cf243a1a71",
+      "media_type_sniffed": "image/png",
+      "dims": {
+        "w": 32,
+        "h": 24
+      },
+      "strip": {
+        "exif_state": "stripped (tEXt, eXIf, tIME)",
+        "removed": [
+          "tEXt",
+          "eXIf",
+          "tIME"
+        ],
+        "sha256": "fcd899300b68d1a04d549aaf9fde1cce725e3bb7cde33d6eca0f5db9e48953eb",
+        "bytes": 443,
+        "sha_changed": true
+      },
+      "expected": {
+        "validate_bytes_status": null,
+        "validate_bytes_state": null,
+        "exif_state": "stripped (tEXt, eXIf, tIME)"
+      }
+    },
+    "png_too_small_8x8.png": {
+      "synthetic": true,
+      "bytes": 137,
+      "sha256_received": "4ddb593d7edbc6386afec9e1cec255e0d797a6d48a32b391c4a66c3eb152e882",
+      "media_type_sniffed": "image/png",
+      "dims": {
+        "w": 8,
+        "h": 8
+      },
+      "strip": {
+        "exif_state": "none-found",
+        "removed": [],
+        "sha256": "4ddb593d7edbc6386afec9e1cec255e0d797a6d48a32b391c4a66c3eb152e882",
+        "bytes": 137,
+        "sha_changed": false
+      },
+      "expected": {
+        "validate_bytes_status": 422,
+        "validate_bytes_state": "image-too-small",
+        "exif_state": "none-found"
+      }
+    },
+    "webp_exif.webp": {
+      "synthetic": true,
+      "bytes": 102,
+      "sha256_received": "f5b0397c2c73c11589101c8d72121c732523b97eb59387a1c877ae7ac9ce87fb",
+      "media_type_sniffed": "image/webp",
+      "dims": {
+        "w": 32,
+        "h": 32
+      },
+      "strip": {
+        "exif_state": "stripped (EXIF)",
+        "removed": [
+          "EXIF"
+        ],
+        "sha256": "90afcaf40316578d5830af9fd097fbc66f13ed925f7939ebfaf7f7d8c98881c3",
+        "bytes": 48,
+        "sha_changed": true
+      },
+      "expected": {
+        "validate_bytes_status": null,
+        "validate_bytes_state": null,
+        "exif_state": "stripped (EXIF)"
+      }
+    }
+  },
+  "generated_at": "2026-09-16T00:00:00Z",
+  "generated_at_note": "fecha del corte de F1; el smoke compara el MANIFEST sin esta llave (los bytes son deterministas)"
+}
