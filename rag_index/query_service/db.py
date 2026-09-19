@@ -324,6 +324,61 @@ web_locator_usage = Table(
 WEB_LOCATOR_USAGE_TABLE = "web_locator_usage"
 WEB_LOCATOR_USAGE_FIELDS = ("month", "provider", "n_queries", "n_results", "cost_usd_projected", "updated_at")
 
+# ADR-0086 (F): las IMÁGENES ATESTIGUADAS que aporta una persona. La fila guarda IDENTIDAD y PROCEDENCIA; los BYTES viven
+# fuera (almacenamiento privado, attestations.Storage) y aquí sólo viaja su llave. Nace por create_all: CERO ALTER sobre
+# tablas existentes (una migración aditiva que un Postgres viejo tolera). Retirar NO borra la fila: pone la lápida
+# (withdrawn_at/by/reason) y borra los bytes — el registro es inmutable, los píxeles no.
+plan_attested_images = Table(
+    "plan_attested_images", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("image_id", String(80), nullable=False),                  # attested:<sha corto> (identidad legible)
+    Column("plan_id", String(64), nullable=False),
+    Column("sha256", String(64), nullable=False),                    # de los bytes ALMACENADOS (post-strip): lo que se sirve
+    Column("sha256_received", String(64), nullable=True),            # del archivo que subió la persona (para que lo coteje)
+    Column("bytes", Integer, nullable=False, default=0),
+    Column("bytes_received", Integer, nullable=True),
+    Column("media_type", String(32), nullable=False),                # MEDIDO por magic bytes
+    Column("media_type_declared", String(64), nullable=True),        # lo que dijo el cliente: se registra, no decide
+    Column("dims_w", Integer, nullable=True),
+    Column("dims_h", Integer, nullable=True),
+    Column("caption", Text, nullable=False),                         # ATESTIGUADO: lo que la persona dice de su imagen
+    Column("caption_chars", Integer, nullable=True),
+    Column("consent_kind", String(32), nullable=False),
+    Column("consent_declared", Boolean, nullable=False, default=False),
+    Column("consent_text", Text, nullable=True),
+    Column("third_party_ack", Boolean, nullable=False, default=False),
+    Column("patient_material", Boolean, nullable=False, default=False),
+    Column("deidentified_declared", Boolean, nullable=False, default=False),
+    Column("license_declared", String(32), nullable=False),
+    Column("share_scope", String(16), nullable=False),               # author-only | team (la persona lo declara al subir)
+    Column("requirement_id", String(64), nullable=True),             # el requisito del consejo al que se adjuntó
+    Column("date_taken", String(32), nullable=True),
+    Column("method", Text, nullable=True),
+    Column("exif_state", String(64), nullable=True),                 # stripped (…) | none-found | declared-not-stripped
+    Column("exif_removed_json", Text, nullable=True),
+    Column("storage_backend", String(16), nullable=False),           # local | minio (el de CUANDO se guardó)
+    Column("storage_key", String(255), nullable=False),
+    Column("storage_state", String(48), nullable=False),
+    Column("uploaded_by", String(64), nullable=False),
+    Column("uploaded_by_role", String(32), nullable=True),
+    Column("uploaded_at", DateTime(timezone=True), nullable=False),
+    Column("ledger_state", String(24), nullable=False, default="staged"),   # staged | attached | inherited
+    Column("attached_to", String(32), nullable=True),                # knowledge_now | requirement | null (aún no adjuntada)
+    Column("attached_at", DateTime(timezone=True), nullable=True),
+    Column("attached_by", String(64), nullable=True),
+    Column("inherited_from_plan_id", String(64), nullable=True),
+    Column("inherited_from_run_id", String(64), nullable=True),
+    Column("withdrawn_at", DateTime(timezone=True), nullable=True),  # LÁPIDA: la identidad se queda, los bytes se van
+    Column("withdrawn_by", String(64), nullable=True),
+    Column("withdraw_reason", Text, nullable=True),
+    Column("withdraw_cascade_n", Integer, nullable=True),
+    UniqueConstraint("plan_id", "sha256", name="uq_attested_plan_sha"),
+)
+Index("ix_attested_plan", plan_attested_images.c.plan_id)
+Index("ix_attested_uploader", plan_attested_images.c.uploaded_by, plan_attested_images.c.uploaded_at)
+ATTESTED_IMAGES_TABLE = "plan_attested_images"
+
+
 _engine = None
 
 
@@ -2432,6 +2487,129 @@ def web_locator_usage_months(limit=12):
                     "n_results": int(d["n_results"] or 0), "cost_usd_projected": round(float(d["cost_usd_projected"] or 0.0), 6),
                     "updated_at": _iso(d["updated_at"])})
     return out
+
+
+# =====================================================================================================================
+# ADR-0086 (F) · imágenes atestiguadas: escribir, leer, adjuntar y RETIRAR (nunca borrar la fila)
+# =====================================================================================================================
+def attested_schema_state() -> str:
+    """'ready' | 'table-missing' | 'error: …' — insumo del 503 declarado de las puertas y del estado del bloque congelado."""
+    try:
+        return "ready" if sa_inspect(engine()).has_table(ATTESTED_IMAGES_TABLE) else "table-missing"
+    except Exception as e:
+        return f"error: {type(e).__name__}"
+
+
+def _attested_row_out(d):
+    """La fila como la leen attestations.* (fechas en ISO; los booleanos como tales; ningún byte)."""
+    out = dict(d)
+    for k in ("uploaded_at", "attached_at", "withdrawn_at"):
+        out[k] = _iso(out.get(k))
+    for k in ("consent_declared", "third_party_ack", "patient_material", "deidentified_declared"):
+        out[k] = bool(out.get(k))
+    return out
+
+
+def attested_image_insert(row: dict) -> bool:
+    """INSERT de una imagen recién subida (la fila la arma attestations.build_row). False si ese plan ya tiene ese sha
+    (UNIQUE): subir dos veces el MISMO archivo al mismo plan no crea dos identidades."""
+    t = plan_attested_images
+    vals = {c.name: row.get(c.name) for c in t.columns if c.name != "id"}
+    for k in ("uploaded_at", "attached_at", "withdrawn_at"):
+        v = vals.get(k)
+        if isinstance(v, str) and v:
+            try:
+                vals[k] = datetime.datetime.fromisoformat(v.replace("Z", "+00:00"))
+            except ValueError:
+                vals[k] = _now()
+    vals["uploaded_at"] = vals.get("uploaded_at") or _now()
+    with engine().begin() as cx:
+        if cx.execute(select(t.c.id).where(t.c.plan_id == row["plan_id"], t.c.sha256 == row["sha256"])).first():
+            return False
+        cx.execute(t.insert().values(**vals))
+    return True
+
+
+def attested_images_of_plan(plan_id: str, include_withdrawn: bool = True, attached_only: bool = False):
+    """Las imágenes de un plan en orden de subida (uploaded_at, sha256) — el MISMO orden que ve el panel."""
+    t = plan_attested_images
+    q = select(t).where(t.c.plan_id == plan_id)
+    if not include_withdrawn:
+        q = q.where(t.c.withdrawn_at.is_(None))
+    if attached_only:
+        q = q.where(t.c.attached_to.isnot(None))
+    q = q.order_by(t.c.uploaded_at.asc(), t.c.sha256.asc())
+    with engine().connect() as cx:
+        return [_attested_row_out(dict(r._mapping)) for r in cx.execute(q).fetchall()]
+
+
+def attested_image_get(plan_id: str, sha256: str):
+    """UNA fila por (plan, sha) o None — la puerta de bytes la necesita para decidir quién puede verla."""
+    t = plan_attested_images
+    with engine().connect() as cx:
+        r = cx.execute(select(t).where(t.c.plan_id == plan_id, t.c.sha256 == sha256)).first()
+    return _attested_row_out(dict(r._mapping)) if r else None
+
+
+def attested_image_attach(plan_id: str, sha256: str, attached_to: str, requirement_id=None, by=None) -> bool:
+    """Sella la imagen al ledger aprobado (la compuerta humana): sólo si NO está retirada. False si no aplicó."""
+    t = plan_attested_images
+    with engine().begin() as cx:
+        res = cx.execute(t.update().where(t.c.plan_id == plan_id, t.c.sha256 == sha256, t.c.withdrawn_at.is_(None))
+                         .values(attached_to=attached_to, requirement_id=requirement_id, attached_by=by,
+                                 attached_at=_now(), ledger_state="attached"))
+    return bool(res.rowcount)
+
+
+def attested_image_withdraw(plan_id: str, sha256: str, by: str, reason: str, cascade_n=None) -> bool:
+    """LÁPIDA: marca la fila como retirada (identidad, procedencia y decisión se conservan). Los BYTES los borra quien
+    llama, del almacén. Idempotente: una fila ya retirada devuelve False y no se re-escribe."""
+    t = plan_attested_images
+    with engine().begin() as cx:
+        res = cx.execute(t.update().where(t.c.plan_id == plan_id, t.c.sha256 == sha256, t.c.withdrawn_at.is_(None))
+                         .values(withdrawn_at=_now(), withdrawn_by=by, withdraw_reason=reason,
+                                 withdraw_cascade_n=cascade_n, storage_state="withdrawn (tombstone)"))
+    return bool(res.rowcount)
+
+
+def attested_images_inherited_from(plan_id: str, sha256: str):
+    """Las copias que otro plan heredó de esta imagen — la cascada del retiro las alcanza."""
+    t = plan_attested_images
+    with engine().connect() as cx:
+        rows = cx.execute(select(t).where(t.c.inherited_from_plan_id == plan_id, t.c.sha256 == sha256,
+                                          t.c.withdrawn_at.is_(None))).fetchall()
+    return [_attested_row_out(dict(r._mapping)) for r in rows]
+
+
+def attested_images_uploaded_today(uploaded_by: str, since) -> int:
+    """Cuántas subió esta persona desde `since` (tope por persona y día, declarado en la tabla de env)."""
+    t = plan_attested_images
+    if isinstance(since, str) and since:
+        try:
+            since = datetime.datetime.fromisoformat(since.replace("Z", "+00:00"))
+        except ValueError:
+            return 0
+    with engine().connect() as cx:
+        return int(cx.execute(select(func.count()).select_from(t)
+                              .where(t.c.uploaded_by == uploaded_by, t.c.uploaded_at >= since)).scalar() or 0)
+
+
+def attested_images_usage(plan_ids=None):
+    """Agregado para /usage.attested_images: conteos MEDIDOS (nunca proyecciones) sobre las filas vivas."""
+    t = plan_attested_images
+    q = select(func.count(), func.coalesce(func.sum(t.c.bytes), 0),
+               func.sum(case((t.c.withdrawn_at.isnot(None), 1), else_=0)),
+               func.sum(case((t.c.attached_to.isnot(None), 1), else_=0)),
+               func.sum(case((t.c.patient_material.is_(True), 1), else_=0))).select_from(t)
+    if plan_ids:
+        q = q.where(t.c.plan_id.in_(list(plan_ids)))
+    with engine().connect() as cx:
+        n, nbytes, nwd, natt, npat = cx.execute(q).first()
+    return {"n_images": int(n or 0), "bytes_total": int(nbytes or 0), "n_withdrawn": int(nwd or 0),
+            "n_attached": int(natt or 0), "n_patient_material": int(npat or 0),
+            "class": "medición (conteos y bytes de las filas; ningún byte de imagen viaja aquí)"}
+
+
 # La COMPARACIÓN (qué campo cambió respecto a la última fila) NO vive aquí: es del escritor
 # (config_ledger.diff_rows, S5 — ADR-0081 (I): "compara con la ÚLTIMA fila por campo y appendea"). db sólo
 # codifica, cuida el cinturón, escribe y lee: una sola verdad para el diff.
