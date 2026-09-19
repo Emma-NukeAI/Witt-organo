@@ -1069,6 +1069,86 @@ check("(E) determinista byte a byte (dos corridas del caso más cargado → mism
       "(ADR-0084 M.2: el gate no toca la red)",
       json.dumps(wf_r1, sort_keys=True) == json.dumps(wf_r2, sort_keys=True) and _NET_CALLS == [], f"net={_NET_CALLS}")
 
+# ============================================================================================================
+# 8) ADR-0086 (E) · IMÁGENES ATESTIGUADAS — jamás cita, jamás evidencia
+# ============================================================================================================
+SHA_A = "a1" * 32
+SHA_B = "b2" * 32
+IT_A = {"sha256": SHA_A, "sha256_short": SHA_A[:12], "id": "attested:" + SHA_A[:12], "caption": "micrografía de pronefros"}
+IT_B = {"sha256": SHA_B, "sha256_short": SHA_B[:12], "id": "attested:" + SHA_B[:12], "caption": "corte histológico"}
+ATT = [IT_A, IT_B]
+CITAS_LIMPIAS = [{"n": 1, "kind": "paper", "id": "PMID:12736228"}, {"n": 2, "kind": "di-chunk", "id": "ZDB-GENE-1"}]
+
+af, ap = vo.attested_predicates(CITAS_LIMPIAS, ATT, {"direct_answer": "wt1a es necesario para el pronefros [1]."})
+check("(0086 E) con imágenes atestiguadas y citas limpias: estado 'checked', los dos DUROS entran a la conjunción y "
+      "el informativo se congela",
+      af["state"] == "checked" and len(ap) == 2 and af["attested_images_not_cited"] == []
+      and af["attested_not_in_evidence"] == [] and af["attested_ids_not_in_answer"] == []
+      and all(p("", "")[1] for p in ap), json.dumps(af)[:140])
+check("(0086 E) el fragmento declara su versión, su gating (2 duros, 1 informativo) y la política de qué NO viaja al panel",
+      af["predicates_version"] == "attpred-1"
+      and af["gating"] == {"attested_images_not_cited": True, "attested_not_in_evidence": True,
+                           "attested_ids_not_in_answer": False}
+      and "bytes" in af["policy"] and "captions completos" in af["policy"])
+check("(0086 E) el fragmento NO lleva captions, ni bytes, ni rutas, ni el sha COMPLETO (viaja al panel)",
+      "micrografía" not in json.dumps(af, ensure_ascii=False) and SHA_A not in json.dumps(af)
+      and "storage_key" not in json.dumps(af) and SHA_A[:12] not in json.dumps(af))
+
+af_id, ap_id = vo.attested_predicates([{"n": 1, "kind": "other", "id": "attested:" + SHA_A[:12]}], ATT, "x")
+check("(0086 E) DURO: citar el id 'attested:<sha corto>' vuelve INADMISIBLE la respuesta, con su porqué",
+      ap_id[0]("", "")[1] is False and af_id["attested_images_not_cited"][0]["why"] == "id-is-attested-id"
+      and af_id["attested_images_not_cited"][0]["n"] == 1)
+af_sha, ap_sha = vo.attested_predicates([{"n": 3, "kind": "paper", "id": SHA_B}], ATT, "x")
+check("(0086 E) DURO: citar el sha256 de la imagen (aunque el kind diga 'paper') también es inadmisible",
+      ap_sha[0]("", "")[1] is False and af_sha["attested_images_not_cited"][0]["why"] == "id-is-attested-sha"
+      and af_sha["attested_images_not_cited"][0]["sha256_short"] == SHA_B[:12])
+af_kind, ap_kind = vo.attested_predicates([{"n": 1, "kind": "attested", "id": "lo-que-sea"}], ATT, "x")
+check("(0086 E) DURO: una cita de kind 'attested' es inadmisible aunque su id no case con ninguna imagen "
+      "(el vocabulario de cita no admite lo atestiguado)",
+      ap_kind[0]("", "")[1] is False and af_kind["attested_images_not_cited"][0]["why"] == "kind-attested")
+af_ev, ap_ev = vo.attested_predicates(CITAS_LIMPIAS, ATT, "x", evidence_ids=["PMID:1", SHA_A])
+check("(0086 E) DURO: el sha de una imagen atestiguada entre los ids de EVIDENCIA es inadmisible "
+      "(algo la promovió por un camino que no existe)",
+      ap_ev[1]("", "")[1] is False and af_ev["attested_not_in_evidence"] == [SHA_A[:12]])
+af_ans, ap_ans = vo.attested_predicates(CITAS_LIMPIAS, ATT, {"direct_answer": "ver " + SHA_A + " y " + SHA_A[:12]})
+check("(0086 E) INFORMATIVO: el identificador de material privado en la prosa se DECLARA una sola vez por imagen y "
+      "NO tumba la corrida",
+      af_ans["attested_ids_not_in_answer"] == [{"sha256_short": SHA_A[:12], "why": "attested-sha-in-answer"}]
+      and all(p("", "")[1] for p in ap_ans), json.dumps(af_ans["attested_ids_not_in_answer"]))
+
+af_none, ap_none = vo.attested_predicates(CITAS_LIMPIAS, [], "x")
+check("(0086 E) sin imágenes atestiguadas: 'no-attested-images' con los bloques MEDIDOS vacíos y NINGÚN predicado "
+      "en la conjunción (0 medido ≠ no aplica)",
+      af_none["state"] == "no-attested-images" and af_none["n_attested"] == 0 and ap_none == []
+      and af_none["attested_images_not_cited"] == [])
+af_ks, ap_ks = vo.attested_predicates(CITAS_LIMPIAS, ATT, "x", state="kill-switch WITT_ATTESTED_IMAGES=0")
+check("(0086 E) kill-switch: el fragmento es EXACTAMENTE {state} (una de las 3 excepciones declaradas del frozen)",
+      af_ks == {"state": "kill-switch WITT_ATTESTED_IMAGES=0"} and ap_ks == [])
+af_na, ap_na = vo.attested_predicates(CITAS_LIMPIAS, ATT, "x", state="not-applicable (no-ledger)")
+check("(0086 E) sin ledger: el estado del llamador se respeta y ningún predicado entra a la conjunción",
+      af_na["state"] == "not-applicable (no-ledger)" and ap_na == [])
+
+
+class _BoomAtt(list):
+    def __iter__(self):
+        raise RuntimeError("boom-att")
+
+
+af_err, ap_err = vo.attested_predicates(CITAS_LIMPIAS, _BoomAtt([IT_A]), "x")
+check("(0086 E) un fallo interno al medir se DECLARA en el estado y no relanza (§6: la corrida no se cae por sorpresa)",
+      af_err["state"].startswith("error: RuntimeError") and ap_err == [], af_err["state"])
+check("(0086 E) los estados del fragmento están en vocabulario cerrado (3 exactos + 2 prefijos)",
+      vo.ATTESTED_CHECK_STATES_EXACT == ("checked", "no-attested-images", "kill-switch WITT_ATTESTED_IMAGES=0")
+      and vo.ATTESTED_CHECK_STATES_PREFIXES == ("tool-unavailable (", "error: "))
+af_d1, _ = vo.attested_predicates([{"n": 1, "kind": "attested", "id": "attested:" + SHA_A[:12]}], ATT,
+                                  {"direct_answer": SHA_B})
+af_d2, _ = vo.attested_predicates([{"n": 1, "kind": "attested", "id": "attested:" + SHA_A[:12]}], ATT,
+                                  {"direct_answer": SHA_B})
+check("(0086 E) determinista byte a byte y serializable; el gate no toca la red",
+      json.dumps(af_d1, sort_keys=True, default=str) == json.dumps(af_d2, sort_keys=True, default=str)
+      and _NET_CALLS == [], f"net={_NET_CALLS}")
+
+
 import shutil  # noqa: E402
 shutil.rmtree(CR, ignore_errors=True)      # la caché del smoke es efímera: nada queda en WITT_MCP_CACHE_DIR
 shutil.rmtree(TMP, ignore_errors=True)

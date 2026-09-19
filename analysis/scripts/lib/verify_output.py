@@ -1211,6 +1211,143 @@ def _wblock(name, ok, reason, **fields):
     return d
 
 
+
+# =====================================================================================================================
+# ADR-0086 (E) · IMÁGENES ATESTIGUADAS — una imagen que aporta una persona jamás es evidencia ni cita
+# ---------------------------------------------------------------------------------------------------------------------
+# Una imagen atestiguada es PRIOR ART con procedencia registrada: vive en human_attestations.images[], fuera de evidence,
+# y ninguna afirmación puede apoyarse en ella. Estos predicados leen las CITAS, los ítems atestiguados (metadatos, JAMÁS
+# bytes) y el texto de la respuesta; son ciegos a los píxeles. Como deterministic_checks viaja al PANEL, el fragmento no
+# contiene captions completos ni rutas: los identificadores se acortan y lo que se nombra es el sha corto. Dos son DUROS
+# (entran a la conjunción H(c) de admissible()); uno es INFORMATIVO (se mide, se congela y jamás tumba una respuesta).
+ATTESTED_PREDICATES_VERSION = "attpred-1"
+PREDICATE_ATTESTED_IMAGES_NOT_CITED = "attested_images_not_cited"
+PREDICATE_ATTESTED_NOT_IN_EVIDENCE = "attested_not_in_evidence"
+PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER = "attested_ids_not_in_answer"
+ATTESTED_PREDICATES = (PREDICATE_ATTESTED_IMAGES_NOT_CITED, PREDICATE_ATTESTED_NOT_IN_EVIDENCE,
+                       PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER)
+ATTESTED_GATING = {PREDICATE_ATTESTED_IMAGES_NOT_CITED: True, PREDICATE_ATTESTED_NOT_IN_EVIDENCE: True,
+                   PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER: False}
+ATTESTED_CHECK_STATE_KILL_SWITCH = "kill-switch WITT_ATTESTED_IMAGES=0"   # == attestations.ATTESTED_KILL_SWITCH_STATE
+ATTESTED_CHECK_STATES_EXACT = ("checked", "no-attested-images", ATTESTED_CHECK_STATE_KILL_SWITCH)
+ATTESTED_CHECK_STATES_PREFIXES = ("tool-unavailable (", "error: ")
+ATTESTED_CHECK_STATE_TOOL_UNAVAILABLE = "tool-unavailable (lib/attestations.py not importable — ADR-0086 F2)"
+ATTESTED_WHYS = {
+    PREDICATE_ATTESTED_IMAGES_NOT_CITED: ("id-is-attested-id", "id-is-attested-sha", "kind-attested"),
+    PREDICATE_ATTESTED_NOT_IN_EVIDENCE: ("attested-sha-in-evidence-ids",),
+    PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER: ("attested-sha-in-answer", "attested-id-in-answer"),
+}
+ATTESTED_RULES = {
+    PREDICATE_ATTESTED_IMAGES_NOT_CITED:
+        "HARD. Ninguna cita puede apuntar a una imagen atestiguada: un id igual al id 'attested:<sha corto>', igual al "
+        "sha256 (completo o corto) de una imagen atestiguada, o una cita de kind 'attested', vuelve INADMISIBLE la "
+        "respuesta. Lo que una persona aporta es PRIOR ART, no evidencia: puede orientar el juicio de una lente y jamás "
+        "sostener una afirmación (ADR-0086 (E); CLAUDE.md §7).",
+    PREDICATE_ATTESTED_NOT_IN_EVIDENCE:
+        "HARD. El sha256 de una imagen atestiguada no puede aparecer entre los identificadores de evidencia de la corrida: "
+        "si aparece, algo la promovió de atestiguada a evidencia por un camino que no existe (ADR-0086 (E)).",
+    PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER:
+        "INFORMATIVO. El sha256 o el id de una imagen atestiguada dentro de la prosa se DECLARA (material privado: su "
+        "identificador no pertenece a la respuesta), pero no tumba la corrida; se congela para que la persona lo vea.",
+}
+ATTESTED_FRAGMENT_POLICY = (
+    "el fragmento viaja al panel: aquí no hay captions completos, ni bytes, ni rutas, ni llaves de almacenamiento — sólo "
+    "shas cortos y conteos (ADR-0086)")
+
+
+def _attested_keys(items):
+    """{sha256, sha corto, id 'attested:<corto>'} en MAYÚSCULAS de cada imagen atestiguada, con el ítem que los emitió."""
+    idx = {}
+    for it in (items or []):
+        if not isinstance(it, dict):
+            continue
+        sha = str(it.get("sha256") or "")
+        short = str(it.get("sha256_short") or (sha[:12] if sha else ""))
+        ident = str(it.get("id") or (("attested:" + short) if short else ""))
+        for var in (sha, short, ident):
+            if var:
+                idx[var.upper()] = it
+    return idx
+
+
+def attested_predicates(citations, attested_items, answer_text, evidence_ids=None, state=None):
+    """(fragmento deterministic_checks.attested_images, extra_predicates[]) — ADR-0086 (E), ciego a los píxeles.
+
+    citations: citas NORMALIZADAS ({n, kind, id, note}) o ids crudos. attested_items: los ítems ATESTIGUADOS de la corrida
+    (metadatos; jamás bytes) — típicamente frozen.attested_images.items[] o attestations.frozen_item() por fila.
+    answer_text: el dict del sintetizador (se lee `direct_answer`) o el texto. evidence_ids: los identificadores de la
+    evidencia de la corrida (para el segundo predicado). state: estado declarado por el llamador (kill-switch, no-ledger…);
+    si se pasa un estado que no es 'checked', el fragmento lo respeta y NINGÚN predicado entra a la conjunción.
+
+    Estados: 'checked' (hay imágenes atestiguadas: los 2 DUROS entran, el informativo se congela) | 'no-attested-images'
+    (nada que medir; los bloques viajan vacíos MEDIDOS) | 'kill-switch WITT_ATTESTED_IMAGES=0' (fragmento EXACTAMENTE
+    {state}: una de las 3 excepciones declaradas del frozen) | 'tool-unavailable (…)' | 'error: …'. Jamás relanza.
+    """
+    if isinstance(answer_text, dict):
+        text = str(answer_text.get("direct_answer") or "")
+    else:
+        text = str(answer_text or "")
+    if state == ATTESTED_CHECK_STATE_KILL_SWITCH:
+        return {"state": ATTESTED_CHECK_STATE_KILL_SWITCH}, []
+    if state is not None and state not in ATTESTED_CHECK_STATES_EXACT:
+        return {"state": str(state), "n_attested": len(attested_items or []),
+                "predicates_version": ATTESTED_PREDICATES_VERSION, "policy": ATTESTED_FRAGMENT_POLICY}, []
+    try:
+        idx = _attested_keys(attested_items)
+        if not idx:
+            return ({"state": "no-attested-images", "n_attested": 0,
+                     PREDICATE_ATTESTED_IMAGES_NOT_CITED: [], PREDICATE_ATTESTED_NOT_IN_EVIDENCE: [],
+                     PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER: [],
+                     "gating": dict(ATTESTED_GATING), "rules": dict(ATTESTED_RULES),
+                     "predicates_version": ATTESTED_PREDICATES_VERSION, "policy": ATTESTED_FRAGMENT_POLICY}, [])
+
+        cited = []
+        for c in (citations or []):
+            cid = str((c.get("id") if isinstance(c, dict) else c) or "")
+            kind = str((c.get("kind") if isinstance(c, dict) else "") or "")
+            n = (c.get("n") if isinstance(c, dict) else None)
+            why = None
+            if kind == "attested":
+                why = "kind-attested"
+            elif cid.upper() in idx:
+                why = "id-is-attested-id" if cid.lower().startswith("attested:") else "id-is-attested-sha"
+            if why:
+                it = idx.get(cid.upper(), {})
+                cited.append({"n": n, "why": why, "sha256_short": str(it.get("sha256_short") or cid[:12]),
+                              "kind": kind or None})
+
+        ev = {str(e).upper() for e in (evidence_ids or [])}
+        in_evidence = sorted({str(it.get("sha256_short") or "") for k, it in idx.items() if k in ev})
+
+        # una imagen aporta A LO SUMO una fila por razón: el sha completo y el corto son la MISMA fuga
+        vistos, in_answer = set(), []
+        up = text.upper()
+        for k, it in idx.items():
+            if len(k) < 12 or k not in up:
+                continue
+            why = "attested-id-in-answer" if k.startswith("ATTESTED:") else "attested-sha-in-answer"
+            short = str(it.get("sha256_short") or k[:12])
+            if (short, why) in vistos:
+                continue
+            vistos.add((short, why))
+            in_answer.append({"sha256_short": short, "why": why})
+        in_answer = sorted(in_answer, key=lambda d: (d["sha256_short"], d["why"]))
+
+        frag = {"state": "checked", "n_attested": len({str(it.get("sha256") or "") for it in (attested_items or [])
+                                                       if isinstance(it, dict)}),
+                PREDICATE_ATTESTED_IMAGES_NOT_CITED: cited,
+                PREDICATE_ATTESTED_NOT_IN_EVIDENCE: in_evidence,
+                PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER: in_answer,
+                "gating": dict(ATTESTED_GATING), "whys": {k: list(v) for k, v in ATTESTED_WHYS.items()},
+                "rules": dict(ATTESTED_RULES), "predicates_version": ATTESTED_PREDICATES_VERSION,
+                "policy": ATTESTED_FRAGMENT_POLICY}
+        extra = [_mk_pred(PREDICATE_ATTESTED_IMAGES_NOT_CITED, not cited, frag),
+                 _mk_pred(PREDICATE_ATTESTED_NOT_IN_EVIDENCE, not in_evidence, frag)]
+        return frag, extra
+    except Exception as e:   # un árbol roto se DECLARA; jamás tumba la corrida por sorpresa (§6)
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}",
+                "predicates_version": ATTESTED_PREDICATES_VERSION}, []
+
 def web_predicates(citations, bundle, answer_text, web_ledger=None, provider_state=None, *, env=None):
     """(fragmento deterministic_checks.web_locator, extra_predicates[]) — ADR-0084 (E), clase Logic-LM, ciego al texto web.
 
