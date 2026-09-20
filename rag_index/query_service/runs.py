@@ -55,7 +55,13 @@ try:
 except ImportError:   # pragma: no cover — depende del árbol
     web_locator = None
 
-RENDER_CONTRACT_VERSION = "1.13"  # ADR-0084 (la web LOCALIZA identificadores, jamás es fuente): +web_locator {state ∈ web_locator.WEB_STATES_*,
+RENDER_CONTRACT_VERSION = "1.14"  # ADR-0086 (una imagen que aporta una persona es ATESTIGUADA, jamás evidencia ni cita):
+                                  # +attested_images {state ∈ attestations.ATTESTED_STATES_*, items[] SIN bytes (identidad,
+                                  # procedencia, consentimiento, licencia declarada, quién la vio), delivery (el sintetizador
+                                  # NO vio píxeles), vision, vocabulary}, +deterministic_checks.attested_images (2 duros + 1
+                                  # informativo), +human_attestations.images[] (captions al sintetizador y al consejo),
+                                  # +epistemic_summary.attested_*, +token_usage.attested_images, +agents_invoked[attestations],
+                                  # +thread_context.parent_attested_images, eventos stage.attestations.*. 1.13 = ADR-0084 (la web LOCALIZA identificadores, jamás es fuente): +web_locator {state ∈ web_locator.WEB_STATES_*,
                                   # state_vocabulary, module_version 'wl-1', resolver_version 'wlr-1', tool_version 'bws-1'|null, provider, provider_source,
                                   # gate 'directive-only', entered_by, directive_requirement_ids, families_order_rule, n_* (int; AUSENTES bajo
                                   # kill-switch/tool-unavailable), queries[], located[] (URL hallada SÓLO aquí), unresolved[] (title_web SÓLO aquí),
@@ -946,6 +952,7 @@ def _web_agent_row(web_frozen, ps):
 
 
 def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None, figures=None, figure_lenses=None,
+                    attested=None,
                     web=None, web_ps=None):
     """§11's `agents_invoked`, DERIVED FROM WHAT ACTUALLY RAN — never self-reported. A model listing the
     agents it invoked is precisely the §7 anti-pattern (self-audit as audit evidence); the code knows.
@@ -987,6 +994,13 @@ def _agents_invoked(audit_result, deterministic_checks, plan=None, council=None,
     web_row = _web_agent_row(web, web_ps)
     if web_row is not None:
         out.append(web_row)
+    # ADR-0086 (K): la fila de las imágenes atestiguadas — código (lib/attestations.py): validó por bytes, borró metadatos,
+    # guardó en privado y entregó a lo sumo a dos lentes. Ausente sin imágenes aportadas y bajo kill-switch (M.1).
+    if isinstance(attested, dict) and attested.get("items"):
+        out.append({"agent": ATTESTED_AGENT_ROW, "status": "invoked", "invocation_id": "attestations",
+                    "evidence_generated": [f"attached:{attested.get('n_attached')}",
+                                           f"seen_by_panel:{attested.get('n_seen_by_panel')}",
+                                           f"bytes_to_synthesizer:False"]})
     seated = set()
     council_rows = []
     if isinstance(council, dict):
@@ -2297,7 +2311,7 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
     return stages
 
 
-def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, figures=None, web=None):
+def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, figures=None, web=None, attested=None):
     """TokenUsage (UI contract, ADR-0051): measured token counts by model + a LABELED cost projection.
     `passes` = [(label, answer_dict)] for the synthesis passes that ran.
 
@@ -2465,6 +2479,10 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, fi
     # bajo kill-switch la llave no existe). Conteos y bytes son MEDICIÓN. corrector: `bytes_verified` = Σ bytes de las filas
     # 'verified' (con o sin caché); `bytes_downloaded` = SOLO las 'verified' que NO fueron cache_hit (B.3: ledger fresco + sha igual
     # = cero red — el nombre afirma una descarga que en esas corridas no ocurrió); `n_cache_hit` declara cuántas vinieron de caché.
+    # ADR-0086 (K): el consumo de lo ATESTIGUADO viaja APARTE y es MEDICIÓN pura — los tokens de visión de esas imágenes
+    # ya están dentro de los input_tokens medidos del panel: nada se suma dos veces.
+    if isinstance(attested, dict) and attested.get("items"):
+        out["attested_images"] = _attested_usage(attested)
     if isinstance(figures, dict) and figures.get("enabled") and isinstance(figures.get("summary"), dict):
         fs = figures["summary"]
         rows = [i for i in (fs.get("items") or []) if isinstance(i, dict) and i.get("bytes_state") == "verified"]
@@ -2702,8 +2720,22 @@ def _web_checks(answer, bundle, web_ledger=None, provider_state=None):
     return {"web_locator": frag}, preds
 
 
+def _attested_checks(answer, items, bundle, state=None):
+    """(fragmento deterministic_checks.attested_images, extra_predicates) — ADR-0086 (E). Sin la biblioteca del gate en el
+    árbol, el fragmento lo DECLARA y ningún predicado entra a la conjunción (§6: nada se supone cumplido)."""
+    fn = getattr(verify_output, "attested_predicates", None)
+    if fn is None:
+        return {"attested_images": {"state": ATTESTED_TOOL_UNAVAILABLE_GATE}}, None
+    try:
+        frag, preds = fn(_citations_of(answer)[0], items or [], answer,
+                         evidence_ids=_evidence_ids(bundle), state=ATTESTED_CHECK_STATE_OF.get(state, state))
+    except Exception as e:
+        return {"attested_images": {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}}, None
+    return {"attested_images": frag}, (preds or None)
+
+
 def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figures_cfg=None, figures_cache_root=None,
-          web_ledger=None, web_ps=None):
+          web_ledger=None, web_ps=None, attested_items=None, attested_state=None):
     """El gate determinista (verify_output.admissible, clase Logic-LM) sobre UNA pasada: predicados duros
     de identificadores + parent_identifier_leak (ADR-0079) + attestation_identifier_leak (ADR-0082 F.5) +
     positive_claim_requires_citations (ADR-0080 E, si está en el árbol). ADR-0080 (B): corre ADELANTADO sobre
@@ -2714,6 +2746,8 @@ def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figu
     atestiguado y reaparece en la respuesta sin estar en la evidencia = fuga → inadmisible (predicado DURO)."""
     leak_frag, leak_preds = _leak_check(thread_snapshot, answer["direct_answer"], bundle, run)
     att_frag, att_preds = _attestation_leak_check(attestations, answer["direct_answer"], bundle)
+    # ADR-0086 (E): una imagen aportada jamás es cita ni evidencia — dos predicados DUROS y uno informativo
+    attimg_frag, attimg_preds = _attested_checks(answer, attested_items, bundle, state=attested_state)
     _cits, schema, _raw = _citations_of(answer)
     # el informe de identificadores se mide UNA vez y alimenta también al predicado de citas (corrector ADR-0080)
     report = verify_output.verify_identifiers(answer["direct_answer"]).as_dict()
@@ -2726,14 +2760,14 @@ def _gate(answer, bundle, thread_snapshot, run, pass_no, attestations=None, figu
     # (informativo) — cableados desde verify_output (W5); sin datos web el fragmento dice 'no-web-items' y NINGÚN predicado entra
     # a la conjunción (la admisibilidad de hoy byte a byte); bajo kill-switch EXACTAMENTE {state}.
     web_frag, web_preds = _web_checks(answer, bundle, web_ledger=web_ledger, provider_state=web_ps)
-    preds = (list(leak_preds or []) + list(att_preds or []) + list(pc_preds or []) + list(fig_preds or [])
-             + list(web_preds or []))
+    preds = (list(leak_preds or []) + list(att_preds or []) + list(attimg_preds or []) + list(pc_preds or [])
+             + list(fig_preds or []) + list(web_preds or []))
     adm, reasons = verify_output.admissible({"direct_answer": answer["direct_answer"],
                                              "evidence_cited": answer.get("evidence_cited") or [],
                                              "absence_kind": answer.get("absence_kind")},
                                             extra_predicates=preds or None)
     return {"pass": pass_no, "admissible": adm, "reasons": reasons, "identifier_report": report,
-            **leak_frag, **att_frag, **pc_frag, **fig_frag, **web_frag,
+            **leak_frag, **att_frag, **attimg_frag, **pc_frag, **fig_frag, **web_frag,
             # el PANEL sabe que hubo turno previo por este resumen — jamás lee el texto del padre
             "thread": _thread_checks_summary(run, thread_snapshot)}
 
@@ -3133,6 +3167,28 @@ def _verdict_payload(a, revision_round):
 # (sha256 recalculado al gatear/servir/embeber) y licencia (tabla cerrada) — lib/figures.py (F1); lo que la imagen DICE es
 # JUICIO de dos lentes (composite_auditor.audit figures=, F3); los predicados viven en verify_output.figure_predicates (F2).
 # Aquí SÓLO se cablea, se congela con su clase y se MIDE lo que se entregó al panel. Nada binario en el blob (ADR-0074). ----------
+# ADR-0086 (F4): la biblioteca de imágenes atestiguadas — import TOLERANTE: un árbol sin ella corre igual y lo declara
+try:
+    from lib import attestations as attestations_mod
+except Exception:                                              # pragma: no cover
+    attestations_mod = None
+ATTESTED_AGENT = "attestations"                                # `agent` de todo evento stage.attestations.*
+ATTESTED_AGENT_ROW = ("attestations (lib/attestations.py — imágenes que aporta una persona: magic bytes + sha256 + borrado "
+                      "de metadatos + almacén privado; los bytes sólo a <=2 lentes con visión, jamás al sintetizador)")
+ATTESTED_KILL_SWITCH_STATE = "kill-switch WITT_ATTESTED_IMAGES=0"
+ATTESTED_DECLARED_EXCEPTIONS = ("render_contract_version", "attested_images",
+                                "deterministic_checks.attested_images")    # M.1: EXACTAMENTE 3
+ATTESTED_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.attested_predicates not in tree — ADR-0086)"
+ATTESTED_TOOL_UNAVAILABLE_MODULE = "tool-unavailable (ADR-0086: lib/attestations.py not in tree)"
+ATTESTED_NO_LEDGER_STATE = "not-applicable (no-ledger)"
+# corrector (E): el estado del BLOQUE y el de la COMPUERTA son vocabularios DISTINTOS. 'attached' quiere decir "hay imágenes:
+# MIDE" → se le pasa None a verify_output para que calcule 'checked' y los dos predicados duros ENTREN a la conjunción; los
+# demás estados viajan tal cual y la biblioteca los declara sin fingir que midió (§6). Pasar 'attached' dejaba el gate INERTE.
+ATTESTED_CHECK_STATE_OF = {"attached": None, "no-attested-images": "no-attested-images",
+                           ATTESTED_KILL_SWITCH_STATE: ATTESTED_KILL_SWITCH_STATE}
+ATTESTED_DELIVERY_RULE = ("el sintetizador y el consejo reciben caption y metadatos rotulados ATESTIGUADOS; los BYTES sólo "
+                          "llegan a las lentes con visión, que los juzgan y lo declaran — nunca son evidencia ni cita")
+
 FIGURES_AGENT = "figures"                                      # `agent` de todo evento stage.figures.*
 FIGURES_AGENT_ROW = "figures (lib/figures.py — JATS parser + fetch by sha + license gate)"
 FIGURES_KILL_SWITCH_STATE = "kill-switch WITT_FIGURES=0"
@@ -3568,6 +3624,159 @@ def _audit_accepts_figures():
     return ("figures" in params or varkw), ("vision_lenses" in params or varkw)
 
 
+# =====================================================================================================================
+# ADR-0086 (K) · LAS IMÁGENES ATESTIGUADAS EN LA CORRIDA
+# ---------------------------------------------------------------------------------------------------------------------
+# Lo que una persona aportó por el ledger del consejo: el servidor lee las filas del plan (adjuntas y vivas), declara la
+# etapa con sus eventos, entrega los BYTES sólo a las lentes con visión y congela identidad y procedencia SIN un solo byte.
+# =====================================================================================================================
+def _attested_cfg():
+    """(cfg, storage, probe) leídos EN LA LLAMADA — (None, None, None) si la biblioteca no está en el árbol."""
+    if attestations_mod is None:
+        return None, None, None
+    try:
+        cfg = attestations_mod.env_config()
+        storage, probe = attestations_mod.storage_backend(cfg=cfg)
+        return cfg, storage, probe
+    except Exception:
+        return None, None, None
+
+
+def _attested_rows_for_run(plan_id, cfg):
+    """(filas ADJUNTAS y vivas del plan, estado) — la compuerta humana manda: una imagen subida que el ledger no selló no
+    entra a ninguna corrida. `plan_id` sale de la copia del consejo (la corrida no tiene columna propia); sin plan no hay
+    ledger y el estado lo dice: 'not-applicable (no-ledger)' NO es 'no había imágenes'."""
+    if attestations_mod is None:
+        return [], ATTESTED_TOOL_UNAVAILABLE_MODULE
+    if cfg is not None and not cfg.get("enabled", True):
+        return [], ATTESTED_KILL_SWITCH_STATE
+    if not plan_id:
+        return [], ATTESTED_NO_LEDGER_STATE
+    try:
+        if db.attested_schema_state() != "ready":
+            return [], f"error: attested table {db.attested_schema_state()}"
+        rows = db.attested_images_of_plan(plan_id, include_withdrawn=False, attached_only=True)
+    except Exception as e:
+        return [], f"error: {type(e).__name__}: {str(e)[:120]}"
+    return rows, ("attached" if rows else "no-attested-images")
+
+
+def _attested_stage(rows, state, run_id, cfg, probe):
+    """Los eventos de la etapa (uno por imagen + el resumen) y el ESQUELETO del bloque congelado. Ningún byte, ningún
+    caption completo en el evento: identidad, procedencia y estado. Bajo kill-switch no se emite ni un evento (M.1)."""
+    base = {"state": state, "n_attached": len(rows), "rule": ATTESTED_DELIVERY_RULE,
+            "delivery": {"synthesizer": "captions-only", "bytes_to_synthesizer": False,
+                         "council": "captions-only", "panel": "bytes to <=2 vision lenses"},
+            "storage": {"backend": (probe or {}).get("backend"), "state": (probe or {}).get("state"),
+                        "durability": (attestations_mod.durability_of(probe) if (attestations_mod and probe) else None)},
+            "items": [],            # `vision` NACE sólo cuando el panel midió: una llave en null sería ruido (M.1)
+            "vocabulary": (dict(attestations_mod.VOCABULARY) if attestations_mod is not None else None)}
+    if state == ATTESTED_KILL_SWITCH_STATE or not rows:
+        return base
+    db.add_event(run_id, "stage.attestations.plan", agent=ATTESTED_AGENT,
+                 payload={"state": state, "n_attached": len(rows),
+                          "storage_backend": (probe or {}).get("backend"),
+                          "max_per_lens": (cfg or {}).get("max_per_lens"),
+                          "rule": ATTESTED_DELIVERY_RULE})
+    items = []
+    for row in rows:
+        try:
+            item = attestations_mod.frozen_item(row)
+        except Exception as e:
+            item = {"sha256": row.get("sha256"), "state": f"error: {type(e).__name__}"}
+        items.append(item)
+        db.add_event(run_id, "stage.attestations.image", agent=ATTESTED_AGENT,
+                     payload={"id": item.get("id"), "sha256_short": item.get("sha256_short"),
+                              "media_type": item.get("media_type"), "dims": item.get("dims"),
+                              "attached_to": item.get("attached_to"), "requirement_id": item.get("requirement_id"),
+                              "uploaded_by": item.get("uploaded_by"), "patient_material": item.get("patient_material"),
+                              "exif_state": item.get("exif_state"), "class": item.get("class")})
+    base["items"] = items
+    return base
+
+
+def _attested_for_panel(rows, cfg, storage, figs_b64_total=0):
+    """Lo que las lentes con visión PUEDEN ver: bytes leídos del almacén con el sha RECALCULADO al leer, con su tope y el
+    presupuesto compartido con las figuras. Un error del almacén jamás tumba la corrida: se declara y el panel corre sin
+    imágenes aportadas (§6)."""
+    if attestations_mod is None or storage is None or not rows:
+        return {"attested": [], "state": "no-eligible-attested"}
+    if cfg is not None and not cfg.get("vision", True):
+        return {"attested": [], "state": "kill-switch WITT_ATTESTED_VISION=0"}
+    try:
+        sel = attestations_mod.select_for_panel(rows, storage, cfg=cfg, figures_b64_total=int(figs_b64_total or 0))
+    except Exception as e:
+        return {"attested": [], "state": f"error: {type(e).__name__}: {str(e)[:120]}"}
+    sel["state"] = "sent" if sel.get("attested") else "no-eligible-attested"
+    return sel
+
+
+def _attested_panel_kwargs(rows, cfg, storage, panel_selections, figs_b64_total=0):
+    """kwargs ADITIVOS para composite_auditor.audit — {} cuando no hay imágenes aportadas o la firma del árbol no las
+    acepta (la llamada queda EXACTAMENTE como en 1.13)."""
+    if not rows:
+        return {}
+    try:
+        acepta = "attested" in inspect.signature(composite_auditor.audit).parameters
+    except (TypeError, ValueError):
+        acepta = False
+    sel = _attested_for_panel(rows, cfg, storage, figs_b64_total)
+    entregadas = list(sel.get("attested") or [])
+    panel_selections.append({"state": sel.get("state"), "n_attested": len(entregadas), "delivered": bool(entregadas) and acepta,
+                             "sha256s": [a.get("sha256") for a in entregadas],
+                             "n_dropped": sel.get("n_dropped"), "storage_errors": sel.get("storage_errors") or [],
+                             "rule": sel.get("rule")})
+    return {"attested": entregadas} if (acepta and entregadas) else {}
+
+
+def _attested_fill(block, panel_rows_all, panel_selections, run_id):
+    """Cierra el bloque con lo que el panel MIDIÓ: quién vio cada imagen, cuántas lecturas hubo (JUICIO) y el resumen de
+    la entrega. Emite el evento de resumen. Nada de esto se re-deriva al servir (frozen-counter)."""
+    if not isinstance(block, dict) or not block.get("items"):
+        return block
+    vistos, leidas = {}, {}
+    n_readings = 0
+    for r in (panel_rows_all or []):
+        saw = r.get("saw_attested") if isinstance(r, dict) else None
+        if not isinstance(saw, dict):
+            continue
+        for sha in (saw.get("sha256s") or []):
+            vistos.setdefault(sha, []).append(r.get("lens"))
+        if isinstance(r.get("attested_readings"), list):
+            n_readings += len(r["attested_readings"])
+            for lec in r["attested_readings"]:
+                if isinstance(lec, dict) and lec.get("sha256"):
+                    leidas[lec["sha256"]] = leidas.get(lec["sha256"], 0) + 1
+    # la FORMA del ítem la declara attestations.frozen_item (ATTESTED_FROZEN_KEYS): aquí sólo se rellenan DOS llaves que ya
+    # existen en ella — quién lo vio y cuántas lecturas emitió el panel sobre él. Ninguna llave nueva nace en el llamador.
+    for it in block["items"]:
+        it["seen_by_lenses"] = sorted(set(vistos.get(it.get("sha256"), [])))
+        it["n_readings"] = int(leidas.get(it.get("sha256"), 0))
+    block["vision"] = {"n_selections": len(panel_selections or []),
+                       "n_delivered_total": sum(int(p.get("n_attested") or 0) for p in (panel_selections or [])),
+                       "n_readings": n_readings, "readings_class": "model-judgment",
+                       "selections": list(panel_selections or [])}
+    block["n_seen_by_panel"] = sum(1 for it in block["items"] if it.get("seen_by_lenses"))
+    db.add_event(run_id, "stage.attestations.summary", agent=ATTESTED_AGENT,
+                 payload={"state": block.get("state"), "n_attached": block.get("n_attached"),
+                          "n_seen_by_panel": block.get("n_seen_by_panel"),
+                          "n_readings": n_readings, "readings_class": "model-judgment",
+                          "bytes_to_synthesizer": False})
+    return block
+
+
+def _attested_usage(block):
+    """token_usage.attested_images — conteos MEDIDOS (ninguna proyección: el costo de visión ya viaja en los tokens de
+    entrada medidos del juez, ADR-0083 H)."""
+    if not isinstance(block, dict):
+        return None
+    return {"state": block.get("state"), "n_attached": int(block.get("n_attached") or 0),
+            "n_seen_by_panel": int(block.get("n_seen_by_panel") or 0),
+            "n_readings": int(((block.get("vision") or {}).get("n_readings")) or 0),
+            "bytes_total": sum(int(it.get("bytes") or 0) for it in (block.get("items") or [])),
+            "class": "medición (conteos y bytes; los tokens de visión ya están en los input_tokens medidos del panel)"}
+
+
 def _figures_panel_kwargs(bundle, answer, cfg, cache_root, lenses, enabled, vision_sent, panel_selections):
     """kwargs ADITIVOS para composite_auditor.audit (G.2) — {} bajo kill-switch (la llamada es EXACTAMENTE la de 1.11) o
     cuando la firma del árbol no los acepta. Registra la selección de ESTE panel en `panel_selections` y suma n_panels."""
@@ -3813,7 +4022,7 @@ def _council_members_frozen(council_json, env=None):
     return mem, len(mem), COUNCIL_MEMBERSHIP_SOURCE_ENV, is_full
 
 
-def human_attestations_of(ledger):
+def human_attestations_of(ledger, images=None):
     """(F.5) Lo que el humano ATESTIGUÓ en el ledger APROBADO — {knowledge_now {text, by, at, chars, truncated, class},
     attestations[] {requirement_id, text, by, at, class}, n_attestations, class 'attested', rule} | None. Viaja al
     sintetizador como llave HERMANA de evidence (jamás dentro) y a r2/r3 como PRIOR ART etiquetado; al panel NO viaja."""
@@ -3830,8 +4039,23 @@ def human_attestations_of(ledger):
         kn_view = {"text": str(kn["text"]), "by": kn.get("by"), "at": kn.get("at"),
                    "chars": kn.get("chars") if isinstance(kn.get("chars"), int) else len(str(kn["text"])),
                    "truncated": bool(kn.get("truncated")), "class": "attested"}
-    if not items and kn_view is None:
+    # ADR-0086 (K): las IMÁGENES aportadas viajan aquí como caption + metadatos rotulados — jamás un byte (prompt_item)
+    imgs = []
+    if images and attestations_mod is not None:
+        for row in images:
+            try:
+                imgs.append(attestations_mod.prompt_item(row))
+            except Exception:
+                continue
+    if not items and kn_view is None and not imgs:
         return None
+    if imgs:
+        return {"knowledge_now": kn_view, "attestations": items, "n_attestations": len(items),
+                "images": imgs, "n_images": len(imgs), "images_delivery": ATTESTED_DELIVERY_RULE,
+                "class": "attested",
+            "rule": ("PRIOR ART attested by humans (ledger `aporto` + knowledge_now) — never evidence; sibling key of "
+                     "`evidence` in the synthesizer prompt; identifiers from it must appear in evidence to be cited "
+                         "(attestation_identifier_leak, hard predicate) — ADR-0082 F.5")}
     return {"knowledge_now": kn_view, "attestations": items, "n_attestations": len(items), "class": "attested",
             "rule": ("PRIOR ART attested by humans (ledger `aporto` + knowledge_now) — never evidence; sibling key of "
                      "`evidence` in the synthesizer prompt; identifiers from it must appear in evidence to be cited "
@@ -4135,6 +4359,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
     judge_retries_cfg, judge_retries_src = composite_auditor.resolve_judge_retries()
     judge_max_attempts = 1 + int(judge_retries_cfg)
     # ADR-0083 (M.4): la configuración de figuras se lee EN LA LLAMADA; el holder del bloque viaja a _usage_now (failed/cancelled)
+    # ADR-0086 (K): configuración, almacén y FILAS de las imágenes atestiguadas — leídas EN LA LLAMADA
+    att_cfg, att_storage, att_probe = _attested_cfg()
+    att_rows, att_state = [], ATTESTED_NO_LEDGER_STATE   # se resuelven con la copia del consejo (abajo): ahí vive el plan_id
+    att_holder = {"block": None, "selections": []}
     fig_cfg = figures.env_config()
     fig_enabled = bool(fig_cfg["figures"])
     fig_cache_root = figures.cache_dir()[0]
@@ -4240,12 +4468,16 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         c_cfg = council.config()
         c_model = council.resolve_council_model(cfg=c_cfg)
         c_quorum_required = council.quorum_required(c_n, c_cfg["quorum"])
-        c_attest = human_attestations_of(c_ledger) if council_enabled else None
+        # ADR-0086 (K): las filas ADJUNTAS del plan (la copia del consejo trae el plan_id) y lo que de ellas ve el
+        # sintetizador y el consejo: caption + metadatos rotulados, nunca bytes.
+        att_rows, att_state = _attested_rows_for_run((cj or {}).get("plan_id") if cj else None, att_cfg)
+        c_attest = human_attestations_of(c_ledger, images=att_rows) if council_enabled else None
         c_catalog_plan = (cj or {}).get("catalog_sha") if cj else None
         council_holder.update(present=cj is not None, enabled=council_enabled, state=c_state,
                               model=c_model["model"], model_source=c_model["source"],
                               cache_ttl=c_cfg["cache"]["ttl_card"], r1=_council_r1_usage_holder(cj),
                               plan_id=(cj or {}).get("plan_id") if cj else None, r1_state=c_r1_state)
+        att_holder["block"] = _attested_stage(att_rows, att_state, run_id, att_cfg, att_probe)
         if plan:
             db.add_event(run_id, "stage.plan", agent="planner",
                          payload=plan_event_payload(plan, council_state=c_r1_state))
@@ -4380,6 +4612,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # 2b) ADR-0080 (B): el gate determinista ADELANTADO sobre pass1 — su admisibilidad es un componente
         # de la compuerta (una pasada inadmisible no puede ser candidata por competente que se declare).
         checks1 = _gate(pass1, bundle, thread_snapshot, run, pass_no="pass1", attestations=c_attest,
+                        attested_items=(att_holder["block"] or {}).get("items"), attested_state=att_state,
                         figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
                         web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
         db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
@@ -4778,6 +5011,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # checks son los del gate adelantado (no se re-mide lo mismo dos veces); con pass2 → gate{pass:2}.
         if trigger:
             checks = _gate(answer, bundle, thread_snapshot, run, pass_no="pass2", attestations=c_attest,
+                           attested_items=(att_holder["block"] or {}).get("items"), attested_state=att_state,
                            figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
                            web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
             db.add_event(run_id, "stage.deterministic_gate", tool="verify_output",
@@ -4797,6 +5031,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # la de 1.11 bajo kill-switch o cuando la firma del árbol aún no acepta figures=/vision_lenses= (declarado).
         fig_kw = _figures_panel_kwargs(bundle, answer, fig_cfg, fig_cache_root, fig_lenses, fig_enabled,
                                        vision_sent, panel_selections)
+        # ADR-0086 (K): las imágenes APORTADAS viajan aparte de las figuras, con su propio tope y el presupuesto b64
+        # compartido (las figuras van primero). Sin filas adjuntas la llamada queda EXACTAMENTE como en 1.13.
+        fig_kw.update(_attested_panel_kwargs(att_rows, att_cfg, att_storage, att_holder["selections"],
+                                             sum(len(f.get("b64") or "") for f in (fig_kw.get("figures") or []))))
         audit_result = composite_auditor.audit(
             claim={"direct_answer": answer["direct_answer"],
                    "stated_confidence": answer.get("stated_confidence")},
@@ -4854,6 +5092,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             # ADR-0080: el MISMO gate (_gate) que corrió sobre pass1/pass2 — predicados de identificadores +
             # fuga del padre + positive_claim_requires_citations; conserva pass1_admissible y competence_gate.
             checks2 = _gate(answer_rev, bundle, thread_snapshot, run, pass_no="revision", attestations=c_attest,
+                            attested_items=(att_holder["block"] or {}).get("items"), attested_state=att_state,
                             figures_cfg=fig_cfg, figures_cache_root=fig_cache_root,
                             web_ledger=(bundle.get("path_b") or {}).get("web_locator"), web_ps=web_ps)
             checks2["pass1_admissible"] = checks1["admissible"]
@@ -4868,6 +5107,8 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             # ADR-0083 (H): el segundo panel REENVÍA las imágenes (la revisión pudo cambiar qué figuras cita → se reselecciona)
             fig_kw2 = _figures_panel_kwargs(bundle, answer_rev, fig_cfg, fig_cache_root, fig_lenses, fig_enabled,
                                             vision_sent, panel_selections)
+            fig_kw2.update(_attested_panel_kwargs(att_rows, att_cfg, att_storage, att_holder["selections"],
+                                                  sum(len(f.get("b64") or "") for f in (fig_kw2.get("figures") or []))))
             audit2 = composite_auditor.audit(
                 claim={"direct_answer": answer_rev["direct_answer"],
                        "stated_confidence": answer_rev.get("stated_confidence")},
@@ -4895,6 +5136,9 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         # ADR-0083 (L): el bloque de figuras se COMPLETA con lo que sólo la corrida sabe (citas de la respuesta FINAL, lentes que
         # vieron cada sha, reenvío medido, proyección de visión) ANTES del re-sellado de identidad del bundle (ADR-0044) — el
         # frozen.figures y el bundle.figures_ledger son el MISMO objeto. Nada bajo kill-switch.
+        # ADR-0086 (K): el bloque se cierra con lo que el panel MIDIÓ (quién vio qué, cuántas lecturas) y emite su resumen
+        if isinstance(att_holder["block"], dict) and att_holder["block"].get("items"):
+            _attested_fill(att_holder["block"], panel_rows_all, att_holder["selections"], run_id)
         if fig_enabled and isinstance(figures_holder["summary"], dict):
             _figures_fill(figures_holder["summary"], answer, panel_rows_all, fig_cfg, fig_lenses, fig_lenses_src,
                           vision_sent, panel_selections)
@@ -4910,6 +5154,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             web_holder["frozen"] = _web_locator_frozen(bundle.get("path_b"), search_plan_state, harness_used, web_ps)
         web_frozen = web_holder["frozen"]
         token_usage = _token_usage(passes, {"panel": panel_rows_all}, embed_tokens, plan=plan, council=council_holder,
+                                   attested=att_holder["block"],
                                    figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg),
                                    web=_web_usage_ctx(web_frozen))
         # ADR-0078 corrector: UNA sola sede de re-parseo. Si evidence_cited LLEGÓ como string (el wrapper
@@ -5075,6 +5320,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                 "structural_frameworks": reasoning_catalog.structural_frameworks(),
             },
             "agents_invoked": _agents_invoked(audit_result, checks, plan, council=frozen_council,
+                                              attested=att_holder["block"],
                                               figures=figures_holder["summary"], figure_lenses=fig_lenses,
                                               web=web_frozen, web_ps=web_ps),
             # --- ADR-0082 (J): el consejo de criterio congelado (ver arriba) ------------------------------------
@@ -5088,6 +5334,11 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             # gap_flags_typed[], cost (PROYECCIÓN), quota; bajo kill-switch EXACTAMENTE {state, provider, provider_source, kill_switch,
             # state_vocabulary, rule} (excepción declarada M.1); sin Ruta B por el harness, estado por disponibilidad y ruta ---------
             "web_locator": web_frozen,
+            # --- ADR-0086 (L): las IMÁGENES ATESTIGUADAS congeladas — SIEMPRE presentes en >= 1.14: state ∈
+            # attestations.ATTESTED_STATES_*, items[] SIN bytes (identidad, procedencia, consentimiento, licencia
+            # declarada y qué lentes la vieron), delivery (el sintetizador NO vio píxeles), storage con su durabilidad,
+            # vision (lecturas = JUICIO) y el vocabulario. Bajo kill-switch, EXACTAMENTE {state, …} sin ítems (M.1) ------
+            "attested_images": att_holder["block"],
             # --- tapón 3 (ADR-0061): el plan declarado viaja congelado; su ausencia se DECLARA -----
             "plan": plan,
             "plan_declared": plan is not None,
@@ -5265,6 +5516,11 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                              "council_must_uncovered": frozen_council["must_uncovered"],
                              # ADR-0083 (L, vista): estado de las figuras y conteos MEDIDOS (0 = medido; null = kill-switch:
                              # nada se contó) — la Lista/Banco pinta 'N figuras verificadas · K citadas' sin re-derivar
+                             # ADR-0086 (K): el estado de lo atestiguado y sus conteos viven también aquí (columna propia,
+                             # FUERA del registro congelado) para la Lista y el Banco — existe aun con el localizador apagado
+                             "attested_state": (att_holder["block"] or {}).get("state"),
+                             "attested_n_images": (att_holder["block"] or {}).get("n_attached"),
+                             "attested_n_seen_by_panel": (att_holder["block"] or {}).get("n_seen_by_panel"),
                              "figures_state": (figures_holder["summary"] or {}).get("state"),
                              "figures_n_verified": ((figures_holder["summary"] or {}).get("n_verified") if fig_enabled else None),
                              "figures_n_cited": ((figures_holder["summary"] or {}).get("n_cited") if fig_enabled else None),

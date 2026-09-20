@@ -1834,14 +1834,14 @@ def _cols(view):
     return {k: view.get(k) for k in _THREAD_COLS}
 
 
-check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.10' — 1.8 (ADR-0079) acompañó thread, thread_context, "
+check("ADR-0079/0080/0081 contrato: runs.RENDER_CONTRACT_VERSION == '1.14' — 1.8 (ADR-0079) acompañó thread, thread_context, "
       "thread_parent_matches_run, precedent_citations, origin, episode_axes; 1.9 (ADR-0080) sumó competence, search_ledger, "
       "citations[].support_state, citations_support_summary, deterministic_checks.{pass1_admissible, "
       "positive_claim_requires_citations, competence_gate}, token_usage.by_stage, epistemic_summary.{competent, "
       "n_search_rounds}; 1.10 (ADR-0081) suma frozen.models, answer.{model_source, model_reported, relation}, audit.{families_valid…, "
       "quorum}, by_stage.panel.by_model, plan.judgment.planner.model_source, epistemic_summary.{model_generation, "
       "panel_n_families_valid} + eventos stage.models / run.state{queued}.root_run_no; la webapp los tipa `?` — eso ES la paridad",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.13")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
+      runs_mod.RENDER_CONTRACT_VERSION == "1.14")   # el ÚNICO literal del contrato en todos los gates (los demás comparan contra runs_mod)
                                                     # 1.13 = ADR-0084 (la web LOCALIZA, jamás es fuente): +web_locator, deterministic_checks.web_locator,
                                                     # citations[].located_via, token_usage.web_locator/total, epistemic web_*, stage.web.locate
                                                     # 1.11 = ADR-0082 (consejo de criterio): +council, deterministic_checks.council/
@@ -3453,6 +3453,10 @@ _ADD_110["judge_payload"] |= {"figures_sent", "figures_sha256"}
 # ADR-0084 (1.13, G.2/G.8): frozen.web_locator (top, SIEMPRE presente en >= 1.13) y epistemic_summary.web_* (null = no midió)
 _ADD_110["top"] |= {"web_locator"}
 _ADD_110["epistemic"] |= {"web_locator_state", "web_n_located", "web_n_unresolved"}
+# ADR-0086 (1.14, K/L): frozen.attested_images (top, SIEMPRE presente en >= 1.14: el registro DECLARA si hubo imágenes
+# aportadas, y 'no-attested-images' no es lo mismo que no haber preguntado) y epistemic_summary.attested_* para la Lista
+_ADD_110["top"] |= {"attested_images"}
+_ADD_110["epistemic"] |= {"attested_state", "attested_n_images", "attested_n_seen_by_panel"}
 # ADR-0083 (G.6, F3): con WITT_FIGURES=1 CADA fila del panel gana saw_figures (MEDIDO: n 0 + detail cuando no hubo figuras) y
 # audit gana vision — llaves aditivas declaradas; bajo WITT_FIGURES=0 no se emiten (M.1, medido en la sección ADR-0083)
 _ADD_110["audit"] |= {"vision"}
@@ -4222,7 +4226,7 @@ check("ADR-0082 (J) frozen.council íntegro: module 'council-1', membership cm-1
       and _cn_a["vocabulary"]["usage_stage_states"]["exact"] == list(runs_mod.COUNCIL_USAGE_STAGE_STATES_EXACT)
       and _cn_a["decided_by"] == "code (council.aggregate_*)"
       and _cn_a["kill_switch"]["enabled"] is True and "state" in _cn_a["index"]
-      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.13",   # ADR-0084: 1.13 apila sobre 1.12
+      and _rec_ca["render_contract_version"] == runs_mod.RENDER_CONTRACT_VERSION == "1.14",   # ADR-0086: 1.14 apila sobre 1.13
       json.dumps({"cache": _cn_a["cache"], "model": _cn_a["model"]}, default=str)[:400])
 _tu_a = _rec_ca["token_usage"]
 _cm_a = _cn_a["model"]["requested"]
@@ -4474,7 +4478,7 @@ check("ADR-0082 (L.2) kill-switch WITT_COUNCIL=0 con la misma copia F.4: CERO ll
       "not-applicable 'kill-switch WITT_COUNCIL=0' (sin filas por miembro); citations[].pertinent 'not-available (council disabled (…))'; "
       "panel_signature byte-igual a la corrida (a) con consejo; el sintetizador NO recibió human_attestations (ledger apagado)",
       _C_CALLS == [] and not any(t.startswith("stage.council.") for t in _ev_types(_ev_ce))
-      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}   # ADR-0083/0084: figures y web_locator SIEMPRE presentes
+      and set(_rec_ce) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator", "attested_images"}   # ADR-0083/0084: figures y web_locator SIEMPRE presentes
       and set(_rec_ce["token_usage"]) == _TU_1_10_KEYS | {"cache", "input_tokens_total", "council_judgment", "cache_sum_matches_by_model",
                                                             "figures"}   # F8 ADR-0083 (H): usage_json.figures espejo (WITT_FIGURES=1 default)
       and _rec_ce["token_usage"]["cache"]["creation_input_tokens"] == _r1_usage["cache_creation"]
@@ -4513,7 +4517,7 @@ _DC_1_10_BASE = {"pass", "admissible", "reasons", "identifier_report", "parent_i
 check("ADR-0082 (L.2 i) corrector: bajo kill-switch deterministic_checks = keyset 1.10 congelado @ 9d90c01 (runs._gate + pass1_admissible/competence_gate/disjoint_series*) + EXACTAMENTE las 4 llaves "
       "aditivas DECLARADAS {council {state}, attestation_identifier_leak [], _state 'no-attestations', _rule} — el fragmento viaja al panel "
       "con estado declarado (tres estados: el predicado corrió y no había atestiguaciones) y la excepción queda escrita en el ADR",
-      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111 - {"figures", "web_locator"}) - {"positive_claim_requires_citations_inputs",
+      (set(_rec_ce["deterministic_checks"]) - _DC_ADD_111 - {"figures", "web_locator", "attested_images"}) - {"positive_claim_requires_citations_inputs",
                                                                           "positive_claim_requires_citations_evaluation"} == _DC_1_10_BASE
       # ADR-0083 (F/L): deterministic_checks.figures NACE en 1.12 (SIEMPRE presente; su keyset se mide en la sección ADR-0083)
       # ADR-0084 (E/G.3): deterministic_checks.web_locator NACE en 1.13 (SIEMPRE presente; su keyset se mide en la sección ADR-0084)
@@ -5041,8 +5045,8 @@ _CS_A83 = [{"n": 1, "verdict": "supported"}, {"n": 2, "verdict": "supported"}]
 _Q_A83 = "ADR-0083 a: does wt1a mark the pronephros (figures CC BY)?"
 
 # --- estático: contrato, tool del sintetizador, gate de llaves de prompt, snapshot ------------------------------------------------
-check("ADR-0083 (L) RENDER_CONTRACT_VERSION apilado sobre 1.12 (hoy '1.13', ADR-0084); FIGURES_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1)",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.13"
+check("ADR-0083 (L) RENDER_CONTRACT_VERSION apilado sobre 1.12 (hoy '1.14', ADR-0086); FIGURES_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1)",
+      runs_mod.RENDER_CONTRACT_VERSION == "1.14"
       and runs_mod.FIGURES_DECLARED_EXCEPTIONS == ("render_contract_version", "figures", "deterministic_checks.figures"))
 check("ADR-0083 (D.2) SYNTH_TOOL: evidence_cited.items.kind.enum gana 'figure' y la description exige marcadores [n] y prohíbe afirmar "
       "lo que sólo existe en la imagen (literal); synth_system NO cambia (la serie ab_trapped_scalar sigue comparable)",
@@ -5075,9 +5079,9 @@ _paper_ev_a = _ev_payloads(_ev_fa, "stage.figures.paper")
 _figure_ev_a = _ev_payloads(_ev_fa, "stage.figures.figure")
 _sum_ev_a = _ev_payloads(_ev_fa, "stage.figures.summary")
 _items_a = _fg_a["items"]
-check("ADR-0083 (L) contrato en el registro (hoy '1.13'); keyset top-level == 1.11 (47 + council) + {figures} + {web_locator} (ADR-0084); "
+check("ADR-0083 (L) contrato en el registro (hoy '1.14'); keyset top-level == 1.11 (47 + council) + {figures} + {web_locator} (ADR-0084); "
       "deterministic_checks gana `figures`; la corrida cerró awaiting_closure con Ruta B por la compuerta (no competente sin plan)",
-      _rec_fa["render_contract_version"] == "1.13" and set(_rec_fa) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}
+      _rec_fa["render_contract_version"] == "1.14" and set(_rec_fa) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator", "attested_images"}
       and "figures" in _rec_fa["deterministic_checks"] and _row_fa["state"] == "awaiting_closure"
       and _rec_fa["fallback"]["trigger"] == "competence",
       json.dumps({"extra": sorted(set(_rec_fa) - _FROZEN_1_10_KEYS - {"council", "figures", "web_locator"}), "state": _row_fa["state"]}))
@@ -5545,13 +5549,13 @@ check("ADR-0083 (M.1) KILL-SWITCH WITT_FIGURES=0: frozen keyset == 1.11 (47 + co
       "kill_switch {WITT_FIGURES '0', declared_exceptions [render_contract_version, figures, deterministic_checks.figures]}, items [], n_figures 0, "
       "SIN vision}; deterministic_checks.figures == {state 'kill-switch WITT_FIGURES=0'} y su keyset == el de la corrida (a); render_contract_version "
       "'1.12' — las TRES excepciones declaradas y ninguna más",
-      set(_rec_fj) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator"}   # ADR-0084: web_locator SIEMPRE presente en >= 1.13
+      set(_rec_fj) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator", "attested_images"}   # ADR-0084: web_locator SIEMPRE presente en >= 1.13
       and _fg_j["state"] == "kill-switch WITT_FIGURES=0"
       and _fg_j["kill_switch"] == {"WITT_FIGURES": "0", "declared_exceptions": ["render_contract_version", "figures", "deterministic_checks.figures"]}
       and _fg_j["items"] == [] and _fg_j["n_figures"] == 0 and "vision" not in _fg_j
       and _rec_fj["deterministic_checks"]["figures"] == {"state": "kill-switch WITT_FIGURES=0"}
       and set(_rec_fj["deterministic_checks"]) == set(_rec_fa["deterministic_checks"])
-      and _rec_fj["render_contract_version"] == "1.13",   # ADR-0084 apila sobre 1.12
+      and _rec_fj["render_contract_version"] == "1.14",   # ADR-0086 apila sobre 1.13
       json.dumps({"figures": {k: _fg_j[k] for k in ("state", "kill_switch")}, "dc": _rec_fj["deterministic_checks"]["figures"]}))
 check("ADR-0083 (M.1) KILL-SWITCH: los papers NO ganan `figures` ni el bundle `figures_ledger`; el user_text del sintetizador (pass1 Y pass2) no "
       "trae la llave 'figures' (byte a byte el de 1.11); el panel no recibe imágenes ni la llave; ninguna llave aditiva 1.12 en el frozen "
@@ -6025,9 +6029,9 @@ def _no_web_text84(text):
 
 
 # --- estático: contrato 1.13, 3 excepciones, cableado del tool, constantes aliasadas (una verdad) --------------------------------
-check("ADR-0084 (G.1/G.11) RENDER_CONTRACT_VERSION == '1.13' apilado sobre 1.12; WEB_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1); "
+check("ADR-0084 (G.1/G.11) RENDER_CONTRACT_VERSION == '1.14' apilado sobre 1.13; WEB_DECLARED_EXCEPTIONS son EXACTAMENTE 3 (M.1); "
       "WEB_KILL_SWITCH_STATE aliasa web_locator.WEB_KILL_SWITCH_STATE (una verdad); FIGURES_DECLARED_EXCEPTIONS intactas",
-      runs_mod.RENDER_CONTRACT_VERSION == "1.13"
+      runs_mod.RENDER_CONTRACT_VERSION == "1.14"
       and runs_mod.WEB_DECLARED_EXCEPTIONS == ("render_contract_version", "web_locator", "deterministic_checks.web_locator")
       and runs_mod.WEB_KILL_SWITCH_STATE == _wl84.WEB_KILL_SWITCH_STATE == "kill-switch WITT_WEB_LOCATOR=off"
       and runs_mod.FIGURES_DECLARED_EXCEPTIONS == ("render_contract_version", "figures", "deterministic_checks.figures"))
@@ -6389,7 +6393,7 @@ check("ADR-0084 (L, M.1) KILL-SWITCH byte a byte contra la corrida ENCENDIDA del
       and _rec_wd["deterministic_checks"]["web_locator"]["conjunction"] == []
       and _rec_we["web_locator"]["state"] == "kill-switch WITT_WEB_LOCATOR=off"
       and _rec_we["deterministic_checks"]["web_locator"] == {"state": "kill-switch WITT_WEB_LOCATOR=off"}
-      and _rec_wd["render_contract_version"] == _rec_we["render_contract_version"] == "1.13"
+      and _rec_wd["render_contract_version"] == _rec_we["render_contract_version"] == "1.14"
       and len(_net_wd.calls) == 0 and len(_net_we.calls) == 0,
       json.dumps(sorted(_diff_de))[:600])
 _RULE_DIRECTIVES_112 = ("one directive per KEPT requirement with coverage_final ∈ {uncovered, partial, not-judged} and harness_state "
@@ -6535,10 +6539,255 @@ check("ADR-0084 los estados congelados están en los vocabularios CERRADOS: web_
 _sh._TOOL_CACHE.pop("web", None)
 
 
+# =====================================================================================================================
+# ADR-0086 (K/L) · LAS IMÁGENES ATESTIGUADAS EN LA CORRIDA — contrato 1.14 (rebanada F4)
+# ---------------------------------------------------------------------------------------------------------------------
+# Lo que mide: una imagen que aporta una PERSONA por el ledger del consejo entra a la corrida SÓLO si la compuerta humana
+# la selló (`attached`); su caption viaja al sintetizador y al consejo, sus BYTES jamás; el registro congela identidad y
+# procedencia sin un solo píxel; y 0 imágenes se DECLARA ('no-attested-images'), que no es lo mismo que no haber preguntado.
+# =====================================================================================================================
+print("\n== ADR-0086: imágenes aportadas por una persona — contrato 1.14 ==")
+import base64 as _base64   # noqa: E402
+from lib import attestations as _at86   # noqa: E402
+
+_ATT_DIR86 = TMP / "attested86"
+_ATT_DIR86.mkdir(parents=True, exist_ok=True)
+_ENV86 = {"WITT_ATTESTED_DIR": str(_ATT_DIR86)}
+_CFG86 = _at86.env_config(env=_ENV86)
+_STORE86, _PROBE86 = _at86.storage_backend(cfg=_CFG86)
+_FX86 = _at86.synthetic_fixtures()
+_FORM86 = {"consent_declared": "true", "consent_kind": "own-work", "license_declared": "all-rights-reserved",
+           "share_scope": "author-only", "third_party_processing_acknowledged": "true",
+           "patient_material": "false", "deidentified_declared": "false"}
+_CAP86_A = "micrografia de pronefros de pez cebra a 48 hpf, tincion wt1a (cuaderno del laboratorio 2026-08)"
+_CAP86_B = "corte transversal del glomerulo: los podocitos marcados se ven contiguos al conducto"
+_CAP86_S = "foto del microscopio que NUNCA sello el ledger: no debe entrar a ninguna corrida"
+_CAP86_W = "imagen RETIRADA por quien la subio: la lapida se queda, los pixeles no"
+_BYTES86 = {}          # sha -> bytes ALMACENADOS: el gate afirma que su base64 no aparece en ningun lado
+
+
+def _fila86(plan_id, fixture, caption, quien="natalia", cuando="2026-09-18T10:00:00+00:00", **over):
+    """Una fila REAL por el mismo camino que la puerta de subida (validar → quitar metadatos → identidad → almacén)."""
+    ok, err = _at86.validate_form({**_FORM86, "caption": caption, **over}, cfg=_CFG86)
+    assert err is None, err
+    st = _at86.strip_metadata(fixture, media_type=_at86.sniff_mime(fixture), mode="strip")
+    b, err_b = _at86.validate_bytes(st["data"], cfg=_CFG86)
+    assert err_b is None, err_b
+    ident = _at86.identity(st["data"], fixture)
+    put = _STORE86.put(plan_id, ident["sha256"], st["data"], b["media_type"])
+    _BYTES86[ident["sha256"]] = st["data"]
+    row = _at86.build_row(plan_id, ok, b, st, ident, put, uploaded_by=quien, uploaded_by_role="scientist",
+                          uploaded_at=cuando)
+    assert db.attested_image_insert(row) is True, "insert de la fila atestiguada"
+    return row
+
+
+# cuatro subidas al MISMO plan: dos selladas por el ledger, una que se quedó en `staged` y una RETIRADA
+_R86_A = _fila86("plan-86-a", _FX86["png_text.png"], _CAP86_A)
+_R86_B = _fila86("plan-86-a", _FX86["png_clean_64x48.png"], _CAP86_B, cuando="2026-09-18T11:00:00+00:00",
+                 requirement_id=_c_rid84["zfin"])
+_R86_S = _fila86("plan-86-a", _FX86["jpeg_exif_mpf_com.jpg"], _CAP86_S, cuando="2026-09-18T12:00:00+00:00")
+_R86_W = _fila86("plan-86-a", _FX86["webp_exif.webp"], _CAP86_W, cuando="2026-09-18T13:00:00+00:00")
+assert db.attested_image_attach("plan-86-a", _R86_A["sha256"], "knowledge_now", by="natalia")
+assert db.attested_image_attach("plan-86-a", _R86_B["sha256"], "requirement", requirement_id=_c_rid84["zfin"], by="natalia")
+assert db.attested_image_attach("plan-86-a", _R86_W["sha256"], "knowledge_now", by="natalia")
+assert db.attested_image_withdraw("plan-86-a", _R86_W["sha256"], by="natalia", reason="la cambie por otra toma")
+_SYNTH86 = []
+
+
+def _synth86():
+    """El mismo sintetizador falso de 0084, pero CAPTURANDO la llave hermana `human_attestations` (K.2)."""
+    inner = _mk_synth84(_ANS84, _CIT84)
+
+    def _s(question, evidence, pass_label, thread_context=None, human_attestations=None):
+        _SYNTH86.append({"pass": pass_label, "att": json.loads(json.dumps(human_attestations, default=str))
+                         if human_attestations is not None else None})
+        return inner(question, evidence, pass_label, thread_context=thread_context,
+                     human_attestations=human_attestations)
+    return _s
+
+
+# --- (a) la corrida CON imágenes aportadas -----------------------------------------------------------------------------
+_rid86a, _rec86a, _ev86a, _row86a, _net86a, _esp86a = _run84("ADR-0086 a: attested images", "plan-86-a", uncovered=(),
+                                                             synth=_synth86(), env=dict(_ENV86))
+_ai86a = _rec86a["attested_images"]
+_shas86 = [it["sha256"] for it in _ai86a["items"]]
+check("ADR-0086 (K/L) frozen.attested_images de una corrida con 2 imágenes SELLADAS por el ledger: state 'attached', n_attached 2, "
+      "items en orden de subida, entrega DECLARADA {synthesizer 'captions-only', bytes_to_synthesizer False, council 'captions-only'}, "
+      "almacén local con su durabilidad y el vocabulario CERRADO completo de lib/attestations.py; la imagen `staged` (que el ledger "
+      "NUNCA selló) y la RETIRADA no entran — la compuerta humana manda, no el hecho de haber subido el archivo",
+      _ai86a["state"] == "attached" and _ai86a["n_attached"] == 2 and len(_ai86a["items"]) == 2
+      and _shas86 == [_R86_A["sha256"], _R86_B["sha256"]]
+      and _R86_S["sha256"] not in _shas86 and _R86_W["sha256"] not in _shas86
+      and _ai86a["delivery"] == {"synthesizer": "captions-only", "bytes_to_synthesizer": False,
+                                 "council": "captions-only", "panel": "bytes to <=2 vision lenses"}
+      and _ai86a["storage"]["backend"] == "local" and isinstance(_ai86a["storage"]["durability"], dict)
+      and _ai86a["vocabulary"] == json.loads(json.dumps(_at86.VOCABULARY, default=str))
+      and _at86.attested_state_in_vocabulary(_ai86a["state"]) and _ai86a["rule"] == runs_mod.ATTESTED_DELIVERY_RULE,
+      json.dumps({"state": _ai86a["state"], "n": _ai86a["n_attached"], "storage": _ai86a["storage"]["state"]}, default=str))
+_it86a = _ai86a["items"][0]
+_j86a = json.dumps(_rec86a, ensure_ascii=False, default=str)
+_B64_86 = _base64.b64encode(_BYTES86[_R86_A["sha256"]]).decode("ascii")[:40]   # el base64 REAL de la imagen aportada
+check("ADR-0086 (L) cada ítem congelado tiene la forma EXACTA attestations.ATTESTED_FROZEN_KEYS (40 llaves: identidad, los dos sha, "
+      "procedencia, consentimiento, licencia y alcance DECLARADOS, estado de metadatos, lápida y quién la vio) — y en TODO el registro "
+      "no hay un solo byte: ni b64, ni data:image, ni la llave del almacén, ni la ruta privada",
+      tuple(_it86a) == _at86.ATTESTED_FROZEN_KEYS and len(_at86.ATTESTED_FROZEN_KEYS) == 40
+      and _it86a["caption"] == _CAP86_A and _it86a["attached_to"] == "knowledge_now"
+      and _it86a["attached_by"] == "natalia" and _it86a["attached_by_is_uploader"] is True
+      and _it86a["storage"]["key_present"] is True and _it86a["delivered_to_synthesizer"] == "captions-only"
+      and _it86a["class"] == "attested" and _at86.exif_state_in_vocabulary(_it86a["exif_state"])
+      and _ai86a["items"][1]["requirement_id"] == _c_rid84["zfin"] and _ai86a["items"][1]["attached_to"] == "requirement"
+      and _B64_86 not in _j86a and '"b64"' not in _j86a and "data:image" not in _j86a
+      and _R86_A["storage_key"] not in _j86a
+      and str(_ATT_DIR86).replace("\\", "/") not in _j86a.replace("\\", "/"),
+      json.dumps({"n_keys": len(_it86a), "exif": _it86a["exif_state"], "dims": _it86a["dims"]}, default=str))
+_ev86_t = [e["type"] for e in _ev86a if e["type"].startswith("stage.attestations.")]
+_ev86_img = [e for e in _ev86a if e["type"] == "stage.attestations.image"]
+_pl86 = json.dumps([e["payload"] for e in _ev86a], ensure_ascii=False, default=str)
+check("ADR-0086 (K) la ETAPA deja traza: stage.attestations.plan (1) + .image (una por imagen SELLADA) + .summary (1), todas con agent "
+      "'attestations'; el payload lleva identidad y procedencia y NINGÚN caption, NINGÚN byte y NINGUNA llave de almacén; el resumen "
+      "declara bytes_to_synthesizer False y la clase de las lecturas ('model-judgment': lo que una lente dice de una imagen es JUICIO)",
+      _ev86_t == ["stage.attestations.plan", "stage.attestations.image", "stage.attestations.image",
+                  "stage.attestations.summary"]
+      and all(e["agent"] == runs_mod.ATTESTED_AGENT for e in _ev86a if e["type"].startswith("stage.attestations."))
+      and [e["payload"]["sha256_short"] for e in _ev86_img] == [_at86.short_of(x) for x in _shas86]
+      and _CAP86_A not in _pl86 and _CAP86_B not in _pl86 and "b64" not in _pl86 and _R86_A["storage_key"] not in _pl86
+      and next(e for e in _ev86a if e["type"] == "stage.attestations.summary")["payload"]["bytes_to_synthesizer"] is False
+      and next(e for e in _ev86a if e["type"] == "stage.attestations.summary")["payload"]["readings_class"] == "model-judgment",
+      json.dumps(_ev86_t))
+_dc86a = _rec86a["deterministic_checks"]["attested_images"]
+check("ADR-0086 (E) la COMPUERTA mide lo que no puede pasar: deterministic_checks.attested_images state 'checked', n_attested 2, los dos "
+      "predicados DUROS (attested_images_not_cited, attested_not_in_evidence) VACÍOS y el informativo también; gating == "
+      "verify_output.ATTESTED_GATING (2 gatean, 1 informa); la respuesta sigue admisible y NINGUNA cita es una imagen aportada",
+      _dc86a["state"] == "checked" and _dc86a["n_attested"] == 2 and _dc86a["state"] != _ai86a["state"]
+      and _dc86a[_vo.PREDICATE_ATTESTED_IMAGES_NOT_CITED] == [] and _dc86a[_vo.PREDICATE_ATTESTED_NOT_IN_EVIDENCE] == []
+      and _dc86a[_vo.PREDICATE_ATTESTED_IDS_NOT_IN_ANSWER] == []
+      and _dc86a["gating"] == dict(_vo.ATTESTED_GATING) and _dc86a["predicates_version"] == _vo.ATTESTED_PREDICATES_VERSION
+      and _rec86a["deterministic_checks"]["admissible"] is True
+      and _dc86a["state"] in _vo.ATTESTED_CHECK_STATES_EXACT,
+      json.dumps({k: _dc86a.get(k) for k in ("state", "n_attested", "predicates_version")}, default=str))
+_att86_synth = [x for x in _SYNTH86 if x["att"] is not None]
+_imgs86 = (_att86_synth[0]["att"] or {}).get("images") if _att86_synth else None
+check("ADR-0086 (K.2) el SINTETIZADOR recibe las imágenes como llave hermana human_attestations.images[]: EXACTAMENTE "
+      "attestations.PROMPT_ATTESTED_KEYS por imagen (caption, tipo, dimensiones, quién y cuándo, consentimiento y licencia), "
+      "bytes_delivered False y class 'attested'; n_images 2 y la regla de entrega viaja con ellas — el sintetizador NUNCA vio un píxel",
+      _imgs86 is not None and len(_imgs86) == 2
+      and all(tuple(i) == _at86.PROMPT_ATTESTED_KEYS for i in _imgs86)
+      and all(i["bytes_delivered"] is False and i["class"] == "attested" for i in _imgs86)
+      and _imgs86[0]["caption"] == _CAP86_A and (_att86_synth[0]["att"] or {}).get("n_images") == 2
+      and (_att86_synth[0]["att"] or {}).get("images_delivery") == runs_mod.ATTESTED_DELIVERY_RULE
+      and "b64" not in json.dumps(_att86_synth, ensure_ascii=False, default=str),
+      json.dumps({"n_pases_con_atestiguaciones": len(_att86_synth),
+                  "llaves": sorted((_att86_synth[0]["att"] or {}).keys()) if _att86_synth else []}, default=str))
+_vis86 = _ai86a["vision"]
+check("ADR-0086 (F3/K) lo que el PANEL vio queda MEDIDO y es COHERENTE consigo mismo: cada ítem declara seen_by_lenses (lista) y "
+      "n_readings SIN salirse de ATTESTED_FROZEN_KEYS; n_seen_by_panel == cuántos ítems vio al menos una lente; vision {n_selections, n_delivered_total, n_readings, "
+      "readings_class 'model-judgment'} — lo que una lente lee en una imagen APORTADA es juicio etiquetado, jamás medición — y cada "
+      "selección declara su estado dentro del vocabulario de la entrega ('sent' | 'no-eligible-attested'), con los sha de lo entregado "
+      "y SIN un solo byte",
+      all(isinstance(it["seen_by_lenses"], list) and isinstance(it["n_readings"], int)
+          and tuple(it) == _at86.ATTESTED_FROZEN_KEYS for it in _ai86a["items"])
+      and _ai86a["n_seen_by_panel"] == sum(1 for it in _ai86a["items"] if it["seen_by_lenses"])
+      and _vis86["readings_class"] == composite_auditor.ATTESTED_READINGS_CLASS == "model-judgment"
+      and isinstance(_vis86["n_readings"], int)
+      and _vis86["n_delivered_total"] == sum(int(p.get("n_attested") or 0) for p in _vis86["selections"])
+      and all(p["state"] in ("sent", "no-eligible-attested") and set(p["sha256s"]) <= set(_shas86)
+              and p["rule"] == _at86.SELECTION_RULE and "b64" not in p for p in _vis86["selections"])
+      and _B64_86 not in json.dumps(_vis86, default=str),
+      json.dumps({"n_seen_by_panel": _ai86a["n_seen_by_panel"], "vision": {k: _vis86[k] for k in
+                  ("n_selections", "n_delivered_total", "n_readings")},
+                  "selecciones": [p["state"] for p in _vis86["selections"]]}, default=str))
+_tu86a = _rec86a["token_usage"]["attested_images"]
+_ag86a = next(a for a in _rec86a["agents_invoked"] if a["agent"] == runs_mod.ATTESTED_AGENT_ROW)
+_esum86 = app.get_run(_rid86a, authorization=AUTH)["epistemic_summary"]
+check("ADR-0086 (K) el consumo y la rendición de cuentas: token_usage.attested_images son CONTEOS MEDIDOS (n_attached 2, bytes_total = Σ "
+      "bytes de los ítems, clase 'medición' — los tokens de visión ya están dentro de los input_tokens medidos del panel: nada se suma dos "
+      "veces); agents_invoked trae la fila de lib/attestations.py 'invoked' con bytes_to_synthesizer:False; epistemic_summary declara "
+      "attested_state/attested_n_images/attested_n_seen_by_panel para la Lista",
+      _tu86a["state"] == "attached" and _tu86a["n_attached"] == 2
+      and _tu86a["bytes_total"] == sum(int(it["bytes"]) for it in _ai86a["items"]) and _tu86a["bytes_total"] > 0
+      and _tu86a["class"].startswith("medición") and _tu86a["n_seen_by_panel"] == _ai86a["n_seen_by_panel"]
+      and _ag86a["status"] == "invoked" and "bytes_to_synthesizer:False" in _ag86a["evidence_generated"]
+      and _esum86["attested_state"] == "attached" and _esum86["attested_n_images"] == 2
+      and _esum86["attested_n_seen_by_panel"] == _ai86a["n_seen_by_panel"],
+      json.dumps({"usage": _tu86a, "epistemic": {k: _esum86[k] for k in
+                  ("attested_state", "attested_n_images", "attested_n_seen_by_panel")}}, default=str)[:400])
+
+# --- (b) un plan SIN imágenes: 0 se MIDE y se declara (0 != ausente) ----------------------------------------------------
+_rid86b, _rec86b, _ev86b, _row86b, _net86b, _esp86b = _run84("ADR-0086 b: plan without images", "plan-86-b",
+                                                             uncovered=(), env=dict(_ENV86))
+_ai86b = _rec86b["attested_images"]
+check("ADR-0086 (L/§6) un plan que NO adjuntó ninguna imagen lo DECLARA: state 'no-attested-images' (MEDIDO: nadie dejó de preguntar), "
+      "items [], n_attached 0, SIN llave `vision` (M.1: el panel no midió nada, y una llave en null sería ruido) y el bloque sigue presente; "
+      "deterministic_checks.attested_images 'no-attested-images' con los tres bloques VACÍOS medidos; SIN fila en agents_invoked y SIN "
+      "token_usage.attested_images (M.1: sin imágenes no nace ninguna llave de consumo); CERO eventos stage.attestations.*",
+      _ai86b["state"] == "no-attested-images" and _ai86b["items"] == [] and _ai86b["n_attached"] == 0
+      and "vision" not in _ai86b and "attested_images" in _rec86b
+      and _rec86b["deterministic_checks"]["attested_images"]["state"] == "no-attested-images"
+      and _rec86b["deterministic_checks"]["attested_images"][_vo.PREDICATE_ATTESTED_IMAGES_NOT_CITED] == []
+      and not any(a["agent"] == runs_mod.ATTESTED_AGENT_ROW for a in _rec86b["agents_invoked"])
+      and "attested_images" not in _rec86b["token_usage"]
+      and [e for e in _ev86b if e["type"].startswith("stage.attestations.")] == []
+      and app.get_run(_rid86b, authorization=AUTH)["epistemic_summary"]["attested_n_images"] == 0,
+      json.dumps({"state": _ai86b["state"], "n": _ai86b["n_attached"]}, default=str))
+
+# --- (c) SIN consejo no hay canal: 'not-applicable (no-ledger)' NO es 'no había imágenes' -------------------------------
+_rid86c, _rec86c, _ev86c, _row86c, _net86c, _esp86c = _run84("ADR-0086 c: no ledger", "plan-86-c", uncovered=(),
+                                                             env=dict(_ENV86),
+                                                             cj={**_c_json84(_C_LEDGER84, "plan-86-a"), "plan_id": None})
+check("ADR-0086 (K, corrector) una corrida cuya copia del consejo no trae plan_id no tiene ledger y por tanto NO TIENE CANAL para aportar: "
+      "state 'not-applicable (no-ledger)' — que es DISTINTO de 'no-attested-images' (nadie aportó) y de 'kill-switch' (apagado). Las 4 filas "
+      "de plan-86-a existen en la base y aun así no entran: sin plan no hay de dónde leerlas",
+      _rec86c["attested_images"]["state"] == runs_mod.ATTESTED_NO_LEDGER_STATE
+      and runs_mod.ATTESTED_NO_LEDGER_STATE == "not-applicable (no-ledger)"
+      and _rec86c["attested_images"]["items"] == [] and len(db.attested_images_of_plan("plan-86-a")) == 4
+      and _rec86c["deterministic_checks"]["attested_images"]["state"] == runs_mod.ATTESTED_NO_LEDGER_STATE
+      and _at86.attested_state_in_vocabulary(_rec86c["attested_images"]["state"]),
+      json.dumps({"state": _rec86c["attested_images"]["state"], "filas_en_base": len(db.attested_images_of_plan("plan-86-a"))}))
+
+# --- (d) kill-switch maestro: 1.13 byte a byte salvo las 3 excepciones DECLARADAS (M.1) ---------------------------------
+_rid86k, _rec86k, _ev86k, _row86k, _net86k, _esp86k = _run84("ADR-0086 d: kill switch", "plan-86-a", uncovered=(),
+                                                             env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"})
+_ai86k = _rec86k["attested_images"]
+check("ADR-0086 (M.1) con WITT_ATTESTED_IMAGES=0 el registro es el de 1.13 salvo las 3 excepciones DECLARADAS "
+      "(render_contract_version, attested_images, deterministic_checks.attested_images): el bloque dice el literal del kill-switch con "
+      "items [] (no dice 'no hubo': dice APAGADO), deterministic_checks.attested_images == {state: <literal>} EXACTAMENTE, cero eventos, "
+      "cero fila de agente, cero consumo — y el mismo plan que en (a) tenía 2 imágenes selladas",
+      _ai86k["state"] == runs_mod.ATTESTED_KILL_SWITCH_STATE == "kill-switch WITT_ATTESTED_IMAGES=0"
+      and _ai86k["items"] == [] and _ai86k["n_attached"] == 0
+      and _rec86k["deterministic_checks"]["attested_images"] == {"state": runs_mod.ATTESTED_KILL_SWITCH_STATE}
+      and [e for e in _ev86k if e["type"].startswith("stage.attestations.")] == []
+      and not any(a["agent"] == runs_mod.ATTESTED_AGENT_ROW for a in _rec86k["agents_invoked"])
+      and "attested_images" not in _rec86k["token_usage"]
+      and runs_mod.ATTESTED_DECLARED_EXCEPTIONS == ("render_contract_version", "attested_images",
+                                                    "deterministic_checks.attested_images")
+      and len(runs_mod.ATTESTED_DECLARED_EXCEPTIONS) == 3,
+      json.dumps({"state": _ai86k["state"], "dc": _rec86k["deterministic_checks"]["attested_images"]}, default=str))
+check("ADR-0086 (M.1, aditividad) las 4 corridas de esta sección congelan el contrato 1.14 y EXACTAMENTE el mismo keyset top-level que "
+      "1.13 + {attested_images}; attested_images está SIEMPRE presente en >= 1.14 (los tres estados son llave con valor, jamás ausencia)",
+      all(r["render_contract_version"] == "1.14"
+          and set(r) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator", "attested_images"}
+          and _at86.attested_state_in_vocabulary(r["attested_images"]["state"])
+          for r in (_rec86a, _rec86b, _rec86c, _rec86k)),
+      json.dumps([r["attested_images"]["state"] for r in (_rec86a, _rec86b, _rec86c, _rec86k)]))
+_leaks86 = []
+with db.engine().begin() as _cx86:
+    for _rid_x, _fr_x in _cx86.execute(_sa_f8.text("SELECT run_id, frozen_record_json FROM runs WHERE frozen_record_json IS NOT NULL")).all():
+        if "data:image" in (_fr_x or "") or _R86_A["storage_key"] in (_fr_x or "") or _CAP86_S in (_fr_x or ""):
+            _leaks86.append(("frozen", _rid_x))
+    for _rid_x, _seq_x, _pl_x in _cx86.execute(_sa_f8.text("SELECT run_id, seq, payload_json FROM run_events WHERE payload_json IS NOT NULL")).all():
+        if "data:image" in (_pl_x or "") or _R86_A["storage_key"] in (_pl_x or "") or _CAP86_A in (_pl_x or ""):
+            _leaks86.append(("event", _rid_x, _seq_x))
+check("ADR-0086 assert GLOBAL sobre la BD del gate: en NINGÚN frozen_record_json ni en NINGÚN payload de run_events hay bytes de imagen, "
+      "llave de almacén, el caption de la imagen que el ledger nunca selló, ni el caption en la traza (la traza lleva identidad y "
+      "procedencia, no lo que la persona escribió) — todas las corridas de todos los ADR",
+      _leaks86 == [], json.dumps(_leaks86[:5], default=str))
+
+
 # --- cero red MEDIDO + mcp_cache intacto + restauración de costuras --------------------------------------------------
 _mcp_after = _mcp_snapshot()
-check("ADR-0080 (H) / ADR-0081 / ADR-0083 / ADR-0084 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y "
-      "contado durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 + las de ADR-0082, ADR-0083 y ADR-0084 (0 llamadas), mcp_cache "
+check("ADR-0080 (H) / ADR-0081 / ADR-0083 / ADR-0084 / ADR-0086 la sección corrió 100% OFFLINE — MEDIDO, no prometido: urllib.request.urlopen bloqueado y "
+      "contado durante las 21 corridas de _run80 de ADR-0080 + las 6 de ADR-0081 + las de ADR-0082, ADR-0083, ADR-0084 y ADR-0086 (0 llamadas; el almacén de lo atestiguado vive en un TMP propio), mcp_cache "
       "byte-idéntico antes/después (la caché por día de ZFIN neutralizada desde el gate; la caché de figuras vive en un TMP propio), "
       "las fakes Layer 0 se inyectaron en _TOOL_CACHE tras verificar que las tools reales resuelven",
       _NET_CALLS == [] and _mcp_before == _mcp_after,
