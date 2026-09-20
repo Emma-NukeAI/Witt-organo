@@ -57,6 +57,10 @@ import precedent as precedent_mod  # noqa: E402
 import runs as runs_mod  # noqa: E402
 from lib import models  # noqa: E402  (ADR-0081 (A): la tabla de modelos — resolución EN LA LLAMADA)
 from lib import figures as figures_mod  # noqa: E402  (ADR-0083 (I): índice y bytes de figuras; env leída EN LA LLAMADA)
+try:                                    # ADR-0086 (F5b): las imágenes atestiguadas — import TOLERANTE (503 declarado)
+    from lib import attestations as attestations_mod  # noqa: E402
+except Exception:                       # pragma: no cover
+    attestations_mod = None
 try:
     from lib import web_locator as web_locator_mod  # noqa: E402  (ADR-0084 (I): /usage.web_locator.month_to_date; env EN LA LLAMADA)
 except ImportError:   # pragma: no cover — depende del árbol (rebanada W2); /usage lo declara 'table-missing'
@@ -127,13 +131,19 @@ app = FastAPI(title="Witt DATA INAMOVIBLE query service (read-only)", version=SE
 # X-Witt-Figure-Refetch es aditiva: sólo viaja cuando WITT_FIGURES_REFETCH_ON_GET=1 rebajó y verificó.
 FIGURE_EXPOSE_HEADERS = ("ETag", "X-Witt-Figure-License", "X-Witt-Figure-Sha256", "X-Witt-Figure-Refetch",
                          "Content-Disposition")
+# ADR-0086 (G.3): lo mismo para las imágenes aportadas — sin expose_headers el navegador esconde X-Witt-Attested-* aunque
+# viajen. Ninguna lleva bytes ni llave de almacén: identidad, clase y la REGLA DE VISTA que el servidor YA aplicó (la
+# webapp la muestra, no la decide).
+ATTESTED_EXPOSE_HEADERS = ("ETag", "X-Witt-Attested-Sha256", "X-Witt-Attested-Id", "X-Witt-Attested-Class",
+                           "X-Witt-Attested-View-Rule", "X-Witt-Attested-Patient-Material", "Content-Disposition")
 
 _cors = [o.strip() for o in os.environ.get("WITT_CORS_ORIGINS", "").split(",") if o.strip()]
 if _cors:
     from fastapi.middleware.cors import CORSMiddleware
     app.add_middleware(CORSMiddleware, allow_origins=_cors, allow_credentials=True,
                        allow_methods=["GET", "POST"], allow_headers=["Authorization", "Content-Type"],
-                       expose_headers=list(FIGURE_EXPOSE_HEADERS))
+                       expose_headers=list(FIGURE_EXPOSE_HEADERS) + [h for h in ATTESTED_EXPOSE_HEADERS
+                                                                     if h not in FIGURE_EXPOSE_HEADERS])
 
 
 # --- auth ------------------------------------------------------------------------------------------
@@ -1631,6 +1641,552 @@ def get_figure_bytes(run_id: str, sha256: str, request: Request, authorization: 
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304, headers=headers)
     return Response(content=data, media_type=media, headers=headers)
+
+
+
+# =====================================================================================================================
+# ADR-0086 · LAS IMÁGENES QUE APORTA UNA PERSONA — 7 puertas
+# ---------------------------------------------------------------------------------------------------------------------
+# Una imagen que sube una persona es PRIOR ART ATESTIGUADO: tiene procedencia registrada (quién, cuándo, con qué
+# consentimiento, con qué licencia declarada) y NO es evidencia, no se cita y no sostiene ninguna afirmación. Los bytes
+# viven en un almacén PRIVADO — jamás en la BD, jamás en el registro congelado, jamás en un presigned URL — y salen por
+# estas puertas con autorización estricta, sha RECALCULADO sobre lo que sale y `Cache-Control: private, no-store`.
+# =====================================================================================================================
+ATTESTED_SHA_RE = re.compile(r"^[0-9a-f]{64}$")
+ATTESTED_NOT_INSTRUMENTED = "not-instrumented (contrato < 1.14)"
+ATTESTED_KILL_SWITCH_HTTP = "kill-switch WITT_ATTESTED_IMAGES=0"
+ATTESTED_CACHE_CONTROL = "private, no-store"        # NUNCA public: estos bytes no se comparten ni se cachean fuera
+ATTESTED_EXT = {"image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/gif": "gif"}
+ATTESTED_SERVABLE_RULE = ("servable = stored ∧ not withdrawn ∧ backend of the ROW == backend configured NOW ∧ bytes "
+                          "present ∧ sha256 recomputed over the bytes that leave == the frozen sha (ADR-0086 G.2); an "
+                          "index over minio measures by stat_object and declares sha_verified false — the sha is "
+                          "recomputed ONLY when serving")
+ATTESTED_UPLOAD_GATE = ("attested images are attached by the HUMAN ledger: uploading stages a row, approving the ledger "
+                        "seals it; a plan already sealed to a run accepts no new uploads (ADR-0086 B.2)")
+
+
+def _attested_lib():
+    """La biblioteca o 503 declarado — un árbol sin ella responde en voz alta, jamás a medias."""
+    if attestations_mod is None:
+        raise HTTPException(status_code=503, detail={"state": "tool-unavailable (ADR-0086: lib/attestations.py not in tree)",
+                                                     "note": "la función de imágenes atestiguadas no está instalada"})
+    return attestations_mod
+
+
+def _attested_err(e):
+    """El sobre {status, state, detail} de la biblioteca → HTTPException con el MISMO vocabulario (una sola verdad)."""
+    d = dict(e.get("detail") or {})
+    d["state"] = e.get("state")
+    return HTTPException(status_code=int(e.get("status") or 400), detail=d)
+
+
+def _attested_cfg():
+    return _attested_lib().env_config()
+
+
+def _attested_on(cfg, plan_id=None):
+    """409 attested_images_disabled bajo el kill-switch maestro. RETIRAR sigue vivo: apagar la función no puede dejar a
+    una persona sin poder quitar su propia imagen (N.1)."""
+    if not cfg["enabled"]:
+        raise HTTPException(status_code=409, detail={
+            "state": "attested_images_disabled", "kill_switch": ATTESTED_KILL_SWITCH_HTTP, "plan_id": plan_id,
+            "source": cfg["sources"]["enabled"],
+            "note": "función apagada por variable de entorno; RETIRAR sigue disponible"})
+
+
+def _attested_db():
+    """503 attested-db-unavailable si la tabla no está (un despliegue a medias se declara, no revienta)."""
+    st = db.attested_schema_state()
+    if st != "ready":
+        raise HTTPException(status_code=503, detail={"state": "attested-db-unavailable", "schema_state": st})
+
+
+def _attested_storage(cfg):
+    """(storage, probe) o 503 attested-storage-unavailable — con backend `minio` mal configurado JAMÁS se cae a local."""
+    at = _attested_lib()
+    try:
+        storage, probe = at.storage_backend(cfg=cfg)
+    except at.StorageUnavailable as e:
+        raise _attested_err(e.to_error())
+    if storage is None:
+        raise HTTPException(status_code=503, detail={"state": "attested-storage-unavailable",
+                                                     "backend": cfg["backend"], "probe": probe})
+    return storage, probe
+
+
+def _attested_plan_gate(prow, plan_id):
+    """Las 409 de la puerta de subida: un plan YA SELLADO a una corrida no recibe imágenes nuevas (su ledger quedó
+    congelado al encolar), y un plan sin consejo no tiene ledger que las selle — sin canal, no hay aportación."""
+    if prow.get("run_id"):
+        raise HTTPException(status_code=409, detail={
+            "state": "plan_already_used", "plan_id": plan_id, "run_id": prow["run_id"], "rule": ATTESTED_UPLOAD_GATE})
+    cs = _plan_council_state(prow)
+    if cs not in COUNCIL_LEDGER_STATES and cs not in COUNCIL_PENDING_STATES:
+        raise HTTPException(status_code=409, detail={
+            "state": "attestations_require_ledger", "plan_id": plan_id, "council_state": cs,
+            "rule": ATTESTED_UPLOAD_GATE})
+    return cs
+
+
+def _attested_row_404(plan_id, sha256):
+    if not ATTESTED_SHA_RE.match(sha256 or ""):
+        raise HTTPException(status_code=400, detail={"state": "bad-sha256", "sha256": sha256,
+                                                     "note": "sha256 must match ^[0-9a-f]{64}$ (lowercase hex)"})
+    row = db.attested_image_get(plan_id, sha256)
+    if row is None:
+        raise HTTPException(status_code=404, detail={"state": "attested_image_not_found", "plan_id": plan_id,
+                                                     "sha256": sha256})
+    return row
+
+
+def _attested_event(plan_id, type_, payload):
+    """La traza del PLAN gana el evento, SIN mover el latido del consejo (lo emite una persona, no el job)."""
+    try:
+        db.plan_add_event(plan_id, type_, payload=payload, agent="attestations", heartbeat=False)
+    except Exception:
+        pass        # la traza es aditiva: su fallo jamás tumba la operación que ya ocurrió
+
+
+def _attested_servable(storage, row, viewer, cfg, verify_sha=True):
+    """{state, detail, sha_verified, bytes} MEDIDO — sin los bytes (el índice no descarga nada que no vaya a servir)."""
+    at = _attested_lib()
+    try:
+        chk = at.serve_check(storage, row, viewer=viewer, cfg=cfg, verify_sha=verify_sha, enforce_view=False)
+    except Exception as e:
+        return {"state": f"error: {type(e).__name__}", "detail": str(e)[:120], "sha_verified": False, "bytes": None}
+    return {k: chk.get(k) for k in ("state", "detail", "sha_verified", "bytes")}
+
+
+def _attested_item(row, viewer, cfg, storage=None, run_id=None, medir=True, verify_sha=True):
+    """AttestedImageItem (L) — frozen_item + lo que el SERVIDOR decide (viewer_may_view, view_rule), el `servable`
+    MEDIDO (None = declarado NO medido, jamás un 'sí' supuesto) y las URLs que esta sesión puede usar."""
+    at = _attested_lib()
+    serv = _attested_servable(storage, row, viewer, cfg, verify_sha) if (medir and storage is not None) else None
+    url = at.run_bytes_url(run_id, row["sha256"]) if run_id else at.plan_bytes_url(row["plan_id"], row["sha256"])
+    wd = at.withdraw_url_of(row["plan_id"], row["sha256"]) if at.may_withdraw(row, viewer, cfg) else None
+    return at.public_item(row, viewer=viewer, cfg=cfg, servable=serv, url=url, withdraw_url=wd,
+                          storage_state_live=(serv or {}).get("state"), run_id=run_id)
+
+
+def _attested_index_envelope(cfg, storage, probe):
+    """El encabezado COMÚN de los dos índices: topes, almacén, kill-switch y vocabularios cerrados (los lee parity_check)."""
+    at = _attested_lib()
+    return {"caps": cfg["caps"], "storage": {"backend": cfg["backend"], "state": (probe or {}).get("state"),
+                                             # sin probe (kill-switch / registro < 1.14) la durabilidad NO se inventa:
+                                             # null DECLARADO es «no se midió», que no es «es durable»
+                                             "durability": at.durability_of(probe) if probe else None},
+            "view_rule_default": cfg["view_rule_default"],
+            "kill_switch": {"WITT_ATTESTED_IMAGES": "1" if cfg["enabled"] else "0", "enabled": bool(cfg["enabled"]),
+                            "source": cfg["sources"]["enabled"]},
+            "class": "attested", "servable_rule": ATTESTED_SERVABLE_RULE,
+            "vocabulary": dict(at.VOCABULARY)}
+
+
+def _attested_bytes_response(row, viewer, cfg, storage, request, run_id=None):
+    """(G.2) LOS BYTES. Orden: kill-switch → autorización (author-only salvo `team` declarado con TEAM_VIEW=1; material
+    de paciente es author-only SIEMPRE) → lápida → backend de la FILA → sha RECALCULADO sobre lo que sale. Un sha que no
+    cuadra NO se sirve: 409, jamás 200 con otros bytes."""
+    at = _attested_lib()
+    vr = at.view_rule(row, viewer, cfg)
+    chk = at.serve_check(storage, row, viewer=viewer, cfg=cfg, verify_sha=True, enforce_view=True)
+    st = chk["state"]
+    if st == "kill-switch":
+        raise HTTPException(status_code=404, detail={"state": ATTESTED_KILL_SWITCH_HTTP, "sha256": row["sha256"]})
+    if st.startswith("forbidden"):
+        raise HTTPException(status_code=403, detail={"state": st, "view_rule": vr, "sha256": row["sha256"],
+                                                     "note": chk.get("detail")})
+    if st == "withdrawn":
+        raise HTTPException(status_code=410, detail={"state": "withdrawn (tombstone)", "sha256": row["sha256"],
+                                                     "withdrawn_at": row.get("withdrawn_at"),
+                                                     "withdraw_reason": row.get("withdraw_reason")})
+    if st == "bytes-mismatch":
+        raise HTTPException(status_code=409, detail={"state": "bytes-mismatch", "expected": row["sha256"],
+                                                     "actual": chk.get("sha256_actual"),
+                                                     "note": "los bytes del almacén no son los que se registraron: no se sirven"})
+    if st != "yes" or chk.get("data") is None:
+        raise HTTPException(status_code=404, detail={"state": st, "sha256": row["sha256"], "detail": chk.get("detail")})
+    data = chk["data"]
+    media = row.get("media_type") or at.sniff_mime(data) or "application/octet-stream"
+    etag = '"%s"' % row["sha256"]
+    headers = {"ETag": etag, "Cache-Control": ATTESTED_CACHE_CONTROL, "X-Content-Type-Options": "nosniff",
+               "X-Witt-Attested-Sha256": row["sha256"], "X-Witt-Attested-Id": at.id_of(row["sha256"]),
+               "X-Witt-Attested-Class": "attested", "X-Witt-Attested-View-Rule": vr["rule"],
+               "X-Witt-Attested-Patient-Material": "1" if row.get("patient_material") else "0",
+               "Content-Disposition": 'inline; filename="%s.%s"' % (at.short_of(row["sha256"]),
+                                                                    ATTESTED_EXT.get(media) or "bin")}
+    _attested_event(row["plan_id"], "attestation.bytes_served",
+                    {"sha256_short": at.short_of(row["sha256"]), "by": viewer, "view_rule": vr["rule"],
+                     "run_id": run_id, "bytes": len(data), "sha_verified": True})
+    from fastapi.responses import Response
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    return Response(content=data, media_type=media, headers=headers)
+
+
+# --- (1) subir: la fila nace `staged` — la compuerta humana la sella después --------------------------------------
+@app.post("/plans/{plan_id}/attestations", status_code=201)
+async def upload_attestation(plan_id: str, request: Request, authorization: str = Header(None)):
+    """(C) Subir UNA imagen al plan: multipart con `file` (los bytes) y el FORMULARIO que ES la procedencia (caption
+    OBLIGATORIO, consentimiento declarado, acuse de terceros, licencia y alcance). El orden importa: 413 por
+    Content-Length ANTES de leer un solo byte; tipo MEDIDO por magic bytes (el Content-Type declarado se registra pero
+    NO decide); metadatos borrados ANTES de hashear y guardar (si el borrado no se puede garantizar, 422 y NADA se
+    guarda); sha256 de los bytes ALMACENADOS; y recién entonces la fila. La imagen queda `staged`: hasta que el ledger
+    la selle no entra a ninguna corrida."""
+    user = _user_of(authorization)
+    at = _attested_lib()
+    cfg = _attested_cfg()
+    _attested_on(cfg, plan_id)
+    _attested_db()
+    prow = _plan_o_404(plan_id)
+    _attested_plan_gate(prow, plan_id)
+    cl = request.headers.get("content-length")
+    if cl and cl.isdigit() and int(cl) > cfg["max_body_bytes"]:
+        raise HTTPException(status_code=413, detail={
+            "state": "attested_image_too_large", "content_length": int(cl), "max_body_bytes": cfg["max_body_bytes"],
+            "max_image_mb": cfg["max_image_mb"], "source": cfg["sources"]["max_image_mb"],
+            "note": "rechazado por Content-Length: no se leyó un solo byte del cuerpo"})
+    try:
+        form = await request.form(max_files=2, max_fields=24, max_part_size=cfg["max_body_bytes"])
+    except Exception as e:      # cuerpo chunked sin Content-Length: el tope lo aplica el PARSEO, no la confianza
+        raise HTTPException(status_code=413, detail={
+            "state": "attested_image_too_large", "content_length": None, "max_body_bytes": cfg["max_body_bytes"],
+            "max_image_mb": cfg["max_image_mb"], "detail": f"{type(e).__name__}: {str(e)[:120]}",
+            "note": "el cuerpo rebasó el tope mientras se leía (sin Content-Length declarado)"})
+    up = form.get("file")
+    if up is None or not hasattr(up, "read"):
+        raise HTTPException(status_code=400, detail={"state": "file-missing",
+                                                     "note": "multipart/form-data con una parte `file` (los bytes)"})
+    campos = {k: v for k, v in form.items() if k != "file" and isinstance(v, str)}
+    ok, err = at.validate_form(campos, cfg=cfg, known_requirement_ids=_attested_known_reqs(prow))
+    if err is not None:
+        raise _attested_err(err)
+    data = await up.read()
+    if len(data) > int(float(cfg["max_image_mb"]) * 1024 * 1024):
+        raise HTTPException(status_code=413, detail={
+            "state": "attested_image_too_large", "bytes": len(data), "max_image_mb": cfg["max_image_mb"],
+            "source": cfg["sources"]["max_image_mb"]})
+    bf, err_b = at.validate_bytes(data, declared_ct=getattr(up, "content_type", None), cfg=cfg)
+    if err_b is not None:
+        raise _attested_err(err_b)
+    try:
+        strip = at.strip_metadata(data, media_type=bf["media_type"], mode=cfg["exif"])
+    except at.MetadataStripError as e:
+        raise _attested_err(e.to_error())       # 422 y NADA se guarda: no se almacena lo que no se pudo limpiar
+    ident = at.identity(strip["data"], data)
+    n_hoy = db.attested_images_uploaded_today(user["user_id"], _hoy_utc())
+    if n_hoy >= int(cfg["max_per_user_per_day"]):
+        raise HTTPException(status_code=429, detail={
+            "state": "upload-rate-limited", "n_today": n_hoy, "cap": int(cfg["max_per_user_per_day"]),
+            "source": cfg["sources"]["max_per_user_per_day"], "resets_at": _manana_utc_iso()})
+    _attested_caps(plan_id, cfg, len(strip["data"]))
+    if db.attested_image_get(plan_id, ident["sha256"]) is not None:
+        otro = db.attested_image_get(plan_id, ident["sha256"])
+        raise HTTPException(status_code=409, detail={
+            "state": "attested_image_already_uploaded", "sha256": ident["sha256"],
+            "uploaded_by_is_viewer": otro.get("uploaded_by") == user["user_id"],
+            "note": "el mismo archivo ya está en este plan: una identidad, una fila"})
+    storage, probe = _attested_storage(cfg)
+    try:
+        put = storage.put(plan_id, ident["sha256"], strip["data"], bf["media_type"])
+    except at.StorageUnavailable as e:
+        raise _attested_err(e.to_error())       # nada escrito: la fila NO nace si los bytes no quedaron
+    row = at.build_row(plan_id, ok, bf, strip, ident, put, uploaded_by=user["user_id"],
+                       uploaded_by_role=user.get("role"), uploaded_at=_ahora_utc_iso(),
+                       storage_backend_name=cfg["backend"])
+    if db.attested_image_insert(row) is not True:
+        raise HTTPException(status_code=409, detail={"state": "attested_image_already_uploaded",
+                                                     "sha256": ident["sha256"], "uploaded_by_is_viewer": True})
+    fila = db.attested_image_get(plan_id, ident["sha256"])
+    _attested_event(plan_id, "attestation.uploaded",
+                    {"sha256_short": at.short_of(ident["sha256"]), "id": at.id_of(ident["sha256"]),
+                     "media_type": bf["media_type"], "dims": bf.get("dims"),
+                     "bytes": len(strip["data"]), "by": user["user_id"], "exif_state": row.get("exif_state"),
+                     "patient_material": bool(row.get("patient_material")), "ledger_state": "staged"})
+    vivas = db.attested_images_of_plan(plan_id, include_withdrawn=False)
+    return {"plan_id": plan_id, "item": _attested_item(fila, user["user_id"], cfg, storage),
+            "n_live": len(vivas), "caps": cfg["caps"], "durability": at.durability_of(probe),
+            "storage": {"backend": cfg["backend"], "state": (probe or {}).get("state")}, "class": "attested",
+            "next": {"seal": f"/plans/{plan_id}/council/ledger", "rule": ATTESTED_UPLOAD_GATE}}
+
+
+def _attested_known_reqs(prow):
+    """Los requirement_id que ESTE plan conoce (para el 400 unknown_requirement_id) — None si aún no hay ronda 1."""
+    led = _plan_ledger(prow) or {}
+    reqs = [r.get("requirement_id") for r in (led.get("requirements") or []) if r.get("requirement_id")]
+    if reqs:
+        return reqs
+    cj = _plan_council_json(prow) or {}
+    r1 = cj.get("r1") if isinstance(cj.get("r1"), dict) else cj
+    reqs = [r.get("requirement_id") for r in ((r1 or {}).get("requirements") or []) if r.get("requirement_id")]
+    return reqs or None
+
+
+def _attested_caps(plan_id, cfg, nuevos_bytes):
+    """409 attestations_cap_reached {scope} — por número de filas VIVAS y por suma de bytes VIVOS del plan."""
+    vivas = db.attested_images_of_plan(plan_id, include_withdrawn=False)
+    if len(vivas) >= int(cfg["max_per_plan"]):
+        raise HTTPException(status_code=409, detail={
+            "state": "attestations_cap_reached", "scope": "plan", "n": len(vivas), "cap": int(cfg["max_per_plan"]),
+            "source": cfg["sources"]["max_per_plan"], "note": "retirar una imagen libera cupo"})
+    total = sum(int(r.get("bytes") or 0) for r in vivas) + int(nuevos_bytes or 0)
+    cap_b = int(float(cfg["max_total_mb"]) * 1024 * 1024)
+    if total > cap_b:
+        raise HTTPException(status_code=409, detail={
+            "state": "attestations_cap_reached", "scope": "total_mb", "bytes": total, "cap_bytes": cap_b,
+            "max_total_mb": cfg["max_total_mb"], "source": cfg["sources"]["max_total_mb"]})
+
+
+def _hoy_utc():
+    n = datetime.datetime.now(datetime.timezone.utc)
+    return n.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def _manana_utc_iso():
+    return (_hoy_utc() + datetime.timedelta(days=1)).isoformat()
+
+
+def _ahora_utc_iso():
+    return datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+
+# --- (2) heredar: la MISMA imagen en un plan hijo, con su procedencia intacta -------------------------------------
+class AttestedInheritBody(BaseModel):
+    sha256: str
+    from_run_id: str
+
+
+@app.post("/plans/{plan_id}/attestations/inherit", status_code=201)
+def inherit_attestation(plan_id: str, body: AttestedInheritBody, authorization: str = Header(None)):
+    """(B.6) Volver a usar en un plan NUEVO una imagen que ya se aportó en una corrida anterior, sin volver a subirla:
+    los bytes se COPIAN en el almacén bajo la llave del plan nuevo y la fila nace `inherited` con la procedencia
+    ORIGINAL (quién la aportó y cuándo no cambian: heredar no re-atestigua). Sólo quien la subió puede hacerlo."""
+    user = _user_of(authorization)
+    at = _attested_lib()
+    cfg = _attested_cfg()
+    _attested_on(cfg, plan_id)
+    _attested_db()
+    prow = _plan_o_404(plan_id)
+    _attested_plan_gate(prow, plan_id)
+    if not ATTESTED_SHA_RE.match(body.sha256 or ""):
+        raise HTTPException(status_code=400, detail={"state": "bad-sha256", "sha256": body.sha256})
+    padre = db.get_run(body.from_run_id)
+    if padre is None:
+        raise HTTPException(status_code=404, detail={"state": "run_not_found", "run_id": body.from_run_id})
+    origen = db.attested_image_get((padre.get("plan_id") if padre.get("plan_id") else _plan_id_de_corrida(padre)) or "",
+                                   body.sha256)
+    if origen is None:
+        raise HTTPException(status_code=404, detail={"state": "attested_image_not_found", "run_id": body.from_run_id,
+                                                     "sha256": body.sha256})
+    if origen.get("uploaded_by") != user["user_id"]:
+        raise HTTPException(status_code=403, detail={
+            "state": "inherit-not-uploader", "sha256": body.sha256, "uploaded_by": origen.get("uploaded_by"),
+            "note": "sólo quien aportó una imagen puede volver a aportarla en otro plan"})
+    if origen.get("withdrawn_at"):
+        raise HTTPException(status_code=400, detail={
+            "state": "attested_image_not_inheritable", "sha256": body.sha256, "image_state": "withdrawn (tombstone)",
+            "withdrawn_at": origen.get("withdrawn_at")})
+    if db.attested_image_get(plan_id, body.sha256) is not None:
+        raise HTTPException(status_code=409, detail={"state": "attested_image_already_uploaded", "sha256": body.sha256,
+                                                     "uploaded_by_is_viewer": True})
+    _attested_caps(plan_id, cfg, int(origen.get("bytes") or 0))
+    storage, probe = _attested_storage(cfg)
+    try:
+        data = storage.get(origen.get("storage_key"))
+    except at.StorageUnavailable as e:
+        raise _attested_err(e.to_error())
+    if data is None or at.sha256_hex(data) != body.sha256:
+        raise HTTPException(status_code=400, detail={
+            "state": "attested_image_not_inheritable", "sha256": body.sha256,
+            "image_state": ("bytes-missing" if data is None else "bytes-mismatch"),
+            "note": "no se hereda lo que no se puede verificar"})
+    try:
+        put = storage.put(plan_id, body.sha256, data, origen.get("media_type"))
+    except at.StorageUnavailable as e:
+        raise _attested_err(e.to_error())
+    fila = dict(origen)
+    fila.update(plan_id=plan_id, image_id=at.image_id_of(plan_id, body.sha256), ledger_state="inherited",
+                attached_to=None, attached_at=None, attached_by=None,
+                inherited_from_plan_id=origen.get("plan_id"), inherited_from_run_id=body.from_run_id,
+                storage_backend=cfg["backend"], storage_key=put["key"], storage_state=put["state"],
+                withdrawn_at=None, withdrawn_by=None, withdraw_reason=None, withdraw_cascade_n=None)
+    if db.attested_image_insert(fila) is not True:
+        raise HTTPException(status_code=409, detail={"state": "attested_image_already_uploaded", "sha256": body.sha256,
+                                                     "uploaded_by_is_viewer": True})
+    nueva = db.attested_image_get(plan_id, body.sha256)
+    _attested_event(plan_id, "attestation.inherited",
+                    {"sha256_short": at.short_of(body.sha256), "from_run_id": body.from_run_id,
+                     "from_plan_id": origen.get("plan_id"), "by": user["user_id"], "ledger_state": "inherited"})
+    return {"plan_id": plan_id, "item": _attested_item(nueva, user["user_id"], cfg, storage),
+            "n_live": len(db.attested_images_of_plan(plan_id, include_withdrawn=False)), "caps": cfg["caps"],
+            "durability": at.durability_of(probe),
+            "storage": {"backend": cfg["backend"], "state": (probe or {}).get("state")}, "class": "attested"}
+
+
+def _plan_id_de_corrida(run):
+    """La corrida NO tiene columna plan_id: el plan vive en la copia del consejo (F.4)."""
+    cj = _json_or_none(run.get("council_json")) or {}
+    return cj.get("plan_id")
+
+
+# --- (3) el índice del PLAN: metadatos, jamás bytes ----------------------------------------------------------------
+@app.get("/plans/{plan_id}/attestations")
+def list_plan_attestations(plan_id: str, authorization: str = Header(None)):
+    """(L) Lo que este plan tiene aportado: por imagen, identidad y procedencia, si ESTA sesión puede verla (calculado
+    en el SERVIDOR: la webapp no decide permisos) y `servable` MEDIDO. Toda sesión ve el índice; los BYTES son otra
+    puerta y otra autorización."""
+    user = _user_of(authorization)
+    cfg = _attested_cfg()
+    _attested_db()
+    _plan_o_404(plan_id)
+    if not cfg["enabled"]:
+        return {"plan_id": plan_id, "state": ATTESTED_KILL_SWITCH_HTTP, "n": 0, "n_live": 0, "items": [],
+                **_attested_index_envelope(cfg, None, None)}
+    storage, probe = _attested_storage(cfg)
+    filas = db.attested_images_of_plan(plan_id)
+    vivas = [r for r in filas if not r.get("withdrawn_at")]
+    verify = cfg["backend"] != "minio"      # sobre minio el índice MIDE por stat: recalcular el sha bajaría todo objeto
+    return {"plan_id": plan_id, "state": "listed", "n": len(filas), "n_live": len(vivas),
+            "n_attached": sum(1 for r in vivas if r.get("attached_to")),
+            "sha_verified_on_index": verify,
+            "items": [_attested_item(r, user["user_id"], cfg, storage, verify_sha=verify) for r in filas],
+            **_attested_index_envelope(cfg, storage, probe)}
+
+
+# --- (4) los bytes de una imagen del PLAN ---------------------------------------------------------------------------
+@app.get("/plans/{plan_id}/attestations/{sha256}")
+def get_plan_attestation_bytes(plan_id: str, sha256: str, request: Request, authorization: str = Header(None)):
+    """(G.2) Los bytes, con autorización ESTRICTA: quien la subió siempre; el equipo sólo si quien subió declaró
+    `share_scope: team` Y WITT_ATTESTED_TEAM_VIEW=1; material de paciente es author-only SIEMPRE, sin excepción y sin
+    variable que lo abra."""
+    user = _user_of(authorization)
+    cfg = _attested_cfg()
+    _attested_db()
+    _plan_o_404(plan_id)
+    row = _attested_row_404(plan_id, sha256)
+    storage, _probe = _attested_storage(cfg)
+    return _attested_bytes_response(row, user["user_id"], cfg, storage, request)
+
+
+# --- (5) retirar: la lápida se queda, los píxeles se van -------------------------------------------------------------
+class AttestedWithdrawBody(BaseModel):
+    reason: str = ""
+
+
+@app.post("/plans/{plan_id}/attestations/{sha256}/withdraw")
+def withdraw_attestation(plan_id: str, sha256: str, body: AttestedWithdrawBody, authorization: str = Header(None)):
+    """(H.1) Quitar una imagen aportada: la FILA se queda con su identidad, su procedencia y la razón del retiro — el
+    registro es inmutable —, y los BYTES se borran del almacén. La cascada alcanza las copias heredadas por otros
+    planes. Funciona con el plan ya sellado y BAJO EL KILL-SWITCH: apagar la función no puede dejar a una persona sin
+    poder quitar su propia imagen. Los registros congelados NO cambian: dicen lo que pasó."""
+    user = _user_of(authorization)
+    at = _attested_lib()
+    cfg = _attested_cfg()
+    _attested_db()
+    _plan_o_404(plan_id)
+    row = _attested_row_404(plan_id, sha256)
+    if not str(body.reason or "").strip():
+        raise HTTPException(status_code=400, detail={"state": "withdraw_without_reason", "sha256": sha256,
+                                                     "note": "retirar es una decisión: queda escrita con su razón"})
+    if not at.may_withdraw(row, user["user_id"], cfg):
+        raise HTTPException(status_code=403, detail={
+            "state": "withdraw-not-uploader", "sha256": sha256, "uploaded_by": row.get("uploaded_by"),
+            "policy": cfg["withdraw"], "source": cfg["sources"]["withdraw"]})
+    if row.get("withdrawn_at"):
+        raise HTTPException(status_code=409, detail={"state": "already-withdrawn", "sha256": sha256,
+                                                     "withdrawn_at": row.get("withdrawn_at")})
+    herederas = db.attested_images_inherited_from(plan_id, sha256)
+    borrados, estado = None, None
+    try:
+        storage, _probe = _attested_storage(cfg)
+        borrados = bool(storage.delete(row.get("storage_key")))
+        estado = "deleted" if borrados else "not-found"
+        for h in herederas:
+            try:
+                storage.delete(h.get("storage_key"))
+            except Exception:
+                pass
+    except HTTPException:
+        estado = "storage-unavailable"          # la lápida SE PONE igual: la decisión humana no depende del almacén
+    except Exception as e:
+        estado = f"error: {type(e).__name__}"
+    db.attested_image_withdraw(plan_id, sha256, by=user["user_id"], reason=str(body.reason).strip(),
+                               cascade_n=len(herederas))
+    for h in herederas:
+        db.attested_image_withdraw(h["plan_id"], sha256, by=user["user_id"],
+                                   reason=f"cascada del retiro en {plan_id}: {str(body.reason).strip()}"[:400])
+    fila = db.attested_image_get(plan_id, sha256)
+    _attested_event(plan_id, "attestation.withdrawn",
+                    {"sha256_short": at.short_of(sha256), "by": user["user_id"], "reason": str(body.reason).strip()[:200],
+                     "bytes_deleted": borrados, "storage_delete_state": estado, "cascade_n": len(herederas)})
+    return {"plan_id": plan_id, "sha256": sha256, "state": "withdrawn (tombstone)",
+            "withdrawn_at": (fila or {}).get("withdrawn_at"), "withdrawn_by": user["user_id"],
+            "bytes_deleted": borrados, "storage_delete_state": estado, "cascade_n": len(herederas),
+            "cascade_plan_ids": [h["plan_id"] for h in herederas], "class": "attested",
+            "note": "el registro congelado de las corridas que la usaron NO cambia: dice lo que pasó"}
+
+
+# --- (6) el índice de la CORRIDA: lo que el registro congeló ---------------------------------------------------------
+@app.get("/runs/{run_id}/attestations")
+def list_run_attestations(run_id: str, authorization: str = Header(None)):
+    """(L) Las imágenes aportadas que ESTA corrida usó, leídas de su registro CONGELADO (lo que pasó), con el estado
+    VIVO de cada una medido hoy (servable, retirada). Un registro anterior a 1.14 lo declara: 'not-instrumented
+    (contrato < 1.14)' con items [] — ausencia no es «no hubo imágenes»."""
+    user = _user_of(authorization)
+    cfg = _attested_cfg()
+    run, rec = _frozen_o_409(run_id)
+    _identidad_o_409(rec)
+    base = {"run_id": run_id, "run_no": run.get("run_no"),
+            "render_contract_version": rec.get("render_contract_version")}
+    bloque = rec.get("attested_images")
+    if not isinstance(bloque, dict):
+        return {**base, "state": ATTESTED_NOT_INSTRUMENTED, "n_items": 0, "items": [],
+                **_attested_index_envelope(cfg, None, None)}
+    if not cfg["enabled"]:
+        return {**base, "state": ATTESTED_KILL_SWITCH_HTTP, "frozen_state": bloque.get("state"),
+                "n_items": len(bloque.get("items") or []), "items": [], **_attested_index_envelope(cfg, None, None)}
+    _attested_db()
+    storage, probe = _attested_storage(cfg)
+    verify = cfg["backend"] != "minio"
+    items, n_wd, n_pat = [], 0, 0
+    for it in (bloque.get("items") or []):
+        fila = db.attested_image_get(it.get("plan_id") or "", it.get("sha256") or "")
+        if fila is None:                 # la fila ya no está: el registro sigue diciendo que existió
+            items.append({**it, "servable": {"state": "row-missing", "detail": "la fila ya no está en la base"},
+                          "viewer_may_view": False, "url": None, "class": "attested"})
+            continue
+        if fila.get("withdrawn_at"):
+            n_wd += 1
+        if fila.get("patient_material"):
+            n_pat += 1
+        items.append(_attested_item(fila, user["user_id"], cfg, storage, run_id=run_id, verify_sha=verify))
+    return {**base, "state": bloque.get("state"), "n_items": len(items), "n_attached": bloque.get("n_attached"),
+            "n_withdrawn_now": n_wd, "n_patient_material": n_pat, "sha_verified_on_index": verify,
+            "n_seen_by_panel": bloque.get("n_seen_by_panel"), "items": items,
+            **_attested_index_envelope(cfg, storage, probe)}
+
+
+# --- (7) los bytes de una imagen de la CORRIDA ------------------------------------------------------------------------
+@app.get("/runs/{run_id}/attestations/{sha256}")
+def get_run_attestation_bytes(run_id: str, sha256: str, request: Request, authorization: str = Header(None)):
+    """(G.2) Los bytes por la corrida: el sha tiene que estar EN EL REGISTRO CONGELADO de esta corrida (no basta que
+    exista en la base) y la autorización es la misma que en la puerta del plan."""
+    user = _user_of(authorization)
+    cfg = _attested_cfg()
+    _attested_db()
+    if not ATTESTED_SHA_RE.match(sha256 or ""):
+        raise HTTPException(status_code=400, detail={"state": "bad-sha256", "sha256": sha256})
+    run, rec = _frozen_o_409(run_id)
+    _identidad_o_409(rec)
+    bloque = rec.get("attested_images")
+    if not isinstance(bloque, dict):
+        raise HTTPException(status_code=404, detail={"state": ATTESTED_NOT_INSTRUMENTED, "sha256": sha256,
+                                                     "render_contract_version": rec.get("render_contract_version")})
+    it = next((x for x in (bloque.get("items") or []) if x.get("sha256") == sha256), None)
+    if it is None:
+        raise HTTPException(status_code=404, detail={"state": "no such attested image in this record", "sha256": sha256})
+    row = _attested_row_404(it.get("plan_id") or "", sha256)
+    storage, _probe = _attested_storage(cfg)
+    return _attested_bytes_response(row, user["user_id"], cfg, storage, request, run_id=run_id)
 
 
 @app.get("/runs/{run_id}/events")

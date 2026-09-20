@@ -848,10 +848,13 @@ def claim_next_council_plan(worker_id, origins=None, plan_id=None):
         return d
 
 
-def plan_add_event(plan_id: str, type: str, payload=None, agent=None, tool=None, level="info", degraded=None) -> int:
+def plan_add_event(plan_id: str, type: str, payload=None, agent=None, tool=None, level="info", degraded=None,
+                   heartbeat: bool = True) -> int:
     """Appendea UN evento a la traza del PLAN (plan_events; seq monotónico por plan, asignado en la MISMA transacción
     del INSERT) y refresca el latido plans.council_last_event_at — el espejo de add_event. Un solo escritor lógico por
-    plan (el hilo orquestador del worker: council.run_round emite desde ahí; Context 6 / R16). Devuelve seq."""
+    plan (el hilo orquestador del worker: council.run_round emite desde ahí; Context 6 / R16). Devuelve seq.
+    ADR-0086 (F): `heartbeat=False` para los eventos `attestation.*` — los emite una PERSONA desde la webapp, no el job
+    del consejo; moverían `council_last_event_at` y harían parecer vivo un job muerto (heartbeat_stale mentiría)."""
     import json as _json
     with engine().begin() as cx:
         seq = (cx.execute(select(func.max(plan_events.c.seq))
@@ -860,7 +863,8 @@ def plan_add_event(plan_id: str, type: str, payload=None, agent=None, tool=None,
         cx.execute(plan_events.insert().values(
             plan_id=plan_id, seq=seq, ts=ahora, type=type, agent=agent, tool=tool, level=level, degraded=degraded,
             payload_json=_json.dumps(payload, ensure_ascii=False, default=str) if payload is not None else None))
-        cx.execute(plans.update().where(plans.c.plan_id == plan_id).values(council_last_event_at=ahora))
+        if heartbeat:
+            cx.execute(plans.update().where(plans.c.plan_id == plan_id).values(council_last_event_at=ahora))
     return seq
 
 

@@ -289,7 +289,10 @@ class StorageUnavailable(AttestationError):
     def __init__(self, backend, detail, storage_state=None):
         self.backend = backend
         self.storage_state = storage_state or f"storage-unavailable ({detail})"
-        super().__init__(detail, backend=backend, state=self.storage_state)
+        # corrector (F5b): el extra se llamaba `state` y `to_error()` lo pasaba a `error(status, state, **extra)` →
+        # TypeError SIEMPRE. Es decir: el 503 declarado del almacén no existía, reventaba. El estado del ALMACÉN viaja
+        # como `storage_state` (el `state` del sobre es el de la clase de error: son dos cosas distintas).
+        super().__init__(detail, backend=backend, storage_state=self.storage_state)
 
 
 # ---------------------------------------------------------------------------------------------------------
