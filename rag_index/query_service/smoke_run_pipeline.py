@@ -6770,6 +6770,52 @@ check("ADR-0086 (M.1, aditividad) las 4 corridas de esta sección congelan el co
           and _at86.attested_state_in_vocabulary(r["attested_images"]["state"])
           for r in (_rec86a, _rec86b, _rec86c, _rec86k)),
       json.dumps([r["attested_images"]["state"] for r in (_rec86a, _rec86b, _rec86c, _rec86k)]))
+_led86 = _rec86a["council"]["ledger"]
+_bym86 = _rec86a["token_usage"]["by_stage"]["panel"]["by_model"]
+_av86 = {rev: m["attested_vision"] for rev, m in _bym86.items() if "attested_vision" in m}
+check("ADR-0086 (J.4/K) el LEDGER congelado dice qué imágenes selló (frozen.council.ledger.images con la forma EXACTA de "
+      "attestations.ledger_item: procedencia y metadatos, jamás bytes) + n_images; y la proyección de visión de lo aportado "
+      "viaja en llave PROPIA por revisor (token_usage.by_stage.panel.by_model[*].attested_vision) para que nadie confunda "
+      "una figura publicada con material del laboratorio: clase proyección, con su tokens_state, sobre las MISMAS lentes "
+      "que vieron bytes — los tokens medidos del juez ya las incluyen y nada se suma dos veces",
+      isinstance(_led86.get("images"), list) and len(_led86["images"]) == 2 and _led86["n_images"] == 2
+      and all(tuple(i) == _at86.ATTESTED_LEDGER_ITEM_KEYS for i in _led86["images"])
+      and [i["sha256"] for i in _led86["images"]] == _shas86
+      and '"b64"' not in json.dumps(_led86, default=str)
+      and len(_av86) >= 1
+      and all(set(v) >= {"n_images", "bytes_b64", "visual_tokens_projected", "tokens_state", "n_rows"} for v in _av86.values())
+      and all(v["n_images"] >= 1 for v in _av86.values())
+      and all("vision" not in _bym86[rev] or _bym86[rev]["vision"] is not _bym86[rev]["attested_vision"] for rev in _av86),
+      json.dumps({"n_images_ledger": _led86.get("n_images"), "attested_vision": _av86}, default=str)[:400])
+_ctx86a = runs_mod.build_thread_context(_row86a, [], _dt.datetime(2026, 9, 19, tzinfo=_dt.timezone.utc))["snapshot"]
+_ctx86b = runs_mod.build_thread_context(_row86b, [], _dt.datetime(2026, 9, 19, tzinfo=_dt.timezone.utc))["snapshot"]
+_pai86 = _ctx86a["parent_attested_images"]
+check("ADR-0086 (B.6.i) una corrida HIJA hereda lo que el padre tuvo aportado: thread_context.parent_attested_images[] con "
+      "la forma EXACTA de attestations.thread_item (identidad corta, caption <= 200, quién y cuándo, consentimiento, si es "
+      "material de paciente y qué lentes lo vieron) — metadatos, JAMÁS bytes y JAMÁS el sha completo; el meta declara el "
+      "tope, cuántas se excluyeron por retiro y la regla. Se lee del REGISTRO CONGELADO del padre (lo que pasó), no de la "
+      "tabla viva (lo que queda hoy). Un padre SIN imágenes no hace nacer la llave (M.1: ese hilo es el de 1.13)",
+      isinstance(_pai86, list) and len(_pai86) == 2
+      and all(tuple(i) == _at86.THREAD_ITEM_KEYS for i in _pai86)
+      and [i["sha256_short"] for i in _pai86] == [_at86.short_of(x) for x in _shas86]
+      and all("sha256" not in i and i["class"] == "attested" for i in _pai86)
+      and _pai86[0]["caption"] == _CAP86_A[:_at86.THREAD_CAPTION_CHARS] and _pai86[0]["by"] == "natalia"
+      and _ctx86a["parent_attested_images_meta"] == {"n": 2, "n_withdrawn_excluded": 0, "n_truncated": 0,
+                                                     "caption_chars": _at86.THREAD_CAPTION_CHARS,
+                                                     "rule": runs_mod.ATTESTED_THREAD_RULE}
+      and "parent_attested_images" not in _ctx86b and "parent_attested_images_meta" not in _ctx86b
+      and '"b64"' not in json.dumps(_ctx86a, default=str),
+      json.dumps({"n": len(_pai86), "meta": _ctx86a["parent_attested_images_meta"],
+                  "hijo_sin_imagenes": "parent_attested_images" not in _ctx86b}, default=str))
+check("ADR-0086 (M.1) sin imágenes aportadas NINGUNA de las llaves de F4b nace: el ledger congelado de la corrida (b) no "
+      "tiene `images` ni `n_images`, ningún revisor tiene `attested_vision`, y el de la corrida bajo kill-switch tampoco — "
+      "una corrida sin imágenes es, en estas llaves, byte a byte la de 1.13",
+      all("images" not in (r["council"]["ledger"] or {}) and "n_images" not in (r["council"]["ledger"] or {})
+          and not any("attested_vision" in m for m in r["token_usage"]["by_stage"]["panel"]["by_model"].values())
+          for r in (_rec86b, _rec86k)),
+      json.dumps({"b": sorted(k for k in (_rec86b["council"]["ledger"] or {}) if "image" in k),
+                  "k": sorted(k for k in (_rec86k["council"]["ledger"] or {}) if "image" in k)}))
+
 _leaks86 = []
 with db.engine().begin() as _cx86:
     for _rid_x, _fr_x in _cx86.execute(_sa_f8.text("SELECT run_id, frozen_record_json FROM runs WHERE frozen_record_json IS NOT NULL")).all():

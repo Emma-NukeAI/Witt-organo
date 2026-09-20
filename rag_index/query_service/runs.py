@@ -1308,6 +1308,9 @@ def build_thread_context(parent_run_row, comments_rows, now):
         "parent_frozen_sha256": frozen_sha256(frozen_json),
         "parent_frozen_sha256_rule": THREAD_SHA_RULE,
         "kill_switch": {THREAD_CONTEXT_ENV: os.environ.get(THREAD_CONTEXT_ENV, "1")},
+        # ADR-0086 (B.6.i): lo que el PADRE tuvo aportado por una persona — metadatos y caption corto, jamás bytes. La llave
+        # NO nace si el padre no tuvo imágenes (M.1: ese hilo es byte a byte el de 1.13).
+        **_attested_thread_items(frozen),
     }
     if frozen is None:
         snap["frozen_absent_reason"] = ("parent-without-frozen-record" if frozen_state == "absent"
@@ -2170,15 +2173,17 @@ def _vision_tokens(model, dims, detail=None):
     return {"tokens": int(res["tokens"]), "formula": res.get("formula"), "tier": res.get("tier"), "state": "projected"}
 
 
-def _vision_by_reviewer(rows, items, openai_detail=None):
-    """ADR-0083 (H): {reviewer: vision {…}} desde las filas del panel que traen saw_figures.n > 0 (lo ENTREGADO al caller,
-    medido por composite_auditor — F3) y las dims MEDIDAS de esas figuras (frozen.figures.items por sha256). Cada intento del
-    juez reenvía las imágenes (la API las factura): n_images/bytes/tokens se multiplican por len(attempts). Clase 'proyección';
-    los input_tokens medidos del juez YA incluyen las imágenes (nada se suma dos veces). Sin filas con imágenes → {}."""
+def _vision_by_reviewer(rows, items, openai_detail=None, saw_key="saw_figures", dims_key="dims_measured"):
+    """ADR-0083 (H): {reviewer: vision {…}} desde las filas del panel que traen <saw_key>.n > 0 (lo ENTREGADO al caller,
+    medido por composite_auditor — F3) y las dims MEDIDAS de esas imágenes (por sha256). Cada intento del juez reenvía las
+    imágenes (la API las factura): n_images/bytes/tokens se multiplican por len(attempts). Clase 'proyección'; los
+    input_tokens medidos del juez YA incluyen las imágenes (nada se suma dos veces). Sin filas con imágenes → {}.
+    ADR-0086 (K): las imágenes ATESTIGUADAS usan la MISMA cuenta con saw_key='saw_attested' y dims_key='dims' — una sola
+    implementación: si la proyección de visión cambia, cambia para las dos fuentes a la vez."""
     by_sha = {it.get("sha256"): it for it in (items or []) if isinstance(it, dict) and it.get("sha256")}
     out = {}
     for row in rows or []:
-        saw = row.get("saw_figures") if isinstance(row.get("saw_figures"), dict) else None
+        saw = row.get(saw_key) if isinstance(row.get(saw_key), dict) else None
         if not saw or not isinstance(saw.get("n"), int) or saw["n"] <= 0:
             continue
         reviewer = row.get("reviewer") or "unknown-reviewer"
@@ -2192,7 +2197,7 @@ def _vision_by_reviewer(rows, items, openai_detail=None):
         det = _openai_detail_for(reviewer, openai_detail)     # corrector: la proyección honra WITT_FIGURES_OPENAI_DETAIL (OpenAI)
         for sha in (saw.get("sha256s") or []):
             it = by_sha.get(sha)
-            t = _vision_tokens(reviewer, (it or {}).get("dims_measured"), det)
+            t = _vision_tokens(reviewer, (it or {}).get(dims_key), det)
             if t["state"] != "projected":
                 v["visual_tokens_projected"] = None
                 v["tokens_state"] = t["state"]
@@ -2212,7 +2217,7 @@ def _vision_by_reviewer(rows, items, openai_detail=None):
 
 
 def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_declared=False, council=None, figures=None,
-                    web=None):
+                    web=None, attested=None):
     """ADR-0080 (F): reparto del gasto MEDIDO por etapa. Insumos: cada pasada trae `usage` (síntesis +
     elicitación fusionadas — M8) y, desde ADR-0080, `usage_elicitation` aparte: la etapa synthesize_* es la
     resta y elicit_* la parte. Un sintetizador que no separa (stub, firma vieja) deja elicit_* con in/out null
@@ -2301,6 +2306,14 @@ def _usage_by_stage(passes, planner_meta, audit_result, embed_tokens, plan_decla
         for reviewer, v in vis.items():
             m = stages["panel"]["by_model"].setdefault(reviewer, {"in": 0, "out": 0})
             m["vision"] = v
+    # ADR-0086 (K): lo mismo para las imágenes que APORTÓ una persona, en llave PROPIA (`attested_vision`) para que el lector
+    # nunca confunda una figura publicada con material del laboratorio. Misma clase (proyección) y misma advertencia: los
+    # tokens medidos del juez YA las incluyen. Sin imágenes aportadas la llave NO nace (M.1).
+    if isinstance(attested, dict) and attested.get("items"):
+        for reviewer, v in _vision_by_reviewer(audit_result.get("panel", []), attested["items"],
+                                               None, "saw_attested", "dims").items():
+            m = stages["panel"]["by_model"].setdefault(reviewer, {"in": 0, "out": 0})
+            m["attested_vision"] = v
     stages["embed"] = {"tokens": embed_tokens, "unit": "embedding tokens (not chat tokens; excluded from _sum)"}
     stages["_sum"] = {"in": sum(v["in"] for k, v in stages.items() if k != "embed" and isinstance(v.get("in"), int)),
                       "out": sum(v["out"] for k, v in stages.items() if k != "embed" and isinstance(v.get("out"), int)),
@@ -2356,7 +2369,8 @@ def _token_usage(passes, audit_result, embed_tokens, plan=None, council=None, fi
     if web_toks and web_toks.get("model"):
         _add(web_toks["model"], {"input_tokens": int(web_toks.get("in") or 0), "output_tokens": int(web_toks.get("out") or 0)})
     by_stage = _usage_by_stage(passes, planner_meta or None, audit_result, embed_tokens,
-                               plan_declared=plan is not None, council=council, figures=figures, web=web)
+                               plan_declared=plan is not None, council=council, figures=figures, web=web,
+                               attested=attested)
     # ADR-0082 (H): las etapas del consejo MEDIDAS (r2/r3) o COPIADAS (r1) entran a by_model bajo el modelo del consejo con
     # su caché; una etapa 'not-run'/'kill-switch' no aporta (in/out null, no 0)
     council_rows = []
@@ -3181,6 +3195,10 @@ ATTESTED_DECLARED_EXCEPTIONS = ("render_contract_version", "attested_images",
 ATTESTED_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.attested_predicates not in tree — ADR-0086)"
 ATTESTED_TOOL_UNAVAILABLE_MODULE = "tool-unavailable (ADR-0086: lib/attestations.py not in tree)"
 ATTESTED_NO_LEDGER_STATE = "not-applicable (no-ledger)"
+THREAD_ATTESTED_MAX = 8                                        # = WITT_ATTESTED_MAX_PER_PLAN por defecto: el tope de un plan
+ATTESTED_THREAD_RULE = ("what the PARENT run had: metadata and caption (<= 200 chars), never bytes; withdrawn images are "
+                        "excluded and counted (a person who retired an image does not keep feeding it to child runs) "
+                        "— ADR-0086 B.6.i")
 # corrector (E): el estado del BLOQUE y el de la COMPUERTA son vocabularios DISTINTOS. 'attached' quiere decir "hay imágenes:
 # MIDE" → se le pasa None a verify_output para que calcule 'checked' y los dos predicados duros ENTREN a la conjunción; los
 # demás estados viajan tal cual y la biblioteca los declara sin fingir que midió (§6). Pasar 'attached' dejaba el gate INERTE.
@@ -3659,6 +3677,55 @@ def _attested_rows_for_run(plan_id, cfg):
     except Exception as e:
         return [], f"error: {type(e).__name__}: {str(e)[:120]}"
     return rows, ("attached" if rows else "no-attested-images")
+
+
+
+def _attested_ledger_images(images):
+    """{} | {images[], n_images} para frozen.council.ledger (J.4) — la forma la declara attestations.ledger_item."""
+    if not images or attestations_mod is None:
+        return {}
+    out = []
+    for row in images:
+        try:
+            out.append(attestations_mod.ledger_item(row))
+        except Exception:
+            continue
+    return {"images": out, "n_images": len(out)} if out else {}
+
+
+def _attested_thread_items(frozen_padre):
+    """(B.6.i) thread_context.parent_attested_images[] — lo que el padre TUVO, leído de SU registro congelado (jamás de la
+    tabla viva: el contexto del hilo es lo que pasó, no lo que quedó hoy). Se excluyen las RETIRADAS: una imagen que su
+    autora retiró no sigue viajando a las corridas hijas, y el meta DICE cuántas se excluyeron (no desaparecen en silencio).
+    Caption ≤ 200 (attestations.thread_item). Un padre sin imágenes no hace nacer ninguna llave (M.1)."""
+    if attestations_mod is None or not isinstance(frozen_padre, dict):
+        return {}
+    bloque = frozen_padre.get("attested_images")
+    items = bloque.get("items") if isinstance(bloque, dict) else None
+    if not isinstance(items, list) or not items:
+        return {}
+    out, n_wd = [], 0
+    for it in items[:THREAD_ATTESTED_MAX]:
+        if not isinstance(it, dict) or not it.get("sha256"):
+            continue
+        if it.get("withdrawn"):
+            n_wd += 1
+            continue
+        fila = {"sha256": it["sha256"], "caption": it.get("caption"), "uploaded_by": it.get("uploaded_by"),
+                "uploaded_at": it.get("uploaded_at"),
+                "consent_kind": (it.get("consent") or {}).get("kind") if isinstance(it.get("consent"), dict) else None,
+                "patient_material": bool(it.get("patient_material"))}
+        try:
+            out.append(attestations_mod.thread_item(fila, seen_by_lenses=it.get("seen_by_lenses") or []))
+        except Exception:
+            continue
+    if not out and not n_wd:
+        return {}
+    return {"parent_attested_images": out,
+            "parent_attested_images_meta": {"n": len(out), "n_withdrawn_excluded": n_wd,
+                                            "n_truncated": max(0, len(items) - THREAD_ATTESTED_MAX),
+                                            "caption_chars": attestations_mod.THREAD_CAPTION_CHARS,
+                                            "rule": ATTESTED_THREAD_RULE}}
 
 
 def _attested_stage(rows, state, run_id, cfg, probe):
@@ -4199,9 +4266,11 @@ def _post_search_rows(r2, r3):
     return rows, sorted(a for a in r3_ok if a)
 
 
-def _frozen_ledger_view(ledger, cap=COUNCIL_LEDGER_FROZEN_TEXT_CAP):
+def _frozen_ledger_view(ledger, cap=COUNCIL_LEDGER_FROZEN_TEXT_CAP, images=None):
     """frozen.council.ledger (J): decisiones humanas + knowledge_now ATESTIGUADOS con el texto RECORTADO a `cap` y
-    `truncated` declarado (íntegros en plans.council_ledger_json). None sin ledger."""
+    `truncated` declarado (íntegros en plans.council_ledger_json). None sin ledger.
+    ADR-0086 (J.4): `images` = las filas SELLADAS por este ledger → `images[]` (attestations.ledger_item: metadatos y
+    procedencia, jamás bytes) + `n_images`. Sin imágenes la llave NO nace: un ledger de 1.13 sigue byte a byte (M.1)."""
     if not isinstance(ledger, dict):
         return None
     reqs = []
@@ -4237,6 +4306,7 @@ def _frozen_ledger_view(ledger, cap=COUNCIL_LEDGER_FROZEN_TEXT_CAP):
             "n_pending": ledger.get("n_pending"), "n_hard_rule": ledger.get("n_hard_rule"),
             "truncated": ledger.get("truncated"), "n_truncated": ledger.get("n_truncated"),
             "requirements": reqs, "flags": list(ledger.get("flags") or []),
+            **_attested_ledger_images(images),
             "requirements_source": ledger.get("requirements_source"),
             "decisions_without_requirement": list(ledger.get("decisions_without_requirement") or []),
             "text_cap_chars": cap,
@@ -5202,7 +5272,7 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             "full_council": c_full, "n_members": c_n, "members": list(c_members),
             "quorum_rule": council.QUORUM_SOURCE, "quorum_required": c_quorum_required,
             "plan_id": (cj or {}).get("plan_id") if cj else None, "r1_state": c_r1_state,
-            "ledger": _frozen_ledger_view(c_ledger),
+            "ledger": _frozen_ledger_view(c_ledger, images=att_rows),
             "human_attestations": ({"present": True, "n_attestations": c_attest["n_attestations"],
                                     "knowledge_now_present": c_attest["knowledge_now"] is not None,
                                     "delivery": attest_delivery, "class": "attested"} if c_attest
