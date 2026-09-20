@@ -2257,7 +2257,7 @@ def _plan_o_404(plan_id):
     return prow
 
 
-def _plan_view(prow):
+def _plan_view(prow, viewer=None):
     """GET /plans/{id} (E.3): {plan_id, user_id, question, entities_csv, created_at, origin, run_id, plan, council_state,
     council (r1 + agregación + requisitos, SIN decisiones), ledger, council_usage, council_error, approved_by,
     approved_at, approved_by_is_author, council_claimed_by/at, council_started_at/finished_at/last_event_at,
@@ -2290,15 +2290,49 @@ def _plan_view(prow):
             "heartbeat_stale": bool(hb is not None and hb > HEARTBEAT_STALE_S and cs in COUNCIL_PENDING_STATES),
             "heartbeat_stale_after_s": HEARTBEAT_STALE_S,
             "run_gate": _council_run_gate(prow),
+            # ADR-0086 (J.4): el índice de imágenes aportadas viaja AQUÍ para que la pantalla de Preguntar lo pinte con
+            # UNA llamada. Misma forma que GET /plans/{id}/attestations. Sin biblioteca o sin sesión: se declara.
+            "attested_images": _plan_attested_block(pid, viewer),
             "poll": f"/plans/{pid}", "events": f"/plans/{pid}/events", "stream": f"/plans/{pid}/stream"}
+
+
+def _plan_attested_block(plan_id, viewer):
+    """El índice (L.HTTP.3) embebido en la vista del plan — jamás lanza: un fallo se DECLARA y la vista sigue sirviendo."""
+    if attestations_mod is None:
+        return {"state": "tool-unavailable (ADR-0086: lib/attestations.py not in tree)", "items": []}
+    try:
+        cfg = _attested_cfg()
+        if not cfg["enabled"]:
+            return {"state": ATTESTED_KILL_SWITCH_HTTP, "n": 0, "n_live": 0, "items": [],
+                    **_attested_index_envelope(cfg, None, None)}
+        if db.attested_schema_state() != "ready":
+            return {"state": "attested-db-unavailable", "schema_state": db.attested_schema_state(), "items": []}
+        storage, probe = at_storage_o_none(cfg)
+        filas = db.attested_images_of_plan(plan_id)
+        vivas = [r for r in filas if not r.get("withdrawn_at")]
+        verify = cfg["backend"] != "minio"
+        return {"state": "listed", "n": len(filas), "n_live": len(vivas),
+                "n_attached": sum(1 for r in vivas if r.get("attached_to")), "sha_verified_on_index": verify,
+                "items": [_attested_item(r, viewer, cfg, storage, verify_sha=verify) for r in filas],
+                **_attested_index_envelope(cfg, storage, probe)}
+    except Exception as e:                       # la vista del plan NO se cae por el almacén de imágenes
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}", "items": []}
+
+
+def at_storage_o_none(cfg):
+    """(storage, probe) o (None, None) — para los lectores que DECLARAN el fallo en vez de responder 503."""
+    try:
+        return attestations_mod.storage_backend(cfg=cfg)
+    except Exception:
+        return None, None
 
 
 @app.get("/plans/{plan_id}")
 def get_plan(plan_id: str, authorization: str = Header(None)):
     """El plan declarado con el estado de su ronda 1 (E.3). 401 sin sesión; 404 plan_not_found; 200 con council_state
     en cualquier estado (incluidos 'pre-adr-0082' y 'not-requested (council db unavailable)' — se sirve, no se oculta)."""
-    _user_of(authorization)
-    return _plan_view(_plan_o_404(plan_id))
+    user = _user_of(authorization)
+    return _plan_view(_plan_o_404(plan_id), viewer=user["user_id"])
 
 
 @app.get("/plans/{plan_id}/events")
@@ -2335,12 +2369,15 @@ class LedgerDecisionBody(BaseModel):
     decision: str                       # keep | discard | aporto
     reason: str | None = None           # OBLIGATORIA con discard
     attested_text: str | None = None    # OBLIGATORIO con aporto (≤ WITT_COUNCIL_ATTESTATION_CHARS); clase atestiguada
+    images: list[str] | None = None     # ADR-0086 (J.1): sha256 de imágenes aportadas — SÓLO con decision 'aporto'
 
 
 class LedgerBody(BaseModel):
     decisions: list[LedgerDecisionBody] = []
     knowledge_now: str | None = None    # "qué sabes ahora" — clase atestiguada, jamás evidencia (F.5)
     approve: bool = False
+    images: list[str] | None = None     # ADR-0086 (J.1): adjuntas a "qué sabes ahora" (requirement_id null)
+    patient_material_acknowledged: bool = False   # (I.iv) acuse EXPLÍCITO al aprobar con material de paciente
 
 
 class SkipBody(BaseModel):
@@ -2382,6 +2419,104 @@ def _write_ledger(plan_id, ledger, approved_by, council_state=None):
 
 def _plan_event(plan_id, type_, payload):
     db.plan_add_event(plan_id, type_, payload=payload, agent="council")
+
+
+
+# --- ADR-0086 (J): las imágenes que el ledger SELLA ------------------------------------------------------------------
+LEDGER_IMAGES_RULE = ("uploading an image only STAGES it; the human ledger is what attaches it to `knowledge_now` or to "
+                      "an `aporto` requirement. The requirement_id given at upload is a SUGGESTION: the ledger decides "
+                      "(attached_to wins). Sealing is write-once — a second approval after a draft does not move it "
+                      "(ADR-0086 J.3)")
+LEDGER_IMAGES_SOURCES = ("body.images", "kept-from-previous-draft", "none")
+
+
+def _ledger_images_in(body, prev):
+    """(J.1, PATCH-like como knowledge_now) {sha: (attached_to, requirement_id)} + la FUENTE declarada. `images` no
+    mandado = se conservan las vinculaciones del borrador anterior; `[]` explícito DESVINCULA."""
+    mandado = body.images is not None or any(d.images is not None for d in body.decisions)
+    if mandado:
+        pares, orden = {}, []
+        for sha in (body.images or []):
+            pares.setdefault(sha, ("knowledge_now", None))
+            orden.append(sha)
+        for d in body.decisions:
+            for sha in (d.images or []):
+                pares.setdefault(sha, ("requirement", d.requirement_id))
+                orden.append(sha)
+        return pares, orden, "body.images"
+    previas = {}
+    for it in ((prev or {}).get("images") or []):
+        if isinstance(it, dict) and it.get("sha256"):
+            previas[it["sha256"]] = (it.get("attached_to") or "knowledge_now", it.get("requirement_id"))
+    return previas, list(previas), ("kept-from-previous-draft" if previas else "none")
+
+
+def _ledger_images_validate(plan_id, body, pares, orden, cfg, _400):
+    """(J.2) Cada sha existe en ESTE plan, no está retirado, no viene duplicado, `decisions[].images` sólo con `aporto`,
+    el total cabe en el tope del plan y el material de paciente exige acuse EXPLÍCITO al aprobar."""
+    if not pares:
+        return []
+    if not cfg["enabled"]:
+        _400("attested_images_disabled", sorted(pares), kill_switch="kill-switch WITT_ATTESTED_IMAGES=0",
+             source=cfg["sources"]["enabled"])
+    sin_aporto = [d.requirement_id for d in body.decisions if d.images and d.decision != "aporto"]
+    if sin_aporto:
+        _400("images_without_aporto", sin_aporto,
+             note="una imagen se adjunta a un requisito que la persona APORTA, no a uno que mantiene o descarta")
+    dups = sorted({sha for sha in orden if orden.count(sha) > 1})
+    if dups:
+        _400("duplicated_attested_image", dups)
+    filas = {r["sha256"]: r for r in db.attested_images_of_plan(plan_id)}
+    desconocidas = sorted(sha for sha in pares if sha not in filas)
+    if desconocidas:
+        _400("unknown_attested_image", desconocidas,
+             note="el sha tiene que ser de una imagen subida a ESTE plan (no se acepta una de otro plan)")
+    retiradas = sorted(sha for sha in pares if filas[sha].get("withdrawn_at"))
+    if retiradas:
+        _400("attested_image_withdrawn", retiradas)
+    if len(pares) > int(cfg["max_per_plan"]):
+        _400("too_many_attested_images", sorted(pares), n=len(pares), cap=int(cfg["max_per_plan"]),
+             source=cfg["sources"]["max_per_plan"])
+    pacientes = sorted(sha for sha in pares if filas[sha].get("patient_material"))
+    if pacientes and body.approve and not body.patient_material_acknowledged:
+        _400("patient_material_unacknowledged", pacientes,
+             note="aprobar un ledger con material de paciente exige acuse EXPLÍCITO (patient_material_acknowledged)")
+    return [filas[sha] for sha in pares]
+
+
+def _ledger_images_seal(plan_id, pares, filas, aprobar, quien):
+    """(J.3) Al APROBAR se sella `attached_to/at/by` — write-once: una segunda aprobación tras un borrador NO la mueve
+    (la adjunción registrada permanece). En borrador no se sella nada: el ledger aún no es una decisión."""
+    if not aprobar:
+        return
+    for row in filas:
+        if row.get("attached_to"):
+            continue                      # ya sellada: el registro de quién y cuándo no se reescribe
+        destino, rid = pares[row["sha256"]]
+        db.attested_image_attach(plan_id, row["sha256"], destino, requirement_id=rid, by=quien)
+
+
+def _ledger_images_view(plan_id, pares, aprobar):
+    """(J.4) `images[]` con la forma de attestations.ledger_item, releídas DESPUÉS de sellar (así `attached_by` y
+    `attached_by_is_uploader` dicen la verdad: quien aprueba puede no ser quien subió — permisos planos)."""
+    at = _attested_lib()
+    out = []
+    for sha in pares:
+        row = db.attested_image_get(plan_id, sha)
+        if row is None:
+            continue
+        it = at.ledger_item(row)
+        if not aprobar and not row.get("attached_to"):
+            it["attached_to"], it["requirement_id"] = pares[sha][0], pares[sha][1]
+            it["ledger_state"] = "staged (pending approval)"
+        out.append(it)
+    return out
+
+
+def _ledger_images_flags(images):
+    """(I.iii) una fila `patient-material` por imagen marcada — bandera con COMPUERTA HUMANA, jamás automática."""
+    at = _attested_lib()
+    return [at.patient_material_flag(i) for i in images if i.get("patient_material")]
 
 
 @app.post("/plans/{plan_id}/council/ledger")
@@ -2433,6 +2568,17 @@ def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(N
     know = body.knowledge_now.strip() if isinstance(body.knowledge_now, str) else None
     if know is not None and len(know) > tope:
         _400("knowledge_now_too_long", max_chars=tope, max_chars_source=tope_src)
+    # ADR-0086 (J): las IMÁGENES que este ledger sella. La validación va ANTES de escribir nada: un 400 aquí deja el
+    # ledger anterior intacto (ninguna decisión humana se pierde por un sha mal escrito).
+    _att_cfg = _attested_cfg() if attestations_mod is not None else None
+    _prev_led = _plan_ledger(prow) or {}
+    if _att_cfg is not None:
+        _img_pares, _img_orden, _img_src = _ledger_images_in(body, _prev_led)
+        _img_filas = _ledger_images_validate(plan_id, body, _img_pares, _img_orden, _att_cfg, _400)
+    else:
+        _img_pares, _img_orden, _img_src, _img_filas = {}, [], "none", []
+        if body.images or any(d.images for d in body.decisions):
+            _400("attested_images_unavailable", note="lib/attestations.py no está en el árbol: no hay dónde sellarlas")
 
     now = _now_iso()
     quien = f"human:{user['user_id']}"
@@ -2492,13 +2638,41 @@ def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(N
               "attestation_chars_max": tope, "attestation_chars_max_source": tope_src,
               "permissions_rule": COUNCIL_PERMISSIONS_RULE,
               "source": "POST /plans/{plan_id}/council/ledger (decisiones humanas; default-keep sólo al aprobar)"}
+    # ADR-0086 (J.3/J.4): sellar (sólo al aprobar) y DESPUÉS releer, para que `attached_by_is_uploader` diga la verdad
+    _ledger_images_seal(plan_id, _img_pares, _img_filas, body.approve, user["user_id"])
+    _img_view = _ledger_images_view(plan_id, _img_pares, body.approve) if _img_pares else []
+    _img_flags = _ledger_images_flags(_img_view)
+    if _img_pares or _img_src != "none":
+        ledger.update(images=_img_view, n_images=len(_img_view), images_source=_img_src,
+                      images_rule=LEDGER_IMAGES_RULE,
+                      has_patient_material=any(i.get("patient_material") for i in _img_view),
+                      patient_material_acknowledged=bool(body.patient_material_acknowledged))
+        if _img_flags:
+            ledger["flags"] = list(ledger.get("flags") or []) + _img_flags
+        _por_req = {}
+        for it in _img_view:
+            if it.get("requirement_id"):
+                _por_req.setdefault(it["requirement_id"], []).append(it)
+        for fila in ledger["decisions"]:
+            if fila["requirement_id"] in _por_req:
+                fila["images"] = _por_req[fila["requirement_id"]]
+                fila["n_images"] = len(fila["images"])
     _write_ledger(plan_id, ledger, user["user_id"] if body.approve else None)
     if body.approve:
         _plan_event(plan_id, "council.ledger", {"approved_by": user["user_id"], "n_keep": tally["keep"],
                                                 "n_discard": tally["discard"], "n_aporto": tally["aporto"],
                                                 "n_default_keep": ledger["n_default_keep"],
                                                 "knowledge_now_present": knowledge_now is not None,
-                                                "approved_by_is_author": ledger["approved_by_is_author"]})
+                                                "approved_by_is_author": ledger["approved_by_is_author"],
+                                                # ADR-0086 (J.3): identidad y conteos, jamás un caption en la traza
+                                                "n_images": len(_img_view),
+                                                "has_patient_material": bool(_img_flags),
+                                                "patient_material_acknowledged": bool(body.patient_material_acknowledged)})
+        if _img_view:
+            _attested_event(plan_id, "attestation.attached",
+                            {"by": user["user_id"], "n_images": len(_img_view),
+                             "sha256_shorts": [i["sha256_short"] for i in _img_view],
+                             "attached_to": [i["attached_to"] for i in _img_view]})
     return {"plan_id": plan_id, "council_state": cs, "ledger": ledger}
 
 

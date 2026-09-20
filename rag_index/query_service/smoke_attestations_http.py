@@ -603,6 +603,137 @@ check("WITT_ATTESTED_BACKEND=minio sin MINIO_* configurado -> 503 attested-stora
       and db.attested_images_of_plan(P13) == [],
       json.dumps(_r503.json()["detail"])[:220])
 
+
+# =====================================================================================================================
+print("\n# 14. el LEDGER sella: subir sólo prepara, aprobar es lo que adjunta (ADR-0086 J)")
+# =====================================================================================================================
+REQS = [{"requirement_id": "req-aaa", "source_family": "zfin", "priority": "must", "gap": "expresión"},
+        {"requirement_id": "req-bbb", "source_family": "pubmed", "priority": "should", "gap": "función"}]
+
+
+def _plan_con_requisitos(plan_id):
+    _plan(plan_id)
+    db.update_plan_council(plan_id, council_json=json.dumps({"plan_id": plan_id, "requirements": REQS}))
+    return plan_id
+
+
+def _ledger(plan_id, headers=NAT, **body):
+    return client.post(f"/plans/{plan_id}/council/ledger", headers=headers, json=body)
+
+
+PL = _plan_con_requisitos("plan-ledger-1")
+_subir(PL, PNG)
+_subir(PL, PNG2)
+_sha_l1, _sha_l2 = _post_sha(PNG)[0], _post_sha(PNG2)[0]
+_otro = _plan_con_requisitos("plan-ledger-otro")
+_subir(_otro, JPG, ct="image/jpeg", nombre="o.jpg")
+_sha_otro = _post_sha(JPG)[0]
+_m = {}
+_m["unknown_attested_image"] = _ledger(PL, images=[_sha_otro], approve=False)
+_m["images_without_aporto"] = _ledger(PL, decisions=[{"requirement_id": "req-aaa", "decision": "keep",
+                                                      "images": [_sha_l1]}], approve=False)
+_m["duplicated_attested_image"] = _ledger(PL, images=[_sha_l1], decisions=[
+    {"requirement_id": "req-aaa", "decision": "aporto", "attested_text": "lo medimos en el laboratorio",
+     "images": [_sha_l1]}], approve=False)
+check("(J.2) el ledger valida las imágenes ANTES de escribir nada: un sha de OTRO plan -> 400 unknown_attested_image; "
+      "una imagen colgada de un requisito que se MANTIENE (no se aporta) -> 400 images_without_aporto; el mismo sha en "
+      "dos sitios -> 400 duplicated_attested_image. Un 400 aquí deja intacto el ledger anterior: ninguna decisión "
+      "humana se pierde por un sha mal escrito",
+      all(r.status_code == 400 and r.json()["detail"]["state"] == k for k, r in _m.items())
+      and db.get_plan(PL).get("council_ledger_json") is None,
+      json.dumps({k: (r.status_code, r.json()["detail"]["state"]) for k, r in _m.items()}))
+_r_draft = _ledger(PL, images=[_sha_l1], decisions=[
+    {"requirement_id": "req-bbb", "decision": "aporto", "attested_text": "lo confirmamos en el cuaderno 2026-08",
+     "images": [_sha_l2]}], approve=False)
+_led_d = _r_draft.json()["ledger"]
+check("(J.3) en BORRADOR nada se sella: el ledger devuelve las dos imágenes con su destino propuesto y ledger_state "
+      "'staged (pending approval)', y en la BASE siguen SIN attached_to — subir prepara, aprobar es lo que adjunta",
+      _r_draft.status_code == 200 and _led_d["n_images"] == 2 and _led_d["images_source"] == "body.images"
+      and all(i["ledger_state"] == "staged (pending approval)" for i in _led_d["images"])
+      and db.attested_image_get(PL, _sha_l1)["attached_to"] is None
+      and db.attested_image_get(PL, _sha_l2)["attached_to"] is None,
+      json.dumps({"n": _led_d["n_images"], "src": _led_d["images_source"]}))
+_r_keep = _ledger(PL, decisions=[{"requirement_id": "req-aaa", "decision": "keep"}], approve=False)
+check("(J.1, PATCH-like) un borrador posterior que NO manda `images` CONSERVA las vinculaciones del anterior y lo "
+      "DECLARA (images_source 'kept-from-previous-draft') — igual que knowledge_now: no mandar no es borrar",
+      _r_keep.json()["ledger"]["images_source"] == "kept-from-previous-draft"
+      and _r_keep.json()["ledger"]["n_images"] == 2,
+      json.dumps({"src": _r_keep.json()["ledger"]["images_source"], "n": _r_keep.json()["ledger"]["n_images"]}))
+_r_ap = _ledger(PL, approve=True, decisions=[{"requirement_id": "req-aaa", "decision": "keep"}], headers=EMM)
+_led_a = _r_ap.json()["ledger"]
+_f_l1 = db.attested_image_get(PL, _sha_l1)
+check("(J.3) al APROBAR se sella: attached_to 'knowledge_now' para la del cuerpo y 'requirement' con su requirement_id "
+      "para la del `aporto`; attached_by es QUIEN APROBÓ (permisos planos: puede no ser quien subió) y el registro lo "
+      "DICE con attached_by_is_uploader false — no se oculta, se declara",
+      _r_ap.status_code == 200 and _led_a["n_images"] == 2
+      and _f_l1["attached_to"] == "knowledge_now" and _f_l1["attached_by"] == "emmanuel"
+      and db.attested_image_get(PL, _sha_l2)["attached_to"] == "requirement"
+      and db.attested_image_get(PL, _sha_l2)["requirement_id"] == "req-bbb"
+      and all(i["attached_by_is_uploader"] is False for i in _led_a["images"])
+      and next(d for d in _led_a["decisions"] if d["requirement_id"] == "req-bbb")["n_images"] == 1,
+      json.dumps({"l1": _f_l1["attached_to"], "l2": db.attested_image_get(PL, _sha_l2)["attached_to"]}))
+_at_antes = _f_l1["attached_at"]
+_ledger(PL, approve=True, decisions=[{"requirement_id": "req-aaa", "decision": "keep"}])
+check("(J.3, write-once) una SEGUNDA aprobación tras un borrador NO mueve la adjunción ya registrada: attached_at y "
+      "attached_by siguen siendo los de la primera (el registro de cuándo y quién no se reescribe)",
+      db.attested_image_get(PL, _sha_l1)["attached_at"] == _at_antes
+      and db.attested_image_get(PL, _sha_l1)["attached_by"] == "emmanuel")
+_r_vacio = _ledger(PL, images=[], approve=False)
+check("(J.1) `images: []` EXPLÍCITO desvincula en el ledger (images_source 'body.images', n_images 0) — pero lo ya "
+      "sellado en la BASE no se des-sella: una aprobación pasada es un hecho, no un borrador",
+      _r_vacio.json()["ledger"]["n_images"] == 0 and _r_vacio.json()["ledger"]["images"] == []
+      and _r_vacio.json()["ledger"]["images_source"] == "body.images"
+      and db.attested_image_get(PL, _sha_l1)["attached_to"] == "knowledge_now")
+PL2 = _plan_con_requisitos("plan-ledger-2")
+_subir(PL2, PNG)
+_sha_r = _post_sha(PNG)[0]
+client.post(f"/plans/{PL2}/attestations/{_sha_r}/withdraw", headers=NAT, json={"reason": "me arrepenti"})
+check("(J.2) una imagen RETIRADA no se puede sellar -> 400 attested_image_withdrawn (la lápida es definitiva para el "
+      "ledger: no se adjunta lo que su autora quitó)",
+      _ledger(PL2, images=[_sha_r], approve=False).json()["detail"]["state"] == "attested_image_withdrawn")
+os.environ["WITT_ATTESTED_PATIENT_MATERIAL"] = "1"
+PL3 = _plan_con_requisitos("plan-ledger-3")
+_subir(PL3, PNG, patient_material="true", consent_kind="patient-consented",
+       consent_text="consentimiento informado firmado por la paciente el 2026-08-01", deidentified_declared="true")
+_sha_p = _post_sha(PNG)[0]
+_r_sin_acuse = _ledger(PL3, images=[_sha_p], approve=True)
+_r_con_acuse = _ledger(PL3, images=[_sha_p], approve=True, patient_material_acknowledged=True)
+os.environ.pop("WITT_ATTESTED_PATIENT_MATERIAL", None)
+_led_p = _r_con_acuse.json()["ledger"]
+_flag = next((f for f in (_led_p.get("flags") or []) if f.get("kind") == "patient-material"), None)
+check("(I.iii/I.iv) aprobar un ledger con MATERIAL DE PACIENTE sin acuse explícito -> 400 "
+      "patient_material_unacknowledged; con acuse -> 200, has_patient_material true y una BANDERA 'patient-material' "
+      "con gate HUMANO, su sha corto y su origen (la bandera se emite, no se resuelve sola)",
+      _r_sin_acuse.status_code == 400
+      and _r_sin_acuse.json()["detail"]["state"] == "patient_material_unacknowledged"
+      and _r_con_acuse.status_code == 200 and _led_p["has_patient_material"] is True
+      and _led_p["patient_material_acknowledged"] is True
+      and _flag is not None and _flag["gate"] == "human" and _flag["sha256_short"] == at.short_of(_sha_p)
+      and _flag["source"] == at.FLAG_SOURCE and isinstance(_flag["emitted_by"], list),
+      json.dumps(_flag, default=str)[:260])
+_ev_led = [e for e in db.plan_events_after(PL, 0) if e["type"] in ("council.ledger", "attestation.attached")]
+check("(J.3) la traza del plan registra el sellado: council.ledger lleva n_images / has_patient_material / "
+      "patient_material_acknowledged, y attestation.attached lleva los sha CORTOS y a qué se adjuntó — ningún caption "
+      "entra a la traza",
+      any(e["type"] == "council.ledger" and e["payload"].get("n_images") == 2 for e in _ev_led)
+      and any(e["type"] == "attestation.attached" and e["payload"].get("n_images") == 2 for e in _ev_led)
+      and all(CAP not in json.dumps(e["payload"], default=str) for e in _ev_led),
+      json.dumps([e["type"] for e in _ev_led]))
+_vista = client.get(f"/plans/{PL}", headers=NAT).json()
+check("(J.4) GET /plans/{id} trae `attested_images` con la MISMA forma del índice, para que la pantalla de Preguntar "
+      "pinte con UNA llamada — metadatos, permisos por sesión y ningún byte",
+      _vista["attested_images"]["state"] == "listed" and _vista["attested_images"]["n"] == 2
+      and all(i["class"] == "attested" for i in _vista["attested_images"]["items"])
+      and '"b64"' not in json.dumps(_vista),
+      json.dumps({"state": _vista["attested_images"]["state"], "n": _vista["attested_images"]["n"]}))
+os.environ["WITT_ATTESTED_IMAGES"] = "0"
+_r_kill = _ledger(PL2, images=[_sha_r], approve=False)
+os.environ.pop("WITT_ATTESTED_IMAGES", None)
+check("(J.2) bajo kill-switch el ledger con imágenes -> 400 attested_images_disabled con la fuente de la env (la "
+      "función apagada no sella nada, y lo dice)",
+      _r_kill.status_code == 400 and _r_kill.json()["detail"]["state"] == "attested_images_disabled"
+      and _r_kill.json()["detail"]["source"] == "env:WITT_ATTESTED_IMAGES")
+
 # =====================================================================================================================
 print("\n# 13. las rutas no se pisan, CORS expone lo suyo y nada binario viaja en JSON")
 # =====================================================================================================================
