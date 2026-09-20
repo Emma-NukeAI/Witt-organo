@@ -245,11 +245,16 @@ check("insumos NO-str también entran por la codificación compartida: value 7 -
       and db.config_ledger_last_by_field()["judge.retries"]["value"] == "7"
       and db.config_ledger_last_by_field()["judge.retries"]["previous_value"] == "true"
       and db.config_ledger_last_by_field()["prices.as_of"]["previous_recorded"] is False)
+# corrector (gate): las dos fechas SELLADAS por el llamador se calculan DESDE AHORA (+1 h y +2 h). Antes eran los literales
+# 2026-09-17T00:00/01:00 y el check de orden de abajo afirmaba que iban primero — cierto hasta que el calendario las alcanzó
+# (a partir del 2026-09-18 la fila medida "ahora" era la más reciente y el gate se ponía rojo SIN que nada hubiera cambiado).
+_SELLO_1 = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).replace(microsecond=0)
+_SELLO_2 = _SELLO_1 + datetime.timedelta(hours=1)
 check("recorded_at del llamador: ISO str y datetime NAIVE se aceptan (naive = UTC por construcción); basura -> ValueError",
       db.config_ledger_append([{"field": "embed.model", "value": EMBED,
-                                "recorded_at": "2026-09-17T00:00:00+00:00", **base_b}])["recorded_at"] == "2026-09-17T00:00:00+00:00"
+                                "recorded_at": _SELLO_1.isoformat(), **base_b}])["recorded_at"] == _SELLO_1.isoformat()
       and db.config_ledger_append([{"field": "openai.api", "value": "table",
-                                    "recorded_at": datetime.datetime(2026, 9, 17, 1, 0, 0), **base_b}])["recorded_at"] == "2026-09-17T01:00:00+00:00"
+                                    "recorded_at": _SELLO_2.replace(tzinfo=None), **base_b}])["recorded_at"] == _SELLO_2.isoformat()
       and _raises(lambda: db.config_ledger_append([{"field": "x", "value": "y", "recorded_at": 12345, **base_b}]), ValueError))
 
 # ---- 6. NUNCA update: las filas viejas byte a byte; db sin update/delete sobre la tabla ----------------------
@@ -264,7 +269,8 @@ check("db NO expone update/delete sobre config_history: ningún atributo config_
       and "delete(config_history" not in fuente_db)
 check("boot_id: dos arranques se distinguen — {A, B} en la tabla; el campo cambiado lleva B y los intactos A",
       {r["boot_id"] for r in db.config_ledger_list()} == {BOOT_A, BOOT_B})
-check("orden de config_ledger_list: recorded_at DESC manda sobre id (la fila sellada 2026-09-17T01:00 va primera aunque otra se midió 'ahora')",
+check("orden de config_ledger_list: recorded_at DESC manda sobre id (las dos filas SELLADAS por el llamador — ahora +2 h y +1 h — "
+      "van primero aunque otra fila se haya medido 'ahora' y tenga id mayor)",
       db.config_ledger_list()[0]["field"] == "openai.api" and db.config_ledger_list()[1]["field"] == "embed.model")
 
 # ---- 7. el CINTURÓN contra secretos ---------------------------------------------------------------------
