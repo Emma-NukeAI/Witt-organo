@@ -166,6 +166,7 @@ SAW_ATTESTED_DETAILS = ("sent", "lens-not-in-vision-lenses", "kill-switch WITT_A
 ATTESTED_VISION_STATES = ("sent", "kill-switch WITT_ATTESTED_VISION=0", "kill-switch WITT_ATTESTED_IMAGES=0",
                           "no-eligible-attested", "tool-unavailable (lib/attestations.py not importable)")
 ATTESTED_READINGS_CLASS = "model-judgment"      # lo que una lente dice de una imagen APORTADA es juicio, jamás medición
+ATTESTED_READING_MAX_CHARS = 400                # mismo tope que las lecturas de figura (G.5): una lectura, no un ensayo
 API_FORM_VERIFIED = "verified by doc (2026-09-15)"      # Anthropic Messages y OpenAI Responses (ADR-0083 Context 8); chat: figures.OPENAI_CHAT_FORM_STATE
 # (G.3) LA REGLA, literal: va al system de las lentes que reciben imágenes y congelada en frozen.figures.vision.rule (F4).
 FIGURE_READING_RULE = ("You may be shown figure images from the cited papers. Use them ONLY to judge whether the claim "
@@ -498,6 +499,46 @@ def parse_figure_readings(raw, delivered):
     return out, dropped
 
 
+
+def parse_attested_readings(raw, delivered):
+    """(válidas, n_dropped) — el espejo de parse_figure_readings para las imágenes que APORTÓ una persona (ADR-0086 F3).
+    `delivered` = las atestiguadas que ESA lente recibió (PANEL_ATTESTED_KEYS). Válida = dict cuyo `image_id` resuelve a una
+    imagen ENTREGADA (por id 'attested:<corto>' o por el sha corto) con `reading` str no vacío; la primera lectura por
+    imagen gana. Se DESCARTAN y CUENTAN: ids no entregados, duplicados, formas fuera de vocabulario e ítems que no son dict.
+    Se MIDE `numerals_present`: un juez que sacó un número de una imagen aportada queda VISIBLE (jamás corregido y jamás
+    sube ninguna escalera — esto es JUICIO, no medición). raw que no es lista → ([], 1): emitir algo fuera de forma no es
+    lo mismo que no emitir."""
+    if not isinstance(raw, list):
+        return [], 1
+    idx = {}
+    for a in (delivered or []):
+        if not isinstance(a, dict):
+            continue
+        for k in (a.get("id"), a.get("sha256_short")):
+            if isinstance(k, str) and k:
+                idx.setdefault(k, a)
+    out, seen, dropped = [], set(), 0
+    for item in raw:
+        if not isinstance(item, dict):
+            dropped += 1
+            continue
+        iid, reading = item.get("image_id"), item.get("reading")
+        cwc = item.get("consistent_with_caption", None)
+        rec = idx.get(iid) if isinstance(iid, str) else None
+        if (rec is None or not isinstance(reading, str) or not reading.strip() or rec.get("sha256") in seen
+                or not (cwc is None or isinstance(cwc, bool))):
+            dropped += 1
+            continue
+        seen.add(rec.get("sha256"))
+        text = reading.strip()
+        out.append({"id": rec.get("id"), "sha256": rec.get("sha256"), "sha256_short": rec.get("sha256_short"),
+                    "reading": text[:ATTESTED_READING_MAX_CHARS],
+                    "reading_truncated": len(text) > ATTESTED_READING_MAX_CHARS,
+                    "consistent_with_caption": cwc, "numerals_present": bool(_NUMERAL_RE.search(text)),
+                    "class": ATTESTED_READINGS_CLASS})
+    return out, dropped
+
+
 def figure_readings_from_panel(rows):
     """{'<PMCID>#<fig_id>': [{lens, reviewer, sha256, reading, consistent_with_caption, numerals_present}]} — las lecturas
     de imagen de TODAS las filas VÁLIDAS que las emitieron (ADR-0083 E: `figure_verification.content 'panel-judgment'` ⇔ el
@@ -587,6 +628,25 @@ VERDICT_TOOL = {
                                 "cannot tell)}. This is your JUDGMENT, never a measurement: " + FIGURE_READING_RULE_SHORT +
                                 " — never numbers read off the image, no counts, sizes or statistics; numbers must come "
                                 "from text. Never repeat these readings in `caught`, `reasons` or `correction_applied`."),
+            },
+            # ADR-0086 (F3): lecturas de una imagen que APORTÓ una persona — el único lugar donde una lente puede decir qué
+            # vio en ella. ATTESTED_READING_RULE (system, sólo cuando de veras viajan imágenes aportadas) manda aquí lo que
+            # concluya: JUICIO etiquetado (ATTESTED_READINGS_CLASS), jamás medición, jamás soporte de una cita, jamás una
+            # cifra leída de la imagen. parse_attested_readings descarta y CUENTA lo que no se entregó. OPCIONAL en `required`.
+            "attested_readings": {
+                "type": "array",
+                "items": {"type": "object",
+                          "properties": {"image_id": {"type": "string"},
+                                         "reading": {"type": "string", "maxLength": ATTESTED_READING_MAX_CHARS},
+                                         "consistent_with_caption": {"type": ["boolean", "null"]}},
+                          "required": ["image_id", "reading"]},
+                "description": ("vision lenses ONLY (other lenses: omit) — and only when ATTESTED IMAGES were shown to you. "
+                                "For EACH attested image you were shown, emit {image_id (exactly as labelled), reading "
+                                "(<= 400 chars: is the claim CONSISTENT with what the person says this image shows?), "
+                                "consistent_with_caption (true | false | null = cannot tell)}. An attested image is PRIOR "
+                                "ART provided by a person, never evidence: this is your JUDGMENT, never a measurement — "
+                                "never read numbers, counts or sizes off it, never treat it as support for a citation, "
+                                "never cite it. Never repeat these readings in `caught`, `reasons` or `correction_applied`."),
             },
         },
         "required": ["verdict", "confidence"],
@@ -1757,6 +1817,12 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
                     row["figure_readings_dropped"] = fr_dropped
             if saw_att is not None:                      # ADR-0086 (F3): qué imágenes APORTADAS vio este asiento
                 row["saw_attested"] = saw_att
+                # y lo que LEYÓ en ellas (sólo si lo emitió): juicio etiquetado, parseado contra lo que se le entregó
+                if verdict.get("attested_readings") is not None:
+                    ar, ar_dropped = parse_attested_readings(verdict["attested_readings"], att_for_member or [])
+                    row["attested_readings"] = ar
+                    row["attested_readings_class"] = ATTESTED_READINGS_CLASS
+                    row["attested_readings_dropped"] = ar_dropped
             rows.append(row)
             for k, v in (usage or {}).items():
                 if isinstance(v, (int, float)):

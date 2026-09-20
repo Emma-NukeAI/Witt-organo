@@ -188,8 +188,10 @@ check("(G.3) FIGURE_READING_RULE literal del ADR: 'Use them ONLY to judge whethe
       and "never numbers read off the image" in ca.VERDICT_TOOL["input_schema"]["properties"]["figure_readings"]["description"])
 _props = ca.VERDICT_TOOL["input_schema"]["properties"]
 _fr = _props.get("figure_readings")
+_ar = _props.get("attested_readings")          # ADR-0086 (F3): la segunda llave ADITIVA del tool
 _tool_1_11 = json.loads(json.dumps(ca.VERDICT_TOOL))
-_tool_1_11["input_schema"]["properties"].pop("figure_readings")
+_tool_1_11["input_schema"]["properties"].pop("figure_readings")      # 1.12 (ADR-0083)
+_tool_1_11["input_schema"]["properties"].pop("attested_readings")    # 1.14 (ADR-0086)
 VERDICT_TOOL_GOLDEN_CA9A03D = "807b254ee9ee7cce"     # sha16(json sort_keys) de composite_auditor.VERDICT_TOOL @ ca9a03d (medido 2026-09-16)
 LENS_CHARGES_GOLDEN_CA9A03D = "9295020260aa3100"     # sha16 de _LENS_CHARGES @ ca9a03d — la regla NO se mete en las charges
 check("(G.5) VERDICT_TOOL.figure_readings OPCIONAL: array de {fig_id str, reading str maxLength 400, consistent_with_caption bool|null} "
@@ -199,10 +201,51 @@ check("(G.5) VERDICT_TOOL.figure_readings OPCIONAL: array de {fig_id str, readin
       and _fr["items"]["properties"]["consistent_with_caption"]["type"] == ["boolean", "null"]
       and "figure_readings" not in ca.VERDICT_TOOL["input_schema"]["required"]
       and _fr["description"].startswith("vision lenses ONLY"))
-check("GOLDEN @ ca9a03d: VERDICT_TOOL sin `figure_readings` es BYTE A BYTE el de contract-1.11-frozen (sha16 807b254ee9ee7cce) y "
-      "_LENS_CHARGES no cambió (sha16 9295020260aa3100): la regla entra al system, no a las charges",
+check("GOLDEN @ ca9a03d: VERDICT_TOOL sin sus DOS llaves aditivas (`figure_readings` de 1.12 y `attested_readings` de 1.14) es "
+      "BYTE A BYTE el de contract-1.11-frozen (sha16 807b254ee9ee7cce) y _LENS_CHARGES no cambió (sha16 9295020260aa3100): "
+      "las reglas de lectura entran al system, no a las charges",
       sha16(_tool_1_11) == VERDICT_TOOL_GOLDEN_CA9A03D and sha16(ca._LENS_CHARGES) == LENS_CHARGES_GOLDEN_CA9A03D,
       f"tool={sha16(_tool_1_11)} charges={sha16(ca._LENS_CHARGES)}")
+
+# --- ADR-0086 (F3, corrector): la llave donde el juez PUEDE decir qué vio en una imagen APORTADA ---------------------
+check("(F3, corrector) VERDICT_TOOL.attested_readings OPCIONAL: array de {image_id str, reading str maxLength 400, "
+      "consistent_with_caption bool|null} con required [image_id, reading]; NO en `required` del tool; description "
+      "'vision lenses ONLY'. Antes de este corrector ATTESTED_READING_RULE mandaba al juez a `attested_readings` y el tool "
+      "NO tenia esa llave: el modelo no podia obedecer y n_readings era un 0 ESTRUCTURAL, no una medicion",
+      isinstance(_ar, dict) and _ar["type"] == "array" and _ar["items"]["required"] == ["image_id", "reading"]
+      and _ar["items"]["properties"]["reading"]["maxLength"] == 400 == ca.ATTESTED_READING_MAX_CHARS
+      and _ar["items"]["properties"]["consistent_with_caption"]["type"] == ["boolean", "null"]
+      and "attested_readings" not in ca.VERDICT_TOOL["input_schema"]["required"]
+      and ca.VERDICT_TOOL["input_schema"]["required"] == ["verdict", "confidence"]
+      and _ar["description"].startswith("vision lenses ONLY")
+      and "never a measurement" in _ar["description"] and "never cite it" in _ar["description"]
+      and "`attested_readings`" in ca._attested.ATTESTED_READING_RULE)   # el alias TOLERANTE de F3b resolvio
+_ENTREGADAS_AR = [{"id": "attested:aaaabbbbcccc", "sha256": "a" * 64, "sha256_short": "aaaabbbbcccc"},
+                  {"id": "attested:ddddeeeeffff", "sha256": "d" * 64, "sha256_short": "ddddeeeeffff"}]
+_ar_ok, _ar_drop = ca.parse_attested_readings(
+    [{"image_id": "attested:aaaabbbbcccc", "reading": "la imagen es consistente con lo que dice la persona",
+      "consistent_with_caption": True},
+     {"image_id": "ddddeeeeffff", "reading": "cuento 12 podocitos", "consistent_with_caption": None},
+     {"image_id": "attested:aaaabbbbcccc", "reading": "duplicada: la primera lectura gana"},
+     {"image_id": "attested:999999999999", "reading": "esta imagen NUNCA se le entrego"},
+     {"image_id": "attested:ddddeeeeffff", "reading": "forma fuera de vocabulario", "consistent_with_caption": "quiza"},
+     "no soy un dict"], _ENTREGADAS_AR)
+check("(F3, corrector) parse_attested_readings es DETERMINISTA y descarta CONTANDO: resuelve por id y por sha corto, la "
+      "primera lectura por imagen gana, y caen el duplicado, la imagen NO entregada, el consistent_with_caption fuera de "
+      "vocabulario y lo que no es dict (4 descartes); MIDE numerals_present — un juez que saco una cifra de una imagen "
+      "aportada queda VISIBLE (jamas corregido, jamas sube ninguna escalera: esto es JUICIO, clase 'model-judgment')",
+      len(_ar_ok) == 2 and _ar_drop == 4
+      and [r["sha256_short"] for r in _ar_ok] == ["aaaabbbbcccc", "ddddeeeeffff"]
+      and _ar_ok[0]["numerals_present"] is False and _ar_ok[1]["numerals_present"] is True
+      and _ar_ok[0]["consistent_with_caption"] is True and _ar_ok[1]["consistent_with_caption"] is None
+      and all(r["class"] == ca.ATTESTED_READINGS_CLASS == "model-judgment" for r in _ar_ok)
+      and ca.parse_attested_readings("no soy lista", _ENTREGADAS_AR) == ([], 1),
+      json.dumps({"ok": len(_ar_ok), "dropped": _ar_drop,
+                  "numerals": [r["numerals_present"] for r in _ar_ok]}, default=str))
+_lecturas_largas = ca.parse_attested_readings([{"image_id": "attested:aaaabbbbcccc", "reading": "x" * 500}], _ENTREGADAS_AR)[0]
+check("(F3, corrector) la lectura se CORTA a 400 y el corte se DECLARA (reading_truncated): el registro no miente sobre "
+      "lo que el juez escribio",
+      len(_lecturas_largas[0]["reading"]) == 400 and _lecturas_largas[0]["reading_truncated"] is True)
 
 # =====================================================================================================================
 # 2. vision_lenses(env)
