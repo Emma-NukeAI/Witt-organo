@@ -145,6 +145,7 @@ KEY_BORN = {
     "council": "1.11",
     "figures": "1.12",
     "web_locator": "1.13",
+    "attested_images": "1.14",
 }
 BORN_UNKNOWN = "contrato desconocido, declarado"
 
@@ -175,6 +176,7 @@ SECCIONES = (
     ("competence", "competencia"),
     ("search_ledger", "busqueda"),
     ("web_locator", "localizador"),
+    ("attested_images", "aportadas"),
     ("fallback", "fallback"),
     ("models", "modelos"),
     ("audit", "auditoria"),
@@ -234,6 +236,9 @@ ORDEN_SECCIONES = (
     ("soporte", "RESUMEN DE SOPORTE (ADR-0080) - la escalera de cinco peldanos, siempre los cinco"),
     ("figuras", "FIGURAS DE PAPERS (ADR-0083) - evidencia OBSERVADA por source-pointer (fig_id + sha256 + licencia "
                 "verificadas por codigo); lo que la imagen dice es JUICIO de las lentes, jamas medicion"),
+    ("aportadas", "IMAGENES APORTADAS POR UNA PERSONA (ADR-0086) - ATESTIGUADAS: procedencia registrada (quien, cuando, "
+                  "con que consentimiento y que licencia declaro), JAMAS evidencia y JAMAS citables. Este PDF no lleva "
+                  "miniaturas de ellas: son privadas y viven en el almacen, no aqui"),
     ("alternativas", "ALTERNATIVAS CONSIDERADAS"),
     ("razonamiento", "RAZONAMIENTO (ADR-0060) - marco declarado (self-report) y marcos estructurales del pipeline"),
     ("agentes", "AGENTES INVOCADOS (ADR-0060) - derivados de lo que CORRIO, jamas autoreporte"),
@@ -883,6 +888,91 @@ def _section_busqueda(pdf, record, ctx):
                        f"(la web localiza, no es fuente)" if "provider" in s else ""), size=7)
     if "n_items_for_directives" in sl:
         _p(pdf, f"items para directivas del consejo (ADR-0082): {sl.get('n_items_for_directives')}", size=7)
+    _rule(pdf)
+
+
+# ADR-0086 (M): IMAGENES APORTADAS — glosas CERRADAS (espejo de lib/attestations.py). El PDF circula FUERA de la app: aqui
+# no hay miniaturas, ni bytes, ni llaves de almacen, ni rutas; de una imagen de paciente tampoco se imprime el caption.
+ATTESTED_CINTILLO = ("ATESTIGUADO: lo aporto una persona como PRIOR ART con su procedencia; no es evidencia, no se cita y "
+                     "no sostiene ninguna afirmacion. Los bytes viven en almacenamiento privado; este PDF no los lleva.")
+ATTESTED_STATE_GLOSS = {
+    "attached": "hay imagenes aportadas y adjuntadas por la compuerta humana",
+    "no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
+    "not-applicable (no-ledger)": "la corrida no tuvo plan con consejo: no hay canal para aportar",
+    "kill-switch WITT_ATTESTED_IMAGES=0": "funcion apagada por variable de entorno",
+}
+
+
+def _attested_state_gloss(state):
+    if not isinstance(state, str):
+        return "sin estado declarado"
+    if state in ATTESTED_STATE_GLOSS:
+        return ATTESTED_STATE_GLOSS[state]
+    for pfx, g in (("tool-unavailable (", "la biblioteca no esta en el arbol: no se pudo medir"),
+                   ("error: ", "fallo al medir; se declara")):
+        if state.startswith(pfx):
+            return g
+    return "estado fuera del vocabulario conocido: se imprime crudo"
+
+
+def _section_aportadas(pdf, record, ctx):
+    """ADR-0086 (M): la seccion 'IMAGENES APORTADAS' nace con frozen.attested_images (1.14). Tres estados: llave ausente
+    (registro < 1.14) -> NO INSTRUMENTADO calculado de KEY_BORN; null declarado; valor (estado + glosa, entrega, almacen con
+    su durabilidad, y UNA FILA POR IMAGEN con identidad corta, tipo, dimensiones, quien la aporto y cuando, consentimiento y
+    licencia DECLARADOS, que lentes la vieron y cuantas lecturas hubo — JUICIO, jamas medicion). Sin miniaturas y sin la
+    llave del almacen. De una imagen marcada como material de paciente NO se imprime el caption."""
+    if _grupo_ausente(pdf, record, grupo_de("attested_images")):
+        _rule(pdf)
+        return
+    ai = record.get("attested_images")
+    if not isinstance(ai, dict):
+        _p(pdf, "attested_images: null declarado - la corrida no dejo bloque", style="I", size=8)
+        _rule(pdf)
+        return
+    _p(pdf, ATTESTED_CINTILLO, style="I", size=7)
+    state = ai.get("state")
+    _p(pdf, f"estado: {state} - {_attested_state_gloss(state)}", style="B", size=9)
+    entrega = ai.get("delivery") if isinstance(ai.get("delivery"), dict) else {}
+    if entrega:
+        _p(pdf, f"entrega: sintetizador {entrega.get('synthesizer')} (bytes al sintetizador: "
+                f"{entrega.get('bytes_to_synthesizer')}) - consejo {entrega.get('council')} - panel {entrega.get('panel')}",
+           size=8)
+    alm = ai.get("storage") if isinstance(ai.get("storage"), dict) else {}
+    if alm:
+        dur = alm.get("durability") if isinstance(alm.get("durability"), dict) else {}
+        _p(pdf, f"almacen: {alm.get('backend')} [{alm.get('state')}]"
+                + (f" - {dur.get('note')}" if dur.get("note") else ""), size=8)
+    items = ai.get("items") if isinstance(ai.get("items"), list) else []
+    if not items:
+        _p(pdf, "sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]", size=8)
+        _rule(pdf)
+        return
+    vision = ai.get("vision") if isinstance(ai.get("vision"), dict) else {}
+    _p(pdf, f"{len(items)} imagen(es) adjuntada(s) - vistas por el panel: {ai.get('n_seen_by_panel')} - lecturas de las "
+            f"lentes: {vision.get('n_readings')} [{vision.get('readings_class') or 'model-judgment'}: JUICIO, no medicion]",
+       size=8)
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        dims = it.get("dims") if isinstance(it.get("dims"), dict) else {}
+        consent = it.get("consent") if isinstance(it.get("consent"), dict) else {}
+        paciente = bool(it.get("patient_material"))
+        _p(pdf, f"  {it.get('id') or it.get('sha256_short')} - {it.get('media_type')} "
+                f"{dims.get('w')}x{dims.get('h')} - {it.get('bytes')} bytes - aportada por {it.get('uploaded_by')} "
+                f"el {it.get('uploaded_at')}", style="B", size=7)
+        _p(pdf, f"      adjunta a {it.get('attached_to')}"
+                + (f" ({it.get('requirement_id')})" if it.get("requirement_id") else "")
+                + f" - consentimiento {consent.get('kind') or it.get('consent_kind')} "
+                f"[declarado {consent.get('declared') if 'declared' in consent else it.get('consent_declared')}]"
+                f" - licencia declarada {it.get('license_declared')} - alcance {it.get('share_scope')}"
+                f" - metadatos {it.get('exif_state')}", size=7)
+        lentes = it.get("seen_by_lenses") if isinstance(it.get("seen_by_lenses"), list) else []
+        _p(pdf, f"      vista por {len(lentes)} lente(s): {', '.join(lentes) if lentes else 'ninguna'}"
+                + ("   |   MATERIAL DE PACIENTE: caption no impreso (privacidad)" if paciente else ""), size=7)
+        if not paciente and it.get("caption"):
+            _p(pdf, f"      dice la persona: \"{it.get('caption')}\"", style="I", size=7)
+    _p(pdf, "ninguna de estas imagenes es citable ni cuenta como evidencia; el sintetizador no vio sus pixeles", style="I",
+       size=7)
     _rule(pdf)
 
 
@@ -2146,7 +2236,7 @@ def _section_consumo(pdf, record, ctx):
 
 RENDERERS = {
     "identidad": _section_identidad, "estado": _section_estado, "ejes": _section_ejes, "competencia": _section_competencia,
-    "busqueda": _section_busqueda, "localizador": _section_localizador, "fallback": _section_fallback, "modelos": _section_modelos, "auditoria": _section_auditoria,
+    "busqueda": _section_busqueda, "localizador": _section_localizador, "aportadas": _section_aportadas, "fallback": _section_fallback, "modelos": _section_modelos, "auditoria": _section_auditoria,
     "respuesta": _section_respuesta, "confianza": _section_confianza, "evidencia": _section_evidencia, "esquema": _section_esquema,
     "soporte": _section_soporte, "figuras": _section_figuras, "alternativas": _section_alternativas,
     "razonamiento": _section_razonamiento, "agentes": _section_agentes, "plan": _section_plan, "gate": _section_gate,

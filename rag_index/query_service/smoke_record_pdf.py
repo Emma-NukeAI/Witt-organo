@@ -3,7 +3,7 @@
 Lo que MIDE (fila `smoke_record_pdf.py` de la tabla de gates NO-SPEND del ADR):
   (1) cobertura: las llaves top-level del literal `frozen = {` + `frozen["k"] =` de runs.py (la MISMA técnica que
       witt-webapp/tools/parity_check.frozen_keys, copiada literal) → `record_pdf.pdf_sections_cover` da missing [] y
-      extra [] (53 llaves: 50 de 1.10 + council + figures + web_locator); con el frozen REAL de una corrida offline (execute_run con
+      extra [] (54 llaves: 50 de 1.10 + council + figures + web_locator + attested_images); con el frozen REAL de una corrida offline (execute_run con
       stubs, patrón smoke_run_pipeline) CERRADA (frozen_at/closed_by nacen al cerrar) igualdad EXACTA; el frozen abierto
       declara exactamente esas dos como extra; un registro 1.12 con figuras (frozen real + `figures` de figures.attach sobre
       el zip fixture) también EXACTA;
@@ -30,7 +30,7 @@ Lo que MIDE (fila `smoke_record_pdf.py` de la tabla de gates NO-SPEND del ADR):
       SOLO en el ledger de no resueltos (NO ADMISIBLE), NINGUNA URL de located[], 'PROYECCION' junto al USD y 'MEDICION' junto a
       las consultas; 1.12 -> 'NO INSTRUMENTADO (contrato < 1.13)' calculado; kill-switch -> literal + 3 excepciones; gate con 4
       predicados; glosas del PDF == vocabularios cerrados de lib/web_locator.py (W2); determinismo. Los checks etiquetados (W7)
-      miden runs.py (frozen 53 / contrato 1.13) y quedan ROJOS — declarados — hasta que la rebanada W7 aterrice.
+      miden runs.py (frozen 54 / contrato 1.14) y quedan ROJOS — declarados — hasta que la rebanada W7 aterrice.
 
 100% OFFLINE y PORTABLE: SQLite tmp (máscara), caché de figuras en TMP (WITT_MCP_CACHE_DIR), fixtures del repo, cero gasto
 de modelo, cero mutación de la DATA INAMOVIBLE. Exit 0 = todo PASS.
@@ -205,9 +205,9 @@ PDF_ACCESS_RE = re.compile(r"""record(?:\.get\(\s*["']([A-Za-z_]\w*)["']|\[\s*["
 FK = frozen_keys()
 READ = {a or b for a, b in PDF_ACCESS_RE.findall(PDF_SRC)}
 cov = R.pdf_sections_cover(FK)
-check("(W7) (K.1) frozen_keys de runs.py (literal + asignaciones, tecnica de la webapp) = 53 llaves (50 de 1.10 + council + figures + "
+check("(W7) (K.1) frozen_keys de runs.py (literal + asignaciones, tecnica de la webapp) = 54 llaves (50 de 1.10 + council + figures + web_locator + attested_images; "
       "web_locator, ADR-0084) y pdf_sections_cover da missing [] y extra [] — igualdad EXACTA (ROJO hasta que W7 congele web_locator)",
-      len(FK) == 53 and "figures" in FK and "web_locator" in FK and cov == {"missing": [], "extra": []},
+      len(FK) == 54 and "figures" in FK and "web_locator" in FK and "attested_images" in FK and cov == {"missing": [], "extra": []},
       f"n_frozen={len(FK)} missing={cov['missing']} extra={cov['extra']}")
 check("(K.2) PDF_ACCESS_RE (copiada de la webapp): record_pdf.py LEE todas las llaves del frozen salvo la zona de servicio — 0 huecos",
       [k for k in FK if k not in READ and k not in R.SERVICE_KEYS] == [],
@@ -216,17 +216,17 @@ _m_anch = re.search(r"^SECCIONES\s*=\s*\($", PDF_SRC, re.M)
 _lit = PDF_SRC[_m_anch.end():PDF_SRC.index("\n)\n", _m_anch.end())] if _m_anch else ""
 _keys_anch = re.findall(r'^\s*\("([a-z_]+)",\s*"[a-z_]+"\),?\s*$', _lit, re.M)
 _unanch = [PDF_SRC.count("\n", 0, m.start()) + 1 for m in re.finditer(r"SECCIONES\s*=\s*\(", PDF_SRC)]
-check("(K, corrector) la SEGUNDA fuente de la webapp debe usar la regex ANCLADA `^SECCIONES\\s*=\\s*\\($` (re.M): sobre el modulo devuelve las 53 llaves == "
+check("(K, corrector) la SEGUNDA fuente de la webapp debe usar la regex ANCLADA `^SECCIONES\\s*=\\s*\\($` (re.M): sobre el modulo devuelve las 54 llaves == "
       "record_pdf.SECTION_KEYS; la regex SIN anclar casa >= 2 sitios (ORDEN_SECCIONES y el literal) — trampa MEDIDA y declarada en el comentario del "
       "modulo (que ya no contiene el texto del literal)",
-      _m_anch is not None and _keys_anch == list(R.SECTION_KEYS) and len(_keys_anch) == 53 and len(_unanch) >= 2
+      _m_anch is not None and _keys_anch == list(R.SECTION_KEYS) and len(_keys_anch) == 54 and len(_unanch) >= 2
       and "regex ANCLADA" in PDF_SRC and "SECTION_KEYS" in PDF_SRC,
       f"anclada={len(_keys_anch)} sitios_sin_anclar(lineas)={_unanch}")
 check("(R10) cada llave de SECCIONES tiene su record.get(\"k\") LITERAL en el modulo (la segunda fuente de la webapp lo exige); "
       "SECCIONES == KEY_BORN; el literal `SECCIONES = (` existe; SERVICE_KEYS = las que app._ratings_view fusiona",
       [k for k in R.SECTION_KEYS if k not in READ] == [] and set(R.SECTION_KEYS) == set(R.KEY_BORN)
       and "SECCIONES = (" in PDF_SRC and set(R.SERVICE_KEYS) >= {"consensus", "ratings", "ratings_masked"}
-      and len(R.SECTION_KEYS) == 53,
+      and len(R.SECTION_KEYS) == 54,
       f"n_secciones={len(R.SECTION_KEYS)} sin_literal={[k for k in R.SECTION_KEYS if k not in READ]}")
 _sec_lit = re.search(r"SECCIONES = \((.*?)\n\)", PDF_SRC, re.S).group(1)
 _sec_keys_lit = re.findall(r'\(\s*"([A-Za-z_]\w*)"\s*,', _sec_lit)
@@ -303,11 +303,11 @@ _closed = runs_mod.close_run(RID, "natalia")   # frozen_at/closed_by NACEN al ce
 _row = db.get_run(RID)
 FROZEN = json.loads(_row["frozen_record_json"] or "{}")
 REC = app.get_frozen_record(RID, authorization=AUTH)   # + zona de servicio (ratings/consensus), como get_record_pdf
-check("(W7) la corrida offline congelo un registro con el contrato de runs.py; al cerrarla gana frozen_at/closed_by (53 llaves con web_locator, "
+check("(W7) la corrida offline congelo un registro con el contrato de runs.py; al cerrarla gana frozen_at/closed_by (54 llaves con web_locator y attested_images, "
       "contrato 1.13); la vista GET lo devuelve con la zona de servicio fusionada (SERVICE_KEYS)",
       _state_run == "awaiting_closure" and _closed.get("closed") is True and _row["state"] == "closed"
       and FROZEN.get("render_contract_version") == runs_mod.RENDER_CONTRACT_VERSION
-      and set(FROZEN) - set(FROZEN_OPEN) == {"frozen_at", "closed_by"} and len(FROZEN) == 53
+      and set(FROZEN) - set(FROZEN_OPEN) == {"frozen_at", "closed_by"} and len(FROZEN) == 54
       and set(REC) >= set(FROZEN) and (set(REC) - set(FROZEN)) <= set(R.SERVICE_KEYS),
       f"state={_row['state']} contrato={FROZEN.get('render_contract_version')} n={len(FROZEN)} servicio={sorted(set(REC) - set(FROZEN))}")
 cov_real = R.pdf_sections_cover(FROZEN.keys())
@@ -997,6 +997,157 @@ check("(W8.11) R10 + regex de la webapp: record_pdf.py lee `record.get(\"web_loc
       and "def _section_localizador(" in PDF_SRC and R.RENDERERS["localizador"] is R._section_localizador
       and "NO INSTRUMENTADO (contrato < 1.13)" not in PDF_SRC,
       f"n_get={PDF_SRC.count(chr(114)+'ecord.get(' + chr(34) + 'web_locator' + chr(34) + ')')}")
+
+# =====================================================================================================================
+# 4c. (ADR-0086 F7) IMAGENES APORTADAS POR UNA PERSONA — registro 1.14 SINTETICO declarado
+# ---------------------------------------------------------------------------------------------------------------------
+# El PDF circula FUERA de la app: aqui se mide que la seccion 54 imprime PROCEDENCIA y NUNCA pixeles — sin miniaturas, sin
+# bytes, sin llave de almacen — y que de una imagen marcada como MATERIAL DE PACIENTE ni siquiera se imprime el caption.
+# =====================================================================================================================
+print("\n== 4c. imagenes aportadas (ADR-0086): registro 1.14 SINTETICO declarado ==")
+try:
+    from lib import attestations as AT86   # vocabularios CERRADOS: la glosa del PDF es su espejo
+except Exception as _e86:   # pragma: no cover — la biblioteca ausente se declara, no se finge
+    AT86 = None
+    print(f"  [declarado] lib.attestations no importable ({type(_e86).__name__}): vocabularios por literal del ADR")
+
+AI_CAP_A = "micrografia de pronefros a 48 hpf: los podocitos wt1a+ rodean el glomerulo"
+AI_CAP_P = "ESTE CAPTION NO DEBE IMPRIMIRSE: material de paciente"
+AI_SHA_A = "a1b2c3d4e5f6" + "0" * 52
+AI_SHA_P = "9f8e7d6c5b4a" + "1" * 52
+
+
+def _ai_item(sha, caption, paciente=False, lentes=(), req=None, n_readings=0):
+    """Un AttestedImageFrozen SINTETICO con la forma EXACTA de attestations.frozen_item (o el literal declarado)."""
+    it = {"id": "attested:" + sha[:12], "sha256": sha, "sha256_short": sha[:12], "sha256_received": sha,
+          "bytes": 20480, "bytes_received": 20992, "media_type": "image/png", "media_type_declared": "image/png",
+          "media_type_declared_mismatch": False, "dims": {"w": 1024, "h": 768}, "dims_source": "header",
+          "caption": caption, "caption_truncated": False, "caption_chars": len(caption),
+          "requirement_id": req, "attached_to": ("requirement" if req else "knowledge_now"), "attached_by": "natalia",
+          "attached_by_is_uploader": True, "date_taken": "2026-08-14", "method": "confocal 40x",
+          "consent": {"kind": ("patient-consented" if paciente else "own-work"), "declared": True,
+                      "text": ("consentimiento informado firmado" if paciente else None),
+                      "text_present": bool(paciente), "text_truncated": False},
+          "third_party_ack": True, "patient_material": paciente, "deidentified_declared": paciente,
+          "license_declared": "all-rights-reserved", "share_scope": "author-only",
+          "exif_state": "stripped (eXIf, tIME)", "exif_removed": ["eXIf", "tIME"],
+          "uploaded_by": "natalia", "uploaded_by_role": "scientist", "uploaded_at": "2026-09-18T10:00:00+00:00",
+          "plan_id": "plan-86-a", "ledger_state": "attached", "inherited_from": None,
+          "storage": {"backend": "local", "key_present": True, "state_at_run": "stored"},
+          "withdrawn": None, "seen_by_lenses": list(lentes), "n_readings": n_readings,
+          "delivered_to_synthesizer": "captions-only", "class": "attested"}
+    if AT86 is not None:
+        assert tuple(it) == AT86.ATTESTED_FROZEN_KEYS, "el item sintetico debe tener la forma DECLARADA por la biblioteca"
+    return it
+
+
+AI_ITEMS = [_ai_item(AI_SHA_A, AI_CAP_A, lentes=("correctness", "evidence-grounding"), n_readings=2),
+            _ai_item(AI_SHA_P, AI_CAP_P, paciente=True, lentes=("correctness",), req="req-fff")]
+AI_BLOQUE = {
+    "state": "attached", "n_attached": 2, "rule": runs_mod.ATTESTED_DELIVERY_RULE,
+    "delivery": {"synthesizer": "captions-only", "bytes_to_synthesizer": False, "council": "captions-only",
+                 "panel": "bytes to <=2 vision lenses"},
+    "storage": {"backend": "local", "state": "stored",
+                "durability": {"note": "disco del contenedor: se pierde si el volumen no es persistente"}},
+    "items": AI_ITEMS, "n_seen_by_panel": 2,
+    "vision": {"n_selections": 1, "n_delivered_total": 2, "n_readings": 3, "readings_class": "model-judgment",
+               "selections": [{"state": "sent", "n_attested": 2, "delivered": True,
+                               "sha256s": [AI_SHA_A, AI_SHA_P], "n_dropped": {}, "storage_errors": [],
+                               "rule": (AT86.SELECTION_RULE if AT86 is not None else "declarado")}]},
+    "vocabulary": (dict(AT86.VOCABULARY) if AT86 is not None else None),
+}
+
+
+def _rec14(ai=None):
+    """Registro 1.14 SINTETICO declarado: el 1.13 de (W8) + attested_images con la forma (L)."""
+    rec = _rec13()
+    rec["render_contract_version"] = "1.14"
+    rec["attested_images"] = json.loads(json.dumps(AI_BLOQUE if ai is None else ai, default=str))
+    return rec
+
+
+REC14 = _rec14()
+check("(F7.1) cobertura EXACTA con un registro 1.14 SINTETICO declarado: pdf_sections_cover == {missing [], extra []}; "
+      "born_of('attested_images') == '1.14'; la seccion 54 va JUSTO DESPUES del localizador web (su pariente mas cercano: "
+      "tambien es material que no es evidencia); keys_of_section('aportadas') == ('attested_images',)",
+      R.pdf_sections_cover(REC14.keys()) == {"missing": [], "extra": []} and R.born_of("attested_images") == "1.14"
+      and R.SECTION_KEYS.index("attested_images") == R.SECTION_KEYS.index("web_locator") + 1
+      and R.keys_of_section("aportadas") == ("attested_images",) and "aportadas" in R.RENDERERS,
+      f"{R.pdf_sections_cover(REC14.keys())}")
+pdf14, txt14 = pdf_text(REC14)
+_, txt14_sin = pdf_text(_sin(REC14, "attested_images"))
+_, txt14_null = pdf_text({**REC14, "attested_images": None})
+check("(F7.2) tres estados de las imagenes aportadas: sin la llave -> UNA linea 'NO INSTRUMENTADO (contrato < 1.14)' CALCULADA "
+      "de KEY_BORN (el rotulo se pinta igual: un registro viejo declara que la funcion no existia, no que no hubo imagenes); "
+      "presente -> ninguna; None -> 'attested_images: null declarado'",
+      txt14_sin.count("NO INSTRUMENTADO (contrato < 1.14)") == 1 and "IMAGENES APORTADAS POR UNA PERSONA" in txt14_sin
+      and "NO INSTRUMENTADO (contrato < 1.14)" not in txt14 and "attested_images: null declarado" in txt14_null
+      and "(contrato < 1.14)" in R._tres_estados({}, "attested_images")[1],
+      f"n_sin={txt14_sin.count('NO INSTRUMENTADO (contrato < 1.14)')}")
+_sec14 = _slice(txt14, "IMAGENES APORTADAS POR UNA PERSONA", "ALTERNATIVAS CONSIDERADAS")
+check("(F7.3) la seccion 54 imprime PROCEDENCIA, no pixeles: cintillo ATESTIGUADO (no es evidencia, no se cita, los bytes viven "
+      "fuera), estado glosado, la entrega con 'bytes al sintetizador: False', el almacen con su durabilidad, el conteo con las "
+      "lecturas etiquetadas como JUICIO, y POR IMAGEN: identidad, tipo, dimensiones, bytes, quien la aporto y cuando, a que se "
+      "adjunto (con su requisito), consentimiento y licencia DECLARADOS, alcance, estado de metadatos y que lentes la vieron",
+      "ATESTIGUADO: lo aporto una persona como PRIOR ART" in _sec14 and "este PDF no los lleva" in _sec14
+      and "estado: attached - hay imagenes aportadas y adjuntadas por la compuerta humana" in _sec14
+      and "bytes al sintetizador: False" in _sec14 and "consejo captions-only" in _sec14
+      and "almacen: local [stored]" in _sec14 and "se pierde si el volumen no es persistente" in _sec14
+      and "2 imagen(es) adjuntada(s) - vistas por el panel: 2" in _sec14
+      and "lecturas de las lentes: 3 [model-judgment: JUICIO, no medicion]" in _sec14
+      and "attested:a1b2c3d4e5f6 - image/png 1024x768 - 20480 bytes - aportada por natalia el 2026-09-18T10:00:00+00:00" in _sec14
+      and "adjunta a knowledge_now - consentimiento own-work [declarado True] - licencia declarada all-rights-reserved" in _sec14
+      and "alcance author-only - metadatos stripped (eXIf, tIME)" in _sec14
+      and "adjunta a requirement (req-fff)" in _sec14
+      and "vista por 2 lente(s): correctness, evidence-grounding" in _sec14
+      and "ninguna de estas imagenes es citable ni cuenta como evidencia; el sintetizador no vio sus pixeles" in _sec14,
+      _sec14[:200].replace("\n", " | "))
+check("(F7.4) PRIVACIDAD medida, no prometida: de la imagen marcada MATERIAL DE PACIENTE el PDF dice que lo es y NO imprime su "
+      "caption; el de la imagen normal SI se imprime (es lo que la persona atestigua de ella); y en NINGUN lugar del PDF hay "
+      "miniatura, byte, base64, llave de almacen ni ruta: n_images(raw) == el del MISMO registro sin la seccion",
+      "MATERIAL DE PACIENTE: caption no impreso (privacidad)" in _sec14 and AI_CAP_P not in txt14
+      and f'dice la persona: "{AI_CAP_A}"' in _sec14
+      and n_images(pdf14) == n_images(pdf_text(_sin(REC14, "attested_images"))[0]),
+      f"n_img_con={n_images(pdf14)} n_img_sin={n_images(pdf_text(_sin(REC14, 'attested_images'))[0])}")
+_SRC_APORTADAS = PDF_SRC[PDF_SRC.index("def _section_aportadas("):PDF_SRC.index("def _section_localizador(")]
+check("(F7.4b) el PDF no lleva ni un byte de imagen aportada: ni 'data:image', ni 'b64', ni la llave de almacen, ni la palabra "
+      "'thumbnail' — y el modulo NO tiene ninguna llamada de imagen en el renderer de la seccion (se lee en el fuente)",
+      b"data:image" not in pdf14 and "data:image" not in txt14 and "b64" not in _sec14
+      and "attested/plan-86-a/" not in txt14 and ".image(" not in _SRC_APORTADAS
+      and "b64" not in _SRC_APORTADAS and "thumbnail" not in _SRC_APORTADAS,
+      f"b64_en_seccion={'b64' in _sec14} img_en_fuente={'.image(' in _SRC_APORTADAS}")
+_AI_ESTADOS = {"no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
+               "not-applicable (no-ledger)": "la corrida no tuvo plan con consejo: no hay canal para aportar",
+               "kill-switch WITT_ATTESTED_IMAGES=0": "funcion apagada por variable de entorno"}
+for _st14, _glosa14 in _AI_ESTADOS.items():
+    _t14 = pdf_text(_rec14({**AI_BLOQUE, "state": _st14, "items": [], "n_attached": 0, "n_seen_by_panel": 0,
+                            "vision": None}))[1]
+    _s14 = _slice(_t14, "IMAGENES APORTADAS POR UNA PERSONA", "ALTERNATIVAS CONSIDERADAS")
+    check(f"(F7.5) estado '{_st14}' glosado con su CAUSA y, sin imagenes, la linea que distingue 0 MEDIDO de ausencia",
+          f"estado: {_st14} - {_glosa14}" in _s14
+          and "sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]" in _s14
+          and AI_CAP_A not in _t14,
+          _s14[:120].replace("\n", " | "))
+check("(F7.6) PARIDAD de vocabulario PDF <-> lib/attestations.py: las llaves glosadas de record_pdf.ATTESTED_STATE_GLOSS son "
+      "EXACTAMENTE attestations.ATTESTED_STATES_EXACT (ni una de mas, ni una de menos) y los dos PREFIJOS del vocabulario "
+      "('tool-unavailable (', 'error: ') tienen glosa; un estado FUERA del vocabulario se imprime CRUDO y se dice que lo es",
+      (AT86 is None or tuple(R.ATTESTED_STATE_GLOSS) == AT86.ATTESTED_STATES_EXACT)
+      and R._attested_state_gloss("tool-unavailable (ADR-0086: lib/attestations.py not in tree)")
+          == "la biblioteca no esta en el arbol: no se pudo medir"
+      and R._attested_state_gloss("error: OperationalError: no such table") == "fallo al medir; se declara"
+      and R._attested_state_gloss("inventado") == "estado fuera del vocabulario conocido: se imprime crudo"
+      and R._attested_state_gloss(None) == "sin estado declarado",
+      json.dumps(sorted(R.ATTESTED_STATE_GLOSS)))
+pdf14b, _ = pdf_text(REC14)
+check("(F7.7) determinismo y R10: dos build_pdf del registro 1.14 con fecha fija -> bytes IGUALES; record_pdf.py lee "
+      "`record.get(\"attested_images\")` LITERAL y PDF_ACCESS_RE lo ve; el literal SECCIONES trae (\"attested_images\", "
+      "\"aportadas\"); `_section_aportadas` esta en RENDERERS; el modulo NO teclea el born (sale de KEY_BORN)",
+      pdf14 == pdf14b and pdf14[:5] == b"%PDF-"
+      and PDF_SRC.count('record.get("attested_images")') >= 1 and "attested_images" in READ
+      and '("attested_images", "aportadas")' in PDF_SRC and R.RENDERERS["aportadas"] is R._section_aportadas
+      and "NO INSTRUMENTADO (contrato < 1.14)" not in PDF_SRC,
+      f"len={len(pdf14)}")
+
 
 # =====================================================================================================================
 # 5. cero red + mcp_cache intacto
