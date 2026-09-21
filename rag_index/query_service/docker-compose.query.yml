@@ -245,12 +245,74 @@ services:
       - WITT_ANTHROPIC_WEB_SEARCH_MAX_USES=${WITT_ANTHROPIC_WEB_SEARCH_MAX_USES:-1}   # max_uses del server-tool web_search (una directiva = una búsqueda; clamp 1..5)
       - WITT_WEB_ANTHROPIC_TOOL_TYPE=${WITT_WEB_ANTHROPIC_TOOL_TYPE:-web_search_20250305}   # literal del type: VOCABULARIO CERRADO (sólo web_search_20250305, sin dynamic filtering); otro literal = default + default-invalid-env (corrector)
       - WITT_WEB_LOCATOR_MODEL=${WITT_WEB_LOCATOR_MODEL:-}          # modelo del despachador del alterno (validado contra models.MODELS); vacía => rol elicitation; FUERA de PIPELINE_ROLES
+      # ------------------------------------------------------------------------------------------------------------------
+      # ADR-0086 — IMÁGENES ATESTIGUADAS (las que aporta una PERSONA): 18 variables WITT_ATTESTED_*, lector TOLERANTE en
+      # tiempo de llamada (attestations.ENV_SPECS / env_config(): vacía, basura o fuera de clamp = default DECLARADO con su
+      # fuente 'default-unset:…' | 'default-empty-env:…' | 'default-invalid-env:…', jamás un crash). 15 entran a
+      # models.ENV_TABLE con adr '0086' (paridad medida en smoke_models); WITT_ATTESTED_DIR (ruta) y las dos credenciales
+      # de MinIO quedan FUERA de la tabla — no registra rutas ni secretos, sólo su PRESENCIA. El valor efectivo y su fuente
+      # viajan en frozen.attested_images.{storage,vocabulary}, en el índice HTTP (caps) y en /config-history.current
+      # (attested.enabled / .vision / .backend / .team_view, FUERA de panel_signature). TODA ENV IMPLICA REINICIO.
+      # Kill-switch maestro: WITT_ATTESTED_IMAGES=0 = frozen 1.13 byte a byte salvo EXACTAMENTE 3 excepciones declaradas
+      # (render_contract_version, attested_images, deterministic_checks.attested_images) — ADR-0086 (M.1) — y las puertas
+      # responden 409/404 con el literal; RETIRAR sigue vivo: apagar la función no puede dejar la imagen de una persona
+      # atrapada en el sistema.
+      #
+      # EL VOLUMEN NO ES OPCIONAL (ver `volumes:` abajo). Los bytes de una imagen aportada viven FUERA de la base, en el
+      # almacén privado; sin volumen persistente el directorio es EFÍMERO y lo que una persona aporte desaparece en el
+      # siguiente redeploy. El servidor lo DECLARA (frozen.attested_images.storage.durability, y la puerta de bytes
+      # responde 404 'bytes-missing' en vez de mentir), pero declararlo no lo arregla: nadie podría volver a ver su
+      # propia imagen al día siguiente.
+      - WITT_ATTESTED_IMAGES=${WITT_ATTESTED_IMAGES:-1}              # kill-switch maestro (N.1); 0 = subir/heredar 409, ledger con images 400,
+                                                                     # índices 'kill-switch', bytes 404 — y RETIRAR 200
+      - WITT_ATTESTED_VISION=${WITT_ATTESTED_VISION:-1}              # 0 = NINGUNA lente recibe bytes aportados; los pies de foto al sintetizador
+                                                                     # y al consejo siguen (N.2)
+      - WITT_ATTESTED_BACKEND=${WITT_ATTESTED_BACKEND:-local}        # local | minio; fuera de vocabulario => local con 'default-invalid-env:…';
+                                                                     # minio sin MINIO_* => 503 attested-storage-unavailable, JAMÁS cae a local
+      - WITT_ATTESTED_DIR=${WITT_ATTESTED_DIR:-/app/attested_private}   # raíz PRIVADA del backend local (0o700/0o600). ESTA es la ruta que el
+                                                                     # volumen de abajo monta; vacía => <repo>/attested_private (efímero)
+      - WITT_ATTESTED_MINIO_BUCKET=${WITT_ATTESTED_MINIO_BUCKET:-witt-attested-private}   # bucket PRIVADO dedicado, distinto del de la data
+                                                                     # inamovible; versioning OFF; jamás presigned (una URL firmada es redistribución)
+      - WITT_ATTESTED_MINIO_ACCESS_KEY=${WITT_ATTESTED_MINIO_ACCESS_KEY:-}   # SECRETO: sólo pestaña Environment de Dokploy — never git, never vault,
+                                                                     # never memoria; sin valor se hereda MINIO_ACCESS_KEY; sólo su PRESENCIA viaja
+      - WITT_ATTESTED_MINIO_SECRET_KEY=${WITT_ATTESTED_MINIO_SECRET_KEY:-}   # SECRETO (idem); sin valor se hereda MINIO_SECRET_KEY
+      - WITT_ATTESTED_MAX_IMAGE_MB=${WITT_ATTESTED_MAX_IMAGE_MB:-5}  # bytes CRUDOS por imagen (clamp 0.1..7); 413 por Content-Length ANTES de leer
+                                                                     # el cuerpo, y por streaming cuando no lo declara
+      - WITT_ATTESTED_MAX_PER_PLAN=${WITT_ATTESTED_MAX_PER_PLAN:-8}  # filas VIVAS por plan (clamp 1..24) => 409 attestations_cap_reached scope 'plan';
+                                                                     # retirar libera cupo
+      - WITT_ATTESTED_MAX_TOTAL_MB=${WITT_ATTESTED_MAX_TOTAL_MB:-24} # suma de bytes vivos por plan (clamp 1..168) => 409 scope 'total_mb'
+      - WITT_ATTESTED_MAX_PER_LENS=${WITT_ATTESTED_MAX_PER_LENS:-4}  # imágenes aportadas por petición de lente (clamp 0..8), APARTE de
+                                                                     # WITT_FIGURES_MAX_PER_LENS; figuras + aportadas <= 20 (many-image guard)
+      - WITT_ATTESTED_MAX_PER_USER_PER_DAY=${WITT_ATTESTED_MAX_PER_USER_PER_DAY:-30}   # subidas por cuenta y día UTC (clamp 1..500) => 429
+                                                                     # upload-rate-limited {n_today, cap, resets_at}
+      - WITT_ATTESTED_CAPTION_CHARS=${WITT_ATTESTED_CAPTION_CHARS:-1000}   # tope del pie de foto OBLIGATORIO (clamp 100..4000; mínimo 10 chars);
+                                                                     # <= 600 en el registro congelado, <= 200 en el contexto del hilo
+      - WITT_ATTESTED_ALLOWED_MEDIA=${WITT_ATTESTED_ALLOWED_MEDIA:-image/png,image/jpeg,image/webp}   # CSV acotado a figures.MEDIA_TYPES: la env
+                                                                     # sólo ELIGE dentro de la tabla, jamás la amplía (GIF habilitable; PDF/TIFF/HEIC/SVG/DICOM => 415)
+      - WITT_ATTESTED_EXIF=${WITT_ATTESTED_EXIF:-strip}              # strip = quitar metadatos ANTES de hashear y guardar (si no se puede
+                                                                     # garantizar: 422 y NADA se guarda); declare = tal cual con exif_present MEDIDO
+      - WITT_ATTESTED_TEAM_VIEW=${WITT_ATTESTED_TEAM_VIEW:-1}        # 1 = honrar el share_scope 'team' que declaró quien subió; 0 = author-only
+                                                                     # para todos. MATERIAL DE PACIENTE es author-only SIEMPRE, sin env que lo abra
+      - WITT_ATTESTED_WITHDRAW=${WITT_ATTESTED_WITHDRAW:-uploader}   # quién retira: uploader | team (403 withdraw-not-uploader con la regla)
+      - WITT_ATTESTED_PATIENT_MATERIAL=${WITT_ATTESTED_PATIENT_MATERIAL:-0}   # 0 = 400 patient_material_not_allowed (default: NO se permite);
+                                                                     # 1 = permitido con consentimiento + desidentificación + acuse al aprobar
+    volumes:
+      # ADR-0086 (E.1): el almacén PRIVADO de las imágenes que aporta una persona. Sin este volumen el directorio vive en
+      # la capa del contenedor y se va con cada redeploy — y lo que alguien aportó se pierde. Es un volumen NOMBRADO (no un
+      # bind del host) para que Dokploy lo conserve entre despliegues; el contenedor escribe 0o700/0o600 dentro.
+      - witt_attested_private:/app/attested_private
+      # ADR-0080/0083: la caché por día de las tools Layer 0 y los bytes de figuras. También conviene persistente: sin él
+      # las miniaturas se re-bajan (o responden 404 'bytes-not-in-cache' declarado) en cada redeploy.
+      - witt_mcp_cache:/app/mcp_cache
     healthcheck:                                       # process-liveness only: no auth, no network, no spend
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8078/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 90s                                # lifespan preloads sklearn + warms dense before serving
+volumes:
+  witt_attested_private: {}    # ADR-0086: bytes de imágenes ATESTIGUADAS — privado, jamás servido estáticamente, jamás presigned
+  witt_mcp_cache: {}           # ADR-0080/0083: caché por día de las tools y bytes de figuras verificados por sha
 networks:
   default: {}
   neo4j_net:

@@ -530,7 +530,12 @@ RID11 = runs_mod.new_run("natalia", "¿la corrida con imágenes?", ["wt1a"], pla
 _items11 = [at.frozen_item(db.attested_image_get(P11, s)) for s in (_sha11a, _sha11b)]
 _frozen11 = {"render_contract_version": "1.14", "question_matches_run": True,
              "attested_images": {"state": "attached", "n_attached": 2, "items": _items11, "n_seen_by_panel": 1}}
-db.update_run(RID11, state="awaiting_closure", frozen_record_json=json.dumps(_frozen11, default=str))
+_usage11 = {"attested_images": {"state": "attached", "n_attached": 2, "n_seen_by_panel": 1, "n_readings": 0,
+                                "bytes_total": sum(int(i["bytes"]) for i in _items11),
+                                "class": "medición (conteos y bytes; los tokens de visión ya están en los input_tokens "
+                                         "medidos del panel)"}}
+db.update_run(RID11, state="awaiting_closure", frozen_record_json=json.dumps(_frozen11, default=str),
+              usage_json=json.dumps(_usage11, default=str))   # el MISMO espejo que runs._token_usage persiste (K)
 idx_run = client.get(f"/runs/{RID11}/attestations", headers=NAT).json()
 check("el índice de la corrida lee su registro CONGELADO (state 'attached', 2 ítems, el conteo del panel) y MIDE hoy el "
       "estado vivo de cada una (servable, retirada) — lo congelado dice lo que pasó; lo medido, lo que hay hoy",
@@ -761,6 +766,28 @@ check("ninguna respuesta JSON de este gate lleva binario: ni 'b64', ni 'data:ima
       all('"b64"' not in x.text and "data:image" not in x.text
           and base64.b64encode(PNG).decode("ascii")[:40] not in x.text
           and str(STORE).replace("\\", "/") not in x.text.replace("\\", "/") for x in _todas))
+_usage = client.get("/usage", headers=NAT).json()
+_ai_usage = _usage["attested_images"]
+check("(K) GET /usage trae `attested_images` APARTE de totals, y las DOS mediciones rotuladas: lo que las CORRIDAS "
+      "consumieron (n_attached, n_seen_by_panel, bytes_total, by_state) y las FILAS vivas de la base (`rows`) — que es "
+      "otra cosa: una imagen puede existir sin haber entrado a ninguna corrida. Todo es MEDICIÓN, cero proyección: los "
+      "tokens de visión ya están dentro de los input_tokens medidos del panel y aquí no se suman otra vez",
+      _ai_usage["state"] == "measured" and _ai_usage["n_runs_declared"] == 1
+      # `n_runs_without` cuenta las corridas que SÍ traen usage_json pero no el bloque (a esas no se les inventa 0); en
+      # este gate sólo la corrida sembrada tiene usage_json, así que el contador es 0 y eso es lo correcto
+      and _ai_usage["n_runs_without"] == 0
+      and _ai_usage["n_attached"] >= 2 and _ai_usage["bytes_total"] > 0
+      and _ai_usage["by_state"].get("attached", 0) >= 1
+      and _ai_usage["rows"]["n_images"] >= _ai_usage["n_attached"]
+      and _ai_usage["rows"]["class"].startswith("medición")
+      and _ai_usage["class"].startswith("medición") and "counted twice" in _ai_usage["note"]
+      and "attested_images" not in _usage.get("totals", {})
+      # el bloque de lo atestiguado no lleva bytes; `b64` sí aparece en /usage por los TOPES de figuras
+      # (request_b64_mb), que no es una fuga: una afirmación demasiado ancha convertiría un tope en un hallazgo
+      and '"b64"' not in json.dumps(_ai_usage) and "data:image" not in json.dumps(_usage),
+      json.dumps({k: _ai_usage.get(k) for k in ("state", "n_runs_declared", "n_runs_without", "n_attached",
+                                                "bytes_total", "by_state")} | {"rows": _ai_usage.get("rows")},
+                 default=str)[:380])
 check("la superficie que esta capa usa de db.py es REAL y está migrada (attested_schema_state 'ready'); app.py importó "
       "la biblioteca de verdad (no un stub) y plan_add_event acepta heartbeat=",
       db.attested_schema_state() == "ready" and app_mod.attestations_mod is at

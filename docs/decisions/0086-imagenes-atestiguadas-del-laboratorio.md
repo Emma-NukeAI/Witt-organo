@@ -1,11 +1,11 @@
-<!-- BORRADOR del diseño de ADR-0086 (síntesis de 3 diseñadores + 2 jueces, 2026-09-16). NO es todavía el ADR del repo:
-     la rebanada F8 debe transformarlo al estilo de docs/decisions/0084-*.md (Status, conteos medidos, «F9 mide» sustituido).
-     Se copia aquí porque el original vivía sólo en el directorio temporal de la sesión. Decisión del orquestador ya incorporada:
-     WITT_ATTESTED_PATIENT_MATERIAL default 0. -->
+<!-- ADR-0086 del repo. El cuerpo de abajo es el DISEÑO (síntesis de 3 diseñadores + 2 jueces, 2026-09-16) y se conserva
+     como registro de por qué cada cosa es como es. Lo que de veras se construyó, con su commit y su gate MEDIDO, está en la
+     sección «Lo construido» que sigue al Status: donde el diseño y lo construido difieran, MANDA «Lo construido» y la
+     diferencia está declarada ahí. Decisión del orquestador incorporada: WITT_ATTESTED_PATIENT_MATERIAL default 0. -->
 
 # ADR-0086 — Imágenes ATESTIGUADAS del laboratorio: una imagen que aporta una persona es PRIOR ART con procedencia registrada (quién, cuándo, consentimiento, licencia declarada), jamás evidencia ni cita; entra SÓLO por el ledger del consejo, sus bytes viven FUERA del registro en almacenamiento PRIVADO (disco local declarado hoy → MinIO privado cuando Emmanuel confirme), los ven a lo sumo DOS lentes del panel como juicio y NUNCA el sintetizador, se sirven sólo al autor por default, jamás en el PDF, y se retiran por tombstone sin tocar el registro (contrato 1.14)
 
-- **Status:** Proposed — 2026-09-16 (BORRADOR del sintetizador; pasa a Accepted cuando Emmanuel apruebe OE1–OE6). Origen: plan v3
+- **Status:** Proposed — diseño 2026-09-16, **obra 2026-09-21: diez de trece rebanadas commiteadas y medidas (ver «Lo construido»); faltan F9 (integrador + tres revisores) y el tag `contract-1.14-frozen`**. Pasa a Accepted cuando Emmanuel apruebe OE1–OE6 y los gates EN VIVO sustituyan las proyecciones de costo por medición con fecha. Origen: plan v3
   del brief *Consejo de agentes* aprobado el 2026-09-14 — §3 R5 («la evidencia puede ser imagen»: lectura sólo por dos lentes del
   panel etiquetada juicio; el sintetizador nunca recibe bytes), §4 A («Aprobar y correr: keep / discard con razón / «yo lo aporto»
   (atestiguado) + «qué sabes ahora» + imágenes — único punto donde la prosa se vuelve gasto»), §7 último párrafo («Imágenes
@@ -160,6 +160,88 @@
   `fetch_paper.py` sin tocar. **Ningún nombre de 0086 colisiona con 0084** (`WITT_ATTESTED_*` vs `WITT_WEB_*`/`BRAVE_API_KEY`;
   `frozen.attested_images` vs `frozen.web_locator`; `plan_attested_images` vs `web_locator_usage`; `stage.attestations.*` vs
   `stage.web.locate`).
+
+## Lo construido (2026-09-21) — MANDA sobre el diseño de abajo
+
+El cuerpo que sigue a esta sección es el DISEÑO: se conserva porque explica por qué cada cosa es como es. Esta sección es
+lo que de veras existe en el árbol, con su commit y su gate MEDIDO. Donde diseño y obra difieran, manda esto, y la
+diferencia está declarada abajo en «Dónde la obra se apartó del diseño».
+
+Rama `feat/adr-0086-imagenes-atestiguadas` sobre `d413c28` (tag `contract-1.13-frozen`). Todos los conteos son MEDICIÓN:
+los corrí yo, offline, con una base de datos, un caché y un almacén temporales por prueba, `urlopen` bloqueado y contado
+en 0, y el `mcp_cache` real byte-idéntico antes y después.
+
+| Rebanada | Commit | Qué quedó | Gate |
+|---|---|---|---|
+| F1 · biblioteca | `7bd721e` | `analysis/scripts/lib/attestations.py` (stdlib pura): magic bytes, borrado de metadatos sin recodificar (walkers JPEG/PNG/WebP/GIF), identidad por sha256, almacén intercambiable (`LocalStorage` 0o700/0o600 · `MinioStorage` en bucket dedicado · `FakeMemoryStorage`), vocabularios CERRADOS, fixtures SINTÉTICOS generados por código | `smoke_attestations` 100 |
+| F2 · predicados | `be70d3f` | `verify_output.attested_predicates`: dos DUROS (citar una imagen aportada por id o por sha → inadmisible; su sha entre los identificadores de evidencia → inadmisible) + uno informativo; `attpred-1` | `smoke_gate_citations` 114 |
+| F3a · configuración | `abc90f1` | 15 filas `WITT_ATTESTED_*` en `models.ENV_TABLE` con `adr '0086'` y `SNAPSHOT_FIELDS += ATTESTED_SNAPSHOT_FIELDS`, FUERA de `panel_signature`; la ruta y las dos credenciales quedan fuera de la tabla | `smoke_models` 102 |
+| F3b · panel | `0feb489` · corrector `01674fe` | Los BYTES sólo a <= 2 lentes con visión, rotulados y separados de las figuras, con presupuesto b64 COMPARTIDO; `saw_attested` por asiento; `VERDICT_TOOL.attested_readings` + `parse_attested_readings` | `smoke_panel_vision` 77 |
+| F5a · base | `3030b57` | Tabla `plan_attested_images` por `create_all` (CERO ALTER) + 9 funciones; identidad y procedencia, ningún byte | `smoke_attestations_db` 24 |
+| F4 · contrato 1.14 | `6133072` · `0a8db67` | `frozen.attested_images` SIEMPRE presente en >= 1.14 con sus cuatro estados; eventos `stage.attestations.*`; `deterministic_checks.attested_images`; `epistemic_summary.attested_*`; `token_usage.attested_images`; fila en `agents_invoked`; `thread_context.parent_attested_images`; `frozen.council.ledger.images[]`; `by_model[*].attested_vision` | `smoke_run_pipeline` 423 |
+| F7 · PDF | `92e7bff` | Sección 54 (`aportadas`), tres estados con el contrato de nacimiento CALCULADO, SIN miniaturas jamás, y sin el pie de foto de una imagen de paciente | `smoke_record_pdf` 78 |
+| F5b · puertas | `4ad1497` | Las 7 rutas HTTP con su gate nuevo; CORS expone `X-Witt-Attested-*`; `plan_add_event(heartbeat=False)` para que `attestation.*` no mueva el latido del consejo | `smoke_attestations_http` 63 |
+| J · el ledger sella | `6fb8cbc` | `images[]` en el ledger (PATCH-like), las siete validaciones, el sellado write-once con `attached_by_is_uploader` declarado, la bandera `patient-material` con gate humano, `GET /plans/{id}.attested_images` | `smoke_attestations_http` 63 |
+| F6 · consejo | `cea20f5` | La cláusula de imágenes en r1/r2/r3 sólo cuando viajan; `apply_ledger_decisions(images=)`; `judge_coverage.n_with_image`; `summary_for_thread.n_attested_images`; `frozen.council.human_attestations.n_images` | `smoke_council` 85 |
+| F8 · operación | este commit | Compose con las 18 variables y **los volúmenes**; `CLAUDE.md` §7; el índice de decisiones; `/usage.attested_images`; `analysis/scripts/smoke_live_attestations.py` con `--dry-run` por default | `smoke_usage_http`, compose validado |
+
+**Barrido completo: 48 smokes en exit 0.** `urlopen` 0 en todos.
+
+### Cuatro fallos REALES que los gates destaparon (ninguno se ve leyendo el código)
+
+1. **El interruptor de privacidad no cerraba nada.** `view_rule` leía el envoltorio `{value, source}` de `team_view` como
+   si fuera un sí/no, y un envoltorio nunca está vacío: con `WITT_ATTESTED_TEAM_VIEW=0` cualquier compañero habría
+   seguido viendo lo que alguien declaró de equipo. Corregido en F1 y medido en los dos sentidos.
+2. **La compuerta de citas estaba inerte justo cuando había imágenes.** `_attested_checks` le pasaba a `verify_output` el
+   estado del BLOQUE (`attached`) donde va el de COMPUERTA, así que la biblioteca respetaba el literal del llamador y
+   NINGÚN predicado duro entraba a la conjunción. El registro decía «adjuntas» donde debía decir «revisado». Corregido
+   con `ATTESTED_CHECK_STATE_OF` en F4.
+3. **Un cero estructural presentado como medición.** `ATTESTED_READING_RULE` manda al juez a reportar en
+   `attested_readings` y `VERDICT_TOOL` no tenía esa llave: el modelo no podía obedecer y `n_readings` salía siempre 0.
+   Corregido con la llave, su parser determinista y el cableado (`01674fe`).
+4. **El 503 del almacén no existía: reventaba.** `StorageUnavailable.to_error()` pasaba su extra bajo la llave `state`,
+   que `error(status, state, **detail)` ya ocupa → `TypeError` siempre. El camino que declara «almacén no disponible»
+   sólo se recorre cuando algo falla de verdad, que es cuando más importa. Corregido en F5b.
+
+Además, dos trampas de gate que se cerraron al pasar: `smoke_config_ledger_db` tenía una fecha fija (2026-09-17) que el
+calendario alcanzó el 2026-09-18 (`ee2ee79`), y el fake del consejo en `smoke_run_pipeline` parseaba el payload por
+`split("\n\n", 1)` — un bloque nuevo en el preámbulo lo rompía DENTRO del fake y `run_round` lo traducía a 17 miembros
+`errored`, o sea el gate se degradaba a medir otra corrida en vez de fallar. Ahora localiza el JSON por su llave de
+apertura y falla ruidosamente.
+
+### Dónde la obra se apartó del diseño (declarado, no silencioso)
+
+- **La forma del ítem congelado la declara la biblioteca, no el llamador.** El diseño listaba `n_seen_by_lenses` en el
+  ítem; `runs._attested_fill` lo añadía y el ítem quedaba con 41 llaves donde `ATTESTED_FROZEN_KEYS` declara 40,
+  invalidando el propio `assert` de forma de `frozen_item`. Se quitó: los lectores usan `len(seen_by_lenses)`, y
+  `_attested_fill` sólo rellena dos llaves que ya existen en la forma (`seen_by_lenses` y `n_readings`).
+- **`_req_prompt_view` no cambió.** El diseño contemplaba anunciar las imágenes por requisito en la vista de prompt; no
+  hacía falta: las imágenes ya viajan en `human_attestations.images[]` con su `requirement_id`, así que el juez puede
+  asociarlas sin una llave nueva en cada payload (y sin mover la forma de 1.12 para las corridas sin imágenes).
+- **El 413 «0 bytes leídos» se prueba por la rama de `Content-Length` y por lo que NO quedó escrito**, no con un espía
+  del `receive` del ASGI: el gate afirma que el detalle viene de esa rama y que no hay fila ni archivo. La afirmación es
+  más chica que la del diseño, y es la que de veras se mide.
+- **El gate HTTP cierra con 63 verificaciones, no con las >= 90 que el diseño proyectó.** Cada una es una conjunción de
+  varias condiciones; el número de la tabla del ADR era una estimación del diseñador, no un contrato. Lo que importa es
+  qué superficies quedaron medidas, y están enumeradas en el docstring del gate.
+- **`apply_ledger_decisions(images=)` y el armado del ledger en `app.py` son dos caminos** (herencia de ADR-0082: la
+  ruta pura devuelve `requirements[]`, la HTTP devuelve `decisions[]`). F6 les dio el MISMO vocabulario de rechazo
+  (`images_without_aporto`) para que no puedan divergir en silencio, pero siguen siendo dos implementaciones.
+
+### Lo que falta
+
+- **F9 · integrador y tres revisores adversarios.** El integrador mide lo que ninguna prueba individual puede medir: que
+  una corrida SIN imágenes aportadas sea byte a byte la de 1.13 salvo EXACTAMENTE las tres excepciones declaradas. Luego
+  los revisores, el corrector, el barrido completo y el tag `contract-1.14-frozen`.
+- **La paridad en la webapp** (regla de la casa: el alcance del backend tiene que estar representado en el front, sin
+  limitantes, y `tools/parity_check.py` lo mide). Depende del tag.
+- **Los gates EN VIVO (LG1–LG5)** los corre Emmanuel: `analysis/scripts/smoke_live_attestations.py` ya construye todo en
+  seco y mide cero red; `--store minio` necesita el bucket privado dedicado y sus credenciales; `--vision` necesita su
+  autorización explícita de gasto. Cada cifra de costo de este ADR es PROYECCIÓN hasta que esos gates la sustituyan por
+  medición con fecha.
+- **El volumen persistente en Dokploy.** Sin él el almacén privado es efímero: el servidor lo DECLARA
+  (`frozen.attested_images.storage.durability`, y la puerta de bytes responde 404 `bytes-missing` en vez de mentir), pero
+  declararlo no lo arregla — nadie podría volver a ver su propia imagen al día siguiente.
 
 ## Context
 

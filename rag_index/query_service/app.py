@@ -3094,6 +3094,66 @@ USAGE_WEB_CREDIT_SOURCE_URL = "https://brave.com/search/api/"
 USAGE_WEB_MONTH_STATES = ("under-cap", "cap-reached", "disabled (WITT_WEB_MONTHLY_CAP=0)", "table-missing", "error")
 
 
+
+class _AttestedUsageAccumulator:
+    """ADR-0086 (K): agrega usage_json.attested_images de N corridas, APARTE del bucle de totals (que sigue byte a byte).
+    Todo aquí es MEDICIÓN: conteos y bytes de imágenes que aportó una persona. Ninguna proyección — los tokens de visión de
+    esas imágenes ya están DENTRO de los input_tokens medidos del panel, así que sumarlos aquí sería contarlos dos veces.
+    `n_runs_without` cuenta las corridas con usage pero SIN la llave (pre-1.14, kill-switch, o simplemente sin imágenes):
+    a esas no se les inventa 0. Con 0 corridas declaradas los conteos van null + state 'not-measured' (0 MEDIDO ≠ null)."""
+
+    def __init__(self):
+        self.n_declared = self.n_without = self.n_with_images = 0
+        self.sums = {"n_attached": 0, "n_seen_by_panel": 0, "n_readings": 0, "bytes_total": 0}
+        self.by_state = {}
+
+    def add(self, u):
+        a = u.get("attested_images")
+        if not isinstance(a, dict):
+            self.n_without += 1
+            return
+        self.n_declared += 1
+        st = a.get("state")
+        if isinstance(st, str) and st:
+            self.by_state[st] = self.by_state.get(st, 0) + 1
+        if _es_entero(a.get("n_attached")) and a["n_attached"] > 0:
+            self.n_with_images += 1
+        for k in self.sums:
+            if _es_entero(a.get(k)):
+                self.sums[k] += a[k]
+
+    def result(self, plan_totals=None):
+        """`plan_totals` = db.attested_images_usage() (las FILAS vivas de la base, otra medición distinta de la de las
+        corridas: una imagen puede existir y no haber entrado a ninguna corrida todavía). Se sirven las dos, rotuladas."""
+        if self.n_declared == 0:
+            return {"state": "not-measured", "n_runs_declared": 0, "n_runs_without": self.n_without,
+                    **{k: None for k in self.sums}, "by_state": {}, "rows": plan_totals,
+                    "class": "medición (ninguna corrida declarada trae el bloque: null NO medido, no 0)",
+                    "note": ATTESTED_USAGE_NOTE}
+        return {"state": "measured", "n_runs_declared": self.n_declared, "n_runs_without": self.n_without,
+                "n_runs_with_images": self.n_with_images, **dict(self.sums),
+                "by_state": dict(self.by_state), "rows": plan_totals,
+                "class": "medición (conteos y bytes; ninguna proyección)", "note": ATTESTED_USAGE_NOTE}
+
+
+ATTESTED_USAGE_NOTE = ("the vision tokens of attested images are ALREADY inside the panel's measured input_tokens "
+                       "(ADR-0083 H): they are never added here, so nothing is counted twice. `rows` measures the LIVE "
+                       "rows of plan_attested_images — an image can exist without having entered any run yet, which is a "
+                       "different measurement from what the runs consumed (ADR-0086 K)")
+
+
+def _attested_rows_usage():
+    """db.attested_images_usage() o un estado DECLARADO — /usage jamás se cae por el almacén de imágenes."""
+    if attestations_mod is None:
+        return {"state": "tool-unavailable (ADR-0086: lib/attestations.py not in tree)"}
+    try:
+        if db.attested_schema_state() != "ready":
+            return {"state": "attested-db-unavailable", "schema_state": db.attested_schema_state()}
+        return db.attested_images_usage()
+    except Exception as e:
+        return {"state": f"error: {type(e).__name__}: {str(e)[:120]}"}
+
+
 class _WebLocatorUsageAccumulator:
     """ADR-0084 (I): agrega usage_json.web_locator de N corridas, APARTE del bucle de totals (que sigue byte a byte). Suma SÓLO
     enteros; n_runs_locator_off cuenta las corridas con usage pero sin la llave (pre-1.13, kill-switch, sin llave, sin directiva)
@@ -3466,6 +3526,7 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
     stage_acc = _StageAccumulator()   # ADR-0081 (H): por ETAPA y MODELO×ETAPA, acumulación APARTE del bucle de hoy
     figs_acc = _FiguresUsageAccumulator()   # ADR-0083 (H): figuras (conteos/bytes medidos · visión proyectada), APARTE
     web_acc = _WebLocatorUsageAccumulator()   # ADR-0084 (I): localizador web (consultas MEDIDAS · USD PROYECTADO), APARTE de totals
+    att_acc = _AttestedUsageAccumulator()     # ADR-0086 (K): imágenes aportadas (conteos y bytes MEDIDOS, cero proyección)
     for r in rows:
         u = json.loads(r["usage_json"]) if r.get("usage_json") else None
         if not u:
@@ -3474,6 +3535,7 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
         stage_acc.add(u)
         figs_acc.add(u)
         web_acc.add(u)
+        att_acc.add(u)
         cost = float(u.get("estimated_cost_usd") or 0.0)
         if u.get("cost_projection_complete") is False:
             n_incomplete += 1
@@ -3556,6 +3618,9 @@ def usage(from_: str = Query(None, alias="from"), to: str = None,
             # frozen.web_locator) y USD PROYECTADO por proveedor, APARTE de totals (jamás sumado a estimated_cost_usd: tokens ×
             # precio); month_to_date desde la tabla web_locator_usage (H) con cap/estado; el total que cuadra lleva su clase
             "web_locator": web_acc.result(_web_locator_month_to_date()),
+            # ADR-0086 (K): imágenes que aportó una persona — conteos y bytes MEDIDOS (espejo de frozen.attested_images) más
+            # las FILAS vivas de la base, que son otra medición: una imagen puede existir sin haber entrado a ninguna corrida
+            "attested_images": att_acc.result(_attested_rows_usage()),
             "models_catalog": catalogo,
             "model_generation_current": models.resolve_generation()[0],
             # ADR-0078 (corrector): la suma es COMPLETA sólo si (a) todo modelo con gasto tiene precio en la
