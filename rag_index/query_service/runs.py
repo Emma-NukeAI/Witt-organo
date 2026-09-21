@@ -5273,9 +5273,14 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
             "quorum_rule": council.QUORUM_SOURCE, "quorum_required": c_quorum_required,
             "plan_id": (cj or {}).get("plan_id") if cj else None, "r1_state": c_r1_state,
             "ledger": _frozen_ledger_view(c_ledger, images=att_rows),
+            # ADR-0086 (K.2/F6): el registro dice CUÁNTAS imágenes aportadas viajaron al sintetizador y al consejo y
+            # con qué regla — la llave nace sólo cuando de veras viajaron (M.1)
             "human_attestations": ({"present": True, "n_attestations": c_attest["n_attestations"],
                                     "knowledge_now_present": c_attest["knowledge_now"] is not None,
-                                    "delivery": attest_delivery, "class": "attested"} if c_attest
+                                    "delivery": attest_delivery, "class": "attested",
+                                    **({"n_images": c_attest["n_images"],
+                                        "images_delivery": c_attest["images_delivery"]}
+                                       if c_attest.get("n_images") else {})} if c_attest
                                    else {"present": False, "n_attestations": 0, "knowledge_now_present": False,
                                          "delivery": attest_delivery}),
             "rounds": c_rounds_frozen,

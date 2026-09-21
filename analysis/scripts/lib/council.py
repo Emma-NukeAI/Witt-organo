@@ -598,8 +598,14 @@ def payload_r1(agent, ctx, cfg=None):
                         "source_families": list(COUNCIL_SOURCE_FAMILIES)},
     }
     pre = R1_FLAGS_PREAMBLE if entry.get("tool") == FLAGS_TOOL_NAME else R1_PREAMBLE
-    text = pre + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1, sort_keys=True)
-    return text, {"payload_chars": len(text), "payload_truncated": False, "evidence_chars": None}
+    # ADR-0086 (F6): si viajan imágenes aportadas (un ledger HEREDADO del turno anterior puede traerlas), la cláusula
+    # viaja con ellas y el meta lo declara
+    _att_head, _n_img = _attested_images_head(ctx.get("human_attestations"))
+    text = pre + _att_head + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1, sort_keys=True)
+    meta = {"payload_chars": len(text), "payload_truncated": False, "evidence_chars": None}
+    if _n_img:
+        meta.update(n_attested_images=_n_img, attested_images_rule=ATTESTED_IMAGES_COUNCIL_RULE)
+    return text, meta
 
 
 def is_kept(req):
@@ -616,6 +622,43 @@ def ledger_requirements(ledger):
 def requirements_for_member(ledger, agent):
     """Los requisitos KEPT que ESTE miembro pidió (`requested_by ∋ agent`) — el único insumo suyo en r2/r3."""
     return [r for r in ledger_requirements(ledger) if is_kept(r) and agent in (r.get("requested_by") or [])]
+
+
+
+# ── ADR-0086 (F6) · LAS IMÁGENES APORTADAS EN EL CONSEJO ─────────────────────────────────────────────────────────
+# Ningún miembro del consejo tiene visión en este canal: lo que ve de una imagen aportada es el PIE DE FOTO que escribió
+# la persona, más sus metadatos. La cláusula viaja SÓLO cuando de veras viajan imágenes (M.1: una ronda sin ellas es byte
+# a byte la de 1.13), y dice las dos cosas que un juez podría suponer mal: que no ha visto la imagen, y que un requisito
+# marcado `aporto` está cubierto por la DECISIÓN HUMANA, no por la existencia de una foto.
+ATTESTED_IMAGES_COUNCIL_CLAUSE = (
+    "ATTESTED IMAGES — `human_attestations.images[]` are pictures a PERSON contributed as PRIOR ART, with provenance on "
+    "record. You are shown their CAPTIONS and metadata; you have NOT seen the pixels and you are not given them. Never "
+    "claim to have seen one, never describe what it shows, never cite one, and never count one as evidence: what a person "
+    "says about their own image is an ATTESTATION and is judged as such. A requirement the human ledger marked `aporto` is "
+    "covered BY THAT HUMAN DECISION, never by the existence of a picture.")
+ATTESTED_IMAGES_COUNCIL_RULE = ("captions + metadata to the council, never bytes (no council member has vision in this "
+                               "channel); an image never covers a requirement by itself — the human `aporto` does "
+                               "(ADR-0086 F6)")
+ATTESTED_IMAGES_LEDGER_RULE = ("images attach to `knowledge_now` (top-level) or to a requirement the human decided "
+                              "`aporto`; an image on a kept or discarded requirement is an error, not a default "
+                              "(images_without_aporto) — ADR-0086 J.2")
+
+
+def attested_images_of(human_attestations):
+    """Las imágenes que viajan en este payload (vista de prompt: caption + metadatos, `bytes_delivered` False) o []."""
+    if not isinstance(human_attestations, dict):
+        return []
+    return [i for i in (human_attestations.get("images") or []) if isinstance(i, dict)]
+
+
+def _attested_images_head(human_attestations):
+    """('' | '\n' + cláusula, n) — la cláusula NACE sólo cuando hay imágenes en el payload, y va DENTRO del bloque del
+    preámbulo (UN salto de línea, no dos): es una instrucción más, y el cuerpo JSON sigue siendo el bloque que empieza
+    tras el primer renglón en blanco — la forma que el payload tiene desde 1.12 y de la que dependen sus lectores."""
+    imgs = attested_images_of(human_attestations)
+    if not imgs:
+        return "", 0
+    return "\n" + ATTESTED_IMAGES_COUNCIL_CLAUSE, len(imgs)
 
 
 def _req_prompt_view(r):
@@ -647,10 +690,16 @@ def payload_r2(agent, ctx, cfg=None, round_="r2", requirements=None):
         "pass1": {k: p1.get(k) for k in ("direct_answer", "gap_flags", "absence_kind", "citations") if k in p1},
         "human_attestations": ctx.get("human_attestations"),
     }
-    head = R2_PREAMBLE.format(round=round_.upper()) + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1, sort_keys=True)
+    # ADR-0086 (F6): los pies de foto viajan al juicio de cobertura; los píxeles, jamás
+    _att_head, _n_img = _attested_images_head(ctx.get("human_attestations"))
+    head = (R2_PREAMBLE.format(round=round_.upper()) + _att_head + "\n\n"
+            + json.dumps(body, ensure_ascii=False, indent=1, sort_keys=True))
     text = head + "\n\nEVIDENCE (compact view" + (f", TRUNCATED at {cap} chars" if truncated else "") + "):\n" + ev_text
-    return text, {"payload_chars": len(text), "payload_truncated": truncated, "evidence_chars": len(ev_text),
-                  "n_requirements": len(reqs)}
+    meta = {"payload_chars": len(text), "payload_truncated": truncated, "evidence_chars": len(ev_text),
+            "n_requirements": len(reqs)}
+    if _n_img:
+        meta.update(n_attested_images=_n_img, attested_images_rule=ATTESTED_IMAGES_COUNCIL_RULE)
+    return text, meta
 
 
 def payload_for_round(agent, round_, ctx, cfg=None):
@@ -1615,8 +1664,19 @@ aggregate_requirements = aggregate_r1
 
 
 # ── el ledger humano como CÓDIGO puro (F.1 — la ruta HTTP es de C6; la validación vive aquí) ─────────────────────
+def _shas_of(images):
+    """ADR-0086 (J.1): `images` como sha256 crudos o como ítems {sha256, …} — se normaliza a una lista de sha, en orden
+    y sin repetir. Lo que la ruta pura guarda son IDENTIDADES, nunca bytes."""
+    out = []
+    for it in (images or []):
+        sha = it.get("sha256") if isinstance(it, dict) else it
+        if isinstance(sha, str) and sha and sha not in out:
+            out.append(sha)
+    return out
+
+
 def apply_ledger_decisions(aggregation, decisions=None, approve=False, decided_by=None, decided_at=None,
-                           knowledge_now=None, attestation_chars=None, ledger=None):
+                           knowledge_now=None, attestation_chars=None, ledger=None, images=None):
     """Aplica decisiones humanas {requirement_id, decision ∈ keep|discard|aporto, reason?, attested_text?} sobre los
     requisitos del agregado (o de un `ledger` previo) y devuelve el ledger (J): {state ∈ draft|approved, requirements[]
     (+decision, decision_reason?, attested_text? (íntegro), decided_by, decided_at), flags[], knowledge_now {text, class
@@ -1624,7 +1684,10 @@ def apply_ledger_decisions(aggregation, decisions=None, approve=False, decided_b
     errors {unknown_requirement_id[], discard_without_reason[], aporto_without_text[], hard_rule_requirements_undecided[]}}.
     Con `approve`: los `pending` no hard-rule pasan a keep con decided_by 'default-keep' (brief §3: "ningún requisito se
     descarta"); un hard-rule pendiente BLOQUEA la aprobación (§7.1: decisión humana EXPLÍCITA, sin default) y queda
-    'gate-human-pending'. `decided_by` → 'human:<user_id>'."""
+    'gate-human-pending'. `decided_by` → 'human:<user_id>'.
+    ADR-0086 (J.1, ADITIVO): `images` (sha256 de imágenes aportadas, adjuntas a `knowledge_now`) y `decisions[].images`
+    (adjuntas a ESE requisito, SÓLO con decision 'aporto' — en keep o discard es `images_without_aporto`, un error, no un
+    default). Aquí viajan IDENTIDADES: ningún byte, ninguna llave de almacén. Sin imágenes no nace ninguna llave (M.1)."""
     cap = int(attestation_chars or ENV_SPECS["WITT_COUNCIL_ATTESTATION_CHARS"]["default"])
     base_reqs = ledger_requirements(ledger) if ledger is not None else list((aggregation or {}).get("requirements") or [])
     reqs = []
@@ -1664,6 +1727,13 @@ def apply_ledger_decisions(aggregation, decisions=None, approve=False, decided_b
             req["attested_text"] = txt[:cap]
             req["attested_text_truncated"] = len(txt) > cap
             req["attested_class"] = "attested"
+        # ADR-0086 (J.1/J.2): una imagen se cuelga de un requisito que la persona APORTA, no de uno que mantiene o descarta
+        _imgs = _shas_of(d.get("images"))
+        if _imgs and dec != "aporto":
+            errors.setdefault("images_without_aporto", []).append(rid)
+        elif _imgs:
+            req["images"] = _imgs
+            req["n_images"] = len(_imgs)
     if approve:
         hard_pending = [r["requirement_id"] for r in reqs if r["decision"] == "pending" and r.get("hard_rule_gate")]
         errors["hard_rule_requirements_undecided"] = hard_pending
@@ -1680,6 +1750,12 @@ def apply_ledger_decisions(aggregation, decisions=None, approve=False, decided_b
         kn = {"text": t[:cap], "class": "attested", "by": decided_by, "at": decided_at, "chars": len(t),
               "truncated": len(t) > cap}
     state = "approved" if (approve and not has_errors) else "draft"
+    # ADR-0086 (J.4): el total y el detalle de las imágenes de ESTE ledger. Las llaves nacen sólo si hubo imágenes.
+    _kn_imgs = _shas_of(images)
+    _por_req = {r["requirement_id"]: list(r.get("images") or []) for r in reqs if r.get("images")}
+    _n_imgs = len(_kn_imgs) + sum(len(v) for v in _por_req.values())
+    _img_block = ({"images": _kn_imgs, "images_by_requirement": _por_req, "n_images": _n_imgs,
+                   "images_rule": ATTESTED_IMAGES_LEDGER_RULE, "images_class": "attested"} if _n_imgs else {})
     return {
         "state": state, "ledger_version": MODULE_VERSION,
         "requirements": reqs, "flags": list((aggregation or {}).get("flags") or []) if ledger is None else list(ledger.get("flags") or []),
@@ -1694,6 +1770,7 @@ def apply_ledger_decisions(aggregation, decisions=None, approve=False, decided_b
         "approved_by": decided_by if state == "approved" else None,
         "approved_at": decided_at if state == "approved" else None,
         "errors": errors, "has_errors": has_errors,
+        **_img_block,
         "rule": ("approve: pending non-hard-rule → keep (default-keep); hard_rule_gate pending → 400 "
                  "hard_rule_requirements_undecided (§7.1, no default); discard needs reason; aporto needs attested_text"),
     }
@@ -1823,8 +1900,19 @@ def judge_coverage(round_result, ledger, evidence_ids, phase="pre-search", round
                        "n_votes": len(vs), "n_valid_votes": len(valid), "n_annulled_votes": len(vs) - len(valid),
                        "requested_by": list(r.get("requested_by") or [])})
     must_uncovered = counts["must_uncovered_strict"] + counts["must_partial"] + counts["must_not_judged"]
+    # ADR-0086 (F6): cuántos requisitos traen una imagen aportada detrás. Es un CONTEO, no una cobertura: la imagen no
+    # cubre nada por sí sola — cubre la decisión humana `aporto`, que ya se cuenta en must_attested. Sin imágenes en el
+    # ledger no nace ninguna llave (M.1).
+    _img_reqs = [r for r in reqs if r.get("images")]
+    _img_counts = ({"n_with_image": len(_img_reqs),
+                    "n_attested_with_image": sum(1 for r in _img_reqs if r.get("decision") == "aporto"),
+                    "must_attested_with_image": sum(1 for r in _img_reqs if r.get("priority") == "must"
+                                                    and r.get("decision") == "aporto"),
+                    "n_images_total": sum(len(r.get("images") or []) for r in _img_reqs),
+                    "attested_images_rule": ATTESTED_IMAGES_COUNCIL_RULE} if _img_reqs else {})
     return {
         "state": "judged", "phase": phase, "round": round_,
+        **_img_counts,
         "evidence_view": EVIDENCE_VIEW_STATE if phase == "pre-search" else "DI + path_b (after directed search)",
         "by_requirement": by_req,
         "foreign_requirement_ids": foreign, "n_foreign_votes": len(foreign),
@@ -2126,7 +2214,14 @@ def summary_for_thread(council, cap=24):
                     "priority": r.get("priority"), "coverage_final": final_by.get(r.get("requirement_id")),
                     "decision": r.get("decision"), "n_requested_by": r.get("n_requested_by")})
     kn = ledger.get("knowledge_now")
-    return {"requirements": out,
+    # ADR-0086 (F6): el turno siguiente hereda CUÁNTAS imágenes aportó una persona, no lo que dicen. El caption es texto
+    # de una persona y el planner no lo necesita para planear; `thread_context.parent_attested_images` (runs) sí lo lleva,
+    # recortado, para quien de veras lo usa. Sin imágenes no nace la llave (M.1).
+    _n_img = int(ledger.get("n_images") or 0) or sum(len(r.get("images") or []) for r in reqs)
+    _img_block = ({"n_attested_images": _n_img,
+                   "n_requirements_with_image": sum(1 for r in reqs if r.get("images")),
+                   "attested_images_rule": ATTESTED_IMAGES_COUNCIL_RULE} if _n_img else {})
+    return {"requirements": out, **_img_block,
             "flags": [{"kind": f.get("kind"), "statement": f.get("statement")} for f in (ledger.get("flags") or [])],
             "knowledge_now_present": bool(kn and (kn.get("present") if isinstance(kn, dict) and "present" in kn
                                                   else (kn.get("text") if isinstance(kn, dict) else kn))),

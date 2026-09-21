@@ -1108,6 +1108,105 @@ finally:
     os.environ["ANTHROPIC_API_KEY"] = ""
     urllib.request.urlopen = _blocked_urlopen
 
+
+# =====================================================================================================================
+# ADR-0086 (F6) · las IMÁGENES que aporta una persona en el consejo: pies de foto, jamás píxeles
+# =====================================================================================================================
+_SHA_I1 = "1" * 64
+_SHA_I2 = "2" * 64
+_CAP_I1 = "micrografia de pronefros a 48 hpf: los podocitos wt1a+ rodean el glomerulo"
+_ATT_IMGS = [{"id": "attested:" + _SHA_I1[:12], "sha256_short": _SHA_I1[:12], "caption": _CAP_I1,
+              "media_type": "image/png", "dims": {"w": 1024, "h": 768}, "requirement_id": None,
+              "attached_to": "knowledge_now", "consent": {"kind": "own-work", "declared": True},
+              "patient_material": False, "license_declared": "all-rights-reserved", "uploaded_by": "natalia",
+              "uploaded_at": "2026-09-18T10:00:00+00:00", "class": "attested", "bytes_delivered": False}]
+_ATT_CON = {"knowledge_now": {"text": "wt1a marca podocitos en nuestras manos", "class": "attested"},
+            "attestations": [], "n_attestations": 0, "images": _ATT_IMGS, "n_images": 1,
+            "images_delivery": "captions only", "class": "attested"}
+_ATT_SIN = {k: v for k, v in _ATT_CON.items() if k not in ("images", "n_images", "images_delivery")}
+_CTX_I = {"question": "¿wt1a marca podocitos?", "entities": ["wt1a"], "ledger": ledger,
+          "evidence_ids": BUNDLE_IDS, "evidence_view": {"x": 1}, "pass1": {"direct_answer": "sí"}}
+_t_con, _m_con = council.payload_r2(CP, {**_CTX_I, "human_attestations": _ATT_CON})
+_t_sin, _m_sin = council.payload_r2(CP, {**_CTX_I, "human_attestations": _ATT_SIN})
+_t1_con, _m1_con = council.payload_r1(CP, {**_CTX_I, "human_attestations": _ATT_CON})
+_t1_sin, _m1_sin = council.payload_r1(CP, {**_CTX_I, "human_attestations": _ATT_SIN})
+check("(F6) la CLÁUSULA de imágenes aportadas viaja SÓLO cuando viajan imágenes — en r1 y en r2 — y dice las dos cosas que "
+      "un juez podría suponer mal: que NO ha visto los píxeles y que un requisito `aporto` está cubierto por la DECISIÓN "
+      "HUMANA, no por la existencia de una foto; el meta declara n_attested_images y la regla. Sin imágenes, el payload es "
+      "byte a byte el de 1.13 (M.1): ni cláusula ni llaves nuevas en el meta",
+      council.ATTESTED_IMAGES_COUNCIL_CLAUSE in _t_con and council.ATTESTED_IMAGES_COUNCIL_CLAUSE in _t1_con
+      and "you have NOT seen the pixels" in council.ATTESTED_IMAGES_COUNCIL_CLAUSE
+      and "never by the existence of a picture" in council.ATTESTED_IMAGES_COUNCIL_CLAUSE
+      and "never cite one" in council.ATTESTED_IMAGES_COUNCIL_CLAUSE
+      and _m_con["n_attested_images"] == 1 and _m1_con["n_attested_images"] == 1
+      and _m_con["attested_images_rule"] == council.ATTESTED_IMAGES_COUNCIL_RULE
+      and council.ATTESTED_IMAGES_COUNCIL_CLAUSE not in _t_sin and council.ATTESTED_IMAGES_COUNCIL_CLAUSE not in _t1_sin
+      and "n_attested_images" not in _m_sin and "attested_images_rule" not in _m_sin
+      and "n_attested_images" not in _m1_sin,
+      json.dumps({"r2_con": _m_con.get("n_attested_images"), "r2_sin": sorted(_m_sin)}))
+check("(F6, corrector) la cláusula va DENTRO del bloque del preámbulo (un salto de línea, no dos): el cuerpo JSON sigue "
+      "siendo el bloque que empieza tras el PRIMER renglón en blanco, que es la forma de la que dependen sus lectores "
+      "— con dos saltos, el fake del gate de pipeline dejaba de parsear y los 17 miembros salían 'errored' (el gate se "
+      "degradaba a otra corrida en vez de fallar). El caption SÍ viaja (es lo único que el consejo ve de la imagen) y "
+      "NINGÚN byte: ni 'b64', ni 'data:image', ni llave de almacén",
+      json.loads(_t_con.split("\n\nEVIDENCE (", 1)[0].split("\n\n", 1)[1])["human_attestations"]["n_images"] == 1
+      and _CAP_I1 in _t_con and '"b64"' not in _t_con and "data:image" not in _t_con
+      and "storage_key" not in _t_con and "bytes_delivered" in _t_con,
+      json.dumps({"bloques_antes_del_json": _t_con.split("\n\n", 1)[0].count("\n")}))
+_led_img = council.apply_ledger_decisions(
+    agg1, decisions=[{"requirement_id": h, "decision": "keep"} for h in hard_ids]
+    + [{"requirement_id": aporto_id, "decision": "aporto", "attested_text": "lo medimos en el laboratorio",
+        "images": [_SHA_I2]}],
+    approve=True, decided_by="emmanuel", decided_at="2026-09-15T10:05:00Z", images=[_SHA_I1])
+check("(F6/J.1) apply_ledger_decisions acepta imágenes por IDENTIDAD: `images=` se adjunta a «qué sabes ahora» y "
+      "`decisions[].images` al requisito que la persona APORTA; el ledger declara images, images_by_requirement, n_images "
+      "y su regla. Aquí viajan sha, jamás bytes ni llaves de almacén",
+      _led_img["n_images"] == 2 and _led_img["images"] == [_SHA_I1]
+      and _led_img["images_by_requirement"] == {aporto_id: [_SHA_I2]}
+      and next(r for r in _led_img["requirements"] if r["requirement_id"] == aporto_id)["n_images"] == 1
+      and _led_img["images_rule"] == council.ATTESTED_IMAGES_LEDGER_RULE
+      and _led_img["images_class"] == "attested" and _led_img["has_errors"] is False
+      and '"b64"' not in json.dumps(_led_img) and "storage_key" not in json.dumps(_led_img),
+      json.dumps({"n": _led_img["n_images"], "por_requisito": _led_img["images_by_requirement"]}))
+_led_mal = council.apply_ledger_decisions(
+    agg1, decisions=[{"requirement_id": hard_ids[0], "decision": "keep", "images": [_SHA_I1]},
+                     {"requirement_id": lit_web, "decision": "discard", "reason": "no alcanza", "images": [_SHA_I2]}])
+check("(F6/J.2) una imagen colgada de un requisito que se MANTIENE o se DESCARTA es un error, no un default: "
+      "errors.images_without_aporto con los dos requirement_id y has_errors True — aportar es una decisión distinta de "
+      "mantener, y el ledger no la adivina",
+      sorted(_led_mal["errors"]["images_without_aporto"]) == sorted([hard_ids[0], lit_web])
+      and _led_mal["has_errors"] is True
+      and all("images" not in r for r in _led_mal["requirements"]),
+      json.dumps(_led_mal["errors"]["images_without_aporto"]))
+check("(F6, M.1) sin imágenes NINGUNA llave nueva nace en el ledger: el aprobado de arriba (mismas decisiones, sin "
+      "`images`) no trae images, images_by_requirement, n_images, images_rule ni images_class",
+      not ({"images", "images_by_requirement", "n_images", "images_rule", "images_class"} & set(ledger)),
+      json.dumps(sorted(k for k in ledger if "image" in k)))
+_cov_img = council.judge_coverage(res_r2, _led_img, BUNDLE_IDS, phase="pre-search")
+_cov_sin = council.judge_coverage(res_r2, ledger, BUNDLE_IDS, phase="pre-search")
+_b_img = {b["requirement_id"]: b for b in _cov_img["by_requirement"]}
+check("(F6) la cobertura CUENTA las imágenes y no las convierte en cobertura: n_with_image, n_attested_with_image, "
+      "must_attested_with_image y n_images_total, con la regla que lo dice — el requisito sigue 'covered-by-attestation' "
+      "por la DECISIÓN de la persona (que ya se cuenta en must_attested), no por la foto; y sin imágenes en el ledger "
+      "ninguna de esas llaves nace (M.1)",
+      _cov_img["n_with_image"] == 1 and _cov_img["n_attested_with_image"] == 1 and _cov_img["n_images_total"] == 1
+      and _cov_img["attested_images_rule"] == council.ATTESTED_IMAGES_COUNCIL_RULE
+      and _b_img[aporto_id]["coverage_final"] == "covered-by-attestation"
+      and _cov_img["must_attested"] == _cov_sin["must_attested"]
+      and _cov_img["must_uncovered"] == _cov_sin["must_uncovered"]
+      and not ({"n_with_image", "n_attested_with_image", "must_attested_with_image", "n_images_total",
+                "attested_images_rule"} & set(_cov_sin)),
+      json.dumps({k: _cov_img[k] for k in ("n_with_image", "n_attested_with_image", "n_images_total")}))
+_summ_img = council.summary_for_thread({"ledger": _led_img, "coverage": {"pre_search": _cov_img}})
+_summ_sin = council.summary_for_thread({"ledger": ledger, "coverage": {"pre_search": _cov_sin}})
+check("(F6) el turno SIGUIENTE hereda CUÁNTAS imágenes aportó una persona, no lo que dicen: n_attested_images y "
+      "n_requirements_with_image, sin un solo caption (el planner no necesita leer la prosa de nadie para planear; el "
+      "caption recortado viaja aparte, en thread_context.parent_attested_images). Sin imágenes, la llave no nace",
+      _summ_img["n_attested_images"] == 2 and _summ_img["n_requirements_with_image"] == 1
+      and _CAP_I1 not in json.dumps(_summ_img, default=str)
+      and not ({"n_attested_images", "n_requirements_with_image"} & set(_summ_sin)),
+      json.dumps({"con": _summ_img["n_attested_images"], "sin": sorted(k for k in _summ_sin if "image" in k)}))
+
 check("(M.3) urllib.request.urlopen REAL bloqueado: 0 llamadas en todo el gate; 'openai' jamás importado; sin BD tocada (council no importa db)",
       _NET_CALLS == [] and "openai" not in sys.modules and "db" not in sys.modules and "rag_index.query_service.db" not in sys.modules)
 

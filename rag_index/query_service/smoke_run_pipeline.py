@@ -3969,8 +3969,14 @@ _C_R1_DEFAULT = {"applicable": True, "requirements": [
 
 
 def _c_body(user_text):
+    """El cuerpo JSON del payload del consejo. Corrector: antes hacía `split("\n\n", 1)[1]` y bastaba UN bloque nuevo en
+    el preámbulo para que json.loads reventara DENTRO del fake — y run_round lo traducía a 17 miembros 'errored', o sea el
+    gate se degradaba a otra corrida en vez de fallar. Ahora el JSON se localiza por su llave de apertura y el fallo es
+    RUIDOSO: si el payload cambia de forma, este assert lo dice con nombre y apellido."""
     head = user_text.split("\n\nEVIDENCE (", 1)[0]
-    return json.loads(head.split("\n\n", 1)[1])
+    i = head.find("\n{")
+    assert i >= 0, "el payload del consejo ya no trae el cuerpo JSON donde el gate lo busca: revisa council.payload_*"
+    return json.loads(head[i + 1:])
 
 
 def _mk_council_caller(fail_r2=(), halluc_r2=(), uncovered_fams=(), cancel_after=None, run_box=None, wrong_tool_r1=()):
@@ -6651,10 +6657,15 @@ check("ADR-0086 (K) la ETAPA deja traza: stage.attestations.plan (1) + .image (u
                   "stage.attestations.summary"]
       and all(e["agent"] == runs_mod.ATTESTED_AGENT for e in _ev86a if e["type"].startswith("stage.attestations."))
       and [e["payload"]["sha256_short"] for e in _ev86_img] == [_at86.short_of(x) for x in _shas86]
-      and _CAP86_A not in _pl86 and _CAP86_B not in _pl86 and "b64" not in _pl86 and _R86_A["storage_key"] not in _pl86
+      # el base64 REAL de la imagen y la llave `"b64"` — no la subcadena 'b64', que `stage.figures.plan` lleva
+      # legítimamente en sus topes (request_b64_mb): una afirmación demasiado ancha convierte un tope en una fuga
+      and _CAP86_A not in _pl86 and _CAP86_B not in _pl86 and _B64_86 not in _pl86 and '"b64"' not in _pl86
+      and _R86_A["storage_key"] not in _pl86
       and next(e for e in _ev86a if e["type"] == "stage.attestations.summary")["payload"]["bytes_to_synthesizer"] is False
       and next(e for e in _ev86a if e["type"] == "stage.attestations.summary")["payload"]["readings_class"] == "model-judgment",
-      json.dumps(_ev86_t))
+      json.dumps({"tipos": _ev86_t, "fugas": [k for k, v in (("caption_a", _CAP86_A), ("caption_b", _CAP86_B),
+                  ("base64_real", _B64_86), ("llave_b64", '"b64"'),
+                  ("storage_key", _R86_A["storage_key"])) if v in _pl86]}))
 _dc86a = _rec86a["deterministic_checks"]["attested_images"]
 check("ADR-0086 (E) la COMPUERTA mide lo que no puede pasar: deterministic_checks.attested_images state 'checked', n_attested 2, los dos "
       "predicados DUROS (attested_images_not_cited, attested_not_in_evidence) VACÍOS y el informativo también; gating == "
@@ -6787,6 +6798,17 @@ check("ADR-0086 (J.4/K) el LEDGER congelado dice qué imágenes selló (frozen.c
       and all(v["n_images"] >= 1 for v in _av86.values())
       and all("vision" not in _bym86[rev] or _bym86[rev]["vision"] is not _bym86[rev]["attested_vision"] for rev in _av86),
       json.dumps({"n_images_ledger": _led86.get("n_images"), "attested_vision": _av86}, default=str)[:400])
+_ha86a = _rec86a["council"]["human_attestations"]
+_ha86b = _rec86b["council"]["human_attestations"]
+check("ADR-0086 (K.2/F6) el registro dice CUÁNTAS imágenes aportadas viajaron al sintetizador y al consejo, y con qué regla: "
+      "frozen.council.human_attestations gana n_images e images_delivery — y la corrida SIN imágenes no las hace nacer (M.1). "
+      "El caption completo NO viaja aquí: vive en attested_images.items[] y en el ledger congelado",
+      _ha86a["present"] is True and _ha86a["n_images"] == 2
+      and _ha86a["images_delivery"] == runs_mod.ATTESTED_DELIVERY_RULE
+      and _ha86a["class"] == "attested"
+      and "n_images" not in _ha86b and "images_delivery" not in _ha86b,
+      json.dumps({"a": {k: _ha86a.get(k) for k in ("n_images", "n_attestations")},
+                  "b": sorted(k for k in _ha86b if "image" in k)}))
 _ctx86a = runs_mod.build_thread_context(_row86a, [], _dt.datetime(2026, 9, 19, tzinfo=_dt.timezone.utc))["snapshot"]
 _ctx86b = runs_mod.build_thread_context(_row86b, [], _dt.datetime(2026, 9, 19, tzinfo=_dt.timezone.utc))["snapshot"]
 _pai86 = _ctx86a["parent_attested_images"]
