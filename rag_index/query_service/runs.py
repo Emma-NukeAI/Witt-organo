@@ -3220,6 +3220,10 @@ ATTESTED_ADDITIVE_KEYS_WITH_DATA = ("agents_invoked[attestations]", "token_usage
 ATTESTED_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.attested_predicates not in tree — ADR-0086)"
 ATTESTED_TOOL_UNAVAILABLE_MODULE = "tool-unavailable (ADR-0086: lib/attestations.py not in tree)"
 ATTESTED_NO_LEDGER_STATE = "not-applicable (no-ledger)"
+# (corrector R3-A3) hay filas ADJUNTAS en la base que el ledger VIGENTE no selló — porque se aprobó y luego se saltó el
+# consejo, o porque el sello se escribió y el ledger no. No entran a la corrida, y el estado lo DICE en vez de callarlo:
+# «nadie aportó» y «lo que aportaron no lo gobierna este ledger» son dos cosas distintas.
+ATTESTED_NOT_SEALED_STATE = "no-attested-images (attached rows not sealed by this ledger)"
 THREAD_ATTESTED_MAX = 8                                        # = WITT_ATTESTED_MAX_PER_PLAN por defecto: el tope de un plan
 ATTESTED_THREAD_RULE = ("what the PARENT run had: metadata and caption (<= 200 chars), never bytes; withdrawn images are "
                         "excluded and counted (a person who retired an image does not keep feeding it to child runs) "
@@ -3674,24 +3678,36 @@ def _audit_accepts_figures():
 # etapa con sus eventos, entrega los BYTES sólo a las lentes con visión y congela identidad y procedencia SIN un solo byte.
 # =====================================================================================================================
 def _attested_cfg():
-    """(cfg, storage, probe) leídos EN LA LLAMADA — (None, None, None) si la biblioteca no está en el árbol."""
+    """(cfg, storage, probe) leídos EN LA LLAMADA — (None, None, None) si la biblioteca no está en el árbol.
+
+    CORRECTOR (revisor 3, A4): las dos lecturas iban en el MISMO try, así que cualquier fallo del ALMACÉN devolvía
+    `cfg=None` y `_attested_rows_for_run` se saltaba la comprobación del kill-switch (`if cfg is not None and not
+    cfg.get("enabled")`). Resultado medido: con WITT_ATTESTED_IMAGES=0 y un almacén mal configurado, las filas entraban
+    igual y los captions viajaban al sintetizador y al consejo con la función APAGADA — M.1 dejaba de valer por un error
+    de otra capa. Ahora la CONFIGURACIÓN se lee aparte: si el almacén falla, el kill-switch sigue mandando."""
     if attestations_mod is None:
         return None, None, None
     try:
         cfg = attestations_mod.env_config()
-        storage, probe = attestations_mod.storage_backend(cfg=cfg)
-        return cfg, storage, probe
     except Exception:
-        return None, None, None
+        return None, None, None          # sin configuración no se puede ni saber si está apagada: se declara arriba
+    try:
+        storage, probe = attestations_mod.storage_backend(cfg=cfg)
+    except Exception:
+        return cfg, None, None           # el almacén falló; la configuración (y su kill-switch) SIGUE mandando
+    return cfg, storage, probe
 
 
-def _attested_rows_for_run(plan_id, cfg):
-    """(filas ADJUNTAS y vivas del plan, estado) — la compuerta humana manda: una imagen subida que el ledger no selló no
-    entra a ninguna corrida. `plan_id` sale de la copia del consejo (la corrida no tiene columna propia); sin plan no hay
-    ledger y el estado lo dice: 'not-applicable (no-ledger)' NO es 'no había imágenes'."""
+def _attested_rows_for_run(plan_id, cfg, sellados=None):
+    """(filas ADJUNTAS y vivas del plan CRUZADAS con el ledger, estado) — la compuerta humana manda: una imagen subida que
+    el ledger no selló no entra a ninguna corrida, y una que el ledger vigente ya no menciona TAMPOCO (K.1). `plan_id` y
+    `sellados` (= council_ledger_from(...)['attested_shas']) salen de la copia del consejo: la corrida no tiene columna
+    propia. Sin plan no hay ledger y el estado lo dice: 'not-applicable (no-ledger)' NO es 'no había imágenes'."""
     if attestations_mod is None:
         return [], ATTESTED_TOOL_UNAVAILABLE_MODULE
-    if cfg is not None and not cfg.get("enabled", True):
+    if cfg is None:                      # (corrector A4) sin configuración NO se supone encendido: se declara y no entra nada
+        return [], "error: attested config unreadable (env_config raised)"
+    if not cfg.get("enabled", True):
         return [], ATTESTED_KILL_SWITCH_STATE
     if not plan_id:
         return [], ATTESTED_NO_LEDGER_STATE
@@ -3701,7 +3717,19 @@ def _attested_rows_for_run(plan_id, cfg):
         rows = db.attested_images_of_plan(plan_id, include_withdrawn=False, attached_only=True)
     except Exception as e:
         return [], f"error: {type(e).__name__}: {str(e)[:120]}"
-    return rows, ("attached" if rows else "no-attested-images")
+    # ADR-0086 (K.1, corrector R3-A3/A2): el CRUCE con el ledger que GOBIERNA esta corrida. Leer sólo la columna
+    # `attached_to` de la base era confiar en un rastro que puede sobrevivir a su aprobación: si alguien aprobó con la
+    # imagen y después SALTÓ el consejo (o el ledger se rechazó por un 409 tras sellar), la fila seguía adjunta y la
+    # corrida consumía una imagen que su ledger vigente no menciona. Ahora manda la lista de sha que el ledger selló;
+    # `attested_shas` ausente (un ledger sin imágenes) deja fuera TODAS las filas, y el estado lo dice.
+    permitidos = set(sellados or ())
+    n_sin_sello = sum(1 for r in rows if r.get("sha256") not in permitidos)
+    rows = [r for r in rows if r.get("sha256") in permitidos]
+    if rows:
+        return rows, "attached"
+    if n_sin_sello:
+        return [], ATTESTED_NOT_SEALED_STATE
+    return [], "no-attested-images"
 
 
 
@@ -4079,12 +4107,27 @@ def council_ledger_from(council_json):
                 q["attested_class"] = d.get("attested_class") or "attested"
                 q["attested_chars"] = (d["attested_chars"] if isinstance(d.get("attested_chars"), int)
                                        else len(str(d["attested_text"])))
+            # ADR-0086 (corrector R2-4): las IMÁGENES selladas a este requisito. Sin esta copia, `judge_coverage` leía
+            # siempre 0 requisitos con imagen y sus contadores no podían NACER en producción — la ausencia de la llave se
+            # habría leído por contrato como «no hubo», que es justo lo que M.1 prohíbe.
+            if d.get("images"):
+                q["images"] = [i.get("sha256") if isinstance(i, dict) else i for i in d["images"]]
+                q["n_images"] = len(q["images"])
             reqs.append(q)
         out["requirements_source"] = "r1.requirements ⨝ ledger.decisions by requirement_id (app HTTP ledger form, C6)"
         known = {q["requirement_id"] for q in reqs}
         out["decisions_without_requirement"] = sorted(str(rid) for rid in decs if rid not in known)
     for q in reqs:
         q.setdefault("decision", "pending")
+    # ADR-0086 (corrector R2-4/R3-A3): los sha que ESTE ledger selló — los de `knowledge_now` (nivel superior del sobre) y
+    # los de cada requisito `aporto`. Es la lista contra la que la corrida CRUZA las filas vivas de la base: la compuerta
+    # que manda es el ledger aprobado, no el estado de una columna que pudo quedar de un ledger anterior.
+    _img_top = [i.get("sha256") if isinstance(i, dict) else i for i in (led.get("images") or [])]
+    _img_req = [sha for q in reqs for sha in (q.get("images") or [])]
+    _sellados = [sha for sha in (_img_top + _img_req) if isinstance(sha, str) and sha]
+    if _sellados:
+        out["attested_shas"] = list(dict.fromkeys(_sellados))
+        out["n_images"] = len(out["attested_shas"])
     out["requirements"] = reqs
     out["n_requirements"] = len(reqs)
     out["n_kept"] = sum(1 for q in reqs if q["decision"] == "keep")
@@ -4307,6 +4350,13 @@ def _frozen_ledger_view(ledger, cap=COUNCIL_LEDGER_FROZEN_TEXT_CAP, images=None)
         q = {k: r.get(k) for k in keep}
         if "priority_downgraded_from" in r:
             q["priority_downgraded_from"] = r["priority_downgraded_from"]
+        # ADR-0086 (corrector R2-3): las IMÁGENES selladas a este requisito. CONDICIONALES (como priority_downgraded_from):
+        # dentro de la tupla `keep` nacerían como dos llaves en null en TODO requisito de TODO registro, y M.1 dice que sin
+        # datos no nace ninguna llave. Sin esta copia, `summary_for_thread` contaba `n_requirements_with_image = 0` junto a
+        # un `n_attested_images` verdadero — una medición fabricada.
+        if r.get("images"):
+            q["images"] = list(r["images"])
+            q["n_images"] = len(q["images"])
         if r.get("decision_reason") is not None:
             q["decision_reason"] = r["decision_reason"]
         if r.get("attested_text") is not None:
@@ -4565,7 +4615,9 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
         c_quorum_required = council.quorum_required(c_n, c_cfg["quorum"])
         # ADR-0086 (K): las filas ADJUNTAS del plan (la copia del consejo trae el plan_id) y lo que de ellas ve el
         # sintetizador y el consejo: caption + metadatos rotulados, nunca bytes.
-        att_rows, att_state = _attested_rows_for_run((cj or {}).get("plan_id") if cj else None, att_cfg)
+        att_rows, att_state = _attested_rows_for_run((cj or {}).get("plan_id") if cj else None, att_cfg,
+                                                     sellados=(c_ledger or {}).get("attested_shas")
+                                                     if isinstance(c_ledger, dict) else None)
         c_attest = human_attestations_of(c_ledger, images=att_rows) if council_enabled else None
         c_catalog_plan = (cj or {}).get("catalog_sha") if cj else None
         council_holder.update(present=cj is not None, enabled=council_enabled, state=c_state,

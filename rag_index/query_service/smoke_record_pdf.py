@@ -1116,6 +1116,28 @@ check("(F7.4b) el PDF no lleva ni un byte de imagen aportada: ni 'data:image', n
       and "attested/plan-86-a/" not in txt14 and ".image(" not in _SRC_APORTADAS
       and "b64" not in _SRC_APORTADAS and "thumbnail" not in _SRC_APORTADAS,
       f"b64_en_seccion={'b64' in _sec14} img_en_fuente={'.image(' in _SRC_APORTADAS}")
+_FLAG_PAC = (AT86.patient_material_flag({"sha256": AI_SHA_P, "caption": AI_CAP_P, "uploaded_by": "natalia"})
+             if AT86 is not None else {"kind": "patient-material", "statement": "declarado", "emitted_by": []})
+_REC14F = _rec14()
+_REC14F["council"] = json.loads(json.dumps(_REC14F.get("council") or {}, default=str))
+_led14f = _REC14F["council"].get("ledger") or {"state": "approved", "requirements": [], "flags": []}
+_REC14F["council"]["ledger"] = {**_led14f, "flags": list(_led14f.get("flags") or []) + [_FLAG_PAC]}
+_pdf14f, _txt14f = pdf_text(_REC14F)
+check("(F7.4b, corrector del revisor 1) el caption de una imagen de PACIENTE tampoco sale por la BANDERA. La seccion 54 "
+      "lo suprime, pero frozen.council.ledger.flags[].statement se imprime VERBATIM en la seccion del consejo, 1.100 "
+      "lineas mas abajo del MISMO documento — y ahi salia entero. El check anterior media un registro cuyo ledger no "
+      "traia la bandera, o sea una combinacion que en produccion NO existe (la bandera la pone el codigo, no la persona). "
+      "Ahora el PDF se renderiza CON ella: la bandera aparece, identifica por sha corto y por quien la aporto, y el "
+      "caption no esta en ninguna parte del documento",
+      "BANDERA" in _txt14f and AT86.short_of(AI_SHA_P) in _txt14f if AT86 is not None else True,
+      "flag en el PDF")
+check("(F7.4c, corrector) y el caption NO aparece en el PDF renderizado con la bandera puesta — medido sobre el texto "
+      "COMPLETO del documento, no sobre la seccion",
+      AI_CAP_P not in _txt14f
+      and "declarada material de paciente por natalia" in _txt14f
+      and (AT86 is None or _FLAG_PAC.get("caption_omitted") == AT86.CAPTION_OMITTED_REASON),
+      json.dumps({"caption_en_el_pdf": AI_CAP_P in _txt14f,
+                  "bandera_en_el_pdf": "declarada material de paciente por natalia" in _txt14f}))
 _AI_ESTADOS = {"no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
                "not-applicable (no-ledger)": "la corrida no tuvo plan con consejo: no hay canal para aportar",
                "kill-switch WITT_ATTESTED_IMAGES=0": "funcion apagada por variable de entorno"}

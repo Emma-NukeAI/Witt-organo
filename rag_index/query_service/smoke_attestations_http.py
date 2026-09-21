@@ -654,7 +654,10 @@ _led_d = _r_draft.json()["ledger"]
 check("(J.3) en BORRADOR nada se sella: el ledger devuelve las dos imágenes con su destino propuesto y ledger_state "
       "'staged (pending approval)', y en la BASE siguen SIN attached_to — subir prepara, aprobar es lo que adjunta",
       _r_draft.status_code == 200 and _led_d["n_images"] == 2 and _led_d["images_source"] == "body.images"
-      and all(i["ledger_state"] == "staged (pending approval)" for i in _led_d["images"])
+      # `images` es la GOBERNANZA que se persiste (sha + a qué se adjunta); `images_view` es la vista rica de la
+      # respuesta, armada releyendo DESPUÉS de sellar. Dos nombres porque son dos cosas (corrector R3-A2)
+      and all(set(i) == {"sha256", "attached_to", "requirement_id"} for i in _led_d["images"])
+      and all(i["ledger_state"] == "staged (pending approval)" for i in _led_d["images_view"])
       and db.attested_image_get(PL, _sha_l1)["attached_to"] is None
       and db.attested_image_get(PL, _sha_l2)["attached_to"] is None,
       json.dumps({"n": _led_d["n_images"], "src": _led_d["images_source"]}))
@@ -674,7 +677,7 @@ check("(J.3) al APROBAR se sella: attached_to 'knowledge_now' para la del cuerpo
       and _f_l1["attached_to"] == "knowledge_now" and _f_l1["attached_by"] == "emmanuel"
       and db.attested_image_get(PL, _sha_l2)["attached_to"] == "requirement"
       and db.attested_image_get(PL, _sha_l2)["requirement_id"] == "req-bbb"
-      and all(i["attached_by_is_uploader"] is False for i in _led_a["images"])
+      and all(i["attached_by_is_uploader"] is False for i in _led_a["images_view"])
       and next(d for d in _led_a["decisions"] if d["requirement_id"] == "req-bbb")["n_images"] == 1,
       json.dumps({"l1": _f_l1["attached_to"], "l2": db.attested_image_get(PL, _sha_l2)["attached_to"]}))
 _at_antes = _f_l1["attached_at"]
@@ -738,6 +741,92 @@ check("(J.2) bajo kill-switch el ledger con imágenes -> 400 attested_images_dis
       "función apagada no sella nada, y lo dice)",
       _r_kill.status_code == 400 and _r_kill.json()["detail"]["state"] == "attested_images_disabled"
       and _r_kill.json()["detail"]["source"] == "env:WITT_ATTESTED_IMAGES")
+
+
+# =====================================================================================================================
+print("\n# 15. correctores de los revisores: la cascada de verdad, y la bandera sin caption")
+# =====================================================================================================================
+# (R3-A1) tres generaciones: A -> B -> C. Retirar en A tiene que alcanzar a C, que es NIETA.
+PA = _plan("plan-casc-a")
+_subir(PA, PNG2)
+_sha_c = _post_sha(PNG2)[0]
+db.attested_image_attach(PA, _sha_c, "knowledge_now", by="natalia")
+RUN_A = runs_mod.new_run("natalia", "¿cascada A?", ["wt1a"], plan_json=json.dumps({"route": "evidence-run"}),
+                         council_json=json.dumps({"plan_id": PA, "ledger": {"state": "approved"}}))
+PB = _plan("plan-casc-b")
+assert client.post(f"/plans/{PB}/attestations/inherit", headers=NAT,
+                   json={"sha256": _sha_c, "from_run_id": RUN_A}).status_code == 201
+db.attested_image_attach(PB, _sha_c, "knowledge_now", by="natalia")
+RUN_B = runs_mod.new_run("natalia", "¿cascada B?", ["wt1a"], plan_json=json.dumps({"route": "evidence-run"}),
+                         council_json=json.dumps({"plan_id": PB, "ledger": {"state": "approved"}}))
+PC = _plan("plan-casc-c")
+assert client.post(f"/plans/{PC}/attestations/inherit", headers=NAT,
+                   json={"sha256": _sha_c, "from_run_id": RUN_B}).status_code == 201
+_ruta_b = STORE / db.attested_image_get(PB, _sha_c)["storage_key"]
+_ruta_c = STORE / db.attested_image_get(PC, _sha_c)["storage_key"]
+assert _ruta_b.exists() and _ruta_c.exists(), "las dos copias heredadas existen antes del retiro"
+_r_casc = client.post(f"/plans/{PA}/attestations/{_sha_c}/withdraw", headers=NAT,
+                      json={"reason": "retiro que debe alcanzar a la nieta"})
+_j_casc = _r_casc.json()
+check("(R3-A1, corrector) la cascada del retiro es TRANSITIVA: A -> B -> C, y retirar en A alcanza a la NIETA. Se mide en "
+      "el DISCO, no en la lápida: los archivos de B y de C ya no existen, sus filas tienen lápida, y las dos puertas "
+      "responden 410. Antes la cascada era de un solo nivel y C conservaba fila viva y bytes SERVIBLES (GET 200)",
+      _r_casc.status_code == 200 and _j_casc["cascade_n"] == 2
+      and sorted(c["plan_id"] for c in _j_casc["cascade"]) == sorted([PB, PC])
+      and not _ruta_b.exists() and not _ruta_c.exists()
+      and db.attested_image_get(PB, _sha_c)["withdrawn_at"] and db.attested_image_get(PC, _sha_c)["withdrawn_at"]
+      and client.get(f"/plans/{PB}/attestations/{_sha_c}", headers=NAT).status_code == 410
+      and client.get(f"/plans/{PC}/attestations/{_sha_c}", headers=NAT).status_code == 410
+      and all(c["tombstoned"] is True and c["bytes_deleted"] is True for c in _j_casc["cascade"])
+      and _j_casc["bytes_deleted_all"] is True,
+      json.dumps({"cascade_n": _j_casc["cascade_n"], "cascade": _j_casc["cascade"]}, default=str)[:300])
+# (R3-A7 / R2-5) si una copia NO se pudo borrar, el sobre NO dice que los píxeles ya no existen
+PD = _plan("plan-casc-d")
+_subir(PD, WEBP, ct="image/webp", nombre="d.webp")
+_sha_d = _post_sha(WEBP)[0]
+db.attested_image_attach(PD, _sha_d, "knowledge_now", by="natalia")
+RUN_D = runs_mod.new_run("natalia", "¿cascada D?", ["wt1a"], plan_json=json.dumps({"route": "evidence-run"}),
+                         council_json=json.dumps({"plan_id": PD, "ledger": {"state": "approved"}}))
+PE = _plan("plan-casc-e")
+client.post(f"/plans/{PE}/attestations/inherit", headers=NAT, json={"sha256": _sha_d, "from_run_id": RUN_D})
+(STORE / db.attested_image_get(PE, _sha_d)["storage_key"]).unlink()      # el archivo de la heredera ya no está
+_j_falla = client.post(f"/plans/{PD}/attestations/{_sha_d}/withdraw", headers=NAT,
+                       json={"reason": "una copia ya no tiene archivo"}).json()
+check("(R3-A7/R2-5, corrector) el sobre del retiro NO promete más de lo que midió: con una copia cuyo archivo ya no "
+      "estaba, `bytes_deleted_all` es False y `cascade` NOMBRA cuál no se pudo borrar, con su estado. Antes el resultado "
+      "de cada borrado heredado se descartaba (`except: pass`) y la respuesta servía el `bytes_deleted` de la fila "
+      "primaria: a quien retira su imagen se le decía que los píxeles ya no existen de copias que podían seguir ahí",
+      _j_falla["bytes_deleted"] is True and _j_falla["bytes_deleted_all"] is False
+      and [c["storage_delete_state"] for c in _j_falla["cascade"]] == ["not-found"]
+      and _j_falla["cascade"][0]["plan_id"] == PE and _j_falla["cascade"][0]["tombstoned"] is True
+      and "never averaged away" in _j_falla["cascade_rule"],
+      json.dumps({"all": _j_falla["bytes_deleted_all"], "cascade": _j_falla["cascade"]}, default=str)[:260])
+# (R1-1/R1-2) la bandera de material de paciente NO lleva el caption
+os.environ["WITT_ATTESTED_PATIENT_MATERIAL"] = "1"
+PF = _plan_con_requisitos("plan-flag-1")
+_CAP_PAC = "biopsia renal de la paciente Maria Lopez expediente 44821 tincion PAS"
+_subir(PF, PNG, caption=_CAP_PAC, patient_material="true", consent_kind="patient-consented",
+       consent_text="consentimiento informado firmado por la paciente el 2026-08-01", deidentified_declared="true")
+_sha_f = _post_sha(PNG)[0]
+_led_f = _ledger(PF, images=[_sha_f], approve=True, patient_material_acknowledged=True).json()["ledger"]
+_flag_f = next(f for f in _led_f["flags"] if f.get("kind") == "patient-material")
+check("(R1-1/R1-2, corrector) la bandera `patient-material` NO lleva el caption. Llevaba los primeros 120 caracteres — y "
+      "esa bandera viaja a frozen.council.ledger.flags[], de donde el PDF del servidor la imprime VERBATIM en la sección "
+      "del consejo (1.100 líneas debajo de la sección 54, que sí suprime el caption del paciente) y "
+      "council.summary_for_thread la copia al contexto del turno SIGUIENTE, que alimenta al planner y a los 17 miembros. "
+      "Ahora identifica por sha corto y por quién la aportó, y DECLARA por qué omite el caption",
+      # el caption SÍ viaja en `images_view` de la respuesta (a quien aprueba, que tiene derecho a verlo) y NO en la
+      # bandera ni en lo que se PERSISTE — que es lo que llega al PDF y al turno siguiente
+      _CAP_PAC not in _flag_f["statement"]
+      and _CAP_PAC not in json.dumps(_led_f["flags"], ensure_ascii=False)
+      and _CAP_PAC not in (db.get_plan(PF).get("council_ledger_json") or "")
+      and _CAP_PAC in json.dumps(_led_f["images_view"], ensure_ascii=False)
+      and _flag_f["statement"].startswith("imagen atestiguada " + at.short_of(_sha_f))
+      and "material de paciente" in _flag_f["statement"] and "natalia" in _flag_f["statement"]
+      and _flag_f["gate"] == "human" and _flag_f["caption_omitted"] == at.CAPTION_OMITTED_REASON
+      and not hasattr(at, "FLAG_STATEMENT_CAPTION_CHARS"),
+      json.dumps(_flag_f, ensure_ascii=False)[:300])
+os.environ.pop("WITT_ATTESTED_PATIENT_MATERIAL", None)
 
 # =====================================================================================================================
 print("\n# 13. las rutas no se pisan, CORS expone lo suyo y nada binario viaja en JSON")

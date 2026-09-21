@@ -651,9 +651,16 @@ permanecen hasta withdraw y cuentan en el cupo del plan (OE6).
 **(I) Material de paciente: TRES declaraciones al subir + ACUSE literal al aprobar + bandera LISTA con gate humano; NADA
 automático filtra (§7 :149).** (i) `patient_material: bool` SIN default (400 `patient_material-required`); (ii) `true` exige
 `consent_kind 'patient-consented'` ∧ `consent_text ≥ 20` ∧ `deidentified_declared == true` (400 tipados, A.3); (iii) al subir, el
-CÓDIGO emite en el ledger (`ledger.flags[]`, forma de council.py:1569) `{kind 'patient-material', statement '<caption ≤ 120> —
-imagen atestiguada <sha12> declarada material de paciente por <user>', gate 'human', emitted_by ['attestations (human-upload)'],
-sha256_short, source 'human-upload'}` (forma LISTA: la webapp hace `emitted_by.join`, Preguntar.tsx:2006 — juez 2); (iv) APROBAR con
+CÓDIGO emite en el ledger (`ledger.flags[]`, forma de council.py:1569) `{kind 'patient-material', statement 'imagen
+atestiguada <sha12> declarada material de paciente por <user> — requiere acuse humano al aprobar el ledger', gate 'human',
+emitted_by ['attestations (human-upload)'], sha256_short, source 'human-upload', caption_omitted '<razón>'}`
+**[CORREGIDO 2026-09-21 — el diseño original de este inciso decía `statement '<caption ≤ 120> — …'` y se CONTRADECÍA con (M):
+la bandera viaja a `frozen.council.ledger.flags[]`, de donde el PDF del servidor la imprime VERBATIM en la sección del consejo
+—1.100 líneas debajo de la sección 54, que sí suprime el caption del paciente— y `council.summary_for_thread` la copia al
+`thread_context` del turno siguiente, que alimenta al planner y a la ronda 1 de los 17 miembros. O sea: el caption de una
+biopsia salía en un PDF que circula fuera de la app y en prompts que van a proveedores externos. Lo encontró el revisor
+adversario 1 midiendo el PDF renderizado. Una bandera es un AVISO, no un canal de contenido: identifica por sha corto y por
+quién la aportó, y para leer el caption hay que pedir el ítem por su puerta, con su autorización.]** (forma LISTA: la webapp hace `emitted_by.join`, Preguntar.tsx:2006 — juez 2); (iv) APROBAR con
 alguna imagen `patient_material` adjunta exige `LedgerBody.patient_material_acknowledged: true` → si no, 400
 `patient_material_unacknowledged [sha256_short…]` (la compuerta §7 «direct human gate» hecha CÓDIGO, no placa — C; ambos jueces); (v)
 `view_rule 'author-only (patient-material)'` siempre (G.1); (vi) `n_patient_material` viaja en frozen, `stage.attestations.summary`,

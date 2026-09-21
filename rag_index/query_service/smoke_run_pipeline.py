@@ -6598,6 +6598,15 @@ assert db.attested_image_attach("plan-86-a", _R86_A["sha256"], "knowledge_now", 
 assert db.attested_image_attach("plan-86-a", _R86_B["sha256"], "requirement", requirement_id=_c_rid84["zfin"], by="natalia")
 assert db.attested_image_attach("plan-86-a", _R86_W["sha256"], "knowledge_now", by="natalia")
 assert db.attested_image_withdraw("plan-86-a", _R86_W["sha256"], by="natalia", reason="la cambie por otra toma")
+def _cj86(plan_id, shas):
+    """La copia del consejo con un ledger que SELLA estos sha — es la compuerta que la corrida cruza (K.1). Antes el gate
+    adjuntaba las filas por `db.attested_image_attach` y confiaba en la columna; eso dejaba pasar imágenes que ningún
+    ledger vigente menciona (hallazgo A3 del revisor 3), así que ahora el gate ejerce el camino REAL."""
+    cj = _c_json84(_C_LEDGER84, plan_id)
+    cj["ledger"] = {**cj["ledger"], "images": list(shas)}
+    return cj
+
+
 _SYNTH86 = []
 
 
@@ -6615,7 +6624,8 @@ def _synth86():
 
 # --- (a) la corrida CON imágenes aportadas -----------------------------------------------------------------------------
 _rid86a, _rec86a, _ev86a, _row86a, _net86a, _esp86a = _run84("ADR-0086 a: attested images", "plan-86-a", uncovered=(),
-                                                             synth=_synth86(), env=dict(_ENV86))
+                                                             synth=_synth86(), env=dict(_ENV86),
+                                                             cj=_cj86("plan-86-a", [_R86_A["sha256"], _R86_B["sha256"]]))
 _ai86a = _rec86a["attested_images"]
 _shas86 = [it["sha256"] for it in _ai86a["items"]]
 check("ADR-0086 (K/L) frozen.attested_images de una corrida con 2 imágenes SELLADAS por el ledger: state 'attached', n_attached 2, "
@@ -6758,7 +6768,8 @@ check("ADR-0086 (K, corrector) una corrida cuya copia del consejo no trae plan_i
 
 # --- (d) kill-switch maestro: 1.13 byte a byte salvo las 3 excepciones DECLARADAS (M.1) ---------------------------------
 _rid86k, _rec86k, _ev86k, _row86k, _net86k, _esp86k = _run84("ADR-0086 d: kill switch", "plan-86-a", uncovered=(),
-                                                             env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"})
+                                                             env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"},
+                                                             cj=_cj86("plan-86-a", [_R86_A["sha256"], _R86_B["sha256"]]))
 _ai86k = _rec86k["attested_images"]
 check("ADR-0086 (M.1) con WITT_ATTESTED_IMAGES=0 el registro es el de 1.13 salvo las 3 excepciones DECLARADAS "
       "(render_contract_version, attested_images, deterministic_checks.attested_images): el bloque dice el literal del kill-switch con "
@@ -6839,6 +6850,36 @@ check("ADR-0086 (M.1) sin imágenes aportadas NINGUNA de las llaves de F4b nace:
                   "k": sorted(k for k in (_rec86k["council"]["ledger"] or {}) if "image" in k)}))
 
 
+# --- (f) los dos correctores del revisor 3 que sólo se ven en la corrida -------------------------------------------------
+_rid86x, _rec86x, _ev86x, _row86x, _net86x, _esp86x = _run84(
+    "ADR-0086 f: kill-switch con almacen roto", "plan-86-a", uncovered=(),
+    env={"WITT_ATTESTED_IMAGES": "0", "WITT_ATTESTED_DIR": str(TMP / "mcp84-plan-86-a" / "prohibido")},
+    cj=_cj86("plan-86-a", [_R86_A["sha256"], _R86_B["sha256"]]))
+check("ADR-0086 (M.1, corrector R3-A4) un ALMACÉN roto ya no salta el kill-switch. Las dos lecturas (configuración y "
+      "almacén) iban en el MISMO try, así que un fallo del almacén devolvía cfg=None y la comprobación `not cfg[enabled]` "
+      "se saltaba entera: con la función APAGADA las filas entraban igual y los captions viajaban al sintetizador y al "
+      "consejo. Ahora la configuración se lee aparte y el kill-switch sigue mandando aunque el disco no exista",
+      _rec86x["attested_images"]["state"] == runs_mod.ATTESTED_KILL_SWITCH_STATE
+      and _rec86x["attested_images"]["items"] == [] and _rec86x["attested_images"]["n_attached"] == 0
+      and [e for e in _ev86x if e["type"].startswith("stage.attestations.")] == []
+      and "attested_images" not in _rec86x["token_usage"],
+      json.dumps({"state": _rec86x["attested_images"]["state"], "n": _rec86x["attested_images"]["n_attached"]}))
+_rid86y, _rec86y, _ev86y, _row86y, _net86y, _esp86y = _run84(
+    "ADR-0086 g: ledger que no sella", "plan-86-a", uncovered=(), env=dict(_ENV86),
+    cj=_c_json84(_C_LEDGER84, "plan-86-a"))        # el MISMO plan con dos filas ADJUNTAS, pero un ledger SIN imágenes
+check("ADR-0086 (K.1, corrector R3-A3/A2) la corrida CRUZA las filas de la base con el ledger que la GOBIERNA. Con el "
+      "mismo plan cuyas dos filas están `attached` en la base pero un ledger que no sella ninguna, no entra ni una imagen "
+      "y el estado lo DICE — «nadie aportó» y «lo que aportaron no lo gobierna este ledger» son dos cosas distintas. "
+      "Antes bastaba la columna `attached_to`, así que aprobar y luego SALTAR el consejo (o un 409 tras sellar) dejaba a "
+      "la corrida consumiendo una imagen que su ledger vigente no menciona",
+      _rec86y["attested_images"]["state"] == runs_mod.ATTESTED_NOT_SEALED_STATE
+      and runs_mod.ATTESTED_NOT_SEALED_STATE.startswith("no-attested-images (")
+      and _rec86y["attested_images"]["items"] == []
+      and len(db.attested_images_of_plan("plan-86-a", include_withdrawn=False, attached_only=True)) == 2
+      and "attested_images" not in _rec86y["token_usage"],
+      json.dumps({"state": _rec86y["attested_images"]["state"],
+                  "filas_adjuntas_en_base": len(db.attested_images_of_plan("plan-86-a", attached_only=True))}))
+
 # --- (e) F9 INTEGRADOR · el kill-switch BYTE A BYTE contra la misma corrida encendida -----------------------------------
 # Lo que ninguna rebanada puede medir sola: que apagar la función devuelva EXACTAMENTE el registro de 1.13. Se compara el
 # MISMO fixture (misma pregunta, mismo plan, mismo consejo) encendido y apagado, quitando (1) las llaves de identidad de
@@ -6871,9 +6912,11 @@ def _strip86(rec):
 
 
 _rid86on, _rec86on, _ev86on, _row86on, _net86on, _esp86on = _run84("ADR-0086 e: M.1 on", "plan-86-a", uncovered=(),
-                                                                   env=dict(_ENV86))
+                                                                   env=dict(_ENV86),
+                                                                   cj=_cj86("plan-86-a", [_R86_A["sha256"], _R86_B["sha256"]]))
 _rid86off, _rec86off, _ev86off, _row86off, _net86off, _esp86off = _run84("ADR-0086 e: M.1 on", "plan-86-a", uncovered=(),
-                                                                         env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"})
+                                                                         env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"},
+                                                                         cj=_cj86("plan-86-a", [_R86_A["sha256"], _R86_B["sha256"]]))
 _diff86 = _diff83(_strip86(_rec86on), _strip86(_rec86off))
 check("ADR-0086 (M.1 · F9 integrador) KILL-SWITCH BYTE A BYTE contra la corrida ENCENDIDA del MISMO fixture (misma pregunta, "
       "mismo plan con 2 imágenes selladas, mismo consejo): quitadas las TRES excepciones declaradas, lo aditivo-con-datos "

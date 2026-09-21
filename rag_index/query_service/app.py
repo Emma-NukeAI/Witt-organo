@@ -1661,6 +1661,12 @@ ATTESTED_SERVABLE_RULE = ("servable = stored ∧ not withdrawn ∧ backend of th
                           "present ∧ sha256 recomputed over the bytes that leave == the frozen sha (ADR-0086 G.2); an "
                           "index over minio measures by stat_object and declares sha_verified false — the sha is "
                           "recomputed ONLY when serving")
+ATTESTED_CASCADE_MAX_DEPTH = 12     # (corrector R3-A1) generaciones de herencia que recorre el retiro; 12 >> lo posible
+ATTESTED_CASCADE_RULE = ("withdrawing reaches the WHOLE inheritance descent, generation by generation (B inherits from A, "
+                         "C inherits from B): each copy gets its own tombstone and its own MEASURED delete, and the "
+                         "envelope's `bytes_deleted_all` is true only when every one of them came back deleted — a copy "
+                         "that could not be deleted is named in `cascade`, never averaged away (ADR-0086 H.1, corregido "
+                         "2026-09-21 tras el revisor 3)")
 ATTESTED_UPLOAD_GATE = ("attested images are attached by the HUMAN ledger: uploading stages a row, approving the ledger "
                         "seals it; a plan already sealed to a run accepts no new uploads (ADR-0086 B.2)")
 
@@ -2094,34 +2100,70 @@ def withdraw_attestation(plan_id: str, sha256: str, body: AttestedWithdrawBody, 
     if row.get("withdrawn_at"):
         raise HTTPException(status_code=409, detail={"state": "already-withdrawn", "sha256": sha256,
                                                      "withdrawn_at": row.get("withdrawn_at")})
-    herederas = db.attested_images_inherited_from(plan_id, sha256)
-    borrados, estado = None, None
+    # (corrector R3-A1) la cascada es TRANSITIVA: B hereda de A y C hereda de B — retirar en A tiene que alcanzar a C.
+    # `attested_images_inherited_from` sólo devuelve las hijas DIRECTAS, así que se recorre la descendencia por generaciones.
+    descendencia, vistos, frontera = [], {plan_id}, [plan_id]
+    for _ in range(ATTESTED_CASCADE_MAX_DEPTH):
+        siguiente = []
+        for pid in frontera:
+            for h in db.attested_images_inherited_from(pid, sha256):
+                if h["plan_id"] in vistos:
+                    continue
+                vistos.add(h["plan_id"])
+                descendencia.append(h)
+                siguiente.append(h["plan_id"])
+        if not siguiente:
+            break
+        frontera = siguiente
+    else:
+        descendencia.append({"plan_id": None, "storage_key": None, "depth_exceeded": True})
+    descendencia = [h for h in descendencia if h.get("plan_id")]
+    # (corrector R3-A7/R2-5) cada borrado se MIDE por separado y fuera del try del padre: un fallo en el padre no puede
+    # impedir el de sus herederas, y ninguno se descarta en silencio. `bytes_deleted` del sobre es AND de todos: si una
+    # copia no se pudo borrar, la respuesta NO dice que los píxeles ya no existen.
+    storage = None
     try:
         storage, _probe = _attested_storage(cfg)
-        borrados = bool(storage.delete(row.get("storage_key")))
-        estado = "deleted" if borrados else "not-found"
-        for h in herederas:
-            try:
-                storage.delete(h.get("storage_key"))
-            except Exception:
-                pass
     except HTTPException:
-        estado = "storage-unavailable"          # la lápida SE PONE igual: la decisión humana no depende del almacén
-    except Exception as e:
-        estado = f"error: {type(e).__name__}"
+        storage = None                          # la lápida SE PONE igual: la decisión humana no depende del almacén
+
+    def _borrar(key):
+        if storage is None:
+            return None, "storage-unavailable"
+        if not key:
+            return None, "no-storage-key"
+        try:
+            ok = bool(storage.delete(key))
+            return ok, ("deleted" if ok else "not-found")
+        except Exception as e:
+            return False, f"error: {type(e).__name__}: {str(e)[:80]}"
+
+    borrados, estado = _borrar(row.get("storage_key"))
+    cascada = []
+    for h in descendencia:
+        ok_h, st_h = _borrar(h.get("storage_key"))
+        cascada.append({"plan_id": h["plan_id"], "bytes_deleted": ok_h, "storage_delete_state": st_h,
+                        "tombstoned": bool(db.attested_image_withdraw(
+                            h["plan_id"], sha256, by=user["user_id"],
+                            reason=f"cascada del retiro en {plan_id}: {str(body.reason).strip()}"[:400]))})
     db.attested_image_withdraw(plan_id, sha256, by=user["user_id"], reason=str(body.reason).strip(),
-                               cascade_n=len(herederas))
-    for h in herederas:
-        db.attested_image_withdraw(h["plan_id"], sha256, by=user["user_id"],
-                                   reason=f"cascada del retiro en {plan_id}: {str(body.reason).strip()}"[:400])
+                               cascade_n=len(descendencia))
+    # el sobre no puede prometer más de lo que midió: True sólo si TODOS los borrados dieron True
+    _todos = [borrados] + [c["bytes_deleted"] for c in cascada]
+    bytes_deleted_all = True if all(x is True for x in _todos) else (False if any(x is False for x in _todos) else None)
     fila = db.attested_image_get(plan_id, sha256)
     _attested_event(plan_id, "attestation.withdrawn",
                     {"sha256_short": at.short_of(sha256), "by": user["user_id"], "reason": str(body.reason).strip()[:200],
-                     "bytes_deleted": borrados, "storage_delete_state": estado, "cascade_n": len(herederas)})
+                     "bytes_deleted": borrados, "storage_delete_state": estado, "cascade_n": len(cascada),
+                     "bytes_deleted_all": bytes_deleted_all,
+                     "cascade_states": [c["storage_delete_state"] for c in cascada]})
     return {"plan_id": plan_id, "sha256": sha256, "state": "withdrawn (tombstone)",
             "withdrawn_at": (fila or {}).get("withdrawn_at"), "withdrawn_by": user["user_id"],
-            "bytes_deleted": borrados, "storage_delete_state": estado, "cascade_n": len(herederas),
-            "cascade_plan_ids": [h["plan_id"] for h in herederas], "class": "attested",
+            "bytes_deleted": borrados, "storage_delete_state": estado,
+            # MEDIDO por copia, no prometido: si una sola no se pudo borrar, bytes_deleted_all es False y `cascade` dice cuál
+            "bytes_deleted_all": bytes_deleted_all, "cascade_n": len(cascada), "cascade": cascada,
+            "cascade_plan_ids": [c["plan_id"] for c in cascada], "cascade_rule": ATTESTED_CASCADE_RULE,
+            "class": "attested",
             "note": "el registro congelado de las corridas que la usaron NO cambia: dice lo que pasó"}
 
 
@@ -2639,18 +2681,22 @@ def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(N
               "permissions_rule": COUNCIL_PERMISSIONS_RULE,
               "source": "POST /plans/{plan_id}/council/ledger (decisiones humanas; default-keep sólo al aprobar)"}
     # ADR-0086 (J.3/J.4): sellar (sólo al aprobar) y DESPUÉS releer, para que `attached_by_is_uploader` diga la verdad
-    _ledger_images_seal(plan_id, _img_pares, _img_filas, body.approve, user["user_id"])
-    _img_view = _ledger_images_view(plan_id, _img_pares, body.approve) if _img_pares else []
+    # (corrector R3-A2) el sello va DESPUÉS de escribir el ledger. Antes iba antes, así que un 409 `plan_already_used`
+    # (el plan se encoló mientras se decidía) devolvía error SIN guardar ningún ledger y dejaba la fila `attached`: la
+    # compuerta humana quedaba saltada sin que existiera ninguna aprobación. Lo que se PERSISTE es la gobernanza (sha +
+    # a qué se adjunta); la vista rica con `attached_by` se arma después de sellar, releyendo las filas.
+    _img_gov = [{"sha256": sha, "attached_to": dest, "requirement_id": rid} for sha, (dest, rid) in _img_pares.items()]
+    _img_view = _ledger_images_view(plan_id, _img_pares, False) if _img_pares else []
     _img_flags = _ledger_images_flags(_img_view)
     if _img_pares or _img_src != "none":
-        ledger.update(images=_img_view, n_images=len(_img_view), images_source=_img_src,
+        ledger.update(images=_img_gov, n_images=len(_img_gov), images_source=_img_src,
                       images_rule=LEDGER_IMAGES_RULE,
                       has_patient_material=any(i.get("patient_material") for i in _img_view),
                       patient_material_acknowledged=bool(body.patient_material_acknowledged))
         if _img_flags:
             ledger["flags"] = list(ledger.get("flags") or []) + _img_flags
         _por_req = {}
-        for it in _img_view:
+        for it in _img_gov:
             if it.get("requirement_id"):
                 _por_req.setdefault(it["requirement_id"], []).append(it)
         for fila in ledger["decisions"]:
@@ -2658,6 +2704,12 @@ def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(N
                 fila["images"] = _por_req[fila["requirement_id"]]
                 fila["n_images"] = len(fila["images"])
     _write_ledger(plan_id, ledger, user["user_id"] if body.approve else None)
+    # el ledger ya está guardado: AHORA se sella, y la vista de la respuesta se arma releyendo (así `attached_by` y
+    # `attached_by_is_uploader` dicen la verdad). Si el write hubiera fallado, nada se selló.
+    _ledger_images_seal(plan_id, _img_pares, _img_filas, body.approve, user["user_id"])
+    if _img_pares:
+        _img_view = _ledger_images_view(plan_id, _img_pares, body.approve)
+        ledger["images_view"] = _img_view
     if body.approve:
         _plan_event(plan_id, "council.ledger", {"approved_by": user["user_id"], "n_keep": tally["keep"],
                                                 "n_discard": tally["discard"], "n_aporto": tally["aporto"],

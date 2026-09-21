@@ -67,7 +67,6 @@ CONSTANT_SOURCE = "constant (ADR-0086)"
 FORM_OVERHEAD_BYTES = 64 * 1024        # C.2: max_body_bytes = max_image_mb·2^20 + FORM_OVERHEAD
 FROZEN_CAPTION_CHARS = 600             # caption ≤ 600 en el frozen (caption_truncated)
 THREAD_CAPTION_CHARS = 200             # ≤ 200 en thread_context.parent_attested_images[]
-FLAG_STATEMENT_CAPTION_CHARS = 120     # ≤ 120 en la bandera patient-material
 CAPTION_MIN_CHARS = 10
 CONSENT_TEXT_CHARS = 600
 FROZEN_CONSENT_TEXT_CHARS = 300
@@ -156,6 +155,10 @@ PLAN_EVENT_TYPES = ("attestation.uploaded", "attestation.inherited", "attestatio
 PLAN_EVENT_AGENT = "attestations"
 FLAG_EMITTED_BY = "attestations (human-upload)"
 FLAG_SOURCE = "human-upload"
+# (corrector R1) por qué la bandera no lleva el caption: viaja al PDF y al prompt del turno siguiente
+CAPTION_OMITTED_REASON = ("el caption no viaja en la bandera: ésta llega al PDF del servidor y al contexto del turno "
+                          "siguiente; para leerlo hay que pedir el ítem por su puerta, con su autorización (ADR-0086 I.iii, "
+                          "corregido 2026-09-21)")
 # (N.1) las EXACTAMENTE 3 excepciones del kill-switch — el literal vive aquí y `runs` lo importa
 ATTESTED_DECLARED_EXCEPTIONS = ("render_contract_version", "attested_images", "deterministic_checks.attested_images")
 # Forma EXACTA de las proyecciones (el orden de llaves es contrato para F2–F8 y la webapp)
@@ -1609,11 +1612,23 @@ def thread_item(row, cap=THREAD_CAPTION_CHARS, seen_by_lenses=None):
 
 
 def patient_material_flag(row):
-    """(I.iii) bandera LISTA con gate humano, forma council.py:1569 (+ sha256_short, source): la webapp hace emitted_by.join."""
-    cap, _t = _truncate(row.get("caption"), FLAG_STATEMENT_CAPTION_CHARS)
+    """(I.iii) bandera LISTA con gate humano, forma council.py:1569 (+ sha256_short, source): la webapp hace emitted_by.join.
+
+    CORRECTOR (revisor 1, 2026-09-21): el `statement` llevaba los primeros 120 caracteres del CAPTION. Esa bandera viaja a
+    `frozen.council.ledger.flags[]`, y de ahí (a) el PDF del servidor la imprime verbatim en la sección del consejo —
+    1.100 líneas debajo de la sección 54, que suprime el caption del paciente y lo dice en voz alta — y (b)
+    `council.summary_for_thread` la copia al `thread_context` del turno siguiente, que alimenta al planner y a la ronda 1
+    de los 17 miembros. O sea: el caption de una biopsia salía en un PDF que circula fuera de la app y en prompts que van
+    a proveedores externos, por el único camino que nadie estaba mirando.
+
+    La bandera identifica la imagen por su sha corto y por quién la aportó; para saber QUÉ dice hay que pedir el ítem por
+    su puerta, con su autorización. Una bandera es un aviso, no un canal de contenido.
+    """
     return {"kind": "patient-material",
-            "statement": f"{cap} — imagen atestiguada {short_of(row['sha256'])} declarada material de paciente por {row.get('uploaded_by')}",
-            "gate": "human", "emitted_by": [FLAG_EMITTED_BY], "sha256_short": short_of(row["sha256"]), "source": FLAG_SOURCE}
+            "statement": (f"imagen atestiguada {short_of(row['sha256'])} declarada material de paciente por "
+                          f"{row.get('uploaded_by')} — requiere acuse humano al aprobar el ledger"),
+            "gate": "human", "emitted_by": [FLAG_EMITTED_BY], "sha256_short": short_of(row["sha256"]),
+            "source": FLAG_SOURCE, "caption_omitted": CAPTION_OMITTED_REASON}
 
 
 def build_row(plan_id, form, bfields, strip, ident, put, uploaded_by, uploaded_by_role, uploaded_at, ledger_state="staged",
