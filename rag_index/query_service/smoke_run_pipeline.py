@@ -6838,6 +6838,88 @@ check("ADR-0086 (M.1) sin imágenes aportadas NINGUNA de las llaves de F4b nace:
       json.dumps({"b": sorted(k for k in (_rec86b["council"]["ledger"] or {}) if "image" in k),
                   "k": sorted(k for k in (_rec86k["council"]["ledger"] or {}) if "image" in k)}))
 
+
+# --- (e) F9 INTEGRADOR · el kill-switch BYTE A BYTE contra la misma corrida encendida -----------------------------------
+# Lo que ninguna rebanada puede medir sola: que apagar la función devuelva EXACTAMENTE el registro de 1.13. Se compara el
+# MISMO fixture (misma pregunta, mismo plan, mismo consejo) encendido y apagado, quitando (1) las llaves de identidad de
+# corrida, (2) las tres excepciones DECLARADAS y (3) lo que sólo existe con imágenes, que está ENUMERADO en
+# runs.ATTESTED_ADDITIVE_KEYS_WITH_DATA. Cualquier otra diferencia falla listando su path: eso es el hallazgo.
+_ADITIVAS_86 = {"attested_images", "n_images", "images_delivery", "images", "attested_vision",
+                "attested_state", "attested_n_images", "attested_n_seen_by_panel",
+                "parent_attested_images", "parent_attested_images_meta",
+                # el INTEGRADOR destapó estas tres: el registro sí lleva las filas del panel (audit.panel[].saw_attested),
+                # el resumen de visión de lo aportado (audit.vision.attested) y — la más sutil — payload_chars, que cambia
+                # porque la cláusula de imágenes ALARGA de verdad el payload del consejo: es una medición que se mueve con
+                # razón, no una llave nueva, y por eso se quita para comparar en vez de fingir que no cambió
+                "saw_attested", "attested_readings", "attested_readings_class", "attested_readings_dropped",
+                "attested", "payload_chars"}
+
+
+def _strip86(rec):
+    """El registro SIN las tres excepciones declaradas, SIN lo aditivo-con-datos y SIN la identidad de la corrida."""
+    r = json.loads(json.dumps(rec))
+    for k in _IDENTITY_KEYS83 + ("attested_images", "render_contract_version"):
+        r.pop(k, None)
+    _drop_key83(r, "thread_id")
+    r["deterministic_checks"].pop("attested_images", None)
+    r["agents_invoked"] = [a for a in r["agents_invoked"] if a["agent"] != runs_mod.ATTESTED_AGENT_ROW]
+    for k in _ADITIVAS_86:
+        _drop_key83(r, k)
+    for k in ("queue_wait_s", "stagger_wait_s", "elapsed_s", "cache_dir"):   # reloj y caché por corrida: identidad, no fuga
+        _drop_key83(r, k)
+    return r
+
+
+_rid86on, _rec86on, _ev86on, _row86on, _net86on, _esp86on = _run84("ADR-0086 e: M.1 on", "plan-86-a", uncovered=(),
+                                                                   env=dict(_ENV86))
+_rid86off, _rec86off, _ev86off, _row86off, _net86off, _esp86off = _run84("ADR-0086 e: M.1 on", "plan-86-a", uncovered=(),
+                                                                         env={**_ENV86, "WITT_ATTESTED_IMAGES": "0"})
+_diff86 = _diff83(_strip86(_rec86on), _strip86(_rec86off))
+check("ADR-0086 (M.1 · F9 integrador) KILL-SWITCH BYTE A BYTE contra la corrida ENCENDIDA del MISMO fixture (misma pregunta, "
+      "mismo plan con 2 imágenes selladas, mismo consejo): quitadas las TRES excepciones declaradas, lo aditivo-con-datos "
+      "ENUMERADO en runs.ATTESTED_ADDITIVE_KEYS_WITH_DATA y las llaves de identidad de corrida, los dos registros son "
+      "IDÉNTICOS (json sort_keys, keyset Y valores) — cualquier otra diferencia falla listando su path. Apagar la función "
+      "devuelve el registro de 1.13, no uno parecido",
+      _diff86 == set(), json.dumps(sorted(_diff86)[:8]))
+check("ADR-0086 (M.1 · F9) el keyset top-level es el MISMO encendido y apagado (attested_images está SIEMPRE en >= 1.14: "
+      "los tres estados son llave con VALOR, jamás ausencia), el contrato es 1.14 en las dos, y las tres excepciones son "
+      "exactamente las declaradas — la de en medio con items y la de fuera con el literal del kill-switch",
+      set(_rec86on) == set(_rec86off) == _FROZEN_1_10_KEYS | {"council", "figures", "web_locator", "attested_images"}
+      and _rec86on["render_contract_version"] == _rec86off["render_contract_version"] == "1.14"
+      and _rec86on["attested_images"]["state"] == "attached" and len(_rec86on["attested_images"]["items"]) == 2
+      and _rec86off["attested_images"]["state"] == runs_mod.ATTESTED_KILL_SWITCH_STATE
+      and _rec86off["attested_images"]["items"] == []
+      and _rec86off["deterministic_checks"]["attested_images"] == {"state": runs_mod.ATTESTED_KILL_SWITCH_STATE},
+      json.dumps({"on": _rec86on["attested_images"]["state"], "off": _rec86off["attested_images"]["state"]}))
+check("ADR-0086 (M.1 · F9) la ENUMERACIÓN de lo aditivo-con-datos es honesta: cada llave que el gate quita para comparar "
+      "está nombrada en runs.ATTESTED_ADDITIVE_KEYS_WITH_DATA, y cada llave nombrada ahí aparece de veras en la corrida "
+      "ENCENDIDA (una enumeración que nombra lo que no existe miente igual que una que omite lo que sí)",
+      all(any(k in n for n in runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA) for k in _ADITIVAS_86)
+      and "attested_images" in _rec86on["token_usage"]
+      and any(a["agent"] == runs_mod.ATTESTED_AGENT_ROW for a in _rec86on["agents_invoked"])
+      and _rec86on["council"]["human_attestations"]["n_images"] == 2
+      and _rec86on["council"]["ledger"]["n_images"] == 2
+      and _rec86on["attested_images"]["vision"] is not None
+      and any("attested_vision" in m for m in _rec86on["token_usage"]["by_stage"]["panel"]["by_model"].values())
+      and len(runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA) == 22
+      and any("saw_attested" in n for n in runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA)
+      and any("audit.vision.attested" in n for n in runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA)
+      and any("payload_chars" in n for n in runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA)
+      and any("epistemic_summary.attested_state" == n for n in runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA)
+      and isinstance(_rec86on["audit"]["vision"]["attested"], dict)
+      and all("saw_attested" in r for r in _rec86on["audit"]["panel"]),
+      json.dumps({"n_enumeradas": len(runs_mod.ATTESTED_ADDITIVE_KEYS_WITH_DATA),
+                  "quitadas_por_el_gate": len(_ADITIVAS_86)}))
+_ev86off_att = [e for e in _ev86off if e["type"].startswith("stage.attestations.")]
+check("ADR-0086 (M.1 · F9) apagada, la traza tampoco cambia: CERO eventos stage.attestations.* con el mismo plan que "
+      "encendido emite cuatro; y el conteo de eventos de TODAS las demás etapas es el mismo en las dos corridas (apagar "
+      "una función no puede mover la traza de las otras)",
+      _ev86off_att == [] and len([e for e in _ev86on if e["type"].startswith("stage.attestations.")]) == 4
+      and ({e["type"] for e in _ev86on} - {e["type"] for e in _ev86off}
+           == {"stage.attestations.plan", "stage.attestations.image", "stage.attestations.summary"})
+      and {e["type"] for e in _ev86off} - {e["type"] for e in _ev86on} == set(),
+      json.dumps(sorted({e["type"] for e in _ev86on} - {e["type"] for e in _ev86off})))
+
 _leaks86 = []
 with db.engine().begin() as _cx86:
     for _rid_x, _fr_x in _cx86.execute(_sa_f8.text("SELECT run_id, frozen_record_json FROM runs WHERE frozen_record_json IS NOT NULL")).all():

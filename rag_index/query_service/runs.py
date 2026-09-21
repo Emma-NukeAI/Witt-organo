@@ -3192,6 +3192,31 @@ ATTESTED_AGENT_ROW = ("attestations (lib/attestations.py — imágenes que aport
 ATTESTED_KILL_SWITCH_STATE = "kill-switch WITT_ATTESTED_IMAGES=0"
 ATTESTED_DECLARED_EXCEPTIONS = ("render_contract_version", "attested_images",
                                 "deterministic_checks.attested_images")    # M.1: EXACTAMENTE 3
+# ADR-0086 (M.1, F9): lo que SÓLO existe cuando de veras hubo imágenes aportadas. Enumerarlo es parte del contrato: el
+# gate del kill-switch quita EXACTAMENTE esto antes de comparar byte a byte contra la corrida apagada, y el gate de
+# paridad de la webapp lo lee para saber qué llaves puede encontrarse y cuáles no. Una llave aditiva que no esté aquí y
+# aparezca en el registro es un hallazgo del integrador, no una sorpresa que se descubre en producción.
+ATTESTED_ADDITIVE_KEYS_WITH_DATA = ("agents_invoked[attestations]", "token_usage.attested_images",
+                                    "token_usage.by_stage.panel.by_model[*].attested_vision",
+                                    "council.human_attestations.n_images", "council.human_attestations.images_delivery",
+                                    "council.ledger.images", "council.ledger.n_images",
+                                    "attested_images.items[]", "attested_images.vision", "attested_images.n_seen_by_panel",
+                                    "deterministic_checks.attested_images.{predicados, gating, rules, n_attested}",
+                                    "thread_context.parent_attested_images (en la corrida HIJA)",
+                                    "thread_context.parent_attested_images_meta (en la corrida HIJA)",
+                                    # las tres que el integrador (F9) destapó: mi enumeración las omitía
+                                    # cada llave se nombra LITERAL (no `{,_class,_dropped}`): así se puede grepear, y el
+                                    # gate puede comprobar que lo que quita para comparar está de veras enumerado
+                                    "audit.panel[].saw_attested", "audit.panel[].attested_readings",
+                                    "audit.panel[].attested_readings_class", "audit.panel[].attested_readings_dropped",
+                                    "audit.vision.attested",
+                                    "council.rounds[].members[].payload_chars (la cláusula de imágenes ALARGA el payload: "
+                                    "es una medición que cambia legítimamente, no una llave nueva)",
+                                    # estas tres NACEN en 1.14 y existen SIEMPRE (los tres estados son llave con valor):
+                                    # lo que cambia entre encendido y apagado es su VALOR, no su presencia — mismo trato
+                                    # que epistemic_summary.web_locator_state en 1.13 (ADR-0084)
+                                    "epistemic_summary.attested_state", "epistemic_summary.attested_n_images",
+                                    "epistemic_summary.attested_n_seen_by_panel")
 ATTESTED_TOOL_UNAVAILABLE_GATE = "tool-unavailable (verify_output.attested_predicates not in tree — ADR-0086)"
 ATTESTED_TOOL_UNAVAILABLE_MODULE = "tool-unavailable (ADR-0086: lib/attestations.py not in tree)"
 ATTESTED_NO_LEDGER_STATE = "not-applicable (no-ledger)"
