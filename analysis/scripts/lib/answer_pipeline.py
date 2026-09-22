@@ -633,7 +633,11 @@ def build_external_query(question, entities=None, question_en=None):
 
 
 PATH_B_SOURCES = ("europepmc", "pubmed", "zfin", "tooluniverse")
-_SEARCH_REC_KEYS = ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by")
+# ADR-0083 (A.2) / 0083.1: `license` es la SEGUNDA fuente de la licencia — la que EPMC manda en el search. Sin ella en
+# la proyeccion, `figures.parse_license` recibia search_license None SIEMPRE: la regla (6) 'epmc-search' no podia
+# disparar y el `conflict {xml, search}` -que es el unico aviso de que las dos fuentes se contradicen- jamas se emitia.
+# El XML sigue mandando (reglas 1-5); esta solo entra cuando el XML no dio ninguna, y el conflicto se DECLARA.
+_SEARCH_REC_KEYS = ("pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by", "license")
 
 
 def _search_europepmc(query, retmax, timeout=None):

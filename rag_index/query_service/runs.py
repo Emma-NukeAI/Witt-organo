@@ -2983,12 +2983,31 @@ def _is_figure_citation(c, idx):
     return _figure_item_for(c, idx) is not None
 
 
-def _figure_verification(citations, figures_block, audit_result):
+def _gate_figure_mismatches(checks):
+    """(0083.1) Los ids de figura que el GATE recalculó y NO cuadraron
+    (`deterministic_checks.figures.figure_sha_matches.mismatches[]`, ADR-0083 F.2). Conjunto vacío = el gate corrió y no
+    halló ninguna; `None` = el gate no midió (kill-switch, herramienta ausente, error declarado) y entonces NADA se
+    corrige: no medir no es «cuadra», y tampoco es «no cuadra»."""
+    fig = (checks or {}).get("figures")
+    if not isinstance(fig, dict):
+        return None
+    blk = fig.get(verify_output.PREDICATE_FIGURE_SHA_MATCHES) if hasattr(verify_output, "PREDICATE_FIGURE_SHA_MATCHES") \
+        else fig.get("figure_sha_matches")
+    if not isinstance(blk, dict) or not isinstance(blk.get("mismatches"), list):
+        return None
+    return {str(m.get("id")).upper() for m in blk["mismatches"] if isinstance(m, dict) and m.get("id")}
+
+
+def _figure_verification(citations, figures_block, audit_result, gate_mismatches=None):
     """ADR-0083 (E): `figure_verification {bytes, content, figure_id, kind_reported}` en toda cita-figura (superset: kind 'figure' ∨ id
     con forma '<PMCID>#<fig_id>' ∨ id que resuelve a un ítem — corrector) + el resumen `figure_citations {n, n_verified_bytes,
     n_not_fetched, n_error, n_mismatch, n_unresolved, n_other, n_figure_shaped_other_kind}`. bytes = el bytes_state del ítem
     (vocabulario B.2 COMPLETO: 'verified' | 'not-fetched (…)' | 'error: …' | 'mismatch' | 'never (…)' | 'not-requested (…)') o
-    'not-a-figure' cuando el id no nombra una figura del bundle; content 'panel-judgment' ⇔ alguna lente con visión emitió
+    'not-a-figure' cuando el id no nombra una figura del bundle. (0083.1) Si el GATE recalculó el sha de esa figura y NO
+    cuadró, `bytes` dice 'mismatch' aunque al ADHERIR dijera 'verified': manda la medición más reciente, y el registro no
+    puede decir 'verified' mientras `figure_sha_matches.mismatches[]` dice lo contrario. El matiz («al adherir cuadraba»)
+    vive en ese predicado, que el registro ya lleva. `gate_mismatches` None = el gate no midió: nada se corrige.
+    content 'panel-judgment' ⇔ alguna lente con visión emitió
     figure_readings para ESE id compuesto, si no 'not-evaluated'. corrector: n_not_fetched cuenta SOLO 'not-fetched (…)', los
     'error: …' van a n_error y el resto ('never'/'not-requested') a n_other → n == Σ cubetas + n_unresolved. Ausente bajo
     kill-switch (el llamador no llama)."""
@@ -3009,6 +3028,9 @@ def _figure_verification(citations, figures_block, audit_result):
             summ["n_unresolved"] += 1
             continue
         bs = it.get("bytes_state")
+        # (0083.1) el gate recalcula el sha sobre los bytes que HAY; si no cuadra, su medición manda sobre la del attach
+        if gate_mismatches and str(it.get("id")).upper() in gate_mismatches:
+            bs = "mismatch"
         content = "panel-judgment" if it.get("id") in read else "not-evaluated"
         c["figure_verification"] = {"bytes": bs, "content": content, "figure_id": it.get("id"), "kind_reported": c.get("kind")}
         if bs == "verified":
@@ -3025,7 +3047,7 @@ def _figure_verification(citations, figures_block, audit_result):
 
 
 def _support_states(citations, bundle, audit_result, council_pertinence=None, council_state=None,
-                    council_source=None, figures_block=None):
+                    council_source=None, figures_block=None, gate_checks=None):
     """(E/G) support_state por cita — verify_output.support_state_for (rebanada E) si está en el árbol; el
     grounding viene de la lente evidence-grounding (citation_support opcional en su fila). Devuelve
     (citations con support_state aditivo, citations_support_summary). Sin el helper: support_state None por
@@ -3102,7 +3124,8 @@ def _support_states(citations, bundle, audit_result, council_pertinence=None, co
     # ADR-0083 (E): figure_verification por cita kind 'figure' + figure_citations en el resumen — SÓLO con figuras encendidas
     # (figures_block no-None y sin kill-switch); la escalera NO cambia de peldaños (el caption es el pasaje: F2 la indexa).
     if isinstance(figures_block, dict) and figures_block.get("state") != FIGURES_KILL_SWITCH_STATE:
-        summary["figure_citations"] = _figure_verification(citations, figures_block, audit_result)
+        summary["figure_citations"] = _figure_verification(citations, figures_block, audit_result,
+                                                           gate_mismatches=_gate_figure_mismatches(gate_checks))
     return citations, summary
 
 
@@ -5369,7 +5392,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                                                                council_pertinence=c_pert, council_state=c_state,
                                                                council_source=c_pert_src,
                                                                # ADR-0083 (E): figure_verification + figure_citations (no bajo kill-switch)
-                                                               figures_block=figures_holder["summary"] if fig_enabled else None)
+                                                               figures_block=figures_holder["summary"] if fig_enabled else None,
+                                                               # (0083.1) el gate de la pasada FINAL: si recalculó otro sha,
+                                                               # `figure_verification.bytes` no puede decir 'verified'
+                                                               gate_checks=checks)
         # ADR-0084 (G.5): located_via por cita + n_located_via_web — SÓLO con el localizador disponible en la corrida (M.1: ausentes
         # bajo off explícito/derivado); la cita a un paper web-localizado se casa por la escalera (resolved_to) o por su id
         if web_ps.get("available"):

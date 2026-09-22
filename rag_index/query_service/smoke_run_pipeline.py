@@ -1364,9 +1364,13 @@ check("ADR-0078 contenido: con texto completo cacheado el item lleva `text_excer
       and p_ft["text_excerpt_cap_chars"] == 1500,
       f"rule={p_ft['text_excerpt_rule']} chars={p_ft['text_excerpt_chars']}")
 check("ADR-0078 contenido: `abstract` viaja en el item (del search_rec de EPMC) — antes se descargaba y "
-      "se tiraba; el search_rec conserva sus 8 llaves de metadatos",
+      "se tiraba; el search_rec conserva sus 9 llaves de metadatos (8 de 0078 + `license` de 0083.1: es la SEGUNDA "
+      "fuente de licencia, la que EPMC manda en el search — sin ella la regla (6) 'epmc-search' de figures.parse_license "
+      "no podía disparar y el `conflict {xml, search}` jamás se emitía)",
       p_ft["abstract"] == "wt1a is required for pronephros formation in zebrafish."
-      and set(p_ft["search_rec"]) == {"pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by"})
+      and set(p_ft["search_rec"]) == {"pmid", "pmcid", "doi", "title", "year", "journal", "is_oa", "cited_by", "license"}
+      and "license" in answer_pipeline._SEARCH_REC_KEYS,
+      json.dumps(sorted(p_ft["search_rec"])))
 check("ADR-0078 contenido: sin texto completo el excerpt es el abstract entero (rule 'full', provenance "
       "'abstract'); sin nada -> provenance 'none' con abstract null DECLARADO (tres estados)",
       p_ab["text_provenance"] == "abstract" and p_ab["text_excerpt_rule"] == "full"
@@ -5444,6 +5448,23 @@ check("[F2] ADR-0083 (F.2) figure_sha_matches DURO en MISMATCH: pass2 INADMISIBL
       and "hard predicate failed: figure_sha_matches" in _rec_fd["deterministic_checks"]["reasons"]
       and [m.get("id") for m in _rec_fd["deterministic_checks"]["figures"].get("figure_sha_matches", {}).get("mismatches", [])] == [_G001_ID],
       json.dumps({"adm": _rec_fd["deterministic_checks"]["admissible"], "reasons": _rec_fd["deterministic_checks"]["reasons"]}))
+# (0083.1) el registro NO puede contradecirse: si el gate recalculo otro sha, `figure_verification.bytes` de esa cita
+# tiene que decir 'mismatch', no 'verified'. Antes copiaba el bytes_state del attach y el registro decia las dos cosas:
+# el gate «bytes alterados» y la cita «verified». La Hoja mostraba lo correcto porque LEE el gate, pero quien leia el
+# registro solo -el PDF, soporte, un script- veia 'verified'. Manda la medicion mas reciente.
+_cit_g001 = [c for c in _rec_fd["citations"] if (c.get("figure_verification") or {}).get("figure_id") == _G001_ID]
+_fv_g001 = (_cit_g001[0].get("figure_verification") if _cit_g001 else None) or {}
+_item_g001 = next((i for i in _rec_fd["figures"]["items"] if i["id"] == _G001_ID), {})
+_fc_fd = (_rec_fd.get("citations_support_summary") or {}).get("figure_citations") or {}
+check("[F2] (0083.1) figure_verification LEE el gate: la cita de la figura con bytes ALTERADOS dice bytes 'mismatch' "
+      "-no 'verified'- aunque el item del bundle siga en 'verified' (eso fue lo que midio el attach, y sigue dicho ahi); "
+      "el resumen la cuenta en n_mismatch y NO en n_verified_bytes: el registro deja de contradecirse",
+      bool(_cit_g001) and _fv_g001.get("bytes") == "mismatch"
+      and _item_g001.get("bytes_state") == "verified"
+      and _fc_fd.get("n_mismatch", 0) >= 1 and _fc_fd.get("n_verified_bytes", 0) == 0
+      and _fc_fd["n"] == (_fc_fd["n_verified_bytes"] + _fc_fd["n_not_fetched"] + _fc_fd["n_error"]
+                          + _fc_fd["n_mismatch"] + _fc_fd["n_other"] + _fc_fd["n_unresolved"]),
+      json.dumps({"fv": _fv_g001.get("bytes"), "item": _item_g001.get("bytes_state"), "resumen": _fc_fd}))
 check("[F3] ADR-0083 (G.2) con el sha alterado las dos lentes reciben 8 (g001 excluida) y saw_figures.n 8",
       {p["lens"]: p["n_figures"] for p in _PANEL83}.get("evidence-grounding") == 8
       and (next(r for r in _rec_fd["audit"]["panel"] if r["lens"] == "reproducibility").get("saw_figures") or {}).get("n") == 8,
