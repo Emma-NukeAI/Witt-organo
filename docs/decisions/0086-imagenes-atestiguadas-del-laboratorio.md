@@ -5,7 +5,7 @@
 
 # ADR-0086 — Imágenes ATESTIGUADAS del laboratorio: una imagen que aporta una persona es PRIOR ART con procedencia registrada (quién, cuándo, consentimiento, licencia declarada), jamás evidencia ni cita; entra SÓLO por el ledger del consejo, sus bytes viven FUERA del registro en almacenamiento PRIVADO (disco local declarado hoy → MinIO privado cuando Emmanuel confirme), los ven a lo sumo DOS lentes del panel como juicio y NUNCA el sintetizador, se sirven sólo al autor por default, jamás en el PDF, y se retiran por tombstone sin tocar el registro (contrato 1.14)
 
-- **Status:** Proposed — diseño 2026-09-16, **obra 2026-09-21: diez de trece rebanadas commiteadas y medidas (ver «Lo construido»); faltan F9 (integrador + tres revisores) y el tag `contract-1.14-frozen`**. Pasa a Accepted cuando Emmanuel apruebe OE1–OE6 y los gates EN VIVO sustituyan las proyecciones de costo por medición con fecha. Origen: plan v3
+- **Status:** Proposed — diseño 2026-09-16, **obra COMPLETA 2026-09-21: las trece rebanadas, el integrador, los tres revisores adversarios y el corrector de cuatro olas, todo commiteado y medido (ver «Lo construido»)**. Pasa a Accepted cuando Emmanuel apruebe OE1–OE6 y los gates EN VIVO sustituyan las proyecciones de costo por medición con fecha. Origen: plan v3
   del brief *Consejo de agentes* aprobado el 2026-09-14 — §3 R5 («la evidencia puede ser imagen»: lectura sólo por dos lentes del
   panel etiquetada juicio; el sintetizador nunca recibe bytes), §4 A («Aprobar y correr: keep / discard con razón / «yo lo aporto»
   (atestiguado) + «qué sabes ahora» + imágenes — único punto donde la prosa se vuelve gasto»), §7 último párrafo («Imágenes
@@ -183,9 +183,14 @@ en 0, y el `mcp_cache` real byte-idéntico antes y después.
 | F5b · puertas | `4ad1497` | Las 7 rutas HTTP con su gate nuevo; CORS expone `X-Witt-Attested-*`; `plan_add_event(heartbeat=False)` para que `attestation.*` no mueva el latido del consejo | `smoke_attestations_http` 63 |
 | J · el ledger sella | `6fb8cbc` | `images[]` en el ledger (PATCH-like), las siete validaciones, el sellado write-once con `attached_by_is_uploader` declarado, la bandera `patient-material` con gate humano, `GET /plans/{id}.attested_images` | `smoke_attestations_http` 63 |
 | F6 · consejo | `cea20f5` | La cláusula de imágenes en r1/r2/r3 sólo cuando viajan; `apply_ledger_decisions(images=)`; `judge_coverage.n_with_image`; `summary_for_thread.n_attested_images`; `frozen.council.human_attestations.n_images` | `smoke_council` 85 |
-| F8 · operación | este commit | Compose con las 18 variables y **los volúmenes**; `CLAUDE.md` §7; el índice de decisiones; `/usage.attested_images`; `analysis/scripts/smoke_live_attestations.py` con `--dry-run` por default | `smoke_usage_http`, compose validado |
+| F8 · operación | `56a216f` | Compose con las 18 variables y **los volúmenes**; `CLAUDE.md` §7; el índice de decisiones; `/usage.attested_images`; `analysis/scripts/smoke_live_attestations.py` con `--dry-run` por default | `smoke_usage_http`, compose validado |
 
-**Barrido completo: 48 smokes en exit 0.** `urlopen` 0 en todos.
+| F9 · integrador | `bb576ff` | El kill-switch BYTE A BYTE contra la misma corrida encendida, y la enumeración de lo aditivo-con-datos (`runs.ATTESTED_ADDITIVE_KEYS_WITH_DATA`, 22 entradas literales) comprobada en las dos direcciones | `smoke_run_pipeline` 429 |
+| corrector · 4 olas | `973fe50` · `b65f572` · `9df256d` | Lo que los tres revisores adversarios encontraron (ver la sección siguiente) | los 48 |
+
+**Barrido completo: 48 smokes en exit 0.** `urlopen` 0 en todos. Los conteos por gate tras el corrector:
+`run_pipeline` 429 · `record_pdf` 81 · `attestations_http` 66 · `council` 85 · `panel_vision` 77 · `gate_citations` 114 ·
+`attestations_db` 24 · `models` 102.
 
 ### Cuatro fallos REALES que los gates destaparon (ninguno se ve leyendo el código)
 
