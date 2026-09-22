@@ -1824,11 +1824,17 @@ def _attested_bytes_response(row, viewer, cfg, storage, request, run_id=None):
                "X-Witt-Attested-Patient-Material": "1" if row.get("patient_material") else "0",
                "Content-Disposition": 'inline; filename="%s.%s"' % (at.short_of(row["sha256"]),
                                                                     ATTESTED_EXT.get(media) or "bin")}
+    # (corrector revisor 3, A14) el evento se emitía ANTES de decidir el 304, así que la bitácora de privacidad
+    # sobre-contaba entregas que no ocurrieron. Si algún día se audita «¿a quién se le mostró esta imagen?», la respuesta
+    # tiene que ser exacta: un 304 se registra como lo que es — la copia que el navegador ya tenía.
+    from fastapi.responses import Response
+    _no_modificado = request.headers.get("if-none-match") == etag
     _attested_event(row["plan_id"], "attestation.bytes_served",
                     {"sha256_short": at.short_of(row["sha256"]), "by": viewer, "view_rule": vr["rule"],
-                     "run_id": run_id, "bytes": len(data), "sha_verified": True})
-    from fastapi.responses import Response
-    if request.headers.get("if-none-match") == etag:
+                     "run_id": run_id, "bytes": (0 if _no_modificado else len(data)), "sha_verified": True,
+                     "delivered": not _no_modificado,
+                     "http_status": 304 if _no_modificado else 200})
+    if _no_modificado:
         return Response(status_code=304, headers=headers)
     return Response(content=data, media_type=media, headers=headers)
 
@@ -1998,6 +2004,14 @@ def inherit_attestation(plan_id: str, body: AttestedInheritBody, authorization: 
     if db.attested_image_get(plan_id, body.sha256) is not None:
         raise HTTPException(status_code=409, detail={"state": "attested_image_already_uploaded", "sha256": body.sha256,
                                                      "uploaded_by_is_viewer": True})
+    # (corrector revisor 3, A5) heredar ESCRIBE bytes en el almacén igual que subir, así que cuenta contra el tope por
+    # persona y día. No lo consultaba: con el tope agotado, seis herencias seguidas devolvían 201 y copiaban seis veces.
+    _n_hoy = db.attested_images_uploaded_today(user["user_id"], _hoy_utc())
+    if _n_hoy >= int(cfg["max_per_user_per_day"]):
+        raise HTTPException(status_code=429, detail={
+            "state": "upload-rate-limited", "n_today": _n_hoy, "cap": int(cfg["max_per_user_per_day"]),
+            "source": cfg["sources"]["max_per_user_per_day"], "resets_at": _manana_utc_iso(),
+            "note": "heredar escribe bytes: cuenta contra el tope diario igual que subir"})
     _attested_caps(plan_id, cfg, int(origen.get("bytes") or 0))
     storage, probe = _attested_storage(cfg)
     try:
@@ -2014,8 +2028,10 @@ def inherit_attestation(plan_id: str, body: AttestedInheritBody, authorization: 
     except at.StorageUnavailable as e:
         raise _attested_err(e.to_error())
     fila = dict(origen)
+    # (corrector revisor 3, A13) `requirement_id` se limpia con el resto de la adjunción: es el requisito de OTRO plan,
+    # y la fila nueva nace sin sellar — el ledger de ESTE plan decidirá a qué se cuelga
     fila.update(plan_id=plan_id, image_id=at.image_id_of(plan_id, body.sha256), ledger_state="inherited",
-                attached_to=None, attached_at=None, attached_by=None,
+                attached_to=None, attached_at=None, attached_by=None, requirement_id=None,
                 inherited_from_plan_id=origen.get("plan_id"), inherited_from_run_id=body.from_run_id,
                 storage_backend=cfg["backend"], storage_key=put["key"], storage_state=put["state"],
                 withdrawn_at=None, withdrawn_by=None, withdraw_reason=None, withdraw_cascade_n=None)
@@ -2538,14 +2554,20 @@ def _ledger_images_validate(plan_id, body, pares, orden, cfg, _400):
 
 def _ledger_images_seal(plan_id, pares, filas, aprobar, quien):
     """(J.3) Al APROBAR se sella `attached_to/at/by` — write-once: una segunda aprobación tras un borrador NO la mueve
-    (la adjunción registrada permanece). En borrador no se sella nada: el ledger aún no es una decisión."""
+    (la adjunción registrada permanece). En borrador no se sella nada: el ledger aún no es una decisión.
+    Devuelve los sha que NO se pudieron sellar (corrector revisor 3, A12: el retorno de `attested_image_attach` se
+    ignoraba, así que una imagen retirada entre validar y sellar dejaba el ledger APROBADO con `attached_to` en null y
+    nadie se enteraba)."""
     if not aprobar:
-        return
+        return []
+    fallidos = []
     for row in filas:
         if row.get("attached_to"):
             continue                      # ya sellada: el registro de quién y cuándo no se reescribe
         destino, rid = pares[row["sha256"]]
-        db.attested_image_attach(plan_id, row["sha256"], destino, requirement_id=rid, by=quien)
+        if not db.attested_image_attach(plan_id, row["sha256"], destino, requirement_id=rid, by=quien):
+            fallidos.append(row["sha256"])
+    return fallidos
 
 
 def _ledger_images_view(plan_id, pares, aprobar):
@@ -2716,7 +2738,12 @@ def council_ledger(plan_id: str, body: LedgerBody, authorization: str = Header(N
     _write_ledger(plan_id, ledger, user["user_id"] if body.approve else None)
     # el ledger ya está guardado: AHORA se sella, y la vista de la respuesta se arma releyendo (así `attached_by` y
     # `attached_by_is_uploader` dicen la verdad). Si el write hubiera fallado, nada se selló.
-    _ledger_images_seal(plan_id, _img_pares, _img_filas, body.approve, user["user_id"])
+    _sin_sellar = _ledger_images_seal(plan_id, _img_pares, _img_filas, body.approve, user["user_id"])
+    if _sin_sellar:
+        # no se revierte el ledger (ya es una decisión humana escrita): se DECLARA cuáles no quedaron selladas
+        ledger["images_not_sealed"] = _sin_sellar
+        ledger["images_not_sealed_note"] = ("se retiraron entre validar y sellar: la aprobación quedó escrita y estas "
+                                            "imágenes NO entran a ninguna corrida")
     if _img_pares:
         _img_view = _ledger_images_view(plan_id, _img_pares, body.approve)
         ledger["images_view"] = _img_view

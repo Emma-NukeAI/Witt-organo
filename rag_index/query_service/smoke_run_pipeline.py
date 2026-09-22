@@ -6701,23 +6701,37 @@ check("ADR-0086 (K.2) el SINTETIZADOR recibe las imágenes como llave hermana hu
       json.dumps({"n_pases_con_atestiguaciones": len(_att86_synth),
                   "llaves": sorted((_att86_synth[0]["att"] or {}).keys()) if _att86_synth else []}, default=str))
 _vis86 = _ai86a["vision"]
-check("ADR-0086 (F3/K) lo que el PANEL vio queda MEDIDO y es COHERENTE consigo mismo: cada ítem declara seen_by_lenses (lista) y "
-      "n_readings SIN salirse de ATTESTED_FROZEN_KEYS; n_seen_by_panel == cuántos ítems vio al menos una lente; vision {n_selections, n_delivered_total, n_readings, "
-      "readings_class 'model-judgment'} — lo que una lente lee en una imagen APORTADA es juicio etiquetado, jamás medición — y cada "
-      "selección declara su estado dentro del vocabulario de la entrega ('sent' | 'no-eligible-attested'), con los sha de lo entregado "
-      "y SIN un solo byte",
-      all(isinstance(it["seen_by_lenses"], list) and isinstance(it["n_readings"], int)
-          and tuple(it) == _at86.ATTESTED_FROZEN_KEYS for it in _ai86a["items"])
-      and _ai86a["n_seen_by_panel"] == sum(1 for it in _ai86a["items"] if it["seen_by_lenses"])
+# (corrector revisor 3, B2) la FUENTE INDEPENDIENTE: `audit.panel[].saw_attested` lo mide composite_auditor al entregarle
+# los bytes al caller, y llega al registro por otro camino que `frozen.attested_images.items[].seen_by_lenses`, que lo
+# deriva `runs._attested_fill`. Antes el gate comparaba el bloque con la misma fórmula que lo produjo (y en dos puntos,
+# consigo mismo): el revisor parcheó runs.py para que el registro dijera «ninguna lente vio nada» y el gate siguió verde.
+_saw86 = [r for r in (_rec86a["audit"]["panel"] or []) if isinstance(r.get("saw_attested"), dict)]
+_vistos_por_panel = {}
+for _r in _saw86:
+    for _sha in (_r["saw_attested"].get("sha256s") or []):
+        _vistos_por_panel.setdefault(_sha, set()).add(_r["lens"])
+_esperado = {it["sha256"]: sorted(_vistos_por_panel.get(it["sha256"], set())) for it in _ai86a["items"]}
+check("ADR-0086 (F3/K, corrector B2) lo que el PANEL vio se mide contra una FUENTE INDEPENDIENTE, no contra la fórmula que "
+      "lo produjo: por cada imagen, `seen_by_lenses` del registro tiene que coincidir con las lentes cuyo "
+      "audit.panel[].saw_attested la lleva en sus sha — que es lo que composite_auditor midió al ENTREGAR los bytes. "
+      "Antes el gate se comparaba consigo mismo y pasaba aunque el registro afirmara que ninguna lente vio nada. Además: "
+      "al menos UNA lente recibió de veras la imagen (si el panel dejara de recibirlas, esto cae), la forma del ítem es "
+      "la declarada por la biblioteca, las lecturas son JUICIO etiquetado, y ninguna selección lleva bytes",
+      all(it["seen_by_lenses"] == _esperado[it["sha256"]] for it in _ai86a["items"])
+      and sum(len(v) for v in _esperado.values()) >= 1          # el panel SÍ recibió: un 0 aquí es el bug que B2 escondía
+      and _ai86a["n_seen_by_panel"] == sum(1 for it in _ai86a["items"] if _esperado[it["sha256"]])
+      and _ai86a["n_seen_by_panel"] >= 1
+      and all(tuple(it) == _at86.ATTESTED_FROZEN_KEYS and isinstance(it["n_readings"], int) for it in _ai86a["items"])
       and _vis86["readings_class"] == composite_auditor.ATTESTED_READINGS_CLASS == "model-judgment"
-      and isinstance(_vis86["n_readings"], int)
       and _vis86["n_delivered_total"] == sum(int(p.get("n_attested") or 0) for p in _vis86["selections"])
+      and _vis86["n_delivered_total"] >= 1
       and all(p["state"] in ("sent", "no-eligible-attested") and set(p["sha256s"]) <= set(_shas86)
               and p["rule"] == _at86.SELECTION_RULE and "b64" not in p for p in _vis86["selections"])
+      and any(p["state"] == "sent" for p in _vis86["selections"])
       and _B64_86 not in json.dumps(_vis86, default=str),
-      json.dumps({"n_seen_by_panel": _ai86a["n_seen_by_panel"], "vision": {k: _vis86[k] for k in
-                  ("n_selections", "n_delivered_total", "n_readings")},
-                  "selecciones": [p["state"] for p in _vis86["selections"]]}, default=str))
+      json.dumps({"por_el_panel": {k[:8]: v for k, v in _esperado.items()},
+                  "en_el_registro": {it["sha256"][:8]: it["seen_by_lenses"] for it in _ai86a["items"]},
+                  "n_seen_by_panel": _ai86a["n_seen_by_panel"]}, default=str)[:320])
 _tu86a = _rec86a["token_usage"]["attested_images"]
 _ag86a = next(a for a in _rec86a["agents_invoked"] if a["agent"] == runs_mod.ATTESTED_AGENT_ROW)
 _esum86 = app.get_run(_rid86a, authorization=AUTH)["epistemic_summary"]

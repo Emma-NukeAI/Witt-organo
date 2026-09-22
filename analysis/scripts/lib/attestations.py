@@ -535,10 +535,21 @@ def validate_form(fields, cfg=None, known_requirement_ids=None):
                                consent_text_min_chars=CONSENT_TEXT_MIN_CHARS)
         if not deid:
             return None, error(400, "patient_material_not_deidentified")
-    lic = _str_or_none(f.get("license_declared")) or "private-team-only"
+    # (corrector revisor 2, R2-11) la licencia y el alcance son DECLARACIONES de una persona, y un `or` las decidía por
+    # ella: el registro congelado y el PDF imprimían «licencia declarada private-team-only» de quien no declaró nada — una
+    # cifra de clase ATESTIGUADA fabricada por un default. Las otras tres declaraciones legales del formulario
+    # (consentimiento, acuse de terceros, material de paciente) ya exigían respuesta explícita; éstas dos también. §7: una
+    # decisión que afecta a una persona no la toma un default.
+    lic = _str_or_none(f.get("license_declared"))
+    if lic is None:
+        return None, error(400, "license-not-declared", allowed=list(LICENSES_DECLARED),
+                           note="la licencia la declara quien sube la imagen; no hay default (ADR-0086 I, corrector)")
     if lic not in LICENSES_DECLARED:
         return None, error(400, "invalid-license", allowed=list(LICENSES_DECLARED), given=lic)
-    scope = _str_or_none(f.get("share_scope")) or "author-only"
+    scope = _str_or_none(f.get("share_scope"))
+    if scope is None:
+        return None, error(400, "share_scope-not-declared", allowed=list(SHARE_SCOPES),
+                           note="el alcance lo declara quien sube la imagen; no hay default (ADR-0086 I, corrector)")
     if scope not in SHARE_SCOPES:
         return None, error(400, "invalid-share-scope", allowed=list(SHARE_SCOPES), given=scope)
     req = _str_or_none(f.get("requirement_id"))

@@ -130,8 +130,13 @@ check("las 18 env WITT_ATTESTED_* están declaradas con default y rol",
 print("\n# 2. env: tolerante, con fuente declarada, y el material de paciente NEGADO por default")
 # ====================================================================================================
 cfg0, _ = _cfg()
-check("los defaults se leen EN LA LLAMADA y cada uno declara su fuente",
-      isinstance(cfg0.get("sources"), dict) and len(cfg0["sources"]) >= 15)
+check("los defaults se leen EN LA LLAMADA y cada uno declara su fuente — las 18, EXACTAS (corrector B8: decía `>= 15` "
+      "donde el número es 18, así que perder tres fuentes declaradas no rompía nada); y cada fuente usa uno de los "
+      "cuatro prefijos del vocabulario",
+      isinstance(cfg0.get("sources"), dict) and len(cfg0["sources"]) == len(at.ENV_SPECS) == 18
+      and set(cfg0["sources"]) == {e[0] for e in at.ENV_SPECS}
+      and all(str(v).startswith(at.ENV_SOURCE_PREFIXES) for v in cfg0["sources"].values()),
+      json.dumps({"n": len(cfg0["sources"])}))
 check("DECISIÓN del orquestador (OE4): WITT_ATTESTED_PATIENT_MATERIAL por default 0 — negado hasta política escrita",
       cfg0.get("patient_material") in (False, 0),
       f"patient_material={cfg0.get('patient_material')!r}")
@@ -146,8 +151,20 @@ check("una llave secreta viaja como PRESENCIA (bool), jamás su valor",
       not isinstance(at.env_config(env={"WITT_ATTESTED_MINIO_SECRET_KEY": "ESTO-ES-SECRETO"})
                      .get("minio_secret_key"), str),
       "el valor no se copia a la config")
-check("ninguna env de la tabla se llama como una ruta o un secreto dentro de ENV_SPECS del ADR (se declaran aparte)",
-      all(isinstance(e[2], str) for e in at.ENV_SPECS))
+# (corrector revisor 3, B7) el nombre prometía «ninguna env se llama como una ruta o un secreto» y la condición era
+# `isinstance(e[2], str)` — e[2] es el DEFAULT, no el nombre: no podía fallar por lo que decía medir. Ahora se mide la
+# PARTICIÓN de verdad: las de tipo `path`/`secret` son EXACTAMENTE las que quedan fuera de la tabla de modelos, y su
+# valor jamás se copia a la configuración.
+_paths_secrets = tuple(e[1] for e in at.ENV_SPECS if e[3] in ("path", "secret"))
+check("la tabla de modelos NO registra rutas ni secretos: las env de tipo path|secret son EXACTAMENTE las tres que "
+      "ENV_OUT_OF_TABLE_VARS declara fuera (WITT_ATTESTED_DIR y las dos credenciales de MinIO), las 15 restantes son las "
+      "de ENV_TABLE_VARS, y las dos particiones no se solapan ni dejan hueco",
+      _paths_secrets == at.ENV_OUT_OF_TABLE_VARS and len(_paths_secrets) == 3
+      and len(at.ENV_TABLE_VARS) == 15
+      and set(at.ENV_TABLE_VARS) | set(at.ENV_OUT_OF_TABLE_VARS) == set(at.ENV_VARS)
+      and not (set(at.ENV_TABLE_VARS) & set(at.ENV_OUT_OF_TABLE_VARS))
+      and all(v.startswith("WITT_ATTESTED_") for v in at.ENV_VARS),
+      json.dumps({"fuera_de_la_tabla": list(_paths_secrets)}))
 
 # ====================================================================================================
 print("\n# 3. bytes: magic bytes mandan, el Content-Type declarado sólo se REGISTRA")
@@ -268,9 +285,19 @@ for campo in ("caption", "consent_declared", "consent_kind"):
     check(f"sin '{campo}' el formulario NO pasa: la procedencia es obligatoria",
           e is not None, json.dumps(e)[:110] if e else "pasó")
 ok_sin_lic, e_sin_lic = at.validate_form({k: v for k, v in BASE_FORM.items() if k != "license_declared"}, cfg=cfg0)
-check("sin licencia declarada NO se inventa permiso: cae a la MÁS restrictiva ('private-team-only')",
-      e_sin_lic is None and ok_sin_lic["license_declared"] == "private-team-only",
-      str((ok_sin_lic or {}).get("license_declared")))
+_, e_sin_scope = at.validate_form({k: v for k, v in BASE_FORM.items() if k != "share_scope"}, cfg=cfg0)
+# (corrector revisor 2, R2-11) antes esto caía a la MÁS restrictiva ('private-team-only') y se consideraba seguro. Un
+# default seguro de PERMISOS lo es; una DECLARACIÓN fabricada no: el campo se llama `license_declared` y el registro
+# congelado y el PDF lo imprimen como «licencia declarada …» de alguien que no declaró nada. §7 — ninguna decisión que
+# afecte a una persona la toma un default; las otras tres declaraciones legales del formulario ya lo exigían.
+check("la licencia y el alcance los DECLARA quien sube, sin default: omitirlos es 400 tipado ('license-not-declared' / "
+      "'share_scope-not-declared') con el vocabulario permitido y la nota de por qué no hay default — antes se rellenaba "
+      "con la más restrictiva y se servía como declaración de una persona que no declaró nada",
+      e_sin_lic is not None and e_sin_lic["state"] == "license-not-declared"
+      and set(e_sin_lic["detail"]["allowed"]) == set(at.LICENSES_DECLARED)
+      and e_sin_scope is not None and e_sin_scope["state"] == "share_scope-not-declared"
+      and ok_sin_lic is None,
+      json.dumps({"lic": e_sin_lic["state"], "scope": e_sin_scope["state"]}))
 _, e_ack = at.validate_form({**BASE_FORM, "third_party_processing_acknowledged": "false"}, cfg=cfg0)
 check("sin el acuse de que la imagen viaja a un tercero (el modelo), no se acepta",
       e_ack is not None, json.dumps(e_ack)[:120] if e_ack else "pasó")
@@ -303,8 +330,11 @@ check("adjuntar a un requisito que el plan no tiene: rechazado (el ledger manda)
 print("\n# 7. almacenamiento privado, intercambiable y JAMÁS con fallback silencioso")
 # ====================================================================================================
 storage, probe = at.storage_backend(cfg=cfg0)
-check("backend por default: disco local privado, con su estado de directorio declarado",
-      probe.get("backend") == "local" and at.storage_state_in_vocabulary(probe.get("state", "stored")) or True,
+check("backend por default: disco local privado, con su estado de directorio declarado y su estado DENTRO del "
+      "vocabulario cerrado (corrector revisor 3, B1: esta condición terminaba en `or True` y no podía fallar — medido "
+      "cambiando el backend a un literal inventado: seguía en verde)",
+      probe.get("backend") == "local" and at.storage_state_in_vocabulary(probe.get("state"))
+      and isinstance(probe.get("dir_state"), str) and probe.get("dir_state"),
       json.dumps(probe)[:160])
 key = at.storage_key("plan-x", ident["sha256"], "image/jpeg")
 put = storage.put("plan-x", ident["sha256"], out_jpg, "image/jpeg")
@@ -330,8 +360,20 @@ _, probe_mal = at.storage_backend(cfg=cfg_mal)
 check("backend fuera de vocabulario: cae a local y lo DECLARA en la fuente",
       probe_mal.get("backend") == "local" and "invalid" in json.dumps(probe_mal),
       json.dumps(probe_mal)[:150])
-check("durability_of dice, en palabras, qué pasa con los bytes si no hay volumen",
-      isinstance(at.durability_of(probe), dict) and len(json.dumps(at.durability_of(probe))) > 40)
+# (corrector revisor 3, B6) la condición era `len(json.dumps(...)) > 40`, y en la configuración de este gate `note`
+# viene en null: pasaba con CERO palabras. La rama que de veras produce la advertencia es la del directorio por DEFAULT
+# (sin WITT_ATTESTED_DIR), que aquí no se ejercía nunca. Ahora se ejerce y se mide lo que dice.
+_dur_env = at.durability_of(probe)
+_cfg_def, _ = _cfg(WITT_ATTESTED_DIR="")
+_, _probe_def = at.storage_backend(cfg=_cfg_def)
+_dur_def = at.durability_of(_probe_def)
+check("durability_of DICE EN PALABRAS qué pasa con los bytes si no hay volumen persistente — se mide en la rama que de "
+      "veras la produce (directorio por default, sin WITT_ATTESTED_DIR): `note` es texto y nombra el riesgo; con un "
+      "directorio dado por env la fuente lo declara y no se inventa una promesa de durabilidad",
+      isinstance(_dur_def, dict) and isinstance(_dur_def.get("note"), str)
+      and len(_dur_def["note"]) > 40 and "volumen" in _dur_def["note"].lower()
+      and _dur_def.get("dir_source") == "default" and _dur_env.get("dir_source") == "env",
+      json.dumps({"default": _dur_def, "env": _dur_env}, ensure_ascii=False)[:240])
 
 # ====================================================================================================
 print("\n# 8. autorización: sólo el autor; el paciente, siempre sólo el autor")
@@ -407,8 +449,24 @@ check("una imagen subida pero NO adjuntada al ledger no entra al panel (la compu
       len(sel_no_att.get("attested", [])) == 0)
 blocks = at.anthropic_attested_blocks(sel.get("attested", []))
 txt_blocks = json.dumps(blocks, default=str)
-check("los bloques van ROTULADOS como atestiguados y separados de las figuras",
-      "ATTESTED" in txt_blocks.upper())
+# (corrector revisor 3, B3) esto decía `"ATTESTED" in txt_blocks.upper()` sobre el JSON entero — y cada ítem lleva
+# `id: "attested:<sha12>"`, así que casaba SIEMPRE. El revisor lo midió: reemplazó el separador y el rótulo por «aqui van
+# unas fotos», sin una sola palabra de «PRIOR ART, NOT evidence», y el gate siguió 100/100. Es decir: se podía quitar
+# entera la advertencia que le dice a la lente que la imagen NO es evidencia y nadie se enteraba. Ahora se miden los
+# LITERALES de la biblioteca y lo que de veras dicen.
+# se mide sobre los BLOQUES, no sobre su json: json.dumps escapa el guión largo y la comparación de literales mentiría
+_tipos = [b.get("type") for b in blocks if isinstance(b, dict)]
+_textos = [b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"]
+check("los bloques van ROTULADOS como atestiguados y SEPARADOS de las figuras: el PRIMER bloque es el separador LITERAL "
+      "de la biblioteca y dice las tres cosas (prior art · lo aportó una persona · jamás evidencia); el segundo es el "
+      "rótulo por imagen de attested_text_label, que repite NOT evidence y lleva el consentimiento y quién la aportó; y "
+      "la imagen va DESPUÉS de los dos, nunca antes",
+      _tipos[:3] == ["text", "text", "image"]
+      and _textos[0] == at.ATTESTED_SEPARATOR_TEXT
+      and all(w in at.ATTESTED_SEPARATOR_TEXT for w in ("HUMAN-ATTESTED", "prior art", "never evidence"))
+      and _textos[1] == at.attested_text_label(1, sel["attested"][0])          # la lente las ve numeradas desde 1
+      and all(w in _textos[1] for w in ("ATTESTED IMAGE", "PRIOR ART", "NOT evidence", "consent:")),
+      json.dumps({"tipos": _tipos, "sep": _textos[0][:60], "rotulo": _textos[1][:60]}, ensure_ascii=False))
 check("el caption viaja con la imagen, para que la lente sepa qué dice la persona",
       "pronefros" in txt_blocks)
 prompt = at.prompt_item(ROW_ATTACHED)

@@ -228,6 +228,52 @@ apertura y falla ruidosamente.
   ruta pura devuelve `requirements[]`, la HTTP devuelve `decisions[]`). F6 les dio el MISMO vocabulario de rechazo
   (`images_without_aporto`) para que no puedan divergir en silencio, pero siguen siendo dos implementaciones.
 
+### Lo que los tres revisores adversarios encontraron, y qué se hizo con cada cosa (2026-09-21)
+
+Tres revisores con lentes distintas —privacidad y fuga de bytes · doctrina de la casa · corrección y **caza de
+verificaciones vacuas**— leyeron el árbol ya commiteado. El tercero rompió el código a propósito en copias y midió si los
+gates se ponían rojos. Volvieron con 40 hallazgos; **ninguno lo atrapaban los 48 gates en verde**.
+
+**Arreglado, con su gate** (commits `973fe50`, `b65f572` y el de las olas 3–4):
+
+- El **caption de una imagen de paciente salía al PDF y al prompt del turno siguiente** por `flags[].statement` — y el
+  §I(iii) de este mismo ADR lo mandaba mientras el §M juraba lo contrario. Corregido el código Y el ADR.
+- Un **almacén roto saltaba el kill-switch maestro**: las dos lecturas iban en el mismo `try`.
+- La corrida **confiaba en la columna `attached_to`** en vez de cruzar con el ledger que la gobierna (el K.1 que este
+  documento ya pedía y la obra se había saltado): aprobar y luego saltar el consejo dejaba una imagen entrando a una
+  corrida que su ledger no menciona.
+- El **retiro prometía más de lo que borraba**: cascada de un solo nivel (los nietos conservaban bytes servibles) y el
+  resultado de cada borrado heredado se descartaba con `except: pass`.
+- Dos **ceros estructurales** más (`attempts_with_images`; `n_requirements_with_image`), un **resumen que se perdía** al
+  apagar un kill-switch ajeno (`WITT_FIGURES=0` borraba del registro quién vio una imagen aportada), y varias cifras que
+  decían ser otra cosa: bytes guardados servidos como bytes enviados; «filas vivas» que contaban las retiradas;
+  `[MEDIDO]` impreso en estados donde nadie contó.
+- La **licencia y el alcance** los decidía un `or` y se imprimían como declaración de una persona. Ahora se exigen.
+- Y **siete verificaciones vacuas**: un `or True` literal; un check que comparaba el registro con la fórmula que lo
+  produjo (el revisor hizo que el registro MINTIERA sobre qué lentes vieron la imagen y el gate siguió en verde); un
+  rótulo que casaba siempre porque cada id empieza por `attested:` (se podía borrar entera la advertencia «esto no es
+  evidencia» sin que nadie se enterara); una paridad de vocabulario que se auto-desactivaba si la biblioteca no
+  importaba; un «dice en palabras» que sólo medía el largo de un JSON; un nombre que prometía una cosa y una condición
+  que medía otra; y un tope flojo donde el número es exacto.
+
+**Declarado y NO arreglado** (deuda con nombre, no silencio):
+
+- **Los topes son read-then-act.** Subir lee el cupo y después escribe, sin transacción: con peticiones simultáneas se
+  rebasan (el revisor midió 5 filas con el tope en 2). Cerrarlo bien pide una reserva atómica como la de la cuota web
+  (`web_locator_usage`), que es una rebanada propia.
+- **Carrera de `mkdir` en `LocalStorage`**: bajo concurrencia devuelve 503 con el disco sano. Misma rebanada.
+- **Permisos planos (ADR-0047): cualquier sesión sube al plan de otra persona.** Es regla declarada de la casa, pero la
+  ASIMETRÍA no lo estaba: quien sube consume el cupo del plan ajeno y su dueño no puede retirarlo
+  (`withdraw-not-uploader`). Queda dicho aquí hasta que se decida si el dueño del plan hereda derecho de retiro.
+- **`uploaded_at` de una imagen heredada es el original**, así que una subida de ayer heredada hoy escribe bytes hoy y no
+  cuenta en el tope diario de hoy (la herencia como acto sí cuenta ya, corregido en la ola 4).
+- **La proyección de tokens de visión de lo atestiguado** usa el `detail` por default en vez del que se usó al enviar, y
+  no declara cuál asumió. Hoy coinciden (`high` en ambos); con `WITT_FIGURES_OPENAI_DETAIL=low` sobreestimaría.
+- **`WITT_ATTESTED_EXIF=declare`** apaga el borrado de metadatos sin excepción para material de paciente, y lo que
+  `strip_metadata` MIDIÓ (`exif_present`, qué había) no se persiste: el registro no puede decir si esa imagen llevaba GPS.
+- **El `consent_text` de una imagen de paciente lo ve toda sesión** en el índice (los bytes no). Si la promesa es
+  «material de paciente author-only SIEMPRE», hoy es cierta de los píxeles y no del texto de consentimiento.
+
 ### Lo que falta
 
 - **F9 · integrador y tres revisores adversarios.** El integrador mide lo que ninguna prueba individual puede medir: que

@@ -3757,13 +3757,16 @@ def _attested_ledger_images(images):
     """{} | {images[], n_images} para frozen.council.ledger (J.4) — la forma la declara attestations.ledger_item."""
     if not images or attestations_mod is None:
         return {}
-    out = []
+    out, n_drop = [], 0
     for row in images:
         try:
             out.append(attestations_mod.ledger_item(row))
         except Exception:
-            continue
-    return {"images": out, "n_images": len(out)} if out else {}
+            n_drop += 1          # (corrector R2-13) descartar en silencio hacía que el conteo sub-contara sin dónde verlo
+    if not out and not n_drop:
+        return {}
+    return {"images": out, "n_images": len(out),
+            **({"n_images_dropped": n_drop, "dropped_reason": "ledger_item raised (row out of shape)"} if n_drop else {})}
 
 
 def _attested_thread_items(frozen_padre):
@@ -4212,18 +4215,19 @@ def human_attestations_of(ledger, images=None):
                    "chars": kn.get("chars") if isinstance(kn.get("chars"), int) else len(str(kn["text"])),
                    "truncated": bool(kn.get("truncated")), "class": "attested"}
     # ADR-0086 (K): las IMÁGENES aportadas viajan aquí como caption + metadatos rotulados — jamás un byte (prompt_item)
-    imgs = []
+    imgs, n_drop_img = [], 0
     if images and attestations_mod is not None:
         for row in images:
             try:
                 imgs.append(attestations_mod.prompt_item(row))
             except Exception:
-                continue
+                n_drop_img += 1      # (corrector R2-13) se contaba de menos y no había dónde verlo
     if not items and kn_view is None and not imgs:
         return None
     if imgs:
         return {"knowledge_now": kn_view, "attestations": items, "n_attestations": len(items),
                 "images": imgs, "n_images": len(imgs), "images_delivery": ATTESTED_DELIVERY_RULE,
+                **({"n_images_dropped": n_drop_img} if n_drop_img else {}),
                 "class": "attested",
             "rule": ("PRIOR ART attested by humans (ledger `aporto` + knowledge_now) — never evidence; sibling key of "
                      "`evidence` in the synthesizer prompt; identifiers from it must appear in evidence to be cited "

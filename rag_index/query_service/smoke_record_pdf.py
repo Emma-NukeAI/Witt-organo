@@ -1129,13 +1129,13 @@ check("(F7.4b, corrector del revisor 1) el caption de una imagen de PACIENTE tam
       "traia la bandera, o sea una combinacion que en produccion NO existe (la bandera la pone el codigo, no la persona). "
       "Ahora el PDF se renderiza CON ella: la bandera aparece, identifica por sha corto y por quien la aporto, y el "
       "caption no esta en ninguna parte del documento",
-      "BANDERA" in _txt14f and AT86.short_of(AI_SHA_P) in _txt14f if AT86 is not None else True,
+      AT86 is not None and "BANDERA" in _txt14f and AT86.short_of(AI_SHA_P) in _txt14f,
       "flag en el PDF")
 check("(F7.4c, corrector) y el caption NO aparece en el PDF renderizado con la bandera puesta — medido sobre el texto "
       "COMPLETO del documento, no sobre la seccion",
       AI_CAP_P not in _txt14f
       and "declarada material de paciente por natalia" in _txt14f
-      and (AT86 is None or _FLAG_PAC.get("caption_omitted") == AT86.CAPTION_OMITTED_REASON),
+      and AT86 is not None and _FLAG_PAC.get("caption_omitted") == AT86.CAPTION_OMITTED_REASON,
       json.dumps({"caption_en_el_pdf": AI_CAP_P in _txt14f,
                   "bandera_en_el_pdf": "declarada material de paciente por natalia" in _txt14f}))
 _AI_ESTADOS = {"no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
@@ -1162,7 +1162,10 @@ for _st14, _glosa14 in _AI_ESTADOS.items():
 check("(F7.6) PARIDAD de vocabulario PDF <-> lib/attestations.py: las llaves glosadas de record_pdf.ATTESTED_STATE_GLOSS son "
       "EXACTAMENTE attestations.ATTESTED_STATES_EXACT (ni una de mas, ni una de menos) y los dos PREFIJOS del vocabulario "
       "('tool-unavailable (', 'error: ') tienen glosa; un estado FUERA del vocabulario se imprime CRUDO y se dice que lo es",
-      (AT86 is None or tuple(R.ATTESTED_STATE_GLOSS) == AT86.ATTESTED_STATES_EXACT)
+      # (corrector revisor 3, B4) esto empezaba con `AT86 is None or …`: el revisor hizo inimportable la biblioteca y el
+      # gate siguió 78/78 con este check en VERDE sin comparar nada — justo en el eje que el check nombra. La biblioteca
+      # ESTÁ en el árbol: que no importe es el hallazgo, no una excusa para pasar.
+      AT86 is not None and tuple(R.ATTESTED_STATE_GLOSS) == AT86.ATTESTED_STATES_EXACT
       and R._attested_state_gloss("tool-unavailable (ADR-0086: lib/attestations.py not in tree)")
           == "la biblioteca no esta en el arbol: no se pudo medir"
       and R._attested_state_gloss("error: OperationalError: no such table") == "fallo al medir; se declara"
