@@ -101,6 +101,18 @@ check("los 5 estados EXACTOS del bloque + 2 prefijos (attached · sin imágenes 
                                    "no-attested-images (attached rows not sealed by this ledger)",
                                    "not-applicable (no-ledger)", "kill-switch WITT_ATTESTED_IMAGES=0")
       and at.ATTESTED_STATES_PREFIXES == ("error: ", "tool-unavailable ("))
+# (2026-09-22) UNA VERDAD por medicion: `saw_attested.detail` lo ESCRIBE composite_auditor y el vocabulario lo CONGELA
+# attestations. Los dos modulos no se pueden importar entre si (composite es stdlib puro por gate), asi que la unica
+# forma de que no se separen es comparar las tuplas aqui. Estaban separadas: el vocabulario congelado declaraba dos
+# literales de las FIGURAS que nadie emite y omitia los tres que explican por que una lente NO vio nada.
+try:
+    from lib import composite_auditor as _ca_saw
+except Exception:                                   # pragma: no cover - el smoke corre con la lib en el path
+    _ca_saw = None
+check("SAW_ATTESTED_DETAILS: el vocabulario que se CONGELA es identico al que el emisor (composite_auditor) escribe — "
+      "una verdad, comprobada por medicion porque los dos modulos no se pueden importar entre si",
+      _ca_saw is not None and tuple(at.SAW_ATTESTED_DETAILS) == tuple(_ca_saw.SAW_ATTESTED_DETAILS),
+      f"attestations={list(at.SAW_ATTESTED_DETAILS)} composite={list(_ca_saw.SAW_ATTESTED_DETAILS) if _ca_saw else None}")
 check("el kill-switch declara EXACTAMENTE 3 excepciones (M.1 de la casa)",
       at.ATTESTED_DECLARED_EXCEPTIONS == ("render_contract_version", "attested_images",
                                           "deterministic_checks.attested_images"))

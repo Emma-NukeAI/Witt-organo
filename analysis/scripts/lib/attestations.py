@@ -148,9 +148,15 @@ LICENSES_DECLARED = ("private-team-only", "cc-by", "cc0", "cc-by-sa", "cc-by-nc"
 LEDGER_IMAGE_STATES = ("staged", "attached", "withdrawn-before-approve", "withdrawn-before-run", "inherited")
 SERVABLE_STATES = ("yes", "forbidden (author-only)", "withdrawn", "bytes-missing", "bytes-mismatch",
                    "backend-not-configured-now", "storage-unavailable", "kill-switch")
+# Los valores que `composite_auditor` ESCRIBE en `saw_attested.detail` — ni uno más. La tupla se declara aquí porque
+# aquí vive el VOCABULARIO que el registro congela, pero el emisor es el otro módulo (y no puede importar éste: es
+# stdlib puro por gate), así que `smoke_attestations` compara las dos tuplas y falla si alguien las separa.
+# (2026-09-22) Traía dos literales de las FIGURAS —'kill-switch WITT_FIGURES_VISION=0' y 'no-eligible-images'— que este
+# vocabulario no emite jamás, y le faltaban los tres que sí: el kill-switch de las imágenes aportadas, que no hubiera
+# ninguna elegible, y que la librería no se pudiera importar. El vocabulario congelado MENTÍA en ambas direcciones.
 SAW_ATTESTED_DETAILS = ("sent", "lens-not-in-vision-lenses", "kill-switch WITT_ATTESTED_VISION=0",
-                        "kill-switch WITT_FIGURES_VISION=0", "no-eligible-images", "model-vision-unknown",
-                        "api-form-not-verified")
+                        "kill-switch WITT_ATTESTED_IMAGES=0", "no-eligible-attested", "model-vision-unknown",
+                        "api-form-not-verified", "tool-unavailable (lib/attestations.py not importable)")
 VIEW_RULES = ("author-only", "team", "author-only (patient-material)")
 WITHDRAW_POLICIES = ("uploader", "team")          # valores de WITT_ATTESTED_WITHDRAW (quién puede retirar)
 ATTACHED_TO_KNOWLEDGE_NOW = "knowledge_now"
