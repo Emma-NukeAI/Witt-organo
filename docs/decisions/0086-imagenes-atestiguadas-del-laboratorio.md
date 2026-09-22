@@ -281,11 +281,20 @@ gates se ponían rojos. Volvieron con 40 hallazgos; **ninguno lo atrapaban los 4
 
 ### Lo que falta
 
-- **F9 · integrador y tres revisores adversarios.** El integrador mide lo que ninguna prueba individual puede medir: que
-  una corrida SIN imágenes aportadas sea byte a byte la de 1.13 salvo EXACTAMENTE las tres excepciones declaradas. Luego
-  los revisores, el corrector, el barrido completo y el tag `contract-1.14-frozen`.
-- **La paridad en la webapp** (regla de la casa: el alcance del backend tiene que estar representado en el front, sin
-  limitantes, y `tools/parity_check.py` lo mide). Depende del tag.
+**Hecho desde entonces (2026-09-21/22):** F9 + los tres revisores adversarios + el corrector de cuatro olas + el tag
+`contract-1.14-frozen` (96c2a7f) — arriba está lo que encontraron. Y la **paridad en la webapp**, cerrada en
+`witt-webapp/feat/adr-0086-paridad`: tipos, vocabulario, lectura del registro, las 7 puertas, la adjunción por el
+ledger y una superficie ATESTIGUADAS en `tools/parity_check.py` que lee ESTE código (gate 1 346/1 346, parity EXIT 0).
+
+> **Una corrección posterior al tag** (`ab8ee59`, 2026-09-22): `attestations.SAW_ATTESTED_DETAILS` declaraba dos
+> literales de las FIGURAS que este vocabulario no emite y omitía los tres que sí — el vocabulario CONGELADO
+> mentía en ambas direcciones. Lo destapó la webapp al regenerar sus fixtures contra este backend. No cambia
+> ninguna llave del contrato (sigue 1.14) y un registro sin imágenes aportadas no lleva `vocabulary`, así que el
+> kill-switch byte a byte (M.1) no se toca: el tag sigue marcando el congelamiento del contrato. `smoke_attestations`
+> compara ahora las dos tuplas y falla si alguien vuelve a separarlas.
+
+Queda, y es de Emmanuel:
+
 - **Los gates EN VIVO (LG1–LG5)** los corre Emmanuel: `analysis/scripts/smoke_live_attestations.py` ya construye todo en
   seco y mide cero red; `--store minio` necesita el bucket privado dedicado y sus credenciales; `--vision` necesita su
   autorización explícita de gasto. Cada cifra de costo de este ADR es PROYECCIÓN hasta que esos gates la sustituyan por
