@@ -122,7 +122,13 @@ attested_separator_text = ATTESTED_SEPARATOR_TEXT
 # ---------------------------------------------------------------------------------------------------------
 # A.1 Vocabularios CERRADOS (exportados para el gate de paridad; viajan en frozen.attested_images.vocabulary)
 # ---------------------------------------------------------------------------------------------------------
-ATTESTED_STATES_EXACT = ("attached", "no-attested-images", "not-applicable (no-ledger)", "kill-switch WITT_ATTESTED_IMAGES=0")
+ATTESTED_STATES_EXACT = ("attached", "no-attested-images",
+                         # (corrector revisor 3, A3) había filas ADJUNTAS en la base que el ledger VIGENTE no selló —
+                         # porque se aprobó y luego se saltó el consejo, o porque el sello se escribió y el ledger no.
+                         # No entran a la corrida, y el registro lo DICE: «nadie aportó» y «lo que aportaron no lo
+                         # gobierna este ledger» son dos cosas distintas.
+                         "no-attested-images (attached rows not sealed by this ledger)",
+                         "not-applicable (no-ledger)", "kill-switch WITT_ATTESTED_IMAGES=0")
 ATTESTED_STATES_PREFIXES = ("error: ", "tool-unavailable (")
 STORAGE_BACKENDS = ("local", "minio")
 STORAGE_STATES = ("stored", "bytes-missing", "withdrawn (tombstone)", "mismatch", "backend-not-configured-now",

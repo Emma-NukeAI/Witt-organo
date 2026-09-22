@@ -1781,6 +1781,13 @@ def audit(claim, evidence, deterministic_checks=None, required_because="", panel
             # (H) reenvío MEDIDO: cada intento que llevó imágenes las reenvió y la API las facturó
             saw["attempts_with_images"] = len(attempts) if saw["n"] > 0 else 0
             _tokens_measured_into(saw, attempts, member.get("reviewer"), system, user_text, figs=figs_for_member)
+        # ADR-0086 (corrector revisor 2, R2-1): lo MISMO para las imágenes APORTADAS. `attempts_with_images` se
+        # inicializaba en 0 en `_attested_for_member` y NADIE lo actualizaba nunca — la única línea que lo resolvía es la
+        # de arriba, que es la de FIGURAS. Resultado: `audit.vision.attested` informaba n_attempts_with_images 0 y
+        # bytes_b64_sent_total 0 aunque los bytes hubieran viajado, y otra vez en cada reintento del juez. Es la cifra con
+        # la que se contesta «¿cuántas veces salió de aquí la foto de mi paciente?»: un 0 estructural ahí es una mentira.
+        if saw_att is not None:
+            saw_att["attempts_with_images"] = len(attempts) if saw_att.get("n", 0) > 0 else 0
         if verdict is not None:
             row = {"reviewer": member["reviewer"], "family": family, "lens": member["lens"],
                    "verdict": verdict["verdict"], "caught": verdict.get("caught", ""),
@@ -1915,6 +1922,11 @@ _BUNDLE_AUDIT_KEYS_1_10 = ("families_valid", "n_families_valid", "lenses_valid",
                            "panel_origin", "panel_source", "failure_kinds_vocabulary")
 # ADR-0083 (G.6): audit.vision viaja al bundle cuando el audit_result lo trae (ausente bajo WITT_FIGURES=0 — tres estados).
 _BUNDLE_AUDIT_KEYS_1_12 = ("vision",)
+# ADR-0086 (corrector revisor 2, R2-2): con WITT_FIGURES=0 el resumen de lo ATESTIGUADO no vive en `vision` sino en su
+# propia llave — y `apply_to_bundle` sólo copiaba lo enumerado, así que apagar un kill-switch AJENO borraba del registro
+# quién vio la imagen de una persona, cuántas lecturas hubo y la REGLA que se le mandó a la lente. El comentario de
+# `audit()` prometía justo lo contrario («el kill-switch de figuras no debe esconder que alguien aportó imágenes»).
+_BUNDLE_AUDIT_KEYS_1_14 = ("attested_vision",)
 
 
 def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=None):
@@ -1945,7 +1957,7 @@ def apply_to_bundle(bundle, audit_result, evidence_ids, answer_pipeline_module=N
         bundle["audit"]["panel_incomplete"] = True
     # ADR-0081 (D)/(K)/(C.2): el cuórum, su regla, el hueco del consejo y el vocabulario de fallos viajan al registro
     # congelado junto a las filas (presentes sólo si el audit_result los trae: un resultado 1.9 no gana llaves)
-    for k in _BUNDLE_AUDIT_KEYS_1_10 + _BUNDLE_AUDIT_KEYS_1_12:
+    for k in _BUNDLE_AUDIT_KEYS_1_10 + _BUNDLE_AUDIT_KEYS_1_12 + _BUNDLE_AUDIT_KEYS_1_14:
         if k in audit_result:
             bundle["audit"][k] = audit_result[k]
     bundle["bundle_identity"] = answer_pipeline_module._identity(bundle)

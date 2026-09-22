@@ -1661,6 +1661,10 @@ ATTESTED_SERVABLE_RULE = ("servable = stored ∧ not withdrawn ∧ backend of th
                           "present ∧ sha256 recomputed over the bytes that leave == the frozen sha (ADR-0086 G.2); an "
                           "index over minio measures by stat_object and declares sha_verified false — the sha is "
                           "recomputed ONLY when serving")
+ATTESTED_WITHDRAW_UNDER_KILL_SWITCH = ("la función está apagada y por eso no se consultó la base (los conteos van null, "
+                                       "no 0): pero RETIRAR sigue disponible — POST /plans/{plan_id}/attestations/"
+                                       "{sha256}/withdraw responde igual, para que apagar la función no deje la imagen de "
+                                       "una persona atrapada (ADR-0086 N.1)")
 ATTESTED_CASCADE_MAX_DEPTH = 12     # (corrector R3-A1) generaciones de herencia que recorre el retiro; 12 >> lo posible
 ATTESTED_CASCADE_RULE = ("withdrawing reaches the WHOLE inheritance descent, generation by generation (B inherits from A, "
                          "C inherits from B): each copy gets its own tombstone and its own MEASURED delete, and the "
@@ -2045,7 +2049,12 @@ def list_plan_attestations(plan_id: str, authorization: str = Header(None)):
     _attested_db()
     _plan_o_404(plan_id)
     if not cfg["enabled"]:
-        return {"plan_id": plan_id, "state": ATTESTED_KILL_SWITCH_HTTP, "n": 0, "n_live": 0, "items": [],
+        # (corrector R2-7) apagada, NO se consulta la base — así que no hay conteo que servir: `n`/`n_live` van null
+        # DECLARADOS, como ya hacían las ramas hermanas de error. Decir `n: 0` afirmaba que el plan no tiene imágenes
+        # cuando la base puede tener N; y como el retiro sigue vivo bajo kill-switch (§7), ésta es la única superficie
+        # que le diría a la persona el sha de su propia imagen: un 0 inventado le cierra la salida sin señalizarla.
+        return {"plan_id": plan_id, "state": ATTESTED_KILL_SWITCH_HTTP, "n": None, "n_live": None, "items": [],
+                "withdraw_still_available": ATTESTED_WITHDRAW_UNDER_KILL_SWITCH,
                 **_attested_index_envelope(cfg, None, None)}
     storage, probe = _attested_storage(cfg)
     filas = db.attested_images_of_plan(plan_id)
@@ -2345,7 +2354,8 @@ def _plan_attested_block(plan_id, viewer):
     try:
         cfg = _attested_cfg()
         if not cfg["enabled"]:
-            return {"state": ATTESTED_KILL_SWITCH_HTTP, "n": 0, "n_live": 0, "items": [],
+            return {"state": ATTESTED_KILL_SWITCH_HTTP, "n": None, "n_live": None, "items": [],
+                    "withdraw_still_available": ATTESTED_WITHDRAW_UNDER_KILL_SWITCH,
                     **_attested_index_envelope(cfg, None, None)}
         if db.attested_schema_state() != "ready":
             return {"state": "attested-db-unavailable", "schema_state": db.attested_schema_state(), "items": []}
@@ -3155,14 +3165,16 @@ class _AttestedUsageAccumulator:
     a esas no se les inventa 0. Con 0 corridas declaradas los conteos van null + state 'not-measured' (0 MEDIDO ≠ null)."""
 
     def __init__(self):
-        self.n_declared = self.n_without = self.n_with_images = 0
-        self.sums = {"n_attached": 0, "n_seen_by_panel": 0, "n_readings": 0, "bytes_total": 0}
+        self.n_declared = self.n_without_block = self.n_with_images = 0
+        # (corrector R2-9) dos cifras de bytes con NOMBRE: lo guardado y lo que de veras salió a las lentes
+        self.sums = {"n_attached": 0, "n_seen_by_panel": 0, "n_readings": 0,
+                     "bytes_stored_total": 0, "bytes_b64_sent_total": 0}
         self.by_state = {}
 
     def add(self, u):
         a = u.get("attested_images")
         if not isinstance(a, dict):
-            self.n_without += 1
+            self.n_without_block += 1
             return
         self.n_declared += 1
         st = a.get("state")
@@ -3178,16 +3190,25 @@ class _AttestedUsageAccumulator:
         """`plan_totals` = db.attested_images_usage() (las FILAS vivas de la base, otra medición distinta de la de las
         corridas: una imagen puede existir y no haber entrado a ninguna corrida todavía). Se sirven las dos, rotuladas."""
         if self.n_declared == 0:
-            return {"state": "not-measured", "n_runs_declared": 0, "n_runs_without": self.n_without,
+            return {"state": "not-measured", "n_runs_declared": 0, "n_runs_without_block": self.n_without_block,
                     **{k: None for k in self.sums}, "by_state": {}, "rows": plan_totals,
                     "class": "medición (ninguna corrida declarada trae el bloque: null NO medido, no 0)",
-                    "note": ATTESTED_USAGE_NOTE}
-        return {"state": "measured", "n_runs_declared": self.n_declared, "n_runs_without": self.n_without,
+                    "note": ATTESTED_USAGE_NOTE, "note_states": ATTESTED_USAGE_NOTE_STATES}
+        return {"state": "measured", "n_runs_declared": self.n_declared,
+                "n_runs_without_block": self.n_without_block,
                 "n_runs_with_images": self.n_with_images, **dict(self.sums),
-                "by_state": dict(self.by_state), "rows": plan_totals,
-                "class": "medición (conteos y bytes; ninguna proyección)", "note": ATTESTED_USAGE_NOTE}
+                "by_state": dict(self.by_state), "rows": plan_totals, "note_states": ATTESTED_USAGE_NOTE_STATES,
+                "class": ("medición (conteos y bytes; ninguna proyección). bytes_stored_total = lo que está guardado; "
+                          "bytes_b64_sent_total = lo que de veras salió a las lentes (b64 × intentos)"),
+                "note": ATTESTED_USAGE_NOTE}
 
 
+ATTESTED_USAGE_NOTE_STATES = ("`n_runs_without_block` conflates THREE different things and cannot tell them apart from "
+                              "usage_json alone: a run older than 1.14, a run under the kill-switch, and a run that simply "
+                              "had no images. The three ARE distinguishable — in each run's frozen record, at "
+                              "attested_images.state. `by_state` can only ever carry 'attached' here, because the usage "
+                              "mirror is written only when there were items (M.1: no data, no key) — it is not a "
+                              "distribution over all runs (ADR-0086, corrector revisor 2)")
 ATTESTED_USAGE_NOTE = ("the vision tokens of attested images are ALREADY inside the panel's measured input_tokens "
                        "(ADR-0083 H): they are never added here, so nothing is counted twice. `rows` measures the LIVE "
                        "rows of plan_attested_images — an image can exist without having entered any run yet, which is a "

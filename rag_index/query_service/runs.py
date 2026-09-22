@@ -188,7 +188,10 @@ STAGE_MODELS_PAYLOAD_KEYS = ("generation", "generation_source", "table_version",
                              "warnings", "unknown_models")
 # Llaves que audit_initial COPIA del veredicto inicial: las de ADR-0067 + las del cuórum (ADR-0081 D) cuando audit() las trae.
 AUDIT_INITIAL_KEYS = ("panel", "tally", "verdict", "n_valid", "source_vocabulary")
-AUDIT_INITIAL_QUORUM_KEYS = ("families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "quorum",
+# ADR-0086 (corrector R2-2): `attested_vision` viaja también aquí — con las figuras apagadas es la ÚNICA superficie
+# donde consta quién vio una imagen aportada (con figuras encendidas vive dentro de `vision`).
+AUDIT_INITIAL_QUORUM_KEYS = ("attested_vision",
+                             "families_valid", "n_families_valid", "lenses_valid", "n_lenses_valid", "quorum",
                              "panel_incomplete", "panel_incomplete_reasons",
                              "vision")     # corrector ADR-0083 (L/G.6): `audit += vision` TAMBIÉN en audit_initial (sólo si audit() la trae)
 
@@ -3223,7 +3226,19 @@ ATTESTED_NO_LEDGER_STATE = "not-applicable (no-ledger)"
 # (corrector R3-A3) hay filas ADJUNTAS en la base que el ledger VIGENTE no selló — porque se aprobó y luego se saltó el
 # consejo, o porque el sello se escribió y el ledger no. No entran a la corrida, y el estado lo DICE en vez de callarlo:
 # «nadie aportó» y «lo que aportaron no lo gobierna este ledger» son dos cosas distintas.
-ATTESTED_NOT_SEALED_STATE = "no-attested-images (attached rows not sealed by this ledger)"
+# el literal vive en el VOCABULARIO CERRADO de la biblioteca (una verdad): aquí sólo se aliasa
+ATTESTED_NOT_SEALED_STATE = (attestations_mod.ATTESTED_STATES_EXACT[2] if attestations_mod is not None
+                             else "no-attested-images (attached rows not sealed by this ledger)")
+# (corrector R2-6) los ÚNICOS estados en los que de veras se miró el plan: en los demás no hay 0, hay null declarado
+ATTESTED_COUNTED_STATES = ("attached", "no-attested-images", ATTESTED_NOT_SEALED_STATE)
+ATTESTED_RESEND_RULE = ("cada intento del juez REENVÍA las imágenes y la API las vuelve a facturar: bytes_b64_sent_total "
+                        "= Σ (bytes b64 entregados × intentos con imágenes), MEDIDO desde las filas del panel — es la "
+                        "cifra con la que se contesta cuántas veces salió de aquí una imagen aportada")
+
+
+def _attested_conto(state):
+    """¿Se llegó a MIRAR el plan? Con el kill-switch, sin ledger o con un error NADIE contó: el conteo va null."""
+    return state in ATTESTED_COUNTED_STATES
 THREAD_ATTESTED_MAX = 8                                        # = WITT_ATTESTED_MAX_PER_PLAN por defecto: el tope de un plan
 ATTESTED_THREAD_RULE = ("what the PARENT run had: metadata and caption (<= 200 chars), never bytes; withdrawn images are "
                         "excluded and counted (a person who retired an image does not keep feeding it to child runs) "
@@ -3691,6 +3706,11 @@ def _attested_cfg():
         cfg = attestations_mod.env_config()
     except Exception:
         return None, None, None          # sin configuración no se puede ni saber si está apagada: se declara arriba
+    if not cfg.get("enabled", True):
+        # (corrector R2-6/R2-12) apagada, la función NO toca el disco: `storage_backend` hace `probe()` y el backend local
+        # CREA su raíz al medirla. Además el registro traía `storage {backend, state 'stored', durability}` de una corrida
+        # que no usó el almacén — afirmaba que estaba listo y en juego.
+        return cfg, None, None
     try:
         storage, probe = attestations_mod.storage_backend(cfg=cfg)
     except Exception:
@@ -3872,9 +3892,18 @@ def _attested_fill(block, panel_rows_all, panel_selections, run_id):
     for it in block["items"]:
         it["seen_by_lenses"] = sorted(set(vistos.get(it.get("sha256"), [])))
         it["n_readings"] = int(leidas.get(it.get("sha256"), 0))
+    # (corrector R2-1) el REENVÍO medido: cada intento del juez vuelve a mandar las imágenes y la API las factura otra
+    # vez. Se suma desde las filas del panel, que es donde composite_auditor lo mide.
+    n_intentos = sum(int((r.get("saw_attested") or {}).get("attempts_with_images") or 0)
+                     for r in (panel_rows_all or []) if isinstance(r, dict))
+    b64_enviado = sum(int((r.get("saw_attested") or {}).get("bytes_b64_total") or 0)
+                      * int((r.get("saw_attested") or {}).get("attempts_with_images") or 0)
+                      for r in (panel_rows_all or []) if isinstance(r, dict))
     block["vision"] = {"n_selections": len(panel_selections or []),
                        "n_delivered_total": sum(int(p.get("n_attested") or 0) for p in (panel_selections or [])),
                        "n_readings": n_readings, "readings_class": "model-judgment",
+                       "n_attempts_with_images": n_intentos, "bytes_b64_sent_total": b64_enviado,
+                       "resend_rule": ATTESTED_RESEND_RULE,
                        "selections": list(panel_selections or [])}
     block["n_seen_by_panel"] = sum(1 for it in block["items"] if it.get("seen_by_lenses"))
     db.add_event(run_id, "stage.attestations.summary", agent=ATTESTED_AGENT,
@@ -3890,11 +3919,19 @@ def _attested_usage(block):
     entrada medidos del juez, ADR-0083 H)."""
     if not isinstance(block, dict):
         return None
+    _vis = block.get("vision") or {}
     return {"state": block.get("state"), "n_attached": int(block.get("n_attached") or 0),
             "n_seen_by_panel": int(block.get("n_seen_by_panel") or 0),
-            "n_readings": int(((block.get("vision") or {}).get("n_readings")) or 0),
-            "bytes_total": sum(int(it.get("bytes") or 0) for it in (block.get("items") or [])),
-            "class": "medición (conteos y bytes; los tokens de visión ya están en los input_tokens medidos del panel)"}
+            "n_readings": int(_vis.get("n_readings") or 0),
+            # (corrector R2-9) dos cifras de bytes DISTINTAS, con nombre: lo que está GUARDADO y lo que de veras SALIÓ a
+            # las lentes (b64 × intentos, que la API facturó). Antes `bytes_total` era la única y se leía como «lo que
+            # salió» siendo «lo que está almacenado».
+            "bytes_stored_total": sum(int(it.get("bytes") or 0) for it in (block.get("items") or [])),
+            "bytes_b64_sent_total": (int(_vis["bytes_b64_sent_total"]) if isinstance(_vis.get("bytes_b64_sent_total"), int)
+                                     else None),
+            "class": ("medición (conteos y bytes; bytes_stored_total = lo guardado, bytes_b64_sent_total = lo enviado a "
+                      "las lentes, null si el panel no midió; los tokens de visión ya están en los input_tokens medidos "
+                      "del panel y no se suman aquí)")}
 
 
 def _figures_panel_kwargs(bundle, answer, cfg, cache_root, lenses, enabled, vision_sent, panel_selections):
@@ -4574,7 +4611,10 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                             max(0, _embed_usage_snapshot() - embed_t0),
                             plan=plan_holder.get("plan"), council=council_holder,
                             figures=_figures_usage_ctx(fig_enabled, figures_holder["summary"], fig_cfg),
-                            web=_web_usage_ctx(web_holder["frozen"]))
+                            web=_web_usage_ctx(web_holder["frozen"]),
+                            # (corrector R2-17) una corrida abortada o cancelada también dice qué imágenes viajaron: era
+                            # la única llamada a _token_usage que no lo pasaba, aunque sí pasaba figuras y web
+                            attested=att_holder["block"])
 
     def _council_event(etype, payload):
         """TODOS los eventos stage.council.* salen del HILO ORQUESTADOR (council.run_round los emite al recoger
@@ -5670,8 +5710,13 @@ def execute_run(run, synthesizer=None, panel_caller=None, council_caller=None):
                              # nada se contó) — la Lista/Banco pinta 'N figuras verificadas · K citadas' sin re-derivar
                              # ADR-0086 (K): el estado de lo atestiguado y sus conteos viven también aquí (columna propia,
                              # FUERA del registro congelado) para la Lista y el Banco — existe aun con el localizador apagado
+                             # (corrector R2-6) los conteos son null cuando NADIE CONTÓ (apagado, sin ledger, error):
+                             # sólo hay 0 cuando de veras se miró el plan y no había imágenes. `attested_n_images: 0` bajo
+                             # kill-switch decía «no aportaron nada» de una corrida donde nadie preguntó — y su hermana de
+                             # al lado ya iba en null, dos doctrinas distintas en el mismo trío.
                              "attested_state": (att_holder["block"] or {}).get("state"),
-                             "attested_n_images": (att_holder["block"] or {}).get("n_attached"),
+                             "attested_n_images": ((att_holder["block"] or {}).get("n_attached")
+                                                   if _attested_conto(att_state) else None),
                              "attested_n_seen_by_panel": (att_holder["block"] or {}).get("n_seen_by_panel"),
                              "figures_state": (figures_holder["summary"] or {}).get("state"),
                              "figures_n_verified": ((figures_holder["summary"] or {}).get("n_verified") if fig_enabled else None),

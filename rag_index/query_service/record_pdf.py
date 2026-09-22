@@ -895,9 +895,14 @@ def _section_busqueda(pdf, record, ctx):
 # no hay miniaturas, ni bytes, ni llaves de almacen, ni rutas; de una imagen de paciente tampoco se imprime el caption.
 ATTESTED_CINTILLO = ("ATESTIGUADO: lo aporto una persona como PRIOR ART con su procedencia; no es evidencia, no se cita y "
                      "no sostiene ninguna afirmacion. Los bytes viven en almacenamiento privado; este PDF no los lleva.")
+# (corrector R2-8) los unicos estados en los que de veras se miro el plan: en los demas no hay 0, hay ausencia declarada
+ATTESTED_COUNTED_STATES_PDF = ("attached", "no-attested-images",
+                               "no-attested-images (attached rows not sealed by this ledger)")
 ATTESTED_STATE_GLOSS = {
     "attached": "hay imagenes aportadas y adjuntadas por la compuerta humana",
     "no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
+    "no-attested-images (attached rows not sealed by this ledger)":
+        "habia imagenes adjuntas en la base que ESTE ledger no sello: no entraron (la compuerta humana manda)",
     "not-applicable (no-ledger)": "la corrida no tuvo plan con consejo: no hay canal para aportar",
     "kill-switch WITT_ATTESTED_IMAGES=0": "funcion apagada por variable de entorno",
 }
@@ -944,7 +949,12 @@ def _section_aportadas(pdf, record, ctx):
                 + (f" - {dur.get('note')}" if dur.get("note") else ""), size=8)
     items = ai.get("items") if isinstance(ai.get("items"), list) else []
     if not items:
-        _p(pdf, "sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]", size=8)
+        # (corrector revisor 2, R2-8) el rotulo [MEDIDO] es la etiqueta de CLASE y se le ponia a una no-medicion: esta
+        # linea sale en cinco estados y en tres de ellos nadie conto nada (apagado, sin ledger, error). Este PDF circula
+        # fuera de la app y esa frase se lee sola, sin la linea de estado de arriba.
+        _p(pdf, ("sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]" if state in ATTESTED_COUNTED_STATES_PDF
+                 else "no hay imagenes que mostrar y NADIE LAS CONTO: el estado de arriba dice por que [NO MEDIDO]"),
+           size=8)
         _rule(pdf)
         return
     vision = ai.get("vision") if isinstance(ai.get("vision"), dict) else {}

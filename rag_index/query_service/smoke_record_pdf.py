@@ -1139,15 +1139,24 @@ check("(F7.4c, corrector) y el caption NO aparece en el PDF renderizado con la b
       json.dumps({"caption_en_el_pdf": AI_CAP_P in _txt14f,
                   "bandera_en_el_pdf": "declarada material de paciente por natalia" in _txt14f}))
 _AI_ESTADOS = {"no-attested-images": "el plan no adjunto ninguna imagen (MEDIDO: no es que no se pudiera)",
+               "no-attested-images (attached rows not sealed by this ledger)":
+                   "habia imagenes adjuntas en la base que ESTE ledger no sello: no entraron (la compuerta humana manda)",
                "not-applicable (no-ledger)": "la corrida no tuvo plan con consejo: no hay canal para aportar",
                "kill-switch WITT_ATTESTED_IMAGES=0": "funcion apagada por variable de entorno"}
 for _st14, _glosa14 in _AI_ESTADOS.items():
     _t14 = pdf_text(_rec14({**AI_BLOQUE, "state": _st14, "items": [], "n_attached": 0, "n_seen_by_panel": 0,
                             "vision": None}))[1]
     _s14 = _slice(_t14, "IMAGENES APORTADAS POR UNA PERSONA", "ALTERNATIVAS CONSIDERADAS")
-    check(f"(F7.5) estado '{_st14}' glosado con su CAUSA y, sin imagenes, la linea que distingue 0 MEDIDO de ausencia",
+    # (corrector revisor 2, R2-8) el rotulo [MEDIDO] es la etiqueta de CLASE: de estos cuatro estados solo DOS contaron
+    # de verdad (`no-attested-images` y el de filas sin sellar). En los otros nadie miro el plan, y el PDF —que circula
+    # fuera de la app, donde esa frase se lee sola— ya no los rotula como medicion.
+    _conto14 = _st14 in R.ATTESTED_COUNTED_STATES_PDF
+    check(f"(F7.5) estado '{_st14}' glosado con su CAUSA y, sin imagenes, la linea correcta segun si ALGUIEN CONTO: "
+          + ("[MEDIDO: 0 != ausente]" if _conto14 else "[NO MEDIDO] con el porque"),
           f"estado: {_st14} - {_glosa14}" in _s14
-          and "sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]" in _s14
+          and (("sin imagenes aportadas en esta corrida [MEDIDO: 0 != ausente]" in _s14) if _conto14
+               else ("NADIE LAS CONTO" in _s14 and "[NO MEDIDO]" in _s14
+                     and "[MEDIDO: 0 != ausente]" not in _s14))
           and AI_CAP_A not in _t14,
           _s14[:120].replace("\n", " | "))
 check("(F7.6) PARIDAD de vocabulario PDF <-> lib/attestations.py: las llaves glosadas de record_pdf.ATTESTED_STATE_GLOSS son "

@@ -186,7 +186,11 @@ check("el tope por persona y día se puede medir (cuántas subió desde un insta
 u = db.attested_images_usage()
 check("el agregado de uso cuenta filas, bytes, retiradas, adjuntas y material de paciente — todo MEDIDO. Una imagen "
       "retirada CONSERVA su adjunción: el registro dice lo que pasó, no lo que quedó (por eso adjuntas = 2 con una retirada)",
-      u["n_images"] == 3 and u["bytes_total"] > 0 and u["n_withdrawn"] == 2 and u["n_attached"] == 2
+      u["n_images"] == 3 and u["bytes_stored_total"] > 0 and u["n_withdrawn"] == 2 and u["n_attached"] == 2
+      # (corrector A9) «vivas» y «todas» son dos mediciones distintas y ahora cada una tiene su nombre: antes el bloque
+      # decía «sobre las filas vivas» y contaba también las retiradas, con bytes de archivos que ya no existen
+      and u["n_live"] == u["n_images"] - u["n_withdrawn"] and u["bytes_live_total"] < u["bytes_stored_total"]
+      and "n_live y bytes_live_total" in u["class"]
       and u["n_patient_material"] == 0 and "medición" in u["class"], json.dumps(u, ensure_ascii=False))
 check("el agregado se puede acotar a unos planes (el reporte por ventana no inventa filas de otros)",
       db.attested_images_usage(plan_ids=["plan-hijo"])["n_images"] == 1

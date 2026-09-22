@@ -6726,7 +6726,15 @@ check("ADR-0086 (K) el consumo y la rendición de cuentas: token_usage.attested_
       "veces); agents_invoked trae la fila de lib/attestations.py 'invoked' con bytes_to_synthesizer:False; epistemic_summary declara "
       "attested_state/attested_n_images/attested_n_seen_by_panel para la Lista",
       _tu86a["state"] == "attached" and _tu86a["n_attached"] == 2
-      and _tu86a["bytes_total"] == sum(int(it["bytes"]) for it in _ai86a["items"]) and _tu86a["bytes_total"] > 0
+      # (corrector R2-9/R2-1) dos cifras de bytes con nombre, y el REENVÍO medido: cada intento del juez vuelve a mandar
+      # las imágenes y la API las factura otra vez. `bytes_b64_sent_total` era un 0 ESTRUCTURAL — nadie actualizaba
+      # `attempts_with_images` para lo atestiguado — y era la cifra que contesta cuántas veces salió de aquí la imagen
+      and _tu86a["bytes_stored_total"] == sum(int(it["bytes"]) for it in _ai86a["items"])
+      and _tu86a["bytes_stored_total"] > 0
+      and _ai86a["vision"]["n_attempts_with_images"] >= 1
+      and _ai86a["vision"]["bytes_b64_sent_total"] > 0
+      and _tu86a["bytes_b64_sent_total"] == _ai86a["vision"]["bytes_b64_sent_total"]
+      and "cuántas veces salió" in _ai86a["vision"]["resend_rule"]
       and _tu86a["class"].startswith("medición") and _tu86a["n_seen_by_panel"] == _ai86a["n_seen_by_panel"]
       and _ag86a["status"] == "invoked" and "bytes_to_synthesizer:False" in _ag86a["evidence_generated"]
       and _esum86["attested_state"] == "attached" and _esum86["attested_n_images"] == 2

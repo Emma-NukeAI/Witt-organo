@@ -94,9 +94,12 @@ print("\n# 1. vocabularios cerrados y doctrina escrita")
 V = at.VOCABULARY
 check("VOCABULARY expone las tablas cerradas que la webapp tendrá que glosar (>= 10 familias de palabras)",
       isinstance(V, dict) and len(V) >= 10, f"{len(V)} familias")
-check("los 4 estados EXACTOS del bloque + 2 prefijos (attached · sin imágenes · sin ledger · kill-switch)",
-      at.ATTESTED_STATES_EXACT == ("attached", "no-attested-images", "not-applicable (no-ledger)",
-                                   "kill-switch WITT_ATTESTED_IMAGES=0")
+check("los 5 estados EXACTOS del bloque + 2 prefijos (attached · sin imágenes · ADJUNTAS QUE ESTE LEDGER NO SELLÓ · sin "
+      "ledger · kill-switch). El tercero lo añadió el corrector del revisor 3: «nadie aportó» y «lo que aportaron no lo "
+      "gobierna este ledger» son dos cosas distintas, y el registro tiene que poder decir cuál",
+      at.ATTESTED_STATES_EXACT == ("attached", "no-attested-images",
+                                   "no-attested-images (attached rows not sealed by this ledger)",
+                                   "not-applicable (no-ledger)", "kill-switch WITT_ATTESTED_IMAGES=0")
       and at.ATTESTED_STATES_PREFIXES == ("error: ", "tool-unavailable ("))
 check("el kill-switch declara EXACTAMENTE 3 excepciones (M.1 de la casa)",
       at.ATTESTED_DECLARED_EXCEPTIONS == ("render_contract_version", "attested_images",

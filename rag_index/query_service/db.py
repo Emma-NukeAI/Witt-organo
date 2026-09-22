@@ -2599,19 +2599,28 @@ def attested_images_uploaded_today(uploaded_by: str, since) -> int:
 
 
 def attested_images_usage(plan_ids=None):
-    """Agregado para /usage.attested_images: conteos MEDIDOS (nunca proyecciones) sobre las filas vivas."""
+    """Agregado para /usage.attested_images: conteos MEDIDOS (nunca proyecciones) sobre las filas de la tabla.
+
+    CORRECTOR (revisor 3, A9): decía «sobre las filas VIVAS» y contaba TODAS, retiradas incluidas — y `bytes_total` sumaba
+    bytes de archivos que ya no existen. Ahora se sirven las dos cosas CON NOMBRE: `n_images`/`bytes_stored_total` sobre
+    todas las filas (el registro es inmutable: una retirada siguió existiendo) y `n_live`/`bytes_live_total` sobre las que
+    conservan sus bytes. Una medición etiquetada como otra cosa es justo lo que la casa prohíbe."""
     t = plan_attested_images
     q = select(func.count(), func.coalesce(func.sum(t.c.bytes), 0),
                func.sum(case((t.c.withdrawn_at.isnot(None), 1), else_=0)),
                func.sum(case((t.c.attached_to.isnot(None), 1), else_=0)),
-               func.sum(case((t.c.patient_material.is_(True), 1), else_=0))).select_from(t)
+               func.sum(case((t.c.patient_material.is_(True), 1), else_=0)),
+               func.coalesce(func.sum(case((t.c.withdrawn_at.is_(None), t.c.bytes), else_=0)), 0)).select_from(t)
     if plan_ids:
         q = q.where(t.c.plan_id.in_(list(plan_ids)))
     with engine().connect() as cx:
-        n, nbytes, nwd, natt, npat = cx.execute(q).first()
-    return {"n_images": int(n or 0), "bytes_total": int(nbytes or 0), "n_withdrawn": int(nwd or 0),
-            "n_attached": int(natt or 0), "n_patient_material": int(npat or 0),
-            "class": "medición (conteos y bytes de las filas; ningún byte de imagen viaja aquí)"}
+        n, nbytes, nwd, natt, npat, nbytes_live = cx.execute(q).first()
+    return {"n_images": int(n or 0), "n_live": int(n or 0) - int(nwd or 0),
+            "bytes_stored_total": int(nbytes or 0), "bytes_live_total": int(nbytes_live or 0),
+            "n_withdrawn": int(nwd or 0), "n_attached": int(natt or 0), "n_patient_material": int(npat or 0),
+            "class": ("medición (conteos y bytes de las filas; ningún byte de imagen viaja aquí). n_images y "
+                      "bytes_stored_total cuentan TODAS las filas —el registro es inmutable, una retirada existió—; "
+                      "n_live y bytes_live_total, sólo las que conservan sus bytes")}
 
 
 # La COMPARACIÓN (qué campo cambió respecto a la última fila) NO vive aquí: es del escritor
